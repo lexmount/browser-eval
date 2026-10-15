@@ -31838,6 +31838,368 @@
         ],
         "resource_precision": 1.0
       }
+    },
+    {
+      "id": "image-04-declared-display-equivalence-accepted",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_image_display_equivalence",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://en.wikipedia.org/wiki/Apollo_11",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "image-1",
+            "kind": "image-1",
+            "urls": [
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg/330px-A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail"
+            ],
+            "url_patterns": [
+              "^https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/(?:thumb/)?4/41/A_Man_on_the_Moon,_AS11\\-40\\-5903_\\(cropped\\)\\.jpg(?:/[1-9][0-9]*px-A_Man_on_the_Moon,_AS11\\-40\\-5903_\\(cropped\\)\\.jpg)?(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          },
+          {
+            "id": "image-2",
+            "kind": "image-2",
+            "urls": [
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Apollo_11_insignia.png/250px-Apollo_11_insignia.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail"
+            ],
+            "url_patterns": [
+              "^https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/(?:thumb/)?2/27/Apollo_11_insignia\\.png(?:/[1-9][0-9]*px-Apollo_11_insignia\\.png)?(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg/640px-A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg\nhttps://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Apollo_11_insignia.png/640px-Apollo_11_insignia.png",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "image-04-declared-display-equivalence-unlisted-query-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_image_display_equivalence",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://en.wikipedia.org/wiki/Apollo_11",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "image-1",
+            "kind": "image-1",
+            "urls": [
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg/330px-A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail"
+            ],
+            "url_patterns": [
+              "^https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/(?:thumb/)?4/41/A_Man_on_the_Moon,_AS11\\-40\\-5903_\\(cropped\\)\\.jpg(?:/[1-9][0-9]*px-A_Man_on_the_Moon,_AS11\\-40\\-5903_\\(cropped\\)\\.jpg)?(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          },
+          {
+            "id": "image-2",
+            "kind": "image-2",
+            "urls": [
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Apollo_11_insignia.png/250px-Apollo_11_insignia.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail"
+            ],
+            "url_patterns": [
+              "^https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/(?:thumb/)?2/27/Apollo_11_insignia\\.png(?:/[1-9][0-9]*px-Apollo_11_insignia\\.png)?(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg/640px-A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg?crop=unapproved\nhttps://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Apollo_11_insignia.png/640px-Apollo_11_insignia.png",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "image-nasa-article-declared-display-equivalence-accepted",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_image_display_equivalence",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://www.nasa.gov/image-article/historic-engines-take-their-place-on-artemis-iii/",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images-assets.nasa.gov/image/KSC-20260825-PH-RCR01_0045/KSC-20260825-PH-RCR01_0045~large.jpg?w=1920&h=1280&fit=clip&crop=faces%2Cfocalpoint"
+            ],
+            "url_patterns": [
+              "^https://images\\-assets\\.nasa\\.gov/image/KSC\\-20260825\\-PH\\-RCR01_0045/KSC\\-20260825\\-PH\\-RCR01_0045\\~large\\.jpg(?:\\?(?:[wh]=[1-9][0-9]*|fit=clip|crop=faces(?:%2[Cc]|,)focalpoint)(?:&(?:[wh]=[1-9][0-9]*|fit=clip|crop=faces(?:%2[Cc]|,)focalpoint))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images-assets.nasa.gov/image/KSC-20260825-PH-RCR01_0045/KSC-20260825-PH-RCR01_0045~large.jpg?w=640&h=480&fit=clip&crop=faces%2Cfocalpoint",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "image-nasa-article-declared-display-equivalence-unlisted-query-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_image_display_equivalence",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://www.nasa.gov/image-article/historic-engines-take-their-place-on-artemis-iii/",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images-assets.nasa.gov/image/KSC-20260825-PH-RCR01_0045/KSC-20260825-PH-RCR01_0045~large.jpg?w=1920&h=1280&fit=clip&crop=faces%2Cfocalpoint"
+            ],
+            "url_patterns": [
+              "^https://images\\-assets\\.nasa\\.gov/image/KSC\\-20260825\\-PH\\-RCR01_0045/KSC\\-20260825\\-PH\\-RCR01_0045\\~large\\.jpg(?:\\?(?:[wh]=[1-9][0-9]*|fit=clip|crop=faces(?:%2[Cc]|,)focalpoint)(?:&(?:[wh]=[1-9][0-9]*|fit=clip|crop=faces(?:%2[Cc]|,)focalpoint))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images-assets.nasa.gov/image/KSC-20260825-PH-RCR01_0045/KSC-20260825-PH-RCR01_0045~large.jpg?w=640&h=480&fit=clip&crop=faces%2Cfocalpoint&crop=unapproved",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "image-unsplash-detail-declared-display-equivalence-accepted",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_image_display_equivalence",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.unsplash.com/photo-1493673272479-a20888bcee10",
+              "https://unsplash.com/photos/mSK5nNsAsLY/download"
+            ],
+            "url_patterns": [
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.unsplash.com/photo-1493673272479-a20888bcee10?w=640&auto=format&q=80",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "image-unsplash-detail-declared-display-equivalence-unlisted-query-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_image_display_equivalence",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.unsplash.com/photo-1493673272479-a20888bcee10",
+              "https://unsplash.com/photos/mSK5nNsAsLY/download"
+            ],
+            "url_patterns": [
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.unsplash.com/photo-1493673272479-a20888bcee10?w=640&auto=format&q=80&crop=unapproved",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "image-pexels-detail-declared-display-equivalence-accepted",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_image_display_equivalence",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://www.pexels.com/photo/a-green-trees-in-the-forest-12377231/",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg"
+            ],
+            "url_patterns": [
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg?w=640&auto=compress&cs=tinysrgb",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "image-pexels-detail-declared-display-equivalence-unlisted-query-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_image_display_equivalence",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://www.pexels.com/photo/a-green-trees-in-the-forest-12377231/",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg"
+            ],
+            "url_patterns": [
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg?w=640&auto=compress&cs=tinysrgb&crop=unapproved",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "image-earth-main-declared-display-equivalence-accepted",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_image_display_equivalence",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://commons.wikimedia.org/wiki/File:The_Earth_seen_from_Apollo_17.jpg",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20200925203546"
+            ],
+            "url_patterns": [
+              "^https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/(?:thumb/)?9/97/The_Earth_seen_from_Apollo_17\\.jpg(?:/[1-9][0-9]*px-The_Earth_seen_from_Apollo_17\\.jpg)?(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/640px-The_Earth_seen_from_Apollo_17.jpg",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "image-earth-main-declared-display-equivalence-unlisted-query-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_image_display_equivalence",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://commons.wikimedia.org/wiki/File:The_Earth_seen_from_Apollo_17.jpg",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20200925203546"
+            ],
+            "url_patterns": [
+              "^https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/(?:thumb/)?9/97/The_Earth_seen_from_Apollo_17\\.jpg(?:/[1-9][0-9]*px-The_Earth_seen_from_Apollo_17\\.jpg)?(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/640px-The_Earth_seen_from_Apollo_17.jpg?crop=unapproved",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
     }
   ],
   "superseded_controls": {

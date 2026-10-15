@@ -215,6 +215,56 @@ def _resource_target_matches(case, candidates: list[dict]) -> list[dict]:
     return results
 
 
+def _resource_observation_scope(case, root, evidence):
+    """Retain an observation's old scope across an explicit score-only alias revision."""
+    current = resource_source_scope_identity(case)
+    binding = current['resource_output_contract'].pop('equivalence_revision', None)
+    if binding is None:
+        return current
+    identifier = safe_identifier(_get(case, 'id'))
+    if (not isinstance(binding, dict)
+            or binding.get('path') != 'resource-equivalence-revision.json'):
+        raise ReferenceLifecycleError('Invalid resource equivalence revision binding')
+    try:
+        raw = contained_path(root, identifier + '/' + binding['path']).read_bytes()
+        if sha256(raw) != binding.get('sha256'):
+            raise ReferenceLifecycleError('Resource equivalence revision hash changed')
+        receipt = json.loads(raw)
+        before = receipt['before_scope']
+        canonical = json.dumps(current, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+        if (receipt.get('kind') != 'offline_resource_equivalence_revision'
+                or receipt.get('provider_calls_added') != 0
+                or receipt.get('new_source_observation') is not False
+                or receipt.get('after_scope_sha256') != sha256(canonical)
+                or receipt.get('source_evidence_sha256') != _get(case, 'source_verification', {}).get('evidence_sha256')
+                or receipt.get('browser_observation_sha256') != evidence.get('independent_browser_observation', {}).get('sha256')
+                or not receipt.get('authority', {}).get('description')):
+            raise ReferenceLifecycleError('Resource equivalence revision authority/scope differs')
+        # Only add declared equivalents. Never replace primary source targets,
+        # their identity, candidate policy, task URL, or historical observations.
+        old_targets, new_targets = before['expected_resources'], current['expected_resources']
+        if ({k: v for k, v in before.items() if k != 'expected_resources'}
+                != {k: v for k, v in current.items() if k != 'expected_resources'}
+                or len(old_targets) != len(new_targets)):
+            raise ReferenceLifecycleError('Resource equivalence revision changed source scope')
+        for old, new in zip(old_targets, new_targets):
+            if ({k: v for k, v in old.items() if k not in {'aliases', 'url_patterns'}}
+                    != {k: v for k, v in new.items() if k not in {'aliases', 'url_patterns'}}
+                    or any(not set(old.get(key, [])) <= set(new.get(key, []))
+                           for key in ('aliases', 'url_patterns'))):
+                raise ReferenceLifecycleError('Resource equivalence revision replaced a primary target')
+        from .scoring_regressions import require_scoring_regressions
+        controls = receipt.get('regression_ids')
+        if not isinstance(controls, list) or not controls:
+            raise ReferenceLifecycleError('Resource equivalence revision lacks executable controls')
+        require_scoring_regressions(controls)
+    except ReferenceLifecycleError:
+        raise
+    except (OSError, ValueError, TypeError, KeyError) as error:
+        raise ReferenceLifecycleError('Invalid resource equivalence revision') from error
+    return before
+
+
 def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
     """Fail closed unless every resource target has independent, hash-bound evidence.
 
@@ -268,6 +318,7 @@ def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
     candidates = [*candidates, *observed_candidates]
     source_qualified = evidence.get("state") == "captured" and evidence.get("status") == 200
 
+    observed_scope = _resource_observation_scope(case, root, evidence)
     browser_binding = evidence.get("independent_browser_observation")
     if browser_binding is not None:
         if (not isinstance(browser_binding, dict)
@@ -292,12 +343,13 @@ def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
         if (observation.get("case_id") != identifier
                 or observation.get("url") != _get(case, "url")
                 or observation.get("independent") is not True
-                or observation.get("resource_scope_identity") != resource_source_scope_identity(case)
+                or observation.get("resource_scope_identity") != observed_scope
                 or not isinstance(observed_candidates, list) or len(observed_candidates) > 512
                 or observation.get("resource_candidates_sha256") != sha256(canonical)):
             raise ReferenceLifecycleError(f"{identifier}: browser observation scope/hash mismatch")
         timestamp(observation.get("checked_at"))
-        browser_matches = _resource_target_matches(case, observed_candidates)
+        browser_matches = _resource_target_matches(
+            {**observed_scope, "id": observed_scope["case_id"]}, observed_candidates)
         browser_qualified = (
             observation.get("status") == "success"
             and observation.get("completion", {}).get("satisfied") is True

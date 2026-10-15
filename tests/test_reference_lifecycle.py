@@ -228,6 +228,59 @@ class ReferenceLifecycleTests(unittest.TestCase):
         with self.assertRaisesRegex(ReferenceLifecycleError, "does not cover every"):
             validate_resource_source_evidence(case, self.dataset_path)
 
+    def test_resource_equivalence_keeps_original_browser_observation_and_primary_target(self):
+        from harness.web_fetch.browser_observations import match_resource_targets
+        original = self.resource_case()
+        scope = resource_source_scope_identity(original)
+        candidates = [{'tag': 'a', 'attribute': 'href', 'url': original.expected_resources[0]['urls'][0]}]
+        browser = {'schema_version': 1, 'case_id': original.id, 'url': original.url,
+                   'status': 'success', 'independent': True, 'checked_at': self.now.isoformat(),
+                   'resource_scope_identity': scope, 'resource_candidates': candidates,
+                   'resource_candidates_sha256': sha256(json.dumps(candidates, ensure_ascii=False,
+                       sort_keys=True, separators=(',', ':'))),
+                   'target_matches': match_resource_targets(original, candidates),
+                   'completion': {'satisfied': True}}
+        original = self.resource_case(evidence_updates={'state': 'needs_review', 'status': 403,
+                                                      'resources': []}, browser=browser)
+        browser_path = self.root/'sources/resource/browser-observation.json'
+        browser_bytes = browser_path.read_bytes()
+        aliases = [{**original.expected_resources[0], 'aliases': ['https://cdn.example.test/a.png?w=800']}]
+        revised = replace(original, expected_resources=aliases)
+        new_scope = resource_source_scope_identity(revised)
+        receipt = {'kind': 'offline_resource_equivalence_revision', 'provider_calls_added': 0,
+                   'new_source_observation': False, 'before_scope': scope,
+                   'after_scope_sha256': sha256(json.dumps(new_scope, ensure_ascii=False,
+                       sort_keys=True, separators=(',', ':'))),
+                   'source_evidence_sha256': original.source_verification['evidence_sha256'],
+                   'browser_observation_sha256': sha256(browser_bytes),
+                   'authority': {'description': 'Same observed asset; a score-only display-size equivalent.'},
+                   'regression_ids': ['resource-query-explicit-alias-preserved',
+                                      'resource-query-different-resource-rejected']}
+        proof = self.root/'sources/resource/resource-equivalence-revision.json'
+        def bound_case(value):
+            raw = (json.dumps(value)+'\n').encode()
+            proof.write_bytes(raw)
+            return replace(revised, resource_output_contract={
+                **revised.resource_output_contract, 'equivalence_revision': {
+                    'path': proof.name, 'sha256': sha256(raw)}})
+        result = validate_resource_source_evidence(bound_case(receipt), self.dataset_path)
+        self.assertTrue(result['target_matches'][0]['satisfied'])
+        self.assertEqual(browser_path.read_bytes(), browser_bytes)
+        # A new alias cannot silently rewrite or replace the captured scope.
+        for defect in ('primary', 'policy', 'source', 'observation', 'controls', 'fresh'):
+            bad = deepcopy(receipt)
+            if defect == 'primary': bad['before_scope']['expected_resources'][0]['urls'] = ['https://wrong.test/other.png']
+            if defect == 'policy': bad['before_scope']['resource_output_contract'] = {'unexpected': 'reject'}
+            if defect == 'source': bad['source_evidence_sha256'] = '0'*64
+            if defect == 'observation': bad['browser_observation_sha256'] = '0'*64
+            if defect == 'controls': bad['regression_ids'] = []
+            if defect == 'fresh': bad['new_source_observation'] = True
+            with self.subTest(defect=defect), self.assertRaises(ReferenceLifecycleError):
+                validate_resource_source_evidence(bound_case(bad), self.dataset_path)
+        without_receipt = replace(revised, resource_output_contract={})
+        with self.assertRaisesRegex(ReferenceLifecycleError, 'scope/hash mismatch'):
+            validate_resource_source_evidence(without_receipt, self.dataset_path)
+
     def test_per_case_rechecks_clock_and_immutable_scope(self):
         binding = self.checks()["cases"]["body"]
         with self.assertRaisesRegex(ReferenceLifecycleError, "30 minutes"):
