@@ -82,7 +82,8 @@ class NativeTaskOutputTests(unittest.TestCase):
             server.shutdown(); server.server_close(); thread.join(1)
 
     def test_native_document_projection_rejects_bytes_and_preserves_native_text(self):
-                from harness.web_fetch.providers.headless_worker import _projection_text
+        from unittest.mock import patch
+        from harness.web_fetch.providers.headless_worker import _projection_text
         from harness.web_fetch.task_outputs import DOCUMENT_PAGE_EXPRESSION
         import time
         self.assertNotIn('fetch(', DOCUMENT_PAGE_EXPRESSION)
