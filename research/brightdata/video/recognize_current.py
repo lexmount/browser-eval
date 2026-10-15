@@ -1,4 +1,4 @@
-"""Independently locate spoken scene boundaries; never replace authored captions."""
+"""Independently time spoken words; never replace authored captions."""
 from pathlib import Path
 import argparse
 import hashlib

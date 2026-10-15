@@ -214,7 +214,9 @@ function SourceMap({
     agent: [0.71, 0.66, 0.18, 0.13],
     intelligence: [0.11, 0.3, 0.78, 0.1],
   };
-  const region = regions[focus];
+  const selectedRegions = focus === "data-path"
+    ? [regions.intelligence, regions.data, regions.extraction, regions.access, [0.11, 0.80, 0.78, 0.105]]
+    : regions[focus] ? [regions[focus]] : [];
   const progress = useContext(MotionContext);
   return (
     <>
@@ -222,8 +224,9 @@ function SourceMap({
         src={staticFile("architecture.png")}
         style={{ position: "absolute", left: x, top: y, width: w, height: h }}
       />
-      {region && (
+      {selectedRegions.map((region, index) => (
         <div
+          key={index}
           data-target={focus}
           data-active="true"
           style={{
@@ -239,7 +242,7 @@ function SourceMap({
             opacity: progress,
           }}
         />
-      )}
+      ))}
       {recap && (
         <>
           <Label
@@ -276,9 +279,9 @@ function SourceMap({
   );
 }
 const ladder = [
-  ["access", "Access", "网站可获得"],
-  ["extraction", "Extraction", "字段可使用"],
-  ["data", "Data Product", "数据可持续"],
+  ["access", "Access", "稳定访问网站"],
+  ["extraction", "Extraction", "提取结构化字段"],
+  ["data", "Data Product", "持续更新与查询"],
   ["intelligence", "Intelligence", "支持业务判断"],
 ];
 function Route({ focus }: { focus: string }) {
@@ -566,7 +569,6 @@ function Dependency({ focus }: { focus: string }) {
           [xx, yy] = nodes[b];
         const aw = a === "entries" ? 360 : 300;
         const on = group.includes(a) && group.includes(b);
-        if (!on) return null;
         const same = x === xx;
         return (
           <Arrow
@@ -965,11 +967,11 @@ function Fornova({ focus }: { focus: string }) {
 }
 function Quality({ focus }: { focus: string }) {
   const qs = [
-    ["success", "成功率", "是否取得目标结果"],
     ["coverage", "来源覆盖", "关键网站是否覆盖"],
-    ["freshness", "新鲜度", "是否按需更新"],
     ["correctness", "字段正确", "对象、单位、含义"],
     ["maintenance", "维护响应", "站点变化后能否恢复"],
+    ["success", "成功率", "是否取得目标结果"],
+    ["freshness", "新鲜度", "是否按需更新"],
     ["responsibility", "权限与责任", "权限、支持、故障归属"],
   ];
   return (
@@ -984,7 +986,10 @@ function Quality({ focus }: { focus: string }) {
           h={175}
           title={t}
           sub={sub}
-          active={focus === id || focus === "quality"}
+          active={focus === id || focus === "quality" ||
+            (focus === "availability" && ["success", "coverage"].includes(id)) ||
+            (focus === "usability" && ["freshness", "correctness"].includes(id)) ||
+            (focus === "operations" && ["maintenance", "responsibility"].includes(id))}
         />
       ))}
       <Cell
@@ -1357,16 +1362,16 @@ function Roadmap({ focus }: { focus: string }) {
           )}
         </React.Fragment>
       ))}
-      <Cell
-        id="validation"
-        x={110}
-        y={725}
-        w={1700}
-        h={130}
-        title="每向上一层，都先由真实客户任务证明复用价值"
-        active={focus === "validation"}
-        color={C.navy}
-      />
+      <Label x={110} y={665} text="扩大投入前，先验证" size={29} color={C.muted} />
+      {[
+        ["repeat", "客户反复使用"],
+        ["qualified", "字段长期合格"],
+        ["cost", "维护成本随复用下降"],
+      ].map(([id, title], i) => (
+        <Cell key={id} id={id} x={110 + i * 585} y={725} w={555} h={130}
+          title={title} active={focus === "validation" || focus === id ||
+            (focus === "qualified" && i === 0) || (focus === "cost" && i < 2)} color={C.navy} />
+      ))}
     </>
   );
 }

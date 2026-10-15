@@ -24,6 +24,13 @@ class TimelineTests(unittest.TestCase):
   for s in t['scenes']:
    caps=[c for c in t['captions'] if c['scene']==s['id']]
    self.assertTrue(caps[-1]['text'].endswith(('。','！','？')),s['id'])
+ @unittest.skipUnless((ROOT/"video/remotion/src/timeline.json").is_file(),"Requires the local publication inputs")
+ def test_comprehension_holds_keep_a_stable_focus(self):
+  t=json.loads((ROOT/'video/remotion/src/timeline.json').read_text())
+  for scene in t['scenes']:
+   events=[e for e in t['events'] if e['scene']==scene['id'] and e['start']>=scene['speechEnd']]
+   self.assertEqual(len(events),1,scene['id'])
+   self.assertAlmostEqual(events[0]['end'],scene['end'],places=3)
  @unittest.skipUnless((ROOT/"assets/diagrams/original-architecture.mmd").is_file(),"Requires the retained source diagram")
  def test_dependency_relations_survive_redrawing(self):
   import re,ast

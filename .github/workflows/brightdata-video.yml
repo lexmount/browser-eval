@@ -30,7 +30,7 @@ jobs:
           cache-dependency-path: research/brightdata/video/remotion/package-lock.json
       - run: |
           uv run --frozen python -m unittest discover -s research/brightdata/tests -p test_video_timeline.py
-          uv run --frozen python -m unittest discover -s research/brightdata/tests -p test_speech_alignment.py
+          uv run --frozen --with opencc-python-reimplemented==0.1.7 --with pypinyin==0.55.0 python -m unittest discover -s research/brightdata/tests -p test_speech_alignment.py
           uv run --frozen python -m unittest discover -s research/brightdata/tests -p test_tts_request.py
       - run: npm ci && node check_fixture.mjs && npm run check
         working-directory: research/brightdata/video/remotion
