@@ -8,7 +8,6 @@ from harness.web_fetch import local_audit
 from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report import local_audit_banner, provider_configuration
 from harness.web_fetch.storage import data_home
-from harness.web_fetch.scoring_regressions import load_scoring_regressions
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
 
@@ -53,7 +52,6 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig):
         assert historical.count(line)==1
         historical=historical.replace(line,'',1)
         assert hashlib.sha256(historical.encode()).hexdigest()==followup['predecessor_sha256']
-    controls = load_scoring_regressions()
     for change in revision["dynamic_dataset"]["changes"]:
         case = next(case for case in cases if case["id"] == change["case_id"])
         assert case[change["field"]] == change["value"]
@@ -92,6 +90,8 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig):
         (snapshot / "harness/web_fetch" / name).read_bytes() for name in scorer_files)).hexdigest()
     assert scorer_revision["scoring_regressions_sha256"] == hashlib.sha256(
         (snapshot / "evaluation/scoring-regressions.json").read_bytes()).hexdigest()
+    controls = {row['id']: row for row in json.loads(
+        (snapshot / 'evaluation/scoring-regressions.json').read_text())['cases']}
     assert set(scorer_revision["regression_ids"]) <= set(controls)
     modes = {}
     for identifier in scorer_revision["regression_ids"]:
@@ -136,6 +136,18 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig):
     assert dataset["comparison"]["local_audit_receipt"] == RECEIPT_PATH.relative_to(ROOT).as_posix()
 
 
+def historical_controls_path():
+    revision = json.loads(REVISION_PATH.read_text())
+    scorer = revision['shared_scorer']
+    for followup in revision.get('shared_scorer_followups', []):
+        scorer = {**scorer, **followup}
+    path = data_home() / 'scoring-snapshots' / scorer['revised_sha256'] / 'evaluation/scoring-regressions.json'
+    if not path.is_file():
+        pytest.skip('requires externally installed frozen historical scorer inputs')
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == scorer['scoring_regressions_sha256']
+    return path
+
+
 def require_historical_inputs():
     try:
         input_tree(Path('evaluation/dataset.json'), 'sources')
@@ -158,7 +170,7 @@ def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monke
     require_historical_inputs()
     dataset = _dataset()
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
-    registry = json.loads((ROOT / "evaluation/scoring-regressions.json").read_text())
+    registry = json.loads(historical_controls_path().read_text())
     original_file = local_audit._repository_file
     replacement = tmp_path / "scoring-regressions.json"
 
@@ -228,10 +240,14 @@ def test_local_audit_banner_depends_on_dataset_publication_state():
     assert "本地审核版" in local_audit_banner(_dataset())
 
 
-def test_dynamic_100_repository_evidence_and_scoring_revision_are_exact():
+def test_dynamic_100_repository_evidence_and_scoring_revision_are_exact(monkeypatch):
     require_historical_inputs()
     dataset = _dataset()
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
+    original = local_audit._repository_file
+    frozen = historical_controls_path()
+    monkeypatch.setattr(local_audit, '_repository_file', lambda relative:
+        frozen if relative == 'evaluation/scoring-regressions.json' else original(relative))
     local_audit._require_repository_bindings(dataset, receipt)
 
 

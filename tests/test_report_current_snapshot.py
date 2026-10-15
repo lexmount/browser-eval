@@ -14,7 +14,8 @@ from harness.web_fetch.report_i18n import localize_html
 from tests.test_report_body_scope import case, record
 
 
-def test_current_review_does_not_repeat_predecessor_scores(tmp_path):
+def test_current_review_does_not_repeat_predecessor_scores(tmp_path, monkeypatch):
+    monkeypatch.setattr(report, "_RELIABILITY_BANNER", "")
     old, added = case('retained'), case('added')
     records = [record(old), record(added, passed=False)]
     raw = json.dumps({'provider_calls_added': 1, 'inherited_results': 1}).encode()

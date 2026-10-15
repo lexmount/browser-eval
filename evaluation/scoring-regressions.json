@@ -410,20 +410,6 @@
       "expected_metrics": {"blocked_page": false, "blocked_page_hits": [], "blocked_page_reference_exemptions": ["CAPTCHA"]}
     },
     {
-      "id": "standalone-captcha-without-reference-remains-blocked",
-      "category": "task-predicate",
-      "root_cause": "blocked_page_detection",
-      "failure_mode": "false-positive",
-      "case": {
-        "url": "https://example.test/accessibility",
-        "ground_truth_main_content": "Accessibility guidance"
-      },
-      "artifact": "CAPTCHA",
-      "ok": true,
-      "expected_task_pass": false,
-      "expected_metrics": {"blocked_page": true, "blocked_page_hits": ["CAPTCHA"], "blocked_page_reference_exemptions": []}
-    },
-    {
       "id": "complete-records-with-declared-excluded-ui-fail",
       "category": "acceptance-contract",
       "root_cause": "declared_scope_exclusions",
@@ -441,7 +427,7 @@
       "artifact": "Alpha\n$10.00\n\nBeta\n$20.00\n\nSimilar Products\nGamma\n$30.00",
       "ok": true,
       "expected_task_pass": false,
-      "expected_metrics": {"forbidden_hits": ["Similar Products"], "stable_structure_pass": true}
+      "expected_metrics": {"forbidden_requirement_hits": ["Similar Products"], "stable_structure_pass": true}
     },
     {
       "id": "target-only-records-pass-declared-exclusions",
@@ -461,7 +447,7 @@
       "artifact": "Alpha\n$10.00\n\nBeta\n$20.00",
       "ok": true,
       "expected_task_pass": true,
-      "expected_metrics": {"forbidden_hits": [], "stable_structure_pass": true}
+      "expected_metrics": {"forbidden_requirement_hits": [], "stable_structure_pass": true}
     },
     {
       "id": "glued-quote-fields-cannot-borrow-boundaries",
@@ -813,22 +799,6 @@
       "expected_metrics": {"stable_structure_pass": true, "stable_content_pass": false}
     },
     {
-      "id": "known-challenge-headings-block-complete-records",
-      "category": "task-predicate",
-      "root_cause": "blocked_page_detection",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/gallery",
-        "task_kind": "resource",
-        "content_score_applicable": false,
-        "expected_resources": [{"id": "hero", "urls": ["/hero.jpg"]}]
-      },
-      "artifact": "W3 Performing security verification\n![Hero](/hero.jpg)",
-      "ok": true,
-      "expected_task_pass": false,
-      "expected_metrics": {"resource_pass": true, "blocked_page": true}
-    },
-    {
       "id": "challenge-phrase-in-prose-is-not-a-block-page",
       "category": "task-predicate",
       "root_cause": "blocked_page_detection",
@@ -843,22 +813,6 @@
       "ok": true,
       "expected_task_pass": true,
       "expected_metrics": {"resource_pass": true, "blocked_page": false}
-    },
-    {
-      "id": "unsplash-bot-heading-blocks-complete-records",
-      "category": "task-predicate",
-      "root_cause": "blocked_page_detection",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/gallery",
-        "task_kind": "resource",
-        "content_score_applicable": false,
-        "expected_resources": [{"id": "hero", "urls": ["/hero.jpg"]}]
-      },
-      "artifact": "Making sure you're not a bot\n![Hero](/hero.jpg)",
-      "ok": true,
-      "expected_task_pass": false,
-      "expected_metrics": {"resource_pass": true, "blocked_page": true}
     },
     {
       "id": "complete-dynamic-products-pass-output-contract",
@@ -931,30 +885,6 @@
       "ok": true,
       "expected_task_pass": false,
       "expected_metrics": {"fact_coverage": 0.0}
-    },
-    {
-      "id": "chinese-gate-heading-blocks-complete-records",
-      "category": "task-predicate",
-      "root_cause": "blocked_page_detection",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/catalog",
-        "task_kind": "structure",
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "product",
-          "minimum_records": 2
-        }
-      },
-      "artifact": "![](/shield.png)验证一下，购物无忧\nAlpha shirt\n$10\n\nBeta shirt\n$20",
-      "ok": true,
-      "expected_task_pass": false,
-      "expected_metrics": {
-        "blocked_page": true,
-        "stable_blocked_page": true,
-        "stable_structure_pass": true,
-        "stable_content_pass": false
-      }
     },
     {
       "id": "chinese-gate-phrase-in-prose-is-not-block-page",
@@ -1063,20 +993,6 @@
       "ok": true,
       "expected_task_pass": false,
       "expected_metrics": {"fact_coverage": 0.5}
-    },
-    {
-      "id": "markdown-emphasized-forbidden-status-heading-is-blocked",
-      "category": "task-predicate",
-      "root_cause": "blocked_page_detection",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/platform",
-        "required_facts": []
-      },
-      "artifact": "**Error: Forbidden / 403**",
-      "ok": true,
-      "expected_task_pass": false,
-      "expected_metrics": {"blocked_page": true}
     },
     {
       "id": "relative-autolinks-and-markdown-labels-preserve-visible-anchor",
@@ -1505,7 +1421,7 @@
         "ok": true,
         "expected_task_pass": false,
         "expected_metrics": {
-            "forbidden_hits": [
+            "forbidden_requirement_hits": [
                 "Loading Example..."
             ]
         }
@@ -1534,7 +1450,7 @@
         "ok": true,
         "expected_task_pass": true,
         "expected_metrics": {
-            "forbidden_hits": []
+            "forbidden_requirement_hits": []
         }
     },
     {
@@ -2363,7 +2279,7 @@
         "expected_task_pass": true,
         "expected_metrics": {
             "stable_task_pass": true,
-            "forbidden_hits": []
+            "forbidden_requirement_hits": []
         }
     },
     {
@@ -2408,7 +2324,7 @@
         "ok": true,
         "expected_task_pass": false,
         "expected_metrics": {
-            "forbidden_hits": [
+            "forbidden_requirement_hits": [
                 "CAPTCHA"
             ]
         }
@@ -21441,21 +21357,19 @@
             "stable_complete_record_count": 0
         }
     },
-    {"id":"html-doctype-hidden-challenge-is-not-visible","category":"format-normalization","root_cause":"html_visible_forbidden_surface","failure_mode":"false-negative","case":{"url":"https://example.test/products","task_kind":"body","required_facts":[{"id":"products","alternatives":["Available products"]}],"forbidden_any":["CAPTCHA"]},"artifact":"<!DOCTYPE html><!--[if IE 7]><html lang=\"en\"><![endif]--><html><head><script>const gate = 'CAPTCHA';</script></head><body><main><h1>Available products</h1></main></body></html>","ok":true,"expected_task_pass":true,"expected_metrics":{"content_pass":true,"forbidden_hits":[]}},
-    {"id":"html-doctype-visible-challenge-still-blocks","category":"format-normalization","root_cause":"html_visible_forbidden_surface","failure_mode":"false-positive","case":{"url":"https://example.test/products","task_kind":"body","required_facts":[{"id":"products","alternatives":["Available products"]}],"forbidden_any":["CAPTCHA"]},"artifact":"<!DOCTYPE html><html><body><main><h1>Available products</h1><p>CAPTCHA</p></main></body></html>","ok":true,"expected_task_pass":false,"expected_metrics":{"content_pass":false,"forbidden_hits":["CAPTCHA"]}},
+    {"id":"html-doctype-hidden-challenge-is-not-visible","category":"format-normalization","root_cause":"html_visible_forbidden_surface","failure_mode":"false-negative","case":{"url":"https://example.test/products","task_kind":"body","required_facts":[{"id":"products","alternatives":["Available products"]}],"forbidden_any":["CAPTCHA"]},"artifact":"<!DOCTYPE html><!--[if IE 7]><html lang=\"en\"><![endif]--><html><head><script>const gate = 'CAPTCHA';</script></head><body><main><h1>Available products</h1></main></body></html>","ok":true,"expected_task_pass":true,"expected_metrics":{"content_pass":true,"forbidden_requirement_hits":[]}},
+    {"id":"html-doctype-visible-challenge-still-blocks","category":"format-normalization","root_cause":"html_visible_forbidden_surface","failure_mode":"false-positive","case":{"url":"https://example.test/products","task_kind":"body","required_facts":[{"id":"products","alternatives":["Available products"]}],"forbidden_any":["CAPTCHA"]},"artifact":"<!DOCTYPE html><html><body><main><h1>Available products</h1><p>CAPTCHA</p></main></body></html>","ok":true,"expected_task_pass":false,"expected_metrics":{"content_pass":false,"forbidden_requirement_hits":["CAPTCHA"]}},
     {"id":"html-inline-code-preserves-visible-anchor","category":"format-normalization","root_cause":"stable_anchor_html_inline_markup","failure_mode":"false-negative","case":{"url":"https://docs.example.test/search","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"search-instruction","alternatives":["Set search: true to enable the search plugin:"]}]}},"artifact":"<!doctype html><html><body><main><p>Set <code>search: true</code> to enable the search plugin:</p></main></body></html>","title":"Search | Documentation","ok":true,"expected_task_pass":true,"expected_metrics":{"stable_anchor_hits":1}},
     {"id":"html-hidden-script-cannot-satisfy-anchor","category":"format-normalization","root_cause":"stable_anchor_html_inline_markup","failure_mode":"false-positive","case":{"url":"https://docs.example.test/search","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"search-instruction","alternatives":["Set search: true to enable the search plugin:"]}]}},"artifact":"<!doctype html><html><head><script>const help = 'Set search: true to enable the search plugin:';</script></head><body><main><p>Search examples</p></main></body></html>","title":"Search | Documentation","ok":true,"expected_task_pass":false,"expected_metrics":{"stable_anchor_hits":0}},
     {"id":"html-inline-code-counts-for-body-coverage","category":"format-normalization","root_cause":"body_coverage_html_visible_text","failure_mode":"false-negative","case":{"url":"https://docs.example.test/sorting","task_kind":"body","body_requirements":{"version":3,"unit":"region_compact_hexagram_recall","minimum_coverage":1.0,"minimum_floor":1.0,"minimum_region_passes":1,"regions":[{"id":"instruction","text":"To enable sorting simply add sort true to your config"}]}},"artifact":"<!doctype html><html><body><main><p>To enable sorting, simply add <code>sort: true</code> to your config:</p></main></body></html>","title":"Sorting | Documentation","ok":true,"expected_task_pass":true,"expected_metrics":{"body_coverage_pass":true}},
     {"id":"html-hidden-script-cannot-satisfy-body-coverage","category":"format-normalization","root_cause":"body_coverage_html_visible_text","failure_mode":"false-positive","case":{"url":"https://docs.example.test/sorting","task_kind":"body","body_requirements":{"version":3,"unit":"region_compact_hexagram_recall","minimum_coverage":1.0,"minimum_floor":1.0,"minimum_region_passes":1,"regions":[{"id":"instruction","text":"To enable sorting simply add sort true to your config"}]}},"artifact":"<!doctype html><html><head><script>const help = 'To enable sorting simply add sort true to your config';</script></head><body><main><p>Sorting examples</p></main></body></html>","title":"Sorting | Documentation","ok":true,"expected_task_pass":false,"expected_metrics":{"body_coverage_pass":false}},
     {"id":"html-visible-body-ignores-hidden-challenge-heading","category":"format-normalization","root_cause":"html_visible_answer_surface","failure_mode":"false-negative","case":{"url":"https://example.test/","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Visible product catalog"]}]},"min_content_chars":20},"artifact":"<!doctype html><html><head><script>\nCAPTCHA\n</script></head><body><main><p>Visible product catalog is ready.</p></main></body></html>","title":"Products","ok":true,"expected_task_pass":true,"expected_metrics":{"blocked_page":false,"length_pass":true}},
     {"id":"html-hidden-script-cannot-inflate-visible-length","category":"format-normalization","root_cause":"html_visible_answer_surface","failure_mode":"false-positive","case":{"url":"https://example.test/","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Hello"]}]},"min_content_chars":20},"artifact":"<!doctype html><html><head><script>const hidden = 'This lengthy source code is not the page body';</script></head><body><main>Hello</main></body></html>","title":"Home","ok":true,"expected_task_pass":false,"expected_metrics":{"length_pass":false}},
-    {"id":"html-visible-challenge-heading-blocks-body","category":"format-normalization","root_cause":"html_visible_answer_surface","failure_mode":"false-positive","case":{"url":"https://example.test/","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Welcome"]}]}},"artifact":"<!doctype html><html><body><h1>CAPTCHA</h1><main><p>Welcome</p></main></body></html>","title":"Home","ok":true,"expected_task_pass":false,"expected_metrics":{"blocked_page":true,"stable_blocked_page":true}},
     {"id":"dynamic-undeclared-source-language-can-verify-identity","category":"acceptance-contract","root_cause":"source_document_language_absent","failure_mode":"false-negative","case":{"url":"https://example.test/untagged","evaluation_url":"https://example.test/untagged","expected_final_url":"https://example.test/untagged","target_language":"en","target_region":"US","expected_document_language_present":false,"track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Visible content"]}]}},"artifact":"Visible content","ok":true,"final_url":"https://example.test/untagged","metadata":{"route":"dynamic_selected_text","document_language":""},"expected_task_pass":true,"expected_metrics":{"page_identity_status":"verified","language_consistent":true}},
     {"id":"dynamic-undeclared-source-language-rejects-declared-language","category":"acceptance-contract","root_cause":"source_document_language_absent","failure_mode":"false-positive","case":{"url":"https://example.test/untagged","evaluation_url":"https://example.test/untagged","expected_final_url":"https://example.test/untagged","target_language":"en","target_region":"US","expected_document_language_present":false,"track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Visible content"]}]}},"artifact":"Visible content","ok":true,"final_url":"https://example.test/untagged","metadata":{"route":"dynamic_selected_text","document_language":"en"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","language_consistent":false}},
     {"id":"long-metadata-title-keeps-visible-html-anchor","category":"format-normalization","root_cause":"html_title_prefix_detection","failure_mode":"false-negative","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><p>Required <b>body</b></p></body></html>","title":"Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title ","ok":true,"expected_task_pass":true,"expected_metrics":{"stable_anchor_hits":1}},
     {"id":"long-metadata-title-cannot-expose-script-anchor","category":"format-normalization","root_cause":"html_title_prefix_detection","failure_mode":"false-positive","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><script>Required body</script><p>Other text</p></body></html>","title":"Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title ","ok":true,"expected_task_pass":false,"expected_metrics":{"stable_anchor_hits":0}},
     {"id":"html-inline-challenge-explanation-is-prose","category":"format-normalization","root_cause":"html_block_line_boundaries","failure_mode":"false-negative","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><p>Required body. If you see <strong>Verify you are human</strong>, complete the verification before continuing.</p></body></html>","ok":true,"expected_task_pass":true,"expected_metrics":{"blocked_page":false,"stable_blocked_page":false}},
-    {"id":"html-independent-challenge-heading-still-blocks","category":"format-normalization","root_cause":"html_block_line_boundaries","failure_mode":"false-positive","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><p>Required body.</p><h1><strong>Verify you are human</strong></h1></body></html>","ok":true,"expected_task_pass":false,"expected_metrics":{"blocked_page":true,"stable_blocked_page":true}},
     {"id":"combined-problem-cells-across-sections-pass","category":"structured-extraction","root_cause":"composite_table_equivalent_fields","failure_mode":"false-negative","case":{"url":"https://example.test/training","task_kind":"body","composite_acceptance":{"version":1,"groups":[{"id":"problems","kind":"table","minimum_records":3,"start_pattern":"(?m)^Section\\s+1\\.","end_pattern":"(?m)^Section\\s+6\\.","required_columns":[{"id":"number","kind":"text","pattern":"^[A-Z]?[0-9]+$","aliases":["Number"]},{"id":"name","kind":"text","aliases":["Name"]},{"id":"attempts","kind":"integer","aliases":["Tried"]},{"id":"accepted","kind":"integer","aliases":["AC"]},{"id":"difficulty","kind":"integer","aliases":["Difficulty"]}],"identity_column":"number","combined_columns":[{"aliases":["Problem"],"pattern":"^(?P<number>[A-Z]?[0-9]+)\\s+(?P<name>.+)$"}]}]}},"artifact":"Section 1. First\nProblem\tTried\tAC\tDifficulty\nP1 Hello World\t1\t1\t7\nP2 Output Practice\t2\t1\t5\nSection 2. Next\nProblem\tTried\tAC\tDifficulty\nB003 Addition Exercise\t3\t2\t4\nSection 6. End","ok":true,"expected_task_pass":true},
     {"id":"combined-problem-cells-cannot-omit-name","category":"structured-extraction","root_cause":"composite_table_equivalent_fields","failure_mode":"false-positive","case":{"url":"https://example.test/training","task_kind":"body","composite_acceptance":{"version":1,"groups":[{"id":"problems","kind":"table","minimum_records":3,"start_pattern":"(?m)^Section\\s+1\\.","end_pattern":"(?m)^Section\\s+6\\.","required_columns":[{"id":"number","kind":"text","pattern":"^[A-Z]?[0-9]+$","aliases":["Number"]},{"id":"name","kind":"text","aliases":["Name"]},{"id":"attempts","kind":"integer","aliases":["Tried"]},{"id":"accepted","kind":"integer","aliases":["AC"]},{"id":"difficulty","kind":"integer","aliases":["Difficulty"]}],"identity_column":"number","combined_columns":[{"aliases":["Problem"],"pattern":"^(?P<number>[A-Z]?[0-9]+)\\s+(?P<name>.+)$"}]}]}},"artifact":"Section 1. First\nProblem\tTried\tAC\tDifficulty\nP1 Hello World\t1\t1\t7\nP2 Output Practice\t2\t1\t5\nSection 2. Next\nProblem\tTried\tAC\tDifficulty\nB003\t3\t2\t4\nSection 6. End","ok":true,"expected_task_pass":false},
     {"id":"html-head-title-cannot-supply-body","category":"format-normalization","root_cause":"html_head_is_not_body","failure_mode":"false-positive","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><head><title>Required body</title></head><body><p>Other text</p></body></html>","ok":true,"expected_task_pass":false,"expected_metrics":{"stable_anchor_hits":0}},
@@ -30647,35 +30561,6 @@
       }
     },
     {
-      "id": "prompt-diagnostic-qualified-with-forbidden",
-      "category": "task-predicate",
-      "root_cause": "prompt_diagnostic_used_as_acceptance_veto",
-      "failure_mode": "false-negative",
-      "case": {
-        "id": "prompt-diagnostic-control",
-        "url": "https://events.example.test/help",
-        "track": "web",
-        "task_kind": "body",
-        "expected_any": [],
-        "required_facts": [
-          {
-            "id": "required",
-            "alternatives": [
-              "Return purchased items within thirty days"
-            ]
-          }
-        ],
-        "min_content_chars": 30,
-        "forbidden_any": [
-          "CAPTCHA",
-          "Access denied"
-        ]
-      },
-      "artifact": "Return purchased items within thirty days\nCAPTCHA",
-      "ok": true,
-      "expected_task_pass": true
-    },
-    {
       "id": "prompt-diagnostic-qualified-with-block-heading",
       "category": "task-predicate",
       "root_cause": "prompt_diagnostic_used_as_acceptance_veto",
@@ -30827,7 +30712,36 @@
       "ok": true, "expected_task_pass": false
     },
     {
-      "id": "standalone-captcha-without-reference-remains-blocked-policy-v2-diagnostic",
+      "id": "prompt-qualified-with-diagnostic-hints",
+      "category": "task-predicate",
+      "root_cause": "prompt_diagnostic_used_as_acceptance_veto",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "prompt-diagnostic-control",
+        "url": "https://events.example.test/help",
+        "track": "web",
+        "task_kind": "body",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "required",
+            "alternatives": [
+              "Return purchased items within thirty days"
+            ]
+          }
+        ],
+        "min_content_chars": 30,
+        "diagnostic_any": [
+          "CAPTCHA",
+          "Access denied"
+        ]
+      },
+      "artifact": "Return purchased items within thirty days\nCAPTCHA",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "standalone-captcha-without-reference-remains-blocked-diagnostic-hints",
       "category": "task-predicate",
       "root_cause": "blocked_page_detection",
       "failure_mode": "false-positive",
@@ -30836,13 +30750,13 @@
         "ground_truth_main_content": "Accessibility guidance",
         "required_facts": [
           {
-            "id": "target-body",
+            "id": "target",
             "alternatives": [
               "Accessibility guidance"
             ]
           }
         ],
-        "acceptance_policy_version": 2
+        "diagnostic_any": []
       },
       "artifact": "CAPTCHA",
       "ok": true,
@@ -30856,35 +30770,34 @@
       }
     },
     {
-      "id": "complete-records-with-declared-excluded-ui-fail-policy-v2-diagnostic",
+      "id": "complete-records-with-declared-excluded-ui-fail-diagnostic-hints",
       "category": "acceptance-contract",
       "root_cause": "declared_scope_exclusions",
       "failure_mode": "false-positive",
       "case": {
         "url": "https://example.test/products",
-        "forbidden_any": [
-          "Similar Products"
-        ],
         "acceptance_contract": {
           "version": 1,
           "schema": "product",
           "minimum_records": 2,
           "stable_text_anchors": []
         },
-        "acceptance_policy_version": 2
+        "diagnostic_any": [
+          "Similar Products"
+        ]
       },
       "artifact": "Alpha\n$10.00\n\nBeta\n$20.00\n\nSimilar Products\nGamma\n$30.00",
       "ok": true,
       "expected_task_pass": true,
       "expected_metrics": {
-        "forbidden_hits": [
+        "stable_structure_pass": true,
+        "diagnostic_hits": [
           "Similar Products"
-        ],
-        "stable_structure_pass": true
+        ]
       }
     },
     {
-      "id": "known-challenge-headings-block-complete-records-policy-v2-diagnostic",
+      "id": "known-challenge-headings-block-complete-records-diagnostic-hints",
       "category": "task-predicate",
       "root_cause": "blocked_page_detection",
       "failure_mode": "false-negative",
@@ -30900,7 +30813,7 @@
             ]
           }
         ],
-        "acceptance_policy_version": 2
+        "diagnostic_any": []
       },
       "artifact": "W3 Performing security verification\n![Hero](/hero.jpg)",
       "ok": true,
@@ -30911,7 +30824,7 @@
       }
     },
     {
-      "id": "unsplash-bot-heading-blocks-complete-records-policy-v2-diagnostic",
+      "id": "unsplash-bot-heading-blocks-complete-records-diagnostic-hints",
       "category": "task-predicate",
       "root_cause": "blocked_page_detection",
       "failure_mode": "false-negative",
@@ -30927,7 +30840,7 @@
             ]
           }
         ],
-        "acceptance_policy_version": 2
+        "diagnostic_any": []
       },
       "artifact": "Making sure you're not a bot\n![Hero](/hero.jpg)",
       "ok": true,
@@ -30938,7 +30851,7 @@
       }
     },
     {
-      "id": "chinese-gate-heading-blocks-complete-records-policy-v2-diagnostic",
+      "id": "chinese-gate-heading-blocks-complete-records-diagnostic-hints",
       "category": "task-predicate",
       "root_cause": "blocked_page_detection",
       "failure_mode": "false-negative",
@@ -30950,7 +30863,7 @@
           "schema": "product",
           "minimum_records": 2
         },
-        "acceptance_policy_version": 2
+        "diagnostic_any": []
       },
       "artifact": "![](/shield.png)验证一下，购物无忧\nAlpha shirt\n$10\n\nBeta shirt\n$20",
       "ok": true,
@@ -30963,7 +30876,7 @@
       }
     },
     {
-      "id": "markdown-emphasized-forbidden-status-heading-is-blocked-policy-v2-diagnostic",
+      "id": "markdown-emphasized-forbidden-status-heading-is-blocked-diagnostic-hints",
       "category": "task-predicate",
       "root_cause": "blocked_page_detection",
       "failure_mode": "false-negative",
@@ -30971,13 +30884,13 @@
         "url": "https://example.test/platform",
         "required_facts": [
           {
-            "id": "target-body",
+            "id": "target",
             "alternatives": [
-              "Accessibility guidance"
+              "Required platform text"
             ]
           }
         ],
-        "acceptance_policy_version": 2
+        "diagnostic_any": []
       },
       "artifact": "**Error: Forbidden / 403**",
       "ok": true,
@@ -30987,7 +30900,7 @@
       }
     },
     {
-      "id": "dynamic-target-placeholder-cannot-pass-policy-v2-diagnostic",
+      "id": "dynamic-target-placeholder-cannot-pass-diagnostic-hints",
       "category": "body-scope",
       "root_cause": "unrendered_dynamic_target_placeholder",
       "failure_mode": "false-positive",
@@ -31002,32 +30915,27 @@
             ]
           }
         ],
-        "forbidden_any": [
+        "diagnostic_any": [
           "Loading Example..."
-        ],
-        "acceptance_policy_version": 2
+        ]
       },
       "artifact": "Virtual DOM\nLoading Example...\nView Source",
       "ok": true,
       "expected_task_pass": true,
       "expected_metrics": {
-        "forbidden_hits": [
+        "diagnostic_hits": [
           "Loading Example..."
         ]
       }
     },
     {
-      "id": "removing-normal-theme-control-does-not-hide-real-block-page-policy-v2-diagnostic",
+      "id": "removing-normal-theme-control-does-not-hide-real-block-page-diagnostic-hints",
       "category": "acceptance-contract",
       "root_cause": "normal_page_control_misclassified_as_forbidden_content",
       "failure_mode": "false-positive",
       "case": {
         "url": "https://example.test/docs",
         "task_kind": "body",
-        "forbidden_any": [
-          "CAPTCHA",
-          "Access denied"
-        ],
         "acceptance_contract": {
           "version": 1,
           "schema": "body_text",
@@ -31053,19 +30961,22 @@
             }
           ]
         },
-        "acceptance_policy_version": 2
+        "diagnostic_any": [
+          "CAPTCHA",
+          "Access denied"
+        ]
       },
       "artifact": "Documentation\nInstall\nImport\nCAPTCHA",
       "ok": true,
       "expected_task_pass": true,
       "expected_metrics": {
-        "forbidden_hits": [
+        "diagnostic_hits": [
           "CAPTCHA"
         ]
       }
     },
     {
-      "id": "forbidden-html-surface-visible-challenge-policy-v2-diagnostic",
+      "id": "forbidden-html-surface-visible-challenge-diagnostic-hints",
       "category": "answer-surface",
       "root_cause": "dormant_html_templates_not_blocking_notices",
       "failure_mode": "false-positive",
@@ -31075,19 +30986,18 @@
         "expected": [
           "Game catalog"
         ],
-        "forbidden_any": [
+        "min_content_chars": 1,
+        "diagnostic_any": [
           "CAPTCHA",
           "Access denied"
-        ],
-        "min_content_chars": 1,
-        "acceptance_policy_version": 2
+        ]
       },
       "artifact": "<html><body><h1>Game catalog</h1><p>CAPTCHA required</p></body></html>",
       "ok": true,
       "expected_task_pass": true
     },
     {
-      "id": "forbidden-html-surface-actual-denial-policy-v2-diagnostic",
+      "id": "forbidden-html-surface-actual-denial-diagnostic-hints",
       "category": "answer-surface",
       "root_cause": "dormant_html_templates_not_blocking_notices",
       "failure_mode": "false-positive",
@@ -31097,19 +31007,18 @@
         "expected": [
           "Game catalog"
         ],
-        "forbidden_any": [
+        "min_content_chars": 1,
+        "diagnostic_any": [
           "CAPTCHA",
           "Access denied"
-        ],
-        "min_content_chars": 1,
-        "acceptance_policy_version": 2
+        ]
       },
       "artifact": "<main>Game catalog<div>Access denied</div></main>",
       "ok": true,
       "expected_task_pass": true
     },
     {
-      "id": "forbidden-html-surface-plain-challenge-policy-v2-diagnostic",
+      "id": "forbidden-html-surface-plain-challenge-diagnostic-hints",
       "category": "answer-surface",
       "root_cause": "dormant_html_templates_not_blocking_notices",
       "failure_mode": "false-positive",
@@ -31119,19 +31028,18 @@
         "expected": [
           "Game catalog"
         ],
-        "forbidden_any": [
+        "min_content_chars": 1,
+        "diagnostic_any": [
           "CAPTCHA",
           "Access denied"
-        ],
-        "min_content_chars": 1,
-        "acceptance_policy_version": 2
+        ]
       },
       "artifact": "Game catalog\nCAPTCHA required",
       "ok": true,
       "expected_task_pass": true
     },
     {
-      "id": "consent-does-not-hide-access-denied-policy-v2-diagnostic",
+      "id": "consent-does-not-hide-access-denied-diagnostic-hints",
       "category": "structured-extraction",
       "root_cause": "cookie_preferences_not_blocked_documentation",
       "failure_mode": "false-positive",
@@ -31231,18 +31139,17 @@
             }
           ]
         },
-        "forbidden_any": [
+        "diagnostic_any": [
           "Access denied",
           "CAPTCHA"
-        ],
-        "acceptance_policy_version": 2
+        ]
       },
       "artifact": "Access denied\nThe grid displays structured rows and columns. Each row preserves the fields of one record.\nCommunity version (free forever)\n|ID|First name|Last name|Age|\n|---|---|---|---|\n|1|Jon|Snow|14|\n|2|Cersei|Lannister|31|\n|3|Jaime|Lannister|31|\n|4|Arya|Stark|11|\n|5|Daenerys|Targaryen||\nPro version",
       "ok": true,
       "expected_task_pass": true
     },
     {
-      "id": "html-doctype-visible-challenge-policy-v2-diagnostic",
+      "id": "html-doctype-visible-challenge-diagnostic-hints",
       "category": "format-normalization",
       "root_cause": "html_visible_forbidden_surface",
       "failure_mode": "false-positive",
@@ -31257,23 +31164,22 @@
             ]
           }
         ],
-        "forbidden_any": [
+        "diagnostic_any": [
           "CAPTCHA"
-        ],
-        "acceptance_policy_version": 2
+        ]
       },
       "artifact": "<!DOCTYPE html><html><body><main><h1>Available products</h1><p>CAPTCHA</p></main></body></html>",
       "ok": true,
       "expected_task_pass": true,
       "expected_metrics": {
         "content_pass": true,
-        "forbidden_hits": [
+        "diagnostic_hits": [
           "CAPTCHA"
         ]
       }
     },
     {
-      "id": "html-visible-challenge-heading-blocks-body-policy-v2-diagnostic",
+      "id": "html-visible-challenge-heading-blocks-body-diagnostic-hints",
       "category": "format-normalization",
       "root_cause": "html_visible_answer_surface",
       "failure_mode": "false-positive",
@@ -31293,7 +31199,7 @@
             }
           ]
         },
-        "acceptance_policy_version": 2
+        "diagnostic_any": []
       },
       "artifact": "<!doctype html><html><body><h1>CAPTCHA</h1><main><p>Welcome</p></main></body></html>",
       "title": "Home",
@@ -31305,7 +31211,7 @@
       }
     },
     {
-      "id": "html-independent-challenge-heading-policy-v2-diagnostic",
+      "id": "html-independent-challenge-heading-diagnostic-hints",
       "category": "format-normalization",
       "root_cause": "html_block_line_boundaries",
       "failure_mode": "false-positive",
@@ -31325,7 +31231,7 @@
             }
           ]
         },
-        "acceptance_policy_version": 2
+        "diagnostic_any": []
       },
       "artifact": "<html><body><p>Required body.</p><h1><strong>Verify you are human</strong></h1></body></html>",
       "ok": true,
@@ -31334,23 +31240,309 @@
         "blocked_page": true,
         "stable_blocked_page": true
       }
+    },
+    {
+      "id": "declared-forbidden-token-fails",
+      "category": "acceptance-contract",
+      "root_cause": "explicit_forbidden_requirements_were_treated_as_diagnostics",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "control",
+        "url": "https://example.test/contract",
+        "task_kind": "body",
+        "min_content_chars": 10,
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Required article text"
+            ]
+          }
+        ],
+        "forbidden_any": [
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": ""
+      },
+      "artifact": "Required article text. CAPTCHA",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "unforbidden-captcha-documentation-passes",
+      "category": "acceptance-contract",
+      "root_cause": "explicit_forbidden_requirements_were_treated_as_diagnostics",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "control",
+        "url": "https://example.test/contract",
+        "task_kind": "body",
+        "min_content_chars": 10,
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Required article text"
+            ]
+          }
+        ],
+        "forbidden_any": [],
+        "ground_truth_main_content": ""
+      },
+      "artifact": "Required article text. CAPTCHA",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "declared-forbidden-reference-cannot-waive-ban",
+      "category": "acceptance-contract",
+      "root_cause": "explicit_forbidden_requirements_were_treated_as_diagnostics",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "control",
+        "url": "https://example.test/contract",
+        "task_kind": "body",
+        "min_content_chars": 10,
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Required article text"
+            ]
+          }
+        ],
+        "forbidden_any": [
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": "Required article text. CAPTCHA"
+      },
+      "artifact": "Required article text. CAPTCHA",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "declared-forbidden-absent-passes",
+      "category": "acceptance-contract",
+      "root_cause": "explicit_forbidden_requirements_were_treated_as_diagnostics",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "control",
+        "url": "https://example.test/contract",
+        "task_kind": "body",
+        "min_content_chars": 10,
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Required article text"
+            ]
+          }
+        ],
+        "forbidden_any": [
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": ""
+      },
+      "artifact": "Required article text. No challenge.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "declared-forbidden-stable-contract-fails",
+      "category": "acceptance-contract",
+      "root_cause": "A stable structure result must not overwrite an explicit forbidden-output requirement.",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "stable-ban",
+        "url": "https://example.test/",
+        "forbidden_any": [
+          "secret-token"
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "body",
+              "alternatives": [
+                "Required article text"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Required article text. secret-token",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "content_pass": false
+      }
+    },
+    {
+      "id": "unforbidden-stable-contract-passes",
+      "category": "acceptance-contract",
+      "root_cause": "A stable structure result must not overwrite an explicit forbidden-output requirement.",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "stable-ban",
+        "url": "https://example.test/",
+        "forbidden_any": [
+          "secret-token"
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "body",
+              "alternatives": [
+                "Required article text"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Required article text.",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_pass": true
+      }
     }
   ],
-  "historical_policy_versions": {
-    "standalone-captcha-without-reference-remains-blocked": 1,
-    "complete-records-with-declared-excluded-ui-fail": 1,
-    "known-challenge-headings-block-complete-records": 1,
-    "unsplash-bot-heading-blocks-complete-records": 1,
-    "chinese-gate-heading-blocks-complete-records": 1,
-    "markdown-emphasized-forbidden-status-heading-is-blocked": 1,
-    "dynamic-target-placeholder-cannot-pass": 1,
-    "removing-normal-theme-control-does-not-hide-real-block-page": 1,
-    "forbidden-html-surface-visible-challenge": 1,
-    "forbidden-html-surface-actual-denial": 1,
-    "forbidden-html-surface-plain-challenge": 1,
-    "consent-does-not-hide-access-denied": 1,
-    "html-doctype-visible-challenge-still-blocks": 1,
-    "html-visible-challenge-heading-blocks-body": 1,
-    "html-independent-challenge-heading-still-blocks": 1
+  "superseded_controls": {
+    "frozen_scorer_sha256": "ceb62fb821e6777d24a015ff713f406faecfff6181b0601b8e3ea2adffbf7c10",
+    "controls": [
+      {
+        "id": "standalone-captcha-without-reference-remains-blocked",
+        "sha256": "a4769bb71d973ae14a35695872af46491dd46256642513a49dd0399a7e6bf4f1",
+        "reason": "Heuristic words alone cannot veto acceptance; target-content controls replace this old-policy behavior."
+      },
+      {
+        "id": "known-challenge-headings-block-complete-records",
+        "sha256": "d83b872c249329cdc8438ac35def624da4f1b37d33d935ee694a607d47945953",
+        "reason": "Heuristic words alone cannot veto acceptance; target-content controls replace this old-policy behavior."
+      },
+      {
+        "id": "unsplash-bot-heading-blocks-complete-records",
+        "sha256": "f88ce4f87b6192dccee3d6847fcdad43b1d4e5241be7a4fec421a5ebdcf09f7d",
+        "reason": "Heuristic words alone cannot veto acceptance; target-content controls replace this old-policy behavior."
+      },
+      {
+        "id": "chinese-gate-heading-blocks-complete-records",
+        "sha256": "036bbe5d1184d10928b991f2323e4febf44b5e0cc760f843c764eec931b272a7",
+        "reason": "Heuristic words alone cannot veto acceptance; target-content controls replace this old-policy behavior."
+      },
+      {
+        "id": "markdown-emphasized-forbidden-status-heading-is-blocked",
+        "sha256": "36f4810cc37780d91f522f1753ac9faa2f3b02e60b70aa471d220c9a4b1e43fa",
+        "reason": "Heuristic words alone cannot veto acceptance; target-content controls replace this old-policy behavior."
+      },
+      {
+        "id": "html-visible-challenge-heading-blocks-body",
+        "sha256": "273b87907d1bb2ac77455be9479283ac415a44830ff04b88ad90affd5a324c88",
+        "reason": "Heuristic words alone cannot veto acceptance; target-content controls replace this old-policy behavior."
+      },
+      {
+        "id": "html-independent-challenge-heading-still-blocks",
+        "sha256": "d83024c8ce11ba2cf7caf1dac4cbaa6d0abe281fd9a30e21c83693ba5e778cf6",
+        "reason": "Heuristic words alone cannot veto acceptance; target-content controls replace this old-policy behavior."
+      },
+      {
+        "id": "prompt-diagnostic-qualified-with-forbidden",
+        "sha256": "8046cc06b201a6941d9a1ecf4d6a31caf680a28616622b1acb263b5166d64063",
+        "reason": "Declare error hints as diagnostic_any rather than changing forbidden_any semantics."
+      },
+      {
+        "id": "standalone-captcha-without-reference-remains-blocked-policy-v2-diagnostic",
+        "sha256": "e66dde3481df439cfdcffedda10aa5fe56839c4e8e40b24ff11534994e2e97dd",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "complete-records-with-declared-excluded-ui-fail-policy-v2-diagnostic",
+        "sha256": "8b1cdfdfdebebe2faff243e8f830887e50e975ae21a464e1fbb055f182339af0",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "known-challenge-headings-block-complete-records-policy-v2-diagnostic",
+        "sha256": "1a3ec35cda36fc5543ebf755c16f59054b4b6e27e2d75b93b1898fe893fbc1f0",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "unsplash-bot-heading-blocks-complete-records-policy-v2-diagnostic",
+        "sha256": "6bef69424fca95f075b37941293a63d1422ff1a07b333761ea178185648daed7",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "chinese-gate-heading-blocks-complete-records-policy-v2-diagnostic",
+        "sha256": "cc756f6068b5610d3df7fb8ba3c46ca2b3037e58be7b3e48b1e3cf67e300afa8",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "markdown-emphasized-forbidden-status-heading-is-blocked-policy-v2-diagnostic",
+        "sha256": "05c94c188465665f8c9db8ade1a7ea7e9aef4caf55c892a07514ad7e5e55ced6",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "dynamic-target-placeholder-cannot-pass-policy-v2-diagnostic",
+        "sha256": "6edc827196340b815d495bfaa553632835de8dfe283ef92a329f5bcebd21d168",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "removing-normal-theme-control-does-not-hide-real-block-page-policy-v2-diagnostic",
+        "sha256": "dc35b49587c4caab7e7945b3ce6e7b07c18e1667bdf72dd91963b23961db5bc2",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "forbidden-html-surface-visible-challenge-policy-v2-diagnostic",
+        "sha256": "3277ae2c53b643dbf5c42f832c225cc0e1e0e1db20b7d7da3a0973b3b28397ab",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "forbidden-html-surface-actual-denial-policy-v2-diagnostic",
+        "sha256": "ecf6e627b66bf0b7c387a15f9e2fb7d6f6dbe19e68ab3cfd9e53d1f772043a4c",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "forbidden-html-surface-plain-challenge-policy-v2-diagnostic",
+        "sha256": "73cf979631c92a34f0ab1052f24fb47b0ddc55a2f61e8b6dfd55aecd248d6f17",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "consent-does-not-hide-access-denied-policy-v2-diagnostic",
+        "sha256": "b8bcda005684b1215ea67ad08d686bdd8d6ed9c217d4ba88abfc7262403678cd",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "html-doctype-visible-challenge-policy-v2-diagnostic",
+        "sha256": "d0f1e2993233e470dd0407962e1dffba67b46734b22d0a6efda4f5335923b240",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "html-visible-challenge-heading-blocks-body-policy-v2-diagnostic",
+        "sha256": "d80df98dc24d48617690a61bf5bbcbdbd198488e55ea0c19e107e22f38eeb436",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      },
+      {
+        "id": "html-independent-challenge-heading-policy-v2-diagnostic",
+        "sha256": "7d87002dfedcc82581bcee999c9bdb639a13dd88dc677be2c6b320d282489670",
+        "reason": "Replace the version-selected diagnostic case with a current diagnostic_any contract."
+      }
+    ],
+    "output_field_migrations": {
+      "reason": "Explicit forbidden-result fields were renamed without changing these inputs or verdict expectations.",
+      "ids": [
+        "complete-records-with-declared-excluded-ui-fail",
+        "completed-dynamic-target-can-pass",
+        "dynamic-target-placeholder-cannot-pass",
+        "html-doctype-hidden-challenge-is-not-visible",
+        "html-doctype-visible-challenge-still-blocks",
+        "normal-theme-control-is-not-a-block-page-marker",
+        "removing-normal-theme-control-does-not-hide-real-block-page",
+        "target-only-records-pass-declared-exclusions"
+      ]
+    }
   }
 }

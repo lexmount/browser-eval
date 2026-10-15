@@ -44,7 +44,7 @@ class AnomalyReviewTests(unittest.TestCase):
                  'provider':'moli-webfetch','case_id':'dynamic-react-cart','ok':True,
                  'artifact_path':'answer.txt','metrics':{
                      'stable_structure_pass':True, 'stable_content_pass':False,
-                     'stable_task_pass':False, 'forbidden_hits':['Add to cart'],
+                     'stable_task_pass':False, 'forbidden_requirement_hits':['Add to cart'],
                      'stable_task_errors':['forbidden_content']}}
             self.assertIn('positive-structure-only-forbidden-failed',
                           detect_anomalies(root,[row])[row['attempt_id']])
@@ -96,7 +96,7 @@ class AnomalyReviewTests(unittest.TestCase):
                     metrics['stable_complete_record_count']=complete
                 if forbidden:
                     metrics.update(stable_structure_pass=True,
-                                   forbidden_hits=forbidden,
+                                   forbidden_requirement_hits=forbidden,
                                    stable_task_errors=['forbidden_content'])
                 rows.append({'attempt_id':f'moli-webfetch__{case}__r001',
                              'provider':'moli-webfetch','case_id':case,'ok':ok,

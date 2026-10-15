@@ -866,14 +866,21 @@ registry and scenario-test hashes rather than substituting current code.
 Ordinary tests skip absent historical snapshots; strict reference-input tests
 require them. Changed installed bytes fail either mode.
 
-### Versioned acceptance and local corrections
+### Current acceptance and retained corrections
 
-`acceptance_policy_version` selects the shared predicate. Version 1 retains the
-historical veto for verification/error markers. Version 2 reports those markers
-as diagnostics and still requires the declared content, records, page identity
-and completion deadline. It does not promise clean body text: reference precision
-and observed challenge components are separate report conclusions. Preserve old
-regression inputs and expected verdicts; add new IDs for version-2 behavior.
+The shared scorer uses one current acceptance predicate. Verification/error hints
+are diagnostics; declared `forbidden_any` requirements remain contract gates.
+Treating previously forbidden words as hints requires an explicit case revision
+to `diagnostic_any` and a complete rescore of the affected method/task scope.
+Content, records, page identity and completion deadlines still determine acceptance;
+reference precision and observed challenge components remain separate diagnostics.
+
+Historical results retain their hash-bound frozen scorer rather than selecting
+old behavior in the current runtime. The current predicate rejects legacy metrics
+that need that frozen scorer or an explicit offline rescore. Current regression
+controls verify current behavior; superseded controls retain their IDs, definition
+hashes and retirement reasons, with original definitions preserved in the frozen
+history. Do not mix old metrics with a new predicate.
 
 Stable text contracts declare `content_scope` (`target_content` or
 `full_page_stable_coverage`) and may declare `text_exclusions`. A target-content
@@ -885,8 +892,8 @@ plain-text outputs need explicit textual exclusions where roles otherwise disapp
 
 `local_revision.revise_local_snapshot` only rescores a separate saved snapshot.
 Changed contracts require `rule_revision: true`. Its receipt binds the predecessor,
-selected complete method/task scope, regression IDs, source hashes, policy version,
-actual scoring time and verdict changes. Physical output bytes, call identities,
+selected complete method/task scope, regression IDs, source hashes, explicit contract
+changes, actual scoring time and verdict changes. Physical output bytes, call identities,
 timestamps and latencies remain unchanged. Proven environment defects exclude a
 case symmetrically across every method. The result ledger derives all transitions
 from per-attempt states; overridden review opinions require task/answer hashes,

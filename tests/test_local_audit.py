@@ -24,6 +24,21 @@ def test_frozen_scoring_controls_allow_additions_but_reject_edits(tmp_path, monk
     scoring_path.parent.mkdir(parents=True)
     scoring_path.write_bytes((original_root / bindings['scoring_revision_path']).read_bytes())
     scoring = json.loads(scoring_path.read_text())
+    # This boundary test owns a frozen synthetic registry. Historical measured
+    # registries are retained with their scorer, not selected by today's runtime.
+    controls = {'cases': [
+        {'id': 'base', 'artifact': 'fixed'},
+        {'id': 'positive', 'artifact': 'complete', 'root_cause': 'fixture', 'failure_mode': 'false-negative'},
+        {'id': 'negative', 'artifact': 'missing', 'root_cause': 'fixture', 'failure_mode': 'false-positive'}]}
+    scoring['preexisting_control_ids'] = ['base']
+    scoring['revision_controls'] = [{k: row[k] for k in ('id', 'root_cause', 'failure_mode')}
+                                    for row in controls['cases'][1:]]
+    scoring['bindings']['preexisting_controls_sha256'] = local_audit._canonical_sha256(controls['cases'][:1])
+    scoring['bindings']['revision_controls_sha256'] = local_audit._canonical_sha256(controls['cases'][1:])
+    scoring['root_causes'] = [{'id': 'fixture', 'false_positive_ids': ['negative'], 'false_negative_ids': ['positive']}]
+    scoring['scope'] = {'preexisting_controls': 1, 'revision_controls': 2, 'root_causes': 1, 'paired_error_directions': True}
+    _write(scoring_path, scoring)
+    bindings['scoring_revision_sha256'] = _digest(scoring_path)
     dataset = {'id': scoring['dataset_id'], 'cases': [{'id': 'fixture'}]}
     reference = root / 'evaluation/sources/fixture/reference.txt'
     reference.parent.mkdir(parents=True)
@@ -42,7 +57,6 @@ def test_frozen_scoring_controls_allow_additions_but_reject_edits(tmp_path, monk
     })
     bindings['source_manifest_sha256'] = _digest(source_manifest)
     relative = 'evaluation/scoring-regressions.json'
-    controls = json.loads((original_root / relative).read_text())
     controls['cases'].append({'id': 'new-independent-control'})
     path = root / relative
     _write(path, controls)
@@ -719,6 +733,13 @@ def test_retrospective_page_review_preserves_call_and_checks_other_requirements(
     assert record == before and record['final_url'] is None
     assert task_passed(True, scored)
     assert scored['page_identity_basis'] == 'retrospective_content_correspondence'
+    # Two substantial matches establish correspondence; additional true short
+    # labels do not invalidate them and cannot replace either long match.
+    with_short = {**annotation, 'matching_samples': annotation['matching_samples'] + ['body']}
+    assert task_passed(True, local_audit.score_reviewed_page_identity(tmp_path, case, record, with_short, captures))
+    with pytest.raises(ValueError, match='substantive text'):
+        local_audit.score_reviewed_page_identity(tmp_path, case, record,
+            {**annotation, 'matching_samples': [annotation['matching_samples'][0], 'body']}, captures)
     for samples in ([' ' * 20, ' ' * 21], ['.' * 20, '!' * 21],
                     ['Expected complete body.', '**Expected complete body.**']):
         with pytest.raises(ValueError, match='substantive text'):
@@ -751,3 +772,50 @@ def test_retrospective_page_review_requires_bound_receipt(tmp_path):
         local_audit._require_page_identity_review(tmp_path, {}, [
             {'attempt_id': 'synthetic', 'metrics': {
                 'page_identity_basis': 'retrospective_content_correspondence'}}])
+
+
+@pytest.mark.parametrize('defect', [None, 'target_changed', 'sample_changed'])
+def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defect):
+    import copy
+    from harness.web_fetch.scoring import score_attempt
+    body = 'Expected complete body. A second distinctive sentence describing this page.'
+    old = {'id': 'synthetic', 'url': 'https://example.test/start', 'track': 'risk_control',
+        'task_kind': 'body', 'forbidden_any': ['CAPTCHA'],
+        'source_benchmark': {'risk_control': {'navigation_contract': {
+            'requested_url': 'https://example.test/start', 'observed_final_url': 'https://example.test/document'}}},
+        'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'body', 'alternatives': ['Expected complete body']}]}}
+    current = copy.deepcopy(old)
+    current['diagnostic_any'] = current.pop('forbidden_any')
+    (tmp_path/'answer.txt').write_text(body)
+    record = {'attempt_id': 'method__synthetic__r001', 'case_id': 'synthetic',
+        'artifact_path': 'answer.txt', 'ok': True, 'final_url': None,
+        'metrics': score_attempt(current, body.encode(), ok=True)}
+    captures = [{'url': 'https://example.test/document', 'text': body}]
+    def save(name, obj):
+        _write(tmp_path/name, obj)
+        return {'path': name, 'sha256': _digest(tmp_path/name)}
+    capture = save('captures.json', captures)
+    annotation = {'attempt_id': record['attempt_id'], 'case_sha256': local_audit._canonical_sha256(old),
+        'call_sha256': local_audit.local_measurement_call_sha256(record),
+        'content_sha256': record['metrics']['content_sha256'], 'basis': 'retrospective_content_correspondence',
+        'reviewed_at': '2026-10-13', 'capture_index': 0,
+        'capture_sha256': local_audit._canonical_sha256(captures[0]), 'corresponding_url': captures[0]['url'],
+        'matching_samples': ['Expected complete body.', 'A second distinctive sentence describing this page.']}
+    if defect == 'sample_changed': annotation['matching_samples'] = [' '*20, ' '*21]
+    receipt = save('identity.json', {'kind': 'retrospective_page_identity_review',
+        'reviewed_at': '2026-10-13', 'basis': 'retained human review', 'provider_calls_added': 0,
+        'captures_path': capture['path'], 'captures_sha256': capture['sha256'], 'attempts': [annotation]})
+    before = {'cases': [old], 'comparison': {'page_identity_review': receipt}}
+    dataset = {'cases': [current], 'comparison': {}}
+    prior_receipt = (tmp_path/'identity.json').read_bytes()
+    if defect == 'target_changed': current['task_prompt'] = 'A new target requirement'
+    if defect:
+        with pytest.raises(ValueError):
+            local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record])
+    else:
+        local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record])
+        assert local_audit.task_passed(record['ok'], record['metrics'])
+        assert record['final_url'] is None
+        local_audit._require_page_identity_review(tmp_path, dataset, [record])
+    assert (tmp_path/'identity.json').read_bytes() == prior_receipt

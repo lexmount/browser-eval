@@ -136,7 +136,8 @@ def test_explicit_sample_ranking_reuses_existing_ranked_table_and_keeps_scope(tm
     assert 'z-high' in soup.select_one('tbody tr').get_text()
     banner = local_audit_banner(dataset)
     assert 'data-ranking-scope="saved-task-pass-rate"' in banner
-    assert BeautifulSoup(banner, 'html.parser').get_text() == ''
+    assert '未完成仓库认证流程' in BeautifulSoup(banner, 'html.parser').get_text()
+    assert 'hidden' not in banner
     assert 'callout' not in banner
     page = tmp_path/'index.html'
     page.write_text('<meta name="browser-eval-report" content="1">'+banner+markup)
@@ -172,3 +173,16 @@ def test_contract_prose_localizes_without_full_snapshot_or_fixed_field_counts(tr
     parser.feed(english)
     assert parser.untranslated == []
     assert 'shipping: at least 2 records' in english
+
+
+@pytest.mark.parametrize('wrapper', [
+    '<span hidden {attrs}>Uncertified</span>',
+    '<p style="display: none" {attrs}>Uncertified</p>',
+    '<section hidden><p {attrs}>Uncertified</p></section>',
+    '<p {attrs}></p>'])
+def test_sample_ranking_rejects_invisible_scope_disclosure(tmp_path, wrapper):
+    from harness.web_fetch.report_check import check_local_diagnostic_presentation
+    attrs = 'data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate"'
+    (tmp_path/'index.html').write_text('<meta name="browser-eval-report" content="1">'+wrapper.format(attrs=attrs))
+    with pytest.raises(ValueError, match='disclosure missing'):
+        check_local_diagnostic_presentation(tmp_path, ranked=True)

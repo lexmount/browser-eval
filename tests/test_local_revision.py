@@ -54,30 +54,53 @@ def test_offline_revision_preserves_calls_and_rejects_tampering(tmp_path):
         require_local_revision(tmp_path, binding, dataset, rows)
 
 
-def test_policy_revision_records_version_and_rejects_parser_only_label(tmp_path):
+def test_contract_revision_is_explicit_without_runtime_policy_switch(tmp_path):
     raw = b'Required body\nCAPTCHA'
-    (tmp_path / 'answer.txt').write_bytes(raw)
-    case = {'id': 'a', 'url': 'https://example.test/', 'task_kind': 'body', 'acceptance_policy_version': 1,
-            'forbidden_any': ['CAPTCHA'], 'acceptance_contract': {'version': 1, 'schema': 'body_text',
-                'minimum_records': 0, 'stable_text_anchors': [{'id': 'body', 'alternatives': ['Required body']}]}}
+    (tmp_path/'answer.txt').write_bytes(raw)
+    case = {'id': 'a', 'url': 'https://example.test/', 'task_kind': 'body',
+            'forbidden_any': ['CAPTCHA'], 'required_facts': [
+                {'id': 'body', 'alternatives': ['Required body']}]}
     original = {'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a', 'ok': True,
                 'artifact_path': 'answer.txt', 'metrics': score_attempt(case, raw, ok=True)}
     assert not task_passed(True, original['metrics'])
-    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}))
-    (tmp_path / 'results.jsonl').write_text(json.dumps(original)+'\n')
-    config = tmp_path / 'config.json'
-    config.write_text(json.dumps({'cases': [{**case, 'acceptance_policy_version': 2}], 'rule_revision': True,
-        'authority': {'description': 'Explicitly adopt policy 2; verification words are diagnostics'},
-        'regression_ids': ['html-doctype-visible-challenge-policy-v2-diagnostic', 'prompt-diagnostic-only-verification']}))
+    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}))
+    (tmp_path/'results.jsonl').write_text(json.dumps(original)+'\n')
+    changed = {k: v for k, v in case.items() if k != 'forbidden_any'}
+    changed['diagnostic_any'] = ['CAPTCHA']
+    config = tmp_path/'config.json'
+    config.write_text(json.dumps({'cases': [changed], 'rule_revision': True,
+        'authority': {'description': 'Explicit task revision: error words are diagnostic observations'},
+        'regression_ids': ['declared-forbidden-token-fails', 'unforbidden-captcha-documentation-passes']}))
     receipt = revise_local_snapshot(tmp_path, config)
-    assert receipt['rule_revision'] is True and receipt['acceptance_policy_version'] == 2
-    rows = [json.loads((tmp_path / 'results.jsonl').read_text())]
+    assert receipt['rule_revision'] is True
+    assert 'acceptance_policy_version' not in receipt
+    rows = [json.loads((tmp_path/'results.jsonl').read_text())]
+    assert 'acceptance_policy_version' not in rows[0]['metrics']
     assert task_passed(True, rows[0]['metrics'])
-    rows[0]['scoring']['rule_revision'] = False
-    (tmp_path / 'results.jsonl').write_text(json.dumps(rows[0])+'\n')
-    path = next((tmp_path / 'local-evidence/offline-revisions').glob('*/receipt.json'))
-    receipt['output_results_sha256'] = hashlib.sha256((tmp_path / 'results.jsonl').read_bytes()).hexdigest()
-    path.write_text(json.dumps(receipt))
-    binding = {'path': str(path.relative_to(tmp_path)), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
-    with pytest.raises(ValueError, match='parser-only'):
-        require_local_revision(tmp_path, binding, json.loads((tmp_path / 'dataset.json').read_text()), rows)
+
+
+def test_same_input_keeps_distinct_revision_receipts(tmp_path):
+    raw = b'Required article text. CAPTCHA'
+    (tmp_path/'answer.txt').write_bytes(raw)
+    case = {'id': 'a', 'url': 'https://example.test/', 'required_facts': [
+        {'id': 'body', 'alternatives': ['Required article text']}], 'forbidden_any': ['CAPTCHA']}
+    row = {'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a', 'ok': True,
+           'artifact_path': 'answer.txt', 'metrics': score_attempt(case, raw, ok=True)}
+    original_dataset = json.dumps({'cases': [case], 'comparison': {}})
+    original_results = json.dumps(row)+'\n'
+    changed = {k: v for k, v in case.items() if k != 'forbidden_any'}
+    changed['diagnostic_any'] = ['CAPTCHA']
+    config = tmp_path/'config.json'
+    preserved = None
+    for reason in ['First declared correction', 'Second explicitly distinct revision']:
+        (tmp_path/'dataset.json').write_text(original_dataset)
+        (tmp_path/'results.jsonl').write_text(original_results)
+        config.write_text(json.dumps({'cases': [changed], 'rule_revision': True,
+            'authority': {'description': reason},
+            'regression_ids': ['declared-forbidden-token-fails', 'unforbidden-captcha-documentation-passes']}))
+        receipt = revise_local_snapshot(tmp_path, config)
+        path = tmp_path/receipt['input_dataset']['path']
+        if preserved is None:
+            preserved = (path.parent/'receipt.json', (path.parent/'receipt.json').read_bytes())
+    assert len(list((tmp_path/'local-evidence/offline-revisions').glob('*/receipt.json'))) == 2
+    assert preserved[0].read_bytes() == preserved[1]

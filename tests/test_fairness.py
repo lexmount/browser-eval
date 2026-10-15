@@ -304,22 +304,23 @@ class FairnessTests(unittest.TestCase):
             ],
         }
         for identifier, tokens in supplemental.items():
-            case = cases[identifier]
+            case = dict(cases[identifier])
+            case['diagnostic_any'] = case.pop('forbidden_any', [])
             target_only = case['ground_truth_main_content']
             clean = score_attempt(case, target_only.encode(), ok=True)
             with self.subTest(case=identifier, variant='target-only'):
                 self.assertTrue(task_passed(True, clean))
-                self.assertEqual(clean['forbidden_hits'], [])
+                self.assertEqual(clean['diagnostic_hits'], [])
             for token in tokens:
                 extended = score_attempt(
                     case, f'{target_only}\n\n{token}'.encode(), ok=True)
                 with self.subTest(case=identifier, supplemental=token):
                     self.assertTrue(extended['stable_structure_pass'])
                     if identifier == 'dynamic-react-cart' or token == 'Similar Products':
-                        self.assertEqual(extended['forbidden_hits'], [token])
+                        self.assertEqual(extended['diagnostic_hits'], [token])
                         self.assertTrue(task_passed(True, extended))
                     else:
-                        self.assertEqual(extended['forbidden_hits'], [])
+                        self.assertEqual(extended['diagnostic_hits'], [])
                         self.assertTrue(task_passed(True, extended))
 
     def test_end_to_end_processing_is_timed_and_late_answers_rejected(self):

@@ -20,6 +20,7 @@ def requires_adjudication(row):
 
 
 def require_adjudication_evidence(source, dataset, records, review):
+    _require_review_binding_revision(source, dataset, records, review)
     cases = {case['id']: case for case in dataset.get('cases', [])}
     indexed = {record['attempt_id']: record for record in records}
     checked = 0
@@ -80,3 +81,53 @@ def require_current_review_state(records, review):
     effective=sum(row.get('effective_agent_verdict',row.get('agent_verdict'))!=row.get('final_verdict') for row in rows)
     if review.get('effective_disagreements',effective)!=effective:
         raise ValueError('Review disagreement total differs from result states')
+
+
+def _require_review_binding_revision(source, dataset, records, review):
+    """Carry historical evidence only across a declared hint-field migration."""
+    import copy
+    from .local_revision import read_bound
+    migration = review.get('rule_binding_revision')
+    if not migration:
+        if any('prior_case_sha256' in row.get('adjudication_evidence', {}) for row in review.get('attempts', [])):
+            raise ValueError('Historical review binding migration lacks its receipt')
+        return
+    if (migration.get('kind') != 'unchanged_target_and_verdict_evidence_carryforward'
+            or migration.get('new_independent_review') is not False):
+        raise ValueError('Historical evidence migration cannot claim new independent review')
+    previous = json.loads(read_bound(source, migration['prior_review']).read_text())
+    receipt = json.loads(read_bound(source, migration['score_revision']).read_text())
+    if (receipt.get('rule_revision') is not True or receipt.get('provider_calls_added') != 0
+            or receipt.get('authority', {}).get('preserved_render_input_results_sha256') != previous.get('results_sha256')):
+        raise ValueError('Historical review migration has no matching score revision')
+    old_dataset = json.loads(read_bound(source, receipt['input_dataset']).read_text())
+    old_cases = {case['id']: case for case in old_dataset['cases']}
+    cases = {case['id']: case for case in dataset['cases']}
+    indexed = {record['attempt_id']: record for record in records}
+    old_rows = {row['attempt_id']: row for row in previous['attempts']}
+    rows = review['attempts']
+    if {row['attempt_id'] for row in rows} != set(old_rows) or len(rows) != len(old_rows):
+        raise ValueError('Historical review migration changed review coverage')
+    carried = []
+    for row in rows:
+        expected = copy.deepcopy(old_rows[row['attempt_id']])
+        old = old_cases[row['case_id']]
+        normalized = copy.deepcopy(old)
+        hints = normalized.pop('forbidden_any', [])
+        if hints:
+            normalized['diagnostic_any'] = list(dict.fromkeys(normalized.get('diagnostic_any', []) + hints))
+        normalized.pop('acceptance_policy_version', None)
+        if normalized != cases[row['case_id']]:
+            raise ValueError('Historical review migration changed target requirements')
+        proof = expected.get('adjudication_evidence')
+        if proof:
+            if proof['case_sha256'] != case_hash(old):
+                raise ValueError('Historical review proof does not bind the original case')
+            proof['prior_case_sha256'] = proof['case_sha256']
+            proof['case_sha256'] = case_hash(cases[row['case_id']])
+            proof['rule_ids'] = ['diagnostic_any' if key == 'forbidden_any' else key for key in proof['rule_ids']]
+            carried.append(row['attempt_id'])
+        if row != expected or row.get('content_sha256') != indexed[row['attempt_id']]['metrics']['content_sha256']:
+            raise ValueError('Historical review migration changed opinions, verdicts or answer evidence')
+    if migration.get('attempt_ids') != carried:
+        raise ValueError('Historical review migration evidence scope differs')

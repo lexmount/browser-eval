@@ -4,6 +4,8 @@ import socket
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
 
+GUARDED_NATIVE_TYPES = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin", "langchain_webbase", "moli_webfetch", "crawl4ai"}
+
 _FAKE_IP_RANGE = ipaddress.ip_network("198.18.0.0/15")
 
 
@@ -45,8 +47,7 @@ def require_usable_public_dns(audit):
 def preflight_guarded_providers(providers, cases):
     """Require one declared DNS environment for all supported native callers."""
     from .network_dns import lookup_public_dns, validate_dns_mode
-    native = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin", "langchain_webbase", "moli_webfetch", "crawl4ai"}
-    selected = [provider for provider in providers if provider.type in native]
+    selected = [provider for provider in providers if provider.type in GUARDED_NATIVE_TYPES]
     if not selected:
         return None
     modes = {validate_dns_mode(provider.config.get("dns_mode", "system")) for provider in selected}

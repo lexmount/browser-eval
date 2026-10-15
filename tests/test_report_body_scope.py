@@ -193,7 +193,7 @@ class ReportBodyScopeTests(unittest.TestCase):
 
         def failed(**metrics):
             r = record(c, passed=False)
-            r["metrics"].update(request_ok=True, content_chars=500,
+            r["metrics"].update(forbidden_requirement_hits=[], request_ok=True, content_chars=500,
                                 stable_task_pass=False)
             r["metrics"].update(metrics)
             return r
@@ -205,7 +205,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         for track in ("risk_control", "web", "challenge", "popular"):
             qualified_case = case("qualified", "body", track)
             qualified = record(qualified_case, passed=True)
-            qualified["metrics"].update(blocked_page=True, stable_blocked_page=True)
+            qualified["metrics"].update(forbidden_requirement_hits=[], blocked_page=True, stable_blocked_page=True)
             self.assertEqual(failure_category(qualified, qualified_case), "—")
         self.assertEqual(failure_category(failed(content_chars=0), c), "完全空返回")
         self.assertEqual(

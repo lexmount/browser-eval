@@ -55,12 +55,14 @@ def require_table_index_headers(parser, *, english=False, diagnostic=False):
             raise ValueError('Unexpected table index header: ' + header)
 
 
-def require_home_comparison_layout(home, track_count, *, diagnostic=False):
-    overall = '任务判定汇总（非排名）' if diagnostic else '综合通过率总榜'
+def require_home_comparison_layout(home, track_count, *, diagnostic=False, sample_ranking=False):
+    overall = ('任务判定汇总（非排名）' if diagnostic else
+               '本轮任务通过率排名' if sample_ranking else '综合通过率总榜')
     details = '按任务类别查看诊断结果' if diagnostic else f'{track_count} 类分榜'
-    markers = [f'<h2>{track_count} 类任务概览</h2>', f'<h2>{overall}</h2>', f'<h2>{details}</h2>']
-    if any(marker not in home for marker in markers) or not (
-            home.index(markers[0]) < home.index(markers[1]) < home.index(markers[2])):
+    markers = [f'{track_count} 类任务概览', overall, details]
+    headings = [re.sub(r'<[^>]+>', '', value) for value in re.findall(r'<h2[^>]*>(.*?)</h2>', home, re.S)]
+    if any(marker not in headings for marker in markers) or not (
+            headings.index(markers[0]) < headings.index(markers[1]) < headings.index(markers[2])):
         raise ValueError('Task overview and comparison must precede detailed results')
     if '判分完整性' not in home or ('本类最高：' in home) == diagnostic:
         raise ValueError('Comparison winner disclosure differs from evidence state')
@@ -188,15 +190,48 @@ def require_replacement_execution(root, binding, physical, logical):
         raise ValueError('Task replacement physical/logical call inventory differs')
 
 
+class VisibleLocalScope(HTMLParser):
+    """Disclosure attributes count only when attached to visible explanatory text."""
+    def __init__(self):
+        super().__init__()
+        self.stack = []
+        self.visible = set()
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        inherited = self.stack[-1][1:] if self.stack else (False, set())
+        style = re.sub(r'\s+', '', attrs.get('style', '')).lower()
+        hidden = (inherited[0] or tag in {'script', 'style', 'template'}
+                  or 'hidden' in attrs or attrs.get('aria-hidden') == 'true'
+                  or 'display:none' in style or 'visibility:hidden' in style)
+        kinds = set(inherited[1])
+        if attrs.get('data-evidence-state') == 'local_measurement': kinds.add('evidence')
+        if attrs.get('data-ranking-scope') == 'saved-task-pass-rate': kinds.add('ranking')
+        if tag not in {'area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'}:
+            self.stack.append((tag, hidden, kinds))
+
+    def handle_endtag(self, tag):
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index][0] == tag:
+                del self.stack[index:]
+                break
+
+    def handle_data(self, data):
+        if data.strip() and self.stack and not self.stack[-1][1]:
+            self.visible.update(self.stack[-1][2])
+
+
 def check_local_diagnostic_presentation(root: Path, *, ranked=False):
     """Track evidence state and scope any explicitly requested sample ranking."""
     for path in root.rglob('*.html'):
         page = path.read_text(encoding='utf-8')
         if '<meta name="browser-eval-report" content="1">' not in page:
             continue  # Original response/source HTML is evidence, not report prose.
-        if 'data-evidence-state="local_measurement"' not in page:
+        disclosure = VisibleLocalScope()
+        disclosure.feed(page)
+        if 'evidence' not in disclosure.visible:
             raise ValueError('Local diagnostic disclosure missing: ' + str(path.relative_to(root)))
-        if ranked and 'data-ranking-scope="saved-task-pass-rate"' not in page:
+        if ranked and 'ranking' not in disclosure.visible:
             raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))
         for table in re.findall(r'<table\b[^>]*\bid="ranking-[^"]+".*?</table>', page, re.S):
             if not ranked and ('data-dir="desc"' in table or re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table)):
@@ -590,7 +625,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         raise ValueError("Report acceptance check failed")
     home = (root / "index.html").read_text()
     track_count = len({case.get("track", "web") for case in d["cases"]})
-    require_home_comparison_layout(home, track_count, diagnostic=local_measurement and not sample_ranking)
+    require_home_comparison_layout(home, track_count, diagnostic=local_measurement and not sample_ranking, sample_ranking=sample_ranking)
     if (root / "resource-cohort/resource-comparison.json").is_file():
         guide = (root / "guide/index.html").read_text()
         for page_name, text in [("home", home), ("guide", guide)]:

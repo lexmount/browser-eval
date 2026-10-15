@@ -133,10 +133,10 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(partial["fact_coverage"], 0.5)
         blocked = evaluate_content(
             "Example Domain documentation examples Access denied",
-            ["Example Domain"], required_facts=facts, forbidden_any=["Access denied"],
+            ["Example Domain"], required_facts=facts, diagnostic_any=["Access denied"],
         )
         self.assertTrue(blocked["content_pass"])
-        self.assertEqual(blocked["forbidden_hits"], ["Access denied"])
+        self.assertEqual(blocked["diagnostic_hits"], ["Access denied"])
 
     def test_summary_separates_transport_and_content(self) -> None:
         base = {

@@ -229,6 +229,10 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
         shutil.copy2(presentation_binding, staging / "presentation-binding.json")
         batches = json.loads((source / "execution.json").read_text())["batches"]
         for record in records:
+            case = next(item for item in dataset['cases'] if item['id'] == record['case_id'])
+            if not record.get('diagnosis'):
+                text = contained_path(source, record['artifact_path']).read_text(errors='replace')
+                record['diagnosis'] = diagnose(record, case, text)
             metadata = record.setdefault("provider_metadata", {})
             metadata["public_log_note"] = dataset.get("comparison", {}).get(
                 "call_chain_audit", {}).get("call_log_notes", {}).get(record["attempt_id"], "")

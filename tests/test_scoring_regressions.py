@@ -160,7 +160,7 @@ class ScoringRegressionTests(unittest.TestCase):
             "One offline rescore applies independently reviewed acceptance and task-predicate corrections together.",
             [
                 "complete-declared-record-passes-contract",
-                "known-challenge-headings-block-complete-records",
+                "known-challenge-headings-block-complete-records-diagnostic-hints",
             ],
         )
         self.assertEqual(

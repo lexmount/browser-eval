@@ -110,13 +110,13 @@ class UnifiedTextFailureTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertNotIn('blocked_page', result['evidence'])
 
-    def test_qualified_content_with_forbidden_hint_has_no_failure(self):
+    def test_qualified_content_with_diagnostic_hint_has_no_failure(self):
         facts = [{'id': 'target', 'alternatives': ['Required target content']}]
         metrics = evaluate_content('Required target content\nAccess denied', [], required_facts=facts,
-            forbidden_any=['Access denied'])
-        self.assertEqual(metrics['forbidden_hits'], ['Access denied'])
+            diagnostic_any=['Access denied'])
+        self.assertEqual(metrics['diagnostic_hits'], ['Access denied'])
         self.assertIsNone(diagnose(self.record(metrics), {'task_kind': 'body'}, ''))
-        missing = evaluate_content('Access denied', [], required_facts=facts, forbidden_any=['Access denied'])
+        missing = evaluate_content('Access denied', [], required_facts=facts, diagnostic_any=['Access denied'])
         self.assertFalse(missing['content_pass'])
         self.assertIsNotNone(diagnose(self.record(missing), {'task_kind': 'body'}, ''))
 

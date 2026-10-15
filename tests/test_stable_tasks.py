@@ -533,15 +533,15 @@ class StableTaskTests(unittest.TestCase):
             self.assertTrue(result["stable_task_pass"])
             self.assertTrue(result["stable_blocked_page"])
 
-    def test_forbidden_diagnostic_does_not_override_target_content(self):
+    def test_diagnostic_hint_does_not_override_target_content(self):
         text = "Custom access failure\nAlpha\n$10\n\nBeta\n$20"
-        result = evaluate_content(text, [], forbidden_any=["Custom access failure"],
+        result = evaluate_content(text, [], diagnostic_any=["Custom access failure"],
                                   ground_truth_main_content=text, acceptance_contract=contract("product"))
         self.assertTrue(result["stable_structure_pass"])
         self.assertTrue(result["stable_content_pass"])
         self.assertTrue(result["content_pass"])
         self.assertTrue(task_passed(True, result))
-        self.assertEqual(result["reference_term_exemptions"], [])
+        self.assertEqual(result["diagnostic_hits"], ["Custom access failure"])
         self.assertEqual(result["word_f1"], 1.0)
         self.assertTrue(task_passed(True, {**result, "stable_task_pass": True}))
         self.assertFalse(task_passed(False, {"stable_task_pass": True}))

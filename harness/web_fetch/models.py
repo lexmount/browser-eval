@@ -31,6 +31,7 @@ class EvalCase:
     tags: list[str] = field(default_factory=list)
     required_facts: list[dict[str, Any]] = field(default_factory=list)
     forbidden_any: list[str] = field(default_factory=list)
+    diagnostic_any: list[str] = field(default_factory=list)
     min_content_chars: int = 1
     fact_coverage_threshold: float = 1.0
     ground_truth_evidence: list[dict[str, str]] = field(default_factory=list)
@@ -58,14 +59,11 @@ class EvalCase:
     target_language: str = ""
     target_region: str = ""
     rule_review: dict[str, Any] = field(default_factory=dict)
-    acceptance_policy_version: int = 2
 
 
 def validate_case(case: EvalCase) -> None:
     """Validate required fields, routing and identity before acquisition."""
     safe_identifier(case.id)
-    if type(case.acceptance_policy_version) is not int or case.acceptance_policy_version not in {1, 2}:
-        raise ValueError('Unsupported scoring policy version')
     validate_http_url(case.url)
     if not isinstance(case.name, str) or not case.name.strip():
         raise ValueError(f"Task name must be nonempty text: {case.id}")

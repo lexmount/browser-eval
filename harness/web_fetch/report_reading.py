@@ -61,6 +61,8 @@ def sanitize_article_html(fragment):
         if element.name == 'a' and 'href' in attrs:
             attrs['rel'] = 'noopener noreferrer'
         element.attrs = attrs
+    for table in soup.find_all('table'):
+        table.wrap(soup.new_tag('div', attrs={'class': 'table-wrap'}))
     return str(soup)
 
 

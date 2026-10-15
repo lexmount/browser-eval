@@ -41,7 +41,7 @@ class ArticleCaseTests(unittest.TestCase):
         self.assertIn('&lt;script&gt;', left)
         self.assertIn('&lt;script&gt;', right)
         self.assertNotIn('<script>', left + right)
-        record['metrics'].update(forbidden_hits=['Access denied'],
+        record['metrics'].update(diagnostic_hits=['Access denied'],
                                  text_encoding_corruption=True,
                                  replacement_character_count=12)
         _, _, checks, _ = _text_example(case, record, text)
@@ -75,11 +75,11 @@ class ArticleCaseTests(unittest.TestCase):
         case = {'acceptance_contract': {'minimum_records': 3, 'hosts': ['example.com'],
                                        'entry_path': '/shop/[^/]+',
                                        'stable_text_anchors': [{'id': 'title', 'alternatives': ['Catalog']}]},
-                'forbidden_any': ['Access Denied']}
+                'diagnostic_any': ['Access Denied']}
         output = 'Catalog\n' + '\n'.join(f'[## Item {i}](/shop/{i})' for i in range(3))
         metrics = dict(stable_anchor_hits=1, stable_anchor_total=1, stable_content_pass=False,
                        stable_complete_record_count=3, stable_unique_record_count=3,
-                       stable_structure_pass=True, forbidden_hits=[], stable_blocked_page=True,
+                       stable_structure_pass=True, diagnostic_hits=[], stable_blocked_page=True,
                        replacement_character_count=20, text_encoding_corruption=True)
         _, _, checks, _ = _list_example(case, {'metrics': metrics}, output)
         self.assertNotIn('排除错误页', ''.join(checks))
@@ -89,13 +89,13 @@ class ArticleCaseTests(unittest.TestCase):
     def test_dynamic_example_shows_reference_and_returned_shell_without_inventing_content(self):
         reference = 'A fixed quote\nby Example Author\nTags: example'
         output = '# Quotes to Scrape\n[Login](/login)'
-        case = {'ground_truth_main_content': reference, 'forbidden_any': ['CAPTCHA'],
+        case = {'ground_truth_main_content': reference, 'diagnostic_any': ['CAPTCHA'],
                 'acceptance_contract': {'minimum_records': 10, 'stable_text_anchors': [
                     {'alternatives': [reference]}]}}
         metrics = dict(content_chars=len(output), stable_complete_record_count=0,
                        stable_unique_record_count=0, stable_structure_pass=False,
                        stable_anchor_hits=0, stable_anchor_total=10, stable_content_pass=False,
-                       forbidden_hits=[], stable_blocked_page=False,
+                       diagnostic_hits=[], stable_blocked_page=False,
                        replacement_character_count=0, text_encoding_corruption=False,
                        fact_results=[{'alternatives': [s], 'matched': [], 'pass': False}
                                      for s in ['A fixed quote', 'Example Author', 'example']])

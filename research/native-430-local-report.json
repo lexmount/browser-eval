@@ -15,8 +15,8 @@
     "openclaw-built-in",
     "tavily"
   ],
-  "frozen_dataset_sha256": "12952a88e6e0d735830d802436d4030bf9c5d4c31c0f3cf7fa4a8ef77206fd0b",
-  "results_sha256": "da69b585066531c4412a0a646e11fd899557964f9b04529a0545cdea7e36e2a4",
+  "frozen_dataset_sha256": "ff578deac41e00056655542c139611d21fd26bbd36a86e9a8628c35d17356490",
+  "results_sha256": "b0bcc2da22ca9fc7e495affb2c25a99c8d56fe89024d12f8c615e97c43b37a1b",
   "measured_scoring_source_sha256": "4ce40cdf2ecb1af4088915a2b869ffbdcb65dce5222d1429578e97d175f13bfc",
   "evidence_state": "local_measurement",
   "certified": false,
@@ -28,7 +28,7 @@
     },
     {
       "path": "result-review.json",
-      "sha256": "9f1c5cfd4fee7bf3a6a51490a4c1bfc5a685dcacabbbe35a0fe50581836199e1"
+      "sha256": "0f9190fa85516469740fab16b2786adc092bc26b2a31f13af74a48b1ee4af5bf"
     },
     {
       "path": "archived-reading.json",
@@ -39,14 +39,14 @@
       "sha256": "6fdc15530c75676e46e3e44b6213017287d19ddc9c71597493b346072d1ee67c"
     }
   ],
-  "evidence_path": "runs/pr51-static-replacement-20261015/assembled-evidence",
+  "evidence_path": "runs/pr51-static-replacement-20261015/review-followup-final-evidence",
   "task_replacement": {
     "path": "local-evidence/task-replacement/receipt.json",
-    "sha256": "fddebdd3e5e5a554fc5e52fbfc806affae7ac77962f5e02b6181f140254af2ee"
+    "sha256": "c68d3b21c3317538089635f8fb0ca5bf4f874f4a03201b27e42c56491780d6e0"
   },
   "offline_revision": {
-    "path": "local-evidence/offline-revisions/6d78a8bc3fd58900/receipt.json",
-    "sha256": "6d3a10832c6e5136d4d01a170c5f6fbd05922b836cab8f8acc22065a394c9ada"
+    "path": "local-evidence/offline-revisions/6d78a8bc3fd58900-8d5edbea48da0319/receipt.json",
+    "sha256": "a11c53aae6635ff0915b1e2be1bad7f489ee72c83e2bbb95deddfb38bcd31635"
   },
   "replacement_case": {
     "id": "static-sqlite-quickstart",
@@ -83,17 +83,29 @@
         ]
       }
     ],
-    "forbidden_any": [
-      "Page Not Found",
-      "Access denied",
-      "CAPTCHA"
-    ],
     "body_coverage": {
       "version": 3,
       "minimum_coverage": 0.8,
       "minimum_floor": 0.6,
       "minimum_region_passes": 4,
       "regions": 5
+    },
+    "diagnostic_any": [
+      "Page Not Found",
+      "Access denied",
+      "CAPTCHA"
+    ]
+  },
+  "current_scoring_source_sha256": "d4ec10f02e742d6b94d3e9e2aa8a1d605ab3954f59bfd7908a096fc5a4958916",
+  "review_evidence_package": {
+    "url": "https://github.com/lexmount/browser-eval/releases/download/untagged-c84db0e3f874d633407c/PR-51-current-rule-and-sqlite-evidence.zip",
+    "sha256": "3218b22ad388ebb2ae3e084e9378d323ddd9950e75783ae33f75339a4812bdc0",
+    "bytes": 14815846,
+    "access": "GitHub draft release; repository write permission required",
+    "prerequisite": {
+      "url": "https://github.com/lexmount/browser-eval/releases/download/untagged-c84db0e3f874d633407c/PR-51-diagnostic-correction-patch.zip",
+      "sha256": "90d51b8bed3c8c480a45160a3cd8d624753451ee08f04ba816b7e6bb708d1c24",
+      "bytes": 7580469
     }
   }
 }

@@ -50,6 +50,14 @@ def require_local_task_replacement(source, binding, dataset, records):
         raise ValueError('Task replacement altered an inherited or newly measured result')
     if any(r['metrics'].get('evaluation_excluded') for r in calls):
         raise ValueError('Replacement task cannot be excluded after seeing its results')
+    from .local_audit import require_local_execution_contract
+    if not receipt.get('execution_contract') or not receipt.get('cohort_execution'):
+        raise ValueError('Task replacement requires its complete execution contract')
+    contract = json.loads(read_bound(source, receipt['execution_contract']).read_text())
+    execution = json.loads(read_bound(source, receipt['cohort_execution']).read_text())
+    if not contract.get('runner_inputs'):
+        raise ValueError('Task replacement requires retained runner inputs and source observations')
+    require_local_execution_contract(source, cohort, calls, contract, execution)
     return {identifier: row['metrics']['scoring_source_sha256']
             for identifier, row in rows.items()}
 
@@ -75,7 +83,7 @@ def require_local_revision(source, binding, dataset, records):
     for identifier, old in old_cases.items():
         new = new_cases[identifier]
         fields = {key for key in old.keys() | new.keys() if old.get(key) != new.get(key)}
-        if fields - {'task_prompt', 'acceptance_contract', 'body_requirements', 'required_patterns', 'required_facts', 'acceptance_policy_version'}:
+        if fields - {'task_prompt', 'acceptance_contract', 'body_requirements', 'required_patterns', 'required_facts', 'forbidden_any', 'diagnostic_any', 'acceptance_policy_version'}:
             raise ValueError('Local score revision changed source or acquisition inputs')
         if fields:
             changed_cases.add(identifier)
@@ -100,9 +108,7 @@ def require_local_revision(source, binding, dataset, records):
         if identifier in scored:
             expected_scoring[identifier] = receipt['scoring_source_sha256']
             if (receipt.get('rule_revision') and
-                    (receipt.get('acceptance_policy_version') != 2
-                     or new['metrics'].get('acceptance_policy_version') != 2
-                     or new.get('scoring', {}).get('rule_revision') is not True)):
+                    new.get('scoring', {}).get('rule_revision') is not True):
                 raise ValueError('Scoring policy change cannot be recorded as a parser-only correction')
         else:
             expected_scoring[identifier] = old['metrics']['scoring_source_sha256']
@@ -112,6 +118,25 @@ def require_local_revision(source, binding, dataset, records):
                 raise ValueError('Unselected score changed: ' + identifier)
         if new['case_id'] in changed_cases and identifier not in scored:
             raise ValueError('Changed case was not rescored across every method')
+    if receipt.get('input_verdicts'):
+        from .metrics import task_passed
+        proof = json.loads(read_bound(source, receipt['input_verdicts']).read_text())
+        verdicts = proof.get('verdicts', {})
+        if (proof.get('input_results_sha256') != receipt['input_results']['sha256']
+                or set(verdicts) != set(old_rows)
+                or any(type(value) is not bool for value in verdicts.values())
+                or not proof.get('frozen_predicate') or not proof.get('snapshot_manifest')):
+            raise ValueError('Frozen input verdict proof is incomplete')
+        read_bound(source, proof['frozen_predicate'])
+        read_bound(source, proof['snapshot_manifest'])
+        transitions = [{'attempt_id': row['attempt_id'], 'before': verdicts[row['attempt_id']],
+                        'after': task_passed(row['ok'], row['metrics'])}
+                       for row in records if row['attempt_id'] in scored
+                       and verdicts[row['attempt_id']] != task_passed(row['ok'], row['metrics'])]
+        if transitions != receipt.get('task_verdict_changes'):
+            raise ValueError('Local revision verdict transitions differ from frozen input proof')
+    from .local_audit import _require_page_identity_review
+    _require_page_identity_review(source, dataset, records)
     require_cohort_exclusions(source, dataset, records)
     return expected_scoring
 
@@ -131,6 +156,7 @@ def revise_local_snapshot(source, configuration):
         raise ValueError('Local revision requires authority and regression provenance')
     dataset_bytes = (source / 'dataset.json').read_bytes()
     results_bytes = (source / 'results.jsonl').read_bytes()
+    input_results_sha256 = hashlib.sha256(results_bytes).hexdigest()
     original_dataset = json.loads(dataset_bytes)
     dataset = copy.deepcopy(original_dataset)
     records = load_jsonl(source / 'results.jsonl')
@@ -142,13 +168,26 @@ def revise_local_snapshot(source, configuration):
         raise ValueError('Changed acceptance contract requires an explicit rule revision')
     dataset['comparison']['excluded_cases'] = config.get('excluded_cases', [])
     if config.get('rule_revision'):
-        dataset['comparison']['scoring_policy_version'] = 2
+        dataset['comparison'].pop('scoring_policy_version', None)
     additional = set(config.get('rescore_attempt_ids', []))
     if not additional <= {row['attempt_id'] for row in records}:
         raise ValueError('Local revision has an invalid additional rescoring scope')
+    revision_key = (input_results_sha256[:16] + '-' +
+                    hashlib.sha256(configuration.read_bytes()).hexdigest()[:16])
+    history = source / 'local-evidence/offline-revisions' / revision_key
+    if history.exists():
+        raise ValueError('Local revision already exists; preserve the prior receipt')
     indexed = {case['id']: case for case in dataset['cases']}
+    input_verdicts = None
+    if config.get('input_verdicts'):
+        proof = json.loads(read_bound(source, config['input_verdicts']).read_text())
+        input_verdicts = proof.get('verdicts', {})
+        if (proof.get('input_results_sha256') != input_results_sha256
+                or set(input_verdicts) != {row['attempt_id'] for row in records}
+                or any(type(value) is not bool for value in input_verdicts.values())):
+            raise ValueError('Frozen input verdicts do not match the complete input results')
     selected = []
-    changes = []
+    before_verdicts = {}
     for row in records:
         if row['case_id'] not in replacements and row['attempt_id'] not in additional:
             continue
@@ -156,21 +195,24 @@ def revise_local_snapshot(source, configuration):
         raw = contained_path(source, row['artifact_path'], reject_symlinks=True).read_bytes()
         if hashlib.sha256(raw).hexdigest() != row['metrics']['content_sha256']:
             raise ValueError('Local revision output integrity failure')
-        before = task_passed(row['ok'], row['metrics'])
+        before = (input_verdicts[row['attempt_id']] if input_verdicts is not None
+                  else task_passed(row['ok'], row['metrics']))
+        before_verdicts[row['attempt_id']] = before
         row['metrics'] = score_attempt(case, raw, ok=row['ok'], status_code=row.get('status_code'),
             title=row.get('title'), final_url=row.get('final_url'), metadata=row.get('provider_metadata'),
             previous_metrics=row['metrics'], list_reference=load_list_reference(case, source))
         row['scoring'] = {**row.get('scoring', {}), 'mode': 'offline_rescore',
             'scored_at': datetime.now(timezone.utc).isoformat(),
             'rule_revision': bool(config.get('rule_revision')),
-            'acceptance_policy_version': row['metrics']['acceptance_policy_version'],
-            'input_results_sha256': hashlib.sha256(results_bytes).hexdigest()}
+            'input_results_sha256': input_results_sha256}
         selected.append(row['attempt_id'])
-        after = task_passed(row['ok'], row['metrics'])
-        if before != after:
-            changes.append({'attempt_id': row['attempt_id'], 'before': before, 'after': after})
+    from .local_audit import carry_reviewed_page_identities
+    identity_binding = carry_reviewed_page_identities(source, original_dataset, dataset, records)
+    changes = [{'attempt_id': row['attempt_id'], 'before': before_verdicts[row['attempt_id']],
+                'after': task_passed(row['ok'], row['metrics'])}
+               for row in records if row['attempt_id'] in before_verdicts
+               and before_verdicts[row['attempt_id']] != task_passed(row['ok'], row['metrics'])]
     apply_cohort_exclusions(source, dataset, records)
-    history = source / 'local-evidence/offline-revisions' / hashlib.sha256(results_bytes).hexdigest()[:16]
     history.mkdir(parents=True, exist_ok=False)
     (history / 'dataset-before.json').write_bytes(dataset_bytes)
     (history / 'results-before.jsonl').write_bytes(results_bytes)
@@ -187,7 +229,9 @@ def revise_local_snapshot(source, configuration):
         'changed_case_ids': sorted(case['id'] for case in dataset['cases']
             if case != next(c for c in original_dataset['cases'] if c['id'] == case['id'])),
         'rescored_attempt_ids': selected, 'rule_revision': bool(config.get('rule_revision')),
-        'acceptance_policy_version': 2,
+        'input_verdicts': config.get('input_verdicts'),
+        'superseded_controls': config.get('superseded_controls', []),
+        'page_identity_review': identity_binding,
         'task_verdict_changes': changes, 'regression_ids': regressions, 'authority': config['authority']}
     receipt_path = history / 'receipt.json'
     receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n')

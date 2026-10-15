@@ -2458,6 +2458,7 @@ TEXT.update({
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
 PHRASES = {
+    "处理路线：": "Retrieval path: ",
     "的 Moli 已保存输出仍包含": "'s saved Moli output still contains ",
     "，内容规则未通过。请求成功在这里记录了一个正常返回的结果，却没有等来任务要求的内容。这比方法是否具备浏览器功能更接近本次接入要解决的问题。": ", but failed the content rule. A normal response did not wait for the required content. This is closer to the integration problem than whether the method has browser features.",
     "Quotes to Scrape 的": "Quotes to Scrape's ",
@@ -2592,6 +2593,17 @@ for adoption_text in (
     ADOPTION_TEXT_D,
 ):
     TEXT.update(adoption_text)
+
+
+def _body_region_summary(match):
+    regions = match[1]
+    for source, target in (("开头", "Opening"), ("前部", "Early section"),
+                           ("中部", "Middle"), ("后部", "Late section"),
+                           ("结尾", "Ending"), ("位置", "Region")):
+        regions = regions.replace(source + " ", target + " ")
+    return ("Body coverage is incomplete. Regions below target: "
+            + regions.replace("、", ", ")
+            + ". The complete reference and actual output are shown side by side below.")
 
 
 REGEX = [
@@ -2760,7 +2772,7 @@ REGEX = [
     (re.compile(r"^实际解析出 (\d+) 条完整且不重复的记录，要求至少 (\d+) 条；结构检查未通过，稳定文字检查未通过。$"), r"Parsed \1 complete, unique records against a minimum of \2; structure and stable-text checks failed."),
     (re.compile(r"^实际解析出 (\d+) 条完整且不重复的记录，要求至少 (\d+) 条；结构检查(通过|未通过)，稳定文字检查(通过|未通过)。$"), lambda m: f"Parsed {m.group(1)} complete, unique records against a minimum of {m.group(2)}; structure {'passed' if m.group(3) == '通过' else 'failed'} and stable-text checks {'passed' if m.group(4) == '通过' else 'failed'}."),
     (re.compile(r"^完整度 / 纯净度 / F1 为 ([^。]+)。$"), r"Recall / precision / F1: \1."),
-    (re.compile(r"^正文没有抓全；低于目标的位置为：(.+)。下方会把完整标准答案与实际返回并排展示。$"), lambda m: "Body coverage is incomplete. Regions below target: " + m[1].replace("位置 ", "region ") + ". The complete reference and actual output are shown side by side below."),
+    (re.compile(r"^正文没有抓全；低于目标的位置为：(.+)。下方会把完整标准答案与实际返回并排展示。$"), _body_region_summary),
     (re.compile(r"^这一段标准答案产生 ([\d,]+) 个连续六字符片段；在上方完整实际返回（([\d,]+) 字符）中命中 ([\d,]+) 个，所以覆盖率为 ([\d,]+) ÷ ([\d,]+) = ([\d.]+%)。目标 ([\d.]+%)，硬下限 ([\d.]+%)。$"), r"This reference region produces \1 contiguous six-character shingles. \3 are found in the complete output above (\2 characters), so coverage is \4 ÷ \5 = \6. Target: \7; hard floor: \8."),
     (re.compile(r"^· 采集时间 (.+)$"), r"· captured at \1"),
 ]

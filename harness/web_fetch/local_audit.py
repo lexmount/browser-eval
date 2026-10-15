@@ -418,8 +418,8 @@ def _require_local_scoring_revision(source, contract, records):
     if provenance != expected_provenance:
         raise ValueError("Invalid local scoring correction provenance")
     rule_revision = receipt.get('rule_revision', False)
-    if type(rule_revision) is not bool or (rule_revision and receipt.get('acceptance_policy_version') != 2):
-        raise ValueError('Local scoring rule revision requires an explicit policy version')
+    if type(rule_revision) is not bool:
+        raise ValueError('Local scoring rule revision must be explicit')
     for record in records:
         scoring = record.get("scoring", {})
         if (record.get("metrics", {}).get("scoring_source_sha256") != SCORING_SOURCE_SHA256
@@ -495,8 +495,9 @@ def score_reviewed_page_identity(source, case, record, annotation, captures):
     saved = normalize_for_match(answer.decode("utf-8"))
     observed = normalize_for_match(capture["text"])
     normalized = [normalize_for_match(value).strip() for value in samples if isinstance(value, str)]
-    if (len(normalized) != len(samples) or len(set(normalized)) < 2
-            or any(sum(char.isalnum() for char in value) < 20
+    strong_samples = {value for value in normalized if sum(char.isalnum() for char in value) >= 20}
+    if (len(normalized) != len(samples) or len(strong_samples) < 2
+            or any(not any(char.isalnum() for char in value)
                    or value not in saved or value not in observed for value in normalized)):
         raise ValueError("Page review needs matching substantive text in both bodies")
     navigation = (case.get("source_benchmark", {}).get("risk_control", {})
@@ -530,6 +531,7 @@ def _require_page_identity_review(source, dataset, records):
     if _sha256(capture_path) != receipt["captures_sha256"]:
         raise ValueError("Page review captures changed")
     captures = json.loads(capture_path.read_text())
+    _require_identity_binding_revision(source, dataset, receipt)
     annotations = receipt["attempts"]
     if (receipt.get("kind") != "retrospective_page_identity_review"
             or receipt.get("provider_calls_added") != 0
@@ -615,7 +617,7 @@ def _require_local_method_bindings(contract, batches, field):
         raise ValueError(f"Local {label} batches repeat or omit a method")
 
 
-def local_measurement_cases(contract: dict) -> list[dict]:
+def local_measurement_cases(contract: dict, source=None) -> list[dict]:
     """Read an ordered selection from the original hash-bound input trees."""
     bindings = contract.get("dataset_sources")
     if bindings is None:
@@ -626,7 +628,10 @@ def local_measurement_cases(contract: dict) -> list[dict]:
     cases, seen_paths, seen_ids = [], set(), set()
     for binding in bindings:
         relative = binding["path"]
-        path = contained_path(ROOT, relative, reject_symlinks=True)
+        root = source if contract.get("dataset_storage") == "evidence" else ROOT
+        if root is None:
+            raise ValueError("Evidence-relative inputs require their evidence root")
+        path = contained_path(root, relative, reject_symlinks=True)
         raw = read_dataset_bytes(path)
         if relative in seen_paths or hashlib.sha256(raw).hexdigest() != binding["sha256"]:
             raise ValueError("Local measurement dataset source changed")
@@ -826,17 +831,18 @@ def require_complete_local_inventory(dataset: dict, records: list[dict]) -> dict
     return reliability
 
 
-def require_local_measurement(source: Path, dataset: dict, records: list[dict]) -> None:
-    """Validate a new complete local matrix without claiming independent review."""
+def require_local_execution_contract(source, dataset, records, contract, execution):
+    """Shared physical-call boundary for complete cohorts and task replacements."""
     from .artifacts import verify_record_public_call_logs, record_public_call_log_bindings
-    contract = json.loads(contained_path(source, "local-run-contract.json").read_text())
+    from datetime import datetime
     if (contract.get("schema_version") != 1
             or contract.get("kind") != "uniform_native_local_measurement"
             or contract.get("runs") != 1 or contract.get("timeout_seconds") != 45
             or contract.get("max_failure_retries") != 0):
         raise ValueError("Invalid uniform native local measurement contract")
-    _require_local_scoring_revision(source, contract, records)
-    canonical = {"cases": local_measurement_cases(contract)}
+    canonical = {"cases": (local_measurement_cases(contract, source)
+                              if contract.get("dataset_storage") == "evidence"
+                              else local_measurement_cases(contract))}
     if dataset["cases"] != canonical["cases"]:
         raise ValueError("Local measurement changed the committed cases")
     expected = {(p, c["id"]) for p in contract["providers"] for c in canonical["cases"]}
@@ -844,10 +850,6 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
             or {(r["provider"], r["case_id"]) for r in records} != expected
             or any(r["run"] != 1 or r.get("provider_metadata", {}).get("retry") for r in records)):
         raise ValueError("Local measurement matrix is incomplete or has retries")
-    require_complete_local_inventory(dataset, records)
-    execution = json.loads(contained_path(source, "execution.json").read_text())
-    if dataset.get("comparison", {}).get("local_run_contract_sha256") != _sha256(source / "local-run-contract.json"):
-        raise ValueError("Local measurement pre-call contract changed")
     if len(execution["batches"]) != len(contract["providers"]):
         raise ValueError("Local measurement execution scope differs")
     if contract.get("execution_plans"):
@@ -869,7 +871,12 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
                 or batch.get("parameters", {}).get("provider_concurrency") != 1
                 or batch.get("parameters", {}).get("max_failure_retries") != 0):
             raise ValueError("Local measurement execution parameters differ")
+    if contract.get("runner_inputs"):
+        _require_local_runner_inputs(source, contract, execution, records)
+    canonical_by_id = {case['id']: case for case in canonical['cases']}
     for record in records:
+        if record.get('url') != canonical_by_id[record['case_id']]['url']:
+            raise ValueError('Local measurement request URL differs from frozen task')
         if len(record_public_call_log_bindings(record)) != 1:
             raise ValueError("Local measurement requires one complete call log per result")
         lexical = source
@@ -886,8 +893,26 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
         if (any(log["identity"][key] != record[key]
                 for key in ("attempt_id", "provider", "case_id", "run"))
                 or log["output"]["path"] != record["artifact_path"]
-                or log["output"]["sha256"] != record["metrics"]["content_sha256"]):
+                or log["output"]["sha256"] != record["metrics"]["content_sha256"]
+                or log['request']['url'] != record['url']
+                or log['timing'].get('elapsed_ms') != record.get('elapsed_ms')
+                or not (datetime.fromisoformat(record['started_at'])
+                        <= datetime.fromisoformat(log['timing']['started_at'])
+                        <= datetime.fromisoformat(log['timing']['completed_at'])
+                        <= datetime.fromisoformat(record['completed_at']))
+                or log['timing'].get('deadline_budget_ms') != 45000):
             raise ValueError("Local measurement call log belongs to a different result")
+
+
+def require_local_measurement(source: Path, dataset: dict, records: list[dict]) -> None:
+    """Validate a new complete local matrix without claiming independent review."""
+    contract = json.loads(contained_path(source, "local-run-contract.json").read_text())
+    execution = json.loads(contained_path(source, "execution.json").read_text())
+    if dataset.get("comparison", {}).get("local_run_contract_sha256") != _sha256(source / "local-run-contract.json"):
+        raise ValueError("Local measurement pre-call contract changed")
+    _require_local_scoring_revision(source, contract, records)
+    require_local_execution_contract(source, dataset, records, contract, execution)
+    require_complete_local_inventory(dataset, records)
     return _require_local_review(source, dataset, records)
 
 
@@ -919,3 +944,157 @@ def require_local_audit(source: Path, dataset: dict, records: list[dict]) -> dic
             raise ValueError("Local audit manifest binding mismatch: " + name)
     _require_lineage(source, receipt)
     return _require_review(source, dataset, records, receipt, manifest)
+
+
+def _require_local_runner_inputs(source, contract, execution, records):
+    """Verify retained runner inputs and source observations, without certifying them."""
+    from datetime import datetime
+    from .local_revision import read_bound
+    inputs = contract['runner_inputs']
+    def read(key):
+        return json.loads(read_bound(source, inputs[key]).read_text())
+    frozen, configuration, network = (read(key) for key in ('dataset', 'providers', 'network'))
+    canonical = local_measurement_cases(contract, source)
+    if frozen['cases'] != canonical or inputs['dataset'] != contract['dataset_sources'][0]:
+        raise ValueError('Local runner dataset differs from frozen task inputs')
+    if inputs['providers']['sha256'] != contract['provider_config_sha256']:
+        raise ValueError('Local runner configuration binding differs')
+    if not set(contract['providers']) <= set(configuration['providers']):
+        raise ValueError('Local runner configuration omits a method')
+    if network.get('dns_mode') != 'system' or network.get('usable_for_guarded_local_comparison') is not True:
+        raise ValueError('Local runner lacks usable system DNS evidence')
+    from .network_preflight import GUARDED_NATIVE_TYPES, require_usable_public_dns
+    require_usable_public_dns(network)
+    from urllib.parse import urlsplit
+    method_types = {name: configuration['providers'][name].get('method_type',
+                    configuration['providers'][name]['type']) for name in contract['providers']}
+    if any(value in GUARDED_NATIVE_TYPES for value in method_types.values()):
+        hosts = network.get('hosts', [])
+        expected_hosts = {urlsplit(case['url']).hostname for case in canonical}
+        if (len(hosts) != len(expected_hosts) or {host.get('host') for host in hosts} != expected_hosts
+                or any(not host.get('addresses') or host.get('dns_error') for host in hosts)):
+            raise ValueError('Local runner system DNS scope is incomplete')
+    for batch in execution['batches']:
+        name = batch['providers'][0]['name']
+        guarded = method_types[name] in GUARDED_NATIVE_TYPES
+        if (batch['providers'][0].get('type') != method_types[name]
+                or (guarded and not batch['providers'][0].get('implementation_identity'))
+                or any(row.get('provider_type') != method_types[name]
+                       for row in records if row['provider'] == name)):
+            raise ValueError('Local runner method identity differs from frozen configuration')
+        expected_network = ({'dns_mode': 'system', 'sha256': inputs['network']['sha256']}
+                            if guarded else None)
+        if (batch.get('dataset_sha256') != inputs['dataset']['sha256']
+                or batch.get('environment') != contract['environment']
+                or batch.get('parameters') != contract['parameters']
+                or batch.get('network_preflight') != expected_network
+                or not batch.get('completed_at') or batch.get('unexecuted')):
+            raise ValueError('Local runner execution differs from bound inputs or environment')
+    if any(not batch.get('environment', {}).get(key) for batch in execution['batches']
+           for key in ('python', 'platform')):
+        raise ValueError('Local runner execution lacks environment identity')
+    observations = inputs['source_observations']
+    if set(observations) != {case['id'] for case in canonical}:
+        raise ValueError('Local runner source observation scope differs')
+    for case in canonical:
+        times = [datetime.fromisoformat(row['started_at']) for row in records if row['case_id'] == case['id']]
+        ends = [datetime.fromisoformat(row['completed_at']) for row in records if row['case_id'] == case['id']]
+        for stage in ('pre', 'post'):
+            capture = observations[case['id']][stage]
+            evidence = json.loads(read_bound(source, capture['evidence']).read_text())
+            for key, field in [('source', 'sha256'),
+                               ('reference', 'reference_sha256'), ('extracted', 'extracted_sha256')]:
+                read_bound(source, capture[key])
+                if capture[key]['sha256'] != evidence.get(field):
+                    raise ValueError('Local runner source bytes differ from observation')
+            observed = datetime.fromisoformat(evidence['checked_at'])
+            if (evidence.get('case_id') != case['id'] or evidence.get('url') != case['url']
+                    or evidence.get('independent') is not True or evidence.get('status') != 200
+                    or (stage == 'pre' and observed > min(times))
+                    or (stage == 'post' and observed < max(ends))):
+                raise ValueError('Local runner source observation does not bracket the calls')
+
+
+def _hint_migrated_case(case):
+    import copy
+    result = copy.deepcopy(case)
+    hints = result.pop('forbidden_any', [])
+    if hints:
+        result['diagnostic_any'] = list(dict.fromkeys(result.get('diagnostic_any', []) + hints))
+    result.pop('acceptance_policy_version', None)
+    return result
+
+
+def _require_identity_binding_revision(source, dataset, receipt):
+    from .local_revision import read_bound
+    migration = receipt.get('binding_revision')
+    if not migration:
+        return
+    previous = json.loads(read_bound(source, migration['prior_receipt']).read_text())
+    old_cases = json.loads(read_bound(source, migration['prior_cases']).read_text())
+    cases = {case['id']: case for case in dataset['cases']}
+    if (migration.get('kind') != 'diagnostic_field_migration'
+            or migration.get('new_independent_review') is not False
+            or receipt.get('captures_path') != previous.get('captures_path')
+            or receipt.get('captures_sha256') != previous.get('captures_sha256')):
+        raise ValueError('Page identity evidence migration changed source observations')
+    annotations = []
+    for annotation in previous['attempts']:
+        identifier = annotation['attempt_id'].split('__')[1]
+        old = old_cases[identifier]
+        if (annotation['case_sha256'] != _canonical_sha256(old)
+                or _hint_migrated_case(old) != cases[identifier]):
+            raise ValueError('Page identity migration changed its target contract')
+        annotations.append({**annotation, 'prior_case_sha256': annotation['case_sha256'],
+                            'case_sha256': _canonical_sha256(cases[identifier])})
+    if receipt['attempts'] != annotations:
+        raise ValueError('Page identity migration changed an existing reviewed annotation')
+
+
+def carry_reviewed_page_identities(source, before_dataset, dataset, records):
+    """Reapply retained human evidence after offline scoring; never invent a URL."""
+    from .local_revision import read_bound
+    binding = before_dataset.get('comparison', {}).get('page_identity_review')
+    if not binding:
+        return None
+    original = json.loads(read_bound(source, binding).read_text())
+    captures_path = contained_path(source, original['captures_path'], reject_symlinks=True)
+    if _sha256(captures_path) != original['captures_sha256']:
+        raise ValueError('Page identity capture changed before rescoring')
+    captures = json.loads(captures_path.read_text())
+    old_cases = {case['id']: case for case in before_dataset['cases']}
+    cases = {case['id']: case for case in dataset['cases']}
+    indexed = {row['attempt_id']: row for row in records}
+    changed = any(annotation['case_sha256'] != _canonical_sha256(cases[indexed[annotation['attempt_id']]['case_id']])
+                  for annotation in original['attempts'])
+    receipt = original
+    if changed:
+        prior_cases = {indexed[a['attempt_id']]['case_id']: old_cases[indexed[a['attempt_id']]['case_id']]
+                       for a in original['attempts']}
+        key = _canonical_sha256({'prior_receipt': binding, 'cases': {key: cases[key] for key in prior_cases}})[:16]
+        directory = source / 'local-evidence/page-identity-review/rebindings' / key
+        directory.mkdir(parents=True, exist_ok=True)
+        old_path = directory / 'prior-cases.json'
+        prior_bytes = (json.dumps(prior_cases, ensure_ascii=False, indent=2)+'\n').encode()
+        if old_path.exists() and old_path.read_bytes() != prior_bytes:
+            raise ValueError('Page identity migration would overwrite prior case evidence')
+        old_path.write_bytes(prior_bytes)
+        receipt = {key: original[key] for key in ('kind', 'reviewed_at', 'basis', 'provider_calls_added', 'captures_path', 'captures_sha256')}
+        receipt['attempts'] = [{**a, 'prior_case_sha256': a['case_sha256'],
+            'case_sha256': _canonical_sha256(cases[indexed[a['attempt_id']]['case_id']])} for a in original['attempts']]
+        receipt['binding_revision'] = {'kind': 'diagnostic_field_migration', 'prior_receipt': binding,
+            'prior_cases': {'path': str(old_path.relative_to(source)), 'sha256': _sha256(old_path)},
+            'new_independent_review': False}
+        _require_identity_binding_revision(source, dataset, receipt)
+        path = directory / 'receipt.json'
+        raw = (json.dumps(receipt, ensure_ascii=False, indent=2)+'\n').encode()
+        if path.exists() and path.read_bytes() != raw:
+            raise ValueError('Page identity migration would overwrite a prior receipt')
+        path.write_bytes(raw)
+        binding = {'path': str(path.relative_to(source)), 'sha256': _sha256(path)}
+    dataset['comparison']['page_identity_review'] = binding
+    for annotation in receipt['attempts']:
+        row = indexed[annotation['attempt_id']]
+        row['metrics'] = score_reviewed_page_identity(source, cases[row['case_id']], row, annotation, captures)
+    _require_page_identity_review(source, dataset, records)
+    return binding

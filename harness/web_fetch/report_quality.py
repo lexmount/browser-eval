@@ -14,7 +14,7 @@ def quality_observations(record, case, output=''):
                      and re.search(r'hcaptcha\.com/(?:privacy|what-is-hcaptcha)', output, re.I))
     return {'task_pass': task_passed(record['ok'], metrics, case.get('task_kind')),
             'word_precision': precision, 'low_precision': precision is not None and precision < .3,
-            'hint_words': list(dict.fromkeys(metrics.get('forbidden_hits', []) + metrics.get('blocked_page_hits', []))),
+            'hint_words': list(dict.fromkeys(metrics.get('diagnostic_hits', []) + metrics.get('blocked_page_hits', []))),
             'challenge_component_text': component}
 
 

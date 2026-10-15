@@ -1488,6 +1488,8 @@ def reason(r,c):
    return '无法判定：已保存实际返回，但缺少可核实的最终网页身份，不计入通过数、失败数或任务通过率的分母。'
   return '未测：历史调用未记录原文件字节验收证据，不计入任务通过率或失败数。'
  if r['metrics'].get('deadline_overrun'):return '超过该调用登记的端到端时间预算；保留实际耗时和返回内容，但不计为按时交付。'
+ if r['metrics'].get('forbidden_requirement_hits'):
+  return '命中题目明确禁止的内容：'+'、'.join(r['metrics']['forbidden_requirement_hits'])+'。'
  if r['ok'] and 'stable_task_pass' in r['metrics']:
   m=r['metrics']
   if m.get('composite_acceptance_pass') is False:
@@ -1862,7 +1864,7 @@ def local_audit_banner(dataset):
   return ''
  if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
   if local_pass_rate_ranking(dataset):
-   return '<span hidden data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate"></span>'
+   return '<p class="wrap source-note" data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate">'+model_text('按本次所列任务的通过率排序；未完成仓库认证流程。测试日期和核验范围见详情。','Ordered by pass rate on the listed tasks; repository certification is incomplete. See details for test dates and verification scope.')+'</p>'
   note='已有复核记录；覆盖和裁定依据见核验页面。' if dataset['comparison'].get('independent_review') else '结果为机器判定，未进行独立人工审核。'
   return '<div class="wrap callout" role="alert" data-evidence-state="local_measurement"><strong>本地未认证诊断快照 · 不可用于排名</strong><p>来源未在调用前后完成全量核验。保存的评分、质量指标和复核记录仅供诊断，不代表正式发布或认证结果。</p><p>'+note+'</p></div>'
  return '<div class="wrap callout"><strong>本地审核版</strong><p>本页合并两个不同日期的 Moli 调用批次，保留每例的真实调用时间。本次仅更换报告展示代码，没有新增 Moli 调用，也不代表正式发布。</p></div>'
@@ -1918,6 +1920,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  for track,label in tracks:
   cards+=overview_card(records,cases,track,label,names,diagnostic=diagnostic)
  description=(f'{len(cases)} 个案例 · {len(names)} 种方法 · 本地未认证诊断快照。' if diagnostic else f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
+ if local_pass_rate_ranking(dataset):
+  description=model_text(f'{len(cases)} 个案例 · {len(names)} 种方法 · 按本轮任务通过率排序。',f'{len(cases)} cases · {len(names)} methods · Ordered by task pass rate for this sample.')
  home='<div class="home-page">'+hero('Web Fetch 评测报告',description)
  from .report_explainer import article_title,render_explainer,supports_authored_explainer
  TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else article_title(records) if authored_interpretation and supports_authored_explainer(cases) and not all(row.get('provider_type') == 'fixture' for row in records) else '本报告的任务范围与验收规则'
@@ -1940,7 +1944,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if cases[r["case_id"]].get("track","web")==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit,diagnostic=diagnostic)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
  home+=section(f'{track_label} 类任务概览',('' if local_pass_rate_ranking(dataset) else review_summary(out))+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
- home+=section('任务判定汇总（非排名）' if diagnostic else '综合通过率总榜',overall_ranking(records,cases,audit,diagnostic=diagnostic),'overall-ranking')
+ overall_title=('任务判定汇总（非排名）' if diagnostic else model_text('本轮任务通过率排名','Task pass-rate ranking for this sample') if local_pass_rate_ranking(dataset) else '综合通过率总榜')
+ home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic),'overall-ranking')
  if diagnostic:
   home+=result_ledger_section(out,records)
   low=[r for r in records if not r['metrics'].get('evaluation_excluded') and succeeded(r,cases[r['case_id']]) and cases[r['case_id']].get('ground_truth_main_content') and r['metrics'].get('word_precision') is not None and r['metrics']['word_precision']<.3]
@@ -2288,8 +2293,8 @@ def current_local_review_findings(out,dataset,records,audit):
    f"Currently {passed} pass among {len(eligible)} eligible results; {len(records)-len(eligible)} are excluded. Pages and downloadable summaries use the same saved results."),
   (f"保留独立复核记录 {audit.get('reviewed_attempts',0)}/{len(records)}；另有 {unreviewed} 条未独立复核，其中机器通过 {audit.get('accepted_unreviewed_passes',0)} 条。补充裁定 {adjudicated} 条，不称为新一轮全量盲审。",
    f"Retained independent review covers {audit.get('reviewed_attempts',0)}/{len(records)} results. Another {unreviewed} are not independently reviewed, including {audit.get('accepted_unreviewed_passes',0)} machine passes. There are {adjudicated} supplemental adjudications; this is not a new full blind review."),
-  (f"评分规则版本为 {dataset['comparison'].get('scoring_policy_version',1)}。目标内容要求、正文质量和验证提示分别展示；提示文字不单独决定任务是否通过。",
-   f"Scoring policy version: {dataset['comparison'].get('scoring_policy_version',1)}. Target requirements, body quality and verification hints are reported separately; hint words alone do not determine acceptance."),
+  ("目标内容要求、正文质量和诊断文字分别展示；具体评分实现哈希见各结果详情，诊断词不单独决定任务是否通过。",
+   "Target requirements, body quality and diagnostic text are reported separately. Each result binds its scorer hash; diagnostic words alone do not determine acceptance."),
  ]
  if local_pass_rate_ranking(dataset):
   rows.append(('名次按当前任务通过率计算，耗时单独展示，不参与名次。历史调用未完成调用前后的全量来源核验，保留实际检查日期和范围，不声称已完成来源认证。',

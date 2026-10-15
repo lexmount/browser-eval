@@ -35,13 +35,12 @@ class ReportMetricsTests(unittest.TestCase):
   self.assertFalse(r['content_pass'])
  def test_reference_error_terms_are_not_block_pages(self):
   text='HTTP status 404 Not Found means the target resource was not found.'
-  r=evaluate_content(text,[],required_facts=[{'alternatives':['target resource']}],forbidden_any=['404 Not Found'],ground_truth_main_content=text)
-  self.assertTrue(r['content_pass']);self.assertEqual(r['forbidden_hits'],[])
-  self.assertEqual(r['reference_term_exemptions'],['404 Not Found'])
-  error=evaluate_content('404 Not Found',[],required_facts=[{'alternatives':['target resource']}],forbidden_any=['404 Not Found'],ground_truth_main_content=text,min_content_chars=30)
+  r=evaluate_content(text,[],required_facts=[{'alternatives':['target resource']}],diagnostic_any=['404 Not Found'],ground_truth_main_content=text)
+  self.assertTrue(r['content_pass']);self.assertEqual(r['diagnostic_hits'],['404 Not Found'])
+  error=evaluate_content('404 Not Found',[],required_facts=[{'alternatives':['target resource']}],diagnostic_any=['404 Not Found'],ground_truth_main_content=text,min_content_chars=30)
   self.assertFalse(error['content_pass'])
-  missing_ref=evaluate_content('404 Not Found',[],forbidden_any=['404 Not Found'])
-  self.assertTrue(missing_ref['content_pass']);self.assertEqual(missing_ref['forbidden_hits'],['404 Not Found'])
+  missing_ref=evaluate_content('404 Not Found',[],diagnostic_any=['404 Not Found'])
+  self.assertTrue(missing_ref['content_pass']);self.assertEqual(missing_ref['diagnostic_hits'],['404 Not Found'])
  def test_inapplicable_not_failure(self):
   attrs=case_attrs(record(),{'category':'image','track':'image','task_kind':'file'})
   self.assertIn('data-content="na"',attrs)

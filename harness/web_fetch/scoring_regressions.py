@@ -32,14 +32,9 @@ def load_scoring_regressions(path: Path | None = None) -> dict[str, dict[str, An
     rows: dict[str, dict[str, Any]] = {}
     if document.get('control_revisions'):
         raise ValueError('Historical controls cannot override inputs or expected results; add new IDs')
-    historical = document.get('historical_policy_versions', {})
-    if (not isinstance(historical, dict)
-            or set(historical) - {row.get('id') for row in document['cases']}
-            or any(type(value) is not int or value != 1 for value in historical.values())):
-        raise ValueError('Invalid historical scoring policy versions')
+    if document.get('historical_policy_versions'):
+        raise ValueError('Historical policy selectors belong in frozen scorer snapshots')
     for index, row in enumerate(document["cases"], 1):
-        if row.get('id') in historical:
-            row = {**row, 'case': {**row['case'], 'acceptance_policy_version': historical[row['id']]}}
         identifier = row.get("id")
         if not isinstance(identifier, str) or not identifier.strip() or identifier in rows:
             raise ValueError(f"Scoring regression {index} requires a unique nonempty id")

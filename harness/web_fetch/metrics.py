@@ -23,7 +23,9 @@ METRIC_DEFINITIONS = {
     "markdown_links": "输出中目标为 HTTP(S) 的 Markdown 链接数量。",
     "html_tags": "输出中残留的类 HTML 标签数量。",
     "fact_coverage": "命中的预登记事实组除以全部必需事实组；同组可接受表达等价。",
-    "forbidden_hits": "输出中出现的历史登记错误提示文本；仅作诊断，不决定任务是否通过。",
+    "forbidden_requirement_hits": "命中案例明确禁止的内容；命中任一项即任务未通过。",
+    "forbidden_requirement_pass": "案例明确声明的禁止内容均未出现。",
+    "diagnostic_hits": "命中供诊断的文字；不会单独使任务失败。",
     "blocked_page": "检测到独立的访问限制或人机验证提示；仅作诊断，不决定任务是否通过。",
     "blocked_page_hits": "检测到的独立提示标题或标记；仅作诊断，不作为失败依据。",
     "declared_truncation_hits": "供应商输出中精确命中的截断声明；正文仅在全部预登记区域均被完整覆盖时可通过，资源与结构任务仍按各自交付合同验收。",
@@ -326,9 +328,10 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
     # Scored records carry the case kind so dataset-free summaries use the same
     # predicate as the report. Explicit case context still takes precedence.
     task_kind = task_kind if task_kind is not None else metrics.get('task_kind', 'body')
-    if metrics.get('acceptance_policy_version', 2) == 1 and (
-            metrics.get('forbidden_hits') or metrics.get('blocked_page')
-            or metrics.get('stable_blocked_page')):
+    if ('acceptance_policy_version' in metrics or 'forbidden_hits' in metrics
+            or ('blocked_page' in metrics and 'forbidden_requirement_hits' not in metrics)):
+        raise ValueError('Historical scoring metrics require their frozen scorer or a complete offline rescore')
+    if metrics.get('forbidden_requirement_hits') or metrics.get('forbidden_requirement_pass') is False:
         return False
     if (metrics.get('page_identity_required')
             and metrics.get('page_identity_status') != 'verified'):
@@ -496,6 +499,7 @@ def evaluate_content(
     title: str | None = None,
     required_facts: list[dict[str, Any]] | None = None,
     forbidden_any: list[str] | None = None,
+    diagnostic_any: list[str] | None = None,
     min_content_chars: int = 1,
     fact_coverage_threshold: float = 1.0,
     ground_truth_main_content: str = "",
@@ -560,19 +564,17 @@ def evaluate_content(
             if (term := normalize_for_match(hit)) and term in reference_block_terms
         ]
         block_hits = [hit for hit in block_hits if hit not in block_reference_exemptions]
-    reference_exemptions = [item for item in (forbidden_any or [])
-                            if reference_folded and (text := normalize_for_match(item)) and text in reference_folded]
-    if acceptance_contract:
-        # A historical snapshot cannot exempt an explicit stable-mode block rule.
-        reference_exemptions = []
+    # Explicit forbidden text is a task requirement, not a challenge-page guess.
+    # A reference mentioning it cannot silently remove the declared requirement.
     forbidden = [item for item in (forbidden_any or [])
-                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
+                 if (text := normalize_for_match(item)) and text in folded]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
     length_pass = len(visible_content) >= min_content_chars
     content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
+                    and not forbidden
                     and not encoding_corruption
                     and not script_shell)
     pattern_results = []
@@ -603,12 +605,14 @@ def evaluate_content(
         "fact_total": len(fact_results),
         "fact_coverage": fact_coverage,
         "fact_coverage_threshold": fact_coverage_threshold,
-        "forbidden_hits": forbidden,
+        "forbidden_requirement_hits": forbidden,
+        "diagnostic_hits": [item for item in (diagnostic_any or [])
+                            if (text := normalize_for_match(item)) and text in folded],
+        "forbidden_requirement_pass": not forbidden,
         "blocked_page": bool(block_hits),
         "blocked_page_hits": block_hits,
         "blocked_page_reference_exemptions": block_reference_exemptions,
         "script_payload_shell": script_shell,
-        "reference_term_exemptions": reference_exemptions,
         "minimum_content_chars": min_content_chars,
         "length_pass": length_pass,
         "content_chars": len(content),
@@ -662,7 +666,7 @@ def evaluate_content(
             result["stable_content_pass"] = False
             if "content_too_short" not in result["stable_task_errors"]:
                 result["stable_task_errors"].append("content_too_short")
-        result["content_pass"] = bool(declared_body_pass and result["stable_task_pass"])
+        result["content_pass"] = bool(declared_body_pass and result["stable_task_pass"] and not forbidden)
         result["content_decision_basis"] = "stable_contract_and_declared_content_requirements"
     if composite_acceptance:
         from .composite_tasks import evaluate_composite_acceptance
