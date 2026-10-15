@@ -15,8 +15,8 @@
     "openclaw-built-in",
     "tavily"
   ],
-  "frozen_dataset_sha256": "fd3922a60c65a93911b9426d10753ee6b211dd1312e4f5dade5c49ef3dd93fbc",
-  "results_sha256": "f1884b4ae2f0ba4de9be23590ac8c55ea1e530ef8ab57c10f02912494bebe013",
+  "frozen_dataset_sha256": "5fd8f69886bb1919e592bec5a88becc3f1eb555a10c912e2724652e3219d4fb3",
+  "results_sha256": "21a64bec19d9b5614643a013592cb9bfb35b341301ac45814ce763b58cde6690",
   "measured_scoring_source_sha256": "4ce40cdf2ecb1af4088915a2b869ffbdcb65dce5222d1429578e97d175f13bfc",
   "evidence_state": "local_measurement",
   "certified": false,
@@ -28,7 +28,7 @@
     },
     {
       "path": "result-review.json",
-      "sha256": "82b6b4f24d3e3f52817acaf422e0f6c9aeaea264664594f135b4e26cc98e155a"
+      "sha256": "3c0be7dedda1a31ea749a989fa622b7aa8907a6580bed6c00512ec91871fa035"
     },
     {
       "path": "archived-reading.json",
@@ -40,7 +40,7 @@
     },
     {
       "path": "local-evidence/result-ledger.json",
-      "sha256": "8b281721b1d65fc7fc4d153de2b6c8c490c9cc74bad77798863691c9fff868dd"
+      "sha256": "28b6b78515fe6521a4ea564b7de16935982e86b4855fd5af0bf2d342961db6fb"
     },
     {
       "path": "frozen-method-options.json",
@@ -81,16 +81,20 @@
     {
       "path": "archived-reading/translations.json",
       "sha256": "fa2fff490354674e2edf19bcee87306b364053df88c88be1ab0fab9d1eb424e5"
+    },
+    {
+      "path": "local-evidence/code-block-impact.json",
+      "sha256": "bb1bd4f9b3bf0b5704b730d3a84d01dc6f4698947de2fd2d3da2667e2a8b08b9"
     }
   ],
-  "evidence_path": "runs/pr51-llk-followup-20261015/evidence",
+  "evidence_path": "runs/pr51-block-chain-20261015/evidence",
   "task_replacement": {
     "path": "local-evidence/task-replacement/receipt.json",
     "sha256": "c68d3b21c3317538089635f8fb0ca5bf4f874f4a03201b27e42c56491780d6e0"
   },
   "offline_revision": {
-    "path": "local-evidence/offline-revisions/b0bcc2da22ca9fc7-da9093e253ba8f4f/receipt.json",
-    "sha256": "e0956c716d3fba39bf4b8e571c1f005a742eebb62f4d6c9c399b3f9e14c31bc1"
+    "path": "local-evidence/offline-revisions/f1884b4ae2f0ba4d-3aa4e30c449b3731/receipt.json",
+    "sha256": "a230fff72209ab675f3e93587947dc041ffb964fafea37e82da643fd9de2cace"
   },
   "replacement_case": {
     "id": "static-sqlite-quickstart",
@@ -145,25 +149,10 @@
       "authority": "Frozen pre-call official source; preserve code tokens while allowing whitespace and HTML entities."
     }
   },
-  "current_scoring_source_sha256": "eed7cf0755edba82a8a87e686cd745b98374ac0e06e3b0cb48192c732708794f",
-  "review_evidence_package": {
-    "archive_name": "PR-51-public-saved-inputs-20261015.tar.xz",
-    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261015/PR-51-public-saved-inputs-20261015.tar.xz",
-    "sha256": "da022f5b94db5129c25d4cb7dfd2866fa61f502b63a52222d06032ae70045987",
-    "bytes": 255118544,
-    "access": "Read-only public evidence projection. Rebuild with the included public presentation binding; original host metadata stays private. Original and public file hashes are distinguished in the projection receipt. Earlier draft patches are historical, not prerequisites.",
-    "presentation_binding": {
-      "path": "presentation-binding.json",
-      "sha256": "5bffda822a0e2ea90277d664a6c7f96f58317db24c0be3f36c3611c1089249d7"
-    },
-    "projection_receipt": {
-      "path": "PUBLICATION-PROJECTION.json",
-      "sha256": "2ade8e9d96565cae487c673200b7ad2faa6ae77a15b6d2178315df54df72929c"
-    }
-  },
+  "current_scoring_source_sha256": "0c182d0c4d7f83b680dfddea0115e614721fc9590735411bf84bc7b013311eb1",
   "supplemental_review": {
     "path": "local-evidence/current-contract-review/supplement.json",
-    "sha256": "ee1d92533d72b3e7a1fd480065551c67cfc191ade95d5749b6cf27b149503cd7"
+    "sha256": "0b356816e4f1b9c9e013754ea79f42bd83a69e9be82a73ae9062b81e573da18a"
   },
   "retained_review": {
     "path": "local-evidence/review-retention/receipt.json",
@@ -173,5 +162,23 @@
     "fresh": 66,
     "retained": 4234,
     "total": 4300
+  },
+  "review_evidence_package": {
+    "archive_name": "PR-51-public-saved-inputs-20261015.tar.xz",
+    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261015/PR-51-public-saved-inputs-20261015.tar.xz",
+    "sha256": "ed17643b6a232221a8f0b892f817cbe2d8b92b61d5dd2524cc448e24359bc745",
+    "bytes": 255231492,
+    "self_contained_restore_verified": true,
+    "full_report_rebuild_verified": true,
+    "logical_report_routes": 25796,
+    "access": "Read-only public host-metadata projection. Rebuild with the included public presentation binding. Original host metadata remains private; original and public file hashes are distinguished. No earlier draft assets are required.",
+    "presentation_binding": {
+      "path": "presentation-binding.json",
+      "sha256": "a604a44bc612ba0357a31155bdc8e21957049669e81661b7364fbf8da80674bc"
+    },
+    "projection_receipt": {
+      "path": "PUBLICATION-PROJECTION.json",
+      "sha256": "08001ffd26611ae7bc0d8e676afeaa3a97a9e383dbfa03cb1c8eddd407ee210b"
+    }
   }
 }
