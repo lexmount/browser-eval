@@ -210,6 +210,9 @@ def evaluate_resources(
         raise ValueError(f"Unsupported resource unexpected policy: {contract.get('unexpected')!r}")
 
     candidates: list[tuple[str, str]] = []
+    projection = metadata.get('native_answer_projection') or {}
+    typed_json_answer = (projection.get('content_format') == 'json'
+                         and bool(projection.get('answer_fields')))
     if eligible and candidate_scope == "image_answer_fields":
         if "images" in metadata:
             candidates.extend(_metadata_image_candidates(
@@ -219,19 +222,21 @@ def evaluate_resources(
         for key in ("media", "extras"):
             if key in metadata:
                 candidates.extend(_metadata_image_candidates(metadata[key], path=f"metadata.{key}"))
-        candidates.extend(_image_content_candidates(content))
+        if not typed_json_answer:
+            candidates.extend(_image_content_candidates(content))
     elif eligible:
         answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
         candidates.extend(_metadata_resource_candidates(answer_fields))
-        from .reference_quality import markdown_link_destinations
-        candidates.extend((url, "content.bare_url") for url in
-                          re.findall(r"https?://[^\s<>'\")\]]+", content))
-        candidates.extend((match[1], "content.html_url") for match in
-                          re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
-        candidates.extend((url, "content.markdown_link")
-                          for url in markdown_link_destinations(content))
-        candidates.extend((url, "content.visible_file")
-                          for url in _visible_relative_resource_urls(content))
+        if not typed_json_answer:
+            from .reference_quality import markdown_link_destinations
+            candidates.extend((url, "content.bare_url") for url in
+                              re.findall(r"https?://[^\s<>'\")\]]+", content))
+            candidates.extend((match[1], "content.html_url") for match in
+                              re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
+            candidates.extend((url, "content.markdown_link")
+                              for url in markdown_link_destinations(content))
+            candidates.extend((url, "content.visible_file")
+                              for url in _visible_relative_resource_urls(content))
     normalized_candidates, candidate_evidence = _normalized_candidates(candidates, base_url=base_url)
     results = []
     allowed_urls: set[str] = set()

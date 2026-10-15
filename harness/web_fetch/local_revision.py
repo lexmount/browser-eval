@@ -1,12 +1,14 @@
 """Validate task replacements and offline revisions of a bound local snapshot."""
 import hashlib
 import json
+from pathlib import Path
 
 from harness.record_io import load_jsonl
 
 from .cohort_exclusions import require_cohort_exclusions
 from .safety import contained_path
 from .scoring_regressions import require_scoring_regressions
+from .scoring_revision import ALLOWED_FIELDS
 
 
 def read_bound(source, binding):
@@ -92,6 +94,41 @@ def require_local_revision(source, binding, dataset, records):
     return validate_revision_chain(source, binding, dataset, records)[0]
 
 
+def _require_native_answer_correction(source, original, corrected, proof):
+    """Verify a derived answer against the same immutable native response."""
+    from .response_input import project_native_answer
+    if proof.get('attempt_id') != original['attempt_id']:
+        raise ValueError('Native answer correction lost its attempt identity')
+    native = read_bound(source, proof['native_response'])
+    metadata = original.get('provider_metadata', {})
+    if (proof['native_response']['sha256'] != metadata.get('raw_response_sha256')
+            or native.stat().st_size != metadata.get('raw_response_bytes')):
+        raise ValueError('Native answer correction changed its original response')
+    before = proof['original_artifact']
+    after = proof['corrected_artifact']
+    if (before['path'] != original['artifact_path']
+            or before['sha256'] != original['metrics']['content_sha256']
+            or after['path'] != corrected['artifact_path']
+            or after['sha256'] != corrected['metrics']['content_sha256']
+            or before['path'] == after['path']):
+        raise ValueError('Native answer correction must preserve its old artifact')
+    read_bound(source, before)
+    text, fields = project_native_answer(json.loads(native.read_bytes()), proof['projection'])
+    if read_bound(source, after).read_bytes() != text.encode('utf-8', errors='replace'):
+        raise ValueError('Native answer correction differs from declared original fields')
+    for field in proof['projection'].get('answer_fields', {}).values():
+        if field.get('format') == 'html_attribute_urls' and field.get('base_url') != original['url']:
+            raise ValueError('Native URL projection must use the original request URL')
+    expected_metadata = {**metadata, **fields, 'native_answer_projection': proof['projection']}
+    if corrected.get('provider_metadata') != expected_metadata:
+        raise ValueError('Native answer correction changed unrelated response metadata')
+    derived = {'metrics', 'scoring', 'diagnosis', 'failure_category',
+               'artifact_path', 'provider_metadata'}
+    if ({k: v for k, v in original.items() if k not in derived}
+            != {k: v for k, v in corrected.items() if k not in derived}):
+        raise ValueError('Native answer correction changed physical call facts')
+
+
 def _require_revision_step(source, receipt, dataset, records, outputs):
     if receipt.get('kind') != 'local_offline_score_revision' or receipt.get('provider_calls_added') != 0:
         raise ValueError('Local revision must preserve original provider calls')
@@ -122,7 +159,7 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
     for identifier, old in old_cases.items():
         new = new_cases[identifier]
         fields = {key for key in old.keys() | new.keys() if old.get(key) != new.get(key)}
-        if fields - {'task_prompt', 'acceptance_contract', 'body_requirements', 'required_patterns', 'required_facts', 'forbidden_any', 'diagnostic_any', 'acceptance_policy_version'}:
+        if fields - (ALLOWED_FIELDS | {'diagnostic_any', 'acceptance_policy_version'}):
             raise ValueError('Local score revision changed source or acquisition inputs')
         if fields:
             changed_cases.add(identifier)
@@ -137,10 +174,17 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
     scored = set(receipt.get('rescored_attempt_ids', []))
     if not scored <= set(new_rows):
         raise ValueError('Local revision rescoring scope differs')
+    native_proofs = receipt.get('native_answer_corrections', [])
+    corrected_answers = {item['attempt_id']: item for item in native_proofs}
+    if (len(corrected_answers) != len(native_proofs)
+            or not set(corrected_answers) <= scored):
+        raise ValueError('Native answer correction scope differs from rescoring scope')
     expected_scoring = {}
     for identifier, old in old_rows.items():
         new = new_rows[identifier]
-        if ({k: v for k, v in old.items() if k not in {'metrics', 'scoring', 'diagnosis', 'failure_category'}}
+        if identifier in corrected_answers:
+            _require_native_answer_correction(source, old, new, corrected_answers[identifier])
+        elif ({k: v for k, v in old.items() if k not in {'metrics', 'scoring', 'diagnosis', 'failure_category'}}
                 != {k: v for k, v in new.items() if k not in {'metrics', 'scoring', 'diagnosis', 'failure_category'}}
                 or old['metrics']['content_sha256'] != new['metrics']['content_sha256']):
             raise ValueError('Local revision changed measured call facts: ' + identifier)
@@ -224,6 +268,12 @@ def revise_local_snapshot(source, configuration):
     history = source / 'local-evidence/offline-revisions' / revision_key
     if history.exists():
         raise ValueError('Local revision already exists; preserve the prior receipt')
+    native_inputs = config.get('native_answer_corrections', [])
+    native_requests = {item['attempt_id']: item for item in native_inputs}
+    if (len(native_requests) != len(native_inputs)
+            or not set(native_requests) <= {row['attempt_id'] for row in records}):
+        raise ValueError('Native answer correction has an invalid input scope')
+    additional.update(native_requests)
     indexed = {case['id']: case for case in dataset['cases']}
     input_verdicts = None
     if config.get('input_verdicts'):
@@ -234,6 +284,7 @@ def revise_local_snapshot(source, configuration):
                 or any(type(value) is not bool for value in input_verdicts.values())):
             raise ValueError('Frozen input verdicts do not match the complete input results')
     selected = []
+    native_proofs = []
     before_verdicts = {}
     for row in records:
         if row['case_id'] not in replacements and row['attempt_id'] not in additional:
@@ -245,9 +296,37 @@ def revise_local_snapshot(source, configuration):
         before = (input_verdicts[row['attempt_id']] if input_verdicts is not None
                   else task_passed(row['ok'], row['metrics']))
         before_verdicts[row['attempt_id']] = before
+        if row['attempt_id'] in native_requests:
+            from .response_input import project_native_answer
+            request = native_requests[row['attempt_id']]
+            native_path = read_bound(source, request['native_response'])
+            metadata = row.get('provider_metadata', {})
+            if (request['native_response']['sha256'] != metadata.get('raw_response_sha256')
+                    or native_path.stat().st_size != metadata.get('raw_response_bytes')):
+                raise ValueError('Native correction source differs from its original response')
+            answer, fields = project_native_answer(json.loads(native_path.read_bytes()), request['projection'])
+            raw = answer.encode('utf-8', errors='replace')
+            original_artifact = {'path': row['artifact_path'], 'sha256': row['metrics']['content_sha256']}
+            digest = hashlib.sha256(raw).hexdigest()
+            old_path = Path(row['artifact_path'])
+            new_relative = old_path.with_name(old_path.stem + '-native-' + digest[:12] + old_path.suffix)
+            corrected_path = contained_path(source, new_relative, reject_symlinks=True)
+            if corrected_path.exists() and corrected_path.read_bytes() != raw:
+                raise ValueError('Native correction would overwrite a different artifact')
+            corrected_path.parent.mkdir(parents=True, exist_ok=True)
+            corrected_path.write_bytes(raw)
+            row['artifact_path'] = new_relative.as_posix()
+            row['provider_metadata'] = {**metadata, **fields, 'native_answer_projection': request['projection']}
+            native_proofs.append({'attempt_id': row['attempt_id'],
+                'native_response': request['native_response'], 'projection': request['projection'],
+                'original_artifact': original_artifact,
+                'corrected_artifact': {'path': row['artifact_path'], 'sha256': digest}})
         row['metrics'] = score_attempt(case, raw, ok=row['ok'], status_code=row.get('status_code'),
             title=row.get('title'), final_url=row.get('final_url'), metadata=row.get('provider_metadata'),
             previous_metrics=row['metrics'], list_reference=load_list_reference(case, source))
+        # Diagnoses describe the former score and must be regenerated from this answer.
+        row.pop('diagnosis', None)
+        row.pop('failure_category', None)
         row['scoring'] = {**row.get('scoring', {}), 'mode': 'offline_rescore',
             'scored_at': datetime.now(timezone.utc).isoformat(),
             'rule_revision': bool(config.get('rule_revision')),
@@ -276,6 +355,7 @@ def revise_local_snapshot(source, configuration):
         'changed_case_ids': sorted(case['id'] for case in dataset['cases']
             if case != next(c for c in original_dataset['cases'] if c['id'] == case['id'])),
         'rescored_attempt_ids': selected, 'rule_revision': bool(config.get('rule_revision')),
+        **({'native_answer_corrections': native_proofs} if native_proofs else {}),
         'input_verdicts': config.get('input_verdicts'),
         **({'predecessor_revision': config['predecessor_revision']} if config.get('predecessor_revision') else {}),
         'superseded_controls': config.get('superseded_controls', []),

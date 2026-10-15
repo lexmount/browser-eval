@@ -31732,6 +31732,112 @@
         ],
         "resource_pass": true
       }
+    },
+    {
+      "id": "native-json-resource-untyped-url-echo-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "native_json_answer_field_scope",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "target",
+            "urls": [
+              "https://cdn.example.test/target.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "{\"echo\": \"https://cdn.example.test/target.jpg\"}",
+      "metadata": {
+        "images": [
+          "https://cdn.example.test/other.jpg"
+        ],
+        "native_answer_projection": {
+          "schema_version": 1,
+          "content_pointer": [
+            "result"
+          ],
+          "content_format": "json",
+          "answer_fields": {
+            "images": {
+              "pointer": [
+                "result",
+                "images"
+              ],
+              "format": "identity"
+            }
+          }
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://cdn.example.test/other.jpg"
+        ],
+        "resource_precision": 0.0
+      }
+    },
+    {
+      "id": "native-json-resource-declared-image-field-preserved",
+      "category": "acceptance-contract",
+      "root_cause": "native_json_answer_field_scope",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "target",
+            "urls": [
+              "https://cdn.example.test/target.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "{\"echo\": \"https://cdn.example.test/other.jpg\"}",
+      "metadata": {
+        "images": [
+          "https://cdn.example.test/target.jpg"
+        ],
+        "native_answer_projection": {
+          "schema_version": 1,
+          "content_pointer": [
+            "result"
+          ],
+          "content_format": "json",
+          "answer_fields": {
+            "images": {
+              "pointer": [
+                "result",
+                "images"
+              ],
+              "format": "identity"
+            }
+          }
+        }
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://cdn.example.test/target.jpg"
+        ],
+        "resource_precision": 1.0
+      }
     }
   ],
   "superseded_controls": {

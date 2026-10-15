@@ -181,3 +181,87 @@ def test_hash_connected_intermediate_revision_must_pass_full_validation(tmp_path
     latest_binding['sha256'] = hashlib.sha256(latest_path.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match=message):
         validate_revision_chain(tmp_path, latest_binding)[1:]
+
+
+def _native_answer_revision_fixture(root):
+    raw = b'Body fact'
+    (root/'answer.txt').write_bytes(raw)
+    native_content = 'Body fact | Saved to: /Users/person/private/page.txt'
+    native = (json.dumps({'content': native_content})+'\n').encode()
+    native_path = root/'private_artifacts/native.response.bin'
+    native_path.parent.mkdir()
+    native_path.write_bytes(native)
+    case = {'id': 'a', 'url': 'https://example.test/',
+            'required_facts': [{'id': 'body', 'alternatives': ['Body fact']}]}
+    row = {'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a', 'ok': True,
+           'url': case['url'], 'artifact_path': 'answer.txt', 'elapsed_ms': 7,
+           'diagnosis': {'category': 'obsolete diagnosis', 'evidence': 'old answer'},
+           'failure_category': 'obsolete failure',
+           'provider_metadata': {'raw_response_path': 'private_artifacts/native.response.bin',
+               'raw_response_sha256': hashlib.sha256(native).hexdigest(),
+               'raw_response_bytes': len(native)},
+           'metrics': score_attempt(case, raw, ok=True)}
+    (root/'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}))
+    (root/'results.jsonl').write_text(json.dumps(row)+'\n')
+    config = {'cases': [], 'authority': {'description': 'Restore declared native fields from the same call; preserve the former derived answer and measured time.'},
+        'regression_ids': ['native-json-resource-declared-image-field-preserved',
+                           'native-json-resource-untyped-url-echo-rejected'],
+        'native_answer_corrections': [{'attempt_id': row['attempt_id'],
+            'native_response': {'path': row['provider_metadata']['raw_response_path'],
+                'sha256': row['provider_metadata']['raw_response_sha256']},
+            'projection': {'schema_version': 1, 'content_pointer': ['content'],
+                           'content_format': 'text'}}]}
+    config_path = root/'correction.json'
+    config_path.write_text(json.dumps(config))
+    receipt = revise_local_snapshot(root, config_path)
+    receipt_path = root/receipt['input_dataset']['path']
+    receipt_path = receipt_path.parent/'receipt.json'
+    binding = {'path': str(receipt_path.relative_to(root)),
+               'sha256': hashlib.sha256(receipt_path.read_bytes()).hexdigest()}
+    return row, receipt, receipt_path, binding, native_content
+
+
+def test_offline_native_correction_preserves_call_and_both_answers(tmp_path):
+    original, receipt, _, binding, native_content = _native_answer_revision_fixture(tmp_path)
+    current = json.loads((tmp_path/'results.jsonl').read_text())
+    assert receipt['provider_calls_added'] == 0
+    assert receipt['changed_case_ids'] == []
+    assert receipt['task_verdict_changes'] == []
+    assert current['elapsed_ms'] == original['elapsed_ms']
+    assert 'diagnosis' not in current
+    assert 'failure_category' not in current
+    assert (tmp_path/'answer.txt').read_bytes() == b'Body fact'
+    assert current['artifact_path'] != original['artifact_path']
+    assert (tmp_path/current['artifact_path']).read_text() == native_content
+    assert len(receipt['native_answer_corrections']) == 1
+    require_local_revision(tmp_path, binding, json.loads((tmp_path/'dataset.json').read_text()), [current])
+
+
+@pytest.mark.parametrize('defect,message', [
+    ('clock', 'physical call facts'), ('metadata', 'unrelated response metadata'),
+    ('answer', 'declared original fields'), ('source', 'original response'),
+    ('missing_proof', 'measured call facts'),
+])
+def test_native_correction_rejects_self_consistent_but_false_projection(tmp_path, defect, message):
+    _, receipt, path, binding, _ = _native_answer_revision_fixture(tmp_path)
+    current = json.loads((tmp_path/'results.jsonl').read_text())
+    proof = receipt['native_answer_corrections'][0]
+    if defect == 'clock': current['elapsed_ms'] += 1
+    elif defect == 'metadata': current['provider_metadata']['injected'] = 'new answer data'
+    elif defect == 'answer':
+        artifact = tmp_path/current['artifact_path']
+        artifact.write_text('Different answer not supplied by the call')
+        digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        current['metrics']['content_sha256'] = digest
+        proof['corrected_artifact']['sha256'] = digest
+    elif defect == 'source':
+        source = tmp_path/proof['native_response']['path']
+        source.write_text(json.dumps({'content': 'Different native response'}))
+        proof['native_response']['sha256'] = hashlib.sha256(source.read_bytes()).hexdigest()
+    else: receipt.pop('native_answer_corrections')
+    (tmp_path/'results.jsonl').write_text(json.dumps(current)+'\n')
+    receipt['output_results_sha256'] = hashlib.sha256((tmp_path/'results.jsonl').read_bytes()).hexdigest()
+    path.write_text(json.dumps(receipt))
+    binding['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match=message):
+        require_local_revision(tmp_path, binding, json.loads((tmp_path/'dataset.json').read_text()), [current])
