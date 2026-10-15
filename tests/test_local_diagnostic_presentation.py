@@ -119,3 +119,56 @@ def test_frozen_download_summary_uses_current_scores_and_exclusions(tmp_path):
     (tmp_path / 'summary.json').write_text(json.dumps({'web': summary}))
     with pytest.raises(ValueError, match='summary differs'):
         check_saved_result_summary(tmp_path, dataset, rows)
+
+
+def test_explicit_sample_ranking_reuses_existing_ranked_table_and_keeps_scope(tmp_path):
+    from harness.web_fetch.report import local_pass_rate_ranking
+    from harness.web_fetch.report_check import check_local_diagnostic_presentation
+    dataset = {'comparison': {'kind': 'uniform_native_local_measurement',
+               'publication_state': 'local_audit_only_not_for_release',
+               'presentation': {'ranking': 'saved_task_pass_rate'}}}
+    c = case('body', kind='body', track='web')
+    high, low = record(c), record(c, passed=False)
+    high['provider'], low['provider'] = 'z-high', 'a-low'
+    markup = overall_ranking([low, high], {c['id']: c}, diagnostic=not local_pass_rate_ranking(dataset))
+    soup = BeautifulSoup(markup, 'html.parser')
+    assert soup.select_one('tbody tr td').get_text() == '1'
+    assert 'z-high' in soup.select_one('tbody tr').get_text()
+    banner = local_audit_banner(dataset)
+    assert 'data-ranking-scope="saved-task-pass-rate"' in banner
+    assert BeautifulSoup(banner, 'html.parser').get_text() == ''
+    assert 'callout' not in banner
+    page = tmp_path/'index.html'
+    page.write_text('<meta name="browser-eval-report" content="1">'+banner+markup)
+    check_local_diagnostic_presentation(tmp_path, ranked=True)
+    with pytest.raises(ValueError, match='assigns ranks'):
+        check_local_diagnostic_presentation(tmp_path)
+    page.write_text('<meta name="browser-eval-report" content="1"><div data-evidence-state="local_measurement">Uncertified</div>'+markup)
+    with pytest.raises(ValueError, match='scope missing'):
+        check_local_diagnostic_presentation(tmp_path, ranked=True)
+
+
+def test_unreviewed_new_calls_are_explicit_and_cannot_hide_reviewed_rows():
+    from harness.web_fetch.adjudication_evidence import require_current_review_state
+    c = case('body', kind='body', track='web')
+    r = record(c)
+    audit = {'attempts': [], 'unreviewed_attempt_ids': [r['attempt_id']],
+             'reviewed_attempts': 0, 'accepted_unreviewed_passes': 1, 'unresolved': 0}
+    require_current_review_state([r], audit)
+    audit['accepted_unreviewed_passes'] = 0
+    with pytest.raises(ValueError, match='coverage differs'):
+        require_current_review_state([r], audit)
+
+
+@pytest.mark.parametrize('track', ['dynamic', 'document'])
+def test_contract_prose_localizes_without_full_snapshot_or_fixed_field_counts(track):
+    from harness.web_fetch.report_components import task_pass_guide
+    from harness.web_fetch.report_i18n import localize_html
+    from harness.web_fetch.report_check import EnglishNarrative
+    cases = {'example': {'id': 'example', 'name': 'Example', 'track': track,
+                        'acceptance_contract': {'field_minimum_records': {'shipping': 2}}}}
+    english = localize_html(task_pass_guide(track, cases=cases), PurePosixPath('index.html'))
+    parser = EnglishNarrative({'Example'})
+    parser.feed(english)
+    assert parser.untranslated == []
+    assert 'shipping: at least 2 records' in english

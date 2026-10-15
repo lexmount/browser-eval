@@ -158,15 +158,22 @@ def task_pass_guide(track, base='', cases=None):
         'risk_control': '请求成功并取得指定目标页面；全部稳定文字、正文分区和组合规则均须满足。文章不能只返回标题或开头，列表须达到登记的字段、真实链接、路径、去重和数量要求；验证页、空返回和页面外壳均不通过。',
     }
     text = rules.get(track, '按案例中登记的验收规则逐项检查。')
+    from .report_i18n import TEXT
+    missing_translations = {
+        'dynamic': 'Validate the initial-load scope: stable text and required record fields, counts, uniqueness and types jointly determine acceptance. Volatile members, titles and prices are checked structurally rather than frozen to old values. An HTTP shell is insufficient; rendering, embedded data and public APIs are valid routes. Full-text quality is separate and requires a complete comparable reference.',
+        'document': 'Document text must satisfy request status, minimum length and every registered content check; a download link alone is insufficient. Verification and error hints are diagnostic. F1 is reported separately and is not a pass threshold.',
+    }
+    text_en = TEXT.get(text, missing_translations.get(track, 'Check each registered task requirement.'))
     coverage=[c['body_requirements'] for c in (cases or {}).values() if c.get('body_requirements')]
+    coverage_note = ''
     if coverage:
-        thresholds=' / '.join(f'{v:.0%}' for v in sorted({r['minimum_coverage'] for r in coverage}))
-        text+=f' 已登记正文覆盖规则的案例，还须在最多 {max(len(r["regions"]) for r in coverage)} 个参考区域中逐区达到 {thresholds} 词语计数覆盖，不能只返回标题或开头。'
+        coverage_note = '<span data-report-en="Registered body-coverage tasks must meet each task&#39;s regional thresholds and minimum coverage floors; a title or opening excerpt alone is insufficient."> 已登记正文覆盖规则的案例，还须满足各题的分区覆盖门槛和最低覆盖要求，不能只返回标题或开头。</span>'
     for c in (cases or {}).values():
         fields=c.get('acceptance_contract',{}).get('field_minimum_records',{})
         if fields:
             labels={'financing':'分期','shipping':'配送'}
             text+=' '+c['name']+' 的字段覆盖要求：'+'、'.join(f'{labels.get(k,k)}至少 {v} 条' for k,v in fields.items())+'，各归属于完整且唯一的记录。'
+            text_en+=' '+c['name']+' field coverage: '+', '.join(f'{k}: at least {v} records' for k,v in fields.items())+'; every field must belong to a complete, unique record.'
     context = TRACK_CONTEXT.get(track)
     kinds = {c.get('task_kind', 'body') for c in (cases or {}).values()
              if c.get('track', 'web') == track}
@@ -178,9 +185,16 @@ def task_pass_guide(track, base='', cases=None):
             'file': '文件交付须返回原始字节，并通过格式、长度及已登记目标 SHA-256 校验；文字或链接不能替代文件。',
         }
         text = ' '.join(output_rules[kind] for kind in sorted(kinds) if kind in output_rules)
+        english_outputs = {
+            'body': TEXT[rules['web']],
+            'structure': 'Structured output must satisfy registered fields, types, counts, uniqueness and link rules.',
+            'resource': 'Resource discovery must return the registered target addresses and answer fields.',
+            'file': 'File delivery requires original bytes with valid format, length and any registered SHA-256; text or links cannot replace the file.',
+        }
+        text_en = ' '.join(english_outputs[k] for k in sorted(kinds) if k in english_outputs)
         context = None
     if not context:
-        return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p></div>'
+        return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+'<span data-report-en="'+escape(text_en,quote=True)+'">'+escape(text)+'</span>'+coverage_note+'</p></div>'
     example_link = ''
     if context.get('case_id') in (cases or {}):
         example_link = ' <a href="'+escape(base+'datasets/'+context['case_id']+'.html')+'">查看案例 →</a>'
@@ -189,7 +203,7 @@ def task_pass_guide(track, base='', cases=None):
             '<figure class="track-flow" aria-label="典型处理流程"><figcaption>典型处理流程</figcaption><ol>'
             + ''.join('<li><span>'+escape(step)+'</span></li>' for step in context['flow'])+'</ol>'
             '<p>'+escape(context['flow_note'])+'</p></figure>'
-            '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p></div>'
+            '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+'<span data-report-en="'+escape(text_en,quote=True)+'">'+escape(text)+'</span>'+coverage_note+'</p></div>'
             '<details class="track-more"><summary>任务例子与评测边界</summary><dl>'
             '<div><dt>一个例子</dt><dd>'+escape(context['example'])+example_link+'</dd></div>'
             '<div><dt>范围与边界</dt><dd>'+escape(context['boundary'])+'</dd></div></dl>'

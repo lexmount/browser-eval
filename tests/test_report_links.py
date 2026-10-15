@@ -32,6 +32,21 @@ class ReportLinkCheckTest(unittest.TestCase):
                 with self.subTest(root=root):
                     self.assertEqual(self.run_check(root).returncode, 1)
 
+    def test_frozen_source_navigation_is_not_report_navigation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "local-evidence" / "capture" / "source.html"
+            source.parent.mkdir(parents=True)
+            source.write_text('<a href="original-site-only.html">Source navigation</a>')
+            home = root / "index.html"
+            home.write_text('<a href="local-evidence/capture/source.html">Frozen source</a>')
+            self.assertEqual(self.run_check(root).returncode, 0)
+            home.write_text('<a href="local-evidence/capture/missing.html">Missing evidence</a>')
+            self.assertEqual(self.run_check(root).returncode, 1)
+            home.write_text('<a href="local-evidence/capture/source.html">Frozen source</a>')
+            source.write_text('<meta content="1" name="browser-eval-report"><a href="missing.html">Report navigation</a>')
+            self.assertEqual(self.run_check(root).returncode, 1)
+
     def test_rejects_missing_fragment(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

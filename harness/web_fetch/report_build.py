@@ -1299,8 +1299,17 @@ def validate_local_presentation(output: Path, binding_path: Path):
     records = load_jsonl(contained_path(output, 'results.jsonl'))
     scoring_sources = {row['attempt_id']: binding.get('measured_scoring_source_sha256') for row in records}
     if binding.get('offline_revision'):
-        from .local_revision import require_local_revision
+        from .local_revision import require_local_revision, read_bound
         scoring_sources = require_local_revision(output, binding['offline_revision'], dataset, records)
+        if binding.get('task_replacement'):
+            from .local_revision import require_local_task_replacement
+            revision = json.loads(read_bound(output, binding['offline_revision']).read_text())
+            previous_dataset = json.loads(read_bound(output, revision['input_dataset']).read_text())
+            previous_records = load_jsonl(read_bound(output, revision['input_results']))
+            require_local_task_replacement(output, binding['task_replacement'], previous_dataset, previous_records)
+    elif binding.get('task_replacement'):
+        from .local_revision import require_local_task_replacement
+        scoring_sources = require_local_task_replacement(output, binding['task_replacement'], dataset, records)
     if (len(records) != binding.get('result_count')
             or len(dataset['cases']) != binding.get('case_count')
             or sorted({row['provider'] for row in records}) != sorted(binding['providers'])

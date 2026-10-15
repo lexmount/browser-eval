@@ -1853,10 +1853,16 @@ def local_call_chain_section(dataset, prefix="../"):
  return section('本轮保存了哪些日志',intro+table(['方法','产品与依赖库日志范围'],rows,metrics=[])+'<p>完整日志在各案例详情中查看。日志可以帮助定位问题，但没有记录的内部过程不能据此推断；日志文件存在，也不等于产品的全部内部过程都有记录。</p>','call-chain-audit')
 
 
+def local_pass_rate_ranking(dataset):
+ return dataset.get('comparison',{}).get('presentation',{}).get('ranking') == 'saved_task_pass_rate'
+
+
 def local_audit_banner(dataset):
  if dataset.get('comparison',{}).get('publication_state')!='local_audit_only_not_for_release':
   return ''
  if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+  if local_pass_rate_ranking(dataset):
+   return '<span hidden data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate"></span>'
   note='已有复核记录；覆盖和裁定依据见核验页面。' if dataset['comparison'].get('independent_review') else '结果为机器判定，未进行独立人工审核。'
   return '<div class="wrap callout" role="alert" data-evidence-state="local_measurement"><strong>本地未认证诊断快照 · 不可用于排名</strong><p>来源未在调用前后完成全量核验。保存的评分、质量指标和复核记录仅供诊断，不代表正式发布或认证结果。</p><p>'+note+'</p></div>'
  return '<div class="wrap callout"><strong>本地审核版</strong><p>本页合并两个不同日期的 Moli 调用批次，保留每例的真实调用时间。本次仅更换报告展示代码，没有新增 Moli 调用，也不代表正式发布。</p></div>'
@@ -1864,8 +1870,9 @@ def local_audit_banner(dataset):
 def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True):
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  _ENGLISH_GENERATED=include_english
- diagnostic=dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
- if diagnostic and not show_local_status_banners:
+ local_snapshot=dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
+ diagnostic=local_snapshot and not local_pass_rate_ranking(dataset)
+ if local_snapshot and not show_local_status_banners:
   raise ValueError('Uncertified local diagnostic status cannot be hidden')
  from .reliability import assess_reliability
  reliability=assess_reliability(dataset,records)
@@ -1932,7 +1939,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   selected=[c for c in cases.values() if c.get('track','web')==track]
   coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if cases[r["case_id"]].get("track","web")==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit,diagnostic=diagnostic)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
- home+=section(f'{track_label} 类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
+ home+=section(f'{track_label} 类任务概览',('' if local_pass_rate_ranking(dataset) else review_summary(out))+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  home+=section('任务判定汇总（非排名）' if diagnostic else '综合通过率总榜',overall_ranking(records,cases,audit,diagnostic=diagnostic),'overall-ranking')
  if diagnostic:
   home+=result_ledger_section(out,records)

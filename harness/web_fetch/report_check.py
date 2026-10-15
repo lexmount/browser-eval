@@ -175,16 +175,31 @@ def check_saved_result_summary(root, dataset, records):
             raise ValueError('Saved result summary differs from current evidence: ' + provider + '/' + track)
 
 
-def check_local_diagnostic_presentation(root: Path):
-    """Completeness must never turn uncertified evidence into a displayed ranking."""
+def require_replacement_execution(root, binding, physical, logical):
+    """Keep superseded task calls as history without counting them as current rows."""
+    from .local_revision import read_bound
+    receipt = json.loads(read_bound(root, binding).read_text())
+    previous = load_jsonl(read_bound(root, receipt['baseline_results']))
+    calls = load_jsonl(read_bound(root, receipt['cohort_results']))
+    expected_physical = Counter(row['attempt_id'] for row in previous + calls)
+    current = [row for row in previous if row['case_id'] != receipt['removed_case_id']]
+    expected_logical = Counter(row['attempt_id'] for row in current + calls)
+    if physical != expected_physical or logical != expected_logical:
+        raise ValueError('Task replacement physical/logical call inventory differs')
+
+
+def check_local_diagnostic_presentation(root: Path, *, ranked=False):
+    """Track evidence state and scope any explicitly requested sample ranking."""
     for path in root.rglob('*.html'):
         page = path.read_text(encoding='utf-8')
         if '<meta name="browser-eval-report" content="1">' not in page:
             continue  # Original response/source HTML is evidence, not report prose.
         if 'data-evidence-state="local_measurement"' not in page:
             raise ValueError('Local diagnostic disclosure missing: ' + str(path.relative_to(root)))
+        if ranked and 'data-ranking-scope="saved-task-pass-rate"' not in page:
+            raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))
         for table in re.findall(r'<table\b[^>]*\bid="ranking-[^"]+".*?</table>', page, re.S):
-            if 'data-dir="desc"' in table or re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table):
+            if not ranked and ('data-dir="desc"' in table or re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table)):
                 raise ValueError('Uncertified diagnostic comparison assigns ranks: ' + str(path.relative_to(root)))
 
 
@@ -230,8 +245,10 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     local_measurement = d.get("comparison", {}).get("kind") == "uniform_native_local_measurement"
     if presentation_binding and not local_measurement:
         raise ValueError("Presentation binding requires a frozen uniform-native diagnostic snapshot")
+    from .report import local_pass_rate_ranking
+    sample_ranking = local_measurement and local_pass_rate_ranking(d)
     if local_measurement:
-        check_local_diagnostic_presentation(root)
+        check_local_diagnostic_presentation(root, ranked=sample_ranking)
         if (root / 'result-review.json').is_file():
             from .adjudication_evidence import require_adjudication_evidence, require_current_review_state
             review=json.loads((root / 'result-review.json').read_text())
@@ -252,7 +269,9 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             require_local_measurement(root, d, rs)
         inventory = {track: {"case_ids": [case["id"] for case in d["cases"] if case.get("track", "web") == track], "providers": providers} for track, providers in d["coverage_plan"].items()}
         local_contract = json.loads((root / "local-run-contract.json").read_text())
-        canonical_cases = {case["id"]: case for case in local_measurement_cases(local_contract)}
+        canonical_cases = ({case["id"]: case for case in d["cases"]}
+                           if presentation_binding and d.get('comparison', {}).get('task_replacement')
+                           else {case["id"]: case for case in local_measurement_cases(local_contract)})
         canonical_dataset = (root / "dataset.json" if local_contract.get("dataset_sources")
                              else repository / local_contract["dataset_path"])
     elif profile_path and (profile_path.parent / "dataset.json").is_file():
@@ -556,7 +575,10 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     execution = json.loads((root / "execution.json").read_text())["batches"]
     physical_attempts = Counter(i for b in execution for i in b["attempt_ids"])
     logical_attempts = Counter(r["attempt_id"] for r in rs)
-    if d.get("comparison", {}).get("superseded_formal_provider_calls"):
+    if d.get('comparison', {}).get('task_replacement'):
+        require_replacement_execution(root, d['comparison']['task_replacement'],
+                                      physical_attempts, logical_attempts)
+    elif d.get("comparison", {}).get("superseded_formal_provider_calls"):
         if not set(physical_attempts) == set(logical_attempts):
             raise ValueError("Report acceptance check failed")
         if (
@@ -568,7 +590,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         raise ValueError("Report acceptance check failed")
     home = (root / "index.html").read_text()
     track_count = len({case.get("track", "web") for case in d["cases"]})
-    require_home_comparison_layout(home, track_count, diagnostic=local_measurement)
+    require_home_comparison_layout(home, track_count, diagnostic=local_measurement and not sample_ranking)
     if (root / "resource-cohort/resource-comparison.json").is_file():
         guide = (root / "guide/index.html").read_text()
         for page_name, text in [("home", home), ("guide", guide)]:

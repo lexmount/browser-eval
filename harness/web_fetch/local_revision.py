@@ -1,4 +1,4 @@
-"""Validate offline score revisions of a hash-bound local diagnostic snapshot."""
+"""Validate task replacements and offline revisions of a bound local snapshot."""
 import hashlib
 import json
 
@@ -14,6 +14,44 @@ def read_bound(source, binding):
     if hashlib.sha256(path.read_bytes()).hexdigest() != binding.get('sha256'):
         raise ValueError('Local revision evidence binding changed: ' + binding['path'])
     return path
+
+
+def require_local_task_replacement(source, binding, dataset, records):
+    """Verify complete new task calls while preserving every unrelated saved row."""
+    receipt = json.loads(read_bound(source, binding).read_text())
+    if receipt.get('kind') != 'local_task_replacement' or not receipt.get('reason'):
+        raise ValueError('Task replacement needs a declared reason')
+    before = json.loads(read_bound(source, receipt['baseline_dataset']).read_text())
+    previous = load_jsonl(read_bound(source, receipt['baseline_results']))
+    cohort = json.loads(read_bound(source, receipt['cohort_dataset']).read_text())
+    calls = load_jsonl(read_bound(source, receipt['cohort_results']))
+    removed, added = receipt['removed_case_id'], receipt['added_case_id']
+    old_cases = {c['id']: c for c in before['cases']}
+    new_cases = {c['id']: c for c in dataset['cases']}
+    if (removed == added or removed not in old_cases or added in old_cases
+            or len(old_cases) != len(before['cases']) or len(new_cases) != len(dataset['cases'])
+            or set(new_cases) != (set(old_cases) - {removed}) | {added}
+            or before.get('coverage_plan') != dataset.get('coverage_plan')
+            or any(new_cases[k] != v for k, v in old_cases.items() if k != removed)
+            or cohort['cases'] != [new_cases[added]]
+            or old_cases[removed].get('track') != new_cases[added].get('track')):
+        raise ValueError('Task replacement changed unrelated cases or task family')
+    providers = set(before['coverage_plan'][old_cases[removed].get('track', 'web')])
+    expected = {(p, added) for p in providers}
+    if (len(calls) != len(expected) or receipt.get('provider_calls_added') != len(calls)
+            or {(r['provider'], r['case_id']) for r in calls} != expected
+            or any(r.get('run') != 1 or r.get('provider_metadata', {}).get('retry') for r in calls)):
+        raise ValueError('Task replacement needs one new call from every method')
+    inherited = [r for r in previous if r['case_id'] != removed]
+    rows = {r['attempt_id']: r for r in records}
+    wanted = {r['attempt_id']: r for r in inherited + calls}
+    if (len(rows) != len(records) or len(wanted) != len(inherited) + len(calls)
+            or len(records) != len(previous) or rows != wanted):
+        raise ValueError('Task replacement altered an inherited or newly measured result')
+    if any(r['metrics'].get('evaluation_excluded') for r in calls):
+        raise ValueError('Replacement task cannot be excluded after seeing its results')
+    return {identifier: row['metrics']['scoring_source_sha256']
+            for identifier, row in rows.items()}
 
 
 def require_local_revision(source, binding, dataset, records):

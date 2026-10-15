@@ -58,8 +58,15 @@ def require_current_review_state(records, review):
     from .metrics import task_measured, task_passed
     indexed={record['attempt_id']:record for record in records}
     rows=review.get('attempts',[])
-    if len(rows)!=len(indexed) or {row['attempt_id'] for row in rows}!=set(indexed):
+    unreviewed=review.get('unreviewed_attempt_ids',[])
+    reviewed_ids={row['attempt_id'] for row in rows}
+    if (len(rows)!=len(reviewed_ids) or len(unreviewed)!=len(set(unreviewed))
+            or reviewed_ids & set(unreviewed) or reviewed_ids | set(unreviewed)!=set(indexed)):
         raise ValueError('Review state inventory differs from current results')
+    if unreviewed and (review.get('reviewed_attempts')!=len(rows)
+            or review.get('accepted_unreviewed_passes')!=sum(
+                task_passed(indexed[k]['ok'],indexed[k]['metrics']) for k in unreviewed)):
+        raise ValueError('Unreviewed result coverage differs from current scores')
     for row in rows:
         record=indexed[row['attempt_id']]
         expected='unavailable' if not task_measured(record['metrics']) else 'pass' if task_passed(record['ok'],record['metrics']) else 'fail'
