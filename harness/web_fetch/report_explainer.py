@@ -384,7 +384,7 @@ def _dynamic_section(data, cases):
     scope, total = data['tracks']['dynamic'], data['dynamic']
     if not scope['case_count']:
         return ('<section id="dynamic-coverage"><h2>动态网站正文：内容何时可以交付</h2>'
-                '<p>普通网页正文的分类标签与参考来源不足以逐页证明正文必须执行 JavaScript 后才出现。'
+                '<p>静态网站正文的分类标签与参考来源不足以逐页证明正文必须执行 JavaScript 后才出现。'
                 '当前输入没有动态网站正文实测，不能把所有网页称为静态任务，'
                 '也不能把动态类别标签当作浏览器必需的证据。</p></section>')
     providers = sorted(scope['providers'])
@@ -458,7 +458,7 @@ def _dynamic_section(data, cases):
             f'<p>{scope["case_count"]} 个任务覆盖异步取数、客户端呈现与子文档获取。'
             f'实际运行 {len(providers)} 种方法、{total["records"]} 次调用，'
             f'{total["request_ok"]} 次请求正常返回，{total["task_pass"]} 次任务通过。'
-            '任务难度、源站状态和调用日期没有与普通网页正文任务构成受控对照；两类结果分别比较。</p>'
+            '任务难度、源站状态和调用日期没有与静态网站正文任务构成受控对照；两类结果分别比较。</p>'
             + figure + mechanism
             + '<p>动态呈现与数据变化是两个维度。固定的名言也可以经异步接口或计时器显示；'
               '每日变动的榜单也可能直接写在 HTML 中。任务可以要求一定数量的完整条目、非空名称和指定类型的字段，'
@@ -1195,7 +1195,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
     values['dynamic_section'] = _dynamic_section(data, cases)
     audit = data['initial_reference_audit']
     values['initial_audit'] = (
-        f'<p>初始源文档审计进一步缩小了这批样本的解释范围：普通网页正文 {audit["web_case_count"]} 例中，'
+        f'<p>初始源文档审计进一步缩小了这批样本的解释范围：静态网站正文 {audit["web_case_count"]} 例中，'
         f'{audit["exact_reconstructions"]} 例的冻结参考，可以从已保存的初始 HTML 经参考提取与规范化后精确复现。'
         '这是对参考文本可恢复性的检查，既不意味着它们都是可见静态正文，也不意味着 CowAgent 使用了同样的提取器。'
         '嵌入脚本的载荷仍需要正确解析。高网页通过率因此不能直接外推到初始响应之外才到达的内容。'
@@ -1225,7 +1225,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
         '样本偏向技术文档')
     wm = web['providers'].get('moli-webfetch')
     dm = tracks['dynamic']['providers'].get('moli-webfetch')
-    values['lead'] = (f'同一配置的 Moli，在普通网页正文任务中通过 {wm["task_pass"]}/{wm["records"]}，'
+    values['lead'] = (f'同一配置的 Moli，在静态网站正文任务中通过 {wm["task_pass"]}/{wm["records"]}，'
         f'在动态网站正文中通过 {dm["task_pass"]}/{dm["records"]}。'
         '网页高分为什么没有自然延伸到动态内容？关键在于目标内容在哪里、何时到达，以及接口最终保留了什么。'
         if wm and dm else '抓取接口正常返回之后，正文仍可能缺失、混入导航，或丢掉详情地址。'
@@ -1238,13 +1238,13 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
         f'<div class="editorial-bar-row"><span>{label}</span><span class="editorial-bar-track" aria-hidden="true">'
         f'<i style="width:{count / max(t["records"], 1) * 100:.4f}%"></i></span>'
         f'<b>{count:,} / {t["records"]:,}</b></div>' for label, count in failure_rows
-    ) + f'</div><figcaption>普通网页正文调用的互斥状态分解；{values["time_window"]}。正常返回不等于源站 HTTP 200。</figcaption></figure>'
+    ) + f'</div><figcaption>静态网站正文调用的互斥状态分解；{values["time_window"]}。正常返回不等于源站 HTTP 200。</figcaption></figure>'
     selected = ['cloudflare-markdown', 'exa', 'cowagent-built-in']
     values['quality_figure'] = _table(['方法', '任务通过 / 调用', '平均 F1', 'F1 样本数'], [
         (_link('providers/' + p + '.html', PROVIDER_NAMES[p]), f'{s["task_pass"]}/{s["records"]}',
          f'{s["mean_f1"]:.4f}' if s['mean_f1'] is not None else '未测', str(s['f1_records']))
         for p in selected if (s := web['providers'].get(p))],
-        '用于比较排名逆转与提取机制的方法：同一普通网页正文范围，F1 为有指标记录的逐例算术平均')
+        '用于比较排名逆转与提取机制的方法：同一静态网站正文范围，F1 为有指标记录的逐例算术平均')
     cf, exa = (web['providers'].get(p) for p in ('cloudflare-markdown', 'exa'))
     values['rank_reversal'] = '<p>当前输入不足以比较 Cloudflare Markdown 与 Exa。</p>'
     if cf and exa:
@@ -1287,7 +1287,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
             f'<h3>实际输出</h3><pre>{escape(probe["output"])}</pre><p>'
             + _link('guide/cowagent-text-probe.json', '实验代码、观察结果与源码 SHA-256') + '</p></details>')
     cow = web['providers'].get('cowagent-built-in')
-    values['cow_result'] = (f'<p>CowAgent 在普通网页正文中请求成功 {cow["request_ok"]}/{cow["records"]}，'
+    values['cow_result'] = (f'<p>CowAgent 在静态网站正文中请求成功 {cow["request_ok"]}/{cow["records"]}，'
         f'任务通过 {cow["task_pass"]}/{cow["records"]}。一个以 HTTP 取页、再去除标签的实现，'
         '在这批网页上已能满足大部分关键内容规则。这使它值得作为正文入口的基线，'
         '但还不足以解释全部成功来自哪里。</p>' if cow else '<p>当前输入没有 CowAgent 网页记录。</p>')

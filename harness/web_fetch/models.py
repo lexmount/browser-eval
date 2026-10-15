@@ -16,7 +16,7 @@ TRACKS = {
 # The frozen dataset retains image/video as source tracks. Public comparisons
 # group those cases by the deliverable a caller must receive.
 REPORT_FAMILIES = {
-    'web': '普通网页正文',
+    'web': '静态网站正文',
     'dynamic': '动态网站正文',
     'challenge': '热门网站正文',
     'risk_control': '风控网页正文',

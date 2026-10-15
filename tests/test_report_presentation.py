@@ -158,7 +158,7 @@ class ReportRevisionTests(unittest.TestCase):
   rendered=overall_ranking(records,cases)
   self.assertIn('计划的 2 个任务',rendered)
   self.assertIn('回到 2 个分榜',rendered)
-  self.assertEqual(active_tracks(cases),[('web','普通网页正文'),('document','文档正文')])
+  self.assertEqual(active_tracks(cases),[('web','静态网站正文'),('document','文档正文')])
   self.assertNotIn('150 个任务',rendered)
   self.assertNotIn('六类',rendered)
  def test_provider_configuration_is_method_specific(self):
@@ -216,7 +216,7 @@ class ReportRevisionTests(unittest.TestCase):
    '主结果来自不同批次，耗时只用于逐次诊断；下面单列预先声明的同窗子集。'
    '全调用统计保留失败与截止超时，回答完整任务队列要等多久；通过调用统计只描述各方法已通过任务，'
    '成功分母可能不同，不能单独拿来排同题速度。',
-   '统计按实际调用记录计算，未运行和缺少验收证据的项目不记为失败。普通网页正文、动态网站正文与热门网站正文分别陈述，'
+   '统计按实际调用记录计算，未运行和缺少验收证据的项目不记为失败。静态网站正文、动态网站正文与热门网站正文分别陈述，'
    '文档、资源地址和原文件按各自契约验收。100 个普通网页中，GitHub 与 Python 官方文档占 48 个，样本偏向技术文档；'
    '每个方法与案例组合只有一次观察，不能估计波动或外推为全网成功率。调用日期相邻不构成同时间对照，公开练习站也不能代表生产网站分布。',
   ]
