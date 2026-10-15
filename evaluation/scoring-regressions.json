@@ -32446,6 +32446,298 @@
       "expected_metrics": {
         "resource_pass": true
       }
+    },
+    {
+      "id": "image-unsplash-detail-documented-same-photo-display-accepted",
+      "category": "acceptance-contract",
+      "root_cause": "declared_photo_display_and_download_variants",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.unsplash.com/photo-1493673272479-a20888bcee10",
+              "https://unsplash.com/photos/mSK5nNsAsLY/download"
+            ],
+            "url_patterns": [
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format))*)?$",
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+)(?:&(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+))*)?$",
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+)(?:&(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.unsplash.com/photo-1493673272479-a20888bcee10?fm=jpg&q=80&w=1080&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=example%3D",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "image-unsplash-detail-documented-undeclared-region-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "declared_photo_display_and_download_variants",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.unsplash.com/photo-1493673272479-a20888bcee10",
+              "https://unsplash.com/photos/mSK5nNsAsLY/download"
+            ],
+            "url_patterns": [
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format))*)?$",
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+)(?:&(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+))*)?$",
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+)(?:&(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.unsplash.com/photo-1493673272479-a20888bcee10?fm=jpg&q=80&w=1080&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=example%3D&h=500&crop=left",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "image-unsplash-detail-documented-unverified-signature-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "declared_photo_display_and_download_variants",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.unsplash.com/photo-1493673272479-a20888bcee10",
+              "https://unsplash.com/photos/mSK5nNsAsLY/download"
+            ],
+            "url_patterns": [
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format))*)?$",
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+)(?:&(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+))*)?$",
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+)(?:&(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.unsplash.com/photo-1493673272479-a20888bcee10?fm=jpg&q=80&w=1080&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=example%3D&s=unverified",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "image-unsplash-detail-documented-different-photo-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "declared_photo_display_and_download_variants",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.unsplash.com/photo-1493673272479-a20888bcee10",
+              "https://unsplash.com/photos/mSK5nNsAsLY/download"
+            ],
+            "url_patterns": [
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=format))*)?$",
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+)(?:&(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+))*)?$",
+              "^https://images\\.unsplash\\.com/photo\\-1493673272479\\-a20888bcee10(?:\\?(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+)(?:&(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=format|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|ixlib=[A-Za-z0-9_.-]+|ixid=(?:[A-Za-z0-9_.~-]|%[0-9A-Fa-f]{2})+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.unsplash.com/photo-0000000000000-different?fm=jpg&q=80&w=1080&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=example%3D",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "image-pexels-detail-documented-same-photo-display-accepted",
+      "category": "acceptance-contract",
+      "root_cause": "declared_photo_display_and_download_variants",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://www.pexels.com/photo/a-green-trees-in-the-forest-12377231/",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg"
+            ],
+            "url_patterns": [
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb))*)?$",
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+)(?:&(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+))*)?$",
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+)(?:&(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg?cs=srgb&dl=download.jpg&fm=jpg",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "image-pexels-detail-documented-undeclared-region-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "declared_photo_display_and_download_variants",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://www.pexels.com/photo/a-green-trees-in-the-forest-12377231/",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg"
+            ],
+            "url_patterns": [
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb))*)?$",
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+)(?:&(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+))*)?$",
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+)(?:&(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg?cs=srgb&dl=download.jpg&fm=jpg&crop=left",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "image-pexels-detail-documented-unverified-signature-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "declared_photo_display_and_download_variants",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://www.pexels.com/photo/a-green-trees-in-the-forest-12377231/",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg"
+            ],
+            "url_patterns": [
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb))*)?$",
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+)(?:&(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+))*)?$",
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+)(?:&(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg?cs=srgb&dl=download.jpg&fm=jpg&s=unverified",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "image-pexels-detail-documented-different-photo-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "declared_photo_display_and_download_variants",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://www.pexels.com/photo/a-green-trees-in-the-forest-12377231/",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://images.pexels.com/photos/12377231/pexels-photo-12377231.jpeg"
+            ],
+            "url_patterns": [
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb)(?:&(?:[wh]=[1-9][0-9]*|q=[1-9][0-9]?|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|cs=tinysrgb))*)?$",
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+)(?:&(?:[wh]=[1-9][0-9]*|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+))*)?$",
+              "^https://images\\.pexels\\.com/photos/12377231/pexels\\-photo\\-12377231\\.jpeg(?:\\?(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+)(?:&(?:w=[1-9][0-9]*|fit=(?:crop|max|clip)|q=(?:[1-9][0-9]?|100)|dpr=[1-9](?:\\.[0-9]+)?|auto=compress|fm=(?:jpg|jpeg|png|webp)|cs=(?:srgb|tinysrgb)|dl=[A-Za-z0-9_.%-]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://images.pexels.com/photos/99999999/pexels-photo-99999999.jpeg?cs=srgb&dl=download.jpg&fm=jpg",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
     }
   ],
   "superseded_controls": {
