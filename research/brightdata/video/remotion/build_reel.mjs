@@ -4,6 +4,10 @@ fs.copyFileSync(
   "../../assets/infographics/architecture.png",
   "public/architecture.png",
 );
+fs.copyFileSync(
+  "../../assets/infographics/lexmount-product-architecture.png",
+  "public/lexmount-product-architecture.png",
+);
 const t = JSON.parse(fs.readFileSync("src/timeline.json", "utf8")),
   total = t.durationInFrames;
 const changes = new Set([0, total]),

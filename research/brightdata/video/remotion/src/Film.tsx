@@ -1228,156 +1228,115 @@ function Fields({ focus }: { focus: string }) {
     </>
   );
 }
+// Source-image coordinates, measured against the 1586 × 992 product blueprint.
+const blueprintRegions: Record<string, [number, number, number, number]> = {
+  whole: [0, 0, 1586, 992],
+  browser: [28, 356, 705, 379],
+  data: [861, 356, 699, 379],
+  interaction: [20, 356, 1546, 379],
+  apps: [20, 145, 1546, 145],
+  shared: [21, 777, 1545, 125],
+  governance: [24, 907, 1538, 65],
+};
 function Reuse({ focus }: { focus: string }) {
-  const rows = [
-    [
-      "current",
-      "已有基础",
-      "Cloud Browser · Web Fetch",
-      "会话与操作 · 网页内容",
-      "Moli / 浏览器运行时 + 评测",
-    ],
-    [
-      "near",
-      "相邻机会",
-      "字段采集服务",
-      "商品、公司等结构化记录",
-      "复用执行与提取；补站点适配",
-    ],
-    [
-      "middle",
-      "需求验证后",
-      "持续数据服务",
-      "刷新、变化记录、历史查询",
-      "复用字段服务；补调度与存储",
-    ],
-    [
-      "upper",
-      "候选方向",
-      "行业应用 / Agent 工作流",
-      "业务判断或多步任务结果",
-      "复用数据或执行；补业务能力",
-    ],
-  ];
-  return (
-    <>
-      <Label x={90} y={183} text="阶段" w={220} size={26} color={C.muted} />
-      <Label
-        x={360}
-        y={183}
-        text="产品位置"
-        w={560}
-        size={26}
-        color={C.muted}
-      />
-      <Label
-        x={960}
-        y={183}
-        text="客户得到什么"
-        w={430}
-        size={26}
-        color={C.muted}
-      />
-      <Label
-        x={1410}
-        y={183}
-        text="依靠什么继续生长"
-        w={420}
-        size={26}
-        color={C.muted}
-      />
-      {rows.map(([id, status, name, out, base], i) => (
-        <div
-          key={id}
-          data-target={id}
-          data-active={focus === id}
-          style={{
-            position: "absolute",
-            left: 80,
-            top: 240 + i * 140,
-            width: 1760,
-            height: 120,
-            boxSizing: "border-box",
-            padding: "18px 24px",
-            display: "grid",
-            gridTemplateColumns: "250px 600px 450px 1fr",
-            alignItems: "center",
-            borderRadius: 14,
-            border: `${focus === id ? 4 : 2}px ${i === 0 ? "solid" : "dashed"} ${focus === id ? C.teal : C.line}`,
-            background: focus === id ? "#e5f3ee" : "#fff",
-          }}
-        >
-          <span style={{ fontSize: 27, color: i === 0 ? C.navy : C.muted }}>
-            {status}
-          </span>
-          <strong style={{ fontSize: 31, color: C.ink }}>{name}</strong>
-          <span style={{ fontSize: 28 }}>{out}</span>
-          <span style={{ fontSize: 25, color: C.muted }}>{base}</span>
-        </div>
-      ))}
-      <div
-        data-target="shared"
-        data-active={focus === "shared"}
-        style={{
-          position: "absolute",
-          left: 95,
-          top: 835,
-          width: 1730,
-          padding: "15px 20px",
-          boxSizing: "border-box",
-          background: focus === "shared" ? "#fff0d8" : "#edf2ef",
-          borderLeft: `5px solid ${C.amber}`,
-          fontSize: 29,
-        }}
-      >
-        贯穿各层：browser-eval / Lexbench 质量验证 · 来源与时间 · 维护成本
+  const progress = useContext(MotionContext);
+  const localTime = useCurrentFrame() / 30;
+  const scene = data.scenes.find(s => s.id === "reuse")!;
+  const prior = data.events.filter(e => e.scene === "reuse" &&
+    e.start <= scene.start + localTime && e.target !== focus).at(-1)?.target || "whole";
+  const camera = (target: string) => {
+    const [x, y, w, h] = blueprintRegions[target] || blueprintRegions.whole;
+    const product = target === "browser" || target === "data";
+    const availableWidth = product ? 1430 : 1780;
+    const scale = Math.min(availableWidth / w, 706 / h);
+    return {scale, x: (product ? 350 : 0) + (availableWidth - w * scale) / 2 - x * scale,
+      y: (target === "whole" || target === "interaction" || product ? 360 : 555) - h * scale / 2 - y * scale};
+  };
+  const from = camera(prior), to = camera(focus);
+  const blend = (a: number, b: number) => a + (b - a) * progress;
+  const scale = blend(from.scale, to.scale), x = blend(from.x, to.x), y = blend(from.y, to.y);
+  const region = blueprintRegions[focus];
+  const emphasis = focus === "interaction" ? [735, 472, 116, 105] : region;
+  const sourceCrop = blueprintRegions[prior] || blueprintRegions.whole;
+  const targetCrop = region || blueprintRegions.whole;
+  const crop = sourceCrop.map((value, i) => blend(value, targetCrop[i]));
+  const product = focus === "browser" || focus === "data";
+  return <div style={{position: "absolute", left: 60, top: 180, width: 1800, height: 720,
+    overflow: "hidden", background: "white", borderRadius: 16, border: `1px solid ${C.line}`}}>
+    <Img src={staticFile("lexmount-product-architecture.png")} style={{position: "absolute",
+      width: 1586, height: 992, maxWidth: "none", transformOrigin: "0 0",
+      transform: `translate(${x}px, ${y}px) scale(${scale})`,
+      clipPath: `inset(${crop[1]}px ${1586-crop[0]-crop[2]}px ${992-crop[1]-crop[3]}px ${crop[0]}px)`}} />
+    {region && focus !== "whole" && <div data-target={focus} data-active="true" style={{
+      position: "absolute", left: x + emphasis[0] * scale, top: y + emphasis[1] * scale,
+      width: emphasis[2] * scale, height: emphasis[3] * scale,
+      border: `4px solid ${C.amber}`, borderRadius: 12, boxSizing: "border-box",
+      pointerEvents: "none"}} />}
+    {region && !product && focus !== "whole" && focus !== "interaction" && <div style={{position: "absolute",
+      left: 625, top: 12, width: 530, opacity: progress}}>
+      <div style={{position: "relative", width: 530, height: 331}}>
+        <Img src={staticFile("lexmount-product-architecture.png")} style={{width: 530, height: 331}} />
+        <div style={{position: "absolute", left: region[0] * 530 / 1586,
+          top: region[1] * 331 / 992, width: region[2] * 530 / 1586,
+          height: region[3] * 331 / 992, border: `3px solid ${C.amber}`,
+          boxSizing: "border-box"}} />
       </div>
-    </>
-  );
+      <div style={{textAlign: "center", fontSize: 27, color: C.navy, marginTop: 12}}>
+        {{apps: "客户应用", shared: "共用运行基础", governance: "安全与企业管理"}[focus]}
+      </div>
+    </div>}
+    {product && <div style={{position: "absolute", left: 18, top: 30, width: 300,
+      padding: 12, background: "white", border: `1px solid ${C.line}`, borderRadius: 10,
+      opacity: progress}}>
+      <div style={{position: "relative", width: 276, height: 173}}>
+        <Img src={staticFile("lexmount-product-architecture.png")} style={{width: 276, height: 173}} />
+        <div style={{position: "absolute", left: region[0] * 276 / 1586,
+          top: region[1] * 173 / 992, width: region[2] * 276 / 1586,
+          height: region[3] * 173 / 992, border: `3px solid ${C.amber}`,
+          boxSizing: "border-box"}} />
+      </div>
+      <div style={{fontSize: 25, lineHeight: 1.5, marginTop: 18, color: C.navy, whiteSpace: "pre-line"}}>
+        {focus === "browser" ? "Cloud Browser\n可操作的浏览器环境" : "Web Data\n网页内容与业务记录"}
+      </div>
+    </div>}
+  </div>;
 }
 function Roadmap({ focus }: { focus: string }) {
-  return (
-    <>
-      {[
-        ["near", "近期", "执行 + 字段 + 验收", "先连成稳定交付"],
-        ["middle", "中期", "持续刷新 + 历史", "只沉淀反复使用的数据"],
-        ["upper", "更上层", "行业应用 / Agent", "由明确客户场景决定"],
-      ].map(([id, t, s, n], i) => (
-        <React.Fragment key={id}>
-          <Cell
-            id={id}
-            x={100 + i * 610}
-            y={300}
-            w={520}
-            h={300}
-            title={t}
-            sub={s + "\n\n" + n}
-            active={focus === id}
-            color={[C.navy, C.teal, C.amber][i]}
-          />
-          {i < 2 && (
-            <Arrow
-              x1={640 + i * 610}
-              y1={445}
-              x2={685 + i * 610}
-              y2={445}
-              active
-            />
-          )}
-        </React.Fragment>
-      ))}
-      <Label x={110} y={665} text="扩大投入前，先验证" size={29} color={C.muted} />
-      {[
-        ["repeat", "客户反复使用"],
-        ["qualified", "字段长期合格"],
-        ["cost", "维护成本随复用下降"],
-      ].map(([id, title], i) => (
-        <Cell key={id} id={id} x={110 + i * 585} y={725} w={555} h={130}
-          title={title} active={focus === "validation" || focus === id ||
-            (focus === "qualified" && i === 0) || (focus === "cost" && i < 2)} color={C.navy} />
-      ))}
-    </>
-  );
+  const stages = [
+    ["near", "近期 · 把现有能力做稳"],
+    ["middle", "中期 · 支持持续使用"],
+    ["upper", "应用 · 按客户需求延伸"],
+  ];
+  const rows = [
+    {name: "Cloud Browser", color: C.navy,
+      cells: [["可靠执行与状态复用", "任务恢复 · 登录状态"],
+        ["持续浏览器环境", "文件保留 · 任务延续"],
+        ["Agent 与网页自动化", "客户场景决定产品范围"]]},
+    {name: "Web Data", color: C.teal,
+      cells: [["Web Fetch → Scraper", "网页内容 → 业务字段"],
+        ["持续更新的数据", "刷新 · 变化记录 · 历史"],
+        ["研究、监测与分析", "客户场景决定产品范围"]]},
+  ];
+  return <>
+    {stages.map(([id, title], i) => <Label key={id} x={340+i*500} y={190} w={470}
+      text={title} size={28} bold color={focus === id ? C.teal : C.navy} />)}
+    {rows.map((row, r) => <React.Fragment key={row.name}>
+      <Label x={85} y={302+r*215} w={240} text={row.name} size={32} bold color={row.color} />
+      {row.cells.map(([title, sub], i) => <React.Fragment key={stages[i][0]}>
+        <Cell id={stages[i][0]} x={335+i*500} y={260+r*215} w={450} h={175}
+          title={title} sub={sub} active={focus === stages[i][0]} color={row.color} small />
+        {i < 2 && <Arrow x1={790+i*500} y1={348+r*215} x2={825+i*500}
+          y2={348+r*215} active={focus === stages[i][0] || focus === stages[i+1][0]} />}
+      </React.Fragment>)}
+    </React.Fragment>)}
+    <Label x={95} y={700} text="两条路线，共同检验" size={28} color={C.muted} />
+    {[
+      ["repeat", "客户是否持续复用"],
+      ["qualified", "任务与字段是否合格"],
+      ["cost", "维护成本能否下降"],
+    ].map(([id, title], i) => <Cell key={id} id={id} x={95+i*590} y={755} w={555} h={130}
+      title={title} active={focus === "validation" || focus === id} color={C.navy} />)}
+  </>;
 }
 function Scene({ s }: { s: S }) {
   const f = useCurrentFrame();
