@@ -18,6 +18,49 @@ from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, s
 from harness.web_fetch.storage import require_canonical_inputs, require_current_report_profile
 
 
+def require_public_evidence_page(content, relative, views):
+    """Require inspectable public downloads and honest original/public hashes."""
+    from bs4 import BeautifulSoup
+    from urllib.parse import unquote, urljoin
+    content = re.sub(r'<(pre|script|style)\b[^>]*>.*?</\1>', '', content, flags=re.I | re.S)
+    soup = BeautifulSoup(content, 'html.parser')
+    visible = soup.get_text(' ', strip=True)
+    if '<span data-report-en=' in visible:
+        raise ValueError('Public evidence link displays escaped interface markup')
+    base = 'https://report.invalid/'+relative
+    if soup.find('base', href=True):
+        base = urljoin(base, soup.find('base')['href'])
+    targets = set()
+    for anchor in soup.select('a[href]'):
+        href = anchor['href']
+        parsed = urlsplit(href)
+        if parsed.scheme or parsed.netloc or href.startswith('/'):
+            continue
+        targets.add(unquote(urlsplit(urljoin(base, href)).path).lstrip('/'))
+    answer = views['scored_answer']
+    if answer['original_sha256'] != answer['published_sha256']:
+        if (answer['original_sha256'] not in visible or answer['published_sha256'] not in visible
+                or answer['path'] not in targets or answer['receipt'] not in targets):
+            raise ValueError('Public answer lacks visible original/public identities or download links')
+    native = views.get('native_response')
+    if native and (native['path'] not in targets or native['receipt'] not in targets):
+        raise ValueError('Complete native public response or its identity receipt is not linked')
+
+
+def check_public_evidence_pages(root, records):
+    from .publication_privacy import public_render_views
+    views = public_render_views(root, records)
+    languages = generated_languages(root)
+    for row in records:
+        selected = views[row['attempt_id']]
+        for language in languages:
+            relative = ('en/' if language == 'en' else '')+'attempts/'+row['attempt_id']+'.html'
+            path = root/relative
+            if not path.is_file():
+                raise ValueError('Public evidence result page is missing')
+            require_public_evidence_page(path.read_text(), relative, selected)
+
+
 class Tables(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -288,6 +331,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             "PASS: WebMainBench preselected-200 matrix, sample, scores, retries, "
             "declared-language routes and reference assets verified"
         )
+    public_payload_views = False
     names = {r["provider"] for r in rs}
     local_measurement = d.get("comparison", {}).get("kind") == "uniform_native_local_measurement"
     if presentation_binding and not local_measurement:
@@ -311,7 +355,8 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             if profile:
                 raise ValueError("Presentation binding cannot certify a release profile")
             from .report_build import validate_local_presentation
-            validate_local_presentation(root, presentation_binding)
+            checked_binding = validate_local_presentation(root, presentation_binding)[0]
+            public_payload_views = bool(checked_binding.get("publication_evidence_views"))
         else:
             require_local_measurement(root, d, rs)
         inventory = {track: {"case_ids": [case["id"] for case in d["cases"] if case.get("track", "web") == track], "providers": providers} for track, providers in d["coverage_plan"].items()}
@@ -385,6 +430,8 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         raise ValueError("Report acceptance check failed")
     if not len({(r["provider"], r["case_id"]) for r in rs}) == expected:
         raise ValueError("Report acceptance check failed")
+    if public_payload_views:
+        check_public_evidence_pages(root, rs)
     case_by_id = {c["id"]: c for c in d["cases"]}
     for case in d["cases"]:
         safe_identifier(case["id"])
@@ -403,9 +450,14 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         safe_identifier(r["attempt_id"])
         safe_identifier(r["provider"])
         safe_identifier(r["case_id"])
-        p = contained_path(root, r["artifact_path"], reject_symlinks=True)
-        if not hashlib.sha256(p.read_bytes()).hexdigest() == r["metrics"]["content_sha256"]:
-            raise ValueError(p)
+        if public_payload_views:
+            from .publication_privacy import read_evidence_binding
+            read_evidence_binding(root, {'path': r['artifact_path'],
+                                         'sha256': r['metrics']['content_sha256']})
+        else:
+            p = contained_path(root, r['artifact_path'], reject_symlinks=True)
+            if hashlib.sha256(p.read_bytes()).hexdigest() != r['metrics']['content_sha256']:
+                raise ValueError(p)
         if not r["ok"]:
             if not not r["metrics"]["content_pass"]:
                 raise ValueError("Report acceptance check failed")

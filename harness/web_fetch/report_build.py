@@ -206,7 +206,7 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
                                show_local_status_banners):
     """Render a bound historical report using saved scores and public evidence."""
     from harness.report_languages import select_report_language
-    from .safety import evidence_tree_identity
+    from .safety import evidence_tree_identity, copy_evidence_file
     if source in output.parents:
         raise ValueError("Frozen presentation output must be outside its source tree")
     before = evidence_tree_identity(source)
@@ -224,7 +224,7 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".frozen-presentation-", dir=output.parent) as work:
         staging = Path(work) / "report"
-        shutil.copytree(source, staging)
+        shutil.copytree(source, staging, copy_function=copy_evidence_file)
         shutil.rmtree(staging / "en", ignore_errors=True)
         shutil.copy2(presentation_binding, staging / "presentation-binding.json")
         batches = json.loads((source / "execution.json").read_text())["batches"]
@@ -1306,6 +1306,9 @@ def validate_local_presentation(output: Path, binding_path: Path):
         require_host_metadata_projection(output, binding['publication_projection'])
     dataset = json.loads((output / 'dataset.json').read_text())
     records = load_jsonl(contained_path(output, 'results.jsonl'))
+    if binding.get('publication_evidence_views'):
+        from .publication_privacy import require_public_evidence_view_inventory
+        require_public_evidence_view_inventory(output, binding['publication_evidence_views'], records)
     from .native_routes import verify_native_execution_manifests
     execution = output/'execution.json'
     if execution.is_file():
@@ -1339,10 +1342,16 @@ def validate_local_presentation(output: Path, binding_path: Path):
              or any(item['case_id'] not in excluded for item in reliability['unjudged']))):
         raise ValueError('Presentation refresh requires the complete declared matrix')
     for row in records:
-        artifact = contained_path(output, row['artifact_path'])
-        if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['metrics']['content_sha256']:
-            raise ValueError('Saved output changed: ' + row['attempt_id'])
-        verify_record_public_call_logs(output, row)
+        from .publication_privacy import read_evidence_binding
+        try:
+            read_evidence_binding(output, {'path': row['artifact_path'],
+                                           'sha256': row['metrics']['content_sha256']})
+        except ValueError as error:
+            if binding.get('publication_evidence_views'):
+                raise
+            raise ValueError('Saved output changed: ' + row['attempt_id']) from error
+        verify_record_public_call_logs(output, row,
+            allow_public_views=bool(binding.get('publication_evidence_views')))
     return binding, dataset, records, manifest
 
 

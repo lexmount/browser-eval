@@ -4,6 +4,7 @@ import html
 import json
 import re
 from copy import deepcopy
+from functools import lru_cache
 from pathlib import PurePosixPath, PureWindowsPath
 from urllib.parse import unquote_plus
 
@@ -76,7 +77,7 @@ QUERY_SENSITIVE_KEY = re.compile(
 )
 JSON_SENSITIVE_VALUE = re.compile(
     rb'(?i)(["\']' + SENSITIVE_KEY + rb'["\']\s*:\s*["\'])(?!<|\[)'
-    rb'((?:\\.|[^"\'\r\n])*)(["\'])'
+    rb'((?:\\.|[^"\'\r\n])+)(["\'])'
 )
 LINE_SENSITIVE_VALUE = re.compile(
     rb'(?im)(^|[ \t])(' + SENSITIVE_KEY + rb'[ \t]*[:=])'
@@ -98,33 +99,88 @@ REDACTIONS = (
 )
 
 
+_URL_ENTITY = re.compile(r'&(?:\#[xX][0-9A-Fa-f]+;?|\#[0-9]+;?|[A-Za-z][A-Za-z0-9]+;)')
+
+
+def _url_entity_surface(raw):
+    """Decode URL entities while retaining each character's original span."""
+    units = [(char, index, index+1) for index, char in enumerate(raw)]
+    for _ in range(8):
+        text = ''.join(unit[0] for unit in units)
+        matches = [m for m in _URL_ENTITY.finditer(text) if html.unescape(m.group()) != m.group()]
+        if not matches:
+            return text, units
+        result, cursor = [], 0
+        for match in matches:
+            result.extend(units[cursor:match.start()])
+            start, end = units[match.start()][1], units[match.end()-1][2]
+            result.extend((char, start, end) for char in html.unescape(match.group()))
+            cursor = match.end()
+        result.extend(units[cursor:])
+        units = result
+    raise ValueError('Excessively nested URL entities require explicit privacy review')
+
+
 def _redact_plain_url_queries(text):
-    """Redact sensitive parameters in URLs embedded in diagnostic prose."""
-    replacements = 0
-
-    def redact_url(match):
-        nonlocal replacements
-        url = match.group()
-        query = url.partition('?')[2].partition('#')[0]
-        if not query:
-            return url
-        parts = []
-        for item in query.split('&'):
-            key, separator, value = item.partition('=')
-            # HTML attributes can spell a separator as &amp;.
-            logical_key = key.removeprefix('amp;')
-            decoded_key = unquote_plus(logical_key).casefold()
-            decoded_value = unquote_plus(value)
-            sensitive = bool(QUERY_SENSITIVE_KEY.fullmatch(decoded_key))
-            placeholder = (decoded_value.startswith('<') and decoded_value.endswith('>')
-                           or decoded_value == '[REDACTED]')
-            if separator and sensitive and value and not placeholder:
-                item = key + '=[REDACTED]'
-                replacements += 1
-            parts.append(item)
-        return url.replace('?' + query, '?' + '&'.join(parts), 1)
-
-    return EMBEDDED_URL.sub(redact_url, text), replacements
+    """Redact actual query values, preserving URL/Markdown/entity syntax."""
+    replacements, cursor, output = 0, 0, []
+    while match := EMBEDDED_URL.search(text, cursor):
+        start, end = match.span()
+        markdown = bool(re.search(r'\]\([ \t]*$', text[max(0, start-100):start]))
+        if markdown:
+            depth = 0
+            for index in range(start, end):
+                if text[index] == '(':
+                    depth += 1
+                elif text[index] == ')':
+                    if depth == 0:
+                        end = index
+                        break
+                    depth -= 1
+        raw = text[start:end]
+        suffix = ''
+        if not markdown:
+            for opening, closing in (('(', ')'), ('[', ']'), ('{', '}')):
+                while raw.endswith(closing) and raw.count(closing) > raw.count(opening):
+                    raw, suffix = raw[:-1], closing + suffix
+        if _URL_ENTITY.search(raw):
+            url, units = _url_entity_surface(raw)
+            stop = next((i for i, ch in enumerate(url) if ch in '\"\'<>\\\x00' or ch.isspace()), len(url))
+            if stop < len(url):
+                # An encoded HTML attribute delimiter is not query content.
+                used = units[stop][1]
+                raw, end, suffix = raw[:used], start+used, ''
+                url, units = url[:stop], units[:stop]
+        else:
+            url, units = raw, None
+        query_start = url.find('?')
+        changes = []
+        if query_start >= 0:
+            query_end = url.find('#', query_start)
+            if query_end < 0:
+                query_end = len(url)
+            position = query_start+1
+            for item in url[position:query_end].split('&'):
+                key, separator, value = item.partition('=')
+                logical_key = key
+                while logical_key.startswith('amp;'):
+                    logical_key = logical_key[4:]
+                decoded_key, decoded_value = unquote_plus(logical_key).casefold(), unquote_plus(value)
+                sensitive = bool(QUERY_SENSITIVE_KEY.fullmatch(decoded_key))
+                placeholder = (decoded_value.startswith('<') and decoded_value.endswith('>')
+                               or decoded_value == '[REDACTED]')
+                if separator and sensitive and value and not placeholder:
+                    left, right = position+len(key)+1, position+len(item)
+                    changes.append((units[left][1] if units else left,
+                                    units[right-1][2] if units else right))
+                    replacements += 1
+                position += len(item)+1
+        for left, right in reversed(changes):
+            raw = raw[:left]+'[REDACTED]'+raw[right:]
+        output.extend((text[cursor:start], raw+suffix))
+        cursor = end
+    output.append(text[cursor:])
+    return ''.join(output), replacements
 
 
 _JSON_STRING = re.compile(r'"(?:\\.|[^"\\\x00-\x1f])*"')
@@ -173,18 +229,73 @@ def auth_matches(data):
     return distinct
 
 
-def publication_risk(data):
-    """Return a public-bundle risk class without exposing the matched value."""
+def _plain_publication_risk(data):
+    """Inspect actual text, excluding serialization delimiters."""
     decoded=html.unescape(data.decode('utf-8',errors='surrogateescape')).encode('utf-8',errors='surrogateescape')
     if GOOGLE_KEY.search(decoded) or OTHER_SECRET.search(decoded):
         return 'credential-shaped value'
     if auth_matches(decoded):
         return 'sensitive field value'
-    if redact_url_queries(decoded.decode('utf-8', errors='surrogateescape'))[1]:
+    # Bare query parameters such as &timestamp must not be interpreted as the
+    # semicolon-less HTML entity &times. Decode explicit named entities and
+    # numeric references for URL inspection while preserving raw separators.
+    text = data.decode('utf-8', errors='surrogateescape')
+    url_surface = re.sub(r'&(?:\#[xX][0-9A-Fa-f]+;?|\#[0-9]+;?|[A-Za-z][A-Za-z0-9]+;)',
+                         lambda match: html.unescape(match.group()), text)
+    if redact_url_queries(url_surface)[1]:
         return 'sensitive URL query value'
     if LOCAL_USER_PATH.search(decoded):
         return 'machine-local user path'
     return None
+
+
+def _scan_publication_risk(data):
+    """Inspect JSON values structurally, otherwise inspect the actual text.
+
+    A serialized quote after a string such as ``Authorization:`` is not an
+    authorization value. Nonempty sensitive fields and real header values still
+    fail closed, including values hidden by JSON string escapes.
+    """
+    try:
+        payload = json.loads(data)
+    except (ValueError, UnicodeDecodeError):
+        return _plain_publication_risk(data)
+
+    def inspect(value, *, secret=False):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                risk = _plain_publication_risk(key.encode('utf-8'))
+                if risk:
+                    return risk
+                sensitive = secret or bool(re.fullmatch(SENSITIVE_KEY.decode('ascii'), key, re.I))
+                risk = inspect(item, secret=sensitive)
+                if risk:
+                    return risk
+        elif isinstance(value, list):
+            for item in value:
+                risk = inspect(item, secret=secret)
+                if risk:
+                    return risk
+        elif isinstance(value, str):
+            if (secret and value and not ((value.startswith('<') and value.endswith('>'))
+                                         or (value.startswith('[') and value.endswith(']')))):
+                return 'sensitive field value'
+            return _plain_publication_risk(value.encode('utf-8'))
+        return None
+
+    return inspect(payload)
+
+
+@lru_cache(maxsize=8)
+def _cached_publication_risk(data):
+    return _scan_publication_risk(data)
+
+
+def publication_risk(data):
+    """Reuse checks only for identical immutable bytes; bound retained memory."""
+    data = bytes(data)
+    return (_cached_publication_risk(data) if len(data) <= 2_000_000
+            else _scan_publication_risk(data))
 
 
 def project_file(name, data):
@@ -254,7 +365,7 @@ def _host_metadata_projection_path(name):
     return metadata or auxiliary_log
 
 
-def project_host_metadata_files(files, host_prefixes, *, host_names=()):
+def project_host_metadata_files(files, host_prefixes, *, host_names=(), public_excerpt_views=False, output_store=None):
     """Project host metadata/auxiliary logs and explicitly rebind dependencies.
 
     Inputs and measured payloads are immutable. Returned receipts distinguish
@@ -263,24 +374,33 @@ def project_host_metadata_files(files, host_prefixes, *, host_names=()):
     """
     if not host_prefixes or any(not p.startswith('/') or p == '/' for p in host_prefixes):
         raise ValueError('Explicit non-root host prefixes are required')
-    patterns = [re.compile(re.escape(p.rstrip('/')) + r"(?=/|$)[^\s\"'<>\x00]*")
+    patterns = [re.compile(re.escape(p.rstrip('/')) + r"(?=/|$)[^\s\"'<>\\\x00]*")
                 for p in sorted(set(host_prefixes), key=len, reverse=True)]
     json_names = {name for name in files if name.endswith(('.json', '.jsonl'))}
-    parsed = {}
+    original_hashes = {name: hashlib.sha256(files[name]).hexdigest() for name in files}
+    by_hash = {digest: name for name, digest in original_hashes.items()}
+    # Prewarm hash dependencies before parsing a large parent. Disk-backed
+    # mappings can therefore project multi-GB histories one document at a time.
+    dependencies = {}
     for name in json_names:
-        text = files[name].decode('utf-8')
-        parsed[name] = ([json.loads(line) for line in text.splitlines() if line.strip()]
-                        if name.endswith('.jsonl') else json.loads(text))
-    by_hash = {hashlib.sha256(raw).hexdigest(): name for name, raw in files.items()}
-    projected, published_hashes, changed_fields, visiting = {}, {}, {}, set()
+        hashes = {match.group(1).decode('ascii') for match in
+                  re.finditer(rb'"([0-9a-f]{64})"(?!\s*:)', files[name])}
+        dependencies[name] = {by_hash[digest] for digest in hashes
+                              if digest in by_hash and by_hash[digest] != name}
+    projected = output_store if output_store is not None else {}
+    published_hashes, changed_fields, visiting = {}, {}, set()
+    original_sizes, published_sizes, changed_names = {}, {}, set()
 
     def project(name):
-        if name in projected:
-            return projected[name]
+        if name in published_hashes:
+            return
         if name in visiting:
             raise ValueError('Cyclic publication metadata dependencies')
         visiting.add(name)
-        raw = files[name]
+        for dependency in sorted(dependencies.get(name, set())):
+            project(dependency)
+        original = raw = files[name]
+        original_sizes[name] = len(original)
         fields = []
         def value(node, path=''):
             if isinstance(node, dict):
@@ -304,35 +424,46 @@ def project_host_metadata_files(files, host_prefixes, *, host_names=()):
                 if not host:
                     raise ValueError('Host names must be explicit nonempty identities')
                 result = result.replace(host, '[HOSTNAME_OMITTED]')
+            if public_excerpt_views and (path.endswith('.samples[].text')
+                    or path.endswith('.agent_evidence_quotes[]') or path.endswith('.evidence_quotes[]')):
+                public, _ = project_evidence_view('public-evidence/excerpt.txt', result.encode('utf-8'),
+                    role='scored_answer', host_prefixes=host_prefixes, host_names=host_names,
+                    content_format='text')
+                result = public.decode('utf-8')
             if result != node:
                 fields.append(path)
             return result
-        if name in parsed:
-            result = value(parsed[name])
-            if result != parsed[name]:
+        if name in json_names:
+            text = raw.decode('utf-8')
+            parsed = ([json.loads(line) for line in text.splitlines() if line.strip()]
+                      if name.endswith('.jsonl') else json.loads(text))
+            result = value(parsed)
+            if result != parsed:
                 raw = ((''.join(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n'
                                 for row in result)) if name.endswith('.jsonl')
                        else json.dumps(result, ensure_ascii=False, indent=2) + '\n').encode()
         elif host_names:
             raw = value(raw.decode('utf-8'), 'auxiliary_log').encode('utf-8')
-        if raw != files[name] and not _host_metadata_projection_path(name):
+        if raw != original and not _host_metadata_projection_path(name):
             raise ValueError('Host projection must not alter scored or response payloads')
+        if raw != original:
+            changed_names.add(name)
         projected[name] = raw
+        published_sizes[name] = len(raw)
         published_hashes[name] = hashlib.sha256(raw).hexdigest()
         changed_fields[name] = sorted(set(fields))
         visiting.remove(name)
-        return raw
 
     for name in files:
         project(name)
     receipt = {'kind': 'host_metadata_publication_projection',
                'provider_calls_added': 0,
                'meaning': 'Original identities are retained below; published hashes identify redacted copies only.',
-               'files': [{'path': name, 'original_sha256': hashlib.sha256(files[name]).hexdigest(),
-                          'published_sha256': hashlib.sha256(projected[name]).hexdigest(),
-                          'original_bytes': len(files[name]), 'published_bytes': len(projected[name]),
+               'files': [{'path': name, 'original_sha256': original_hashes[name],
+                          'published_sha256': published_hashes[name],
+                          'original_bytes': original_sizes[name], 'published_bytes': published_sizes[name],
                           'redacted_fields': changed_fields[name]}
-                         for name in sorted(files) if files[name] != projected[name]]}
+                         for name in sorted(changed_names)]}
     return projected, receipt
 
 
@@ -356,7 +487,7 @@ def require_host_metadata_projection(source, binding):
     return receipt
 
 
-def project_evidence_view(name, data, *, role, host_prefixes=(), host_names=()):
+def project_evidence_view(name, data, *, role, host_prefixes=(), host_names=(), content_format="auto"):
     """Create a separately identified public view after scoring.
 
     The caller retains original bytes privately. This function never changes a
@@ -371,6 +502,8 @@ def project_evidence_view(name, data, *, role, host_prefixes=(), host_names=()):
         raise ValueError('Public evidence views require a separate safe public-evidence path')
     if role not in {'scored_answer', 'native_response'}:
         raise ValueError('Unknown public evidence role')
+    if content_format not in {'auto', 'text', 'json'}:
+        raise ValueError('Unknown public evidence content format')
     if any(not p.startswith('/') or p == '/' for p in host_prefixes):
         raise ValueError('Public evidence host prefixes must be explicit non-root paths')
     if any(not host for host in host_names):
@@ -409,23 +542,36 @@ def project_evidence_view(name, data, *, role, host_prefixes=(), host_names=()):
                 public_key = text_view(key)
                 if public_key in result:
                     raise ValueError('Public view would merge distinct native fields')
-                result[public_key] = node_view(item)
+                if (re.fullmatch(SENSITIVE_KEY.decode('ascii'), key, re.I)
+                        and isinstance(item, str) and item
+                        and not ((item.startswith('<') and item.endswith('>'))
+                                 or (item.startswith('[') and item.endswith(']')))):
+                    result[public_key] = '[REDACTED]'
+                    counts['sensitive_values'] = counts.get('sensitive_values', 0) + 1
+                else:
+                    result[public_key] = node_view(item)
             return result
         if isinstance(value, list):
             return [node_view(item) for item in value]
         return text_view(value) if isinstance(value, str) else value
 
     text = data.decode('utf-8')
-    try:
-        native = json.loads(text)
-    except ValueError:
+    if content_format == 'text':
         projected = text_view(text).encode('utf-8')
         encoding = 'utf-8-text'
     else:
-        public = node_view(native)
-        projected = (json.dumps(public, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
-                     if public != native else data)
-        encoding = 'json'
+        try:
+            native = json.loads(text)
+        except ValueError:
+            if content_format == 'json':
+                raise ValueError('Declared JSON public evidence is not JSON')
+            projected = text_view(text).encode('utf-8')
+            encoding = 'utf-8-text'
+        else:
+            public = node_view(native)
+            projected = (json.dumps(public, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+                         if public != native else data)
+            encoding = 'json'
     risk = publication_risk(projected)
     if risk:
         raise ValueError('Public evidence still has a publication risk: '+risk)
@@ -476,3 +622,166 @@ def require_public_evidence_view(source, binding):
     else:
         raw.decode('utf-8')
     return receipt
+
+
+@lru_cache(maxsize=4)
+def _public_view_inventory_index(raw):
+    # Cache parsing by exact file bytes, never by a path or timestamp. Every
+    # caller still reads and checks the inventory's declared SHA-256.
+    index = json.loads(raw)
+    if (index.get('kind') != 'post_score_public_evidence_view_inventory'
+            or index.get('provider_calls_added') != 0):
+        raise ValueError('Invalid public evidence view inventory')
+    entries = {}
+    for entry in index.get('files', []):
+        key = entry.get('original_path'), entry.get('original_sha256')
+        if key in entries:
+            raise ValueError('Ambiguous public evidence view identity')
+        entries[key] = entry
+    return entries
+
+
+def bound_public_view(source, binding):
+    """Resolve only a view explicitly bound by this snapshot's public profile.
+
+    A returned view verifies public bytes plus the recorded original identity;
+    it does not claim that omitted original bytes have been reconstructed.
+    """
+    from pathlib import Path
+    from .safety import contained_path
+    source = Path(source)
+    profile_path = contained_path(source, 'presentation-binding.json', reject_symlinks=True)
+    if not profile_path.is_file():
+        return None
+    profile = json.loads(profile_path.read_text())
+    declared = profile.get('publication_evidence_views')
+    if not declared:
+        return None
+    index_path = contained_path(source, declared['path'], reject_symlinks=True)
+    raw = index_path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != declared.get('sha256'):
+        raise ValueError('Public evidence view inventory hash changed')
+    entries = _public_view_inventory_index(raw)
+    entry = entries.get((binding.get('path'), binding.get('sha256')))
+    if entry is None:
+        return None
+    receipt = require_public_evidence_view(source, entry['view_receipt'])
+    original_root = PurePosixPath(binding['path']).parts[0]
+    expected_root = {'scored_answer': 'artifacts', 'native_response': 'private_artifacts'}[receipt['role']]
+    if original_root != expected_root:
+        raise ValueError('Public payload views cannot replace metadata or source authority')
+    if receipt['original_sha256'] != binding['sha256']:
+        raise ValueError('Public view does not identify the requested original')
+    return contained_path(source, receipt['path'], reject_symlinks=True), receipt
+
+
+def read_evidence_binding(source, binding):
+    """Verify original bytes, or return the explicitly disclosed public view."""
+    from .safety import contained_path
+    path = contained_path(source, binding['path'], reject_symlinks=True)
+    if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == binding.get('sha256'):
+        return path
+    public = bound_public_view(source, binding)
+    if public is None:
+        raise ValueError('Local revision evidence binding changed: ' + binding['path'])
+    return public[0]
+
+
+def original_evidence_size(source, binding):
+    """Return verified original size, or its explicitly recorded private size."""
+    path = read_evidence_binding(source, binding)
+    if hashlib.sha256(path.read_bytes()).hexdigest() == binding['sha256']:
+        return path.stat().st_size
+    public = bound_public_view(source, binding)
+    if public is None:
+        raise ValueError('Public evidence lacks its original-size disclosure')
+    return public[1]['original_bytes']
+
+
+def evidence_excerpt_matches(source, binding, sample, text):
+    """Validate exact original offsets, or a disclosed redacted-view excerpt.
+
+    Original coordinates remain recorded. A redacted public view can verify the
+    visible excerpt's presence, not its former private-byte/character position.
+    """
+    start, end = sample.get('start'), sample.get('end')
+    if type(start) is not int or type(end) is not int or not 0 <= start < end:
+        return False
+    excerpt = sample.get('text')
+    if not isinstance(excerpt, str) or not excerpt:
+        return False
+    if end <= len(text) and text[start:end] == excerpt:
+        return True
+    public = bound_public_view(source, binding)
+    return bool(public and public[1]['redactions'] and excerpt in text)
+
+
+def require_public_evidence_view_inventory(source, binding, records):
+    """Require complete current-answer/native-response view coverage at release."""
+    from .local_revision import read_bound
+    from .safety import contained_path
+    if (source/'private_artifacts').exists():
+        raise ValueError('Public evidence snapshot must not contain private artifact trees')
+    index = json.loads(read_bound(source, binding).read_text())
+    if (index.get('kind') != 'post_score_public_evidence_view_inventory'
+            or index.get('provider_calls_added') != 0):
+        raise ValueError('Invalid public evidence view inventory')
+    entries = index.get('files', [])
+    wanted = {(row['artifact_path'], row['metrics']['content_sha256']) for row in records}
+    for row in records:
+        metadata = row.get('provider_metadata', {})
+        if metadata.get('raw_response_path'):
+            wanted.add((metadata['raw_response_path'], metadata['raw_response_sha256']))
+    identities = set()
+    for entry in entries:
+        identity = entry.get('original_path'), entry.get('original_sha256')
+        if identity in identities:
+            raise ValueError('Public evidence view inventory repeats an original')
+        identities.add(identity)
+        receipt = require_public_evidence_view(source, entry['view_receipt'])
+        root = PurePosixPath(identity[0]).parts
+        expected_root = {'scored_answer': 'artifacts', 'native_response': 'private_artifacts'}[receipt['role']]
+        if (not root or root[0] != expected_root or '..' in root
+                or receipt['original_sha256'] != identity[1]):
+            raise ValueError('Public evidence view inventory changes an original authority')
+        if identity in wanted and receipt['role'] == 'scored_answer':
+            alias = contained_path(source, identity[0], reject_symlinks=True)
+            if (not alias.is_file()
+                    or hashlib.sha256(alias.read_bytes()).hexdigest() != receipt['published_sha256']):
+                raise ValueError('Displayed answer differs from its declared public view')
+    if not wanted <= identities:
+        raise ValueError('Public evidence view inventory omits current evidence')
+    return index
+
+
+def public_render_views(source, records):
+    """Read bound display annotations; never rewrite saved result records."""
+    from .local_revision import read_bound
+    profile_path = source/'presentation-binding.json'
+    if not profile_path.is_file():
+        return {}
+    profile = json.loads(profile_path.read_text())
+    declared = profile.get('publication_evidence_views')
+    if not declared:
+        return {}
+    index = json.loads(read_bound(source, declared).read_text())
+    entries = {(e['original_path'], e['original_sha256']): e for e in index['files']}
+    result = {}
+    for row in records:
+        metadata = row.get('provider_metadata', {})
+        wanted = {'scored_answer': (row['artifact_path'], row['metrics']['content_sha256'])}
+        if metadata.get('raw_response_path'):
+            wanted['native_response'] = (metadata['raw_response_path'], metadata['raw_response_sha256'])
+        views = {}
+        for role, identity in wanted.items():
+            if identity not in entries:
+                raise ValueError('Public rendering omits a declared evidence view')
+            binding = entries[identity]['view_receipt']
+            receipt = json.loads(read_bound(source, binding).read_text())
+            if receipt['role'] != role or receipt['original_sha256'] != identity[1]:
+                raise ValueError('Public rendering changed its original evidence identity')
+            views[role] = {key: receipt[key] for key in ('path', 'original_sha256', 'published_sha256',
+                                                       'original_bytes', 'published_bytes', 'redactions')}
+            views[role]['receipt'] = binding['path']
+        result[row['attempt_id']] = views
+    return result

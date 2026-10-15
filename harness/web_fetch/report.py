@@ -590,6 +590,8 @@ def run_log_section(out,record,output):
  payload=logs[-1]['payload'] if logs else {}
  process=payload.get('process') if isinstance(payload.get('process'),dict) else {}
  timing=payload.get('timing') if isinstance(payload.get('timing'),dict) else {}
+ native_public=metadata.get('publication_views',{}).get('native_response')
+ native_public_link=('<br>'+link('../'+native_public['path'],'下载完整原生响应（公开副本）','Download complete native response (public view)')+' · '+link('../'+native_public['receipt'],'原件与公开副本校验记录','Original/public identity record')) if native_public else ''
  artifact_relative=record.get('artifact_path')
  artifact=contained_path(out,artifact_relative) if artifact_relative else None
  output_data=artifact.read_bytes() if artifact and artifact.is_file() else output.encode('utf-8')
@@ -662,7 +664,12 @@ def run_log_section(out,record,output):
  raw_record=' · '.join(f'<a href="../{esc(log["path"])}" download>下载{esc(log["label"])}记录</a>' for log in logs)
  if artifact_relative:
   if raw_record:raw_record+=' · '
-  raw_record+=f'<a href="../{esc(artifact_relative)}" download>下载本次保存的原始输出</a>'
+  _answer_view=metadata.get('publication_views',{}).get('scored_answer')
+  if _answer_view and _answer_view['original_sha256']!=_answer_view['published_sha256']:
+   raw_record+=f'<a href="../{esc(_answer_view["path"])}" download>'+model_text('下载本次输出公开副本','Download public output view')+'</a>'
+  else:
+   raw_record+=f'<a href="../{esc(artifact_relative)}" download>下载本次保存的原始输出</a>'
+ raw_record+=native_public_link
  public_response=metadata.get('public_response_path')
  if public_response:
   response_view=diagnostic_view_page(out,public_response,'完整原始响应','产品实际返回；公开副本已隐藏凭据与本机路径。')
@@ -683,16 +690,17 @@ def run_log_section(out,record,output):
   raw_record+=(f'<a href="../../{esc(diagnostic_path)}" download>下载完整原始 debug 日志</a>'
               f'（{diagnostic_size:,} 字节 · SHA-256：<code class="break">{esc(diagnostic_sha)}</code> · 截断：{diagnostic_truncated}）')
  if not raw_record:raw_record='这次历史调用没有可下载的原始记录'
+ evidence_identity_note=(model_text('评分原件私下保留；公开下载隐藏目录或敏感值，校验记录分别标明原件与公开副本。','Scoring originals remain private; public downloads hide paths or sensitive values and bind original/public identities separately.') if any(view.get('redactions') for view in metadata.get('publication_views',{}).values()) else '原始输出保持调用后保存的字节。')
  return (f'<section class="section" id="run-log"><div class="wrap"><h2>运行日志与证据</h2>'
          f'<dl class="diagnostic-fields">{fields}</dl>'
          f'<details class="technical-details"><summary>查看完整运行字段</summary><dl class="diagnostic-fields">{full_fields}</dl></details>'
          f'<p class="log-summary"><b>结论说明：</b>{result_note}</p>'
          f'<details class="diagnostic-log"><summary>查看本次真实日志</summary><div class="diagnostic-log-body">{diagnostic}</div></details>'
          f'</div></section><section class="section"><div class="wrap"><h2>原始运行证据</h2>'
-         f'<p>{raw_record}。运行记录保留请求状态、耗时和证据路径；原始输出保持调用后保存的字节。</p></div></section>')
+         f'<p>{raw_record}。运行记录保留请求状态、耗时和证据路径；{evidence_identity_note}</p></div></section>')
 def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
-def link(url,label):return f'<a href="{esc(safe_href(url))}">{esc(label)}</a>'
+def link(url,label,english=None):return f'<a href="{esc(safe_href(url))}">{model_text(label,english)}</a>'
 def cell(value,sort=None):return '<td'+(f' data-sort="{sort}"' if sort is not None else '')+f'>{value}</td>'
 def model_text(value,english=None):
  return esc(value) if english is None else '<span data-report-en="'+esc(english)+'">'+esc(value)+'</span>'
@@ -1875,6 +1883,11 @@ def local_audit_banner(dataset):
  return '<div class="wrap callout"><strong>本地审核版</strong><p>本页合并两个不同日期的 Moli 调用批次，保留每例的真实调用时间。本次仅更换报告展示代码，没有新增 Moli 调用，也不代表正式发布。</p></div>'
 
 def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True):
+ from .publication_privacy import public_render_views
+ _public_views=public_render_views(out,records)
+ for _record in records:
+  if _record['attempt_id'] in _public_views:
+   _record.setdefault('provider_metadata',{})['publication_views']=_public_views[_record['attempt_id']]
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  _ENGLISH_GENERATED=include_english
  local_snapshot=dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
@@ -2043,6 +2056,11 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   if c.get('task_kind')=='file':
    rows[7]=('',cell('文本输出字符')+cell(f'{len(output):,}（文件字节另列）'))
    rows[8]=('',cell('文本输出校验值')+cell(f'<code class="break">{esc(m.get("content_sha256"))}</code>'))
+  _answer_view=r.get('provider_metadata',{}).get('publication_views',{}).get('scored_answer')
+  if _answer_view and _answer_view['original_sha256']!=_answer_view['published_sha256']:
+   rows[7]=('',cell(model_text('公开副本字符','Public-view characters'))+cell(f'{len(output):,}'))
+   rows[8]=('',cell(model_text('评分时输出校验值','Original scored output hash'))+cell(f'<code class="break">{esc(m.get("content_sha256"))}</code>'))
+   rows.append(('',cell(model_text('公开副本校验值','Public-view hash'))+cell(f'<code class="break">{esc(_answer_view["published_sha256"])}</code>')))
   if 'content_check_total' in m:
    rows.append(('',cell('文字核对覆盖')+cell(pct(m.get('content_check_coverage'))+f' · {m["content_check_hits"]}/{m["content_check_total"]} 组')))
   if c.get('task_kind')=='resource':
@@ -2184,7 +2202,11 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    corruption=(f'<p class="callout failure encoding-warning"><b>实际输出存在解码损坏：</b>'
                f'含 {m.get("replacement_character_count",0):,} 个 �，占 {pct(m.get("replacement_character_ratio"))}。'
                '这些字符在保存前已丢失，不能从当前 Markdown 还原。</p>')
+  answer_view=r.get('provider_metadata',{}).get('publication_views',{}).get('scored_answer')
   output_note=(f'{len(output):,} 字符 · '+link('../'+r['artifact_path'],'下载原始输出'))
+  if answer_view and answer_view['original_sha256']!=answer_view['published_sha256']:
+   output_note=(f'{len(output):,} 字符 · '+link('../'+answer_view['path'],'下载公开副本','Download public view')+' · '+link('../'+answer_view['receipt'],'查看脱敏记录','View redaction record')+
+                '<br>'+model_text('目录或敏感值已隐藏；成绩来自评分原件。原件与公开副本的校验值见运行字段。','Paths or sensitive values are hidden; scores come from the original. Original/public hashes are listed in the run fields.'))
   if readable_output(output)!=output:output_note+=' · 控制字节在页面中显示为 \\xNN'
   actual_body=(corruption+f'<pre data-kind="output">{esc(readable_output(output))}</pre>' if output else
                f'<div class="call-log-empty">{esc(empty_output_reason(r,c,output))}</div>')
@@ -2542,7 +2564,9 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  if local_matrix and frozen_binding:
   public_profile=json.loads((out/'presentation-binding.json').read_text())
   if public_profile.get('publication_projection'):
-   reproduce+='<p>'+model_text('公开副本已去掉本机目录信息。清单分别记录原始文件与公开副本的校验值；公开校验值不冒充原始调用标识。网页返回、成绩、耗时和复核结论保持不变。','This public copy omits host paths. The manifest distinguishes original and public file hashes; public hashes do not claim to be original call identities. Answers, scores, timings and review decisions are unchanged.')+' '+link('../'+public_profile['publication_projection']['path'],'PUBLICATION-PROJECTION.json')+'</p>'
+   reproduce+='<p>'+model_text('公开副本已去掉本机目录信息。清单分别记录原始文件与公开副本的校验值；公开校验值不冒充原始调用标识。成绩、耗时和复核结论保持不变。','This public copy omits host paths. The manifest distinguishes original and public file hashes; public hashes do not claim to be original call identities. Scores, timings and review decisions are unchanged.')+' '+link('../'+public_profile['publication_projection']['path'],'PUBLICATION-PROJECTION.json')+'</p>'
+  if public_profile.get('publication_evidence_views'):
+   reproduce+='<p>'+model_text('评分时的原件私下保留；公开回答和完整原生响应隐藏了目录或敏感值。清单保留评分原件的标识，并单独记录公开副本。公开文件可重建本报告，不能还原隐藏内容；正文质量等指标保留原件的计算值，不保证用脱敏文字逐字重算一致。复核片段的坐标记录原件位置；公开副本仅能核对仍可见的片段。','Scoring originals remain private. Public answers and complete native responses hide paths or sensitive values. The inventory preserves original scoring identities and separately binds public views. Public files rebuild this report but cannot reconstruct omitted content. Text-quality diagnostics retain the original calculations and may not reproduce exactly from redacted text. Review coordinates refer to originals; public views verify only the visible excerpts.')+' '+link('../'+public_profile['publication_evidence_views']['path'],'PUBLIC-EVIDENCE-VIEWS.json')+'</p>'
  support+=section('核心复现指令',reproduce)
  write(out,'reproduce/index.html','环境与复现',support)
  if not authored_interpretation and not local_matrix:

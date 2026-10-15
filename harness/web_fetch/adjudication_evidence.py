@@ -2,7 +2,7 @@
 import hashlib
 import json
 
-from .safety import contained_path
+from .publication_privacy import read_evidence_binding, evidence_excerpt_matches
 
 
 TEMPLATE = '核对已有原始返回、冻结要求和相应修正证据；当前结论见评分明细。'
@@ -131,9 +131,8 @@ def require_adjudication_evidence(source, dataset, records, review):
                 or not proof.get('rule_ids')):
             raise ValueError('Overridden review lacks specific rule/evidence: ' + row['attempt_id'])
         require_rule_assertions(cases[record['case_id']], record, row, proof)
-        raw = contained_path(source, record['artifact_path'], reject_symlinks=True).read_bytes()
-        if hashlib.sha256(raw).hexdigest() != proof['content_sha256']:
-            raise ValueError('Adjudication answer changed')
+        answer_binding = {'path': record['artifact_path'], 'sha256': proof['content_sha256']}
+        raw = read_evidence_binding(source, answer_binding).read_bytes()
         text = raw.decode('utf-8', errors='replace')
         samples = proof.get('samples', [])
         if not text:
@@ -142,10 +141,7 @@ def require_adjudication_evidence(source, dataset, records, review):
         elif not samples:
             raise ValueError('Adjudication lacks an answer excerpt')
         for sample in samples:
-            start, end = sample.get('start'), sample.get('end')
-            if (type(start) is not int or type(end) is not int
-                    or not 0 <= start < end <= len(text)
-                    or text[start:end] != sample.get('text')):
+            if not evidence_excerpt_matches(source, answer_binding, sample, text):
                 raise ValueError('Adjudication excerpt differs from original answer')
         checked += 1
     return checked
@@ -234,17 +230,13 @@ def _require_supplemental_reviews(source, dataset, records, review):
                     or not row.get('agent_evidence', '').strip()
                     or row.get('agent_verdict') not in {'pass', 'fail', 'insufficient'}):
                 raise ValueError('Supplemental review lacks bound task and answer evidence')
-            raw = contained_path(source, record['artifact_path'], reject_symlinks=True).read_bytes()
-            if hashlib.sha256(raw).hexdigest() != row['content_sha256']:
-                raise ValueError('Supplemental review answer changed')
+            answer_binding = {'path': record['artifact_path'], 'sha256': row['content_sha256']}
+            raw = read_evidence_binding(source, answer_binding).read_bytes()
             text = raw.decode('utf-8', errors='replace')
             if text and not proof.get('samples'):
                 raise ValueError('Supplemental review lacks an answer excerpt')
             for sample in proof.get('samples', []):
-                start, end = sample.get('start'), sample.get('end')
-                if (type(start) is not int or type(end) is not int
-                        or not 0 <= start < end <= len(text)
-                        or text[start:end] != sample.get('text')):
+                if not evidence_excerpt_matches(source, answer_binding, sample, text):
                     raise ValueError('Supplemental review excerpt differs')
         seen.update(identifiers)
     if fresh and seen != fresh:
@@ -317,9 +309,8 @@ def require_retained_reviews(source, dataset, records, review):
                 or opinion.get('final_verdict') not in {'pass', 'fail'}
                 or row.get('final_verdict') != opinion['final_verdict']):
             raise ValueError('Retained review answer, opinion or verdict changed')
-        raw = contained_path(source, record['artifact_path'], reject_symlinks=True).read_bytes()
-        if hashlib.sha256(raw).hexdigest() != row.get('content_sha256'):
-            raise ValueError('Retained review answer changed')
+        read_evidence_binding(source, {'path': record['artifact_path'],
+                                       'sha256': row.get('content_sha256')})
     fresh = sum(r.get('review_origin') == 'fresh' for r in review['attempts'])
     if (review.get('fresh_reviewed_attempts') != fresh
             or fresh + len(ids) != len(review['attempts'])):

@@ -145,3 +145,26 @@ def commit_staged_evidence(source: Path, staged: Path, backup: Path) -> None:
                 f"Rollback failed; original data retained at {backup}"
             ) from recovery_error
         raise
+
+
+def copy_evidence_file(source, destination):
+    """Copy independent evidence bytes, using APFS copy-on-write when available.
+
+    Never hard-link frozen inputs: writing a generated copy must not alter its
+    source. Unsupported filesystems/platforms retain ordinary copy semantics.
+    """
+    import shutil
+    source, destination = unlinked_path(Path(source)), unlinked_path(Path(destination))
+    if sys.platform == 'darwin':
+        import ctypes
+        try:
+            clone = ctypes.CDLL(None, use_errno=True).clonefile
+        except (AttributeError, OSError):
+            clone = None
+        if clone is not None:
+            clone.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
+            clone.restype = ctypes.c_int
+            if clone(os.fsencode(source), os.fsencode(destination), 0) == 0:
+                shutil.copystat(source, destination)
+                return str(destination)
+    return shutil.copy2(source, destination)

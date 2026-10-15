@@ -12,10 +12,8 @@ from .scoring_revision import ALLOWED_FIELDS
 
 
 def read_bound(source, binding):
-    path = contained_path(source, binding['path'], reject_symlinks=True)
-    if hashlib.sha256(path.read_bytes()).hexdigest() != binding.get('sha256'):
-        raise ValueError('Local revision evidence binding changed: ' + binding['path'])
-    return path
+    from .publication_privacy import read_evidence_binding
+    return read_evidence_binding(source, binding)
 
 
 def require_local_task_replacement(source, binding, dataset, records):
@@ -97,12 +95,13 @@ def require_local_revision(source, binding, dataset, records):
 def _require_native_answer_correction(source, original, corrected, proof):
     """Verify a derived answer against the same immutable native response."""
     from .response_input import project_native_answer
+    from .publication_privacy import original_evidence_size
     if proof.get('attempt_id') != original['attempt_id']:
         raise ValueError('Native answer correction lost its attempt identity')
     native = read_bound(source, proof['native_response'])
     metadata = original.get('provider_metadata', {})
     if (proof['native_response']['sha256'] != metadata.get('raw_response_sha256')
-            or native.stat().st_size != metadata.get('raw_response_bytes')):
+            or original_evidence_size(source, proof['native_response']) != metadata.get('raw_response_bytes')):
         raise ValueError('Native answer correction changed its original response')
     before = proof['original_artifact']
     after = proof['corrected_artifact']

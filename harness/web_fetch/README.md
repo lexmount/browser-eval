@@ -662,7 +662,15 @@ JSON envelopes are projected structurally to preserve field types. Before using
 such views in a handoff, verify that the public native-field projection still
 matches the public answer and that rescoring it preserves the task verdict.
 Do not replace an original scored binding with a public-view hash or describe a
-redacted reproduction as byte-for-byte recovery of the private call.
+redacted reproduction as byte-for-byte recovery of the private call. Public
+frozen presentations declare `publication_evidence_views` in their presentation
+binding. The shared gate requires complete current answer/native coverage,
+checks the actual displayed aliases, rejects private artifact trees, and keeps
+ordinary acquisition/aggregation checks strict. Redacted excerpts can verify
+visible text, not original private coordinates. Report rebuilding uses saved
+original scores; changed public text does not reproduce every original text
+quality diagnostic. Disk-backed metadata projection and independent file clones
+keep large histories practical without hard-linking writable outputs to inputs.
 
 
 For native caller comparisons, `dns_mode` is explicitly `system` (default) or

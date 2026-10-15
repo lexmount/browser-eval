@@ -59,7 +59,7 @@ def record_public_call_log_bindings(record: dict[str, Any]) -> list[dict[str, An
             for path, (digest, size) in seen.items()]
 
 
-def verify_public_call_log(root: Path, binding: dict[str, Any]) -> Path:
+def verify_public_call_log(root: Path, binding: dict[str, Any], *, allow_public_views=False) -> Path:
     """Verify one public call log's containment, bytes, digest and closed schema."""
     normalized = public_call_log_binding(binding)
     if normalized is None:  # pragma: no cover - caller supplied an object
@@ -130,21 +130,29 @@ def verify_public_call_log(root: Path, binding: dict[str, Any]) -> Path:
     output_path = Path(str(payload["output"]["path"]))
     if not output_path.parts or output_path.parts[0] != "artifacts":
         raise ValueError("Public call log output must stay under artifacts")
-    output = contained_path(root, output_path)
-    if not output.is_file() or output.is_symlink():
-        raise ValueError("Public call log output is missing or unsafe")
-    output_bytes = output.read_bytes()
     claimed = payload["output"]
-    if (claimed["bytes"] != len(output_bytes)
-            or claimed["sha256"] != hashlib.sha256(output_bytes).hexdigest()
-            or claimed["empty"] is not (len(output_bytes) == 0)):
-        raise ValueError("Public call log output binding changed")
+    if allow_public_views:
+        from .publication_privacy import read_evidence_binding, original_evidence_size
+        answer = {'path': output_path.as_posix(), 'sha256': claimed['sha256']}
+        read_evidence_binding(root, answer)
+        size = original_evidence_size(root, answer)
+        if claimed['bytes'] != size or claimed['empty'] is not (size == 0):
+            raise ValueError("Public call log original output binding changed")
+    else:
+        output = contained_path(root, output_path)
+        if not output.is_file() or output.is_symlink():
+            raise ValueError("Public call log output is missing or unsafe")
+        output_bytes = output.read_bytes()
+        if (claimed["bytes"] != len(output_bytes)
+                or claimed["sha256"] != hashlib.sha256(output_bytes).hexdigest()
+                or claimed["empty"] is not (len(output_bytes) == 0)):
+            raise ValueError("Public call log output binding changed")
     return path
 
 
-def verify_record_public_call_logs(root: Path, record: dict[str, Any]) -> None:
+def verify_record_public_call_logs(root: Path, record: dict[str, Any], *, allow_public_views=False) -> None:
     for binding in record_public_call_log_bindings(record):
-        verify_public_call_log(root, binding)
+        verify_public_call_log(root, binding, allow_public_views=allow_public_views)
 
 
 def raw_response_binding(metadata: dict[str, Any]) -> dict[str, Any] | None:
