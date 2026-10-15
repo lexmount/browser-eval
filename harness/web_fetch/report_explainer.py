@@ -16,7 +16,7 @@ from harness.web_fetch.reference_inputs import read_dataset_bytes
 
 from .report_resources import render_resource_comparison
 from .metrics import task_passed, percentile
-from .methods import is_browser_comparison
+from .methods import is_browser_comparison, with_measured_method_labels
 from .scoring import score_attempt
 from .report_style import STYLE
 from .safety import contained_path, safe_identifier
@@ -1265,6 +1265,7 @@ def _render_current_browser_article(out, cases, records, binding):
     return body+'<aside class="wrap"><a href="article.html" download>下载独立 HTML</a> · <a href="interpretation-evidence.json">本文计算明细</a></aside>'
 
 
+@with_measured_method_labels
 def check_current_browser_article(out, cases, records, binding):
     """Verify numerical populations, unique highlights and complete drilldowns."""
     from html.parser import HTMLParser

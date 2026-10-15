@@ -843,6 +843,39 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'error excerpt'):
                 check_current_browser_article(root,cases,rows,binding)
 
+    def test_real_provider_revision_gate_checks_bound_article_with_measured_labels(self):
+        from harness.web_fetch.methods import with_measured_method_labels
+        from harness.web_fetch.report_explainer import render_explainer
+        from harness.web_fetch.report_check import check_revision
+        class FollowingReleaseStage(Exception): pass
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,binding=self.example(root)
+            self.assertTrue(all(row['provider_type']!='fixture' for row in rows))
+            for row in rows:
+                if row['provider']=='moli':row['provider_metadata']['binary_sha256']='example-binary'
+            (root/'implementation-provenance.json').write_text(json.dumps({'implementations':[
+                {'provider':'moli','binary_sha256':'example-binary','version':'9.2.3'}]}))
+            content_path=root/binding['path'];content=json.loads(content_path.read_text())
+            content['evidence_sha256']=_digest(_headless_article_input(cases,rows,['moli','lightpanda']))
+            content_path.write_text(json.dumps(content));binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
+            (root/'dataset.json').write_text(json.dumps({'cases':list(cases.values()),'comparison':{'report_interpretation':binding}}))
+            (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+            (root/'index.html').write_text('<a href="providers/moli.html">Moli 9.2.3</a>')
+            body=with_measured_method_labels(render_explainer)(root,cases,rows,content_binding=binding)
+            self.assertIn('Moli 9.2.3',body)
+            page=root/'guide/index.html';page.write_text(body)
+            # The real-provider public revision boundary must finish the bound
+            # semantic check before proceeding to unrelated release stages.
+            with patch('harness.web_fetch.report_check.check_language_contract',side_effect=FollowingReleaseStage) as following:
+                with self.assertRaises(FollowingReleaseStage):
+                    check_revision(root,authority_root=Path(__file__).resolve().parents[1])
+                following.assert_called_once()
+            page.write_text(body.replace('data-browser-interface="moli"','data-missing-interface="moli"',1))
+            with patch('harness.web_fetch.report_check.check_language_contract') as following:
+                with self.assertRaisesRegex(ValueError,'interface matrix'):
+                    check_revision(root,authority_root=Path(__file__).resolve().parents[1])
+                following.assert_not_called()
+
     def test_network_disclosure_uses_recorded_modes_and_separates_service_network(self):
         from harness.web_fetch.report_explainer import _browser_network_rows
         records = [

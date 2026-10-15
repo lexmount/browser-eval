@@ -592,6 +592,11 @@ def check_revision(out: Path, *, authority_root: Path):
         return (
             "PASS: WebMainBench preselected-200 release scope and report acceptance checks verified"
         )
+    binding = dataset.get('comparison', {}).get('report_interpretation')
+    if binding:
+        from .report_explainer import check_current_browser_article
+        check_current_browser_article(out, {case['id']:case for case in dataset['cases']},
+                                      load_jsonl(out/'results.jsonl'), binding)
     provenance_path = out / "implementation-provenance.json"
     if provenance_path.is_file():
         from .methods import native_browser_engine
@@ -715,10 +720,6 @@ def check_revision(out: Path, *, authority_root: Path):
         for name in {row['provider'] for row in records}:
             if methods.find(id='interface-' + name) is None:
                 raise ValueError('Synthetic adapter interface is missing: ' + name)
-        if dataset.get('comparison', {}).get('report_interpretation'):
-            from .report_explainer import check_current_browser_article
-            check_current_browser_article(out, {case['id']: case for case in dataset['cases']}, records,
-                                          dataset['comparison']['report_interpretation'])
         return 'PASS: synthetic report presentation, declared adapters and bound interpretation verified'
     counts = json.loads((out / "adoption/counts.json").read_text())["methods"]
     names = {row["provider"] for row in load_jsonl(out / "results.jsonl")}
