@@ -66,6 +66,29 @@ class ReportChangesTests(unittest.TestCase):
                 for zh, en in zip(source, target, strict=True):
                     self.assertEqual(translate_text(zh, translations), en, row['id'])
 
+    def test_release_translation_reuse_requires_one_unambiguous_english_value(self):
+        from harness.web_fetch.report_i18n import release_translations, translate_text
+        release = {
+            'id': 'first', 'title': '版本', 'summary': '摘要',
+            'changes': [['项目', '原问题', '修正', '边界']],
+            'i18n': {'en': {'title': 'Release', 'summary': 'Summary',
+                           'changes': [['Item', 'Prior issue', 'Correction', 'Limits']]}},
+        }
+        matching = json.loads(json.dumps(release))
+        matching['id'] = 'second'
+        translations = release_translations({'releases': [release, matching]})
+        self.assertEqual(translate_text('修正', translations), 'Correction')
+        for field in ('title', 'summary', 'changes'):
+            conflicting = json.loads(json.dumps(matching))
+            if field == 'changes':
+                conflicting['i18n']['en']['changes'][0][2] = 'Different correction'
+            else:
+                conflicting['i18n']['en'][field] = 'Different English text'
+            with self.subTest(field=field), self.assertRaisesRegex(
+                ValueError, 'Conflicting English release translation'
+            ):
+                release_translations({'releases': [release, conflicting]})
+
     def test_dynamic_local_audit_release_is_selected_only_for_its_cohort(self):
         from harness.web_fetch.report_changes import ROOT, select_cohort_history
         data = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))

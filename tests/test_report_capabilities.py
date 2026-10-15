@@ -24,7 +24,7 @@ class CapabilityTests(unittest.TestCase):
                 self.assertEqual(claims[name]['document']['status'],'原生输出')
             self.assertEqual(claims['chromium']['document']['status'],'共同转换')
             for name in ('moli','lightpanda','obscura','kitesurf'):
-                self.assertIn('媒体信息与正文统一走原生 Markdown',claims[name]['notes'])
+                self.assertIn('网页内嵌媒体与正文统一走原生 Markdown',claims[name]['notes'])
             self.assertIn('固定标准包',claims['chromium']['notes'])
             for name in names:
                 self.assertIn('不使用外部',claims[name]['document']['detail'])

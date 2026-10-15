@@ -1324,7 +1324,7 @@
           "summary": "Results remain unchanged for six configurations with 430 tasks each. The interpretation explains grouped task outcomes, waiting and retry costs, seven real input/output examples, and reviewed failures.",
           "changes": [
             [
-              "Results",
+              "Interpreting results",
               "Results, timings and interface records were dispersed across long tables.",
               "Add a combined summary, grouped comparisons and mean/P50/P95 charts with exact values retained.",
               "Scores, calls and measured times are unchanged."
@@ -1409,7 +1409,7 @@
               "Raw timings stay unchanged. They do not isolate engine speed or a causal version-to-version speed difference."
             ],
             [
-              "Interpretation",
+              "Report interpretation",
               "Long cells repeated interface descriptions and per-result diagnoses.",
               "Condense the seven-family, six-method matrix, explain each method’s failure distribution and retain inspectable examples.",
               "Complete diagnoses remain in result analysis and details. Rename the family to embedded webpage media."
@@ -1498,7 +1498,7 @@
               "Four AGP Wire records are no longer omitted. Final pass counts remain unchanged because a separate category-field requirement still fails."
             ],
             [
-              "Interpretation",
+              "Report interpretation",
               "The prior interpretation lacked complete failure distributions and inspectable examples.",
               "Use six chapters with a deliverable diagram, reference/output comparisons for all seven families, native-interface matrix and failure evidence.",
               "Document content, embedded-media addresses and original media bytes remain distinct acceptance contracts; no external document parser is added."
@@ -1561,7 +1561,7 @@
           "summary": "Each of six methods completed 430 tasks, producing 2,580 formal results. The fixed Moli build passes 386, Moli 1.1.15 passes 367, and Chromium, Lightpanda, Obscura, and Kitesurf pass 232, 228, 223, and 192. Every result has been reviewed.",
           "changes": [
             [
-              "Evaluation scope",
+              "Scope",
               "The previous report covered five methods and smaller dynamic and popular-site samples.",
               "Use six methods, seven task families, and 430 tasks per method, including 100 dynamic pages, 100 popular sites, and 100 access-restricted body pages.",
               "The denominator is 430 for every method. Family results remain separate."

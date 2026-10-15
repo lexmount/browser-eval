@@ -3059,6 +3059,12 @@ PHRASES.update({
 def release_translations(history: dict) -> dict[str, str]:
     """Localize only the structured release records included in this report."""
     translations = {}
+
+    def add(source, target):
+        if source in translations and translations[source] != target:
+            raise ValueError('Conflicting English release translation for ' + repr(source))
+        translations[source] = target
+
     for release in history['releases']:
         if any(kind in release.get('comparison_kinds', []) for kind in (
                 'webmainbench_frozen_html_to_markdown', 'public_benchmark_research',
@@ -3070,11 +3076,12 @@ def release_translations(history: dict) -> dict[str, str]:
                 or len(release.get('changes', [])) != len(english.get('changes', []))):
             raise ValueError('Web Fetch release requires complete English text: ' + release['id'])
         for key in ('title', 'summary'):
-            translations[release[key]] = english[key]
+            add(release[key], english[key])
         for source_row, target_row in zip(release['changes'], english['changes'], strict=True):
             if len(source_row) != 4 or len(target_row) != 4:
                 raise ValueError('Web Fetch release change rows must have four columns: ' + release['id'])
-            translations.update(zip(source_row, target_row, strict=True))
+            for source, target in zip(source_row, target_row, strict=True):
+                add(source, target)
 
     return translations
 

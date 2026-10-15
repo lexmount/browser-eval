@@ -95,7 +95,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             [report_family(case) for case in cases],
             ['web_media', 'web_media', 'web_media', 'media_file', 'media_file'],
         )
-        self.assertEqual(REPORT_FAMILIES['web_media'], '网页媒体信息')
+        self.assertEqual(REPORT_FAMILIES['web_media'], '网页内嵌媒体')
         self.assertEqual(REPORT_FAMILIES['media_file'], '直接媒体文件')
 
     def test_task_family_names_and_order_share_the_report_registry(self):

@@ -5,6 +5,7 @@ import threading
 import unittest
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from unittest.mock import patch
 
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.moli import MoliWebFetchProvider
@@ -81,8 +82,7 @@ class NativeTaskOutputTests(unittest.TestCase):
             server.shutdown(); server.server_close(); thread.join(1)
 
     def test_native_document_projection_rejects_bytes_and_preserves_native_text(self):
-        from unittest.mock import patch
-        from harness.web_fetch.providers.headless_worker import _projection_text
+                from harness.web_fetch.providers.headless_worker import _projection_text
         from harness.web_fetch.task_outputs import DOCUMENT_PAGE_EXPRESSION
         import time
         self.assertNotIn('fetch(', DOCUMENT_PAGE_EXPRESSION)
@@ -190,7 +190,8 @@ class NativeRoutePublicationTests(unittest.TestCase):
                     require_native_task_routes([{**case,'task_kind':task_kind}],
                                                [{**row,'provider_metadata':metadata}])
 
-    def test_iframe_contract_accepts_native_markdown_receipts_without_content_assembly(self):
+    @patch("harness.web_fetch.retrieval_hints._verify_contract_source")
+    def test_iframe_contract_accepts_native_markdown_receipts_without_content_assembly(self, _source):
         from harness.web_fetch.task_outputs import require_native_task_routes
 
         case = {'id':'dynamic-iframe','url':'https://example.com/frames','track':'dynamic',
