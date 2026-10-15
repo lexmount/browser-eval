@@ -2296,6 +2296,12 @@ def current_local_review_findings(out,dataset,records,audit):
   ("目标内容要求、正文质量和诊断文字分别展示；具体评分实现哈希见各结果详情，诊断词不单独决定任务是否通过。",
    "Target requirements, body quality and diagnostic text are reported separately. Each result binds its scorer hash; diagnostic words alone do not determine acceptance."),
  ]
+ supplements = audit.get('supplemental_reviews', [])
+ if supplements:
+  supplement_rows = [json.loads(read_bound(out, item).read_text()) for item in supplements]
+  reviewed = sum(item['reviewed_attempts'] for item in supplement_rows)
+  rows.append((f'新增调用中 {reviewed} 条已逐条补充复核，判定与程序一致；复核前已知机器汇总，不称为盲审。内容通过不保证代码可直接运行，具体质量问题见复核记录。',
+               f'{reviewed} new-call results received supplemental per-answer review and agree with the scorer. The machine summary was already known; this was not blind review. A content pass does not guarantee executable code; quality issues are retained in the review records.'))
  if local_pass_rate_ranking(dataset):
   rows.append(('名次按当前任务通过率计算，耗时单独展示，不参与名次。历史调用未完成调用前后的全量来源核验，保留实际检查日期和范围，不声称已完成来源认证。',
                'Ranks use current task pass rates. Latency is separate and does not determine rank. Historical calls lack complete before/after source verification; actual check dates and scope are retained without claiming source certification.'))

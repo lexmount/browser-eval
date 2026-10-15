@@ -69,3 +69,38 @@ def test_diagnostic_field_migration_preserves_historical_review(tmp_path, defect
             _require_review_binding_revision(tmp_path, {'cases': [current]}, records, review)
     else:
         _require_review_binding_revision(tmp_path, {'cases': [current]}, records, review)
+
+
+@pytest.mark.parametrize('defect', [None, 'answer', 'excerpt', 'opinion', 'case', 'binding'])
+def test_supplemental_review_binds_new_opinion_task_and_complete_answer(tmp_path, defect):
+    import copy
+    import json
+    from harness.web_fetch.adjudication_evidence import _require_supplemental_reviews
+    text = 'Complete document and sqlite3 test.db'
+    (tmp_path/'answer.txt').write_text(text)
+    case = {'id': 'a', 'required_facts': ['sqlite3 test.db']}
+    record = {'attempt_id': 'p__a', 'case_id': 'a', 'artifact_path': 'answer.txt',
+              'metrics': {'content_sha256': hashlib.sha256(text.encode()).hexdigest()}}
+    row = {'attempt_id': 'p__a', 'agent_verdict': 'pass', 'agent_evidence': 'Required command is present.',
+           'content_sha256': record['metrics']['content_sha256'],
+           'review_evidence': {'case_sha256': case_hash(case),
+               'samples': [{'start': 0, 'end': len(text), 'text': text}]}}
+    supplement = {'kind': 'supplemental_saved_output_review', 'results_sha256': 'a'*64,
+        'provider_calls_added': 0, 'reviewed_attempts': 1, 'reviewer': {'agent': 'independent reviewer'},
+        'review_protocol': {'blind_initial_verdict': False}, 'attempts': [copy.deepcopy(row)]}
+    if defect == 'excerpt':
+        row['review_evidence']['samples'][0]['text'] = 'Invented answer'
+        supplement['attempts'] = [copy.deepcopy(row)]
+    path = tmp_path/'supplement.json'
+    path.write_text(json.dumps(supplement))
+    binding = {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    review = {'attempts': [row], 'results_sha256': 'a'*64, 'supplemental_reviews': [binding]}
+    if defect == 'answer': (tmp_path/'answer.txt').write_text('Changed answer')
+    elif defect == 'opinion': row['agent_verdict'] = 'fail'
+    elif defect == 'case': case['required_facts'] = ['different command']
+    elif defect == 'binding': binding['sha256'] = 'b'*64
+    if defect:
+        with pytest.raises(ValueError):
+            _require_supplemental_reviews(tmp_path, {'cases': [case]}, [record], review)
+    else:
+        assert _require_supplemental_reviews(tmp_path, {'cases': [case]}, [record], review) == {'p__a'}

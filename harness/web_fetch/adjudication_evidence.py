@@ -20,6 +20,7 @@ def requires_adjudication(row):
 
 
 def require_adjudication_evidence(source, dataset, records, review):
+    _require_supplemental_reviews(source, dataset, records, review)
     _require_review_binding_revision(source, dataset, records, review)
     cases = {case['id']: case for case in dataset.get('cases', [])}
     indexed = {record['attempt_id']: record for record in records}
@@ -83,6 +84,54 @@ def require_current_review_state(records, review):
         raise ValueError('Review disagreement total differs from result states')
 
 
+def _require_supplemental_reviews(source, dataset, records, review):
+    """Bind newly reviewed answers without rewriting inherited opinions."""
+    from .local_revision import read_bound
+    if not review.get('supplemental_reviews'):
+        return set()
+    indexed = {row['attempt_id']: row for row in records}
+    cases = {case['id']: case for case in dataset['cases']}
+    current = {row['attempt_id']: row for row in review.get('attempts', [])}
+    seen = set()
+    for binding in review.get('supplemental_reviews', []):
+        supplement = json.loads(read_bound(source, binding).read_text())
+        rows = supplement.get('attempts', [])
+        identifiers = [row['attempt_id'] for row in rows]
+        if (supplement.get('kind') != 'supplemental_saved_output_review'
+                or supplement.get('results_sha256') != review.get('results_sha256')
+                or supplement.get('provider_calls_added') != 0
+                or not identifiers or len(set(identifiers)) != len(identifiers)
+                or seen.intersection(identifiers)
+                or supplement.get('reviewed_attempts') != len(rows)
+                or not supplement.get('reviewer')
+                or 'blind_initial_verdict' not in supplement.get('review_protocol', {})):
+            raise ValueError('Supplemental review scope or provenance differs')
+        for row in rows:
+            record = indexed.get(row['attempt_id'])
+            if record is None or current.get(row['attempt_id']) != row:
+                raise ValueError('Supplemental review opinions changed')
+            proof = row.get('review_evidence', {})
+            if (proof.get('case_sha256') != case_hash(cases[record['case_id']])
+                    or row.get('content_sha256') != record['metrics']['content_sha256']
+                    or not row.get('agent_evidence', '').strip()
+                    or row.get('agent_verdict') not in {'pass', 'fail', 'insufficient'}):
+                raise ValueError('Supplemental review lacks bound task and answer evidence')
+            raw = contained_path(source, record['artifact_path'], reject_symlinks=True).read_bytes()
+            if hashlib.sha256(raw).hexdigest() != row['content_sha256']:
+                raise ValueError('Supplemental review answer changed')
+            text = raw.decode('utf-8', errors='replace')
+            if text and not proof.get('samples'):
+                raise ValueError('Supplemental review lacks an answer excerpt')
+            for sample in proof.get('samples', []):
+                start, end = sample.get('start'), sample.get('end')
+                if (type(start) is not int or type(end) is not int
+                        or not 0 <= start < end <= len(text)
+                        or text[start:end] != sample.get('text')):
+                    raise ValueError('Supplemental review excerpt differs')
+        seen.update(identifiers)
+    return seen
+
+
 def _require_review_binding_revision(source, dataset, records, review):
     """Carry historical evidence only across a declared hint-field migration."""
     import copy
@@ -105,7 +154,10 @@ def _require_review_binding_revision(source, dataset, records, review):
     cases = {case['id']: case for case in dataset['cases']}
     indexed = {record['attempt_id']: record for record in records}
     old_rows = {row['attempt_id']: row for row in previous['attempts']}
-    rows = review['attempts']
+    added = _require_supplemental_reviews(source, dataset, records, review)
+    if added.intersection(old_rows):
+        raise ValueError('Supplemental review cannot replace inherited opinions')
+    rows = [row for row in review['attempts'] if row['attempt_id'] not in added]
     if {row['attempt_id'] for row in rows} != set(old_rows) or len(rows) != len(old_rows):
         raise ValueError('Historical review migration changed review coverage')
     carried = []

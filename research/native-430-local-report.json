@@ -28,7 +28,7 @@
     },
     {
       "path": "result-review.json",
-      "sha256": "0f9190fa85516469740fab16b2786adc092bc26b2a31f13af74a48b1ee4af5bf"
+      "sha256": "fbc60dedfefc886e66b89a91854f24a34c335e14568b7e9e1ec0d7906ac9b688"
     },
     {
       "path": "archived-reading.json",
@@ -107,5 +107,16 @@
       "sha256": "90d51b8bed3c8c480a45160a3cd8d624753451ee08f04ba816b7e6bb708d1c24",
       "bytes": 7580469
     }
+  },
+  "supplemental_review": {
+    "path": "local-evidence/sqlite-independent-review/review.json",
+    "sha256": "0e730c5df7a8fa68501ea26f9ac89f44e2ff817dd890752b8e9818556eefef4b"
+  },
+  "review_supplement_package": {
+    "url": "https://api.github.com/repos/lexmount/browser-eval/releases/assets/643157257",
+    "sha256": "0fd186daed24ea8495e14f0ee2e52e769a65aa44688b2cbea6f4561d6b61894b",
+    "bytes": 2218013,
+    "apply_after": "review_evidence_package",
+    "access": "Authenticated GitHub asset API; Accept: application/octet-stream; repository write access to draft required"
   }
 }
