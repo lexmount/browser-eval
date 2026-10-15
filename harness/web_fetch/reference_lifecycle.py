@@ -223,7 +223,8 @@ def _resource_observation_scope(case, root, evidence):
         return current
     identifier = safe_identifier(_get(case, 'id'))
     if (not isinstance(binding, dict)
-            or binding.get('path') != 'resource-equivalence-revision.json'):
+            or re.fullmatch(r'resource-equivalence-(?:revision|[0-9a-f]{64})\.json',
+                            str(binding.get('path', ''))) is None):
         raise ReferenceLifecycleError('Invalid resource equivalence revision binding')
     try:
         raw = contained_path(root, identifier + '/' + binding['path']).read_bytes()

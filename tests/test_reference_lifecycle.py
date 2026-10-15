@@ -266,6 +266,11 @@ class ReferenceLifecycleTests(unittest.TestCase):
         result = validate_resource_source_evidence(bound_case(receipt), self.dataset_path)
         self.assertTrue(result['target_matches'][0]['satisfied'])
         self.assertEqual(browser_path.read_bytes(), browser_bytes)
+        # Later score-only revisions get immutable proof names, preserving prior receipts.
+        prior_proof = proof
+        proof = proof.with_name('resource-equivalence-'+sha256((json.dumps(receipt)+'\n').encode())+'.json')
+        self.assertIsNotNone(validate_resource_source_evidence(bound_case(receipt), self.dataset_path))
+        self.assertTrue(prior_proof.exists())
         # A new alias cannot silently rewrite or replace the captured scope.
         for defect in ('primary', 'policy', 'source', 'observation', 'controls', 'fresh'):
             bad = deepcopy(receipt)

@@ -32200,6 +32200,162 @@
       "expected_metrics": {
         "resource_pass": false
       }
+    },
+    {
+      "id": "image-04-declared-display-real-thumbnail-accepted",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_thumbnail_host_path_coupling",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://en.wikipedia.org/wiki/Apollo_11",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "image-1",
+            "kind": "image-1",
+            "urls": [
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg/330px-A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail"
+            ],
+            "url_patterns": [
+              "^(?:https://upload\\.wikimedia\\.org/wikipedia/commons/4/41/A_Man_on_the_Moon,_AS11\\-40\\-5903_\\(cropped\\)\\.jpg|https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon,_AS11\\-40\\-5903_\\(cropped\\)\\.jpg/[1-9][0-9]*px-A_Man_on_the_Moon,_AS11\\-40\\-5903_\\(cropped\\)\\.jpg)(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          },
+          {
+            "id": "image-2",
+            "kind": "image-2",
+            "urls": [
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Apollo_11_insignia.png/250px-Apollo_11_insignia.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail"
+            ],
+            "url_patterns": [
+              "^(?:https://upload\\.wikimedia\\.org/wikipedia/commons/2/27/Apollo_11_insignia\\.png|https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/thumb/2/27/Apollo_11_insignia\\.png/[1-9][0-9]*px-Apollo_11_insignia\\.png)(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg/640px-A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg\nhttps://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Apollo_11_insignia.png/640px-Apollo_11_insignia.png",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "image-04-declared-display-thumbnail-host-original-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_thumbnail_host_path_coupling",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://en.wikipedia.org/wiki/Apollo_11",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "image-1",
+            "kind": "image-1",
+            "urls": [
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg/330px-A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail"
+            ],
+            "url_patterns": [
+              "^(?:https://upload\\.wikimedia\\.org/wikipedia/commons/4/41/A_Man_on_the_Moon,_AS11\\-40\\-5903_\\(cropped\\)\\.jpg|https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon,_AS11\\-40\\-5903_\\(cropped\\)\\.jpg/[1-9][0-9]*px-A_Man_on_the_Moon,_AS11\\-40\\-5903_\\(cropped\\)\\.jpg)(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          },
+          {
+            "id": "image-2",
+            "kind": "image-2",
+            "urls": [
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Apollo_11_insignia.png/250px-Apollo_11_insignia.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail"
+            ],
+            "url_patterns": [
+              "^(?:https://upload\\.wikimedia\\.org/wikipedia/commons/2/27/Apollo_11_insignia\\.png|https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/thumb/2/27/Apollo_11_insignia\\.png/[1-9][0-9]*px-Apollo_11_insignia\\.png)(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://thumb.wikimedia.org/wikipedia/commons/4/41/A_Man_on_the_Moon%2C_AS11-40-5903_%28cropped%29.jpg\nhttps://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Apollo_11_insignia.png/640px-Apollo_11_insignia.png",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "image-earth-main-declared-display-real-thumbnail-accepted",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_thumbnail_host_path_coupling",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://commons.wikimedia.org/wiki/File:The_Earth_seen_from_Apollo_17.jpg",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20200925203546"
+            ],
+            "url_patterns": [
+              "^(?:https://upload\\.wikimedia\\.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17\\.jpg|https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17\\.jpg/[1-9][0-9]*px-The_Earth_seen_from_Apollo_17\\.jpg)(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/640px-The_Earth_seen_from_Apollo_17.jpg",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "image-earth-main-declared-display-thumbnail-host-original-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "task_declared_thumbnail_host_path_coupling",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://commons.wikimedia.org/wiki/File:The_Earth_seen_from_Apollo_17.jpg",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "main-image",
+            "kind": "image",
+            "urls": [
+              "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20200925203546"
+            ],
+            "url_patterns": [
+              "^(?:https://upload\\.wikimedia\\.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17\\.jpg|https://(?:upload|thumb)\\.wikimedia\\.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17\\.jpg/[1-9][0-9]*px-The_Earth_seen_from_Apollo_17\\.jpg)(?:\\?(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+)(?:&(?:utm_source=(?:en\\.wikipedia\\.org|commons\\.wikimedia\\.org)|utm_campaign=(?:parser|index)|utm_content=thumbnail|_=[0-9]+))*)?$"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "https://thumb.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
     }
   ],
   "superseded_controls": {
