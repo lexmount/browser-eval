@@ -72,7 +72,7 @@ class ExaContentsProvider(Provider):
             # Exa's richLinks route returns the explicit anchor/URL pair needed
             # by the shared named-link answer contract.
             extras["richLinks"] = int(self.config.get("rich_links_limit", 100))
-        response = request(
+        response = self.native_http_request(case, request,
             f"{str(self.config.get('base_url', 'https://api.exa.ai')).rstrip('/')}/contents",
             method="POST",
             timeout=http_timeout,

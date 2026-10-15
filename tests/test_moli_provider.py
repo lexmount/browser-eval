@@ -211,15 +211,16 @@ class MoliTests(unittest.TestCase):
             "    assert sys.argv[sys.argv.index('--dump') + 1] in ('markdown', 'html')\n"
             "print('native output')\n", uniform_native_parameters=True)
         with patch("harness.web_fetch.providers.moli.extract_document_text", side_effect=AssertionError("caller conversion")):
-            for track, kind, url in [("challenge", "structure", "https://example.com/"),
-                    ("risk_control", "body", "https://example.com/"),
-                    ("document", "body", "https://example.com/a.docx"),
-                    ("document", "body", "https://example.com/a.pdf"),
-                    ("document", "body", "https://example.com/viewer.html"),
-                    ("image", "resource", "https://example.com/"),
-                    ("video", "resource", "https://example.com/"),
-                    ("video", "body", "https://example.com/")]:
-                result = provider.fetch(self.case_with(track=track, task_kind=kind, url=url), 5)
+            for track, kind, url, media in [("challenge", "structure", "https://example.com/", "html_page"),
+                    ("risk_control", "body", "https://example.com/", "html_page"),
+                    ("document", "body", "https://example.com/a.docx", "direct_docx"),
+                    ("document", "body", "https://example.com/a.pdf", "direct_pdf"),
+                    ("document", "body", "https://example.com/viewer.html", "html_page"),
+                    ("image", "resource", "https://example.com/", "html_page"),
+                    ("video", "resource", "https://example.com/", "html_page"),
+                    ("video", "body", "https://example.com/", "html_page")]:
+                result = provider.fetch(self.case_with(track=track, task_kind=kind, url=url,
+                    source_benchmark={"input_media_kind": media}), 5)
                 self.assertTrue(result.ok, result.error_message)
                 if url.endswith((".pdf", ".docx")):
                     self.assertEqual(result.content, "")

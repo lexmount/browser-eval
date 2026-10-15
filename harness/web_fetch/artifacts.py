@@ -357,7 +357,9 @@ def materialize_bound_artifacts(output: Path, source_root: Path, records: list[d
 
 
 def materialize_reference_checks(output: Path, source: Path, batches: list[dict]) -> None:
-    """Retain only hash-bound observations named by the execution certificates."""
+    """Retain hash-bound source observations and native execution contracts."""
+    from .native_routes import materialize_native_route_contracts
+    materialize_native_route_contracts(output, source, batches)
     for batch in batches:
         post = batch.get('reference_checks', {}).get('postcheck', {})
         if not post:

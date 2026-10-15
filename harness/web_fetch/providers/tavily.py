@@ -48,7 +48,7 @@ class TavilyExtractProvider(Provider):
         # deadline remains authoritative and we omit an invalid API value.
         if extract_timeout >= 1.0 and not self.config.get("uniform_native_parameters"):
             request_body["timeout"] = round(extract_timeout, 3)
-        response = request(
+        response = self.native_http_request(case, request,
             f"{str(self.config.get('base_url', 'https://api.tavily.com')).rstrip('/')}/extract",
             method="POST",
             timeout=http_timeout,

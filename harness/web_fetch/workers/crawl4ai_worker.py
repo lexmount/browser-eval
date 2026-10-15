@@ -145,6 +145,9 @@ def is_direct_pdf_document(request):
         return False
     if request.get("task_kind", "body") != "body":
         return False
+    if request.get("uniform_native_parameters"):
+        from harness.web_fetch.native_routes import declared_input_media_kind
+        return declared_input_media_kind(request) == "direct_pdf"
     path = urlsplit(request["url"]).path.lower().rstrip("/")
     return path.endswith(".pdf") or "/pdf/" in path
 

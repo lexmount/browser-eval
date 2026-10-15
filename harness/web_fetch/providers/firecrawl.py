@@ -287,7 +287,7 @@ class FirecrawlProvider(Provider):
                         "Firecrawl dynamic_wait_strategy must be actions or wait_for"
                     ),
                 )
-        response = request(
+        response = self.native_http_request(case, request,
             f"{base_url}/v2/scrape",
             method="POST",
             timeout=http_timeout,

@@ -699,6 +699,7 @@ class ScoringPipelineTests(unittest.TestCase):
                  "legacy": LINKS, "unverified": LINKS.replace("Alpha", "Different"),
                  "redirected": "[Redirected story](item/1)"}
         self.provider = Mock()
+        self.provider.config = {}
         self.provider.name, self.provider.type, self.provider.min_interval_seconds = "p", "fixture", 0
         self.provider.validate.return_value = []
         self.provider.fetch.side_effect = lambda c, timeout: ProviderResult(

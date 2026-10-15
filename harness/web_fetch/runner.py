@@ -495,8 +495,10 @@ def run_evaluation(
         if provider.config.get("uniform_native_parameters"):
             if runs != 1 or max_failure_retries != 0:
                 raise ValueError("fixed native calls require one run and zero caller retries")
+            from .native_routes import declared_input_media_kind
             for case in cases:
                 provider.check_native_call(case)
+                declared_input_media_kind(case)
         safe_identifier(provider.name)
     for case in cases:
         validate_case(case)
@@ -504,6 +506,9 @@ def run_evaluation(
         raise ValueError('Provider names must be unique within an execution')
     if len({case.id for case in cases}) != len(cases):
         raise ValueError('Task IDs must be unique within an execution')
+    from .native_routes import NativeRouteLedger
+    native_routes = (NativeRouteLedger(cases, providers, timeout_seconds=timeout)
+                     if any(p.config.get('uniform_native_parameters') for p in providers) else None)
     for filename in ['artifacts', PUBLIC_CALL_LOG_ROOT, 'manifest.json', 'dataset.json',
                      'results.jsonl', 'summary.json']:
         contained_path(output_dir, filename)
@@ -562,6 +567,7 @@ def run_evaluation(
                 "name": provider.name,
                 "type": provider.type,
                 "min_interval_seconds": provider.min_interval_seconds,
+                "fixed_native_parameters": bool(provider.config.get("uniform_native_parameters")),
                 **({"implementation_identity": provider._implementation_identity}
                    if isinstance(getattr(provider, '_implementation_identity', None), dict) else {}),
             }
@@ -596,6 +602,11 @@ def run_evaluation(
         manifest['evidence_state'] = 'diagnostic'
         manifest['unqualified_reference_cases'] = sorted(
             set(comparison.get('unqualified_reference_cases', [])) & {case.id for case in cases})
+    if native_routes is not None:
+        manifest['native_routes_required'] = True
+        manifest['native_route_contract'] = native_routes.write(output_dir,
+            dataset_sha256=manifest['dataset_sha256'],
+            runtime_source_sha256=manifest['runtime_source_sha256'])
     (output_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -694,6 +705,8 @@ def run_evaluation(
                             suffix = (f'run-{run_number:03d}.txt' if max_failure_retries == 0 else
                                       f'run-{run_number:03d}-physical-{physical_attempt:03d}.txt')
                             artifact_rel = Path('artifacts') / provider.name / case.id / suffix
+                            if native_routes is not None and provider.name in native_routes.providers:
+                                result.metadata['native_route_receipt'] = native_routes.receipt(provider, case)
                             artifact = persist_result_artifacts(output_dir, artifact_rel, result)
                             artifact_bytes = result.content.encode('utf-8', errors='replace')
                             measured = score_attempt(
@@ -858,12 +871,17 @@ def run_evaluation(
     manifest["completed_at"] = utc_now()
     manifest["attempt_count"] = len(records)
     manifest["attempt_ids"] = [r['attempt_id'] for r in records]
+    if native_routes is not None:
+        manifest['native_route_errors'] = list(native_routes.errors)
     (output_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     (output_dir / "summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    if native_routes is not None:
+        from .native_routes import verify_native_route_contract
+        verify_native_route_contract(output_dir, manifest, dataset_meta, records)
     expected_attempts = len(cases) * len(providers) * runs
     if len(records) != expected_attempts or manifest["unexecuted"]:
         raise IncompleteEvaluationError(

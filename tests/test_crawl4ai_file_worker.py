@@ -162,6 +162,18 @@ class NativeFileWorkerTests(unittest.TestCase):
         ):
             self.assertFalse(worker.is_direct_pdf_document(request))
 
+    def test_fixed_native_pdf_route_uses_declared_input_not_url_shape(self):
+        worker = self.load_worker(object)
+        request = {'url': 'https://example.test/no-extension', 'track': 'document',
+                   'task_kind': 'body', 'uniform_native_parameters': True,
+                   'input_media_kind': 'direct_pdf'}
+        self.assertTrue(worker.is_direct_pdf_document(request))
+        request.update(url='https://example.test/looks-like.pdf', input_media_kind='html_page')
+        self.assertFalse(worker.is_direct_pdf_document(request))
+        request.pop('input_media_kind')
+        with self.assertRaisesRegex(ValueError, 'declared input_media_kind'):
+            worker.is_direct_pdf_document(request)
+
     def test_direct_pdf_uses_native_pdf_strategies_and_returns_markdown(self):
         calls = []
         pdf_crawler_instance = object()

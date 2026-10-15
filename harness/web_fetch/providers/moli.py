@@ -357,8 +357,9 @@ def _route_for_case(case: EvalCase, *, native_default: bool = False) -> str:
     if native_default:
         if case.task_kind == "resource":
             return "native_resource_html"
-        path = urlsplit(case.url).path.casefold()
-        if case.track == "document" and (path.endswith((".pdf", ".docx")) or "/pdf/" in path):
+        from ..native_routes import declared_input_media_kind
+        media = declared_input_media_kind(case, required=case.track == "document")
+        if case.track == "document" and media in {"direct_pdf", "direct_docx"}:
             return "native_document_bytes"
         return "dynamic_native_markdown" if case.track == "dynamic" else "ordinary_markdown"
     if case.task_kind == "resource":
@@ -794,6 +795,9 @@ class MoliWebFetchProvider(Provider):
                 error_message=f"Cannot read Moli binary: {error}",
                 metadata=metadata,
             )
+        self.capture_native_request(case, transport='cli', interface=route,
+            parameters={'argv': ['<native-binary>', *command[1:-1], '<input-url>'],
+                        'binary_sha256': getattr(self, '_binary_sha256', None)})
         # Spool artifacts to files rather than retaining arbitrary CLI output in RAM.
         with ExitStack() as dns_stack, ExitStack() as spool_stack:
             sink = getattr(self, "_call_diagnostics", None)

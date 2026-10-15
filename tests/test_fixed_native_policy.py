@@ -85,6 +85,7 @@ def test_native_cloudflare_document_never_downloads_in_caller():
     provider = build_provider("cf", {"type": "cloudflare_markdown", "uniform_native_parameters": True})
     case = EvalCase("pdf", "pdf", "https://example.com/a.pdf", "control", [], track="document")
     with patch("harness.web_fetch.providers.cloudflare._get_document", side_effect=AssertionError("extra download")), \
+         patch("harness.web_fetch.providers.cloudflare._uses_direct_document_route", side_effect=AssertionError("native URL guessing")), \
          patch("harness.web_fetch.providers.cloudflare.request") as call:
         call.return_value = HttpResponse(200, case.url, {}, b'{"success":true,"result":"native text"}')
         assert provider.fetch(case, 45).content == "native text"
@@ -109,7 +110,7 @@ def test_native_cloudflare_media_has_no_answer_dependent_selectors_or_timers():
     assert "timeout" not in bodies[0]["gotoOptions"]
 
 
-def test_all_430_frozen_cases_pass_native_input_guard():
+def test_historical_430_cases_pass_native_hint_and_output_guard():
     from harness.web_fetch.config import load_dataset
     provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
     count = 0

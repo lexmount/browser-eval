@@ -1356,6 +1356,10 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
     def valid_hash(value):
         return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
 
+    from .native_routes import verify_native_execution_manifests
+    verify_native_execution_manifests(source, manifests,
+        {'cases': [dict(c) if isinstance(c, dict) else vars(c) for c in case_map.values()]}
+        if case_map is not None else None, records)
     allow_scoring_rule_revision = (allow_scoring_rule_revision or valid_scoring_revision(source))
     revised_references = reference_revision_cases(source)
     original_latency = latency_correction_original_elapsed(source, records=records)

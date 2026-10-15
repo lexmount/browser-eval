@@ -195,6 +195,9 @@ class SubprocessJsonlProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         self.check_native_call(case)
+        from ..native_routes import declared_input_media_kind
+        input_media = declared_input_media_kind(case, required=bool(
+            self.config.get("uniform_native_parameters") and case.track == "document"))
         answer_begin = time.perf_counter()
         try:
             retrieval_plan = plan_for_case(case)
@@ -225,9 +228,17 @@ class SubprocessJsonlProvider(Provider):
             "dns_mode": self.config.get("dns_mode", "system"),
             "task_kind": case.task_kind,
             "track": case.track,
+            **({"input_media_kind": input_media} if input_media is not None else {}),
             "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
             "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
         }
+        if getattr(self, '_native_route_ledger', None) is not None:
+            from ..native_routes import _digest
+            projected = {**request, 'url': '<input-url>',
+                         'diagnostic_path': '<diagnostic-output>' if request['diagnostic_path'] else None}
+            self.capture_native_request(case, transport='jsonl', interface='native_worker_command',
+                parameters={'request': projected,
+                            'command_sha256': _digest([self._resolve_token(part) for part in self.config['command']])})
         if self._active_diagnostics: self._active_diagnostics.emit("caller", "worker_request_sent", request=request)
         try:
             process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")

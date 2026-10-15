@@ -250,7 +250,7 @@ class CloudflareMarkdownProvider(Provider):
                 account_id=account_id,
                 http_timeout=http_timeout,
             )
-        if _uses_direct_document_route(case) and not self.config.get("uniform_native_parameters"):
+        if not self.config.get("uniform_native_parameters") and _uses_direct_document_route(case):
             return self._fetch_direct_document(
                 case,
                 account_id=account_id,
@@ -346,7 +346,7 @@ class CloudflareMarkdownProvider(Provider):
                 "client_http_timeout_ms": int(http_timeout * 1000),
                 "wait_until": wait_until,
             }
-        response = request(
+        response = self.native_http_request(case, request,
             endpoint + ("?" + query if query else ""),
             method="POST",
             timeout=http_timeout,
@@ -431,7 +431,7 @@ class CloudflareMarkdownProvider(Provider):
             # One native media request for every video-resource task; never
             # choose selectors from expected URLs or reference answers.
             selectors = ["video", "video source", "audio", "audio source", "iframe", "a[href]"]
-        response = request(
+        response = self.native_http_request(case, request,
             f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/scrape",
             method="POST",
             timeout=http_timeout,
@@ -686,7 +686,7 @@ class CloudflareContentProvider(Provider):
         account_id = str(self.config.get("account_id", ""))
         http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
-        response = request(
+        response = self.native_http_request(case, request,
             f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/content",
             method="POST",
             timeout=http_timeout,

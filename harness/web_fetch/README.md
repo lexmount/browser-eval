@@ -608,6 +608,22 @@ risk-control family. Case-specific retrieval hints remain prohibited. Scoring
 keeps the original case and frozen acceptance contract; family is not a reason
 to inject scripts, convert HTML to Markdown, or fetch another URL.
 
+New fixed-native cohorts declare `source_benchmark.input_media_kind` for every
+case (`html_page`, `direct_pdf`, `direct_docx`, `direct_text`, `direct_image`, or
+`direct_media`). JSONL workers receive the same declaration as
+`input_media_kind`. Native document routes use this frozen type, not URL suffixes
+or expected answers. Historical calls without this declaration are not silently
+upgraded to the new protocol.
+
+Before any case call, the runner writes `native-route-contract.json`, binding
+every method/track/task-kind/input-type cell to its interface, answer fields,
+configuration and normalized transport parameters. Actual arguments are checked
+before transport; changing the task URL, endpoint, parameters or invocation count
+fails the run. Each result binds its request receipt to that pre-call contract.
+Aggregation retains the exact contract bytes; report and release checks verify
+its hash, complete declared scope and per-result receipts. A retrospective audit
+of old logs cannot substitute for this pre-call proof.
+
 Resource tasks may select a declared native output: Firecrawl image/link/video
 fields, Cloudflare's generic media-element scrape, and Crawl4AI media fields.
 Moli uses native HTML for resource discovery and native Markdown for webpage

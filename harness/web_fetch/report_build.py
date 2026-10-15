@@ -411,6 +411,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
     manifests = json.loads(execution.read_text())['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text())]
+    from .native_routes import verify_native_execution_manifests
+    verify_native_execution_manifests(source, manifests, dataset, records)
     if not local_audit and not diagnostic_preview:
         require_verified_reference_checks(manifests, cases=dataset, records=records, source=source,
             equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
@@ -1304,6 +1306,10 @@ def validate_local_presentation(output: Path, binding_path: Path):
         require_host_metadata_projection(output, binding['publication_projection'])
     dataset = json.loads((output / 'dataset.json').read_text())
     records = load_jsonl(contained_path(output, 'results.jsonl'))
+    from .native_routes import verify_native_execution_manifests
+    execution = output/'execution.json'
+    if execution.is_file():
+        verify_native_execution_manifests(output, json.loads(execution.read_text())['batches'], dataset, records)
     scoring_sources = {row['attempt_id']: binding.get('measured_scoring_source_sha256') for row in records}
     if binding.get('offline_revision'):
         from .local_revision import validate_revision_chain, read_bound

@@ -21,6 +21,35 @@ class Provider(ABC):
         if case.task_kind not in {"body", "structure", "resource", "file"}:
             raise ValueError("fixed native calls require a declared native output kind")
 
+    def capture_native_request(self, case, *, transport, parameters, endpoint=None, interface=None):
+        ledger = getattr(self, '_native_route_ledger', None)
+        if ledger is not None:
+            ledger.observe(self, case, transport=transport, parameters=parameters,
+                           endpoint=endpoint, interface=interface)
+
+    def native_http_request(self, case, callback, endpoint, **kwargs):
+        """Observe exact transport arguments before a fixed-native HTTP call."""
+        ledger = getattr(self, '_native_route_ledger', None)
+        if ledger is not None:
+            from copy import deepcopy
+            from ..native_routes import _digest
+            body = deepcopy(kwargs.get('json_body'))
+            if not isinstance(body, dict):
+                ledger.reject(self, case, 'Native HTTP request lacks its declared input field')
+            slots = [key for key in ('url', 'urls') if key in body]
+            if slots == ['url'] and body['url'] == case.url:
+                body['url'] = '<input-url>'
+            elif slots == ['urls'] and body['urls'] == [case.url]:
+                body['urls'] = ['<input-url>']
+            else:
+                ledger.reject(self, case, 'Native HTTP input differs from the frozen task URL')
+            self.capture_native_request(case, transport='http', endpoint=endpoint,
+                parameters={'method': kwargs.get('method', 'GET'), 'body': body,
+                            'headers_sha256': _digest(kwargs.get('headers', {})),
+                            'timeout_seconds': kwargs.get('timeout'),
+                            'max_bytes': kwargs.get('max_bytes')})
+        return callback(endpoint, **kwargs)
+
     @property
     def min_interval_seconds(self) -> float:
         """Minimum cooldown from one response completion to the next request start."""
