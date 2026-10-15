@@ -15,8 +15,8 @@
     "openclaw-built-in",
     "tavily"
   ],
-  "frozen_dataset_sha256": "5fd8f69886bb1919e592bec5a88becc3f1eb555a10c912e2724652e3219d4fb3",
-  "results_sha256": "21a64bec19d9b5614643a013592cb9bfb35b341301ac45814ce763b58cde6690",
+  "frozen_dataset_sha256": "28e3b3e9ec89ce545aae44355bd28eb0dc383ad6f64aed4dc91f327b14a528ab",
+  "results_sha256": "ece94c0911a769c84ce9d896b00d97706fd4435d6d194f03cff77391710934a4",
   "measured_scoring_source_sha256": "4ce40cdf2ecb1af4088915a2b869ffbdcb65dce5222d1429578e97d175f13bfc",
   "evidence_state": "local_measurement",
   "certified": false,
@@ -28,7 +28,7 @@
     },
     {
       "path": "result-review.json",
-      "sha256": "3c0be7dedda1a31ea749a989fa622b7aa8907a6580bed6c00512ec91871fa035"
+      "sha256": "8bfc48ba7b19ec244e6118e4620cd460d2fe425cd74b878fe1e9003f0f23f1fe"
     },
     {
       "path": "archived-reading.json",
@@ -40,7 +40,7 @@
     },
     {
       "path": "local-evidence/result-ledger.json",
-      "sha256": "28b6b78515fe6521a4ea564b7de16935982e86b4855fd5af0bf2d342961db6fb"
+      "sha256": "738944823525d424a879572aa894e81a384802692d78ed52ca95400f27f94d6b"
     },
     {
       "path": "frozen-method-options.json",
@@ -87,14 +87,14 @@
       "sha256": "bb1bd4f9b3bf0b5704b730d3a84d01dc6f4698947de2fd2d3da2667e2a8b08b9"
     }
   ],
-  "evidence_path": "runs/pr51-block-chain-20261015/evidence",
+  "evidence_path": "runs/pr51-native-fairness-20261015/evidence-reviewed",
   "task_replacement": {
     "path": "local-evidence/task-replacement/receipt.json",
     "sha256": "c68d3b21c3317538089635f8fb0ca5bf4f874f4a03201b27e42c56491780d6e0"
   },
   "offline_revision": {
-    "path": "local-evidence/offline-revisions/f1884b4ae2f0ba4d-3aa4e30c449b3731/receipt.json",
-    "sha256": "a230fff72209ab675f3e93587947dc041ffb964fafea37e82da643fd9de2cace"
+    "path": "local-evidence/offline-revisions/246d255fbf52a069-063e7324042d60b4/receipt.json",
+    "sha256": "f633998e82f266156902c81dc9d7f33892c588ce2ca2bcab24f8c8b8f30eaa22"
   },
   "replacement_case": {
     "id": "static-sqlite-quickstart",
@@ -149,36 +149,59 @@
       "authority": "Frozen pre-call official source; preserve code tokens while allowing whitespace and HTML entities."
     }
   },
-  "current_scoring_source_sha256": "0c182d0c4d7f83b680dfddea0115e614721fc9590735411bf84bc7b013311eb1",
+  "current_scoring_source_sha256": "d042394ea0e8c3aa7aed5851663eaf73772fc4357781999e20a87f48e857e00a",
   "supplemental_review": {
-    "path": "local-evidence/current-contract-review/supplement.json",
-    "sha256": "0b356816e4f1b9c9e013754ea79f42bd83a69e9be82a73ae9062b81e573da18a"
+    "path": "local-evidence/native-answer-review/supplement.json",
+    "sha256": "5b5a9a22755fe35e8852195d5dfc1b6d1edd4286b50c4e8c5ed8774bc54f7c1f"
   },
   "retained_review": {
-    "path": "local-evidence/review-retention/receipt.json",
-    "sha256": "eadbd3e71ccaec5e9817acd4890f7b7b08f980caf1f7a5e09d20e8fecace7ae6"
+    "path": "local-evidence/native-answer-review/retention.json",
+    "sha256": "b3275c808947af2312fa48861db1a49b46c62cc8998c6c3afa7965c8f1f4e12f"
   },
   "review_scope": {
-    "fresh": 66,
-    "retained": 4234,
-    "total": 4300
+    "fresh": 72,
+    "retained": 4228,
+    "total": 4300,
+    "fresh_independent_blind_review": false
   },
+  "implementation_commit": "4ef472ff151274e9c526be58bf0e056a1591f420",
   "review_evidence_package": {
-    "archive_name": "PR-51-public-saved-inputs-20261015.tar.xz",
-    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261015/PR-51-public-saved-inputs-20261015.tar.xz",
-    "sha256": "ed17643b6a232221a8f0b892f817cbe2d8b92b61d5dd2524cc448e24359bc745",
-    "bytes": 255231492,
+    "archive_name": "PR-51-public-saved-inputs-20261016.tar.xz",
+    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-public-saved-inputs-20261016.tar.xz",
+    "sha256": "6ceb6a8bb35bc0e1d4ba40ff183dbb66e975d37426d7277ec6fca27ef58ad1ea",
+    "bytes": 295677260,
     "self_contained_restore_verified": true,
     "full_report_rebuild_verified": true,
-    "logical_report_routes": 25796,
-    "access": "Read-only public host-metadata projection. Rebuild with the included public presentation binding. Original host metadata remains private; original and public file hashes are distinguished. No earlier draft assets are required.",
+    "logical_report_routes": 25760,
+    "anonymous_download_verified": true,
+    "access": "Public read-only saved inputs; no repository write access or earlier draft assets required.",
     "presentation_binding": {
       "path": "presentation-binding.json",
-      "sha256": "a604a44bc612ba0357a31155bdc8e21957049669e81661b7364fbf8da80674bc"
+      "sha256": "89b0622a86b2713bc670903600931b2cc5e3851b757afa4012c10b3f0cc763a4"
     },
     "projection_receipt": {
       "path": "PUBLICATION-PROJECTION.json",
-      "sha256": "08001ffd26611ae7bc0d8e676afeaa3a97a9e383dbfa03cb1c8eddd407ee210b"
-    }
+      "sha256": "b836c8da535c5eb106b223099b15bed11023098545ee38209e39b3b96c223b66"
+    },
+    "public_evidence_views": {
+      "path": "PUBLIC-EVIDENCE-VIEWS.json",
+      "sha256": "3b4ad900100bfc94cc004ee2f67c0fae54a2199ea78265c60c623d91db6fd79b"
+    },
+    "public_dataset_sha256": "e2a5c68fa7c2640414c56c0949a8f344f8091e602e6479f8fd2bb07fec5b9681",
+    "public_results_sha256": "2d2a35f6b51cd1023ee940f9a310c05610806f36d9c6363410200ffb26556dbe",
+    "verification": {
+      "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-verification-20261016.json",
+      "sha256": "2fe714e6e8b410890f8be0329da3cb01bb02796c051b5477de0c2f5e3f4a6b40"
+    },
+    "report_renderer_commit": "ffe4a03367dc2b2d2fd168600042c7a3ead10d73",
+    "validation_commit": "4ef472ff151274e9c526be58bf0e056a1591f420"
+  },
+  "historical_native_route_audit": {
+    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-route-audit-20261016.json",
+    "sha256": "54a8b3a1370192a31d6d606aca21ef84e8f4e57d4ce6052c9d299e2ab5c0b69e",
+    "cells": 140,
+    "observed_signature_drift": 0,
+    "timeouts_without_route_confirmation": 19,
+    "pre_call_frozen": false
   }
 }
