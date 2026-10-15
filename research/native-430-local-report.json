@@ -149,16 +149,16 @@
   "review_evidence_package": {
     "archive_name": "PR-51-public-saved-inputs-20261015.zip",
     "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261015/PR-51-public-saved-inputs-20261015.zip",
-    "sha256": "d90f4f0598b6537657029d1edd1bdbd711006dd4d59f2af936ae721f0bdfe702",
-    "bytes": 889041039,
+    "sha256": "5cc7c23a22b21a401d04aca30b681b8cc97d7ef1ebd538f22bb8796110280615",
+    "bytes": 889036659,
     "access": "Read-only public evidence projection. Rebuild with the included public presentation binding; original host metadata stays private. Original and public file hashes are distinguished in the projection receipt. Earlier draft patches are historical, not prerequisites.",
     "presentation_binding": {
       "path": "presentation-binding.json",
-      "sha256": "f7134bcc7504948a098cbf4d023ca3d9ebc004e2d64a31443c747c1b66e56bb5"
+      "sha256": "5bffda822a0e2ea90277d664a6c7f96f58317db24c0be3f36c3611c1089249d7"
     },
     "projection_receipt": {
       "path": "PUBLICATION-PROJECTION.json",
-      "sha256": "2628cd0328d59c38d3d2962f9465f6c45608f1edfdc67c34dde2b52959241303"
+      "sha256": "2ade8e9d96565cae487c673200b7ad2faa6ae77a15b6d2178315df54df72929c"
     }
   },
   "supplemental_review": {
