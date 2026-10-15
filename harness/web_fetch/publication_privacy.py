@@ -186,16 +186,51 @@ def _redact_plain_url_queries(text):
 _JSON_STRING = re.compile(r'"(?:\\.|[^"\\\x00-\x1f])*"')
 
 
+def _json_string_spans(text):
+    """Match the JSON-string grammar without retrying long invalid suffixes.
+
+    An unterminated escaped string can make an unanchored regex rescan the same
+    suffix at every quote. Backward states remember the next valid closing
+    quote; forward selection preserves ordinary finditer's nonoverlap rule.
+    """
+    if '"' not in text:
+        return
+    if len(text) <= 4096:
+        yield from (match.span() for match in _JSON_STRING.finditer(text))
+        return
+    candidates = []
+    next_end = after_next_end = None
+    for index in range(len(text)-1, -1, -1):
+        char = text[index]
+        if char == '"':
+            if next_end is not None:
+                candidates.append((index, next_end+1))
+            end = index
+        elif char == '\\':
+            end = (after_next_end if index+1 < len(text) and text[index+1] != '\n'
+                   else None)
+        elif ord(char) < 32:
+            end = None
+        else:
+            end = next_end
+        after_next_end, next_end = next_end, end
+    cursor = 0
+    for start, end in reversed(candidates):
+        if start >= cursor:
+            yield start, end
+            cursor = end
+
+
 def redact_url_queries(text):
     """Decode JSON string escapes before checking URLs; preserve clean bytes."""
     parts = []
     cursor = 0
     replacements = 0
-    for match in _JSON_STRING.finditer(text):
-        prefix, count = _redact_plain_url_queries(text[cursor:match.start()])
+    for start, end in _json_string_spans(text):
+        prefix, count = _redact_plain_url_queries(text[cursor:start])
         parts.append(prefix)
         replacements += count
-        raw = match.group()
+        raw = text[start:end]
         try:
             decoded = json.loads(raw)
         except json.JSONDecodeError:
@@ -205,7 +240,7 @@ def redact_url_queries(text):
             projected = json.dumps(projected, ensure_ascii=True) if count else raw
         parts.append(projected)
         replacements += count
-        cursor = match.end()
+        cursor = end
     suffix, count = _redact_plain_url_queries(text[cursor:])
     parts.append(suffix)
     return ''.join(parts), replacements + count

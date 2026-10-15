@@ -547,3 +547,33 @@ def test_host_projection_refuses_to_rewrite_score_bearing_or_response_payloads()
         raw=b'{"host":"fixture.local"}'
         with pytest.raises(ValueError,match='must not alter scored'):
             project_host_metadata_files({name:raw},['/Users/fixture'],host_names=['fixture.local'])
+def test_long_unterminated_escaped_string_preserves_content_without_rescanning_suffixes():
+    from harness.web_fetch.publication_privacy import redact_url_queries
+    text = '"' + ('\\"fragment' * 20000)
+    assert redact_url_queries(text) == (text, 0)
+
+
+def test_long_escaped_url_still_redacts_sensitive_query_value():
+    from harness.web_fetch.publication_privacy import redact_url_queries
+    text = 'ordinary log ' * 500 + r'"https:\/\/example.com\/image?apiKey=private-value&width=300"'
+    public, count = redact_url_queries(text)
+    assert count == 1
+    assert 'private-value' not in public
+    assert 'width=300' in public
+
+
+def test_large_and_small_string_tokenization_have_identical_public_redaction_semantics():
+    import random
+    from harness.web_fetch.publication_privacy import redact_url_queries
+    rng = random.Random(51)
+    prefix = ' ' * 4097
+    fragments = [
+        '"abc\\"def" tail "https://example.com/?token=private-value"',
+        '"unterminated\\"suffix', '"line\nfeed"', '"line\\\nfeed"',
+        '"line\\\rfeed"', '"\\u0068ttps://example.com/?token=private-value"',
+        '"nul\x00boundary"', '"backslash\\\\"',
+    ]
+    fragments += [''.join(rng.choice('ab"\\\r\n\t\x00') for _ in range(60)) for _ in range(64)]
+    for text in fragments:
+        expected, count = redact_url_queries(text)
+        assert redact_url_queries(prefix+text) == (prefix+expected, count)
