@@ -405,7 +405,8 @@ class NativeRoutePublicationTests(unittest.TestCase):
         cases=[{'id':'images','url':'https://example.com/','track':'image','task_kind':'resource'}]
         row={'provider':'kitesurf','case_id':'images','ok':False,'error_type':'timeout',
              'provider_metadata':{'call_log':{'path':'call.json','sha256':'0'*64},
-                                  'configured_min_interval_seconds':0,'client_throttle_wait_ms':0}}
+                                  'configured_min_interval_seconds':0,'client_throttle_wait_ms':0,
+                                  'retry':{'physical_attempts':2,'retries_used':1}}}
         require_native_task_routes(cases,[row])
         with self.assertRaises(ValueError):
             require_native_task_routes(cases,[{**row,'provider_metadata':{**row['provider_metadata'],'browser':'chromium'}}])

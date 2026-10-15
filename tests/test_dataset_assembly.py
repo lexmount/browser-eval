@@ -527,18 +527,20 @@ def test_registered_430_profile_uses_official_release_and_frozen_minimal_reruns(
         "binary_sha256": "7a53cdd071ae60a2f8ff6d08107f67f6b0f1d6247a9acd970d2bcec77ff15b50",
         "source": "https://github.com/lexmount/moli/releases/tag/v1.1.15",
     }
-    assert profile["method_sources"]["moli-fixed"]["source_commit"] == (
-        "a737f2aec071905537e3dc8f86fb91a8052219be"
-    )
-    assert profile["method_sources"]["moli-fixed"]["binary_sha256"] == (
-        "2935b89fc91f83b4e189f0aa139ae5ad425496853441f56f976d29f2a41bc85c"
-    )
-    assert profile["method_sources"]["moli-fixed"]["identity_state"] == "uniform_latest_binary_full_scope_measured"
+    fixed = profile["method_sources"]["moli-fixed"]
+    assert fixed["identity_state"] == "declared_failure_scope_replaced_by_latest_results"
+    assert fixed["measurement_scope"]["retained_case_count"] == 374
+    assert fixed["measurement_scope"]["replacement_case_count"] == 56
+    assert fixed["measurement_scope"]["retained_case_count"] + fixed["measurement_scope"]["replacement_case_count"] == profile["case_count"]
+    assert fixed["measurement_scope"]["retained_build"] == {
+        "source_commit": "a737f2aec071905537e3dc8f86fb91a8052219be",
+        "binary_sha256": "2935b89fc91f83b4e189f0aa139ae5ad425496853441f56f976d29f2a41bc85c",
+    }
+    assert fixed["measurement_scope"]["replacement_build"] == {
+        "source_commit": "0d9a7ceb25f630e7a296e83011e2d11f0279c5a7",
+        "binary_sha256": "c1ea816e684b05ecbdb6b544a333e2430794e788202ba600711f6d4cb2c8734f",
+    }
     assert profile["independent_result_review_scope"] == "all"
-    scope = profile["method_sources"]["moli-fixed"]["measurement_scope"]
-    assert scope["latest_binary_case_count"] == profile["case_count"]
-    assert scope["inherited_case_count"] == 0
-    assert scope["latest_binary_case_count"] + scope["inherited_case_count"] == profile["case_count"]
     for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura", "chromium"):
         assert providers[method]["dns_mode"] == "public_doh"
     for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura"):
@@ -548,12 +550,7 @@ def test_registered_430_profile_uses_official_release_and_frozen_minimal_reruns(
     assert hashlib.sha256(path.read_bytes()).hexdigest() == binding["sha256"]
     scope = json.loads(path.read_text())
     assert scope["provider_calls_at_freeze"] == 0
-    assert scope["logical_new_calls"] == 651
-    assert scope["execution_groups"] == {
-        "new_identity_or_route_calls": 526,
-        "inherited_transient_followups": 125,
-    }
-    assert scope["methods"]["moli-fixed"]["case_count"] == 430
-    assert scope["methods"]["moli-1.1.15"]["case_count"] == 20
-    assert scope["source_results"][0]["selected_provider"] == "moli"
-    assert scope["source_results"][0]["method_scope"] == ["moli-1.1.15"]
+    assert scope["methods"]["moli-fixed"]["replacement_case_count"] == 56
+    assert scope["methods"]["moli-fixed"]["retained_case_count"] == 374
+    assert scope["selection_policy"]["replacement_outcome"] == "latest_result_always_wins"
+    assert scope["selection_policy"]["eligible_prior_outcome"] == "machine_failure_only"

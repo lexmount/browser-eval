@@ -34,7 +34,7 @@
   },
   "conversion": null,
   "reference_binding_mode": "equivalent_reference_bytes_with_independent_batch_captures",
-  "publication_state": "pre_call_frozen",
+  "publication_state": "verified",
   "unverified_reference_cases": [],
   "require_independent_result_review": true,
   "case_inventory": {
@@ -486,45 +486,17 @@
   "report_output": "reports/browser-native-430",
   "source_native_dataset_sha256": "f4fd17f0785db2848919ecf7055029d781ca03e8290531d0bba855aca0b22009",
   "resource_profile": {
-    "required": true,
-    "comparison_kind": "headless_client_resource_profile",
-    "case_count": 20,
-    "providers": [
-      "moli",
-      "lightpanda",
-      "obscura",
-      "chromium"
-    ],
-    "concurrency": 1,
-    "sample_interval_ms": 50,
-    "backend": "docker_cgroup_v2",
-    "cpus_per_call": 2,
-    "memory_per_call": "2g",
-    "network_isolation": "one dedicated bridge with no peer containers per call",
-    "controller_excluded": true,
-    "required_metrics": [
-      "measurement_duration_ms",
-      "cpu_ms",
-      "cpu_average_utilization_pct",
-      "cpu_sampled_utilization_p95_pct",
-      "memory_mean_bytes",
-      "memory_p95_bytes",
-      "memory_peak_bytes",
-      "memory_mib_seconds",
-      "network_rx_bytes",
-      "network_tx_bytes",
-      "network_rx_bytes_per_second",
-      "network_tx_bytes_per_second"
-    ]
+    "required": false,
+    "availability": "not_measured_for_current_six_method_cohort"
   },
   "native_task_route_contract": 4,
   "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
   "artifact_hub_site": "jGXOOJwkdBK_",
-  "artifact_hub_expected_version": "ver_e7d5d84083f54d96a2e384f5c747384a",
+  "artifact_hub_expected_version": "ver_2b7b0785126a4d7787a0e452327cee19",
   "artifact_hub_share_url": "https://artifact-site.lexmount.cn/v/IqGpMUYHWat-dw4n8usQttTptoPzboAo",
   "rerun_scope": {
     "path": "evaluation/browser-native-430/rerun-scope.json",
-    "sha256": "79b5f4f2b97ea31846ecc677224c6e845a5ed3d368e756a4a831a3ac99b53663"
+    "sha256": "ec371ec74e27a715b83f0ce9e3b60b36699c9703d67237b118353445d8be6f72"
   },
   "method_sources": {
     "moli-1.1.15": {
@@ -535,18 +507,20 @@
     "moli-fixed": {
       "version": "1.1.17",
       "reported_version": "moli 1.1.17",
-      "source_commit": "a737f2aec071905537e3dc8f86fb91a8052219be",
       "pull_request": "https://github.com/lexmount/moli/pull/1501",
-      "binary_sha256": "2935b89fc91f83b4e189f0aa139ae5ad425496853441f56f976d29f2a41bc85c",
-      "identity_state": "uniform_latest_binary_full_scope_measured",
+      "identity_state": "declared_failure_scope_replaced_by_latest_results",
       "measurement_scope": {
-        "latest_binary_case_count": 430,
-        "inherited_case_count": 0,
-        "latest_execution": {
-          "data_home_path": "evidence/research/webfetch-430-refresh-20261014/moli-fixed-final-430-a737-native-v1/execution.json",
-          "sha256": "7a1392cc46faa577492b05a13bc58e1447ffc75cdbf87cba105c15bd4e5b0db3"
+        "retained_case_count": 374,
+        "replacement_case_count": 56,
+        "retained_build": {
+          "source_commit": "a737f2aec071905537e3dc8f86fb91a8052219be",
+          "binary_sha256": "2935b89fc91f83b4e189f0aa139ae5ad425496853441f56f976d29f2a41bc85c"
         },
-        "comparison_scope": "One frozen binary, native interfaces and shared public DNS across the complete 430-task scope. Earlier fixed-build calls are retained as historical evidence."
+        "replacement_build": {
+          "source_commit": "0d9a7ceb25f630e7a296e83011e2d11f0279c5a7",
+          "binary_sha256": "c1ea816e684b05ecbdb6b544a333e2430794e788202ba600711f6d4cb2c8734f"
+        },
+        "selection": "The predeclared 56 prior failures are replaced by their latest results regardless of pass or fail; the other 374 results are retained."
       }
     },
     "lightpanda": {
@@ -568,5 +542,9 @@
       "server_build": "not_exposed"
     }
   },
-  "independent_result_review_scope": "all"
+  "independent_result_review_scope": "all",
+  "frozen_inputs": {
+    "dataset_sha256": "181121aa3c47c2b38e93677b40d5883200e9c09726842fe5e32e45b970085fc4",
+    "auxiliary_sha256": "191192e1994a36ce3fe4001e75d4da4ed45501ab30d593a771ca444ddc899f83"
+  }
 }

@@ -189,7 +189,58 @@ def test_provider_replacement_scope_selects_bound_pair_without_reading_scores(tm
         _selected_provider_replacement_rows(baseline, incoming, current, path)
 
 
-def _replacement_scope_receipt(baseline, incoming, prior, current):
+@pytest.mark.parametrize('selected_passes', [False, True])
+def test_implementation_correction_replaces_only_a_declared_failed_pair(
+        tmp_path, selected_passes):
+    baseline, incoming = tmp_path/'baseline', tmp_path/'incoming'
+    baseline.mkdir(); incoming.mkdir()
+    dataset = {'cases': [{'id': 'one', 'task_kind': 'body'}]}
+    (baseline/'dataset.json').write_text(json.dumps(dataset))
+    (incoming/'dataset.json').write_text(json.dumps(dataset))
+    prior = {'attempt_id': 'old-one', 'provider': 'p', 'case_id': 'one',
+             'ok': False, 'metrics': {'content_pass': False},
+             'provider_metadata': {'binary_sha256': 'a'*64}}
+    current = {'attempt_id': 'new-one', 'provider': 'p', 'case_id': 'one',
+               'ok': selected_passes,
+               'metrics': {'content_pass': selected_passes},
+               'provider_metadata': {'binary_sha256': 'b'*64}}
+    for root, rows in ((baseline, [prior]), (incoming, [current])):
+        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    receipt = _replacement_scope_receipt(
+        baseline, incoming, prior, current, category='implementation_correction')
+    path = tmp_path/'scope.json'; path.write_text(json.dumps(receipt))
+
+    selected, checked = _selected_provider_replacement_rows(
+        baseline, incoming, [current], path)
+
+    assert selected == [current]
+    assert checked == receipt
+
+
+def test_implementation_correction_rejects_a_declared_baseline_pass(tmp_path):
+    baseline, incoming = tmp_path/'baseline', tmp_path/'incoming'
+    baseline.mkdir(); incoming.mkdir()
+    dataset = {'cases': [{'id': 'one', 'task_kind': 'body'}]}
+    (baseline/'dataset.json').write_text(json.dumps(dataset))
+    (incoming/'dataset.json').write_text(json.dumps(dataset))
+    prior = {'attempt_id': 'old-one', 'provider': 'p', 'case_id': 'one',
+             'ok': True, 'metrics': {'content_pass': True},
+             'provider_metadata': {'binary_sha256': 'a'*64}}
+    current = {'attempt_id': 'new-one', 'provider': 'p', 'case_id': 'one',
+               'ok': False, 'metrics': {'content_pass': False},
+               'provider_metadata': {'binary_sha256': 'b'*64}}
+    for root, rows in ((baseline, [prior]), (incoming, [current])):
+        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    receipt = _replacement_scope_receipt(
+        baseline, incoming, prior, current, category='implementation_correction')
+    path = tmp_path/'scope.json'; path.write_text(json.dumps(receipt))
+
+    with pytest.raises(ValueError, match='baseline machine verdict is not a failure'):
+        _selected_provider_replacement_rows(baseline, incoming, [current], path)
+
+
+def _replacement_scope_receipt(
+        baseline, incoming, prior, current, *, category='invalid_prior_call'):
     return {
         'schema_version': 1, 'kind': 'audited_provider_replacement_scope',
         'provider_calls': 0,
@@ -205,7 +256,7 @@ def _replacement_scope_receipt(baseline, incoming, prior, current):
             'provider': prior['provider'], 'case_id': prior['case_id'],
             'prior_attempt_id': prior['attempt_id'],
             'selected_attempt_id': current['attempt_id'],
-            'category': 'invalid_prior_call',
+            'category': category,
             'reason': 'The original call ended before returning a result.',
         }],
     }
@@ -260,6 +311,10 @@ def test_assembled_baseline_keeps_scope_history_when_appending_replacement(sourc
     assemble(baseline, tmp_path/'certificates', [], output,
         provider_replacements=[incoming],
         provider_replacement_scope_receipts=[current_path])
+    selection = json.loads((output/'selection-audit.json').read_text())
+    corrected = next(row for row in selection if row.get('case_id') == case.id)
+    assert corrected['selection_category'] == 'invalid_prior_call'
+    assert corrected['selection_reason'] == 'The original call ended before returning a result.'
     index = json.loads((output/'provider-replacement-scopes.json').read_text())
     assert index[0] == historical_index[0]
     assert (output/index[0]['path']).read_bytes() == historical.read_bytes()

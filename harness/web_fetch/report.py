@@ -603,23 +603,17 @@ def run_log_section(out,record,output):
   stderr_data=stderr_text.encode('utf-8');stderr_total+=len(stderr_data)
   truncated=bool(log_process.get('stderr_truncated') or metadata.get('stderr_truncated'))
   any_stderr=any_stderr or bool(stderr_data);any_truncated=any_truncated or truncated
-  suffix='' if len(logs)==1 else f'-physical-{index:03d}'
-  stderr_path=(f'public-logs/{record["provider"]}/{record["case_id"]}/'
-               f'run-{int(record.get("run") or 1):03d}{suffix}.stderr.log')
   raw_download=(f'<a href="../{esc(log["path"])}" download>下载调用日志 JSON</a> · '
                 f'<code class="break">JSON SHA-256：{esc(log["sha256"])}</code>')
   if stderr_data:
-   target=contained_path(out,stderr_path);target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(stderr_data)
-   stderr_sha=hashlib.sha256(stderr_data).hexdigest()
    rows=''.join(f'<li value="{int(match.group(1))}"><code>{esc(match.group(2))}</code></li>'
                 for line in _reader_log_excerpt(stderr_text).splitlines()
                 if (match:=re.match(r'\s*(\d+)\s{2}(.*)',line)))
    completeness=('这份公开日志是现有调用记录中保存的前段内容，原始记录注明其已截断。' if truncated else
                  '以下内容逐行摘自这次物理调用已保存的完整 stderr / debug 日志。')
-   body=(f'<p class="source-note">{completeness} 行号对应下载文件；人工说明不写入日志框。</p>'
+   body=(f'<p class="source-note">{completeness} 行号对应调用日志 JSON 中的 process.stderr 字段；人工说明不写入日志框。</p>'
          +(f'<ol class="log-lines">{rows}</ol>' if rows else '')
-         +f'<p><a class="log-download" href="../{esc(stderr_path)}" download>下载已保存的公开日志</a> · '
-          f'<code class="break">公开 SHA-256：{esc(stderr_sha)}</code><br>{raw_download}</p>')
+         +f'<p>{raw_download}</p>')
   else:
    body=(f'<p class="source-note">这次物理调用没有保存可展示的 stderr / debug 日志；'
          f'不会补造不存在的日志。</p><p>{raw_download}</p>')

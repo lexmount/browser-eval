@@ -69,9 +69,19 @@ def with_measured_method_labels(render):
                 if len(counts) == 1:
                     labels[name] = "Moli " + next(iter(counts))
                 else:
-                    labels[name] = "Moli 修复结果（" + "；".join(
-                        f"{count} 例 {version}" for version, count in sorted(counts.items())
-                    ) + "）"
+                    releases = [
+                        match.group(1) if (match := re.match(r"^(\d+\.\d+\.\d+)", version)) else None
+                        for version in counts
+                    ]
+                    if None not in releases and len(set(releases)) == 1:
+                        release = releases[0]
+                        configured = browser_method_registry().get(name, {}).get("label", "")
+                        qualifier = "（修复版）" if "修复版" in configured else ""
+                        labels[name] = f"Moli {release}{qualifier}"
+                    else:
+                        labels[name] = "Moli 修复结果（" + "；".join(
+                            f"{count} 例 {version}" for version, count in sorted(counts.items())
+                        ) + "）"
         token = _MEASURED_LABELS.set(labels)
         try:
             return render(out, dataset, records, *args, **kwargs)

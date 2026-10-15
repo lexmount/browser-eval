@@ -74,6 +74,29 @@ class NativeBrowserVariantTests(unittest.TestCase):
                 "Moli 修复结果（2 例 1.1.15；1 例 1.1.17（60773df3））",
             )
 
+    def test_report_uses_one_short_label_for_multiple_builds_of_same_fixed_release(self):
+        from harness.web_fetch.methods import browser_method_label, with_measured_method_labels
+
+        @with_measured_method_labels
+        def render(out, dataset, records):
+            return browser_method_label("moli-fixed")
+
+        records = [
+            {"provider": "moli-fixed", "provider_metadata": {"binary_sha256": "a" * 64}},
+            {"provider": "moli-fixed", "provider_metadata": {"binary_sha256": "b" * 64}},
+        ]
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder)
+            (out / "implementation-provenance.json").write_text(json.dumps({
+                "implementations": [
+                    {"provider": "moli-fixed", "binary_sha256": "a" * 64,
+                     "version": "1.1.17（a737f2ae，保留结果）"},
+                    {"provider": "moli-fixed", "binary_sha256": "b" * 64,
+                     "version": "1.1.17（0d9a7ceb，修正结果）"},
+                ]
+            }))
+            self.assertEqual(render(out, {}, records), "Moli 1.1.17（修复版）")
+
     def test_unknown_native_participant_cannot_bypass_route_validation(self):
         with self.assertRaises(ValueError):
             require_native_task_routes(self.cases, [self.row(

@@ -14,10 +14,39 @@ from bs4 import BeautifulSoup
 
 from harness.web_fetch.publication_check import check as check_bundle
 from harness.web_fetch.publication_check import scored_output_hash
-from harness.web_fetch.publication_privacy import project_file, publication_risk
+from harness.web_fetch.publication_privacy import (
+    project_file,
+    project_redundant_result_streams,
+    publication_risk,
+)
 
 
 class PublicationPrivacyTests(unittest.TestCase):
+    def test_result_streams_are_omitted_only_when_a_public_call_log_owns_them(self):
+        with_log = {
+            'attempt_id': 'browser__case__r001',
+            'provider_metadata': {
+                'stderr': 'large diagnostic stream',
+                'browser_stderr': 'browser stream',
+                'call_log': {'path': 'call-logs/browser/case/run-001.json', 'sha256': 'abc'},
+            },
+            'metrics': {'content_pass': False},
+        }
+        without_log = {
+            'attempt_id': 'browser__other__r001',
+            'provider_metadata': {'stderr': 'only retained copy'},
+        }
+        raw = (json.dumps(with_log) + '\n' + json.dumps(without_log) + '\n').encode()
+        projected, receipt = project_redundant_result_streams('results.jsonl', raw)
+        rows = [json.loads(line) for line in projected.splitlines()]
+        self.assertNotIn('stderr', rows[0]['provider_metadata'])
+        self.assertNotIn('browser_stderr', rows[0]['provider_metadata'])
+        self.assertEqual(rows[0]['provider_metadata']['call_log'], with_log['provider_metadata']['call_log'])
+        self.assertEqual(rows[0]['metrics'], with_log['metrics'])
+        self.assertEqual(rows[1], without_log)
+        self.assertEqual(receipt['omitted_fields'], {'stderr': 1, 'browser_stderr': 1})
+        self.assertEqual(project_redundant_result_streams('dataset.json', raw), (raw, None))
+
     def test_public_cors_boolean_and_abnf_are_not_credentials(self):
         for policy in (b'Access-Control-Allow-Credentials: true',
                        b'Access-Control-Allow-Credentials = %s"true"',

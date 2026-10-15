@@ -196,7 +196,12 @@ def require_native_task_routes(cases, records):
         )
         # The runner may expire before a worker returns metadata. Its retained
         # call and cohort receipts still bind the invocation and deadline.
-        runner_fields = {'call_log', 'configured_min_interval_seconds', 'client_throttle_wait_ms'}
+        runner_fields = {
+            'call_log', 'configured_min_interval_seconds', 'client_throttle_wait_ms',
+            # A declared retry records the completed physical calls but cannot
+            # add route metadata when every call expires in the runner.
+            'retry',
+        }
         if row.get('ok') is False and row.get('error_type') in {'timeout','network'} and meta.get('call_log') and not (set(meta) - runner_fields):
             continue
         valid = True

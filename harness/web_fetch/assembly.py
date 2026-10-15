@@ -15,6 +15,7 @@ from harness.web_fetch.artifacts import (
     materialize_reference_checks,
     materialize_task_references,
 )
+from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.publication_privacy import project_execution_manifest
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
@@ -146,7 +147,8 @@ def _valid_provider_replacement_receipt(receipt):
         if (not isinstance(item, dict) or set(item) != {
                 'provider', 'case_id', 'prior_attempt_id', 'selected_attempt_id',
                 'category', 'reason'}
-                or item.get('category') not in {'invalid_prior_call', 'input_correction'}
+                or item.get('category') not in {
+                    'invalid_prior_call', 'input_correction', 'implementation_correction'}
                 or not isinstance(item.get('reason'), str) or not item['reason'].strip()):
             return False
         pair = (item.get('provider'), item.get('case_id'))
@@ -221,6 +223,9 @@ def _selected_provider_replacement_rows(run, root, rows, receipt_path):
     replacements = receipt.get('replacements')
     source_by_attempt = {row['attempt_id']: row for row in rows}
     baseline_by_pair = {(row['provider'], row['case_id']): row for row in read_records(run)}
+    baseline_cases = {
+        case['id']: case for case in json.loads((run/'dataset.json').read_text())['cases']
+    }
     selected = []
     seen = set()
     for item in replacements:
@@ -235,6 +240,13 @@ def _selected_provider_replacement_rows(run, root, rows, receipt_path):
                 and prior.get('provider_metadata', {}).get('binary_sha256') !=
                 current.get('provider_metadata', {}).get('binary_sha256')):
             raise ValueError('Invalid-call correction changed the provider binary')
+        if item['category'] == 'implementation_correction':
+            case = baseline_cases.get(item['case_id'])
+            if case is None or task_passed(
+                    bool(prior.get('ok')), prior.get('metrics', {}),
+                    case.get('task_kind', 'body')):
+                raise ValueError(
+                    'Implementation correction baseline machine verdict is not a failure')
         seen.add(pair)
         selected.append(current)
     return selected, receipt
@@ -954,7 +966,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         if scope_receipt is not None:
             replacement_scope_receipts.append((Path(receipt_path), scope_receipt))
         scope_by_pair = {
-            (item['provider'], item['case_id']): item
+            (item['case_id'], item['provider']): item
             for item in (scope_receipt or {}).get('replacements', [])
         }
         incoming={c['id']:c for c in new_dataset['cases']}

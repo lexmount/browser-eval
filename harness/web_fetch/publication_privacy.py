@@ -44,6 +44,70 @@ def project_execution_manifest(manifest: dict) -> dict:
     return result
 
 
+_DUPLICATED_RESULT_STREAMS = ('stderr', 'stdout', 'browser_stderr')
+
+
+def project_redundant_result_streams(name: str, data: bytes):
+    """Omit result-embedded streams when the public call log owns the same evidence.
+
+    The measured result remains unchanged in the retained evidence tree.  The hosted
+    ``results.jsonl`` keeps scores, verdicts, timings, hashes and the call-log binding;
+    large diagnostic streams are loaded from that bound log instead of being shipped
+    a second time inside every result row.
+    """
+    if name != 'results.jsonl':
+        return data, None
+    lines = data.splitlines(keepends=True)
+    try:
+        rows = [json.loads(line) if line.strip() else None for line in lines]
+    except (ValueError, UnicodeError):
+        return data, None
+    counts = {key: 0 for key in _DUPLICATED_RESULT_STREAMS}
+    omitted_bytes = 0
+    output = []
+    changed = False
+    for raw, row in zip(lines, rows):
+        row_changed = False
+        metadata = row.get('provider_metadata') if isinstance(row, dict) else None
+        retry = metadata.get('retry') if isinstance(metadata, dict) else None
+        has_public_call_log = bool(
+            isinstance(metadata, dict)
+            and (
+                metadata.get('call_log')
+                or metadata.get('call_log_path')
+                or (isinstance(retry, dict) and retry.get('attempts'))
+            )
+            or isinstance(row, dict)
+            and (row.get('call_log') or row.get('call_log_path'))
+        )
+        if has_public_call_log:
+            for key in _DUPLICATED_RESULT_STREAMS:
+                if key in metadata:
+                    value = metadata.pop(key)
+                    omitted_bytes += len(str(value).encode('utf-8', errors='replace'))
+                    counts[key] += 1
+                    changed = True
+                    row_changed = True
+        if row_changed:
+            ending = b'\r\n' if raw.endswith(b'\r\n') else b'\n' if raw.endswith(b'\n') else b''
+            output.append(json.dumps(row, ensure_ascii=False, separators=(',', ':')).encode() + ending)
+        else:
+            output.append(raw)
+    if not changed:
+        return data, None
+    projected = b''.join(output)
+    return projected, {
+        'path': name,
+        'reason': 'diagnostic streams are served once from hash-bound public call logs',
+        'omitted_fields': {key: value for key, value in counts.items() if value},
+        'omitted_payload_bytes': omitted_bytes,
+        'original_sha256': hashlib.sha256(data).hexdigest(),
+        'published_sha256': hashlib.sha256(projected).hexdigest(),
+        'original_bytes': len(data),
+        'published_bytes': len(projected),
+    }
+
+
 GOOGLE_KEY = re.compile(rb'AIzaSy[A-Za-z0-9_-]{20,}')
 OTHER_SECRET = re.compile(
     rb'(?<![A-Za-z0-9_-])(?:ahp_[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|'

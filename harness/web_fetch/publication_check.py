@@ -14,7 +14,11 @@ from bs4 import BeautifulSoup
 from harness.record_io import parse_jsonl
 from harness.reporting.links import validate_virtual_links
 from harness.reporting.publication import archive_inventory
-from harness.web_fetch.publication_privacy import project_file, publication_risk
+from harness.web_fetch.publication_privacy import (
+    project_file,
+    project_redundant_result_streams,
+    publication_risk,
+)
 from harness.web_fetch.safety import contained_path, evidence_tree_identity
 from harness.web_fetch.webmainbench_diagnostics import (
     require_valid_teds_for_release,
@@ -128,9 +132,33 @@ def check(archive, source, overlay=None):
                 raise ValueError("Publication source hash differs or source binding is missing: " + name)
         privacy = json.loads(data("publication-privacy.json"))
         privacy_by_path = {row["path"]: row for row in privacy["files"]}
+        footprint_by_path = {
+            row["path"]: row for row in privacy.get("footprint_projections", [])
+        }
         results_raw = data("results.jsonl")
-        if results_raw != project_file("results.jsonl", (source / "results.jsonl").read_bytes())[0]:
+        source_results = (source / "results.jsonl").read_bytes()
+        privacy_results = project_file("results.jsonl", source_results)[0]
+        expected_results, expected_footprint = project_redundant_result_streams(
+            "results.jsonl", privacy_results
+        )
+        if results_raw != expected_results:
             raise ValueError("Published results differ from the current source evidence")
+        if bool(expected_footprint) != bool(footprint_by_path):
+            raise ValueError("Publication footprint disclosure differs from the public projection")
+        if expected_footprint:
+            receipt = footprint_by_path.get("results.jsonl")
+            if (
+                len(footprint_by_path) != 1
+                or not receipt
+                or receipt.get("original_sha256") != hashlib.sha256(source_results).hexdigest()
+                or receipt.get("published_sha256") != hashlib.sha256(results_raw).hexdigest()
+                or receipt.get("original_bytes") != len(source_results)
+                or receipt.get("published_bytes") != len(results_raw)
+                or receipt.get("omitted_fields") != expected_footprint.get("omitted_fields")
+                or receipt.get("omitted_payload_bytes")
+                != expected_footprint.get("omitted_payload_bytes")
+            ):
+                raise ValueError("Invalid publication footprint disclosure")
         rows = parse_jsonl(results_raw)
         require_valid_teds_for_release(rows)
         latency_receipt = validate_latency_correction(source)

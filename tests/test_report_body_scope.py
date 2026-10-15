@@ -597,9 +597,9 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('查看本次真实日志',detail)
             self.assertIn('<ol class="log-lines">',detail)
             self.assertIn('event=request.start',detail)
-            self.assertIn('下载已保存的公开日志',detail)
             self.assertIn('下载调用日志 JSON',detail)
             self.assertIn(r['call_log_sha256'],detail)
+            self.assertFalse((out/'public-logs').exists())
 
     def test_attempt_call_record_renders_every_retry_log(self):
         c=case('retried','body','web');r=record(c)
@@ -619,8 +619,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             for phrase in ('物理调用 1','物理调用 2','ERROR first physical call',
                            'final_url=https://example.com/retried','physical-1.json','physical-2.json'):
                 self.assertIn(phrase,rendered)
-            self.assertTrue((out/'public-logs/fixture/retried/run-001-physical-001.stderr.log').is_file())
-            self.assertTrue((out/'public-logs/fixture/retried/run-001-physical-002.stderr.log').is_file())
+            self.assertFalse((out/'public-logs').exists())
 
     def test_failure_log_exposes_complete_runtime_error_and_actual_method_identity(self):
         r=record(case());r.update(ok=False,error_type='timeout',error_message='Full runtime error '+('details '*100),
@@ -685,12 +684,11 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('ERROR challenge page returned',detail)
             self.assertIn('../'+debug_path,detail)
             self.assertIn(hashlib.sha256(debug).hexdigest(),detail)
-            for phrase in ['查看完整运行字段','查看本次真实日志','下载已保存的公开日志','下载调用日志 JSON']:
+            for phrase in ['查看完整运行字段','查看本次真实日志','下载调用日志 JSON']:
                 self.assertIn(phrase,detail)
             english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
             for phrase in ['View complete run fields','View this run\'s real log',
-                           'ERROR challenge page returned','Download the retained public log',
-                           'Download call-log JSON']:
+                           'ERROR challenge page returned','Download call-log JSON']:
                 self.assertIn(phrase,english)
             for phrase in ['查看本次真实日志','下载已保存的公开日志']:
                 self.assertNotIn(phrase,english)

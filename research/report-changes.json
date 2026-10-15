@@ -1276,6 +1276,93 @@
   ],
   "releases": [
     {
+      "id": "2026-10-15-browser-native-430-six-methods",
+      "publication_state": "published",
+      "comparison_kinds": [
+        "headless_markdown"
+      ],
+      "scoring_revision_input_sha256": [
+        "dc87042e9a15ba15a237ce7f0b571b7d652d0777b42210c182a0178710e551dd",
+        "8b6f4945936d915626295485d5223ac278442bada1591d358098e079c4ab5fd0",
+        "a2bc7c2de0af860088366324e8a7761819d5a3a303b8a148379cd67a2fd0e825",
+        "9cc784bbead85c891f19b53a9f38a9b0857c240b6f250d08e1318ffd7eec9727",
+        "7a4745e6fed32c91d2e31b1849bc06fb73dd8b209247e93e4beb298d16cf8264"
+      ],
+      "date": "2026-10-15",
+      "title": "六种方法完成 430 题 Web Fetch 对比",
+      "summary": "六种方法各完成 430 题，共 2,580 条正式结果。Moli 修复版通过 386 题，Moli 1.1.15 通过 367 题，Chromium、Lightpanda、Obscura、Kitesurf 分别通过 232、228、223、192 题；全部结果均已复核。",
+      "changes": [
+        [
+          "评测范围",
+          "旧报告只有五种方法和较小的动态、热门网站样本，无法回答扩充后的完整问题。",
+          "统一为六种方法、七类任务和每种方法 430 题；动态、热门网站及访问受限网页正文各 100 题。",
+          "总分母固定为每种方法 430 题。七类结果分别展示，类别之间不互相换算。"
+        ],
+        [
+          "接口公平性",
+          "把所有浏览器强制套进同一提取链会遮蔽产品原生能力，也可能额外引入转换误差。",
+          "Moli、Lightpanda、Obscura 和 Kitesurf 按任务类型使用自身正式接口；Chromium 获取渲染后 HTML，再统一转换为 Markdown。报告逐类列出实际接口和交付物。",
+          "不为某道题切换接口，也不按预期答案补内容。最终网址仅作诊断，不参与判分。"
+        ],
+        [
+          "Moli 修复版",
+          "修复版最后一轮改动只影响此前已经失败的 56 题；重跑全部 430 题会重复消耗并混入新的网页波动。",
+          "保留未受影响的 374 条结果，用最终构建重测预先声明的 56 条旧失败；新结果无论成功还是失败都直接替换旧结果。",
+          "修复版最终为 386/430。该规则禁止用新旧结果择优，也禁止替换原本通过的题。"
+        ],
+        [
+          "复核与失败",
+          "单看总分无法区分接口缺陷、网页限制、网络故障和题目问题。",
+          "逐条复核 2,580 个逻辑结果，并保留程序错误、失败阶段、原因和处理状态。",
+          "复核覆盖 2,580/2,580，分歧 0，未决 0；失败保留为正式结果，不以调题或兼容答案换取通过。"
+        ],
+        [
+          "性能与资源",
+          "不同日期、远程与本地环境的耗时和资源数据不能组成公平排名。",
+          "本版只比较任务通过情况；没有为当前六方法同窗采集资源数据，因此不发布速度、内存或网络排名。",
+          "此前的 Linux 资源样本仍是历史诊断，不能代表本轮六方法。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Complete the 430-task Web Fetch comparison across six methods",
+          "summary": "Each of six methods completed 430 tasks, producing 2,580 formal results. The fixed Moli build passes 386, Moli 1.1.15 passes 367, and Chromium, Lightpanda, Obscura, and Kitesurf pass 232, 228, 223, and 192. Every result has been reviewed.",
+          "changes": [
+            [
+              "Evaluation scope",
+              "The previous report covered five methods and smaller dynamic and popular-site samples.",
+              "Use six methods, seven task families, and 430 tasks per method, including 100 dynamic pages, 100 popular sites, and 100 access-restricted body pages.",
+              "The denominator is 430 for every method. Family results remain separate."
+            ],
+            [
+              "Interface fairness",
+              "Forcing every browser through one extraction chain can hide native capability and add conversion errors.",
+              "Moli, Lightpanda, Obscura, and Kitesurf use their official task-appropriate interfaces. Chromium returns rendered HTML, which is converted to Markdown. The report lists the actual interface and deliverable for every family.",
+              "No interface changes are made for individual tasks, expected answers never enter extraction, and final URLs are diagnostic only."
+            ],
+            [
+              "Fixed Moli build",
+              "The final implementation changes affected only 56 tasks that had already failed. Repeating all 430 calls would add cost and new page drift.",
+              "Retain 374 unaffected results and rerun the predeclared 56 failures with the final build. Every new result replaces the old result, whether it passes or fails.",
+              "The fixed build finishes at 386/430. The policy forbids best-of selection and replacement of prior passes."
+            ],
+            [
+              "Review and failures",
+              "A total score alone cannot separate interface limitations, site controls, network failures, and benchmark defects.",
+              "Review all 2,580 logical results and retain the program error, failure stage, cause, and treatment status.",
+              "Coverage is 2,580/2,580 with no disagreement or unresolved item. Failures remain formal results."
+            ],
+            [
+              "Performance and resources",
+              "Timing and resource samples from different dates and local or hosted environments cannot support a fair ranking.",
+              "This release compares task outcomes only. No current same-window six-method resource cohort was collected, so it publishes no speed, memory, or network ranking.",
+              "Earlier Linux resource samples remain historical diagnostics and do not represent this cohort."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-10-14-six-method-native-route-correction",
       "publication_state": "published",
       "scoring_revision_input_sha256": "c99eddea915d5c873b464ed66d69f51915df2993059b60ffb0e88ea9a485c77d",
