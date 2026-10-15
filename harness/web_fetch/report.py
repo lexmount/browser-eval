@@ -1086,8 +1086,8 @@ def review_summary(out, prefix='', *, highlight=True):
  if audit.get('adjudication_revision'):
   count=len(audit['adjudication_revision']['adjudicated_attempt_ids'])
   return ('<p'+(' class="callout"' if highlight else '')+'>'+model_text(
-      f'保留历史复核记录 {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}；本次补充逐案裁定 {count} 条。未新增全量盲审，也不构成正式认证。',
-      f'Historical review records: {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}; {count} case-specific adjudications supplemented. No new full blind review or certification is claimed.')+' '+link(prefix+'review/index.html','查看核验轮次 →')+'</p>')
+      f'当前复核覆盖 {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}；本次补充逐案裁定 {count} 条。未新增全量盲审，也不构成正式认证。',
+      f'Current review coverage: {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}; {count} case-specific adjudications supplemented. No new full blind review or certification is claimed.')+' '+link(prefix+'review/index.html','查看核验轮次 →')+'</p>')
  scope=audit.get('review_protocol',{}).get('scope','all')
  if scope=='supplement-25-local-audit':
   return (f'<p class="callout success"><b>新增25例结果审核 '
