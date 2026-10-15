@@ -147,10 +147,10 @@
   },
   "current_scoring_source_sha256": "eed7cf0755edba82a8a87e686cd745b98374ac0e06e3b0cb48192c732708794f",
   "review_evidence_package": {
-    "archive_name": "PR-51-public-saved-inputs-20261015.zip",
-    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261015/PR-51-public-saved-inputs-20261015.zip",
-    "sha256": "5cc7c23a22b21a401d04aca30b681b8cc97d7ef1ebd538f22bb8796110280615",
-    "bytes": 889036659,
+    "archive_name": "PR-51-public-saved-inputs-20261015.tar.xz",
+    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261015/PR-51-public-saved-inputs-20261015.tar.xz",
+    "sha256": "da022f5b94db5129c25d4cb7dfd2866fa61f502b63a52222d06032ae70045987",
+    "bytes": 255118544,
     "access": "Read-only public evidence projection. Rebuild with the included public presentation binding; original host metadata stays private. Original and public file hashes are distinguished in the projection receipt. Earlier draft patches are historical, not prerequisites.",
     "presentation_binding": {
       "path": "presentation-binding.json",
