@@ -1084,9 +1084,10 @@ def review_summary(out, prefix='', *, highlight=True):
  if not path.is_file():return ''
  audit=json.loads(path.read_text())
  if audit.get('retained_reviews'):
+  mode_note = (model_text(' 本次为已知程序结论的证据复核，不是独立盲审。', ' This round checked evidence with known machine outcomes; it was not an independent blind review.') if audit.get('review_protocol',{}).get('blind_initial_verdict') is False else '')
   return ('<p'+(' class="callout"' if highlight else '')+'>'+model_text(
       f'当前复核覆盖 {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}：本次重新检查 {audit.get("fresh_reviewed_attempts",0)} 条，{audit.get("retained_reviewed_attempts",0)} 条沿用检查依据未变的旧复核。',
-      f'Current review coverage: {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}: {audit.get("fresh_reviewed_attempts",0)} freshly reviewed; {audit.get("retained_reviewed_attempts",0)} prior reviews retained after verifying unchanged decision inputs.')+' '+link(prefix+'review/index.html','查看核验轮次 →')+'</p>')
+      f'Current review coverage: {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}: {audit.get("fresh_reviewed_attempts",0)} freshly reviewed; {audit.get("retained_reviewed_attempts",0)} prior reviews retained after verifying unchanged decision inputs.')+mode_note+' '+link(prefix+'review/index.html','查看核验轮次 →')+'</p>')
  if audit.get('adjudication_revision'):
   count=len(audit['adjudication_revision']['adjudicated_attempt_ids'])
   return ('<p'+(' class="callout"' if highlight else '')+'>'+model_text(
@@ -2308,8 +2309,12 @@ def current_local_review_findings(out,dataset,records,audit):
  if supplements and audit.get('retained_reviews'):
   fresh = [row for row in audit.get('attempts', []) if row.get('review_origin') == 'fresh']
   conflicts = sum(row.get('agent_verdict') != row.get('final_verdict') for row in fresh)
-  rows.append((f'本次新复核先隐藏程序结论；初判与程序有 {conflicts} 条分歧，已对照原始返回和题目要求裁定。原始独立意见保留，未新增网页调用。',
-               f'Fresh review withheld machine verdicts. {conflicts} initial disagreements were adjudicated against the original answers and task requirements. Initial independent opinions are preserved; no new webpage calls were added.'))
+  if audit.get('review_protocol',{}).get('blind_initial_verdict') is False:
+   rows.append(('本次复核时已知程序结论，逐条检查了保存的返回、任务要求和原生字段；不称为独立盲审，也未新增被测网页调用。旧复核的原始意见保留。',
+                'This round inspected saved answers, task requirements and native fields with known machine outcomes. It was not an independent blind review and added no benchmark webpage calls. Original opinions from retained reviews are preserved.'))
+  else:
+   rows.append((f'本次新复核先隐藏程序结论；初判与程序有 {conflicts} 条分歧，已对照原始返回和题目要求裁定。原始独立意见保留，未新增网页调用。',
+                f'Fresh review withheld machine verdicts. {conflicts} initial disagreements were adjudicated against the original answers and task requirements. Initial independent opinions are preserved; no new webpage calls were added.'))
  elif supplements:
   supplement_rows = [json.loads(read_bound(out, item).read_text()) for item in supplements]
   reviewed = sum(item['reviewed_attempts'] for item in supplement_rows)
@@ -2361,6 +2366,8 @@ def write_review_page(out,records):
          '核验时隐藏机器结论和分数，只提供任务契约、标准答案与完整实际输出；分歧回到原始证据裁定，未决非零则禁止发布。任务和输出未变化时沿用原核验；发生变化的调用必须重新盲审。</p></details>')
  if audit.get('adjudication_revision'):
   method='<p>'+model_text('原独立判断和补充判断保留在逐条记录中。本次补充裁定查看了已有评分、契约和原始输出，不是新一轮全量盲审。每条裁定列出具体规则和原始证据片段；本地结果不因裁定完成而获得来源认证。','Original independent and supplemental opinions remain in the per-result records. This supplemental adjudication inspected saved scores, contracts and original answers; it is not a new full blind review. Each adjudication records specific rules and original excerpts. Completing adjudication does not certify source validity.')+'</p>'
+ if audit.get('review_protocol',{}).get('blind_initial_verdict') is False and audit.get('retained_reviews'):
+  method='<p>'+model_text('本次重新检查的记录采用已知程序结论的证据复核，逐条核对完整保存答案、任务要求和原生字段。其余记录经依赖检查沿用旧意见。两类范围分别统计；本次证据复核不算作新的独立盲审，也不补足历史来源认证。','The newly checked records received evidence review with known machine outcomes, checking complete saved answers, task requirements and native fields. Other records retain prior opinions after dependency checks. The two scopes are reported separately; this evidence review is not a new independent blind review and does not complete historical source certification.')+'</p>'
  page+=section('核验口径',method)
  dataset_path=out/'dataset.json'
  if dataset_path.is_file():
