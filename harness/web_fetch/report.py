@@ -2226,7 +2226,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
     output_note='实际交付 0 个文件'
   reference_scope=('' if not (c.get('track')=='document' and 0 < len(ref) < 100) else
                    f'<p class="callout"><b>参考范围：</b>这是最小文档解析样本。冻结源文件的全部可提取正文共 {len(ref):,} 个字符，标准答案没有省略。它只验证短文档文字提取，不用于证明多页、表格或附录完整性。</p>')
-  evidence=('<p class="evidence-intro">左边是判定时使用的标准答案或明确验收规则，右边是该次调用原样保存的完整输出。两栏都是真实内容，不是摘要；长内容可在栏内滚动。</p>'+reference_scope+
+  evidence_intro='左边是判定时使用的标准答案或明确验收规则，右边是该次调用原样保存的完整输出。两栏都是真实内容，不是摘要；长内容可在栏内滚动。'
+  if answer_view and answer_view['original_sha256']!=answer_view['published_sha256']:
+   evidence_intro=model_text('左边是判定时的标准答案或验收规则，右边是本次输出的公开副本，目录或敏感值已隐藏。成绩保留评分原件的结论；副本与原件分别标明校验值。长内容可在栏内滚动。','The left pane contains the scoring reference or acceptance rules. The right pane contains the public output view with paths or sensitive values hidden. Scores retain the original verdict; original and public hashes are identified separately. Long content scrolls within each pane.')
+  evidence=('<p class="evidence-intro">'+evidence_intro+'</p>'+reference_scope+
             f'<div class="evidence-compare"><article class="evidence-pane" id="evidence-reference"><header><h3>{esc(reference_heading)}</h3><p>{source_meta}</p></header><div class="pane-body">{source_body}</div></article>'
             f'<article class="evidence-pane" id="evidence-output"><header><h3>实际返回</h3><p>{output_note}</p></header><div class="pane-body">{actual_body}</div></article></div>')
   body+=section('标准答案与实际返回',evidence,'evidence')
