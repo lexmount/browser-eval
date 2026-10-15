@@ -3568,7 +3568,7 @@ class Localizer(HTMLParser):
             return pattern.sub(lambda match: match.group(1) + '"'
                                + html.escape(value, quote=True) + '"', markup)
 
-        if article:
+        if article or self.source == PurePosixPath("methodology/index.html"):
             # The renderer supplies both language assets. Localization only selects
             # an existing URL; it never reads files or modifies measured evidence.
             for name in ("src", "href"):

@@ -41,6 +41,46 @@
     {
       "path": "local-evidence/result-ledger.json",
       "sha256": "8b281721b1d65fc7fc4d153de2b6c8c490c9cc74bad77798863691c9fff868dd"
+    },
+    {
+      "path": "frozen-method-options.json",
+      "sha256": "04ffbb5a28db653e17d9a7dfe0f6fd517d89b754f6d8fd77a3dd21a4e7de15a7"
+    },
+    {
+      "path": "assets/methodology/annotation.png",
+      "sha256": "ca37357825ee094e1aee19b7987773f7d1586452215d0be716a41ef55619178d"
+    },
+    {
+      "path": "assets/methodology/validation.png",
+      "sha256": "45141f56838bd4416c5a5e374f2cc3f1ca2190b5d4fe3454c9e7b88857ece207"
+    },
+    {
+      "path": "assets/methodology/scoring.png",
+      "sha256": "fdd3ae94d91185f1b5e17ce9fca4fd2ae49ac67c1862eb0a8760c6739bb7f030"
+    },
+    {
+      "path": "assets/methodology/annotation.en.png",
+      "sha256": "0762cbd955fbd1566cd147599f968df455d07d6236314cf48f1db7fdd3ead456"
+    },
+    {
+      "path": "assets/methodology/validation.en.png",
+      "sha256": "7c75067d6a3a163763643ecae319333fc999b0ab9fa455b165b451a4365e865c"
+    },
+    {
+      "path": "assets/methodology/scoring.en.png",
+      "sha256": "84660859bbbf002cf4ed1cf285c27e435460beadce34de759ed8800f34249bde"
+    },
+    {
+      "path": "archived-reading/article.zh.txt",
+      "sha256": "88ca41eb3a55010532697676ee46279372fbb6389bcde1afab70b275d8d02177"
+    },
+    {
+      "path": "archived-reading/article.en.txt",
+      "sha256": "545cae010f4cab40778a2946681dd78864bd30281a63b40c191f6b939db1b254"
+    },
+    {
+      "path": "archived-reading/translations.json",
+      "sha256": "fa2fff490354674e2edf19bcee87306b364053df88c88be1ab0fab9d1eb424e5"
     }
   ],
   "evidence_path": "runs/pr51-llk-followup-20261015/evidence",
@@ -107,11 +147,12 @@
   },
   "current_scoring_source_sha256": "eed7cf0755edba82a8a87e686cd745b98374ac0e06e3b0cb48192c732708794f",
   "review_evidence_package": {
-    "archive_name": "PR-51-complete-saved-inputs-20261015.zip",
-    "sha256": "edecd7904b0bd1d89bff712b5d2cb9e734e9cab5f184254066b3899c50d77510",
-    "bytes": 866168727,
+    "archive_name": "PR-51-complete-saved-inputs-20261015-v3.zip",
+    "sha256": "932a7135294ca8ac8d3cdac86b121d37e3e50daef846798154bca43a6e3a0039",
+    "bytes": 892550196,
     "self_contained_restore_verified": true,
-    "access": "Complete local input archive prepared and restored; read-only external delivery is pending privacy handling of original host-path metadata. Earlier draft patches are historical, not prerequisites."
+    "access": "Complete local input archive restored and validated; public read-only delivery is pending approval to disclose original host-path metadata. Earlier draft patches are historical, not prerequisites.",
+    "full_report_rebuild_verified": false
   },
   "supplemental_review": {
     "path": "local-evidence/current-contract-review/supplement.json",

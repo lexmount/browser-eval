@@ -2372,6 +2372,37 @@ def write_review_page(out,records):
    page+=section('本轮修正与检查限制',''.join('<p>'+model_text(item['text'],item.get('text_en'))+'</p>' for item in findings))
  write(out,'review/index.html','核验记录',page)
 
+NATIVE_OPTION_LABELS={'wait_until':'页面完成条件','block_private_networks':'阻止访问私网','max_bytes':'返回内容上限（字节）','max_age':'缓存最长年龄','proxy':'代理选择','formats':'请求输出格式','only_main_content':'只取主要正文','extract_depth':'提取深度','include_images':'包含图片','text_verbosity':'正文详细程度','max_age_hours':'缓存最长年龄（小时）','include_resource_links':'包含资源链接','rich_links_limit':'具名链接数量上限','document_max_bytes':'文档大小上限（字节）','min_interval_seconds':'调用间隔（秒）','log_level':'日志级别','retain_complete_diagnostic_log':'完整保存诊断日志','max_diagnostic_bytes':'日志保存上限（字节）','uniform_native_parameters':'使用统一固定原生选项','dns_mode':'域名解析方式'}
+
+def load_frozen_method_options(out,records):
+ """Bind displayed controls to their actual configuration and call scope."""
+ from .local_revision import read_bound
+ document=json.loads((out/'frozen-method-options.json').read_text())
+ if document.get('schema_version')!=2 or not document.get('source_config'):
+  raise ValueError('Frozen option display requires a bound configuration and call scope')
+ binding=document['source_config']
+ configuration=json.loads(read_bound(out,binding).read_text())['providers']
+ identifiers=document.get('case_ids',[])
+ selected=[row for row in records if row['case_id'] in identifiers]
+ providers=document.get('providers',{})
+ if (not identifiers or len(identifiers)!=len(set(identifiers)) or not providers
+     or document.get('provider_config_sha256')!=binding['sha256']
+     or document.get('result_count')!=len(selected)
+     or len(selected)!=len(identifiers)*len(providers)
+     or {(r['provider'],r['case_id']) for r in selected}
+        !={(p,c) for p in providers for c in identifiers}
+     or any(not document.get(key) for key in
+            ('scope_title','scope_title_en','scope_description','scope_description_en'))):
+  raise ValueError('Frozen option display scope differs from saved calls')
+ for name,options in providers.items():
+  if (name not in configuration or not options
+      or any(key not in NATIVE_OPTION_LABELS or key not in configuration[name]
+             or type(configuration[name][key]) is not type(value)
+             or configuration[name][key]!=value for key,value in options.items())):
+   raise ValueError('Displayed option differs from the frozen configuration')
+ return document
+
+
 def write_support(out,records,manifests,*,authored_interpretation=True):
  local_matrix=(out/'dataset.json').is_file() and json.loads((out/'dataset.json').read_text()).get('comparison',{}).get('kind')=='uniform_native_local_measurement'
  headless=is_headless_cohort(records)
@@ -2400,7 +2431,13 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
              '旧耗时和原始物理调用保留在离线证据，不能把跨批次视图当成同时重跑。')
   methodology+=section('评分来源与修订','<p>'+detail+' '+' · '.join(revision_links)+'</p>')
  methodology+=section('稳定任务契约与全文诊断',task_contract_guide(),'task-contracts')
- figures=''.join(f'<figure><img src="../assets/methodology/{name}.png" alt="{label}" style="max-width:100%;height:auto" loading="lazy"><figcaption>{label}</figcaption></figure>' for name,label in [('annotation','参考标注'),('validation','任务验收'),('scoring','评分口径')] if (out/'assets/methodology'/f'{name}.png').is_file())
+ figures=''
+ for name,label in [('annotation','参考标注'),('validation','任务验收'),('scoring','评分口径')]:
+  if not (out/'assets/methodology'/f'{name}.png').is_file():
+   continue
+  english_asset=(f' data-en-src="../assets/methodology/{name}.en.png"'
+                 if (out/'assets/methodology'/f'{name}.en.png').is_file() else '')
+  figures+=f'<figure><img src="../assets/methodology/{name}.png"{english_asset} alt="{label}" style="max-width:100%;height:auto" loading="lazy"><figcaption>{label}</figcaption></figure>'
  if figures:methodology+=section('方法图解',figures)
  methodology+=section('参考与匹配','<p>原始快照保留不变；评分参考清除零宽空格、BOM 和软连字符，并检查空正文、乱码、重复核对点及核对点是否存在于参考中。通过检查不等于语义完整性已获证明，正文范围仍以来源记录为准。</p><p>关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，菜单路径如 Settings &gt; AI 与 Settings&gt;AI 等价；忽略 Markdown 链接地址、行内代码与加粗标记。一个已被完整记录边界约束的字段允许丢失内联元素间空白，例如标签列表 <code>change deep-thoughts</code> 与 <code>changedeep-thoughts</code> 内容等价；相邻独立链接仍按独立词段核对，不猜测跨记录的粘连分词。保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。</p>')
  methodology+=section('调用时间','<p>各方法使用同一套冻结任务与参考。不同批次的耗时不直接排名；同窗速度子集单独标识。实时网页内容、登录状态和站点策略可能变化，成绩只代表所记录的调用。环境、版本与命令见“环境与复现”。</p>')
@@ -2472,12 +2509,15 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  if local_matrix:
   options_path=out/'frozen-method-options.json'
   if options_path.is_file():
-   options=json.loads(options_path.read_text())['providers']
-   labels={'wait_until':'页面完成条件','block_private_networks':'阻止访问私网','max_bytes':'返回内容上限（字节）','max_age':'缓存最长年龄','proxy':'代理选择','formats':'请求输出格式','only_main_content':'只取主要正文','extract_depth':'提取深度','include_images':'包含图片','text_verbosity':'正文详细程度','max_age_hours':'缓存最长年龄（小时）','include_resource_links':'包含资源链接','rich_links_limit':'具名链接数量上限','document_max_bytes':'文档大小上限（字节）','min_interval_seconds':'调用间隔（秒）','log_level':'日志级别','retain_complete_diagnostic_log':'完整保存诊断日志','max_diagnostic_bytes':'日志保存上限（字节）','uniform_native_parameters':'使用统一固定原生选项','dns_mode':'域名解析方式'}
+   options_document=load_frozen_method_options(out,records)
+   options=options_document['providers']
+   labels=NATIVE_OPTION_LABELS
    def option_text(value):
     return '开启' if value is True else '关闭' if value is False else '、'.join(map(str,value)) if isinstance(value,list) else str(value)
    config_rows=[('',cell(link('../providers/'+name+'.html',provider_label(name)))+cell(''.join('<div>'+esc(labels.get(k,k))+'：<code>'+esc(option_text(v))+'</code></div>' for k,v in value.items()))) for name,value in options.items()]
-   support+=section('本轮实际固定配置','<p>以下选项来自调用前冻结的配置。每题调用一次，外层截止时间45秒；产品内部超时保留默认值。调用间隔不计入单次耗时。这里只展示影响抓取与日志的选项，具体请求和按任务选择的输出格式见各案例的调用日志。</p>'+table(['方法','固定选项'],config_rows,metrics=[]))
+   support+=section(model_text(options_document['scope_title'],options_document['scope_title_en']),
+                    '<p>'+model_text(options_document['scope_description'],options_document['scope_description_en'])+'</p>'
+                    +table(['方法','固定选项'],config_rows,metrics=[]))
   support+=local_call_chain_section(json.loads((out/'dataset.json').read_text()))
  if not local_matrix:
   support+=section('发布与加载','<p>本地构建为每个任务、方法和证据生成可独立检查的逻辑路由；这不等于线上部署同样数量的独立 HTML。发布器会把整份报告编译成一个通用 HTML 外壳、共享样式与脚本，以及按内容寻址的压缩数据块。页面切换由前端路由完成，证据只在打开对应页面时读取，超过 256 KiB 的完整文本还需用户主动加载。</p><p class="source-note">发布清单记录逻辑路由数、源文件数、压缩块数和逐文件 SHA-256；发布门禁会重建每个文件并验证内部链接与原始下载字节。这样保留逐项可审计性，同时避免重复页面骨架和一次性加载全部证据。</p>')

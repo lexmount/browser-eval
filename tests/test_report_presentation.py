@@ -272,6 +272,15 @@ class ReportRevisionTests(unittest.TestCase):
    self.assertIn('src="../../guide/figures/en.png"',translated)
    self.assertNotIn('data-en-',translated)
    self.assertIn('data-evidence="原始证据"',translated)
+ def test_methodology_selects_english_figure_without_localizing_measured_markup(self):
+  from pathlib import PurePosixPath
+  from harness.web_fetch.report_i18n import localize_html
+  markup='<img src="../assets/methodology/zh.png" data-en-src="../assets/methodology/en.png" alt="参考标注"><pre><img src="https://example.org/evidence.png" data-en-src="https://example.org/wrong.png"></pre>'
+  result=localize_html(markup,PurePosixPath('methodology/index.html'))
+  self.assertIn('src="../../assets/methodology/en.png"',result)
+  self.assertNotIn('src="../../assets/methodology/zh.png"',result)
+  self.assertIn('<pre><img src="https://example.org/evidence.png" data-en-src="https://example.org/wrong.png"></pre>',result)
+
  def test_article_embedded_assets_and_measured_markup_stay_distinct(self):
   from pathlib import PurePosixPath
   from harness.web_fetch.report_i18n import localize_html

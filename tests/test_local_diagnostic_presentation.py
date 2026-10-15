@@ -214,3 +214,37 @@ def test_review_display_distinguishes_fresh_reviews_from_retained_history(tmp_pa
     assert '初判与程序有 1 条分歧' in text
     assert '复核前已知机器汇总' not in text
     assert '新增调用中 10 条' not in text
+
+
+@pytest.mark.parametrize('defect', [None, 'unbound', 'hash', 'scope', 'count',
+                                   'option', 'unknown_option', 'missing_option', 'type'])
+def test_displayed_native_options_require_actual_configuration_and_call_scope(tmp_path, defect):
+    import hashlib
+    import json
+    from harness.web_fetch.report import load_frozen_method_options
+    config = {'providers': {'fixture': {'max_bytes': 100, 'block_private_networks': True}}}
+    path = tmp_path/'config.json'
+    path.write_text(json.dumps(config))
+    document = {'schema_version': 2, 'source_config': {'path': path.name,
+                    'sha256': hashlib.sha256(path.read_bytes()).hexdigest()},
+                'case_ids': ['a'], 'result_count': 1,
+                'scope_title': '已记录的选项', 'scope_title_en': 'Recorded options',
+                'scope_description': '仅对应这个任务。',
+                'scope_description_en': 'Only for this task.',
+                'providers': {'fixture': {'max_bytes': 100, 'block_private_networks': True}}}
+    document['provider_config_sha256'] = document['source_config']['sha256']
+    if defect == 'unbound': document['schema_version'] = 1
+    elif defect == 'hash': document['source_config']['sha256'] = 'x'*64
+    elif defect == 'scope': document['case_ids'] = ['other']
+    elif defect == 'count': document['result_count'] = 2
+    elif defect == 'option': document['providers']['fixture']['max_bytes'] = 200
+    elif defect == 'unknown_option': document['providers']['fixture']['api_key'] = 'not-for-display'
+    elif defect == 'missing_option': document['providers']['fixture']['wait_until'] = None
+    elif defect == 'type': document['providers']['fixture']['block_private_networks'] = 1
+    (tmp_path/'frozen-method-options.json').write_text(json.dumps(document))
+    rows = [{'provider': 'fixture', 'case_id': 'a'}]
+    if defect:
+        with pytest.raises(ValueError):
+            load_frozen_method_options(tmp_path, rows)
+    else:
+        assert load_frozen_method_options(tmp_path, rows)['result_count'] == 1
