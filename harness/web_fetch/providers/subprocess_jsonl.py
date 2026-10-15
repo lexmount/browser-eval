@@ -319,6 +319,9 @@ class SubprocessJsonlProvider(Provider):
             error_message=None if ok else str(payload.get("error_message") or "worker failed"),
             metadata={
                 **dict(payload.get("metadata") or {}),
+                **({'native_answer_projection': {'schema_version': 1,
+                    'content_pointer': ['content'], 'content_format': 'text'}}
+                   if isinstance(payload.get('content'), str) else {}),
                 "_raw_response_b64": base64.b64encode(line.encode("utf-8")).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(line.encode("utf-8")).hexdigest(),
                 "raw_response_bytes": len(line.encode("utf-8")),

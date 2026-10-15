@@ -8,13 +8,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.metrics import evaluate_resources, task_passed, task_measured
-from harness.web_fetch.models import EvalCase
+from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.cloudflare import (
     CloudflareContentProvider,
     CloudflareMarkdownProvider,
     _post_multipart,
 )
-from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider, _sanitize_public_content
+from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
 from harness.web_fetch.providers.exa import ExaContentsProvider
 from harness.web_fetch.providers.firecrawl import FirecrawlProvider
 from harness.web_fetch.providers.http import HttpProvider
@@ -1069,7 +1069,7 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(selectors, [{"selector": "img"}, {"selector": "picture source"}])
 
     @patch("harness.web_fetch.providers.cloudflare.request")
-    def test_cloudflare_video_resource_scrape_filters_ordinary_links(
+    def test_cloudflare_video_resource_preserves_all_declared_links(
         self, mock_request
     ) -> None:
         mock_request.return_value = HttpResponse(
@@ -1102,9 +1102,9 @@ class ProviderTest(unittest.TestCase):
         ).fetch(video, 45)
 
         self.assertEqual(result.metadata["videos"], [
-            "https://example.com/watch/clip.webm"
+            "https://example.com/about", "https://example.com/watch/clip.webm"
         ])
-        self.assertNotIn("/about", result.content)
+        self.assertEqual(json.loads(result.content), mock_request.return_value.json()['result'])
 
     @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_video_resource_keeps_packaged_video_downloads(
@@ -1143,11 +1143,11 @@ class ProviderTest(unittest.TestCase):
 
         self.assertTrue(result.ok)
         self.assertEqual(result.metadata["videos"], [
-            "https://example.com/movies/movie.mp4.zip",
+            "https://example.com/", "https://example.com/movies/movie.mp4.zip",
             "https://example.com/movies/movie.webm.zip?mirror=1",
+            "https://example.com/movies/notes.zip",
         ])
-        self.assertNotIn("notes.zip", result.content)
-        self.assertNotIn("\nhttps://example.com/\n", "\n" + result.content + "\n")
+        self.assertEqual(json.loads(result.content), mock_request.return_value.json()['result'])
 
     @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_video_link_task_keeps_page_href_without_media_suffix(
@@ -1193,11 +1193,10 @@ class ProviderTest(unittest.TestCase):
 
         self.assertTrue(result.ok)
         self.assertEqual(result.metadata["videos"], [
+            "https://example.com/about", "https://example.com/short/iframe.html",
             "https://example.com/video/BV1234567890",
         ])
-        self.assertIn("https://example.com/video/BV1234567890", result.content)
-        self.assertNotIn("https://example.com/about", result.content)
-        self.assertNotIn("https://example.com/short/iframe.html", result.content)
+        self.assertEqual(json.loads(result.content), mock_request.return_value.json()['result'])
         self.assertEqual(mock_request.call_args.kwargs["json_body"]["elements"],
                          [{"selector": "a[href]"}])
 
@@ -1426,15 +1425,18 @@ class ProviderTest(unittest.TestCase):
         self.assertIn("expected_repo_revision", errors)
         self.assertIn("required runtime paths", errors)
 
-    def test_cowagent_removes_workspace_path_but_keeps_document_text(self) -> None:
-        content = (
-            "[Document: guide.pdf | Size: 10KB | Saved to: "
-            "/Users/person/.browser-eval/runs/work/tmp/guide.pdf]\n\nBody"
-        )
-        self.assertEqual(
-            _sanitize_public_content(content),
-            "[Document: guide.pdf | Size: 10KB]\n\nBody",
-        )
+    @patch('harness.web_fetch.providers.subprocess_jsonl.SubprocessJsonlProvider.fetch')
+    def test_cowagent_preserves_native_answer_and_error_before_scoring(self, fetch):
+        content = ('[Document: guide.pdf | Size: 10KB | Saved to: '
+                   '/Users/person/work/guide.pdf]\n\nBody')
+        native = ProviderResult(False, content, error_message=content,
+            metadata={'raw_response_sha256': 'native-envelope'})
+        fetch.return_value = native
+        result = CowAgentBuiltinProvider('cowagent', {'repo_path': '.'}).fetch(self.case, 1)
+        self.assertIs(result, native)
+        self.assertEqual(result.content, content)
+        self.assertEqual(result.error_message, content)
+        self.assertEqual(result.metadata, {'raw_response_sha256': 'native-envelope'})
 
 
 if __name__ == "__main__":

@@ -24,9 +24,12 @@ class ReportMetricsTests(unittest.TestCase):
  def test_url_echo_is_not_resource_discovery(self):
   r=evaluate_resources('https://example.com/a.png',{},[{'urls':['https://example.com/a.png']}],base_url='https://example.com/a.png')
   self.assertFalse(r['resource_pass'])
- def test_resized_image_same_asset(self):
-  r=evaluate_resources('https://images.pexels.com/photos/123/a.jpeg?w=500',{},[{'urls':['https://images.pexels.com/photos/123/a.jpeg?w=1000']}],base_url='https://example.com')
+ def test_declared_resized_image_alias(self):
+  target='https://images.pexels.com/photos/123/a.jpeg?w=1000'
+  resized='https://images.pexels.com/photos/123/a.jpeg?w=500'
+  r=evaluate_resources(resized,{},[{'urls':[target],'aliases':[resized]}],base_url='https://example.com')
   self.assertTrue(r['resource_pass'])
+  self.assertFalse(evaluate_resources(resized,{},[{'urls':[target]}],base_url='https://example.com')['resource_pass'])
  def test_generic_query_not_dropped(self):
   r=evaluate_resources('https://example.com/file?id=2',{},[{'urls':['https://example.com/file?id=1']}],base_url='https://example.com')
   self.assertFalse(r['resource_pass'])

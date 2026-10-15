@@ -124,6 +124,68 @@ class SubprocessProviderTest(unittest.TestCase):
             persist_result_artifacts(target, Path('artifacts/worker/control.txt'), result)
             self.assertEqual(json.loads((target/result.metadata['raw_response_path']).read_bytes()),payload)
 
+    def test_persistence_rejects_answer_edit_or_candidate_filtering(self):
+        import hashlib
+        from harness.web_fetch.models import ProviderResult
+        from harness.web_fetch.runner import persist_result_artifacts
+        from harness.web_fetch.response_input import project_native_answer
+        cases = [
+            ({'content': 'Body | Saved to: /Users/person/work/page.txt'},
+             {'schema_version': 1, 'content_pointer': ['content'], 'content_format': 'text'}),
+            ({'result': [{'selector': 'a[href]', 'results': [{'attributes': [
+                {'name': 'href', 'value': '/opaque-resource'},
+                {'name': 'href', 'value': '/about'},
+                {'name': 'title', 'value': 'Native label'}]}]}]},
+             {'schema_version': 1, 'content_pointer': ['result'], 'content_format': 'json',
+              'answer_fields': {'videos': {'pointer': ['result'],
+                  'format': 'html_attribute_urls', 'base_url': 'https://example.test/'}}}),
+        ]
+        for payload, declaration in cases:
+            content, fields = project_native_answer(payload, declaration)
+            raw = json.dumps(payload).encode()
+            for defect in (None, 'edited_text', 'filtered_field', 'missing_raw'):
+                if defect == 'filtered_field' and not fields:
+                    continue
+                with self.subTest(format=declaration['content_format'], defect=defect):
+                    metadata = {**fields, 'native_answer_projection': declaration,
+                        '_raw_response_b64': base64.b64encode(raw).decode(),
+                        'raw_response_sha256': hashlib.sha256(raw).hexdigest(),
+                        'raw_response_bytes': len(raw)}
+                    answer = content
+                    if defect == 'edited_text': answer = content.replace('/about', '') + 'changed'
+                    if defect == 'filtered_field': metadata['videos'] = metadata['videos'][:1]
+                    if defect == 'missing_raw': metadata.pop('_raw_response_b64')
+                    result = ProviderResult(True, answer, metadata=metadata)
+                    with tempfile.TemporaryDirectory() as directory:
+                        target = Path(directory)/'artifacts/control/result.txt'
+                        if defect:
+                            with self.assertRaisesRegex(ValueError, 'native'):
+                                persist_result_artifacts(Path(directory),
+                                    Path('artifacts/control/result.txt'), result)
+                            self.assertFalse(target.exists())
+                        else:
+                            persist_result_artifacts(Path(directory),
+                                Path('artifacts/control/result.txt'), result)
+                            self.assertEqual(target.read_text(), content)
+                            if declaration['content_format'] == 'json':
+                                self.assertEqual(json.loads(content), payload['result'])
+
+    def test_deadline_discards_answer_without_discarding_native_evidence(self):
+        import hashlib
+        from harness.web_fetch.models import ProviderResult
+        from harness.web_fetch.runner import persist_result_artifacts
+        raw = json.dumps({'content': 'late native answer'}).encode()
+        answer = ProviderResult(False, '', error_type='timeout', metadata={
+            'native_answer_projection': {'schema_version': 1,
+                'content_pointer': ['content'], 'content_format': 'text'},
+            '_raw_response_b64': base64.b64encode(raw).decode(),
+            'raw_response_sha256': hashlib.sha256(raw).hexdigest(),
+            'raw_response_bytes': len(raw)})
+        with tempfile.TemporaryDirectory() as directory:
+            persist_result_artifacts(Path(directory), Path('artifacts/worker/late.txt'), answer)
+            self.assertEqual((Path(directory)/'artifacts/worker/late.txt').read_bytes(), b'')
+            self.assertEqual((Path(directory)/answer.metadata['raw_response_path']).read_bytes(), raw)
+
     def test_native_langchain_document_is_retained_without_changing_answer(self):
         import threading
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer

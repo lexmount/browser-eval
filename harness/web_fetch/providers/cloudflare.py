@@ -8,7 +8,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from pathlib import PurePosixPath
-from urllib.parse import urlencode, urljoin, urlsplit
+from urllib.parse import urlencode, urlsplit
 
 from ..models import EvalCase, ProviderResult
 from ..retrieval_hints import plan_for_case, native_default_case
@@ -26,22 +26,6 @@ _DIRECT_DOCUMENT_EXTENSIONS = (
     ".xls",
     ".xlsx",
 )
-_MEDIA_EXTENSIONS = (".mp4", ".webm", ".mov", ".m4v", ".mp3", ".wav", ".ogg")
-_VIDEO_ARCHIVE_EXTENSIONS = (".mp4.zip", ".webm.zip", ".mov.zip", ".m4v.zip")
-
-
-def _video_page_href(path: str) -> bool:
-    """Classify a page link by its URL route, not by the expected answer.
-
-    A video-link task needs detail-page hrefs, but ordinary site navigation
-    must not be reported as a video merely because it was in ``a[href]``.
-    This is intentionally a conservative candidate filter; it does not claim
-    to discover every provider's opaque video URL scheme.
-    """
-    return any(segment in {"video", "videos", "watch"}
-               for segment in path.lower().split("/") if segment)
-
-
 def _uses_direct_document_route(case: EvalCase) -> bool:
     """Choose file conversion only when the supplied URL itself names a file.
 
@@ -200,66 +184,6 @@ def _markdown_conversion_content(payload: dict[str, object]) -> str:
     if isinstance(result, dict) and isinstance(result.get("data"), str):
         return result["data"]
     return result if isinstance(result, str) else ""
-
-
-def _resource_urls(
-    payload: dict[str, object],
-    *,
-    base_url: str,
-    track: str,
-    include_video_page_links: bool = False,
-    only_video_page_links: bool = True,
-) -> list[str]:
-    result = payload.get("result")
-    if not isinstance(result, list):
-        return []
-    raw_values: list[tuple[str, str]] = []
-    for group in result:
-        if not isinstance(group, dict) or not isinstance(group.get("results"), list):
-            continue
-        if include_video_page_links and only_video_page_links and group.get("selector") != "a[href]":
-            # A declared detail-link task does not ask for player/audio/iframe
-            # sources. Those can be ordinary utility embeds on a homepage.
-            continue
-        for element in group["results"]:
-            if not isinstance(element, dict) or not isinstance(element.get("attributes"), list):
-                continue
-            for attribute in element["attributes"]:
-                if not isinstance(attribute, dict):
-                    continue
-                name, value = attribute.get("name"), attribute.get("value")
-                if isinstance(name, str) and isinstance(value, str):
-                    folded = name.casefold()
-                    if folded in {"src", "srcset", "href", "data-src", "data-original"}:
-                        raw_values.append((folded, value))
-    urls: set[str] = set()
-    for name, value in raw_values:
-        candidates = [value]
-        if name == "srcset":
-            candidates = [part.strip().split()[0] for part in value.split(",") if part.strip()]
-        for candidate in candidates:
-            try:
-                absolute = urljoin(base_url, candidate.strip())
-                parsed = urlsplit(absolute)
-            except ValueError:
-                continue
-            if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-                continue
-            # A downloadable video may be packaged as a ZIP (for example,
-            # ``movie.mp4.zip``).  Keep those media archives without admitting
-            # unrelated page/navigation links or arbitrary ZIP files.
-            if name == "href" and track == "video":
-                media_file = parsed.path.lower().endswith(
-                    _MEDIA_EXTENSIONS + _VIDEO_ARCHIVE_EXTENSIONS
-                )
-                video_page = (include_video_page_links
-                              and _video_page_href(parsed.path))
-                if not (media_file or video_page):
-                    continue
-            if name == "href" and track == "image":
-                continue
-            urls.add(absolute)
-    return sorted(urls)
 
 
 def _origin_status(value: object) -> int | None:
@@ -530,16 +454,16 @@ class CloudflareMarkdownProvider(Provider):
         if not isinstance(payload, dict):
             payload = {}
         envelope_success = payload.get("success") is True
-        # The declared output *kind* is part of the public task contract, not
-        # answer/reference data. A video-link task needs page hrefs; playback
-        # resource tasks still exclude ordinary navigation links.
-        urls = _resource_urls(
-            payload,
-            base_url=case.url,
-            track=case.track,
-            include_video_page_links=include_video_page_links,
-            only_video_page_links=not self.config.get("uniform_native_parameters"),
-        )
+        from ..response_input import project_native_answer
+        answer_key = 'images' if case.track == 'image' else 'videos'
+        projection = {'schema_version': 1, 'content_pointer': ['result'],
+                      'content_format': 'json', 'answer_fields': {answer_key: {
+                          'pointer': ['result'], 'format': 'html_attribute_urls',
+                          'base_url': case.url}}}
+        answer, fields = ('', {})
+        if envelope_success:
+            answer, fields = project_native_answer(payload, projection)
+        urls = fields.get(answer_key, [])
         error_type, error_message = _interface_error(
             response_status=response.status,
             envelope_success=envelope_success,
@@ -550,7 +474,7 @@ class CloudflareMarkdownProvider(Provider):
         answer_key = "images" if case.track == "image" else "videos"
         return ProviderResult(
             ok=error_type is None,
-            content="\n".join(urls) if envelope_success else "",
+            content=answer,
             status_code=response.status,
             final_url=case.url,
             error_type=error_type,
@@ -560,6 +484,7 @@ class CloudflareMarkdownProvider(Provider):
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
                 "route": "browser_rendering_scrape_resources",
+                **({'native_answer_projection': projection} if envelope_success else {}),
                 "request_method": "POST",
                 "request_summary": {
                     "selectors": selectors,

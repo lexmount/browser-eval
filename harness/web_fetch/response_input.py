@@ -53,3 +53,87 @@ def safe_named_links(links, base_url):
         if parts.scheme in {'http', 'https'} and parts.hostname and not parts.username and not parts.password:
             result.append((url, item['title']))
     return result
+
+
+def _projection_value(payload, pointer):
+    if not isinstance(pointer, list) or not pointer:
+        raise ValueError('Native answer projection requires a nonempty field pointer')
+    value = payload
+    try:
+        for key in pointer:
+            if isinstance(value, dict) and isinstance(key, str):
+                value = value[key]
+            elif isinstance(value, list) and type(key) is int and key >= 0:
+                value = value[key]
+            else:
+                raise ValueError('Native answer pointer is not a structural field selection')
+    except (KeyError, IndexError) as error:
+        raise ValueError('Native answer field is missing') from error
+    return value
+
+
+def _attribute_record_urls(groups, base_url):
+    """Project declared HTML URL attributes without classifying their targets."""
+    urls = []
+    for group in groups if isinstance(groups, list) else []:
+        if not isinstance(group, dict):
+            continue
+        elements = group.get('results')
+        for element in elements if isinstance(elements, list) else []:
+            if not isinstance(element, dict):
+                continue
+            attributes = element.get('attributes')
+            for attribute in attributes if isinstance(attributes, list) else []:
+                if not isinstance(attribute, dict):
+                    continue
+                name, value = attribute.get('name'), attribute.get('value')
+                if not isinstance(name, str) or not isinstance(value, str):
+                    continue
+                name = name.casefold()
+                if name not in {'src', 'srcset', 'href', 'data-src', 'data-original'}:
+                    continue
+                values = ([part.strip().split()[0] for part in value.split(',') if part.strip()]
+                          if name == 'srcset' else [value])
+                for raw in values:
+                    try:
+                        urls.append(urljoin(base_url, raw.strip()))
+                    except ValueError:
+                        # Retain malformed native values; the shared scorer,
+                        # not a provider adapter, decides URL eligibility.
+                        urls.append(raw)
+    return sorted(set(urls))
+
+
+def project_native_answer(payload, declaration):
+    """Select declared native fields; never inspect references or URL meaning."""
+    if declaration.get('schema_version') != 1:
+        raise ValueError('Unsupported native answer projection')
+    value = _projection_value(payload, declaration.get('content_pointer'))
+    kind = declaration.get('content_format')
+    if kind == 'text' and isinstance(value, str):
+        content = value
+    elif kind == 'json':
+        content = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+    else:
+        raise ValueError('Native answer field differs from its declared type')
+    fields = {}
+    for name, projection in declaration.get('answer_fields', {}).items():
+        if name not in {'links', 'images', 'videos', 'media', 'extras'}:
+            raise ValueError('Unknown native answer metadata field')
+        selected = _projection_value(payload, projection.get('pointer'))
+        if projection.get('format') == 'html_attribute_urls':
+            fields[name] = _attribute_record_urls(selected, projection['base_url'])
+        elif projection.get('format') == 'identity':
+            fields[name] = selected
+        else:
+            raise ValueError('Unknown native answer field projection')
+    return content, fields
+
+
+def require_native_answer_projection(content, metadata, raw_response):
+    declaration = metadata.get('native_answer_projection')
+    if declaration is None:
+        return
+    expected, fields = project_native_answer(json.loads(raw_response), declaration)
+    if content != expected or any(metadata.get(key) != value for key, value in fields.items()):
+        raise ValueError('Scored answer differs from its declared native field projection')

@@ -253,7 +253,8 @@ def test_resource_observation_matches_every_declared_target_and_cdn_variants():
         'id': 'resource', 'url': 'https://example.test/page',
         'track': 'image', 'task_kind': 'resource',
         'expected_resources': [
-            {'id': 'one', 'urls': ['https://images.unsplash.com/photo-one']},
+            {'id': 'one', 'urls': ['https://images.unsplash.com/photo-one'],
+             'aliases': ['https://images.unsplash.com/photo-one?w=1200']},
             {'id': 'two', 'urls': [], 'url_patterns': [r'^https://cdn\.example\.test/two(?:\?|$)']},
         ],
         'resource_output_contract': {'unexpected': 'allow'},

@@ -47,12 +47,25 @@
         "url": "https://en.wikipedia.org/wiki/Apollo_11",
         "task_kind": "resource",
         "content_score_applicable": false,
-        "expected_resources": [{"id": "moon", "urls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon.jpg/330px-A_Man_on_the_Moon.jpg?utm_source=en.wikipedia.org"]}]
+        "expected_resources": [
+          {
+            "id": "moon",
+            "urls": [
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon.jpg/330px-A_Man_on_the_Moon.jpg?utm_source=en.wikipedia.org"
+            ],
+            "aliases": [
+              "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon.jpg/960px-A_Man_on_the_Moon.jpg?utm_campaign=parser"
+            ]
+          }
+        ]
       },
       "artifact": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon.jpg/960px-A_Man_on_the_Moon.jpg?utm_campaign=parser",
       "ok": true,
       "expected_task_pass": true,
-      "expected_metrics": {"resource_pass": true, "resource_hits": 1}
+      "expected_metrics": {
+        "resource_pass": true,
+        "resource_hits": 1
+      }
     },
     {
       "id": "wikimedia-thumbnail-host-migration-does-not-hide-wrong-asset",
@@ -63,12 +76,25 @@
         "url": "https://en.wikipedia.org/wiki/Apollo_11",
         "task_kind": "resource",
         "content_score_applicable": false,
-        "expected_resources": [{"id": "moon", "urls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon.jpg/330px-A_Man_on_the_Moon.jpg?utm_source=en.wikipedia.org"]}]
+        "expected_resources": [
+          {
+            "id": "moon",
+            "urls": [
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon.jpg/330px-A_Man_on_the_Moon.jpg?utm_source=en.wikipedia.org"
+            ],
+            "aliases": [
+              "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon.jpg/960px-A_Man_on_the_Moon.jpg?utm_campaign=parser"
+            ]
+          }
+        ]
       },
       "artifact": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/A_Man_on_the_Moon.jpg/960px-A_Man_on_the_Moon.jpg?utm_campaign=parser",
       "ok": true,
       "expected_task_pass": false,
-      "expected_metrics": {"resource_pass": false, "resource_hits": 0}
+      "expected_metrics": {
+        "resource_pass": false,
+        "resource_hits": 0
+      }
     },
     {
       "id": "wikimedia-thumb-host-cannot-claim-original-file",
@@ -31582,6 +31608,130 @@
       "artifact": "<pre>sqlite3_open(</pre><p>Unrelated body</p><pre>argv[1], &amp;db);</pre>",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "extensionless-image-target-only-preserved",
+      "category": "acceptance-contract",
+      "root_cause": "reference_dependent_candidate_extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "target",
+            "urls": [
+              "https://cdn.example/item/RIGHT"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "https://cdn.example/item/RIGHT",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_precision": 1.0,
+        "resource_candidate_urls": [
+          "https://cdn.example/item/RIGHT"
+        ]
+      }
+    },
+    {
+      "id": "extensionless-image-mixed-target-and-wrong-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "reference_dependent_candidate_extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "target",
+            "urls": [
+              "https://cdn.example/item/RIGHT"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "https://cdn.example/item/RIGHT\nhttps://cdn.example/item/WRONG",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_precision": 0.5,
+        "resource_candidate_urls": [
+          "https://cdn.example/item/RIGHT",
+          "https://cdn.example/item/WRONG"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-different-resource-rejected",
+      "category": "format-normalization",
+      "root_cause": "site_specific_resource_query_collapsing",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "photo",
+            "urls": [
+              "https://images.unsplash.com/photo-one?crop=left"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://images.unsplash.com/photo-one?crop=right",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://images.unsplash.com/photo-one?crop=right"
+        ],
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "resource-query-explicit-alias-preserved",
+      "category": "format-normalization",
+      "root_cause": "site_specific_resource_query_collapsing",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "photo",
+            "urls": [
+              "https://images.unsplash.com/photo-one?crop=left"
+            ],
+            "aliases": [
+              "https://images.unsplash.com/photo-one?crop=right"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://images.unsplash.com/photo-one?crop=right",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://images.unsplash.com/photo-one?crop=right"
+        ],
+        "resource_pass": true
+      }
     }
   ],
   "superseded_controls": {

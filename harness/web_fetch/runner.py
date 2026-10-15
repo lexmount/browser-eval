@@ -379,6 +379,15 @@ def persist_result_artifacts(
     output_dir: Path, artifact_rel: Path, result: ProviderResult
 ) -> Path:
     """Persist one physical call without changing its scored answer bytes."""
+    discarded_late_answer = (not result.ok and result.error_type == 'timeout'
+                             and result.content == '')
+    if result.metadata.get('native_answer_projection') and not discarded_late_answer:
+        from .response_input import require_native_answer_projection
+        raw = result.metadata.get('_raw_response_b64')
+        if not isinstance(raw, str):
+            raise ValueError('Declared native answer lacks its retained raw response')
+        require_native_answer_projection(result.content, result.metadata,
+                                         base64.b64decode(raw, validate=True))
     artifact = contained_path(output_dir, artifact_rel)
     artifact.parent.mkdir(parents=True, exist_ok=True)
     artifact.write_text(result.content, encoding='utf-8', errors='replace')

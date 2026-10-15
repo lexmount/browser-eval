@@ -298,7 +298,7 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(result["resource_candidate_urls"], ["https://cdn.example.test/target.webp"])
         self.assertEqual(result["unexpected_resource_urls"], [])
 
-    def test_image_scope_accepts_declared_alias_pattern_and_normalized_thumbnail(self) -> None:
+    def test_image_scope_accepts_declared_alias_pattern_and_thumbnail_alias(self) -> None:
         contract = {"candidate_scope": "image_answer_fields", "unexpected": "reject"}
         alias = evaluate_resources(
             "", {"images": ["/photo-480w.jpg"]},
@@ -318,6 +318,8 @@ class MetricsTest(unittest.TestCase):
                 "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Earth.jpg/320px-Earth.jpg"}]}},
             [{"id": "earth", "urls": [
                 "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Earth.jpg/1280px-Earth.jpg"
+            ], "aliases": [
+                "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Earth.jpg/320px-Earth.jpg"
             ]}], base_url="https://commons.wikimedia.org/wiki/File:Earth.jpg",
             output_contract=contract,
         )
@@ -333,14 +335,19 @@ class MetricsTest(unittest.TestCase):
                        'Moon.jpg/960px-Moon.jpg?utm_campaign=parser')
         invalid_original = 'https://thumb.wikimedia.org/wikipedia/commons/4/41/Moon.jpg'
         upload_original = 'https://upload.wikimedia.org/wikipedia/commons/4/41/Moon.jpg'
-        self.assertEqual(normalize_resource_url(upload_thumb, base),
-                         normalize_resource_url(migrated_thumb, base))
+        self.assertNotEqual(normalize_resource_url(upload_thumb, base),
+                            normalize_resource_url(migrated_thumb, base))
+        declared = [{'id': 'moon', 'urls': [upload_thumb], 'aliases': [migrated_thumb]}]
+        self.assertTrue(evaluate_resources(migrated_thumb, {}, declared,
+            base_url=base)['resource_pass'])
+        self.assertFalse(evaluate_resources(wrong_asset, {}, declared,
+            base_url=base)['resource_pass'])
         self.assertNotEqual(normalize_resource_url(upload_thumb, base),
                             normalize_resource_url(wrong_asset, base))
         self.assertNotEqual(normalize_resource_url(invalid_original, base),
                             normalize_resource_url(upload_original, base))
 
-    def test_image_scope_accepts_bare_declared_extensionless_target(self) -> None:
+    def test_image_scope_rejects_extra_bare_extensionless_url(self) -> None:
         target = "https://images.unsplash.com/photo-1493673272479-a20888bcee10"
         result = evaluate_resources(
             target + "\nhttps://example.test/ordinary-page", {},
@@ -348,8 +355,39 @@ class MetricsTest(unittest.TestCase):
             base_url="https://unsplash.com/photos/example",
             output_contract={"candidate_scope": "image_answer_fields", "unexpected": "reject"},
         )
-        self.assertTrue(result["resource_pass"])
-        self.assertEqual(result["resource_candidate_urls"], [target])
+        self.assertFalse(result["resource_pass"])
+        self.assertEqual(result["resource_candidate_urls"],
+                         ["https://example.test/ordinary-page", target])
+        self.assertEqual(result["resource_precision"], 0.5)
+
+    def test_resource_queries_are_not_merged_by_known_host(self):
+        base = 'https://example.test/gallery'
+        for host in ('images.unsplash.com', 'images.pexels.com', 'images-assets.nasa.gov',
+                     'www.nasa.gov', 'cdn.example.test'):
+            with self.subTest(host=host):
+                left, right = f'https://{host}/photo.jpg?crop=left', f'https://{host}/photo.jpg?crop=right'
+                self.assertNotEqual(normalize_resource_url(left, base), normalize_resource_url(right, base))
+                self.assertFalse(evaluate_resources(right, {}, [{'id': 'photo', 'urls': [left]}],
+                    base_url=base)['resource_pass'])
+                self.assertTrue(evaluate_resources(right, {}, [{'id': 'photo', 'urls': [left],
+                    'aliases': [right]}], base_url=base)['resource_pass'])
+
+    def test_extensionless_image_candidates_do_not_depend_on_reference(self):
+        right, wrong = 'https://cdn.example/item/RIGHT', 'https://cdn.example/item/WRONG'
+        contract = {'candidate_scope': 'image_answer_fields', 'unexpected': 'reject'}
+        mixed = right + '\n' + wrong
+        candidates = []
+        for target in (right, wrong):
+            result = evaluate_resources(mixed, {}, [{'id': 'image', 'urls': [target]}],
+                base_url='https://example.test/', output_contract=contract)
+            self.assertFalse(result['resource_pass'])
+            self.assertEqual(result['resource_precision'], 0.5)
+            candidates.append(result['resource_candidate_urls'])
+        self.assertEqual(candidates[0], candidates[1])
+        result = evaluate_resources(right, {}, [{'id': 'image', 'urls': [right]}],
+            base_url='https://example.test/', output_contract=contract)
+        self.assertTrue(result['resource_pass'])
+        self.assertEqual(result['resource_precision'], 1.0)
 
 
 if __name__ == "__main__":

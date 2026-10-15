@@ -63,17 +63,9 @@ def normalize_resource_url(value: str, base_url: str) -> str | None:
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return None
     path,query=parsed.path,parsed.query
-    # Same asset at different presentation sizes. Never drop signed query
-    # parameters on arbitrary hosts or collapse distinct resources globally.
-    if parsed.hostname in {'images.unsplash.com','plus.unsplash.com','images.pexels.com','images-assets.nasa.gov','www.nasa.gov'}:
-        query=''
+    # Query parameters and paths may select different resources. Equivalence
+    # belongs to task-declared aliases or patterns, never to a known website.
     netloc = parsed.netloc.lower()
-    if parsed.hostname in {'upload.wikimedia.org', 'thumb.wikimedia.org'} and '/thumb/' in path:
-        path=path.replace('/thumb/','/').rsplit('/',1)[0];query=''
-        # Wikimedia moved thumbnails, not original files or videos, to the
-        # thumb host. Only a thumbnail path identifies the same hosted asset.
-        if parsed.hostname == 'thumb.wikimedia.org':
-            netloc = netloc.replace('thumb.wikimedia.org', 'upload.wikimedia.org')
     return urlunsplit((parsed.scheme.lower(), netloc, unquote(path), query, ""))
 
 
@@ -148,25 +140,7 @@ def _looks_like_image_url(value: str) -> bool:
     return bool(re.search(rf"\.(?:{'|'.join(IMAGE_FILE_SUFFIXES)})$", path, re.I))
 
 
-def _matches_resource_definition(
-    value: str, expected_resources: list[dict[str, Any]], *, base_url: str,
-) -> bool:
-    url = normalize_resource_url(value, base_url)
-    if not url:
-        return False
-    for resource in expected_resources:
-        aliases = [*resource.get("urls", []), *resource.get("aliases", [])]
-        if url in {normalized for item in aliases
-                   if (normalized := normalize_resource_url(str(item), base_url))}:
-            return True
-        if any(re.search(pattern, url) for pattern in resource.get("url_patterns", [])):
-            return True
-    return False
-
-
-def _image_content_candidates(
-    content: str, expected_resources: list[dict[str, Any]], *, base_url: str,
-) -> list[tuple[str, str]]:
+def _image_content_candidates(content: str) -> list[tuple[str, str]]:
     candidates = [(url, "content.markdown_image")
                   for url in _markdown_image_destinations(content)]
     candidates.extend((match[1], "content.html_img") for match in re.findall(
@@ -175,14 +149,15 @@ def _image_content_candidates(
     for match in re.findall(r"<img\b[^>]*?\bsrcset\s*=\s*([\"'])(.*?)\1", content, re.I | re.S):
         candidates.extend((part.strip().split()[0], "content.html_img_srcset")
                           for part in match[1].split(',') if part.strip())
-    # A provider may answer with a bare image address rather than Markdown.
-    # Restrict this fallback to image-like paths or declared target aliases;
-    # ordinary page links are not image answer candidates. The alias check is
-    # necessary for extensionless image CDNs such as Unsplash.
+    # Explicit image markup is typed evidence. A standalone HTTP URL may also
+    # be the entire answer, including an extensionless CDN address. Every URL
+    # with that syntax is admitted alike, without consulting target resources.
+    url_pattern = r"https?://[^\s<>'\")\]]+"
+    bare_lines = {line.strip().strip('<>') for line in content.splitlines()
+                  if re.fullmatch(r"\s*<?" + url_pattern + r">?\s*", line)}
     candidates.extend((url, "content.bare_image_url") for url in
-                      re.findall(r"https?://[^\s<>'\")\]]+", content)
-                      if (_looks_like_image_url(url) or _matches_resource_definition(
-                          url, expected_resources, base_url=base_url)))
+                      re.findall(url_pattern, content)
+                      if _looks_like_image_url(url) or url in bare_lines)
     return candidates
 
 
@@ -244,9 +219,7 @@ def evaluate_resources(
         for key in ("media", "extras"):
             if key in metadata:
                 candidates.extend(_metadata_image_candidates(metadata[key], path=f"metadata.{key}"))
-        candidates.extend(_image_content_candidates(
-            content, expected_resources, base_url=base_url,
-        ))
+        candidates.extend(_image_content_candidates(content))
     elif eligible:
         answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
         candidates.extend(_metadata_resource_candidates(answer_fields))

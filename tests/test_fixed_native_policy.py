@@ -126,11 +126,20 @@ def test_all_430_frozen_cases_pass_native_input_guard():
     assert count == 430
 
 
-def test_native_media_projection_keeps_returned_sources_and_video_links():
-    from harness.web_fetch.providers.cloudflare import _resource_urls
-    payload = {"result": [
-        {"selector": "video", "results": [{"attributes": [{"name": "src", "value": "/a.mp4"}]}]},
-        {"selector": "a[href]", "results": [{"attributes": [{"name": "href", "value": "/video/abc"}]}]}]}
-    assert _resource_urls(payload, base_url="https://example.com/", track="video",
-        include_video_page_links=True, only_video_page_links=False) == [
-            "https://example.com/a.mp4", "https://example.com/video/abc"]
+def test_native_media_projection_keeps_all_returned_fields_without_link_guessing():
+    payload = {'success': True, 'result': [
+        {'selector': 'video', 'results': [{'attributes': [{'name': 'src', 'value': '/a.mp4'}]}]},
+        {'selector': 'a[href]', 'results': [{'attributes': [
+            {'name': 'href', 'value': '/opaque'}, {'name': 'href', 'value': '/about'},
+            {'name': 'title', 'value': 'Unchanged native label'}]}]}]}
+    case = EvalCase('control', 'control', 'https://example.com/', 'control', [],
+                    track='video', task_kind='resource')
+    provider = build_provider('cf', {'type': 'cloudflare_markdown',
+        'uniform_native_parameters': True, 'account_id': 'fixture', 'api_token': 'fixture'})
+    with patch('harness.web_fetch.providers.cloudflare.request',
+               return_value=HttpResponse(200, case.url, {}, json.dumps(payload).encode())) as call:
+        result = provider.fetch(case, 45)
+    assert call.call_count == 1
+    assert result.metadata['videos'] == [
+        'https://example.com/a.mp4', 'https://example.com/about', 'https://example.com/opaque']
+    assert json.loads(result.content) == payload['result']

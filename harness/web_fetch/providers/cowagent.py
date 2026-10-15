@@ -8,17 +8,7 @@ import re
 import sys
 from pathlib import Path
 
-from ..models import EvalCase, ProviderResult
 from .subprocess_jsonl import SubprocessJsonlProvider
-
-
-def _sanitize_public_content(content: str) -> str:
-    """Remove CowAgent workspace destinations while retaining fetched text."""
-    return re.sub(
-        r"\s*\|\s*Saved to:\s*(?:/Users/|/home/|/private/|/tmp/)[^\]\r\n]+",
-        "",
-        content,
-    )
 
 
 class CowAgentBuiltinProvider(SubprocessJsonlProvider):
@@ -41,12 +31,6 @@ class CowAgentBuiltinProvider(SubprocessJsonlProvider):
                 '{harness_root}/harness/web_fetch/workers/cowagent_worker.py']
         super().__init__(name, derived)
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
-        result = super().fetch(case, timeout)
-        result.content = _sanitize_public_content(result.content)
-        if result.error_message:
-            result.error_message = _sanitize_public_content(result.error_message)
-        return result
 
 
 EXTRACTOR_FIXTURE = '''<html><head><title>Fixture</title><script>SECRET_SCRIPT</script></head>
