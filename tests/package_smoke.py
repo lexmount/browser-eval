@@ -1646,13 +1646,12 @@ def main():
         dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'fixture',
             'comparison': {},
             'coverage_plan': {'web': ['custom']}, 'cases': [{
-            'id': 'one', 'name': 'One', 'url': 'http://127.0.0.1/',
+            'id': 'one', 'name': 'One', 'url': 'https://1.1.1.1/',
             'category': 'web', 'expected_any': ['Independent fixture output'],
         }]}))
         config = root / 'providers.json'
         config.write_text(json.dumps({'providers': {'custom': {
             'type': 'headless_markdown', 'engine': 'moli', 'binary': str(binary),
-            'network_policy': 'loopback_only', 'allow_private_network': True,
             'expected_version': '7.4.0',
         }}}))
         env = root / 'empty.env'
