@@ -140,14 +140,14 @@ def _two_revision_chain(root):
 
 
 def test_score_revision_chain_validates_both_steps_and_reaches_original_inputs(tmp_path):
-    from harness.web_fetch.local_revision import replacement_predecessor
+    from harness.web_fetch.local_revision import validate_revision_chain
     (first_binding, first), (latest_binding, latest) = _two_revision_chain(tmp_path)
     assert first['task_verdict_changes'] == [
         {'attempt_id': 'p__a', 'before': False, 'after': True}]
     assert latest['task_verdict_changes'] == [
         {'attempt_id': 'p__a', 'before': True, 'after': False}]
     original_bytes = (tmp_path/first_binding['path']).read_bytes()
-    assert replacement_predecessor(tmp_path, latest_binding) == (
+    assert validate_revision_chain(tmp_path, latest_binding)[1:] == (
         first['input_dataset'], first['input_results'])
     assert (tmp_path/first_binding['path']).read_bytes() == original_bytes
 
@@ -159,7 +159,7 @@ def test_score_revision_chain_validates_both_steps_and_reaches_original_inputs(t
     ('output_results_sha256', 'output binding'), ('measured_call', 'measured call facts'),
 ])
 def test_hash_connected_intermediate_revision_must_pass_full_validation(tmp_path, tamper, message):
-    from harness.web_fetch.local_revision import replacement_predecessor
+    from harness.web_fetch.local_revision import validate_revision_chain
     (parent_binding, parent), (latest_binding, latest) = _two_revision_chain(tmp_path)
     if tamper in {'authority', 'regression_ids'}:
         parent.pop(tamper)
@@ -180,4 +180,4 @@ def test_hash_connected_intermediate_revision_must_pass_full_validation(tmp_path
     latest_path.write_text(json.dumps(latest))
     latest_binding['sha256'] = hashlib.sha256(latest_path.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match=message):
-        replacement_predecessor(tmp_path, latest_binding)
+        validate_revision_chain(tmp_path, latest_binding)[1:]

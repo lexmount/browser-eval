@@ -88,12 +88,6 @@ def validate_revision_chain(source, binding, dataset=None, records=None):
         dataset, records, binding = before, previous, parent
 
 
-def replacement_predecessor(source, binding):
-    """Return original replacement inputs only after validating the full chain."""
-    _, dataset_binding, results_binding = validate_revision_chain(source, binding)
-    return dataset_binding, results_binding
-
-
 def require_local_revision(source, binding, dataset, records):
     return validate_revision_chain(source, binding, dataset, records)[0]
 
