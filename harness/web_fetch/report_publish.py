@@ -252,7 +252,7 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
                     return send(path, data, content_type, method=method, extra_headers=headers)
 
                 raw = upload_large_archive(
-                    staged_send, release.archive, identity["slug"], expected, title=config.title
+                    staged_send, release.archive, identity["slug"], expected, title=config.title, max_workers=4
                 )
                 status = 200
             else:

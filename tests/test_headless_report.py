@@ -652,7 +652,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
         content={'schema':'webfetch_browser_interpretation/1',
                  'evidence_sha256':_digest(_headless_article_input(cases,rows,['moli','lightpanda'])),
                  'title':'浏览器结果解读','intro':'相同任务和规则下的测量。',
-                 'scoring':'正文和最终页面地址都属于验收范围。','conclusions':'结合正文与交付结果选择方法。',
+                 'scoring':'正文是验收目标，最终页面地址只用于诊断。','conclusions':'结合正文与交付结果选择方法。',
                  'providers':{name:{'explanation':'这一节解释实际返回的内容。',
                                     'specimen_case_id':'risk-case'} for name in ['moli','lightpanda']}}
         p=root/'report-assets/content.json';p.parent.mkdir();p.write_text(json.dumps(content,ensure_ascii=False))
@@ -691,6 +691,64 @@ class CurrentBrowserArticleTests(unittest.TestCase):
         content_path.write_text(json.dumps(content,ensure_ascii=False))
         binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
         return review
+
+    def test_reference_reading_components_reject_missing_or_false_visuals(self):
+        from bs4 import BeautifulSoup
+        from harness.web_fetch.report_explainer import render_explainer,check_current_browser_article
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,binding=self.example(root)
+            self.bind_failure_review(root,cases,rows,binding)
+            path=root/binding['path'];content=json.loads(path.read_text())
+            content.update(focus_provider='lightpanda',comparison_provider='moli',version_baseline='moli',
+                comparisons=[{'id':'complete-scope','title':'全部任务','tracks':['web','risk_control'],'left':'lightpanda','right':'moli'}],
+                results_explanation='两种配置在相同任务上的完整结果。')
+            for row in rows:
+                row['metrics'].update(word_recall=0.8,word_precision=0.7,word_f1=0.75)
+            content['evidence_sha256']=_digest(_headless_article_input(cases,rows,['moli','lightpanda']))
+            (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+            review_path=root/content['failure_review']['path'];review=json.loads(review_path.read_text())
+            review['results_sha256']=hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest();review_path.write_text(json.dumps(review))
+            content['failure_review']['sha256']=hashlib.sha256(review_path.read_bytes()).hexdigest()
+            path.write_text(json.dumps(content,ensure_ascii=False));binding['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+            body=render_explainer(root,cases,rows,content_binding=binding);page=root/'guide/index.html';page.write_text(body)
+            check_current_browser_article(root,cases,rows,binding)
+            parsed=BeautifulSoup(body,'html.parser')
+            self.assertEqual(len(parsed.select('[data-reading-speed]')),6)
+            self.assertEqual([int(node['data-count']) for node in parsed.select('[data-version-relation]')],[1,1,0,0])
+            self.assertEqual(len(parsed.select('[data-browser-metric^="quality_"]')),6)
+            for label,selector,attribute,value in [
+                ('opening','.m-hero','class','missing'),
+                ('bar length','[data-reading-speed] .m-speed-track i','style','width:1%'),
+                ('highlight','[data-reading-speed] .m-speed-track i','class','best'),
+                ('case selection','.case-choice','id','missing-case'),
+                ('case comparison','.case-compare','class','missing-compare'),
+                ('verdict color','[data-example-check]','class','bad'),
+                ('failure frequency','[data-reading-cause]','data-count','99'),
+                ('version scope','[data-version-relation]','data-count','99'),
+            ]:
+                with self.subTest(label=label):
+                    changed=BeautifulSoup(body,'html.parser');node=changed.select_one(selector);node[attribute]=value;page.write_text(str(changed))
+                    with self.assertRaises(ValueError):check_current_browser_article(root,cases,rows,binding)
+            page.write_text(body)
+
+    def test_empty_response_has_zero_delivered_characters(self):
+        from harness.web_fetch.report_explainer import browser_example_evidence
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,_=self.example(root);row=rows[0]
+            (root/row['artifact_path']).write_bytes(b'')
+            evidence=browser_example_evidence(root,cases[row['case_id']],row)
+            self.assertEqual(evidence['actual_chars'],0)
+            self.assertEqual(evidence['actual'],'本次没有返回内容。')
+
+    def test_reference_excerpt_is_verbatim_and_never_accepts_an_invented_focus(self):
+        from harness.web_fetch.report_explainer import browser_example_evidence
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,_=self.example(root);row=rows[0];case=cases[row['case_id']]
+            original=case['ground_truth_main_content']
+            evidence=browser_example_evidence(root,case,row,reference_focus='complete body')
+            self.assertEqual(evidence['reference'],'complete body')
+            self.assertEqual(case['ground_truth_main_content'],original)
+            with self.assertRaises(ValueError):browser_example_evidence(root,case,row,reference_focus='invented abstract')
 
     def test_compact_interfaces_group_same_output_without_guessing_missing_records(self):
         from harness.web_fetch.report_interfaces import browser_task_interface_matrix
@@ -768,10 +826,10 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                 stable_unique_record_count=2,stable_minimum_records=3,stable_structure_pass=False)
             evidence=browser_example_evidence(root,case,row)
             checks={item['key']:item for item in evidence['checks']}
-            self.assertEqual(checks['length']['actual'],'22')
+            self.assertEqual(checks['length']['actual'],'22 字符')
             self.assertEqual(checks['fact_results_1']['verdict'],'通过')
             self.assertEqual(checks['body_region_results_1']['verdict'],'未通过')
-            self.assertIn('0.5',checks['body_region_results_1']['actual'])
+            self.assertIn('50.0%',checks['body_region_results_1']['actual'])
             self.assertEqual(checks['stable_field_results_1']['expected'],'3')
             self.assertEqual(checks['records']['actual'],'2')
             # Direct file inspection uses retained file metadata even if no text artifact can be read.

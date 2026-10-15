@@ -1284,6 +1284,74 @@
   ],
   "releases": [
     {
+      "id": "2026-10-15-browser-native-430-reference-reading",
+      "date": "2026-10-15",
+      "publication_state": "published",
+      "comparison_kinds": [
+        "headless_markdown"
+      ],
+      "title": "重写报告解读的图表、实例与阅读结构",
+      "summary": "六种配置、每种430题的结果不变。解读以总体结果开篇，拆解静态与复杂网页的差距、等待与重试耗时，并用七类真实输入输出解释验收。",
+      "changes": [
+        [
+          "结果解读",
+          "总体结果、耗时和接口记录分散在长表中。",
+          "用统一总表、分组图和均值/P50/P95图解释结果，保留精确数值。",
+          "不改变通过数、调用记录或耗时。"
+        ],
+        [
+          "正文质量",
+          "通过率没有说明返回正文的完整程度。",
+          "补充有完整参考的17道静态网页的Recall、Precision、F1，包含这些题的全部结果。",
+          "明确17题范围，不外推到430题。"
+        ],
+        [
+          "实例与失败",
+          "案例和失败审查信息缺少清晰的阅读层次。",
+          "七类任务可切换对照参考、原始返回和实际判定；六种配置分别展示完整失败原因及代表证据。",
+          "完整错误与逐条记录继续链接到结果详情。"
+        ],
+        [
+          "版本比较",
+          "净增通过数掩盖了两个方向的变化。",
+          "展示430题中两版均通过364题、新增通过21题、退回失败3题、均失败42题。",
+          "结论同时保留改善与退回，不用净增数代替完整对比。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Rebuild the interpretation around results, examples and failure mechanisms",
+          "summary": "Results remain unchanged for six configurations with 430 tasks each. The interpretation explains grouped task outcomes, waiting and retry costs, seven real input/output examples, and reviewed failures.",
+          "changes": [
+            [
+              "Results",
+              "Results, timings and interface records were dispersed across long tables.",
+              "Add a combined summary, grouped comparisons and mean/P50/P95 charts with exact values retained.",
+              "Scores, calls and measured times are unchanged."
+            ],
+            [
+              "Body quality",
+              "Pass rate alone did not describe body completeness.",
+              "Show Recall, Precision and F1 for all outcomes of 17 static tasks with complete references.",
+              "The population is 17 tasks, not 430."
+            ],
+            [
+              "Examples and failures",
+              "Examples and review material lacked a clear reading sequence.",
+              "Seven selectable examples compare references, raw outputs and checks; each configuration has a complete failure distribution and representative evidence.",
+              "Detailed errors and inventories remain linked to result pages."
+            ],
+            [
+              "Version comparison",
+              "The net pass increase hid changes in both directions.",
+              "Show 364 shared passes, 21 new passes, 3 regressions and 42 shared failures across 430 tasks.",
+              "Retain improvements and regressions together."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-10-15-browser-native-430-visible-names-latency",
       "date": "2026-10-15",
       "publication_state": "published",
