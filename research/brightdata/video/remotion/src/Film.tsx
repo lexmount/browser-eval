@@ -434,6 +434,7 @@ const detail: Record<string, [string, string, string]> = {
 };
 function Stack({ focus }: { focus: string }) {
   let d = detail[focus] || detail.access;
+  const selected = stackRows.find(([id]) => id === focus);
   return (
     <>
       {stackRows.map(([id, title, sub], i) => (
@@ -472,17 +473,19 @@ function Stack({ focus }: { focus: string }) {
         active={focus === "agent"}
       />
       <Arrow x1={1185} y1={590} x2={1370} y2={640} active={focus === "agent"} />
+      <Label x={1320} y={180} w={500} text={selected ? `${selected[1]} · 作用` : "浏览器执行 · 作用"} size={26} color={C.muted} />
       <Label
         x={1320}
-        y={220}
+        y={235}
         w={500}
         text={d[0]}
         size={42}
         bold
         color={C.teal}
       />
-      <Label x={1320} y={315} w={500} text={d[1]} size={33} />
-      <Label x={1320} y={420} w={500} text={d[2]} size={30} color={C.muted} />
+      <Label x={1320} y={330} w={500} text={d[1]} size={33} />
+      <Label x={1320} y={435} w={500} text={d[2]} size={30} color={C.muted} />
+      <Label x={1320} y={560} w={510} text="共用访问能力，直接操作网页" size={27} color={C.teal} />
       <Label
         x={90}
         y={830}
@@ -853,17 +856,17 @@ function Product({ id, focus }: { id: string; focus: string }) {
 }
 function Customers({ focus }: { focus: string }) {
   const rows = [
-    ["shopgrok", "ShopGrok", "零售价格监测", "Proxy + Web Unlocker", "访问"],
-    ["yutori", "Yutori", "网页 Agent", "Browser API", "执行"],
-    ["manatal", "Manatal", "招聘资料补全", "结构化采集", "提取"],
-    ["kingston", "Kingston Brass", "零售竞争分析", "零售分析", "业务"],
+    ["shopgrok", "ShopGrok", "代理 → 增加 Web Unlocker", "按网站难度选产品\n自己保留商品匹配与定价分析"],
+    ["yutori", "Yutori", "Browser API", "多个 Agent 并行操作云端浏览器\n自己负责模型和任务决策"],
+    ["manatal", "Manatal", "网站采集器", "补全 LinkedIn / GitHub 公开资料\n替换原来的多个采集工具"],
+    ["kingston", "Kingston Brass", "Bright Insights", "看板 + 文件导出\n营销、产品、客户管理团队共用"],
   ];
   return (
     <>
       <Label x={80} y={195} text="客户" size={26} color={C.muted} />
-      <Label x={470} y={195} text="业务任务" size={26} color={C.muted} />
-      <Label x={1000} y={195} text="已披露使用关系" size={26} color={C.muted} />
-      {rows.map(([id, n, t, p, l], i) => (
+      <Label x={470} y={195} text="使用的服务" size={26} color={C.muted} />
+      <Label x={1000} y={195} text="怎样用于日常业务" size={26} color={C.muted} />
+      {rows.map(([id, n, t, p], i) => (
         <div
           key={id}
           data-target={id}
@@ -875,10 +878,10 @@ function Customers({ focus }: { focus: string }) {
             width: 1770,
             height: 110,
             display: "grid",
-            gridTemplateColumns: "390px 530px 1fr 160px",
+            gridTemplateColumns: "390px 530px 1fr",
             alignItems: "center",
             padding: "0 28px",
-            fontSize: 33,
+            fontSize: 30,
             borderRadius: 12,
             border: `${id === focus ? 4 : 2}px solid ${id === focus ? C.teal : C.line}`,
             background: id === focus ? "#e4f3ed" : "#fff",
@@ -886,14 +889,13 @@ function Customers({ focus }: { focus: string }) {
         >
           <strong>{n}</strong>
           <span>{t}</span>
-          <span>{p}</span>
-          <b style={{ color: C.teal }}>{l}</b>
+          <span style={{whiteSpace: "pre-line", lineHeight: 1.4}}>{p}</span>
         </div>
       ))}
       <Label
         x={90}
         y={850}
-        text="公开案例说明使用关系；不能据此推算产品收入或客户占比。"
+        text="来源：Bright Data 具名客户案例；这些客户的账单与合同金额未披露。"
         size={28}
         color={C.muted}
       />

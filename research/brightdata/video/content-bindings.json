@@ -1,11 +1,12 @@
 {
   "root": "research/brightdata",
   "files": {
-    "video/editorial.json": "c4d576d69630895f9167c27a3ce18c0ec20f12a44c8c9be406a728d505c4c1a8",
-    "video/remotion/src/timeline.json": "2a7d1adea01a13c0a009819a10eacb3e02827c4470bfafbab3498be0e1b74edf",
+    "video/editorial.json": "4d525bd5f7832e5cf98e031c8b0d32a66cbfc6ba5d7828534f5ef56a115c7be9",
+    "video/remotion/src/timeline.json": "e2a46823e5205cb4196a2454c9b0ed9e14fd08768705bc6fbb82cad10985f5f7",
     "video/chapter-sources.json": "20a792285ecb65b4437fefbbff6842b4beab8f4cd0327a1d5738846d7c8f2046",
     "video/content-contract.json": "0ab8e369530c958c4abb3634614d4b0b06769847cd3f19b67590b8f981f4d9fb",
     "assets/infographics/architecture.png": "f5b14e5912b53f5adddad18ce0c13863c71687867acd1a9053c07234ef3fd981",
-    "assets/diagrams/original-architecture.mmd": "74ed216c403ae9baf25136c2d4bcf4eab213ee048d15e6cf63d21f7a891fdcd6"
+    "assets/diagrams/original-architecture.mmd": "74ed216c403ae9baf25136c2d4bcf4eab213ee048d15e6cf63d21f7a891fdcd6",
+    "video/customer-evidence.json": "921e5553890954a6344ddf7ff96649ff3b71f75a824693596ce2daa76344cd7d"
   }
 }

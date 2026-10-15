@@ -1,8 +1,8 @@
 """Build the film from reviewed clauses and new continuous-chapter speech."""
 from pathlib import Path
-import json,subprocess,math,shutil
+import json,subprocess,math,shutil,hashlib
 import numpy as np
-from timing import align_clauses
+from timing import align_clauses, silence_cut, recognized_boundaries
 ROOT=Path(__file__).parent; OUT=ROOT/'remotion';FPS=30;SR=24000
 
 def main():
@@ -19,12 +19,16 @@ def main():
         aligned=align_clauses(clauses,meta['sentences'])
         raw=subprocess.check_output(['ffmpeg','-v','error','-i',str(ROOT/f'audio/current/chapter-{chapter}.mp3'),'-ac','1','-ar',str(SR),'-f','f32le','-'])
         wave=np.frombuffer(raw,dtype=np.float32).copy()
-        offset=0
-        for s in group:
+        recognition=json.loads((ROOT/f'audio/current/chapter-{chapter}.recognition.json').read_text())
+        assert recognition.get('audioSha256')==hashlib.sha256((ROOT/f'audio/current/chapter-{chapter}.mp3').read_bytes()).hexdigest(),'Recognition must match current audio'
+        offset=0; cuts=[0.0]
+        for previous_end,next_start in recognized_boundaries([''.join(c['text'] for c in s['clauses']) for s in group],recognition):
+            cuts.append(silence_cut(wave,SR,previous_end,next_start))
+        cuts.append(len(wave)/SR)
+        for scene_index,s in enumerate(group):
             n=len(s['clauses']); timing=aligned[offset:offset+n]
             # Keep complete utterances. Cuts only occur in silence between scene sentences.
-            left=0 if offset==0 else (aligned[offset-1]['end']+timing[0]['start'])/2
-            right=len(wave)/SR if offset+n==len(aligned) else (timing[-1]['end']+aligned[offset+n]['start'])/2
+            left,right=cuts[scene_index:scene_index+2]
             lo=round(left*SR);hi=round(right*SR);clip=wave[lo:hi].copy()
             fade=min(72,len(clip)//2);clip[:fade]*=np.linspace(0,1,fade);clip[-fade:]*=np.linspace(1,0,fade)
             start=cursor/SR;silence(s['lead']);audio_start=cursor/SR

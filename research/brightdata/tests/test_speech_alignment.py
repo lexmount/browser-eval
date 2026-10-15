@@ -2,8 +2,28 @@
 import sys,unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'video'))
-from timing import align_clauses
+from timing import align_clauses, silence_cut, recognized_boundaries
 class SpeechTimingTests(unittest.TestCase):
+ def test_boundary_follows_actual_spoken_phrase_not_provider_label(self):
+  recognition={'segments':[{'words':[
+   {'word':'返回JSON','start':0,'end':1},
+   {'word':'页面响应','start':1.4,'end':2.5},
+   {'word':'浏览器会话','start':2.5,'end':4}]}]}
+  self.assertEqual(recognized_boundaries(['返回 JSON。','页面响应、浏览器会话。'],recognition),[(1,1.4)])
+ def test_unrecognized_boundary_cannot_pass_as_reviewed(self):
+  with self.assertRaises(ValueError):recognized_boundaries(['完整的一句话','接下来的内容'],{'segments':[]})
+ def test_delayed_word_timestamp_does_not_cut_audible_name(self):
+  # Speech ends at 1s, resumes at 1.3s, but the provider timestamps the
+  # following English name at 2s. The former midpoint falls inside speech.
+  wave=[.2]*1000+[0.0]*300+[.2]*1000
+  cut=silence_cut(wave,1000,1.0,2.0)
+  self.assertGreater(cut,1.05)
+  self.assertLess(cut,1.25)
+ def test_continuous_speech_cannot_be_split_for_a_visual_pause(self):
+  with self.assertRaises(ValueError):silence_cut([.1]*3000,1000,1,2)
+ def test_tiny_gap_between_syllables_is_not_a_scene_boundary(self):
+  wave=[.2]*1000+[0.0]*40+[.2]*1000
+  with self.assertRaises(ValueError):silence_cut(wave,1000,1,1.5)
  def words(self,text,start=0,step=.3):
   return [{'words':[{'word':c,'startTime':start+i*step,'endTime':start+(i+1)*step} for i,c in enumerate(text)]}]
  def test_new_voice_duration_moves_the_focus_anchor(self):
