@@ -1178,6 +1178,14 @@
   ],
   "review_rounds": [
     {
+      "date": "2026-10-15",
+      "title": "全部失败专题审查与五条接口纠正",
+      "scope": "950 条最新失败；五条定向纠正结果另做独立原文盲审，原有完整核验按相同题目和证据复用。",
+      "finding": "区分原生文档能力、真实访问验证、页面依赖超时、内容遗漏、进程异常和托管接口问题；发现跳转提取竞争、iframe 加载遗漏和日期漏识别。",
+      "fix": "两条 Chromium 和三条 Lightpanda 使用冻结版本完成定向纠正；日期解析在共享评分器修复，未改浏览器或题目。",
+      "pending": "0 个未分类失败；保留产品与源站限制导致的正式失败。"
+    },
+    {
       "date": "2026-09-14",
       "title": "请求语义、公开产物与异常门禁复核",
       "scope": "十种方法的 1,500 条最终结果；逐条盲审完成后，对 309 条由空输出、集中失败、状态冲突、接口错误或产物泄漏等信号触发的结果执行七层异常核验。",
@@ -1275,6 +1283,90 @@
     }
   ],
   "releases": [
+    {
+      "id": "2026-10-15-browser-native-430-failure-topic",
+      "date": "2026-10-15",
+      "publication_state": "published",
+      "comparison_kinds": [
+        "headless_markdown"
+      ],
+      "scoring_revision_input_sha256": [
+        "ad92f548180df2d498f4a49b4e7643b17df332a634888794d3d42d362e3f3a81",
+        "f48fa481d5467694b1f42184af0fbbd068686ef91f292d8d25780667897f8754"
+      ],
+      "title": "补齐全部失败原因，纠正原生接口调用与新闻日期识别",
+      "summary": "六种方法各 430 题，共 2,580 个结果。Chromium 两条跳转提取问题纠正后通过数从 232 改为 234；其余方法通过数不变。最新 950 条失败全部有专题分类、原因和证据。报告解读按范围、结果、实例、配置、失败和结论重写。",
+      "changes": [
+        [
+          "全部失败原因",
+          "程序错误分类不能解释具体失败机制。",
+          "为 950 条最新失败补齐互斥原因类别、逐例解释、处理结论和证据；解读页逐方法展示完整分布。",
+          "结果详情可直接查看专题原因；明确区分访问验证、网络、原生功能缺口和评测适配问题。"
+        ],
+        [
+          "跳转提取",
+          "Chromium 在页面跳转时读取已销毁的执行环境。",
+          "同一页面在剩余预算内等新文档并重读一次；只补跑两条受影响失败。",
+          "两条均通过；Chromium 从 232/430 改为 234/430，不增加导航次数，旧调用保留。"
+        ],
+        [
+          "原生子文档能力",
+          "Lightpanda 三条 iframe 题没有开启原生加载开关。",
+          "按统一动态类配置启用两个官方开关，补跑这三条失败。",
+          "三条仍未交付子文档正文，总分 228/430 不变；最新结果覆盖旧结果。"
+        ],
+        [
+          "新闻日期",
+          "公共评分器漏识别 Oct. 14, 2026 这类标准日期。",
+          "修正通用月份缩写的点号，增加有效日期和无日期的成对测试，重新计算保存输出。",
+          "AGP Wire 四条记录不再漏计；最终通过数不变，另一组分类字段仍未满足要求。"
+        ],
+        [
+          "报告解读",
+          "旧版解读缺少完整失败分布和可对照的实测实例。",
+          "采用六章结构，加入交付物示意图、七类实测参考与输出对照、接口矩阵、失败证据。",
+          "文档内容、内嵌媒体地址和直接媒体字节分别验收；不追加外部文档解析。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Explain all failures and correct native calls and news-date recognition",
+          "summary": "Six methods retain 430 tasks each and 2,580 results. Two corrected Chromium navigation-extraction calls raise its pass count from 232 to 234; other pass counts are unchanged. All 950 current failures have evidence-bound diagnoses. The interpretation covers scope, results, examples, configuration, failures and conclusions.",
+          "changes": [
+            [
+              "Failure diagnosis",
+              "Program error types did not explain individual mechanisms.",
+              "Bind an exclusive cause, explanation, treatment and evidence to every one of the 950 current failures, with complete per-method distributions.",
+              "Result details expose the reviewed cause and distinguish access controls, network failures, native capability gaps and adapter defects."
+            ],
+            [
+              "Navigation extraction",
+              "Chromium could read an execution context destroyed by a redirect.",
+              "Wait for the replacement document and repeat the DOM read once within the same page and remaining budget; rerun only two affected failures.",
+              "Both pass. Chromium changes from 232/430 to 234/430, with no extra navigation; prior calls remain retained."
+            ],
+            [
+              "Native subdocuments",
+              "Three Lightpanda iframe calls omitted native loading flags.",
+              "Enable both official flags through one dynamic-family policy and rerun only the three affected failures.",
+              "All three still omit the required child-document text. The score stays 228/430 and latest results replace prior results."
+            ],
+            [
+              "News dates",
+              "The shared scorer omitted standard punctuated month dates such as Oct. 14, 2026.",
+              "Recognize punctuated month abbreviations, add valid/missing-date controls, and recompute saved outputs.",
+              "Four AGP Wire records are no longer omitted. Final pass counts remain unchanged because a separate category-field requirement still fails."
+            ],
+            [
+              "Interpretation",
+              "The prior interpretation lacked complete failure distributions and inspectable examples.",
+              "Use six chapters with a deliverable diagram, reference/output comparisons for all seven families, native-interface matrix and failure evidence.",
+              "Document content, embedded-media addresses and original media bytes remain distinct acceptance contracts; no external document parser is added."
+            ]
+          ]
+        }
+      }
+    },
     {
       "id": "2026-10-15-browser-native-430-six-methods",
       "publication_state": "published",

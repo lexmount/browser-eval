@@ -496,7 +496,7 @@
   "artifact_hub_share_url": "https://artifact-site.lexmount.cn/v/IqGpMUYHWat-dw4n8usQttTptoPzboAo",
   "rerun_scope": {
     "path": "evaluation/browser-native-430/rerun-scope.json",
-    "sha256": "ec371ec74e27a715b83f0ce9e3b60b36699c9703d67237b118353445d8be6f72"
+    "sha256": "1ca66ace30387653a9e86cc65af1ce608c98e44c0b12e5ebf519c00e0cd96615"
   },
   "method_sources": {
     "moli-1.1.15": {
@@ -518,7 +518,7 @@
         },
         "replacement_build": {
           "source_commit": "0d9a7ceb25f630e7a296e83011e2d11f0279c5a7",
-          "binary_sha256": "c1ea816e684b05ecbdb6b544a333e2430794e788202ba600711f6d4cb2c8734f"
+          "binary_sha256": "c1ea816783f0031ff7e349ecf660c3ffd5eeeeb05574ddb8794a212ec540840a"
         },
         "selection": "The predeclared 56 prior failures are replaced by their latest results regardless of pass or fail; the other 374 results are retained."
       }
@@ -544,7 +544,13 @@
   },
   "independent_result_review_scope": "all",
   "frozen_inputs": {
-    "dataset_sha256": "181121aa3c47c2b38e93677b40d5883200e9c09726842fe5e32e45b970085fc4",
+    "dataset_sha256": "1e4a93222a5bbbab8d308207d97df5fe5cd7d5debfd44d273d91b1a3c1403f71",
     "auxiliary_sha256": "191192e1994a36ce3fe4001e75d4da4ed45501ab30d593a771ca444ddc899f83"
+  },
+  "failure_review": {
+    "path": "report-assets/failure-topic-review.json",
+    "sha256": "ff3ad639a66ee662f5e1395aa2e1d7662aa0e54ba5854667fe9312a8110834e2",
+    "reviewed_failures": 950,
+    "required": true
   }
 }

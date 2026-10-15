@@ -205,10 +205,13 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
         key for key in set(before_comparison) | set(after_comparison)
         if before_comparison.get(key) != after_comparison.get(key)
     }
-    if changed_comparison - {'conversion'}:
+    # Authored interpretation and implementation descriptions do not alter the
+    # frozen task or raw answer. Their bytes are checked at the report boundary.
+    presentation_fields = {'conversion', 'report_interpretation', 'implementation_provenance'}
+    if changed_comparison - presentation_fields:
         raise IndependentReviewRequired(
             'Comparison semantics changed; independent result review must be rerun: '
-            + ', '.join(sorted(changed_comparison - {'conversion'}))
+            + ', '.join(sorted(changed_comparison - presentation_fields))
         )
     old_rows = {row['attempt_id']: row for row in parse_jsonl(before_results)}
     new_rows = {row['attempt_id']: row for row in parse_jsonl(after_results)}

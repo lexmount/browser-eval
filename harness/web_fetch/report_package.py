@@ -37,6 +37,11 @@ def validate_release(source: Path) -> bool:
             value = json.loads(path.read_text())
             manifests.extend(value.get('batches', [value]))
     require_certifiable_evidence(dataset, manifests)
+    content_binding = dataset.get('comparison', {}).get('report_interpretation')
+    if content_binding:
+        from .report_explainer import current_browser_article_model
+        current_browser_article_model(source, {case['id']:case for case in dataset['cases']},
+                                      load_jsonl(source/'results.jsonl'), content_binding)
     sampled = dataset.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown"
     if not sampled:
         reliability = json.loads((source / "reliability.json").read_text())

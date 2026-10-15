@@ -23990,6 +23990,182 @@
         "stable_task_pass": false
       }
     }
+,
+    {
+      "id": "dotted-month-news-date",
+      "category": "format-normalization",
+      "root_cause": "english_abbreviated_month_punctuation",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/news",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "news",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "required_fields": [
+                {
+                  "id": "published",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Article](https://example.test/item/1)\nOct. 14, 2026\n",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "composite_acceptance_pass": true
+      }
+    },
+    {
+      "id": "unpunctuated-month-news-date",
+      "category": "format-normalization",
+      "root_cause": "english_abbreviated_month_punctuation",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/news",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "news",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "required_fields": [
+                {
+                  "id": "published",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Article](https://example.test/item/1)\nOct 14, 2026\n",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "composite_acceptance_pass": true
+      }
+    },
+    {
+      "id": "day-first-dotted-month-news-date",
+      "category": "format-normalization",
+      "root_cause": "english_abbreviated_month_punctuation",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/news",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "news",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "required_fields": [
+                {
+                  "id": "published",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Article](https://example.test/item/1)\n14 Oct. 2026\n",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "composite_acceptance_pass": true
+      }
+    },
+    {
+      "id": "month-name-without-day-is-not-news-date",
+      "category": "format-normalization",
+      "root_cause": "english_abbreviated_month_punctuation",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/news",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "news",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "required_fields": [
+                {
+                  "id": "published",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Article](https://example.test/item/1)\nOct.\n",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "composite_acceptance_pass": false
+      }
+    },
+    {
+      "id": "bare-year-is-not-news-date",
+      "category": "format-normalization",
+      "root_cause": "english_abbreviated_month_punctuation",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/news",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "news",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "required_fields": [
+                {
+                  "id": "published",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Article](https://example.test/item/1)\n2026\n",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "composite_acceptance_pass": false
+      }
+    }
   ],
   "superseded_cases": {
   "named-visible-text-image-only": "owned-specific-image-alt-is-an-accessible-record-name",

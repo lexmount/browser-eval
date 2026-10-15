@@ -141,11 +141,41 @@ def _projection_text(content, output_mode, meta, deadline):
     return text
 
 
+def _evaluate_document(page, expression, deadline, meta):
+    """Recover one DOM read interrupted by a navigation in this same page."""
+    from playwright.sync_api import Error
+
+    def remaining_ms():
+        remaining = (deadline - time.monotonic()) * 1000
+        if remaining <= 0:
+            raise TimeoutError('Document read exceeded the call deadline')
+        return remaining
+
+    remaining_ms()
+    try:
+        value = page.evaluate(expression)
+    except Error as error:
+        if 'Execution context was destroyed' not in str(error):
+            raise
+        # A client redirect can replace the document after goto completed.
+        # Reuse its navigation; never issue another request or reset the budget.
+        page.wait_for_load_state('domcontentloaded', timeout=remaining_ms())
+        remaining_ms()
+        value = page.evaluate(expression)
+        meta['document_read_recovery'] = {
+            'cause': 'navigation_replaced_execution_context',
+            'additional_navigations': 0,
+            'additional_dom_reads': 1,
+        }
+    remaining_ms()
+    return value
+
+
 def _page_projection(page, request, output_mode, meta, deadline):
     if output_mode == 'document_page':
         from harness.web_fetch.task_outputs import DOCUMENT_PAGE_READY
         page.wait_for_function(DOCUMENT_PAGE_READY, timeout=max(1, (deadline-time.monotonic())*1000))
-    return _projection_text(page.evaluate(_projection_expression(output_mode, request.get('track'), request.get('resource_detail_links', False))), output_mode, meta, deadline)
+    return _projection_text(_evaluate_document(page, _projection_expression(output_mode, request.get('track'), request.get('resource_detail_links', False)), deadline, meta), output_mode, meta, deadline)
 
 
 def fetch(request):
@@ -399,7 +429,7 @@ def fetch(request):
                         return dict(ok=response is not None and 200 <= response.status < 300, content=content, html='', status_code=response.status if response else None, final_url=page.url, metadata=meta)
                     # Avoid Playwright's XMLSerializer helper, which is not
                     # implemented by every CDP engine. Same expression for both.
-                    html = page.evaluate('document.documentElement.outerHTML')
+                    html = _evaluate_document(page, 'document.documentElement.outerHTML', start + route_timeout, meta)
                     final_url = page.url
                     status = response.status if response else None
                 finally:

@@ -1848,8 +1848,13 @@ def local_audit_banner(dataset):
 from .methods import with_measured_method_labels
 
 @with_measured_method_labels
-def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False):
+def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,detail_attempt_ids:set[str]|None=None):
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
+ if detail_attempt_ids is not None:
+  if not presentation_only:
+   raise ValueError('Scoped detail refresh requires presentation_only=True')
+  unknown=set(detail_attempt_ids)-{row['attempt_id'] for row in records}
+  if unknown:raise ValueError('Unknown detail refresh attempts: '+', '.join(sorted(unknown)))
  _ENGLISH_GENERATED=include_english
  from .reliability import assess_reliability
  reliability=assess_reliability(dataset,records)
@@ -1876,6 +1881,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  tracks=active_tracks(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  audit=json.loads((out/'result-review.json').read_text()) if (out/'result-review.json').is_file() else None
  audited_attempts=review_index(audit)
+ failure_reviews={}
+ content_binding=dataset.get('comparison',{}).get('report_interpretation')
+ if content_binding:
+  from .report_explainer import load_browser_failure_review
+  article_content=json.loads(contained_path(out,content_binding['path']).read_text())
+  failure_reviews=load_browser_failure_review(out,cases,records,article_content)
  bycase=defaultdict(list);byprovider=defaultdict(list)
  for r in records:bycase[r['case_id']].append(r);byprovider[r['provider']].append(r)
  cards=''
@@ -1978,7 +1989,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   write(out,'datasets/'+c['id']+'.html',c['name'],body)
  for name,rs in byprovider.items():
   write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks,native_default=dataset.get("comparison",{}).get("kind")=="uniform_native_local_measurement"))
- for r in ([] if presentation_only else records):
+ detail_records=([r for r in records if r['attempt_id'] in (detail_attempt_ids or set())] if presentation_only else records)
+ for r in detail_records:
   c=cases[r['case_id']];m=r['metrics'];ref=reference_text(c)
   output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')
   rows=[('',cell(k)+cell(v)) for k,v in [('任务 ID',f'<code>{esc(c["id"])}</code>'),('方法',link('../providers/'+r['provider']+'.html',provider_label(r['provider']))),('请求','成功' if r['ok'] else '失败'),('任务结果','通过' if succeeded(r,c) else '未通过'),('HTTP 状态',esc(r.get('status_code'))),('耗时',ms(r['elapsed_ms'])),('全文完整度 / 纯净度 / F1',f'{pct(m.get("word_recall"))} / {pct(m.get("word_precision"))} / {pct(m.get("word_f1"))}'),('输出字符',f'{len(output):,}'),('输出校验值',f'<code class="break">{esc(m.get("content_sha256"))}</code>')]]
@@ -2109,6 +2121,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
        ['项目','核验记录'],
        [('',cell(esc(label))+cell(esc(value))) for label,value in review_rows],
        metrics=[]),'independent-review')
+  failure_review=failure_reviews.get(r['attempt_id'])
+  if failure_review:
+   cause_body='<p><strong>'+esc(failure_review['category_label'])+'</strong></p><p>'+esc(failure_review['reason'])+'</p>'
+   cause_body+='<p>处理结论：'+esc(failure_review['remediation_status'])+'</p><p>'+link('../guide/index.html#failure-review-'+r['attempt_id'],'同类失败与专题分析')+'</p>'
+   cause_body+='<details><summary>专题审查依据</summary><ul>'+''.join('<li>'+link('../'+item['path'],'证据 '+str(index))+'</li>' for index,item in enumerate(failure_review['evidence_paths'],1))+'</ul></details>'
+   body+=section('失败原因专题核验',cause_body,'failure-review')
   reference_heading='完整标准答案' if c.get('task_kind')!='structure' else '标准答案与验收规则'
   reference_download='../references/'+c['id']+'.txt'
   source_body=f'<pre data-kind="reference">{esc(ref)}</pre>'
@@ -2222,7 +2240,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   from .report_i18n import write_english_report
   write_english_report(out)
  from harness.report_languages import write_language_contract
- write_language_contract(out,include_english=include_english)
+ if presentation_only and (out/'report-languages.json').is_file():
+  from harness.report_languages import check_language_contract, generated_languages
+  if ('en' in generated_languages(out)) != include_english:
+   raise ValueError('Presentation refresh cannot change generated languages')
+  check_language_contract(out)
+ else:
+  write_language_contract(out,include_english=include_english)
  return out/'index.html'
 
 

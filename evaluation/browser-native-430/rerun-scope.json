@@ -78,13 +78,28 @@
       "retained_case_count": 430
     },
     "lightpanda": {
-      "retained_case_count": 430
+      "retained_case_count": 427,
+      "replacement_case_count": 3,
+      "replacement_case_ids": [
+        "dynamic-019-selenium-dev-selenium",
+        "dynamic-015-015-testpages-iframe-list",
+        "dynamic-iframe"
+      ],
+      "category": "invalid_prior_call",
+      "selection": "latest_result_always_wins"
     },
     "obscura": {
       "retained_case_count": 430
     },
     "chromium": {
-      "retained_case_count": 430
+      "retained_case_count": 428,
+      "replacement_case_count": 2,
+      "replacement_case_ids": [
+        "china-homepage-036-hao123-com",
+        "risk-diverse-002"
+      ],
+      "category": "invalid_prior_call",
+      "selection": "latest_result_always_wins"
     },
     "kitesurf": {
       "retained_case_count": 430

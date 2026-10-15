@@ -951,3 +951,25 @@ Lightpanda 使用 `--dump markdown --json` 的原生正文；Obscura 使用其�
 接口、版本或执行错误需要新调用；评分或展示错误只重算或重建。不能为提高分数挑选失败题重试，
 不能让无关题目重复调用，也不能把已有题库的重跑变成重新收集资格证明。保留旧结果及修订影响。
 评测配置错误或适配器在调用前拦截属于执行问题，不能当作浏览器能力失败发布；原生路线门禁拒绝 `configuration` 结果。供应商实际调用返回的错误仍按原规则保留。
+
+
+### Reviewed browser interpretation inputs
+
+A current browser interpretation can require a complete failure diagnosis by setting
+`require_failure_review: true` and binding `failure_review: {path, sha256}` in its
+external `webfetch_browser_interpretation/1` content. The bound file uses
+`schema: webfetch_failure_review/1`, binds the exact `results.jsonl` bytes with
+`results_sha256`, and contains one `failures` entry for every failed result and no
+passing result. Each entry identifies `attempt_id`, `provider` and `case_id`, a
+stable lowercase `category`, a reader-facing `category_label`, an evidenced
+`reason`, a `remediation_status`, and nonempty hash-bound
+`evidence_paths: [{path, sha256}]`. A program error type remains a separate
+classification; it does not establish the reviewed cause. The build, report check
+and publication boundary reject stale, incomplete, duplicate or mismatched reviews.
+
+The same content may supply `background`, raster
+`figures: [{path, sha256, alt, caption}]`, and measured
+`case_examples: [{provider, case_id, explanation}]`. These use the existing report
+builder and its six-chapter interpretation. Assets stay outside Git and are copied
+only through their hash bindings. The independent HTML embeds figures and reviewed
+causes without copying every failure's complete output and logs.

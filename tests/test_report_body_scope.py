@@ -54,6 +54,34 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_scoped_presentation_refresh_updates_only_explicit_result_details(self):
+        cases=[case('first'),case('second')]
+        rows=[record(c,passed=False,ok=False) for c in cases]
+        for row in rows:
+            row['error_type']='tool_error'
+            row['error_message']='raw download output only supports automatic output or --dump json'
+            row['diagnosis']={'category':'旧分类','stage':'旧阶段','evidence':'旧解释','certainty':'直接返回依据'}
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory)
+            for row in rows:
+                artifact=out/row['artifact_path'];artifact.parent.mkdir(parents=True,exist_ok=True);artifact.write_text('output')
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':cases},rows,[])
+                detail_paths=[out/'attempts'/f"{row['attempt_id']}.html" for row in rows]
+                before=[path.read_bytes() for path in detail_paths]
+                dataset_before=(out/'datasets/first.html').read_bytes()
+                from harness.web_fetch.failure_diagnosis import diagnose
+                for row in rows:row['diagnosis']=diagnose(row,cases[0],'')
+                generate(out,{'cases':cases},rows,[],presentation_only=True)
+                self.assertEqual([path.read_bytes() for path in detail_paths],before)
+                generate(out,{'cases':cases},rows,[],presentation_only=True,detail_attempt_ids={rows[0]['attempt_id']})
+                self.assertIn('不支持所需输出格式',detail_paths[0].read_text())
+                self.assertNotEqual(detail_paths[0].read_bytes(),before[0])
+                self.assertEqual(detail_paths[1].read_bytes(),before[1])
+                self.assertEqual((out/'datasets/first.html').read_bytes(),dataset_before)
+                with self.assertRaisesRegex(ValueError,'Unknown detail'):
+                    generate(out,{'cases':cases},rows,[],presentation_only=True,detail_attempt_ids={'absent'})
+
     def test_media_report_families_follow_the_deliverable(self):
         from harness.web_fetch.models import REPORT_FAMILIES, report_family
         cases = [

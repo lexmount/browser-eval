@@ -513,6 +513,29 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         content_binding = dataset.get('comparison', {}).get('report_interpretation')
         if content_binding is not None:
             copy_bound_assets(source, staging, {content_binding['path']: content_binding['sha256']})
+            authored_content = json.loads(contained_path(staging, content_binding['path']).read_text())
+            nested_assets = {item['path']: item['sha256'] for item in authored_content.get('figures', [])}
+            failure_binding = authored_content.get('failure_review')
+            if failure_binding:
+                copy_bound_assets(source, staging, {failure_binding['path']: failure_binding['sha256']})
+                failure_review = json.loads(contained_path(staging, failure_binding['path']).read_text())
+                for item in failure_review.get('failures', []):
+                    for evidence in item.get('evidence_paths', []):
+                        if not isinstance(evidence, dict):
+                            raise ValueError('Failure review evidence requires path and sha256')
+                        previous = nested_assets.setdefault(evidence['path'], evidence['sha256'])
+                        if previous != evidence['sha256']:
+                            raise ValueError('Conflicting interpretation asset binding')
+            missing_assets = {}
+            for relative, expected_hash in nested_assets.items():
+                existing = contained_path(staging, relative, reject_symlinks=True)
+                if existing.exists():
+                    if not existing.is_file() or hashlib.sha256(existing.read_bytes()).hexdigest() != expected_hash:
+                        raise ValueError('Conflicting interpretation evidence: ' + relative)
+                else:
+                    missing_assets[relative] = expected_hash
+            if missing_assets:
+                copy_bound_assets(source, staging, missing_assets)
         copy_methodology_assets(staging)
         implementation_binding = dataset.get('comparison', {}).get('implementation_provenance')
         if implementation_binding is not None:

@@ -304,6 +304,10 @@ class ResultReviewTests(unittest.TestCase):
                     'cases':[{'id':'a','task_kind':'body'}]}
             after=json.loads(json.dumps(before));after['id']='current';after['name']='Current'
             after['comparison']['conversion']='corrected description'
+            after['comparison']['report_interpretation'] = {
+                'path': 'report-assets/article.json', 'sha256': 'b' * 64}
+            after['comparison']['implementation_provenance'] = {
+                'path': 'implementation-provenance.json', 'sha256': 'c' * 64}
             row={'attempt_id':'p__a__r001','provider':'p','case_id':'a',
                  'artifact_path':'artifacts/a.txt','ok':True,'error_type':None,
                  'metrics':{'content_pass':True,'content_sha256':'a'*64}}

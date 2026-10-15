@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import json
+import re
 import statistics
 from collections import Counter
 from datetime import datetime, timezone
@@ -770,6 +771,129 @@ def _render_headless(out, cases, records):
     return body + '<aside id="evidence" class="m-downloads"><a href="article.html" download="moli-web-fetch.html">下载独立 HTML</a> · <a href="interpretation-evidence.json" download>本文计算明细</a></aside>'
 
 
+def load_browser_failure_review(out, cases, records, content):
+    """Validate a complete, current per-failure diagnosis independently of scoring."""
+    binding = content.get('failure_review')
+    if not binding:
+        if content.get('require_failure_review'):
+            raise ValueError('Browser interpretation requires a failure review')
+        return {}
+    path = contained_path(out, binding['path'], reject_symlinks=True)
+    if path.is_symlink():
+        raise ValueError('Failure review must not be a symlink')
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != binding['sha256']:
+        raise ValueError('Failure review hash mismatch')
+    review = json.loads(raw)
+    if review.get('schema') != 'webfetch_failure_review/1':
+        raise ValueError('Unsupported failure review schema')
+    result_path = contained_path(out, 'results.jsonl', reject_symlinks=True)
+    if review.get('results_sha256') != hashlib.sha256(result_path.read_bytes()).hexdigest():
+        raise ValueError('Failure review results binding is stale')
+    expected = {row['attempt_id']: row for row in records if not task_passed(
+        row['ok'], row['metrics'], cases[row['case_id']].get('task_kind', 'body'))}
+    failures = review.get('failures')
+    if not isinstance(failures, list):
+        raise ValueError('Failure review requires a failure list')
+    indexed, labels, evidence_digests = {}, {}, {}
+    for item in failures:
+        aid = item.get('attempt_id')
+        if aid in indexed:
+            raise ValueError('Duplicate failure review attempt')
+        row = expected.get(aid)
+        if row is None or any(item.get(key) != row[key] for key in ('provider', 'case_id')):
+            raise ValueError('Failure review contains a pass or mismatched identity')
+        category = item.get('category', '')
+        if not isinstance(category, str) or not re.fullmatch(r'[a-z][a-z0-9_]*', category):
+            raise ValueError('Failure review requires a stable root cause category')
+        for field in ('category_label', 'reason', 'remediation_status'):
+            if not isinstance(item.get(field), str) or not item[field].strip():
+                raise ValueError('Failure review is missing ' + field)
+        if category in labels and labels[category] != item['category_label']:
+            raise ValueError('Failure review category labels disagree')
+        labels[category] = item['category_label']
+        evidence = item.get('evidence_paths')
+        if not isinstance(evidence, list) or not evidence:
+            raise ValueError('Failure review requires direct evidence')
+        for binding in evidence:
+            if not isinstance(binding, dict) or not binding.get('path') or not binding.get('sha256'):
+                raise ValueError('Failure review evidence requires path and sha256')
+            evidence_path = contained_path(out, binding['path'], reject_symlinks=True)
+            if binding['path'] not in evidence_digests:
+                evidence_digests[binding['path']] = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+            if evidence_digests[binding['path']] != binding['sha256']:
+                raise ValueError('Failure review evidence hash mismatch')
+        indexed[aid] = item
+    if set(indexed) != set(expected):
+        raise ValueError('Failure review must cover every failed result exactly once')
+    return indexed
+
+
+def browser_example_evidence(out, case, row):
+    """Project saved scoring evidence for a compact example; never rescore outputs."""
+    from .report_components import task_instruction
+    m = row['metrics']
+    def text(value):
+        if isinstance(value, str): return value
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    reference = case.get('ground_truth_main_content') or case.get('reference_answer')
+    requirements = {key:case[key] for key in (
+        'required_facts','min_content_chars','body_requirements','acceptance_contract',
+        'composite_acceptance','expected_resources','resource_output_contract','expected_files') if case.get(key) is not None}
+    expected = task_instruction(case)+'\n\n'+(str(reference) if reference else text(requirements))
+    if case.get('task_kind') == 'file':
+        files = (row.get('provider_metadata') or {}).get('file_evaluation', {}).get('files', [])
+        actual = text([{
+            key:item[key] for key in ('mime','bytes','sha256','pass','error') if key in item
+        } for item in files]) if files else '本次未交付可校验的原始文件字节。'
+    else:
+        raw = contained_path(out, row['artifact_path'], reject_symlinks=True).read_bytes()
+        # Body/document/resource artifacts are scored text, never a PDF/media payload.
+        if raw.startswith((b'%PDF-', b'PK\x03\x04', b'\x89PNG', b'\xff\xd8\xff')) or b'\x00' in raw[:1024]:
+            actual = '本次返回二进制响应，没有形成可供该题验收的正文。'
+        else:
+            actual = raw.decode('utf-8', errors='replace') or '本次没有返回内容。'
+    checks = []
+    def add(key, title, expected, actual, verdict):
+        checks.append({'key':key,'label':title,'expected':text(expected),'actual':text(actual),
+                       'verdict':'通过' if verdict is True else '未通过' if verdict is False else '未记录'})
+    add('request','请求完成','成功返回',row['ok'],bool(row['ok']))
+    if 'length_pass' in m:
+        add('length','正文长度',case.get('min_content_chars','题目登记的最小长度'),m.get('content_chars','未记录'),m['length_pass'])
+    for field,title in [('fact_results','事实组'),('stable_anchor_results','稳定文字'),
+                        ('pattern_results','字段模式'),('stable_page_pattern_results','页面模式'),
+                        ('body_region_results','正文分段'),('stable_field_results','记录字段'),
+                        ('resource_results','目标资源'),('composite_group_results','组合规则')]:
+        for index,item in enumerate(m.get(field, []),1):
+            target = item.get('alternatives', item.get('minimum', item.get('pattern', item.get('expected'))))
+            observed = item.get('matched', item.get('count', item.get('actual')))
+            if field == 'body_region_results':
+                target = {key:value for key,value in (case.get('body_requirements') or {}).items() if key.startswith('minimum_')}
+                observed = {key:item[key] for key in ('coverage','reference_fragments','matched_fragments','matched') if key in item}
+            elif field == 'resource_results':
+                target = next((value for value in case.get('expected_resources', []) if value.get('id') == item.get('id')), item.get('id'))
+                observed = {key:value for key,value in item.items() if key not in {'pass','id'}}
+            elif field == 'composite_group_results':
+                target = next((value for value in (case.get('composite_acceptance') or {}).get('groups', []) if value.get('id') == item.get('id')), item.get('id'))
+                observed = {key:value for key,value in item.items() if key not in {'pass','id'}}
+            add(field+'_'+str(index),title+' '+str(item.get('id',item.get('field',index))),
+                target if target is not None else '满足本题登记要求',
+                observed if observed is not None else {key:value for key,value in item.items() if key not in {'pass','id'}},
+                item.get('target_pass',item.get('pass')))
+    if 'stable_unique_record_count' in m:
+        add('records','完整且唯一的记录数',m.get('stable_minimum_records'),m['stable_unique_record_count'],m.get('stable_structure_pass'))
+    for field,title in [('body_coverage_pass','正文覆盖'),('stable_content_pass','稳定内容'),
+                        ('list_task_pass','列表结构'),('raw_file_pass','原始文件格式、长度与哈希'),
+                        ('resource_pass','媒体地址交付')]:
+        if field in m:
+            add(field,title,'满足本题登记要求',m[field],m[field])
+    accepted = task_passed(row['ok'],m,case.get('task_kind','body'))
+    add('task','最终任务判定','满足完整验收规则',accepted,accepted)
+    return {'expected':expected[:3600], 'actual':actual[:3600], 'checks':checks,
+            'expected_chars':len(expected), 'actual_chars':len(actual),
+            'run_id':str(row.get('run_id') or row.get('attempt_id')), 'passed':accepted}
+
+
 def current_browser_article_model(out, cases, records, binding):
     """Bind new cohort prose to measured inputs; derive every comparison value."""
     path = contained_path(out, binding['path'])
@@ -798,6 +922,24 @@ def current_browser_article_model(out, cases, records, binding):
                 'p50': statistics.median(times) if times else None,
                 'p95': percentile(times, .95) if times else None}
     tracks = [track for track in BROWSER_FAMILY_NAMES if any(report_family(c) == track for c in cases.values())]
+    failure_review = load_browser_failure_review(out, cases, records, content)
+    figures = content.get('figures', [])
+    if not isinstance(figures, list):
+        raise ValueError('Browser figures must be a list')
+    for figure in figures:
+        image = contained_path(out, figure['path'], reject_symlinks=True)
+        if image.is_symlink() or hashlib.sha256(image.read_bytes()).hexdigest() != figure['sha256']:
+            raise ValueError('Browser figure hash mismatch')
+        if image.suffix.lower() not in {'.png', '.jpg', '.jpeg', '.webp'} or not all(
+                isinstance(figure.get(key), str) and figure[key].strip() for key in ('alt', 'caption')):
+            raise ValueError('Browser figure needs a raster asset, alt and caption')
+    examples = []
+    for item in content.get('case_examples', []):
+        row = indexed.get((item.get('provider'), item.get('case_id')))
+        if row is None or not isinstance(item.get('explanation'), str) or not item['explanation'].strip():
+            raise ValueError('Browser example requires a measured result and explanation')
+        examples.append({'row': row, 'explanation': item['explanation'],
+                         'evidence': browser_example_evidence(out,cases[row['case_id']],row)})
     stats = {}
     from .report_interfaces import method_provenance, method_version
     provenance = method_provenance(out)
@@ -819,13 +961,16 @@ def current_browser_article_model(out, cases, records, binding):
                        'tracks': {track: {'passed': sum(passed(row) for row in subset), 'n': len(subset)} for track,subset in groups.items()},
                        'all': distribution(rows), 'successful': distribution(successes),
                        'failure_counts': dict(Counter(row.get('error_type') or 'acceptance' for row in failures)),
+                       'reviewed_failure_counts': dict(Counter(failure_review[row['attempt_id']]['category'] for row in failures)) if failure_review else {},
+                       'failure_reviews': [failure_review[row['attempt_id']] for row in failures] if failure_review else [],
                        'specimen': specimen}
     for field in ('title', 'intro', 'scoring', 'conclusions'):
         if not isinstance(content.get(field), str) or not content[field].strip():
             raise ValueError('Browser interpretation is missing prose: ' + field)
     tracks = [track for track in BROWSER_FAMILY_NAMES if any(report_family(c) == track for c in cases.values())]
     return {'content': content, 'providers': providers, 'stats': stats, 'tracks': tracks,
-            'cases': len(cases), 'results': len(records)}
+            'cases': len(cases), 'results': len(records), 'failure_review': failure_review,
+            'figures': figures, 'examples': examples}
 
 
 def _offline_browser_article(body, out, cases, model):
@@ -857,6 +1002,24 @@ def _offline_browser_article(body, out, cases, model):
             payload += '<h3>调用日志</h3><pre>'+escape(log)+'</pre>'
         evidence('../attempts/'+row['attempt_id']+'.html', 'offline-result-'+row['attempt_id'],
                  '完整结果与调用证据 · '+name, payload)
+    for example in model.get('examples', []):
+        row = example['row']; case = cases[row['case_id']]
+        evidence('../datasets/'+case['id']+'.html', 'offline-task-'+case['id'],
+                 '任务与固定验收规则 · '+case['id'],
+                 '<pre>'+escape(json.dumps(case,ensure_ascii=False,indent=2))+'</pre>')
+        evidence('../attempts/'+row['attempt_id']+'.html', 'offline-result-'+row['attempt_id'],
+                 '实例返回与判定 · '+row['case_id'],
+                 '<p>'+escape(example['explanation'])+'</p><pre>'+escape(json.dumps(row,ensure_ascii=False,indent=2))+'</pre>')
+    for item in model.get('failure_review', {}).values():
+        targets.setdefault('../attempts/'+item['attempt_id']+'.html', '#failure-review-'+item['attempt_id'])
+        for binding in item['evidence_paths']:
+            # Evidence remains in the hosted report; avoid copying full logs into the standalone article.
+            targets.setdefault('../'+binding['path'], '#failure-review-'+item['attempt_id'])
+    for image in document.select('img[data-browser-figure]'):
+        relative = image['data-browser-figure']
+        suffix = Path(relative).suffix.lower()
+        mime = 'image/jpeg' if suffix in {'.jpg','.jpeg'} else 'image/'+suffix[1:]
+        image['src'] = 'data:'+mime+';base64,'+base64.b64encode(contained_path(out,relative).read_bytes()).decode('ascii')
     if (out/'result-review.json').is_file():
         evidence('../review/index.html','offline-review','独立审查记录',
                  '<pre>'+escape((out/'result-review.json').read_text())+'</pre>')
@@ -906,6 +1069,14 @@ def _browser_network_rows(records, providers):
     return rows
 
 
+def _browser_error_excerpt(row, has_failures):
+    error = str(row.get('error_message') or (
+        '未满足完整验收规则；逐项期望与实际值见结果详情。' if has_failures else '满足该题验收规则。'))
+    if len(error) > 4000:
+        return '错误过长，仅展示最后 4,000 字符；完整错误和日志见结果详情。\n'+error[-4000:]
+    return error
+
+
 def _render_current_browser_article(out, cases, records, binding):
     model = current_browser_article_model(out, cases, records, binding)
     content, names, stats = model['content'], model['providers'], model['stats']
@@ -935,6 +1106,11 @@ def _render_current_browser_article(out, cases, records, binding):
     dates = sorted({row['started_at'][:10] for row in records})
     body += '<p class="tiny">调用日期：'+escape('、'.join(dates))+'</p>'
     body += '<p class="lead">'+str(model['cases'])+' 个任务；'+str(engine_count)+' 种浏览器、'+str(len(names))+' 种配置，'+str(model['results'])+' 个逻辑结果。</p>'+paragraph(content['intro'])
+    figures = ''.join('<figure class="editorial-figure"><img data-browser-figure="'+escape(item['path'],quote=True)
+                      +'" src="../'+escape(item['path'],quote=True)+'" alt="'+escape(item['alt'],quote=True)
+                      +'" style="display:block;width:100%;height:auto"><figcaption>'+escape(item['caption'])+'</figcaption></figure>'
+                      for item in model['figures'])
+    body += section('这次测什么', paragraph(content.get('background', content['intro']))+figures, 'scope')
     body += section('整体任务通过率', _table(['浏览器','实测版本','通过数 / 总数','任务通过率'], [
         (label(name), escape(stats[name]['version']), f'{stats[name]["passed"]}/{model["cases"]}',
          metric(name,'pass_rate',stats[name]['pass_rate'],[stats[n]['pass_rate'] for n in names],True))
@@ -973,7 +1149,18 @@ def _render_current_browser_article(out, cases, records, binding):
     fallback = ' → '.join('<span class="tag">'+x+'</span>' for x in ('目标网址与规则','浏览器原生访问','完整输出与日志','统一评分','整体与专项'))
     mechanism = '<div class="wmb-flow"><div data-wmb-flow-fallback>'+fallback+'</div><pre class="mermaid" hidden>'+escape(flow)+'</pre></div>'
     body += section('怎样判断一次获取是否可用', mechanism+paragraph(content['scoring']), 'scoring')
-    body += section('全部调用的耗时', '<p>所有浏览器使用相同任务分母，包含成功与失败调用。耗时较短只说明更快返回，不等于更高的任务通过率。</p>'+latency_table('all'), 'all-latency')
+    if model['examples']:
+        examples = ''
+        for item in model['examples']:
+            row = item['row']; case = cases[row['case_id']]
+            examples += '<details data-browser-example="'+escape(row['attempt_id'])+'"><summary>'+escape(BROWSER_FAMILY_NAMES[report_family(case)])+' · '+escape(case.get('name',case['id']))+'</summary>'
+            evidence = item['evidence']
+            examples += paragraph(item['explanation'])+'<p>方法：'+label(row['provider'])+' · 运行 ID：<code>'+escape(evidence['run_id'])+'</code> · 任务判定：<strong data-example-verdict="'+escape(row['attempt_id'])+'">'+('通过' if evidence['passed'] else '未通过')+'</strong></p>'
+            examples += '<div class="evidence-compare" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1rem"><article class="evidence-pane"><h4>题目要求与参考节选</h4><p>共 '+str(evidence['expected_chars'])+' 字符，显示前 '+str(len(evidence['expected']))+' 字符。</p><pre style="max-height:28rem;overflow:auto;white-space:pre-wrap" data-example-expected="'+escape(row['attempt_id'])+'">'+escape(evidence['expected'])+'</pre></article><article class="evidence-pane"><h4>原始输出节选</h4><p>文件任务展示交付元数据；文本显示前 '+str(len(evidence['actual']))+' 字符。</p><pre style="max-height:28rem;overflow:auto;white-space:pre-wrap" data-example-actual="'+escape(row['attempt_id'])+'">'+escape(evidence['actual'])+'</pre></article></div>'
+            examples += _table(['检查项目','题目要求','实际结果','判定'],[(escape(check['label']),escape(check['expected']),escape(check['actual']),'<span data-example-check="'+escape(row['attempt_id'])+'" data-check-key="'+escape(check['key'])+'">'+escape(check['verdict'])+'</span>') for check in evidence['checks']], '检查值来自本次保存的统一评分结果；完整输出和逐项证据见结果详情。')
+            examples += '<p><a href="../datasets/'+escape(case['id'],quote=True)+'.html">任务与验收规则</a> · <a href="../attempts/'+escape(row['attempt_id'],quote=True)+'.html">实际返回与判定证据</a></p></details>'
+        body += section('同一任务怎样验收', examples, 'examples')
+    body += section('全部调用的耗时', '<p>P50 是中位数，P95 表示 95% 的调用在该耗时内完成。所有浏览器使用相同任务分母，包含成功与失败调用。调用分布在不同日期，不能把耗时差异直接归因于浏览器引擎或新版改进；耗时较短也不等于任务通过率更高。</p>'+latency_table('all'), 'all-latency')
     body += section('通过任务的耗时', '<p>只计各浏览器自己通过的任务。各行样本可能不同，须结合通过数阅读；这张表不改变任务范围或整体排名。</p>'+latency_table('successful'), 'successful-latency')
     resource = contained_path(out, 'resource-cohort/resource-comparison.json')
     if resource.is_file():
@@ -986,6 +1173,25 @@ def _render_current_browser_article(out, cases, records, binding):
         table, explanation = _render_article_resources(
             resource_summary, resource_summary['providers'])
         body += section('客户端资源消耗', table+paragraph(explanation), 'resources')
+    else:
+        body += section('客户端资源消耗', '<p>本轮未登记完整可比的 CPU、内存和网络资源测量，不据此作资源效率排名。</p>', 'resources')
+    def reviewed_distribution(items, provider):
+        counts = Counter(item['category'] for item in items)
+        labels = {item['category']: item['category_label'] for item in items}
+        return _table(['核验后的失败原因', '未通过数量'], [
+            ('<a href="#failure-category-'+escape(provider)+'-'+escape(category)+'">'+escape(labels[category])+'</a>',
+             '<span data-reviewed-failure="'+escape(provider)+'" data-category="'+escape(category)+'" data-count="'+str(count)+'">'+str(count)+'</span>')
+            for category,count in sorted(counts.items(),key=lambda item:(-item[1],item[0]))],
+            '每个失败结果只归入一个主要原因；程序错误分类单独保留。')
+    if model['failure_review']:
+        failure_index = ''
+        for category in sorted({item['category'] for item in model['failure_review'].values()}):
+            items = [item for item in model['failure_review'].values() if item['category'] == category]
+            failure_index += '<details id="failure-category-all-'+escape(category)+'"><summary>'+escape(items[0]['category_label'])+' · '+str(len(items))+' 个结果</summary><ul>'
+            failure_index += ''.join('<li><a href="#failure-review-'+escape(item['attempt_id'])+'">'+label(item['provider'])+' · '+escape(item['case_id'])+'</a></li>' for item in items)
+            failure_index += '</ul></details>'
+        body += section('失败任务的主要原因', reviewed_distribution(list(model['failure_review'].values()), 'all')
+                        +'<p>以下按方法展开全部失败。访问限制只在返回内容或调用日志明确出现拒绝、登录、验证码等证据时成立，不能用来代替网络和功能问题。</p>'+failure_index, 'failure-summary')
     errors = {'acceptance':'内容或交付验收未通过','timeout':'访问或提取超时',
               'browser_exit':'浏览器进程返回错误','browser_error':'浏览器访问或运行错误',
               'http_status':'网页返回错误状态','empty_response':'返回内容为空','tool_error':'工具执行错误'}
@@ -995,14 +1201,24 @@ def _render_current_browser_article(out, cases, records, binding):
         distribution = _table(['程序分类','未通过数量'], [
             (escape(errors.get(key, key)), '<span data-browser-failure="'+escape(name)+'" data-category="'+escape(key)+'" data-count="'+str(count)+'">'+str(count)+'</span>')
             for key,count in sorted(counts.items())], f'{name} 的全部未通过结果，每个结果归入一个程序分类。') if counts else '<p>本轮所有任务均通过。</p>'
+        if model['failure_review']:
+            reviewed = stat['failure_reviews']
+            diagnosis = reviewed_distribution(reviewed, name) if reviewed else '<p>本轮所有任务均通过。</p>'
+            for category in sorted({item['category'] for item in reviewed}):
+                items = [item for item in reviewed if item['category'] == category]
+                diagnosis += '<details id="failure-category-'+escape(name)+'-'+escape(category)+'"><summary>'+escape(items[0]['category_label'])+' · '+str(len(items))+' 个结果</summary>'
+                for item in items:
+                    diagnosis += '<details id="failure-review-'+escape(item['attempt_id'])+'" data-failure-review="'+escape(item['attempt_id'])+'"><summary>'+escape(item['case_id'])+'</summary><p data-reviewed-reason="'+escape(item['attempt_id'])+'">'+escape(item['reason'])+'</p><p data-reviewed-treatment="'+escape(item['attempt_id'])+'">处理结论：'+escape(item['remediation_status'])+'</p><p><a href="../attempts/'+escape(item['attempt_id'],quote=True)+'.html">完整结果、评分与日志</a></p></details>'
+                diagnosis += '</details>'
+            distribution = diagnosis+'<details><summary>程序返回分类</summary>'+distribution+'</details>'
         row = stat['specimen'];case = cases[row['case_id']]
         raw = contained_path(out,row['artifact_path']).read_text(encoding='utf-8',errors='replace')
         reference = case.get('ground_truth_main_content') or case.get('reference_answer') or json.dumps({
             key:case[key] for key in ('required_facts','body_requirements','acceptance_contract','expected_resources','resource_output_contract') if case.get(key)},ensure_ascii=False,indent=2)
-        error = row.get('error_message') or ('未满足完整验收规则；逐项期望与实际值见结果详情。' if counts else '满足该题验收规则。')
+        error = _browser_error_excerpt(row, bool(counts))
         example = '<details open data-browser-specimen="'+escape(name)+'"><summary>'+escape(case.get('name',case['id']))+' · '+escape(case['id'])+'</summary>'
         example += '<p><a href="'+escape(case['url'],quote=True)+'">原始页面</a> · <a href="../datasets/'+escape(case['id'],quote=True)+'.html">任务与验收规则</a> · <a data-browser-result="'+escape(name)+'" href="../attempts/'+escape(row['attempt_id'],quote=True)+'.html">完整结果、评分与日志</a></p>'
-        example += '<h4>参考范围或验收要求（节选）</h4><pre>'+escape(reference[:1800])+'</pre><h4>实际返回（节选）</h4><pre>'+escape(raw[:1800])+'</pre><h4>程序返回或验收结果</h4><pre data-browser-error="'+escape(name)+'">'+escape(error)+'</pre></details>'
+        example += '<h4>参考范围或验收要求（节选）</h4><pre>'+escape(reference[:1800])+'</pre><h4>实际返回（节选）</h4><pre>'+escape(raw[:1800])+'</pre><h4>程序返回或验收结果</h4><pre style="max-height:24rem;overflow:auto;white-space:pre-wrap" data-browser-error="'+escape(name)+'">'+escape(error)+'</pre></details>'
         body += section((browser_method_label(name) if browser_method_label(name) != name else name.title())+'：'+str(stat['passed'])+'/'+str(model['cases'])+' 题通过',
                         '<div data-browser-chapter="'+escape(name)+'">'+paragraph(chapter['explanation'])+distribution+example+'</div>', 'browser-'+name)
     review_path = contained_path(out,'result-review.json')
@@ -1010,7 +1226,34 @@ def _render_current_browser_article(out, cases, records, binding):
     body += section('结论与审查范围', paragraph(content['conclusions'])+
                     ('<p>独立审查范围见<a href="../review/index.html">审查记录</a>，未审查结果仍按程序验收结果展示。</p>' if review else
                      '<p>独立结果审查：0/'+str(model['results'])+'。未经独立复判的程序通过结果：'+str(sum(stats[n]['passed'] for n in names))+'。本轮报告使用统一评分器的原始验收结果。</p>'), 'conclusions')
-    body += '</article><script>document.addEventListener("DOMContentLoaded",()=>{if(typeof wmbRenderFlow==="function")wmbRenderFlow()});</script>'
+    # Assemble the authored reading sequence without duplicating measured sections.
+    from bs4 import BeautifulSoup
+    article = BeautifulSoup(body, 'html.parser')
+    owner = article.select_one('article')
+    chapters = [
+        ('scope', '01 这次测什么', ['scope']),
+        ('results', '02 通过率、耗时与资源', ['overall','families','all-latency','successful-latency','resources']),
+        ('method', '03 测试方法与实例', ['scoring','examples']),
+        ('configuration', '04 浏览器与测试配置', ['interfaces']),
+        ('failures', '05 失败任务与正文缺失', ['failure-summary']+['browser-'+name for name in names]),
+        ('conclusion', '06 结论与适用范围', ['conclusions']),
+    ]
+    for anchor,title,children in chapters:
+        wrapper = article.new_tag('section', attrs={'class':'section reading-chapter','id':'reading-'+anchor})
+        heading = article.new_tag('h2'); heading.string = title; wrapper.append(heading)
+        for child in children:
+            node = article.find(id=child)
+            if node:
+                for heading in node.find_all('h2', recursive=False): heading.name = 'h3'
+                wrapper.append(node.extract())
+        owner.append(wrapper)
+    contents = article.new_tag('nav', attrs={'aria-label':'报告解读目录','data-reading-contents':'1'})
+    for anchor,title,children in chapters:
+        entry = article.new_tag('a', href='#reading-'+anchor);entry.string=title
+        contents.append(entry);contents.append(' · ')
+    owner.insert(3,contents)
+    body = str(article)
+    body += '<script>document.addEventListener("DOMContentLoaded",()=>{if(typeof wmbRenderFlow==="function")wmbRenderFlow()});</script>'
     evidence = {'schema':'webfetch_browser_interpretation_evidence/1','input_sha256':content['evidence_sha256'],
                 'cases':model['cases'],'results':model['results'],'providers':names,'interfaces':interfaces,
                 'stats':{n:{k:v for k,v in stats[n].items() if k!='specimen'} for n in names}}
@@ -1076,6 +1319,87 @@ def check_current_browser_article(out, cases, records, binding):
     for relative in ('guide/index.html','guide/article.html'):
         page=contained_path(out,relative)
         inspect=Inspect();inspect.feed(page.read_text())
+        from bs4 import BeautifulSoup
+        document = BeautifulSoup(page.read_text(), 'html.parser')
+        chapter_ids = [node.get('id') for node in document.select('.reading-chapter')]
+        if chapter_ids != ['reading-'+key for key in ('scope','results','method','configuration','failures','conclusion')]:
+            raise ValueError('Browser interpretation reading sequence is incomplete')
+        expected_root = {}
+        for name in model['providers']:
+            expected_root.update({(name,key):count for key,count in model['stats'][name]['reviewed_failure_counts'].items()})
+        if model['failure_review']:
+            expected_root.update({('all',key):count for key,count in Counter(item['category'] for item in model['failure_review'].values()).items()})
+        actual_root = [(node['data-reviewed-failure'],node['data-category'],int(node['data-count'])) for node in document.select('[data-reviewed-failure]')]
+        if len(actual_root) != len(expected_root) or {(name,key):count for name,key,count in actual_root} != expected_root:
+            raise ValueError('Reviewed failure distribution differs from evidence')
+        category_labels = {item['category']:item['category_label'] for item in model['failure_review'].values()}
+        for node in document.select('[data-reviewed-failure]'):
+            if node.find_parent('tr').find('a').get_text() != category_labels[node['data-category']]:
+                raise ValueError('Reviewed failure category label differs from evidence')
+        treatments = document.select('[data-reviewed-treatment]')
+        if len(treatments) != len(model['failure_review']) or {node['data-reviewed-treatment']:node.get_text() for node in treatments} != {
+                aid:'处理结论：'+item['remediation_status'] for aid,item in model['failure_review'].items()}:
+            raise ValueError('Reviewed failure treatment is incomplete or wrong')
+        reason_nodes = document.select('[data-reviewed-reason]')
+        actual_reasons = {node['data-reviewed-reason']:node.get_text() for node in reason_nodes}
+        if len(reason_nodes) != len(model['failure_review']) or actual_reasons != {aid:item['reason'] for aid,item in model['failure_review'].items()}:
+            raise ValueError('Reviewed per-failure causes are incomplete or wrong')
+        for item in model['figures']:
+            matches = [node for node in document.select('img[data-browser-figure]') if node['data-browser-figure'] == item['path']]
+            if len(matches) != 1 or matches[0].get('alt') != item['alt']:
+                raise ValueError('Browser interpretation figure is missing or wrong')
+            if relative.endswith('article.html'):
+                suffix = Path(item['path']).suffix.lower()
+                mime = 'image/jpeg' if suffix in {'.jpg','.jpeg'} else 'image/'+suffix[1:]
+                expected_src = 'data:'+mime+';base64,'+base64.b64encode(contained_path(out,item['path']).read_bytes()).decode('ascii')
+            else:
+                expected_src = '../'+item['path']
+            if matches[0].get('src') != expected_src or matches[0].find_parent('figure').find('figcaption').get_text() != item['caption']:
+                raise ValueError('Browser interpretation figure bytes or caption differ')
+        for name in model['providers']:
+            values = document.select('[data-browser-error="'+name+'"]')
+            stat = model['stats'][name]
+            if len(values) != 1 or values[0].get_text() != _browser_error_excerpt(stat['specimen'], bool(stat['failure_counts'])):
+                raise ValueError('Browser specimen error excerpt is missing or differs from evidence')
+        examples = document.select('[data-browser-example]')
+        expected_examples = {item['row']['attempt_id']:item for item in model['examples']}
+        if len(examples) != len(expected_examples) or {node['data-browser-example'] for node in examples} != set(expected_examples):
+            raise ValueError('Browser interpretation examples are incomplete')
+        for node in examples:
+            item = expected_examples[node['data-browser-example']]
+            if node.find('p').get_text() != item['explanation']:
+                raise ValueError('Browser interpretation example explanation differs')
+            evidence = item['evidence']
+            aid = item['row']['attempt_id']
+            for field in ('expected','actual'):
+                values = node.select('[data-example-'+field+']')
+                if len(values) != 1 or values[0].get('data-example-'+field) != aid or values[0].get_text() != evidence[field]:
+                    raise ValueError('Browser example expected or actual evidence is missing or wrong')
+            checks = node.select('[data-example-check]')
+            actual_checks = {value['data-check-key']:value.get_text() for value in checks if value.get('data-example-check') == aid}
+            if len(checks) != len(evidence['checks']) or actual_checks != {value['key']:value['verdict'] for value in evidence['checks']}:
+                raise ValueError('Browser example scoring checks are missing or wrong')
+            for value in checks:
+                check = next(item for item in evidence['checks'] if item['key'] == value['data-check-key'])
+                cells = value.find_parent('tr').find_all('td')[1:]
+                if [cell.get_text() for cell in cells] != [check['label'],check['expected'],check['actual'],check['verdict']]:
+                    raise ValueError('Browser example expected/actual check values differ')
+            verdict = node.select_one('[data-example-verdict]')
+            if verdict is None or verdict.get_text() != ('通过' if evidence['passed'] else '未通过') or evidence['run_id'] not in node.get_text():
+                raise ValueError('Browser example run identity or verdict is missing')
+            row = item['row']
+            target = '#offline-result-'+row['attempt_id'] if relative.endswith('article.html') else '../attempts/'+row['attempt_id']+'.html'
+            if target not in [anchor.get('href') for anchor in node.select('a[href]')]:
+                raise ValueError('Browser interpretation example evidence target is broken')
+
+        for anchor in document.select('a[href^="#failure-category-"]'):
+            if document.find(id=anchor['href'][1:]) is None:
+                raise ValueError('Failure category drilldown is broken')
+        contents = document.select_one('[data-reading-contents]')
+        if contents is None or [item.get('href') for item in contents.select('a')] != ['#'+key for key in chapter_ids]:
+            raise ValueError('Browser interpretation chapter navigation is incomplete')
+        if 'P50 是中位数' not in document.get_text() or '不同日期' not in document.find(id='all-latency').get_text():
+            raise ValueError('Browser latency population or timing limitation is missing')
         actual_interfaces={key:[tuple(part) for part in parts] for key,parts in inspect.interfaces.items()}
         if actual_interfaces != expected_interfaces:
             raise ValueError('Browser task interface matrix is missing or differs from declared tasks')

@@ -659,6 +659,143 @@ class CurrentBrowserArticleTests(unittest.TestCase):
         binding={'path':'report-assets/content.json','sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
         return cases,rows,binding
 
+    def bind_failure_review(self, root, cases, rows, binding):
+        result_path = root/'results.jsonl'
+        if not result_path.exists():
+            result_path.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        failed = next(row for row in rows if not row['ok'])
+        artifact = root/failed['artifact_path']
+        review = {'schema':'webfetch_failure_review/1',
+                  'results_sha256':hashlib.sha256(result_path.read_bytes()).hexdigest(),
+                  'failures':[{'attempt_id':failed['attempt_id'],'provider':failed['provider'],
+                               'case_id':failed['case_id'],'category':'source_access_denied',
+                               'category_label':'源站拒绝访问',
+                               'reason':'源站返回 HTTP 403，输出明确写明 Access denied。',
+                               'remediation_status':'保留失败；评测端不绕过访问限制。',
+                               'evidence_paths':[{'path':failed['artifact_path'],
+                                  'sha256':hashlib.sha256(artifact.read_bytes()).hexdigest()}]}]}
+        path=root/'report-assets/failures.json';path.write_text(json.dumps(review,ensure_ascii=False))
+        content_path=root/binding['path'];content=json.loads(content_path.read_text())
+        content.update(require_failure_review=True, failure_review={
+            'path':'report-assets/failures.json','sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+        content['background']='网页正文与文件内容按各自交付要求验收。'
+        import base64
+        image=root/'report-assets/delivery.png'
+        image.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='))
+        content['figures']=[{'path':'report-assets/delivery.png',
+                            'sha256':hashlib.sha256(image.read_bytes()).hexdigest(),
+                            'alt':'同一输入分别取得正文或文件', 'caption':'不同任务检查不同的交付内容。'}]
+
+        content['case_examples']=[{'provider':'lightpanda','case_id':'web-case',
+                                  'explanation':'这个实例返回全部固定正文，满足相同验收要求。'}]
+        content_path.write_text(json.dumps(content,ensure_ascii=False))
+        binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
+        return review
+
+    def test_failure_review_is_complete_current_and_independent_of_program_errors(self):
+        from harness.web_fetch.report_explainer import render_explainer, check_current_browser_article
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,binding=self.example(root)
+            review=self.bind_failure_review(root,cases,rows,binding)
+            body=render_explainer(root,cases,rows,content_binding=binding)
+            (root/'guide/index.html').write_text(body)
+            model=check_current_browser_article(root,cases,rows,binding)
+            self.assertEqual(model['stats']['moli']['failure_counts'],{'http_status':1})
+            self.assertEqual(model['stats']['moli']['reviewed_failure_counts'],{'source_access_denied':1})
+            self.assertIn(review['failures'][0]['reason'],body)
+            self.assertIn('程序返回分类',body)
+            self.assertIn('03 测试方法与实例',body)
+            self.assertIn('data-browser-figure="report-assets/delivery.png"',body)
+            self.assertIn('05 失败任务与正文缺失',body)
+            # Only the authored specimen embeds complete output in the independent edition.
+            offline=(root/'guide/article.html').read_text()
+            self.assertIn('offline-result-lightpanda__web-case',offline)
+            self.assertIn('src="data:image/png;base64,',offline)
+            from bs4 import BeautifulSoup
+            document=BeautifulSoup(offline,'html.parser')
+            for anchor in document.select('a[href^="#"]'):
+                self.assertIsNotNone(document.find(id=anchor['href'][1:]))
+            page=root/'guide/index.html'
+            for changed in [body.replace('data-reviewed-failure="moli"','data-removed="moli"',1),
+                            body.replace(review['failures'][0]['reason'],'没有依据的归因',1),
+                            body.replace('id="failure-category-moli-source_access_denied"','id="missing-cause"',1),
+                            body.replace('id="reading-method"','id="missing-method"',1),
+                            body.replace('data-browser-figure="report-assets/delivery.png"','data-removed-figure="x"',1),
+                            body.replace('保留失败；评测端不绕过访问限制。','已修复',1),
+                            body.replace('data-example-expected=','data-hidden-expected=',1),
+                            body.replace('data-example-actual=','data-hidden-actual=',1),
+                            body.replace('data-example-check=','data-hidden-check=',1),
+                            body.replace('data-example-verdict=','data-hidden-verdict=',1),
+                            body.replace('data-reading-contents=','data-hidden-contents=',1),
+                            body.replace('P50 是中位数','P50 值',1)]:
+                page.write_text(changed)
+                with self.assertRaises(ValueError):
+                    check_current_browser_article(root,cases,rows,binding)
+
+    def test_interpretation_examples_use_saved_checks_and_do_not_decode_binary_files(self):
+        from harness.web_fetch.report_explainer import browser_example_evidence
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,binding=self.example(root)
+            row=deepcopy(rows[0]);case=deepcopy(cases[row['case_id']])
+            case['min_content_chars']=10
+            case['body_requirements']={'minimum_coverage':0.9}
+            row['metrics'].update(length_pass=True,content_chars=22,
+                fact_results=[{'id':'body','alternatives':['Expected complete body'],'matched':['Expected complete body'],'pass':True}],
+                body_region_results=[{'id':'opening','coverage':0.5,'pass':False}],body_coverage_pass=False,
+                stable_anchor_results=[{'id':'heading','alternatives':['Expected'],'matched':['Expected'],'pass':True}],
+                stable_field_results=[{'field':'name','count':2,'minimum':3,'pass':False}],
+                stable_unique_record_count=2,stable_minimum_records=3,stable_structure_pass=False)
+            evidence=browser_example_evidence(root,case,row)
+            checks={item['key']:item for item in evidence['checks']}
+            self.assertEqual(checks['length']['actual'],'22')
+            self.assertEqual(checks['fact_results_1']['verdict'],'通过')
+            self.assertEqual(checks['body_region_results_1']['verdict'],'未通过')
+            self.assertIn('0.5',checks['body_region_results_1']['actual'])
+            self.assertEqual(checks['stable_field_results_1']['expected'],'3')
+            self.assertEqual(checks['records']['actual'],'2')
+            # Direct file inspection uses retained file metadata even if no text artifact can be read.
+            case['task_kind']='file';row['artifact_path']='must-not-read.bin'
+            row['metrics']['raw_file_pass']=True
+            row['provider_metadata']['file_evaluation']={'files':[{'mime':'video/mp4','bytes':12,'sha256':'abc','pass':True}]}
+            evidence=browser_example_evidence(root,case,row)
+            self.assertIn('video/mp4',evidence['actual'])
+            self.assertIn('abc',evidence['actual'])
+            self.assertTrue(evidence['passed'])
+            case['task_kind']='body';row['artifact_path']=rows[0]['artifact_path']
+            (root/row['artifact_path']).write_bytes(b'')
+            self.assertEqual(browser_example_evidence(root,case,row)['actual'],'本次没有返回内容。')
+            (root/row['artifact_path']).write_bytes(b'%PDF-1.7 binary data')
+            self.assertIn('二进制响应',browser_example_evidence(root,case,row)['actual'])
+
+    def test_failure_review_rejects_incomplete_stale_and_misattributed_diagnoses(self):
+        from harness.web_fetch.report_explainer import current_browser_article_model
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,binding=self.example(root)
+            original=self.bind_failure_review(root,cases,rows,binding)
+            content_path=root/binding['path'];content=json.loads(content_path.read_text())
+            review_path=root/content['failure_review']['path']
+            mutations=[lambda value:value.update(failures=[]),
+                       lambda value:value['failures'].append(deepcopy(value['failures'][0])),
+                       lambda value:value.update(results_sha256='0'*64),
+                       lambda value:value['failures'][0].update(attempt_id=rows[0]['attempt_id'],case_id=rows[0]['case_id']),
+                       lambda value:value['failures'][0].update(provider='lightpanda'),
+                       lambda value:value['failures'][0].update(category=''),
+                       lambda value:value['failures'][0].update(reason=''),
+                       lambda value:value['failures'][0].update(evidence_paths=[]),
+                       lambda value:value['failures'][0]['evidence_paths'][0].update(sha256='0'*64)]
+            for mutation in mutations:
+                value=deepcopy(original);mutation(value)
+                review_path.write_text(json.dumps(value,ensure_ascii=False))
+                content['failure_review']['sha256']=hashlib.sha256(review_path.read_bytes()).hexdigest()
+                content_path.write_text(json.dumps(content,ensure_ascii=False))
+                binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
+                with self.subTest(mutation=mutations.index(mutation)), self.assertRaises(ValueError):
+                    current_browser_article_model(root,cases,rows,binding)
+            content.pop('failure_review');content_path.write_text(json.dumps(content))
+            binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
+            with self.assertRaisesRegex(ValueError,'requires a failure review'):
+                current_browser_article_model(root,cases,rows,binding)
+
     def test_new_cohort_has_dynamic_families_populations_and_evidence(self):
         from harness.web_fetch.report_explainer import render_explainer, check_current_browser_article
         with tempfile.TemporaryDirectory() as temp:
@@ -679,6 +816,32 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             self.assertIn('统一解析策略不保证', body)
             self.assertNotIn('150 道',body)
             self.assertNotIn('1.1.5',body)
+
+    def test_interpretation_bounds_long_program_errors_without_changing_evidence(self):
+        from bs4 import BeautifulSoup
+        from harness.web_fetch.report_explainer import render_explainer, check_current_browser_article
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,binding=self.example(root)
+            row=next(row for row in rows if not row['ok'])
+            row['error_message']='BEGIN FULL DEBUG LOG\n'+('debug line\n'*12000)+'FINAL ERROR: connection reset'
+            original=row['error_message']
+            content_path=root/binding['path'];content=json.loads(content_path.read_text())
+            content['evidence_sha256']=_digest(_headless_article_input(cases,rows,['moli','lightpanda']))
+            content_path.write_text(json.dumps(content,ensure_ascii=False))
+            binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
+            body=render_explainer(root,cases,rows,content_binding=binding)
+            page=root/'guide/index.html';page.write_text(body)
+            model=check_current_browser_article(root,cases,rows,binding)
+            excerpt=BeautifulSoup(body,'html.parser').select_one('[data-browser-error="moli"]').get_text()
+            self.assertLess(len(excerpt),4100)
+            self.assertTrue(excerpt.endswith('FINAL ERROR: connection reset'))
+            self.assertNotIn('BEGIN FULL DEBUG LOG',excerpt)
+            self.assertIn('完整错误和日志见结果详情',excerpt)
+            self.assertEqual(row['error_message'],original)
+            self.assertEqual(model['stats']['moli']['specimen']['error_message'],original)
+            page.write_text(body.replace('FINAL ERROR: connection reset','different failure',1))
+            with self.assertRaisesRegex(ValueError,'error excerpt'):
+                check_current_browser_article(root,cases,rows,binding)
 
     def test_network_disclosure_uses_recorded_modes_and_separates_service_network(self):
         from harness.web_fetch.report_explainer import _browser_network_rows
@@ -783,6 +946,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                      'providers':{name:{'specimen_case_id':'risk-case','explanation':'展示实际调用及程序验收结果。'} for name in ['moli','lightpanda']}}
             content_path=source/'report-assets/content.json';content_path.parent.mkdir();content_path.write_text(json.dumps(content,ensure_ascii=False))
             binding={'path':'report-assets/content.json','sha256':hashlib.sha256(content_path.read_bytes()).hexdigest()}
+            self.bind_failure_review(source,case_map,rows,binding)
             provenance=source/'implementation-provenance.json'
             provenance.write_text(json.dumps({'schema_version':1,'implementations':[
                 {'provider':'moli','binary_sha256':'synthetic','version':'synthetic'}]}))
@@ -798,6 +962,10 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                              'A machine-only cohort must not claim independently reviewed verdicts')
             self.assertIn('程序判定',analysis)
             self.assertEqual((report/binding['path']).read_bytes(),content_path.read_bytes())
+            self.assertEqual((report/'report-assets/failures.json').read_bytes(),(source/'report-assets/failures.json').read_bytes())
+            self.assertEqual((report/'report-assets/delivery.png').read_bytes(),(source/'report-assets/delivery.png').read_bytes())
+            failed=next(row for row in rows if not row['ok'])
+            self.assertIn('失败原因专题核验',(report/'attempts'/f"{failed['attempt_id']}.html").read_text())
             self.assertEqual((report/'implementation-provenance.json').read_bytes(),provenance.read_bytes())
             check_current_browser_article(report,case_map,rows,binding)
             from bs4 import BeautifulSoup

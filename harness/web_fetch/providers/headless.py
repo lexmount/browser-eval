@@ -580,7 +580,14 @@ class HeadlessProvider(Provider):
         normalized_plan = completion_plan.worker_dict() if completion_plan else None
         if normalized_plan is not None and native_contract is not None:
             normalized_plan['include_subdocuments'] = native_contract.include_subdocuments
-        include_subdocuments = bool(native_contract and native_contract.include_subdocuments)
+        subdocument_tracks = self.config.get('include_subdocuments_by_track', {})
+        if (not isinstance(subdocument_tracks, dict)
+                or any(not isinstance(value, bool) for value in subdocument_tracks.values())):
+            raise ValueError('include_subdocuments_by_track must map tracks to booleans')
+        include_subdocuments = bool(
+            (native_contract and native_contract.include_subdocuments)
+            or subdocument_tracks.get(case.track, False)
+        )
         if normalized_plan and engine != 'kitesurf':
             metadata['completion'] = completion_metadata(engine, normalized_plan, output_mode)
             metadata['completion']['effective_route_timeout_ms'] = round(

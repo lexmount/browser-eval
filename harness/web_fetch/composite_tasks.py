@@ -388,10 +388,10 @@ _DATE_OR_TIME = re.compile(
     r"\b\d{1,2}[-/.]\d{1,2}[-/.](?:\d{2}|\d{4})\b|"
     r"\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
     r"Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|"
-    r"Dec(?:ember)?)\s+\d{1,2}(?:,\s*(?:19|20)\d{2})?\b|"
+    r"Dec(?:ember)?)\.?\s+\d{1,2}(?:,\s*(?:19|20)\d{2})?\b|"
     r"\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
     r"Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|"
-    r"Dec(?:ember)?)(?:\s+(?:19|20)\d{2})?\b|"
+    r"Dec(?:ember)?)\.?(?:\s+(?:19|20)\d{2})?\b|"
     r"\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day)?\b|"
     r"\b\d{1,2}:\d{2}(?:\s*[ap]m)?\b|"
     r"\b(?:an?|\d+)\s+(?:minutes?|hours?|days?)\s+ago\b)",

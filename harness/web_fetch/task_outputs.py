@@ -296,7 +296,16 @@ def require_native_task_routes(cases, records):
             if provider == 'moli'
             else meta.get('subdocuments')
         )
-        if frame_contract:
+        # A family-wide provider option may request native child documents
+        # without adding a case-specific completion/selector contract.
+        optional_native_family_frames = (
+            not frame_contract
+            and provider == 'lightpanda' and case.track == 'dynamic'
+            and mode == 'markdown' and frame_metadata is not None
+        )
+        if optional_native_family_frames:
+            valid = valid and meta.get('output_contract') == 'markdown'
+        if frame_contract or optional_native_family_frames:
             expected = {
                 'moli': ('native', '--with-frames'),
                 'lightpanda': (
@@ -320,7 +329,7 @@ def require_native_task_routes(cases, records):
                 if 'scope' in frame_metadata:
                     expected_scope = (
                         'dynamic_task_family'
-                        if native_dynamic_task
+                        if native_dynamic_task or optional_native_family_frames
                         else 'resource_task_family'
                         if case.task_kind == 'resource'
                         else 'declared_native_contract'

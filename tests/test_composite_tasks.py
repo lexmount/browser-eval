@@ -710,3 +710,40 @@ def test_invalid_contract_fails_closed():
                 }
             )
         )
+
+
+@pytest.mark.parametrize("date", [
+    "Jan. 14, 2026", "Feb. 14, 2026", "Mar. 14, 2026", "Apr. 14, 2026",
+    "May 14, 2026", "Jun. 14, 2026", "Jul. 14, 2026", "Aug. 14, 2026",
+    "Sep. 14, 2026", "Oct. 14, 2026", "Nov. 14, 2026", "Dec. 14, 2026",
+    "14 Oct. 2026", "Oct 14, 2026", "October 14, 2026", "14 October 2026",
+])
+def test_article_dates_accept_english_month_abbreviation_punctuation(date):
+    from harness.web_fetch.metrics import task_passed
+    from harness.web_fetch.scoring import score_attempt
+
+    case = {
+        "url": "https://example.test/news",
+        "composite_acceptance": contract(named(
+            "news", r"^# News$", r"^# End$", 1,
+            required_fields=[{"id": "published", "kind": "date_or_time"}],
+        )),
+    }
+    body = f"# News\n[Article](https://example.test/item/1)\n{date}\n# End"
+    assert task_passed(True, score_attempt(case, body.encode(), ok=True))
+
+
+@pytest.mark.parametrize("date", ["October", "Oct.", "2026", "No publication date"])
+def test_article_date_requires_a_day_or_time_not_just_month_or_year(date):
+    from harness.web_fetch.metrics import task_passed
+    from harness.web_fetch.scoring import score_attempt
+
+    case = {
+        "url": "https://example.test/news",
+        "composite_acceptance": contract(named(
+            "news", r"^# News$", r"^# End$", 1,
+            required_fields=[{"id": "published", "kind": "date_or_time"}],
+        )),
+    }
+    body = f"# News\n[Article](https://example.test/item/1)\n{date}\n# End"
+    assert not task_passed(True, score_attempt(case, body.encode(), ok=True))

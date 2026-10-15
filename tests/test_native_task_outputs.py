@@ -224,6 +224,43 @@ class NativeRoutePublicationTests(unittest.TestCase):
                 require_native_task_routes([case],[{'provider':'kitesurf','case_id':'dynamic-iframe',
                                                     'provider_metadata':bad}])
 
+    def test_dynamic_family_native_frame_option_has_exact_receipt_and_no_converter(self):
+        from harness.web_fetch.task_outputs import require_native_task_routes
+        frames = {'requested':True, 'support':'native_markdown_omits_child_document',
+                  'interface':'--load-resources iframe + --with-frames',
+                  'harness_content_assembly':False}
+        meta = {'engine':'lightpanda', 'extractor':'lightpanda_native_markdown',
+                'output_contract':'markdown', 'subdocuments':frames}
+        for identifier,url in [('alpha','https://example.com/alpha'),
+                               ('beta','https://example.org/beta')]:
+            case = {'id':identifier, 'url':url, 'track':'dynamic', 'task_kind':'body',
+                    'retrieval_hints':{'version':3,'mode':'native'}}
+            row = {'provider':'lightpanda', 'case_id':identifier, 'provider_metadata':meta}
+            require_native_task_routes([case],[row])
+            require_native_task_routes([case],[{**row,'provider_metadata':{**meta,
+                'subdocuments':{**frames,'scope':'dynamic_task_family'}}}])
+            invalid = [
+                {**meta,'extractor':'node-html-markdown'},
+                {**meta,'output_contract':'html'},
+                *[{**meta,'subdocuments':bad} for bad in (
+                    {**frames,'requested':False},
+                    {**frames,'support':'native'},
+                    {**frames,'interface':'--dump html'},
+                    {**frames,'harness_content_assembly':True},
+                    {**frames,'answer_selector':'iframe'},
+                    {**frames,'scope':'declared_native_contract'},
+                    {k:v for k,v in frames.items() if k!='harness_content_assembly'},
+                )],
+            ]
+            for bad in invalid:
+                with self.subTest(metadata=bad), self.assertRaises(ValueError):
+                    require_native_task_routes([case],[{**row,'provider_metadata':bad}])
+            with self.assertRaises(ValueError):
+                require_native_task_routes([{**case,'track':'web'}],[row])
+            with self.assertRaises(ValueError):
+                require_native_task_routes([case],[{**row,'provider':'obscura',
+                    'provider_metadata':{**meta,'extractor':'obscura_native_markdown'}}])
+
     def test_kitesurf_dynamic_route_is_limited_to_dynamic_native_markdown(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
 
