@@ -653,6 +653,17 @@ product retrieval failure. Full native tool/worker envelopes are retained privat
 with hashes, separately from scored answer text. Historical outputs without those
 envelopes remain insufficient for an exact raw-response audit.
 
+When those retained bytes contain private host paths or credentials, the shared
+`publication_privacy.project_evidence_view` creates a separate post-score copy
+under `public-evidence/`. Keep the originals private. The bound receipt records
+original and public hashes and byte sizes; `require_public_evidence_view` checks
+the delivered copy without claiming it can reconstruct omitted values. Native
+JSON envelopes are projected structurally to preserve field types. Before using
+such views in a handoff, verify that the public native-field projection still
+matches the public answer and that rescoring it preserves the task verdict.
+Do not replace an original scored binding with a public-view hash or describe a
+redacted reproduction as byte-for-byte recovery of the private call.
+
 
 For native caller comparisons, `dns_mode` is explicitly `system` (default) or
 `public_doh`. All six local methods (Moli, Crawl4AI, OpenClaw, DeepSeek, CowAgent and

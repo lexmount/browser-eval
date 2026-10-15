@@ -354,3 +354,125 @@ def require_host_metadata_projection(source, binding):
         if public.stat().st_size != item['published_bytes']:
             raise ValueError('Published metadata size differs from projection receipt')
     return receipt
+
+
+def project_evidence_view(name, data, *, role, host_prefixes=(), host_names=()):
+    """Create a separately identified public view after scoring.
+
+    The caller retains original bytes privately. This function never changes a
+    result, score, original binding or source file. Its receipt identifies both
+    versions; verifying the public hash does not verify unavailable originals.
+    JSON envelopes are traversed structurally so escaped paths are redacted
+    without corrupting strings or rewriting numeric measurements.
+    """
+    path = PurePosixPath(name)
+    if (path.is_absolute() or not path.parts or path.parts[0] != 'public-evidence'
+            or '..' in path.parts or any(part.startswith('.') for part in path.parts)):
+        raise ValueError('Public evidence views require a separate safe public-evidence path')
+    if role not in {'scored_answer', 'native_response'}:
+        raise ValueError('Unknown public evidence role')
+    if any(not p.startswith('/') or p == '/' for p in host_prefixes):
+        raise ValueError('Public evidence host prefixes must be explicit non-root paths')
+    if any(not host for host in host_names):
+        raise ValueError('Public evidence host names must be explicit nonempty identities')
+    counts = {}
+    patterns = [re.compile(re.escape(p.rstrip('/')) + r'''(?=/|$)[^\s"'<>\\\x00]*''')
+                for p in sorted(set(host_prefixes), key=len, reverse=True)]
+    # User-home paths in retained diagnostics need a complete replacement, not
+    # just a username replacement that would disclose the remaining directories.
+    local = re.compile(LOCAL_USER_PATH.pattern + rb'''[^\s"'<>\\\x00]*''')
+
+    def text_view(value):
+        before = value
+        for pattern in patterns:
+            value, count = pattern.subn('[HOST_PATH_OMITTED]', value)
+            counts['local_path'] = counts.get('local_path', 0) + count
+        for host in host_names:
+            count = value.count(host)
+            value = value.replace(host, '[HOSTNAME_OMITTED]')
+            counts['hostname'] = counts.get('hostname', 0) + count
+        raw = value.encode('utf-8')
+        raw, count = local.subn(b'[HOST_PATH_OMITTED]', raw)
+        counts['local_path'] = counts.get('local_path', 0) + count
+        raw, count = OTHER_SECRET.subn(b'[REDACTED_CREDENTIAL]', raw)
+        counts['credential_shape'] = counts.get('credential_shape', 0) + count
+        projected, receipt = project_file(name, raw)
+        if receipt:
+            counts['sensitive_values'] = counts.get('sensitive_values', 0) + receipt['replacements']
+        result = projected.decode('utf-8')
+        return result if result != before else before
+
+    def node_view(value):
+        if isinstance(value, dict):
+            result = {}
+            for key, item in value.items():
+                public_key = text_view(key)
+                if public_key in result:
+                    raise ValueError('Public view would merge distinct native fields')
+                result[public_key] = node_view(item)
+            return result
+        if isinstance(value, list):
+            return [node_view(item) for item in value]
+        return text_view(value) if isinstance(value, str) else value
+
+    text = data.decode('utf-8')
+    try:
+        native = json.loads(text)
+    except ValueError:
+        projected = text_view(text).encode('utf-8')
+        encoding = 'utf-8-text'
+    else:
+        public = node_view(native)
+        projected = (json.dumps(public, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+                     if public != native else data)
+        encoding = 'json'
+    risk = publication_risk(projected)
+    if risk:
+        raise ValueError('Public evidence still has a publication risk: '+risk)
+    receipt = {'kind': 'post_score_public_evidence_view', 'role': role, 'path': name,
+               'encoding': encoding, 'provider_calls_added': 0,
+               'original_sha256': hashlib.sha256(data).hexdigest(),
+               'original_bytes': len(data),
+               'published_sha256': hashlib.sha256(projected).hexdigest(),
+               'published_bytes': len(projected),
+               'redactions': {key: count for key, count in counts.items() if count},
+               'original_retained_privately': True,
+               'meaning': 'Public-view bytes are separately identified; original scoring bytes and measurements are unchanged. The public view cannot reconstruct omitted private values.'}
+    return projected, receipt
+
+
+def require_public_evidence_view(source, binding):
+    """Verify a declared public view, without claiming original bytes are public."""
+    from .local_revision import read_bound
+    receipt = json.loads(read_bound(source, binding).read_text())
+    name = receipt.get('path', '')
+    path = PurePosixPath(name)
+    redactions = receipt.get('redactions')
+    if (receipt.get('kind') != 'post_score_public_evidence_view'
+            or receipt.get('role') not in {'scored_answer', 'native_response'}
+            or receipt.get('encoding') not in {'json', 'utf-8-text'}
+            or receipt.get('provider_calls_added') != 0
+            or receipt.get('original_retained_privately') is not True
+            or path.is_absolute() or not path.parts or path.parts[0] != 'public-evidence'
+            or '..' in path.parts or any(p.startswith('.') for p in path.parts)
+            or not isinstance(redactions, dict)
+            or any(key not in {'local_path', 'hostname', 'credential_shape', 'sensitive_values'}
+                   or type(count) is not int or count < 1 for key, count in redactions.items())):
+        raise ValueError('Invalid separately identified public evidence view')
+    for label in ('original', 'published'):
+        if (not re.fullmatch('[0-9a-f]{64}', str(receipt.get(label+'_sha256', '')))
+                or type(receipt.get(label+'_bytes')) is not int or receipt[label+'_bytes'] < 0):
+            raise ValueError('Invalid original/public evidence identity')
+    same = receipt['original_sha256'] == receipt['published_sha256']
+    if (same and (redactions or receipt['original_bytes'] != receipt['published_bytes'])
+            or not same and not redactions):
+        raise ValueError('Public view identity does not match its declared redactions')
+    public = read_bound(source, {'path': name, 'sha256': receipt['published_sha256']})
+    raw = public.read_bytes()
+    if len(raw) != receipt['published_bytes'] or publication_risk(raw):
+        raise ValueError('Public evidence view bytes or privacy state differ')
+    if receipt['encoding'] == 'json':
+        json.loads(raw)
+    else:
+        raw.decode('utf-8')
+    return receipt
