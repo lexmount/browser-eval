@@ -4,6 +4,16 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'video'))
 from timing import align_recognized_clauses, silence_cut
 class SpeechTimingTests(unittest.TestCase):
+ def test_grouped_and_mixed_unit_numbers_remain_equivalent(self):
+  for left,right in [('1000','1,000'),('一千','1千'),('两千五百','2千5百'),('一百二十','1百2十'),('1500','1.5千'),('一百万','1,000,000'),('1000.5','1,000.50')]:
+   for authored,spoken in [(left,right),(right,left)]:
+    with self.subTest(authored=authored,spoken=spoken):
+     align_recognized_clauses([{'text':authored+'条记录'}],self.recognized(spoken+'条记录'))
+ def test_invalid_numeric_grouping_cannot_change_quantity(self):
+  for left,right in [('1,5','15'),('10,00','1000'),('1234,000','1234000'),('1,000,00','100000'),('2千5百','2050')]:
+   for authored,spoken in [(left,right),(right,left)]:
+    with self.subTest(authored=authored,spoken=spoken),self.assertRaises(ValueError):
+     align_recognized_clauses([{'text':authored}],self.recognized(spoken))
  def test_numeric_operators_and_separators_cannot_disappear(self):
   for left,right in [('-1.5','1.5'),('- 1.5','1.5'),('1%','1'),('1 %','1'),('1/5','15'),('1:5','15'),('1。5','15'),('１．５','１５'),('1/5','1+5')]:
    for authored,spoken in [(left,right),(right,left)]:

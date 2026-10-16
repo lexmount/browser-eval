@@ -27,14 +27,16 @@ def silence_cut(wave, sample_rate, previous_end, next_start):
     start, end = runs[0]
     return (start + end) * step / (2 * sample_rate)
 
-_NUMBER = re.compile(r'[0-9]+(?:\.[0-9]+)?(?:\s*[万亿])?|[零〇一二两三四五六七八九十百千万亿]+(?:点[零〇一二三四五六七八九]+[万亿]?)?')
+_ARABIC_NUMBER = r'(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?'
+_NUMBER_PART = rf'(?:{_ARABIC_NUMBER}|[零〇一二两三四五六七八九十百千万亿]+)(?:点[零〇一二三四五六七八九]+)?'
+_NUMBER = re.compile(rf'{_NUMBER_PART}(?:\s*[十百千万亿](?:{_NUMBER_PART})?)*')
 _DIGITS = dict(zip('零〇一二两三四五六七八九', '001223456789'))
 
 def _number_value(text):
     from decimal import Decimal
-    text = ''.join(text.split())
+    text = ''.join(text.split()).replace(',', '')
     # Resolve large units before decimal notation, including 1.5亿 / 一点五亿.
-    for unit, scale in [('亿', 100000000), ('万', 10000)]:
+    for unit, scale in [('亿', 100000000), ('万', 10000), ('千', 1000), ('百', 100), ('十', 10)]:
         if unit in text:
             left, right = text.split(unit, 1)
             return _number_value(left or '一') * scale + (_number_value(right) if right else 0)
@@ -43,15 +45,7 @@ def _number_value(text):
         return _number_value(left) + Decimal('0.' + ''.join(_DIGITS[c] for c in right))
     if text.isascii():
         return Decimal(text)
-    if all(c in _DIGITS for c in text):
-        return Decimal(''.join(_DIGITS[c] for c in text))
-    total = digit = 0
-    for c in text:
-        if c in _DIGITS: digit = int(_DIGITS[c])
-        else:
-            total += (digit or 1) * {'十': 10, '百': 100, '千': 1000}[c]
-            digit = 0
-    return Decimal(total + digit)
+    return Decimal(''.join(_DIGITS[c] for c in text))
 
 def _normalized_stream(text, spans):
     """Canonicalize quantities before dropping punctuation, retaining source times."""
