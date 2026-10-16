@@ -204,15 +204,18 @@ validation, not each measured fetch; a changed binary requires revalidation.
 
 ### Retries
 
-Runs default to no benchmark-level retry. A run may predeclare one failure retry
-with `max_failure_retries=1` (the headless CLI flag is
-`--max-failure-retries 1`). The retry is triggered only after the first physical
-call fails the shared task predicate. Both physical outputs and supplemental
-artifacts are retained; the logical record always uses the final physical call,
-never whichever response scored better. Its displayed latency sums both physical
-call intervals and any provider-required wait between them. A correction for a
-proven wrong command, version, scorer or reference is not a retry: supersede the
-affected result explicitly and rerun the complete declared correction scope.
+All methods default to one retry after a failed task. Set
+`--max-failure-retries N` to any nonnegative integer; `0` disables retries.
+There are at most N+1 calls per task, stopping as soon as the task passes.
+The same rule covers request errors, timeouts, empty output and content-rule
+failures, including methods using native parameters.
+
+Each method and task produces one result. The final call replaces the earlier
+answer, verdict, metrics and primary latency; retries do not add samples or a
+separate result category. Call artifacts remain available for audit, with
+accumulated execution cost stored separately from the final-call latency.
+An uncancellable call must stop before another starts; a still-running call
+makes the cohort incomplete. Historical cohorts retain their frozen retry policy.
 
 ### Timeouts
 

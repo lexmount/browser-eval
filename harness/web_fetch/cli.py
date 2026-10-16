@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .accounts import print_account_checklist
-from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope
+from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope, nonnegative_int
 from .metrics import task_passed
 from .models import TASK_KINDS
 from .providers import build_provider
@@ -131,8 +131,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--output", type=Path, default=None)
     run.add_argument("--fail-on-failure", action="store_true")
     run.add_argument(
-        "--max-failure-retries", type=int, choices=(0, 1), default=0,
-        help="Retry a failed task at most once; the final call is authoritative",
+        "--max-failure-retries", type=nonnegative_int, default=1,
+        help="Retry a failed task up to N times (0 disables retries); use the final call",
     )
     run.set_defaults(handler=command_run)
 

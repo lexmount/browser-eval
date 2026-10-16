@@ -77,7 +77,7 @@ def test_invalid_profile_stops_before_any_child(command_inputs, monkeypatch, dam
     elif damage == "timeout":
         profile["timeout_seconds"] = 0
     else:
-        profile["max_failure_retries"] = 8
+        profile["max_failure_retries"] = -1
     write_json(root / "profile.json", profile)
     commands = install_child(command_inputs, monkeypatch)
     with pytest.raises((SystemExit, ValueError)):

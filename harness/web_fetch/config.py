@@ -15,6 +15,14 @@ from .retrieval_hints import parse_retrieval_hints, native_default_case
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def nonnegative_int(value: str) -> int:
+    """Parse a nonnegative command-line count."""
+    number = int(value)
+    if number < 0:
+        raise ValueError('must be a nonnegative integer')
+    return number
+
+
 def _validate_retrieval_hints(item: dict[str, Any]) -> None:
     if native_default_case(item):
         return

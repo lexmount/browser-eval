@@ -856,7 +856,7 @@ class ProviderTest(unittest.TestCase):
                 delay=0,
             )
             manifest = json.loads((root / "manifest.json").read_text())
-        self.assertEqual(seen_timeouts, [0.2, 0.2])
+        self.assertEqual(seen_timeouts, [0.2, 0.2, 0.2, 0.2])
         self.assertEqual(len(records), 2)
         self.assertEqual([record["error_type"] for record in records], ["timeout", "timeout"])
         self.assertEqual(manifest["unexecuted"], [])

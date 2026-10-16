@@ -63,6 +63,10 @@ uv run --frozen browser-harness-eval run --delay 0
 
 Open the report path printed in the terminal. This offline example needs no browser, Docker or API key. It contains one expected pass and one expected failure so you can see both kinds of result. Installation needs network access.
 
+Web Fetch retries failed tasks once by default for every method. Set
+`--max-failure-retries N` to change the limit (`0` disables retries). Each task
+has one result, using the final call's answer, verdict and latency.
+
 Next, [run HTTP, Moli or Chromium against a local article](examples/web_fetch/README.md). That guide covers browser installation, selecting several methods and choosing your own tasks. Remote services and Agent runs need their own accounts; their calls may incur charges.
 
 <details>

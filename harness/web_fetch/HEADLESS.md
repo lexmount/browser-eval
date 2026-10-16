@@ -47,10 +47,11 @@ personal sessions, stealth fallback or model post-processing. The original
 published matrix used one provider call per task and did not retry; later
 documented corrections may supersede affected logical results while preserving
 the earlier physical evidence.
-Future runs may predeclare `--max-failure-retries 1`: only a failed task may
-receive one additional physical call, both artifacts are retained, total
-logical latency includes the retry path, and the final physical call is always
-authoritative. Choosing the better response after seeing outcomes is forbidden.
+New runs default to `--max-failure-retries 1` for every method. Any task failure,
+including content-rule failures, can trigger a retry. Set N to any nonnegative
+integer for at most N additional calls, stopping at the first pass. The final
+call supplies the single result and its primary latency. Earlier calls and
+accumulated execution cost remain in the audit evidence.
 
 ## What is and is not fair
 
@@ -243,8 +244,9 @@ The resource-mode default is the four local methods: Lightpanda, Obscura, Moli
 is excluded from the resource table because its remote browser CPU, memory, and
 upstream network traffic are not observable from the client.
 
-Failure retry is disabled by default. Add `--max-failure-retries 1` only when
-the protocol calls for one retry before measurement begins. This is distinct
+Failure retry defaults to one additional call for every method. Declare
+`--max-failure-retries N` before measurement; `0` disables retries. Every failed
+task qualifies, and only its final call enters the result table. This is distinct
 from correcting a proven wrong command, implementation version, scorer or
 reference: a correction explicitly supersedes the affected logical results,
 reruns the complete declared comparison scope and records its score impact.

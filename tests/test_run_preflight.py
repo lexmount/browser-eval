@@ -43,7 +43,7 @@ def execute(root, events, **overrides):
     {'delay': True}, {'delay': '0'}, {'delay': None},
     {'provider_concurrency': 0}, {'provider_concurrency': 1.5},
     {'provider_concurrency': True}, {'provider_concurrency': float('inf')},
-    {'max_failure_retries': True}, {'max_failure_retries': 1.0}, {'max_failure_retries': 2},
+    {'max_failure_retries': True}, {'max_failure_retries': 1.0}, {'max_failure_retries': -1},
     {'resource_sample_interval_ms': 9}, {'resource_sample_interval_ms': 10.5},
     {'resource_sample_interval_ms': True},
     {'cases': []}, {'providers': []},

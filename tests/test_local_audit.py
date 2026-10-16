@@ -212,7 +212,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     evidence = tmp_path / "evidence"
     records, _ = run_evaluation(output_dir=evidence, dataset_meta=dataset,
         dataset_path=inputs, cases=cases, providers=[build_provider("fixture", {"type": "fixture"})],
-        provider_config_path=config, runs=1, timeout=45, delay=0)
+        provider_config_path=config, runs=1, timeout=45, delay=0, max_failure_retries=0)
     batch = json.loads((evidence / "manifest.json").read_text())
     _write(evidence / "execution.json", {"batches": [batch]})
     _write(evidence / "local-run-contract.json", {

@@ -54,7 +54,7 @@ class IncompleteEvaluationError(RuntimeError):
 def preflight_declared_capacity(
     providers: list[Provider], *, declared_calls: int, timeout: float = 10,
     cases: list[EvalCase] | None = None, runs: int = 1,
-    max_failure_retries: int = 0,
+    max_failure_retries: int = 1,
 ) -> None:
     """Check optional account capacity once per logical provider.
 
@@ -458,7 +458,7 @@ def run_evaluation(
     timeout: float,
     delay: float,
     provider_concurrency: int = 1,
-    max_failure_retries: int = 0,
+    max_failure_retries: int = 1,
     resource_sample_interval_ms: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
@@ -472,8 +472,6 @@ def run_evaluation(
         if (not isinstance(value, (int, float)) or isinstance(value, bool)
                 or not math.isfinite(value) or value < minimum or (name == 'timeout' and value == 0)):
             raise ValueError(f'{name} must be finite and {"positive" if name == "timeout" else "nonnegative"}')
-    if max_failure_retries > 1:
-        raise ValueError('max_failure_retries must be 0 or 1')
     if resource_sample_interval_ms is not None and (
         type(resource_sample_interval_ms) is not int or resource_sample_interval_ms < 10
     ):
@@ -482,8 +480,8 @@ def run_evaluation(
         raise ValueError('Execution requires at least one task and provider')
     for provider in providers:
         if provider.config.get("uniform_native_parameters"):
-            if runs != 1 or max_failure_retries != 0:
-                raise ValueError("fixed native calls require one run and zero caller retries")
+            if runs != 1:
+                raise ValueError("fixed native calls require one run")
             for case in cases:
                 provider.check_native_call(case)
         safe_identifier(provider.name)
@@ -553,6 +551,7 @@ def run_evaluation(
             "concurrency_scope": "providers_parallel_cases_sequential_per_provider",
             "max_failure_retries": max_failure_retries,
             "retry_selection": "retry_only_after_failed_task; final_physical_attempt_is_authoritative",
+            "primary_latency": "final_physical_call",
             "resource_sample_interval_ms": resource_sample_interval_ms,
             "resource_scope": (
                 "disposable Linux client container cgroup and dedicated network namespace; "
@@ -727,14 +726,16 @@ def run_evaluation(
                                             and pending.is_alive())
                         if physical_passed or stopped_provider or physical_attempt > max_failure_retries:
                             break
-                    elapsed_ms = round(sum(item['elapsed_ms'] + item['retry_throttle_wait_ms']
-                                           for item in physical_attempts), 2)
+                    elapsed_ms = physical_attempts[-1]['elapsed_ms']
                     result.metadata['call_log'] = physical_attempts[-1]['call_log']
                     if len(physical_attempts) > 1:
                         result.metadata['retry'] = {
                             'physical_attempts': len(physical_attempts),
                             'retries_used': len(physical_attempts) - 1,
                             'trigger': 'previous physical attempt failed the task predicate',
+                            'execution_cost_ms': round(sum(
+                                item['elapsed_ms'] + item['retry_throttle_wait_ms']
+                                for item in physical_attempts), 2),
                             'selection': 'final physical attempt is authoritative; no best-of selection',
                             'attempts': physical_attempts,
                         }
