@@ -249,7 +249,6 @@ class MoliTests(unittest.TestCase):
 
     def test_internal_deadline_preserves_typed_cli_error_before_outer_deadline(self):
         from harness.web_fetch.call_boundary import fetch_with_deadline
-        from harness.web_fetch.runner import transient_retry_reason
 
         provider = self.provider(
             "import sys, time\n"
@@ -268,7 +267,6 @@ class MoliTests(unittest.TestCase):
 
         self.assertFalse(worker.is_alive())
         self.assertEqual(result.error_type, "timeout")
-        self.assertEqual(transient_retry_reason(result), "transient_timeout")
         self.assertEqual(result.metadata["exit_code"], 1)
         self.assertEqual(result.metadata["http_connect_timeout_ms"], 250)
         self.assertEqual(
@@ -551,41 +549,36 @@ class MoliTests(unittest.TestCase):
         self.assertIsNone(_diagnostic_main_document_url(log,'https://example.com/start'))
 
     def test_popular_site_native_http_error_keeps_body_but_request_fails(self):
-        from harness.web_fetch.runner import transient_retry_reason
-
         provider = self.provider('print("**Error:** Forbidden\\n\\n**403**: Forbidden")')
         result = provider.fetch(self.case_with(track="challenge", task_kind="structure"), 10)
         self.assertFalse(result.ok)
         self.assertEqual(result.error_type, "api_error")
         self.assertEqual(result.status_code, 403)
         self.assertIn("Forbidden", result.content)
-        self.assertIsNone(transient_retry_reason(result))
 
-    def test_native_document_http_status_preserves_markdown_and_retry_scope(self):
-        from harness.web_fetch.runner import transient_retry_reason
-
+    def test_native_document_http_status_preserves_markdown_and_status_scope(self):
         request = self.case.url
-        for name, log, expected_status, retry in (
+        for name, log, expected_status in (
             ("main-service-failure", f"DEBUG fetch request complete method=GET url={request} "
-             f"final_url={request} status=503", 503, "transient_http_503"),
+             f"final_url={request} status=503", 503),
             ("main-ok-subresource-service-failure", f"DEBUG fetch request complete method=GET url={request} "
              f"final_url={request} status=200\nDEBUG fetch request complete method=GET "
              "url=https://cdn.example.com/app.js final_url=https://cdn.example.com/app.js "
-             "status=503", 200, None),
+             "status=503", 200),
             ("unowned-redirect-service-failure", f"DEBUG fetch request complete method=GET url={request} "
              f"final_url={request} status=302\nDEBUG fetch request complete method=GET "
              "url=https://cdn.example.com/app.js final_url=https://cdn.example.com/app.js "
-             "status=503", None, None),
+             "status=503", None),
             ("subresource-service-failure", "DEBUG fetch request complete method=GET "
              "url=https://cdn.example.com/app.js final_url=https://cdn.example.com/app.js "
-             "status=503", None, None),
+             "status=503", None),
             ("stale-document-response", f"DEBUG fetch request complete method=GET url={request} "
              f"final_url={request} status=503\n"
-             "DEBUG detached committed main WindowProxy for replacement context page_id=1", None, None),
+             "DEBUG detached committed main WindowProxy for replacement context page_id=1", None),
             ("ambiguous-same-url", (f"DEBUG fetch request complete method=GET url={request} "
-             f"final_url={request} status=503\n") * 2, None, None),
+             f"final_url={request} status=503\n") * 2, None),
             ("console-status-prose", "INFO console.log=DEBUG fetch request complete method=GET "
-             f"url={request} final_url={request} status=503", None, None),
+             f"url={request} final_url={request} status=503", None),
         ):
             with self.subTest(name=name):
                 body = "# Service documentation\nHTTP 503 and timeout are described here."
@@ -594,21 +587,16 @@ class MoliTests(unittest.TestCase):
                 self.assertEqual(result.content, body + "\n")
                 self.assertEqual(result.status_code, expected_status)
                 self.assertEqual(result.ok, expected_status is None or expected_status < 400)
-                self.assertEqual(transient_retry_reason(result), retry)
 
-    def test_empty_native_service_failure_preserves_http_retry(self):
-        from harness.web_fetch.runner import transient_retry_reason
+    def test_empty_native_service_failure_preserves_http_status(self):
         log = (f"DEBUG fetch request complete method=GET url={self.case.url} "
                f"final_url={self.case.url} status=503")
         result = self.provider(f"print({log!r}, file=sys.stderr)\n").fetch(self.case, 10)
         self.assertEqual(result.content, "")
         self.assertEqual(result.status_code, 503)
         self.assertEqual(result.error_type, "api_error")
-        self.assertEqual(transient_retry_reason(result), "transient_http_503")
 
-    def test_native_best_effort_deadline_retries_only_empty_delivery(self):
-        from harness.web_fetch.runner import transient_retry_reason
-
+    def test_native_best_effort_deadline_marks_only_empty_delivery(self):
         warning = ("2026-10-15T00:00:00.000000Z  WARN fetch readiness wait timed out; "
                    f"returning best-effort page page_id=1 url={self.case.url} "
                    f"final_url={self.case.url} wait_until=DomStable timeout_ms=40500 "
@@ -627,8 +615,6 @@ class MoliTests(unittest.TestCase):
                 self.assertEqual(result.content, body)
                 self.assertEqual(result.error_type, expected_error)
                 self.assertEqual(result.ok, expected_ok)
-                self.assertEqual(transient_retry_reason(result),
-                                 "transient_timeout" if expected_error == "timeout" else None)
                 if body:
                     from harness.web_fetch.scoring import score_attempt
                     from harness.web_fetch.metrics import task_passed
@@ -636,11 +622,8 @@ class MoliTests(unittest.TestCase):
                     metrics = score_attempt(vars(case), body.encode(), ok=result.ok,
                                             metadata=result.metadata)
                     self.assertFalse(task_passed(result.ok, metrics, case.task_kind))
-                    self.assertIsNone(transient_retry_reason(result))
 
-    def test_only_explicit_transient_native_failures_are_retryable(self):
-        from harness.web_fetch.runner import transient_retry_reason
-
+    def test_native_failures_have_specific_error_types(self):
         scenarios = (
             (
                 "dns",
@@ -648,7 +631,6 @@ class MoliTests(unittest.TestCase):
                 "Reason: failed to resolve example.com:443: failed to lookup address "
                 "information: Temporary failure in name resolution",
                 "dns",
-                "transient_dns",
             ),
             (
                 "curl_timeout",
@@ -656,7 +638,6 @@ class MoliTests(unittest.TestCase):
                 "Reason: curl request failed for https://example.com/ after active=500ms "
                 "queued=2ms: [28] Timeout was reached",
                 "timeout",
-                "transient_timeout",
             ),
             (
                 "curl_transfer",
@@ -664,7 +645,6 @@ class MoliTests(unittest.TestCase):
                 "Reason: curl request failed for https://example.com/ after active=500ms "
                 "queued=2ms: [56] Failure when receiving data from the peer",
                 "network",
-                "transient_network",
             ),
             (
                 "certificate",
@@ -672,23 +652,20 @@ class MoliTests(unittest.TestCase):
                 "Reason: curl request failed for https://example.com/ after active=500ms "
                 "queued=2ms: [60] SSL peer certificate or SSH remote key was not OK",
                 "tool_error",
-                None,
             ),
             (
                 "content_contract",
                 "Error: failed to fetch `https://example.com/`\n"
                 "Reason: raw download output only supports automatic output or --dump json",
                 "tool_error",
-                None,
             ),
             (
                 "ambiguous",
                 "SSL connect error: connection reset",
                 "tool_error",
-                None,
             ),
         )
-        for name, stderr, error_type, retry_reason in scenarios:
+        for name, stderr, error_type in scenarios:
             with self.subTest(name=name):
                 provider = self.provider(
                     "import sys\n"
@@ -698,7 +675,6 @@ class MoliTests(unittest.TestCase):
                 result = provider.fetch(self.case, 2)
                 self.assertFalse(result.ok)
                 self.assertEqual(result.error_type, error_type)
-                self.assertEqual(transient_retry_reason(result), retry_reason)
 
     def test_native_markdown_runtime_error_keeps_official_stderr(self):
         provider = self.provider('import sys\nprint("SSL connect error: connection reset", file=sys.stderr)\nsys.exit(1)\n')

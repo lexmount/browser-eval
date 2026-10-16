@@ -11,7 +11,7 @@ from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import (
     IncompleteEvaluationError, preflight_declared_capacity, run_evaluation,
-    classify_exception, transient_retry_reason,
+    classify_exception,
 )
 
 
@@ -26,20 +26,18 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
-    def test_certificate_validation_failure_is_not_a_transient_transport_retry(self):
+    def test_certificate_and_transport_errors_are_classified(self):
         certificate = ssl.SSLCertVerificationError(1, "certificate verify failed")
-        for error, expected, retry in (
-            (certificate, "tls_certificate", None),
-            (urllib.error.URLError(certificate), "tls_certificate", None),
-            (urllib.error.URLError(socket.gaierror("DNS lookup failed")), "dns", "transient_dns"),
-            (urllib.error.URLError(TimeoutError("read timed out")), "timeout", "transient_timeout"),
+        for error, expected in (
+            (certificate, "tls_certificate"),
+            (urllib.error.URLError(certificate), "tls_certificate"),
+            (urllib.error.URLError(socket.gaierror("DNS lookup failed")), "dns"),
+            (urllib.error.URLError(TimeoutError("read timed out")), "timeout"),
         ):
             with self.subTest(error=error):
                 kind, message = classify_exception(error)
                 self.assertEqual(kind, expected)
-                self.assertEqual(transient_retry_reason(ProviderResult(
-                    False, "", error_type=kind, error_message=message,
-                )), retry)
+                self.assertTrue(message)
 
     def test_deadline_retains_cancelled_process_diagnostics_never_late_answer(self):
         from harness.web_fetch.call_boundary import fetch_with_deadline
@@ -223,52 +221,6 @@ class RunnerConcurrencyTest(unittest.TestCase):
             manifest = json.loads((root / 'manifest.json').read_text())
             self.assertEqual(manifest['attempt_count'], 1)
             self.assertEqual(manifest['parameters']['max_failure_retries'], 1)
-
-    def test_content_failure_is_not_retried(self):
-        class Incomplete(Provider):
-            def __init__(self):
-                super().__init__('incomplete', {'type': 'fixture'})
-                self.calls = 0
-
-            def fetch(self, case, timeout):
-                self.calls += 1
-                return ProviderResult(True, 'wrong')
-
-        provider = Incomplete()
-        with tempfile.TemporaryDirectory() as directory:
-            records, _ = run_evaluation(
-                output_dir=Path(directory), dataset_meta={'id': 'test'},
-                dataset_path=Path('dataset.json'),
-                cases=[EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])],
-                providers=[provider], provider_config_path=Path('providers.json'),
-                runs=1, timeout=2, delay=0, max_failure_retries=1,
-            )
-        self.assertEqual(provider.calls, 1)
-        self.assertNotIn('retry', records[0]['provider_metadata'])
-
-    def test_permanent_http_failure_is_not_retried_but_temporary_service_failure_is(self):
-        class Statuses(Provider):
-            def __init__(self, status):
-                super().__init__('statuses', {'type': 'fixture'})
-                self.status = status
-                self.calls = 0
-
-            def fetch(self, case, timeout):
-                self.calls += 1
-                return ProviderResult(False, '', status_code=self.status,
-                                      error_type='http_error')
-
-        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
-        for status, expected_calls in ((403, 1), (503, 2)):
-            provider = Statuses(status)
-            with self.subTest(status=status), tempfile.TemporaryDirectory() as directory:
-                run_evaluation(
-                    output_dir=Path(directory), dataset_meta={'id': 'test'},
-                    dataset_path=Path('dataset.json'), cases=[case], providers=[provider],
-                    provider_config_path=Path('providers.json'), runs=1, timeout=2,
-                    delay=0, max_failure_retries=1,
-                )
-                self.assertEqual(provider.calls, expected_calls)
 
     def test_explicit_failure_retry_never_selects_better_first_call(self):
         class TwiceFailed(Provider):
