@@ -1,5 +1,7 @@
 # Frozen reference inputs
 
+Self-authored Web Fetch task definitions are maintained in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch). For a new integration, use its independent verifier and materialized export as described in [benchmark integration](benchmarks.md). The manifests below retain historical experiment bindings; changing them would change those experiments.
+
 To reproduce a historical run, you need its original input files as well as this checkout. Full datasets, pages, documents and rendered references are stored outside Git.
 
 Each `source-inputs.json` lists the required files and hashes. Import verifies those bytes against the frozen dataset; it preserves historical datasets and certificates unchanged.

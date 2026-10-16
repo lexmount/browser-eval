@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "kind": "external_benchmark_binding",
+  "repository": "https://github.com/lexmount/lexbench-webfetch",
+  "revision": "d4e5df35c3d91a2113813b775edcb463f95464dd",
+  "ownership": {
+    "benchmark": "Task populations, prompts, acceptance requirements and frozen input bindings",
+    "harness": "Execution, generic scoring, evidence and reports"
+  },
+  "suites": [
+    {
+      "id": "webfetch",
+      "dataset_id": "webfetch",
+      "case_count": 150,
+      "files": {
+        "dataset-catalog.json": "ccb06789463ba0720d5e342b9ef384c241675a791ada8b0ea318ea99a474b2e1",
+        "tasks.json": "6ec54750e68ff2e87745ead9c80e672d05185cbc49e5c96c260376845bceec9f",
+        "source-inputs.json": "4ff0c2f1a9eff95be7ff02ca0d00e0930978ed7e0f0121f6bc4af3fa628185d1"
+      },
+      "benchmark_directory": "src/lexbench_webfetch/suites/webfetch",
+      "historical_directory": "evaluation"
+    },
+    {
+      "id": "popular-sites",
+      "dataset_id": "popular-sites",
+      "case_count": 100,
+      "files": {
+        "dataset-catalog.json": "cf9b31ffe8486c158579cd543ae3f0ccf969ee4a3df8817b98b679192d087406",
+        "tasks.json": "a05dd4a4bce6a2fba7f4c69a22c9c18d856875fade36e37bf4bbd5c25c61c826",
+        "source-inputs.json": "58f0de5e107f05161004df0a87216b69c4cf9a30c705bdd1304415ab02fd97f3"
+      },
+      "benchmark_directory": "src/lexbench_webfetch/suites/popular-sites",
+      "historical_directory": "evaluation/popular-sites"
+    },
+    {
+      "id": "dynamic-content",
+      "dataset_id": "dynamic-qualified-100-moli-native-local-audit-20260924",
+      "case_count": 100,
+      "files": {
+        "dataset-catalog.json": "81703f392b586931624692cb42a006843a9cbf02250fd9ea36d4ecb65ee1cb6e",
+        "tasks.json": "6386fa8412438c1b61395fa059d1dc7caf73d3514011a7a23b04b0ec34fab5b9",
+        "source-inputs.json": "eabe4b3b9b6a1b2ef4ac4784be1254148c319f367eec55c6dd72684287a95f97"
+      },
+      "benchmark_directory": "src/lexbench_webfetch/suites/dynamic-content",
+      "historical_directory": "evaluation/dynamic-content-100-moli-webfetch"
+    },
+    {
+      "id": "access-restrictions",
+      "dataset_id": "risk-control-audited-100",
+      "case_count": 100,
+      "files": {
+        "dataset-catalog.json": "43e79ab63c12f56ed025d78fa6e417cfc91b812faa6a69b9016b99979a498a98",
+        "tasks.json": "9d766c1701ea24c84babe871f96a50d3e4bca25fa3d4731695231f9c79a08de4",
+        "source-inputs.json": "230c3a88585c7ebb838bc2d7d956fbbfbb4a2c23d2ff1f0a84eb103909c6ee14"
+      },
+      "benchmark_directory": "src/lexbench_webfetch/suites/access-restrictions",
+      "historical_directory": "evaluation/risk-control"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ Use this page to find the code responsible for a change. For running evaluations
 
 [Data flow](#data-flow) · [Code owners](#code-boundaries) · [Stored inputs](#repository-and-external-inputs) · [Report releases](#reports-and-publication) · [Review tools](#verification)
 
-Browser Eval benchmarks web fetching, trajectory replay and AI agent automation. These tracks compare task completion, latency and resource use, and share execution and reporting utilities. Each has its own tasks, evaluator and publication target. The current tracks are listed below.
+Browser Eval supplies execution, generic scoring, evidence handling and reporting for web fetching, trajectory replay and AI agent automation. Benchmarks supply task populations and acceptance requirements. [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch suites; see [benchmark boundaries](benchmarks.md). Each experiment has its own evaluator binding and publication target. The supported tracks are listed below.
 
 | Track | Implementation | Running and reproduction |
 | --- | --- | --- |

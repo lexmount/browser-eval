@@ -1,5 +1,7 @@
 # Web Fetch
 
+Browser Eval provides this track’s execution, generic scoring and report pipeline. The self-authored task suites and acceptance requirements are maintained in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch). See [benchmark integration](../../docs/benchmarks.md) for verified input export and repository boundaries.
+
 Fetch a page or file, score the returned content against declared requirements, and inspect the saved result. Start with the [local article example](../../examples/web_fetch/README.md) for a runnable HTTP/Moli/Chromium comparison.
 
 This page is the technical reference for larger experiments and historical reports. Use the section matching your task:

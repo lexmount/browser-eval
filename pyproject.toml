@@ -1,7 +1,7 @@
 [project]
 name = "browser-harness-eval"
 version = "0.1.0"
-description = "Reproducible browser benchmarks for web fetching, trajectory replay and AI agent automation"
+description = "Evaluation harness for web fetching, browser trajectory replay and autonomous agents"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"

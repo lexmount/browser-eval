@@ -1,6 +1,6 @@
 # Contributing
 
-PRs are welcome for adapters, tasks, tests, scoring fixes, documentation and translations. Run the [offline example](README.md#quickstart), then open the guide for the track you want to change.
+PRs are welcome for adapters, execution and scoring fixes, tests, documentation and translations. Self-authored Web Fetch task requirements are maintained in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch); see [benchmark boundaries](docs/benchmarks.md). Run the [offline example](README.md#quickstart), then open the guide for the track you want to change.
 
 ## Report a bug
 
@@ -11,7 +11,7 @@ Include the task ID, method and versions, OS, command and sanitized error. Remov
 | Change | Where it belongs |
 | --- | --- |
 | Browser or provider adapter | Existing execution modules; see the [provider contract](docs/provider-contract.md) |
-| Task requirements | Dataset configuration, applied to every method |
+| LexBench Web Fetch task requirements | [Benchmark repository](https://github.com/lexmount/lexbench-webfetch), applied to every method |
 | Scoring fix | Shared scorer, scenario regressions and a recorded correction reason |
 | New browser, version or sample size | Configuration or registry; reuse the runner and renderer |
 | Reusable logic | `harness/`; `scripts/` stays a thin command entry point |

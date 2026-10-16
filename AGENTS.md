@@ -1,3 +1,7 @@
+# Benchmark ownership
+
+Browser Eval owns execution adapters, generic scoring, evidence handling and report tooling. Self-authored Web Fetch task populations and acceptance requirements are maintained in `lexmount/lexbench-webfetch`. Consume its verified materialized datasets through the existing dataset interface. Retain hash-bound historical inputs in `evaluation/` for existing experiments; author new task revisions in the benchmark repository, not in those historical records. WebMainBench, WCXB and WebArena retain their own upstream task authorities.
+
 # Report maintenance
 
 Repository documentation and contribution guidance use English. Keep the root README and `docs/README.zh-CN.md` aligned; additional README translations are welcome, but other guides need no parallel translation. Preserve original-language source quotations and hash-bound acceptance/evidence artifacts. Report-generation languages follow the track contracts below.
