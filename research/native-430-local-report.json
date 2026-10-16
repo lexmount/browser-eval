@@ -15,20 +15,20 @@
     "openclaw-built-in",
     "tavily"
   ],
-  "frozen_dataset_sha256": "28e3b3e9ec89ce545aae44355bd28eb0dc383ad6f64aed4dc91f327b14a528ab",
-  "results_sha256": "ece94c0911a769c84ce9d896b00d97706fd4435d6d194f03cff77391710934a4",
+  "frozen_dataset_sha256": "e2a5c68fa7c2640414c56c0949a8f344f8091e602e6479f8fd2bb07fec5b9681",
+  "results_sha256": "314a5adb2225fde74cfe0672d25d972c2c99e65b40e337d93c0a1d7418e4fe00",
   "measured_scoring_source_sha256": "4ce40cdf2ecb1af4088915a2b869ffbdcb65dce5222d1429578e97d175f13bfc",
   "evidence_state": "local_measurement",
   "certified": false,
-  "evidence_storage": "External data-home snapshot; provider calls, review payloads and generated pages are not stored in Git.",
+  "evidence_storage": "External public saved-input snapshot with source-bound title/final URL corrections. Private originals and the immutable baseline are retained; restore the baseline and correction overlay before rebuilding.",
   "evidence_bindings": [
     {
       "path": "local-run-contract.json",
-      "sha256": "9febcc3f51b7a5dbd2dc98e43278df4e4ef47d05c694701eef411fcacb608328"
+      "sha256": "2de0ae1532a51428b2eb19dac44b5e1ba94e67f1433a0420cbeb038dbd602691"
     },
     {
       "path": "result-review.json",
-      "sha256": "8bfc48ba7b19ec244e6118e4620cd460d2fe425cd74b878fe1e9003f0f23f1fe"
+      "sha256": "c5cabe370ac2df9c1c6f2b647b4936d9c927de1ae2825f8e9ec937f40c1735c5"
     },
     {
       "path": "archived-reading.json",
@@ -36,15 +36,15 @@
     },
     {
       "path": "execution.json",
-      "sha256": "6fdc15530c75676e46e3e44b6213017287d19ddc9c71597493b346072d1ee67c"
+      "sha256": "c519a68dcd812a1e6e41f3fc4efbf50f589f7dd72d90efd4f90bad41a5d64646"
     },
     {
       "path": "local-evidence/result-ledger.json",
-      "sha256": "738944823525d424a879572aa894e81a384802692d78ed52ca95400f27f94d6b"
+      "sha256": "2404c76226bb39c5a8820ef926898173e2da88a3c44e56c804c275d99a394d92"
     },
     {
       "path": "frozen-method-options.json",
-      "sha256": "04ffbb5a28db653e17d9a7dfe0f6fd517d89b754f6d8fd77a3dd21a4e7de15a7"
+      "sha256": "bbaae307a3cadeb75fee4a7f8f81fde41dca718728dad75b8cdf8c911866a2b3"
     },
     {
       "path": "assets/methodology/annotation.png",
@@ -84,17 +84,17 @@
     },
     {
       "path": "local-evidence/code-block-impact.json",
-      "sha256": "bb1bd4f9b3bf0b5704b730d3a84d01dc6f4698947de2fd2d3da2667e2a8b08b9"
+      "sha256": "9d973e63712bff719b58f7ef10bd0202997a8abdd0ed97be584135ab239c0810"
     }
   ],
-  "evidence_path": "runs/pr51-native-fairness-20261015/evidence-reviewed",
+  "evidence_path": "runs/pr51-native-fairness-20261015/evidence-context-corrected-public",
   "task_replacement": {
     "path": "local-evidence/task-replacement/receipt.json",
-    "sha256": "c68d3b21c3317538089635f8fb0ca5bf4f874f4a03201b27e42c56491780d6e0"
+    "sha256": "0ef2db8b05a6df206ea293cd8a02601a3d7e71aceb14119d286b8f2e386d100a"
   },
   "offline_revision": {
-    "path": "local-evidence/offline-revisions/246d255fbf52a069-063e7324042d60b4/receipt.json",
-    "sha256": "f633998e82f266156902c81dc9d7f33892c588ce2ca2bcab24f8c8b8f30eaa22"
+    "path": "local-evidence/offline-revisions/2d2a35f6b51cd102-6012bbf9c23a9899/receipt.json",
+    "sha256": "3ee08ef92933714b8e990ca469131cc3871e0f41ebacafc86b454569e7a9deaa"
   },
   "replacement_case": {
     "id": "static-sqlite-quickstart",
@@ -149,14 +149,14 @@
       "authority": "Frozen pre-call official source; preserve code tokens while allowing whitespace and HTML entities."
     }
   },
-  "current_scoring_source_sha256": "d042394ea0e8c3aa7aed5851663eaf73772fc4357781999e20a87f48e857e00a",
+  "current_scoring_source_sha256": "b17fc68566409232d3840f69aa4511c6dcdfd154c774eb169ea43787659496f7",
   "supplemental_review": {
-    "path": "local-evidence/native-answer-review/supplement.json",
-    "sha256": "5b5a9a22755fe35e8852195d5dfc1b6d1edd4286b50c4e8c5ed8774bc54f7c1f"
+    "path": "local-evidence/native-context-review/supplement.json",
+    "sha256": "9f4d9b577b6a39e7c9dd1b631d02d133ad2f424af0a502729c57ad3245f16741"
   },
   "retained_review": {
     "path": "local-evidence/native-answer-review/retention.json",
-    "sha256": "b3275c808947af2312fa48861db1a49b46c62cc8998c6c3afa7965c8f1f4e12f"
+    "sha256": "fd8f769c376e9c3b22bcd8878ae8b8ae32ec536bbbed01d5d20ca417c6c82b75"
   },
   "review_scope": {
     "fresh": 72,
@@ -164,7 +164,7 @@
     "total": 4300,
     "fresh_independent_blind_review": false
   },
-  "implementation_commit": "4ef472ff151274e9c526be58bf0e056a1591f420",
+  "implementation_commit": "c6c004f7840f3ed10ed370d2abc2ce621eec429c",
   "review_evidence_package": {
     "archive_name": "PR-51-public-saved-inputs-20261016.tar.xz",
     "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-public-saved-inputs-20261016.tar.xz",
@@ -194,7 +194,8 @@
       "sha256": "2fe714e6e8b410890f8be0329da3cb01bb02796c051b5477de0c2f5e3f4a6b40"
     },
     "report_renderer_commit": "ffe4a03367dc2b2d2fd168600042c7a3ead10d73",
-    "validation_commit": "4ef472ff151274e9c526be58bf0e056a1591f420"
+    "validation_commit": "4ef472ff151274e9c526be58bf0e056a1591f420",
+    "role": "immutable_baseline_for_native_context_correction"
   },
   "historical_native_route_audit": {
     "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-route-audit-20261016.json",
@@ -217,5 +218,64 @@
     "bytes": 27272,
     "results_sha256": "ece94c0911a769c84ce9d896b00d97706fd4435d6d194f03cff77391710934a4",
     "provider_calls_added": 0
+  },
+  "publication_evidence_views": {
+    "path": "PUBLIC-EVIDENCE-VIEWS.json",
+    "sha256": "c1719bd6694c7fd5c6c93471e82916da4b449ca15ef7f5e0533402ff108af519"
+  },
+  "publication_projection": {
+    "path": "PUBLICATION-PROJECTION.json",
+    "sha256": "87b2c6ab0f11698a92b3037abfea37871f1577d8b203da9108d5621e57b8a27e",
+    "kind": "host_metadata_publication_projection"
+  },
+  "native_answer_context_audit": {
+    "path": "local-evidence/native-context-audit/PR-51-native-context-audit-20261016.json",
+    "sha256": "22fe45a35b43753f1fee5e7cb0180d3b2037533d63e009e3b4fbef37d646544b",
+    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-native-context-audit-20261016.json",
+    "bytes": 8046875,
+    "result_count": 4300,
+    "original_context_differences": 2,
+    "current_context_differences": 0,
+    "provider_calls_added": 0,
+    "anonymous_download_sha256_verified": true
+  },
+  "original_measured_dataset_sha256": "28e3b3e9ec89ce545aae44355bd28eb0dc383ad6f64aed4dc91f327b14a528ab",
+  "original_measured_results_sha256": "ece94c0911a769c84ce9d896b00d97706fd4435d6d194f03cff77391710934a4",
+  "original_implementation_commit": "4ef472ff151274e9c526be58bf0e056a1591f420",
+  "native_context_correction": {
+    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-native-context-correction-20261016.tar.xz",
+    "sha256": "93525909c4effac75d3d4a3cece7e9e9cb3bfb2b2b091d25d103cbab570a07e4",
+    "bytes": 43947764,
+    "implementation_commit": "c6c004f7840f3ed10ed370d2abc2ce621eec429c",
+    "baseline_archive_sha256": "6ceb6a8bb35bc0e1d4ba40ff183dbb66e975d37426d7277ec6fca27ef58ad1ea",
+    "input_public_results_sha256": "2d2a35f6b51cd1023ee940f9a310c05610806f36d9c6363410200ffb26556dbe",
+    "output_public_results_sha256": "314a5adb2225fde74cfe0672d25d972c2c99e65b40e337d93c0a1d7418e4fe00",
+    "presentation_binding": {
+      "path": "presentation-binding.json",
+      "sha256": "6f15dd47fef163a361589e1e8e3f54abbd66863e40f3d1c1e0c1650b7935bf38"
+    },
+    "manifest_sha256": "4d260d82f287728fe07236ae1968445f05d5090156af2576d811bf74b595487f",
+    "restore_verified": true,
+    "restored_input_files": 33352,
+    "native_revision_chain_verified": true,
+    "review_bindings_verified": true,
+    "result_ledger_verified": true,
+    "anonymous_download_sha256_verified": true,
+    "provider_calls_added": 0,
+    "resource_route_results_rescored": 16,
+    "retained_identity_reviews_carried": 4,
+    "offline_rescored_results": 20,
+    "original_context_differences": 2,
+    "current_context_differences": 0,
+    "task_verdict_changes": 0,
+    "passes": 1966,
+    "failures": 2334,
+    "report_generated_languages": [
+      "zh",
+      "en"
+    ],
+    "page_layout_checks": 136,
+    "page_layout_issues": 0,
+    "historical_limits_unchanged": true
   }
 }
