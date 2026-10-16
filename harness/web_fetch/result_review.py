@@ -64,6 +64,12 @@ def review_input_identity(record):
         'artifact_path': record.get('artifact_path'),
         'request_ok': record.get('ok'),
         'error_type': record.get('error_type'),
+        'error_message': record.get('error_message'),
+        'diagnostic_log': ({
+            'path': metadata.get('diagnostic_log_path'),
+            'sha256': metadata.get('diagnostic_log_sha256'),
+            'bytes': metadata.get('diagnostic_log_bytes'),
+        } if metadata.get('diagnostic_log_path') else None),
         'content_sha256': record.get('metrics', {}).get('content_sha256'),
         'file_artifacts': [item for item in raw_artifacts if item['kind'] == 'file'],
         'raw_artifacts': raw_artifacts,
@@ -103,6 +109,11 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
     scope = protocol.get('scope', 'all')
     if scope not in {'all','machine-failures'}:
         raise ValueError('Unsupported result review scope')
+    declared_scope = dataset.get('comparison', {}).get('independent_result_review_scope')
+    if declared_scope is not None and declared_scope not in {'all', 'machine-failures'}:
+        raise ValueError('Unsupported declared result review scope')
+    if declared_scope == 'all' and scope != 'all':
+        raise ValueError('The declared full review must include successful and failed attempts')
     anomaly_attempts = set()
     if anomaly_gate and dataset.get('comparison', {}).get('require_anomaly_review', False):
         from .anomaly_review import detect_anomalies
@@ -194,10 +205,13 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
         key for key in set(before_comparison) | set(after_comparison)
         if before_comparison.get(key) != after_comparison.get(key)
     }
-    if changed_comparison - {'conversion'}:
+    # Authored interpretation and implementation descriptions do not alter the
+    # frozen task or raw answer. Their bytes are checked at the report boundary.
+    presentation_fields = {'conversion', 'report_interpretation', 'implementation_provenance'}
+    if changed_comparison - presentation_fields:
         raise IndependentReviewRequired(
             'Comparison semantics changed; independent result review must be rerun: '
-            + ', '.join(sorted(changed_comparison - {'conversion'}))
+            + ', '.join(sorted(changed_comparison - presentation_fields))
         )
     old_rows = {row['attempt_id']: row for row in parse_jsonl(before_results)}
     new_rows = {row['attempt_id']: row for row in parse_jsonl(after_results)}

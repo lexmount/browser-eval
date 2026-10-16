@@ -164,8 +164,12 @@ def test_default_english_has_localized_ui_and_preserved_task_text(tmp_path):
     source_text = {"中文", "确定性安装测试", "固定"}
     source_text.update(case["name"] for case in dataset["cases"])
     source_text.update(case["task_prompt"] for case in dataset["cases"])
-    for page in (run / "report/en").rglob("*.html"):
-        assert not untranslated_english_narrative(page.read_text(), source_text), page
+    untranslated = {
+        str(page.relative_to(run / "report/en")): fragments
+        for page in (run / "report/en").rglob("*.html")
+        if (fragments := untranslated_english_narrative(page.read_text(), source_text))
+    }
+    assert not untranslated, untranslated
     for case in dataset["cases"]:
         assert case["task_prompt"] in (run / f"report/en/datasets/{case['id']}.html").read_text()
 

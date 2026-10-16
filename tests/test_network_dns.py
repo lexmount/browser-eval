@@ -8,6 +8,57 @@ from harness.web_fetch.network_dns import lookup_public_dns, public_dns_context
 
 
 class NetworkDnsTests(unittest.TestCase):
+    def test_shared_chromium_profile_enables_strict_doh_without_system_fallback(self):
+        import tempfile
+        from pathlib import Path
+        from harness.web_fetch.network_dns import (
+            DNS_ENDPOINT,
+            configure_chromium_dns_profile,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory)
+            metadata = configure_chromium_dns_profile(profile, "public_doh")
+            state = json.loads((profile / "Local State").read_text())
+            self.assertEqual(state["dns_over_https"], {
+                "mode": "secure", "templates": DNS_ENDPOINT + "{?dns}",
+            })
+            self.assertTrue(state["built_in_dns_client_enabled"])
+            self.assertFalse(metadata["system_dns_fallback"])
+        with tempfile.TemporaryDirectory() as directory:
+            metadata = configure_chromium_dns_profile(directory, "system")
+            self.assertEqual(metadata, {"dns_mode": "system"})
+            self.assertFalse((Path(directory) / "Local State").exists())
+
+    def test_native_process_environment_records_binding_and_resolutions(self):
+        import time
+        from pathlib import Path
+        from harness.web_fetch.network_dns import native_process_dns_environment
+        observed = {}
+        class Broker:
+            traces = [{'hostname': 'public.example', 'addresses': ['203.0.113.1']}]
+            def __enter__(self): return self
+            def __exit__(self, *args): observed['closed'] = True
+            def begin_call(self, remaining): observed['remaining'] = remaining
+            def environment(self, library, base=None):
+                observed.update(library=library, base=base)
+                return {'DNS': 'public'}
+        metadata = {}
+        with patch('harness.web_fetch.network_dns.validate_native_dns_library',
+                   return_value=(Path('/resolver.dylib'), {'library_sha256': 'a'*64})), \
+             patch('harness.web_fetch.network_dns.NativeDnsBroker', return_value=Broker()):
+            with native_process_dns_environment(
+                'public_doh', '/resolver.dylib', time.monotonic() + 2,
+                metadata, {'BASE': '1'}
+            ) as environment:
+                self.assertEqual(environment, {'DNS': 'public'})
+        self.assertEqual(observed['library'], Path('/resolver.dylib'))
+        self.assertEqual(observed['base'], {'BASE': '1'})
+        self.assertGreater(observed['remaining'], 0)
+        self.assertTrue(observed['closed'])
+        self.assertEqual(metadata['dns_mode'], 'public_doh')
+        self.assertEqual(metadata['dns_resolutions'], Broker.traces)
+        self.assertEqual(metadata['native_dns_binding']['library_sha256'], 'a'*64)
+
     def test_resolves_both_families_without_filtering_native_safety_input(self):
         calls = []
         def open_response(request, timeout):

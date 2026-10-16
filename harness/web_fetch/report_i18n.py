@@ -37,6 +37,47 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "本轮所有本地方法的每个主机名和跳转都使用固定的 Cloudflare HTTPS DNS，且不回退到系统 DNS。Moli、Lightpanda 和 Obscura 通过进程内解析器取得同一组公网地址；Chromium 使用自身的严格安全 DNS 配置。各浏览器原有的私网访问保护保持不变。": "Every local method uses the fixed Cloudflare HTTPS DNS service for each hostname and redirect, with no fallback to system DNS. Moli, Lightpanda, and Obscura receive the same public addresses through a process-scoped resolver; Chromium uses its own strict secure-DNS profile. Each browser keeps its existing private-network protection.",
+    "Kitesurf 在 Cloudflare Browser Run 中执行，使用云端网络。它的任务结果可以按同一验收规则比较，但耗时包含不同的部署位置和公网路径，不能据此判断本地浏览器引擎谁更快。": "Kitesurf runs in Cloudflare Browser Run and uses its cloud network. Its task outcomes use the same acceptance rules, but its latency includes a different deployment location and public-network path and therefore cannot rank local browser-engine speed.",
+    "CLI · 原生 Markdown 或原始响应路线": "CLI · native Markdown or raw-response route",
+    "直接取得 Moli 原生 Markdown；直接 PDF/DOCX 未提供可读正文时失败": "Returns Moli's native Markdown directly; a direct PDF or DOCX fails when the interface does not deliver readable body text",
+    "让同一次原生 Markdown 调用包含已加载子文档；不切换输出格式": "Includes loaded child documents in the same native Markdown call without switching output format",
+    "网页正文、文档正文、结构题和网页内嵌媒体题统一使用 Moli 原生 Markdown。动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不按题目设置 selector。网页内嵌媒体只在原生输出中核对题目指定的资源地址，不下载媒体，也不切换 HTML、JSON 或网络跟踪接口。直接 PDF/DOCX 没有交付可读正文时按失败记录，评测端不下载后解析。直接媒体文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址只作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。": "Moli uses native Markdown for webpage body text, document body text, structured tasks, and media information from webpages. Every dynamic-body task uses --layout, --with-frames, and domstable; no task-specific selector is supplied. Media-information tasks check only the requested resource URLs in native output; they do not download the media or switch to HTML, JSON, or network tracing. A direct PDF or DOCX fails when the interface does not deliver readable body text; the benchmark does not download and parse it. Direct media files use native CDP responses or the same binary's raw attachment interface. The final URL is diagnostic and does not decide body-task acceptance. A failure never triggers a format switch or another provider.",
+    "moli fetch；网页、文档正文、结构和网页内嵌媒体使用原生 Markdown，预声明完成条件只调用官方等待参数，直接媒体文件使用原始响应": "moli fetch; webpage body text, document body text, structured tasks, and webpage media information use native Markdown; preregistered completion conditions only call official wait parameters; direct media files use raw responses",
+    "网页正文、文档正文、结构和网页内嵌媒体任务统一使用 Moli 原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不使用逐题 selector。网页媒体只核对同一 Markdown 输出里的目标地址，不下载媒体。直接 PDF/DOCX 未提供可读正文时按失败记录；直接媒体文件验收原始字节。失败后不切换格式，也不借用其他 provider 补抓；只有实际执行记录参与榜单。": "Webpage body text, document body text, structured tasks, and webpage media information all use Moli's native Markdown. Every dynamic-body task uses --layout, --with-frames, and domstable; no task-specific selector is supplied. Webpage media tasks check target URLs in the same Markdown output and do not download the media. A direct PDF or DOCX fails when it does not provide readable body text; direct media files validate raw bytes. A failure does not switch formats or fetch through another provider. Only measured records enter the ranking.",
+    "动态网站正文整类；网页内嵌媒体任务使用 --with-frames": "Every dynamic-body task; webpage media-information tasks use --with-frames",
+    "动态正文统一启用 Moli 页面布局能力，并在同一次原生 Markdown 调用中包含已加载子文档；不按题目设置 selector": "Dynamic-body tasks uniformly enable Moli's page-layout capability and include loaded child documents in the same native Markdown call; no task-specific selector is supplied",
+    "网页正文、文档正文、结构和网页内嵌媒体统一使用原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable；网页媒体只核对输出中的目标地址。最终网址不参与正文判分。": "Webpage body text, document body text, structured tasks, and webpage media information use native Markdown. Every dynamic-body task uses --layout, --with-frames, and domstable. Media-information tasks only check target URLs in the output. The final URL does not affect body-task acceptance.",
+    "CLI fetch --dump markdown → 内置转换 → Markdown；动态正文整类统一启用 --layout 和 --with-frames，不使用逐题 selector": "CLI fetch --dump markdown → built-in conversion → Markdown; every dynamic-body task uses --layout and --with-frames, with no task-specific selector",
+    "原生 Markdown 中保留的图片地址；直接文件可验收原始字节": "Image URLs retained in native Markdown; direct files can validate raw bytes",
+    "原生 Markdown 中保留的媒体地址；直接文件可验收原始字节": "Media URLs retained in native Markdown; direct files can validate raw bytes",
+    "按题目要求预先选定参评浏览器的官方原生接口。网页正文和文档正文都必须以可读 Markdown 交付；除 Chromium 使用固定的 HTML-to-Markdown 包外，不会改取 HTML、JSON DOM 或 PDF/DOCX 字节后替选手提取正文。网页内嵌媒体题只检查原生输出中的指定图片、视频或条目地址，媒体文件不下载。只有直接媒体文件题返回原始字节，并校验类型、文件头、长度和 SHA-256；这是二进制文件交付，不冒充 Markdown。下表按固定任务输入列出处理链；失败后不切换接口或引擎。": "Each task is assigned an official native interface before execution. Webpage and document body tasks must deliver readable Markdown. Chromium is the sole exception: it uses the fixed HTML-to-Markdown package because it has no native Markdown output. The benchmark does not take HTML, a JSON DOM, or PDF or DOCX bytes and extract body text on a participant's behalf. Webpage media-information tasks check only the required image, video, or entry URL in native output and do not download the media. Direct-media-file tasks alone return original bytes, which are checked for type, signature, length, and SHA-256. That binary deliverable is not presented as Markdown. The table lists the route fixed for each task input; a failure never switches interface or engine.",
+    "外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值": "The outer deadline is always 45 seconds. Internal parameters follow the frozen call record: explicit mode reserves time for finalization and cleanup; uniform mode keeps the product defaults.",
+    "45 秒外层截止；Moli 总等待、HTTP 和连接超时保留该二进制默认值": "45-second outer deadline; Moli's total-wait, HTTP, and connection timeouts retain the measured binary's defaults",
+    "这批调用未传入 Moli 内部超时参数。": "These calls did not pass Moli internal-timeout arguments.",
+    "45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时 45,000 毫秒": "45-second outer deadline; the measured command also explicitly set Moli's total-wait, HTTP, and connection timeouts to 45,000 ms",
+    "45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时 40,500 毫秒": "45-second outer deadline; the measured command also explicitly set Moli's total-wait, HTTP, and connection timeouts to 40,500 ms",
+    "这批调用使用保存记录中的显式 Moli 超时，未写成产品默认值。": "These calls used the explicit Moli timeouts preserved in their records; the report does not describe them as product defaults.",
+    "45 秒外层截止；Moli 内部超时以逐次调用记录为准": "45-second outer deadline; Moli's internal timeout policy is taken from each saved call record",
+    "保存证据未提供可核对的 Moli 内部超时策略。": "The saved evidence does not expose a verifiable Moli internal-timeout policy.",
+    "网页和文档正文使用原生 Markdown；直接媒体文件使用原始响应": "Native Markdown for webpage and document body text; raw responses for direct media files",
+    "HTML/TXT 可以直接返回正文；PDF/DOCX 必须由同一原生 Markdown 接口交付可读文字": "HTML and TXT can return body text directly; PDF and DOCX must deliver readable text through the same native Markdown interface",
+    "网页和文档正文输出 Markdown；直接媒体文件输出原始字节。": "Webpage and document body tasks output Markdown; direct media files output original bytes.",
+    "CLI · 按任务预选原生 Markdown、HTML 或原始响应路线": "CLI · preselects native Markdown, HTML, or raw-response routes by task",
+    "网页内嵌媒体": "Embedded webpage media",
+    "直接媒体文件": "Direct media files",
+    "输入是网页，共 17 题：16 题返回指定图片、视频或视频入口地址，1 题返回视频页登记的文字信息。地址题不下载媒体文件；文字题也不据此推断已取得视频字节。": "The input is a webpage. Across 17 tasks, 16 require specified image, video, or video-entry URLs and one requires registered text from a video page. URL tasks do not download the media file, and the text task does not imply that video bytes were obtained.",
+    "输入直接指向媒体文件，共 3 题：必须取得原始字节，并通过格式特征、长度与目标 SHA-256 验收。只复述输入网址不通过，也不要求把二进制内容转换成 Markdown。": "The input points directly to a media file. Across three tasks, the method must obtain the original bytes and pass format-signature, length, and target SHA-256 checks. Repeating the input URL fails, and binary content does not need conversion to Markdown.",
+    "直接取得 Moli 原生 HTML；共同评分器只识别其中的资源 URL": "Returns Moli's native HTML directly; the shared scorer only identifies resource URLs in it",
+    "使用 Moli 官方等待能力；只等待，不抽取或拼接正文": "Uses Moli's official wait capability for readiness only; it neither extracts nor assembles body text",
+    "所有正文与结构任务使用 Moli 原生 Markdown。旧版 selector 合同只映射到官方等待参数，不参与正文抽取。图片、视频资源页使用原生 HTML，共同评分器只识别其中的资源 URL。直接 PDF/DOCX 仍调用同一原生接口；接口没有交付可读正文时按失败记录，评测端不下载后解析。文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。": "All body and structured tasks use Moli's native Markdown. Legacy selector contracts map only to official wait parameters and do not extract body text. Image and video resource pages use native HTML, from which the shared scorer only identifies resource URLs. Direct PDF and DOCX inputs still use the same native interface; if it does not deliver readable text, the task fails and the benchmark does not download and parse the file. File tasks use native CDP responses or the same binary's raw attachment interface. The final URL is diagnostic only and does not determine body-task acceptance. A failure never triggers a format switch or another provider.",
+    "moli fetch；正文使用原生 Markdown，资源页使用原生 HTML，预声明完成条件只调用官方等待参数，直接文件使用原始响应": "moli fetch; body tasks use native Markdown, resource pages use native HTML, preregistered completion conditions only call official wait parameters, and direct files use raw responses",
+    "Moli 1.1.4：所有正文与结构任务使用原生 Markdown；旧版动态任务的预声明 selector 只映射到 --wait-selector 或 --wait-script。资源页使用原生 HTML，共同评分器只识别其中的资源 URL。直接 PDF/DOCX 仍走原生接口，未提供可读正文时按失败记录；文件题验收原始字节。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。": "Moli 1.1.4: all body and structured tasks use native Markdown; preregistered selectors from legacy dynamic tasks map only to --wait-selector or --wait-script. Resource pages use native HTML, from which the shared scorer only identifies resource URLs. Direct PDF and DOCX inputs still use the native interface and fail if it does not provide readable text; file tasks validate raw bytes. There is no layout extraction, post-failure format fallback, or cross-provider recovery. Only actual execution records enter the ranking.",
+    "资源页原生 HTML 中的图片地址": "Image URLs in native HTML from the resource page",
+    "资源页原生 HTML 中的媒体地址": "Media URLs in native HTML from the resource page",
+    "直接取得 Moli 原生 HTML；共同评分器只识别其中的图片 URL": "Returns Moli's native HTML directly; the shared scorer only identifies image URLs in it",
+    "直接取得 Moli 原生页面与网络记录；共同评分器只识别其中的视频 URL": "Returns Moli's native page and network record directly; the shared scorer only identifies video URLs in it",
+    "所有正文与结构任务使用 Moli 原生 Markdown。旧版 selector 合同只映射到官方等待参数，不参与正文抽取。网页图片地址题使用原生 HTML；网页视频地址题使用原生 JSON 页面与网络记录，并在 done 后统一留出 5 秒加载窗口。共同评分器只识别原生输出中的资源 URL。直接 PDF/DOCX 仍调用同一原生接口；接口没有交付可读正文时按失败记录，评测端不下载后解析。文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。": "All body and structured tasks use Moli's native Markdown. Legacy selector contracts map only to official wait parameters and do not extract body text. Webpage image-URL tasks use native HTML. Webpage video-URL tasks use the native JSON page and network record, with a uniform five-second loading window after done. The shared scorer only identifies resource URLs in the native output. Direct PDF and DOCX inputs still use the same native interface; if it does not deliver readable text, the task fails and the benchmark does not download and parse it. File tasks use native CDP responses or the same binary's raw attachment interface. The final URL is diagnostic only and does not determine body-task acceptance. A failure never triggers a format switch or another provider.",
     "查看本报告的任务范围、结果数量与验收规则。": "See the tasks, result counts and acceptance rules used in this report.",
     "内容选择": "Content selection",
     "典型处理流程": "Typical processing flow",
@@ -109,7 +150,12 @@ TEXT = {
     '本报告的方法由调用方的显式配置提供。': 'The caller’s explicit configuration supplies the methods in this report.',
     '方法名称': 'Method name',
     '工具版本': 'Tool version',
+    '原始输出': 'Raw output',
+    '程序错误': 'Program error',
+    '分类：': 'Classification: ',
     'Web Fetch · 评测报告': 'Web Fetch · Evaluation report',
+    'Web Fetch · 合成示例': 'Web Fetch · Synthetic example',
+    'Web Fetch · 诊断运行': 'Web Fetch · Diagnostic run',
     '合成示例 · 非正式评测': 'Synthetic example · not a formal benchmark',
     '诊断运行 · 非正式评测': 'Diagnostic run · not a formal benchmark',
     '文件交付': 'File delivery',
@@ -134,6 +180,17 @@ TEXT = {
     '合成示例': 'Synthetic example',
     '本报告由本地测试适配器生成。没有正式评测发布记录。': 'This report was generated by a local test adapter and has no formal benchmark release history.',
 
+    "Lightpanda、Obscura 与 Moli 的普通网页使用 CLI 正文输出。Moli 的直接文档和媒体 URL 使用裸 fetch：正文任务在预算内解析，文件任务校验字节。": "Lightpanda, Obscura and Moli use CLI body output for ordinary web pages. Moli uses bare fetch for direct document and media URLs: body parsing stays within the time budget and file tasks validate bytes.",
+    "Chromium 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。五种方法都不调用模型。": "Playwright obtains Chromium's complete rendered DOM, then node-html-markdown 2.0.0 converts it. None of these five methods calls a model.",
+    "实际版本、配置和调用路线见“环境与复现”及逐次调用记录。": "See Environment & reproduction and the individual call records for measured versions, settings and execution routes.",
+    "保留同一次调用的原生 Markdown 和最终页面地址。Lightpanda 解包原生 JSON；Obscura 执行固定哈希的官方 Markdown 脚本，并读取当前地址；页面完成条件不变。": "Retain native Markdown and the final page URL from the same call. Lightpanda unwraps its native JSON; Obscura evaluates the hash-pinned upstream Markdown script and reads the current URL, preserving the page completion conditions.",
+    "安装与本报告版本和 SHA-256 一致的浏览器，配置 CHROMIUM_BINARY；详见“环境与复现”。": "Install the browser matching this report's version and SHA-256, and configure CHROMIUM_BINARY; see Environment & reproduction.",
+    "登记配置：": "Registered configuration:",
+    "安装与本报告版本和 SHA-256 一致的二进制，配置 MOLI_BINARY；详见“环境与复现”。": "Install the binary matching this report's version and SHA-256, and configure MOLI_BINARY; see Environment & reproduction.",
+    "只有 Kitesurf 的账户级 Cloudflare Browser Run 路线需要供应商账号与凭据；其余方法是本地二进制，不需要账号，但仍需安装并明确指定可执行文件。": "Only the account-level Kitesurf Cloudflare Browser Run route requires a provider account and credentials; the other methods use local binaries that must be installed and explicitly selected.",
+    "查看各方法执行结果 →": "View execution results for all methods →",
+    "浏览器版本与二进制来源": "Browser versions and binary sources",
+    "风控网页正文": "Risk-control page body text",
     "本报告的任务范围与验收规则": "Task scope and acceptance rules",
     "查看全部任务及验收规则": "View all tasks and acceptance rules",
     "查看结果、实际返回及失败证据": "View results, actual outputs, and failure evidence",
@@ -150,8 +207,7 @@ TEXT = {
     "从官方 v1.1.7 release 获取二进制，配置 MOLI_1_1_7_BINARY。": "Obtain the binary from the official v1.1.7 release and configure MOLI_1_1_7_BINARY.",
     "Moli 1.1.7 正式发布": "Moli 1.1.7 official release",
     "本方法只使用官方 1.1.7 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与媒体的裸 fetch 路线在正式二进制上实测确认。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。": "This method uses only the official 1.1.7 release binary and is scored separately from other Moli versions. Ordinary web pages use native Markdown; bare-fetch routes for direct documents and media were verified on the release binary. If a body-text task retrieves a supported original document, text is parsed within the same timing budget; file tasks validate bytes directly. The method does not switch engines or output modes after a failure.",
-    "历史访问受限网址正文": "Historically access-restricted URL body text",
-    "历史访问受限网址内容": "Historically access-restricted URL content",
+    "风控网站正文": "Risk-control website body text",
     "请求指定网址": "Request the specified URL",
     "识别目标页或拦截页": "Identify the target page or a blocked page",
     "提取首次加载内容": "Extract the initially loaded content",
@@ -161,13 +217,17 @@ TEXT = {
     "从曾在保存的观察中出现登录、验证、反自动化或访问限制的指定网址取得目标内容。资格只解释样本来源；评分按独立保存的目标页面参考核对，防止只取得标题、开头、导航或少量列表条目也被判为通过。": "Retrieve target content from specified URLs where saved observations showed login, verification, anti-automation, or access restrictions. Qualification only explains cohort selection; scoring uses independently saved target-page references so a title, opening section, navigation, or a few list entries cannot pass as the full target.",
     "文章页须覆盖直接加载出的完整正文；列表页须保留稳定栏目，并取得满足域名、路径、字段、去重和数量要求的名称与真实链接。": "An article page must cover the complete body loaded directly. A list page must retain stable sections and return names with real links that meet the host, path, field, deduplication, and quantity requirements.",
     "规则只覆盖指定网址首次自动加载出的可见目标内容，不要求绕过验证或执行交互。通过表示本次返回满足冻结规则，不证明网站以后不会改变，也不证明所有访问环境都能取得相同页面。": "The rules cover only visible target content loaded automatically on the specified URL. They do not require bypassing verification or interacting with the page. A pass means this response satisfies the frozen rules; it does not prove that the site will remain unchanged or that every access environment receives the same page.",
-    "请求成功并取得指定目标页面；全部稳定文字、正文分区和组合规则均须满足。文章不能只返回标题或开头，列表须达到登记的字段、真实链接、路径、去重和数量要求；验证页、空返回和页面外壳均不通过。": "The request must succeed and return the specified target page, with every stable-text, body-region, and composite rule satisfied. An article cannot return only its title or opening. A list must meet its declared field, real-link, path, deduplication, and quantity requirements. Verification pages, empty responses, and page shells fail.",
-    "请求成功并取得指定目标页面；全部稳定文字、正文分区和组合规则均须满足。文章不能只返回标题或开头，列表须达到登记的字段、真实链接、路径、去重和数量要求；验证页、空返回和页面外壳均不通过。 已登记正文覆盖规则的案例，还须在最多 5 个参考区域中逐区达到 80% 词语计数覆盖，不能只返回标题或开头。": "The request must succeed and return the specified target page, with every stable-text, body-region, and composite rule satisfied. An article cannot return only its title or opening. A list must meet its declared field, real-link, path, deduplication, and quantity requirements. Verification pages, empty responses, and page shells fail. Cases with registered body-coverage rules must also reach 80% token-count coverage in each of up to 5 reference regions; returning only a title or opening section is insufficient.",
+    "请求成功并取得指定目标页面；正文分区、组合规则和登记为必需的稳定文字均须满足。登记为诊断的稳定文字只帮助核对抓取范围，不影响是否通过。文章不能只返回标题或开头，列表须达到登记的字段、真实链接、路径、去重和数量要求；验证页、空返回和页面外壳均不通过。": "The request must succeed and return the specified target page. Body-region rules, composite rules, and stable text marked as required must pass. Diagnostic stable text only checks retrieval scope and does not affect acceptance. An article cannot return only its title or opening. A list must meet its declared field, real-link, path, deduplication, and quantity requirements. Verification pages, empty responses, and page shells fail.",
+    "页面正文按登记的正文规则核验；稳定文字只用于核对抓取范围，不影响是否通过；新闻、日期、轮播卡片、仓库状态等易变内容不固定为答案。历史完整快照只作诊断，不进入全文质量汇总。": "Page text is evaluated against its registered body rules. Stable text only checks retrieval scope and does not affect acceptance. Volatile news, dates, carousel cards, repository status, and similar content are not frozen as answers. Historical full snapshots are diagnostic only and are excluded from full-text quality aggregates.",
+    "页面正文按登记的正文规则核验；登记的稳定文字必须命中；新闻、日期、轮播卡片、仓库状态等易变内容不固定为答案。历史完整快照只作诊断，不进入全文质量汇总。": "Page text is evaluated against its registered body rules, and registered stable text must match. Volatile news, dates, carousel cards, repository status, and similar content are not frozen as answers. Historical full snapshots are diagnostic only and are excluded from full-text quality aggregates.",
     "打开指定网址，取得首次自动加载出的目标正文、列表和真实链接，不进行点击、输入、滚动、翻页或登录。": "Open the specified URL and retrieve the target body, lists, and real links loaded automatically, without clicking, typing, scrolling, pagination, or login.",
-    "按独立保存的目标页面证据登记稳定文字、完整正文分区，以及名称—链接、路径、字段、去重和数量要求。": "Use independently saved target-page evidence to register stable text, complete body regions, and name-link, path, field, deduplication, and quantity requirements.",
-    "先排除请求失败、空返回、验证或拦截页面和页面外壳，再逐项检查本例声明的稳定文字、正文覆盖与组合规则。": "First exclude request failures, empty responses, verification or blocked pages, and page shells. Then check the case's declared stable text, body coverage, and composite rules.",
-    "本例登记的全部规则均通过；文章只返回标题或开头、列表数量不足、链接不符合真实路径，均不通过。": "Every registered rule for the case must pass. An article with only a title or opening, a list below its quantity threshold, or links that do not match real paths fails.",
+    "按独立保存的目标页面证据登记稳定文字、完整正文分区，以及名称—链接、路径、字段、去重和数量要求。稳定文字会明确标为必需或诊断。": "Use independently saved target-page evidence to register stable text, complete body regions, and name-link, path, field, deduplication, and quantity requirements. Stable text is explicitly marked as required or diagnostic.",
+    "先排除请求失败、空返回、验证或拦截页面和页面外壳，再逐项检查本例声明的稳定文字、正文覆盖与组合规则；诊断文字只显示命中情况。": "First exclude request failures, empty responses, verification or blocked pages, and page shells. Then check the case's declared stable text, body coverage, and composite rules; diagnostic text only reports whether it matched.",
+    "正文与列表规则及标为必需的稳定文字均通过；诊断文字不影响结论。文章只返回标题或开头、列表数量不足、链接不符合真实路径，均不通过。": "Body and list rules and stable text marked as required must pass; diagnostic text does not affect the verdict. An article with only a title or opening, a list below its quantity threshold, or links that do not match real paths fails.",
     "每例启动一个独立进程；由 Moli 的默认 done 完成方式决定何时交付内容。": "Each case starts a separate process; Moli's default done completion mode decides when to deliver the content.",
+    "每例启动一个独立进程；动态网站正文统一等待 Moli 原生 DOM 稳定信号，并启用原生页面布局和已加载子文档。": "Each case starts a separate process. Every dynamic-body task waits for Moli's native DOM-stability signal and enables native page layout and loaded child documents.",
+    "动态网站正文整类使用 CLI 原生 domstable": "The complete dynamic-page body family uses the CLI's native domstable mode",
+    "本轮 {record_count} 个动态网站正文任务统一使用 Moli 原生 Markdown、--layout、--with-frames 和 domstable。除目标 URL 外，没有逐题等待元素、延迟、提取脚本或特殊参数，也没有启用理解模型、格式回退或付费后备方法。": "All {record_count} dynamic-body tasks use Moli's native Markdown, --layout, --with-frames, and domstable mode. Apart from the target URL, there are no per-task element waits, delays, extraction scripts, or special parameters. No interpretation model, format fallback, or paid backup method is enabled.",
     "本轮100例统一使用 Moli 原生 Markdown Fetch 与默认 done 完成方式；除目标 URL 外没有逐例等待元素、额外等待时间、提取脚本或特殊参数。未启用额外的理解模型或付费后备方法。": "All 100 cases use Moli's native Markdown Fetch and default done completion mode. Apart from the target URL, no case-specific wait element, extra delay, extraction script, or special parameter is used. No additional interpretation model or paid fallback is enabled.",
     "核验初次加载范围：稳定内容锚点（稳定标题、栏目、说明）与条目的必需字段、数量、唯一性和类型共同决定任务通过。频繁变化的名单、条目标题和价格按声明的结构与类型核验，不固定旧快照取值。HTTP 页面壳不通过；渲染、内嵌数据和公开 API 均可作为实现路径。全文质量仅在有完整、可比的参考时另算。 已登记正文覆盖规则的案例，还须在最多 5 个参考区域中逐区达到 80% 词语计数覆盖，不能只返回标题或开头。 Ajax | Web Scraper Test Sites 的字段覆盖要求：price至少 6 条、description至少 6 条、reviews至少 6 条，各归属于完整且唯一的记录。 React · 商品与分期信息 的字段覆盖要求：分期至少 15 条、配送至少 13 条，各归属于完整且唯一的记录。": "Initial-load acceptance combines stable content anchors (stable headings, sections, and explanations) with each record's required fields, count, uniqueness, and types. Frequently changing lists, item titles, and prices are checked against declared structure and types rather than frozen snapshot values. An HTTP shell alone fails; rendering, embedded data, and public APIs are all valid implementation routes. Full-text quality is calculated separately only when a complete comparable reference exists. Cases with registered body-coverage rules must also reach 80% token-count coverage in each of up to 5 reference regions; returning only a title or opening section is insufficient. For Ajax | Web Scraper Test Sites, field coverage requires at least 6 price, 6 description, and 6 review values, each belonging to a complete unique record. For React · 商品与分期信息, field coverage requires at least 15 installment entries and 13 delivery entries, each belonging to a complete unique record.",
     "新增25例结果审核 25/25；未决 0；75例沿用既有审核记录": "Added 25-case result review: 25/25; 0 unresolved. Existing audit records are retained for the prior 75 cases",
@@ -1003,6 +1063,11 @@ TEXT = {
     "全调用 P50": "All-call P50",
     "全调用 P95": "All-call P95",
     "全调用均值 / P50 / P95": "All-call mean / P50 / P95",
+    "总耗时均值": "Mean total latency",
+    "总耗时 P50": "P50 total latency",
+    "总耗时 P95": "P95 total latency",
+    "总耗时均值 / P50 / P95": "Mean / P50 / P95 total latency",
+    "总耗时按每题所有物理调用累计，包含失败重试和重试等待；每题仍只计一个样本。": "Total latency accumulates all physical calls for each task, including failure retries and retry waits; each task remains one sample.",
     "按需查看共同成功任务耗时": "View shared-pass latency on demand",
     "通过调用 P50 ms": "Successful-call P50 (ms)",
     "通过调用 P95 ms": "Successful-call P95 (ms)",
@@ -1217,7 +1282,7 @@ TEXT = {
     "完整报告中的任务均明确判为通过或失败。诊断构建可显示未测，但会被标为不可靠且不能发布。通过不证明事实准确性、实时性或整页完整性。": "Every task in a complete report has an explicit pass or fail verdict. Diagnostic builds may show unmeasured tasks, but are marked unreliable and cannot be published. A pass does not prove factual accuracy, freshness, or whole-page completeness.",
     "所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。": "All scores are computed from the recorded calls. Web pages and services may change; conclusions apply only to this sample and configuration.",
     "先比较方法在同一任务上的成败组合，再筛选全部执行记录。": "Compare methods on the same tasks first, then filter the complete execution record.",
-    "按同一任务逐项比较，不用各方法不同的成功样本拼接结论。成功与失败均沿用主榜已核验判定；点击方法可查看标准答案、实际返回和原因。": "Methods are compared task by task; conclusions never splice together different success samples. Pass and fail states use the reviewed primary verdicts. Open a method to inspect its reference, output, and rationale.",
+    "按同一任务逐项比较，不用各方法不同的成功样本拼接结论。成功与失败均沿用主榜的程序判定；点击方法可查看标准答案、实际返回和原因。": "Methods are compared task by task; conclusions never splice together different success samples. Pass and fail states use the primary program verdicts. Open a method to inspect its reference, output, and rationale.",
     "记录每轮核验的范围、发现、纠正和未决事项。": "Each review round records its scope, findings, corrections, and unresolved items.",
     "本轮没有绑定独立核验记录。": "No independent review record is bound to this build.",
     "代码、评测集和复现说明以 browser-eval 仓库为准；本页只列本轮必要配置。": "The browser-eval repository is authoritative for code, dataset, and reproduction instructions. This page lists only the configuration required for this run.",
@@ -1309,7 +1374,7 @@ TEXT.update({
 
     # Overview and ranking guidance.
     "Web Fetch 评测报告": "Web Fetch benchmark report",
-    "五类浏览器、七种方法取同一批网页：速度、正文与交付边界": "Five browsers, seven methods, one shared URL set: latency, content, and delivery boundaries",
+    "五类浏览器、六种配置、七类任务：正文、媒体与交付边界": "Five browsers, six configurations, seven task families: content, media, and delivery boundaries",
     "从分数差异、失败案例和实现机制，理解如何选择抓取方法。": "Use score differences, failure evidence, and implementation boundaries to choose the right retrieval method.",
     "阅读全文 →": "Read the interpretation →",
     "查看核验轮次 →": "View review rounds →",
@@ -1350,7 +1415,7 @@ TEXT.update({
     "仅链接": "Link only",
 
     # Shared metric definitions and task-family explanations.
-    "静态网站正文、动态网站正文、热门网站正文和文档正文使用同一评分流程。页面来源与加载方式不同，改变的是案例要求，不改变指标定义。": "General web, rendered web, popular-site, and document text all use the same scoring pipeline. Source and loading behavior change the task contract, not the metric definitions.",
+    "静态网站正文、动态网站正文、热门网站正文、风控网页正文和文档正文使用同一评分流程。页面来源与加载方式不同，改变的是案例要求，不改变指标定义。": "Static-site, dynamic-site, popular-site, risk-control, and document body-text tasks share one scoring pipeline. Their sources and loading behavior affect case requirements, not metric definitions.",
     "统一验收流程": "Shared acceptance pipeline",
     "接口返回 → 排除空内容与错误页 → 核对题目要求的文字和字段 → 检查列表数量、类型与唯一性 → 汇总任务结果。只执行该例适用的检查；失败详情保留具体未满足项。图片与视频沿用请求和交付检查，资源地址或文件字节另按格式核验。": "Provider response → reject empty content and error pages → check required text and fields → validate record count, types, and uniqueness → determine the task verdict. Only applicable checks run for each task, and failures retain the unmet requirements. Image and video tasks use the same request and delivery checks, with resource URLs or file bytes validated by format.",
     "满足该例全部验收规则的次数 ÷ 已有验收证据的任务。段落、列表、字段都属于内容要求；没有 F1 最低分门槛。请求失败计入分母；任何计划调用缺失或无法判分时，整份报告标为不可靠并禁止发布。": "Calls satisfying every acceptance rule divided by tasks with acceptance evidence. Paragraphs, lists, and fields are all content requirements; there is no minimum F1 threshold. Request failures remain in the denominator. A missing or unjudgeable planned call makes the report unreliable and blocks publication.",
@@ -1645,6 +1710,9 @@ TEXT.update({
     "评分使用上方完整标准答案和完整实际返回，不使用下面展示的短定位样例。两边先统一大小写和常见排版差异，去掉 Markdown 链接地址、空白及标点，再切成连续六字符片段。标准答案按前后位置分成 5 份；每份覆盖率 = 在完整实际返回中找到的片段数 ÷ 该份标准片段总数。本任务要求每个位置至少达到 60.0%，且至少 4/5 个位置达到 80.0%。同一个实际片段只能计入一个位置，避免重复文字被多次借用。全文完整度、纯净度和 F1 仍按完整文本另行计算。": "Scoring uses the complete reference and complete actual output above, not the short inspection snippets below. Both sides are normalized for case and common formatting differences; Markdown link destinations, whitespace, and punctuation are removed before forming contiguous six-character shingles. The reference is divided into 5 ordered regions. Region coverage equals matched shingles in the complete output divided by reference shingles in that region. Every region must reach the 60.0% hard floor and at least 4 of 5 regions must reach the 80.0% target. An output shingle can count toward only one region, preventing repeated text from being reused. Full-text recall, precision, and F1 are calculated separately on the complete text.",
     "评分使用上方完整标准答案和完整实际返回，不使用下面展示的短定位样例。两边先统一大小写和常见排版差异，去掉 Markdown 链接地址、空白及标点，再切成连续六字符片段。标准答案按前后位置分成 1 份；每份覆盖率 = 在完整实际返回中找到的片段数 ÷ 该份标准片段总数。本任务要求每个位置至少达到 60.0%，且至少 1/1 个位置达到 80.0%。同一个实际片段只能计入一个位置，避免重复文字被多次借用。全文完整度、纯净度和 F1 仍按完整文本另行计算。": "Scoring uses the complete reference and complete actual output above, not the short inspection snippets below. Both sides are normalized for case and common formatting differences; Markdown link destinations, whitespace, and punctuation are removed before forming contiguous six-character shingles. This reference has 1 region. Region coverage equals matched shingles in the complete output divided by reference shingles in that region. At least 1 of 1 region must reach the 60.0% hard floor and the 80.0% target. An output shingle can count only once. Full-text recall, precision, and F1 are calculated separately on the complete text.",
     "每组至少命中一种允许表达，所有组均须通过。": "At least one accepted variant must match in every group; all groups are required.",
+    "这些文字只用于核对抓取范围；未命中不会使任务失败。": "These texts only verify retrieval scope; missing them does not fail the task.",
+    "范围核对文字": "Scope-check text",
+    "这里列出正文验收规则和用于范围核对的文字；范围核对文字不影响是否通过。": "This section lists the body acceptance rules and text used to check retrieval scope; scope-check text does not affect acceptance.",
     "必需字段与要求": "Required fields and constraints",
     "名称与链接核验依据": "Name and URL validation basis",
     "各字段须属于同一条记录，不得跨条目拼接。按详情链接核对唯一性。": "All fields must belong to the same record and cannot be assembled across items. Uniqueness is checked by detail URL.",
@@ -2061,7 +2129,7 @@ TEXT.update({
     "查看参考与实测 →": "View reference and measured results →",
     "以 Attention Is All You Need PDF 为例，读取整篇论文；另测 DOCX、TXT 和嵌入文档页面。": "Use the Attention Is All You Need PDF as an example and read the complete paper; DOCX, TXT, and embedded-document pages are tested separately.",
     "从原始文件全部页面、段落和表格独立提取正文，并保存原文件。": "Independently extract body text from every page, paragraph, and table in the original file, and retain the file.",
-    "输入原始文档 URL。方法能直接返回正文时直接使用；只返回 PDF、DOCX 等原始字节时，在同一计时预算内本地解析。取得可读正文后停表，再对照全文计算完整度、纯净度与 F1，并检查标题、核心术语及章节。": "Provide the original document URL. Use body text directly when the method returns it; when it returns only PDF, DOCX, or other original bytes, parse locally within the same timing budget. Stop timing once readable body text is available, then calculate recall, precision, and F1 against the complete text and check the title, core terms, and sections.",
+    "输入原始文档 URL，直接使用参评浏览器官方接口返回的正文。只返回 PDF、DOCX 等原始字节时，本题不通过；评测端不再替它解析。取得可读正文后停表，再对照全文计算完整度、纯净度与 F1，并检查标题、核心术语及章节。": "Provide the original document URL and use the body text returned by the browser's official interface. A task fails if the method returns only raw PDF, DOCX, or other file bytes; the evaluation harness does not parse the file on its behalf. Stop timing once readable body text is available, then compare it with the full reference text for recall, precision, and F1, and check the title, key terms, and sections.",
     "必须返回文档正文，只返回论文下载地址不通过。": "The document body is required; a paper download URL alone fails.",
     "必须返回文档正文，只返回论文下载地址不通过。查看本例完整参考与逐方法结果 →": "The document body is required; a paper download URL alone fails. View the complete reference and per-method results →",
     "查看本例完整参考与逐方法结果 →": "View the complete reference and per-method results →",
@@ -2083,10 +2151,12 @@ TEXT.update({
     "变更记录": "Changelog",
     "评分规则修订收据": "Scoring-rule revision receipt",
     "参考答案修订收据": "Reference-answer revision receipt",
-    "按声明范围同时核对稳定内容锚点（稳定标题、栏目、说明）和条目数量、必需字段、唯一性和字段类型，不是只检查数量。频繁变化的名单、条目标题、价格和名次只按声明的结构、类型与数量核验，不固定旧快照取值；这不等于证明这些变化值真实或最新。": "Within the declared scope, validate stable content anchors (stable headings, sections, and descriptions) together with record count, required fields, uniqueness, and field types—not count alone. Frequently changing lists, item titles, prices, and ranks are checked by declared structure, type, and count rather than old snapshot values; this does not establish that those values are accurate or current.",
+    "按声明范围核对稳定内容锚点（稳定标题、栏目、说明）和条目数量、必需字段、唯一性和字段类型。锚点会明确标为必需或诊断：必需锚点参与验收，诊断锚点只核对抓取范围。频繁变化的名单、条目标题、价格和名次只按声明的结构、类型与数量核验，不固定旧快照取值；这不等于证明这些变化值真实或最新。": "Within the declared scope, validate stable content anchors (stable headings, sections, and descriptions), record count, required fields, uniqueness, and field types. Each anchor is marked as required or diagnostic: required anchors affect acceptance, while diagnostic anchors only check retrieval scope. Frequently changing lists, item titles, prices, and ranks are checked by declared structure, type, and count rather than old snapshot values; this does not establish that those values are accurate or current.",
     "任务结果对应已登记的内容锚点、字段要求与数量范围；保留原始输出及评分规则，便于逐项复核。": "Each task verdict binds to registered content anchors, field requirements, and count range. Raw output and scoring rules are retained for item-level verification.",
     "原始输出哈希和证据完整性检查保留。已验证的 stable_contract 按数据不变量验收，不依赖快照时效；exact_snapshot 模式仍可按其协议检查参考。两种模式不能混用，也不声称所有调用满足同一采集窗口。": "Raw-output hashes and evidence-integrity checks are retained. A validated stable_contract uses data invariants and does not depend on snapshot age; exact_snapshot references remain governed by their own protocol. The modes cannot be mixed, and the report does not claim one capture window for every call.",
-    "完整度、纯净度与 F1 必须有完整参考，且与输出的目标范围和内容具有可比性；不能用条目数量推算全文 F1。缺少完整、可比的参考显示 —（全文指标未评测），任务通过率和耗时仍保留。稳定内容锚点仍用于任务验收；文本重合不证明变化值的事实准确性或实时性，名单变化本身不使稳定任务契约过期。": "Recall, precision, and F1 require a complete reference comparable in target scope and content; record count cannot imply full-text F1. Without such a reference, full-text metrics are shown as — while task pass rate and latency remain. Stable content anchors still determine acceptance. Text overlap does not establish factual accuracy or freshness, and list changes alone do not expire a stable task contract.",
+    "标为必需的稳定内容锚点参与验收；诊断锚点只核对抓取范围。": "Stable content anchors marked as required affect acceptance; diagnostic anchors only check retrieval scope.",
+    "完整度、纯净度与 F1 必须有完整参考，且与输出的目标范围和内容具有可比性；不能用条目数量推算全文 F1。缺少完整、可比的参考显示 —（全文指标未评测），任务通过率和耗时仍保留。标为必需的稳定内容锚点参与验收；诊断锚点只核对抓取范围。文本重合不证明变化值的事实准确性或实时性，名单变化本身不使稳定任务契约过期。": "Recall, precision, and F1 require a complete reference comparable in target scope and content; record count cannot imply full-text F1. Without such a reference, full-text metrics are shown as — while task pass rate and latency remain. Stable content anchors marked as required affect acceptance; diagnostic anchors only check retrieval scope. Text overlap does not establish factual accuracy or freshness, and list changes alone do not expire a stable task contract.",
+    "任务结果对应已登记的必需锚点、字段要求与数量范围；诊断锚点另行展示。保留原始输出及评分规则，便于逐项复核。": "Task results are bound to registered required anchors, field requirements, and count ranges; diagnostic anchors are shown separately. Raw outputs and scoring rules are retained for item-by-item review.",
 
     # Current release-note entries.
     "Codex 独立强推理代理": "Codex independent high-reasoning agent",
@@ -2140,8 +2210,17 @@ TEXT.update({
     "本轮没有媒体解析，不据此推断产品能力": "This run performs no media parsing; no broader product limitation is inferred",
     "本轮异常二进制输出仅保留证据": "Anomalous binary output from this run is retained as evidence only",
     "原生 Markdown": "Native Markdown",
+    "直接取得 Moli 原生 Markdown": "Retrieve Moli native Markdown directly",
+    "直接取得 Moli 原生 Markdown；直接 PDF/DOCX 不提供可读正文": "Retrieve Moli native Markdown directly; direct PDF/DOCX inputs do not yield readable body text",
+    "通过 Moli 原生执行接口读取已加载内容；表达式只由公开任务类型决定": "Read loaded content through Moli's native execution interface; expressions are selected only by public task type",
+    "Markdown 正文统一使用 Moli 默认 done 完成方式": "Markdown body uses Moli's default done completion mode",
+    "每次调用 45 秒；不改写 Moli 内部 HTTP 和连接超时默认值": "45 seconds per call; Moli's internal HTTP and connection timeout defaults remain unchanged",
+    "默认启用": "Enabled by default",
+    "普通、动态、热门、风控和直接文档正文统一使用 Moli 原生 Markdown。文件使用原生 CDP 响应或同一二进制的原始附件接口。图片、视频资源和嵌入文档只通过 Moli 原生执行接口读取已加载内容，不另抓模块或下载文档后外部解析。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。": "Regular, dynamic, popular-site, risk-control, and direct-document body tasks use Moli's native Markdown. Files use native CDP responses or the same binary's raw attachment interface. Image and video resources and embedded documents use only Moli's native execution interface to inspect loaded content; the runner does not fetch modules separately or parse downloaded documents externally. The final URL is diagnostic only and does not determine whether body extraction passes. A failure does not switch format or borrow another provider.",
+    "普通、动态、热门、风控及 HTML/TXT 文档正文使用 Moli 原生 Markdown。直接 PDF/DOCX 仍调用同一原生接口；接口没有交付可读正文时按失败记录，评测端不下载后解析。文件使用原生 CDP 响应或同一二进制的原始附件接口。图片、视频资源和嵌入文档只通过 Moli 原生执行接口读取已加载内容。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。": "Regular, dynamic, popular-site, risk-control, and HTML/TXT document-body tasks use Moli's native Markdown. Direct PDF/DOCX inputs still use that native interface; if it does not return readable body text, the task fails and the benchmark does not download and parse the file. Files use native CDP responses or the same binary's raw attachment interface. Image and video resources and embedded documents use only Moli's native execution interface to inspect loaded content. The final URL is diagnostic only and does not determine whether body extraction passes. A failure does not switch format or borrow another provider.",
     "CLI 原生 Markdown": "Native Markdown from CLI",
     "CLI · 按任务预选 Markdown、DOM eval 或裸响应路线": "CLI · preselect Markdown, DOM eval, or bare-response routes by task",
+    "CLI · 按任务预选 Markdown、DOM eval 或原始响应路线": "CLI · preselect Markdown, DOM eval, or raw-response routes by task",
     "CLI · 按任务预选 Markdown、JSON 诊断、DOM eval 或裸响应路线": "CLI · preselect Markdown, JSON diagnostics, DOM eval, or bare-response routes by task",
     "Moli 一次性 fetch：普通正文用 Markdown，挑战题用 JSON 返回最终 DOM、状态和跳转诊断后在同一截止内本地转 Markdown；不调用模型。": "Moli performs one fetch per task: ordinary body tasks use Markdown, while challenge tasks return final-DOM JSON, status, and redirect diagnostics before local Markdown conversion within the same deadline; no model is called.",
     "stdout 文本/JSON/字节；stderr 独立诊断": "Text, JSON, or bytes on stdout; separate diagnostics on stderr",
@@ -2213,8 +2292,8 @@ TEXT.update({
     "text.verbosity=full、maxAgeHours=0；资源题取 links/imageLinks，具名列表题取 richLinks 并只接收非空 anchor—URL 对。本轮没有调用摘要或高亮生成。": "This run uses text.verbosity=full and maxAgeHours=0. Resource tasks collect links/imageLinks; named-list tasks collect richLinks and accept only non-empty anchor–URL pairs. Summary and highlight generation are not called.",
     "只调用 /markdown；普通网页使用 networkidle2，动态任务使用预声明 selector 和有界稳定等待；未提供源站登录 Cookie，未调用其他端点。": "Only /markdown is called. Ordinary pages use networkidle2, while dynamic tasks use a predeclared selector and bounded settling wait. No origin-login cookie is supplied and no other endpoint is called.",
     "非动态网页使用通用浏览器策略、domcontentloaded 与无缓存；动态任务使用预声明的完成条件。直接 PDF 正文在调用前选择 PDFCrawlerStrategy 与 PDFContentScrapingStrategy；文件任务选择原生 HTTP 文件策略并统一校验。未启用截图、OCR 或 LLM 提取；媒体字段不代表内容理解。": "Non-dynamic pages use the general browser strategy with domcontentloaded and no cache; dynamic tasks use their predeclared completion condition. Direct PDF body tasks preselect PDFCrawlerStrategy with PDFContentScrapingStrategy; file tasks select the native HTTP file strategy and shared validation. Screenshots, OCR, and LLM extraction are not enabled, and media fields do not imply content understanding.",
-    "正文与文件是不同交付契约。直接文档若返回原始字节，评测在同一次预算内解析；直接媒体只校验格式、长度和冻结 SHA-256，不进行内容理解。1.0.6 与 1.1.1 的裸 fetch 行为由官方发行二进制实测确认，1.1.3 还在 CLI 帮助中明确说明。": "Body text and files have different delivery contracts. When a direct document returns original bytes, the benchmark parses them within the same budget; direct media is checked only for format, length, and frozen SHA-256, without content understanding. Bare-fetch behavior for 1.0.6 and 1.1.1 was verified with official release binaries, and 1.1.3 also documents it in CLI help.",
-    "普通网页 --dump markdown；直接 PDF、DOCX 和媒体不传 --dump；本轮没有启用失败重试，端到端预算 45 秒。": "Ordinary pages use --dump markdown; direct PDF, DOCX, and media inputs omit --dump. Failure retries were disabled in this run; the end-to-end budget is 45 seconds.",
+    "正文与文件是不同交付契约。文档题要求 Moli 的原生 Markdown 接口直接交付可读正文；只返回 PDF/DOCX 字节或地址不通过，评测端不再外部解析。直接媒体文件只校验格式、长度和冻结 SHA-256，不进行内容理解。": "Body text and files have different delivery contracts. Document tasks require Moli's native Markdown interface to return readable body text directly. PDF or DOCX bytes or a URL alone do not pass, and the benchmark does not parse them externally. Direct media files are checked only for format, length, and frozen SHA-256, without content understanding.",
+    "网页与文档正文使用 --dump markdown；直接媒体文件返回原始字节；本轮没有启用失败重试，端到端预算 45 秒。": "Webpage and document body tasks use --dump markdown; direct media files return original bytes. Failure retries were disabled in this run, with a 45-second end-to-end budget.",
     "obscura fetch --dump markdown 原生输出": "Native output from obscura fetch --dump markdown",
     "下载能力与来源数据": "Acquisition capability and source data",
     "Beta 期免费；账户级限制": "Free during beta; account-level limits apply",
@@ -2241,6 +2320,28 @@ TEXT.update({
     "multipart · 直接文档": "multipart · direct documents",
     "string · 直接文档": "string · direct documents",
 
+})
+
+# Reader-facing task-family copy from report_components.py. These strings are
+# rendered on the methodology page and therefore need full English editions;
+# measured task names and prompts remain unchanged.
+TEXT.update({
+    "输入网页，从页面里找到指定图片、视频或视频入口地址；另有 1 题读取视频页标题与发布者。": "Given a web page, find the specified image, video, or playback URL. One additional task asks for the video-page title and publisher.",
+    "16 道地址题使用独立保存的资源地址或地址规则；1 道文字题使用可见标题与发布者。": "Sixteen URL tasks use independently saved resource URLs or URL rules. One text task uses the visible title and publisher.",
+    "地址题只核对返回值里是否出现目标地址，不要求另行下载媒体文件；文字题按登记事实核对。": "URL tasks check whether the returned value contains the target URL and do not require a separate media download. The text task checks the registered facts.",
+    "完成该题声明的地址或文字交付。拿到地址不等于取得文件，也不表示理解了图片、画面、字幕或声音。": "Return the URL or text required by the task. A URL alone does not deliver the file or show understanding of images, video, captions, or audio.",
+    "输入 1 个直接图片地址或 2 个直接视频地址，取得原始文件。": "Retrieve the original file from one direct image URL or either of two direct video URLs.",
+    "独立保存的原文件格式、长度和 SHA-256。": "Independently saved file format, length, and SHA-256.",
+    "核对实际返回字节的格式特征、长度和目标 SHA-256；不对二进制文件做 Markdown 转换。": "Check the returned bytes against the required file signature, length, and SHA-256. Binary files are not converted to Markdown.",
+    "必须实际交付匹配的文件字节；复述输入网址或只返回网页文字不通过。本组不测试媒体理解。": "The method must return the matching file bytes. Repeating the input URL or returning page text does not pass. These tasks do not test media understanding.",
+    "查看网页媒体参考与结果 →": "View web-media references and results →",
+    "查看原始文件参考与结果 →": "View original-file references and results →",
+    "完成该题声明的地址或文字交付。拿到地址不等于取得文件，也不表示理解了图片、画面、字幕或声音。查看网页媒体参考与结果 →": "Return the URL or text required by the task. A URL alone does not deliver the file or show understanding of images, video, captions, or audio. View web-media references and results →",
+    "必须实际交付匹配的文件字节；复述输入网址或只返回网页文字不通过。本组不测试媒体理解。查看原始文件参考与结果 →": "The method must return the matching file bytes. Repeating the input URL or returning page text does not pass. These tasks do not test media understanding. View original-file references and results →",
+    "本轮 100 例统一使用 Moli 原生 Markdown 和默认 done 完成方式。除目标 URL 外，没有逐例等待元素、额外等待时间、提取脚本或特殊参数，也没有启用理解模型、格式回退或付费后备方法。": "All 100 cases use Moli's native Markdown and default done completion mode. Beyond the target URL, there are no case-specific wait elements, added delays, extraction scripts, or special parameters. No interpretation model, format fallback, or paid backup method is enabled.",
+    "所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档题验收可读正文；网页媒体题验收指定资源地址或登记文字；直接媒体文件题验收图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。": "Every method enters the same scoring pipeline, while acceptance follows each task's required deliverable. Web and document tasks require readable body text; web-media tasks require the specified resource URL or registered text; direct-media tasks require image or video bytes; structure tasks require the declared fields and stable text. HTML and Markdown links follow the same checks as explicitly paired structured name–URL fields. Request echoes and diagnostic logs do not count as answers. Raw output and adapter status are preserved, and the report layer does not alter results by method name.",
+    "这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。文档正文必须由参评方法交付为可读文字；直接媒体文件任务到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。": "This boundary measures the time needed to obtain the task's final deliverable. A service that returns a finished result includes the full round trip; a local method stops only after any required download, rendering, or parsing. The evaluated method must deliver document body text in readable form. Direct-media tasks stop after byte validation and do not perform an unrelated Markdown conversion. Every method uses the same outer timer and deadline. Late answers are rejected. Calls that cannot be cancelled are isolated, which leaves the batch incomplete and blocks publication.",
+    "完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%。所有位置一次性做全局容量分配；同一返回片段实例只能计入一个位置，位置排列顺序不影响结论。若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。直接媒体文件任务必须有字节验收，资源 URL 不等于文件。": "Alongside the existing checks, complete-body tasks measure six-character-shingle coverage across up to five consecutive reference regions. Every region must reach 60%, and normally at least four must reach 80%. A global capacity assignment ensures that each returned fragment instance counts toward only one region, regardless of region order. A task may declare different regional thresholds when independent evidence establishes legitimate reordering. Matching ignores whitespace and presentation marks while preserving text order; full-text F1 remains a separate measurement. Direct-media tasks require byte validation, and a resource URL does not count as a file.",
 })
 
 TEXT.update({
@@ -2388,6 +2489,7 @@ TEXT.update({
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
 PHRASES = {
+    "Moli 1.1.15 · 独立资源批次": "Moli 1.1.15 · independent resource cohort",
     "的 Moli 已保存输出仍包含": "'s saved Moli output still contains ",
     "，内容规则未通过。请求成功在这里记录了一个正常返回的结果，却没有等来任务要求的内容。这比方法是否具备浏览器功能更接近本次接入要解决的问题。": ", but failed the content rule. A normal response did not wait for the required content. This is closer to the integration problem than whether the method has browser features.",
     "Quotes to Scrape 的": "Quotes to Scrape's ",
@@ -2525,6 +2627,7 @@ for adoption_text in (
 
 
 REGEX = [
+    (re.compile(r"^每次物理调用预算为 ([\d.]+) 秒，重试后的累计耗时可能超过该预算。$"), r"Each physical call has a \1-second budget; accumulated latency after retries can exceed it."),
     (re.compile(r"^本报告包含 (\d+) 个任务、(\d+) 个逻辑结果，任务通过 (\d+)/(\d+)。结论仅适用于已登记的任务和规则。$"), r"This report contains \1 tasks and \2 logical results, with \3/\4 task passes. Conclusions apply only to the registered tasks and rules."),
     (re.compile(r"^的 F1 为 ([\d.]+%)，但没有满足该例任务规则。零通过表示没有一次满足全部任务门槛，不表示输出与参考毫无词语重合。这里的 F1 对照已保存的样本文本，只诊断文字重合，不承担实时事实核验。词频相似度允许部分文字得分，任务规则检查指定的内容或字段结构；二者应保留各自的含义。$"),
      r" has F1 \1 but does not satisfy its task rules. Zero passes means no call met every threshold, not zero textual overlap. This F1 compares saved sample text only and does not verify live facts. Token-frequency similarity can award partial text credit, while task rules check required content or field structure; the two retain distinct meanings."),
@@ -2664,6 +2767,7 @@ REGEX = [
     (re.compile(r"^(\d+)\. 位置 (\d+)（标准答案 (\d+)–(\d+)%）$"), r"\1. Region \2 (reference \3–\4%)"),
     (re.compile(r"^位置 (\d+)（标准答案 (\d+)–(\d+)%）$"), r"Region \1 (reference \2–\3%)"),
     (re.compile(r"^必须出现的稳定文字 (\d+)（任一写法即可）$"), r"Required stable text \1 (any listed variant)"),
+    (re.compile(r"^用于范围核对的稳定文字 (\d+)（任一写法即可）$"), r"Stable text for scope diagnosis \1 (any listed variant)"),
     (re.compile(r"^稳定文字 (\d+)$"), r"Stable text \1"),
     (re.compile(r"^正文核对点-(\d+)$"), r"Body check \1"),
     (re.compile(r"^至少 (\d+) 条完整且不重复的记录$"), r"At least \1 complete, unique records"),
@@ -2955,6 +3059,12 @@ PHRASES.update({
 def release_translations(history: dict) -> dict[str, str]:
     """Localize only the structured release records included in this report."""
     translations = {}
+
+    def add(source, target):
+        if source in translations and translations[source] != target:
+            raise ValueError('Conflicting English release translation for ' + repr(source))
+        translations[source] = target
+
     for release in history['releases']:
         if any(kind in release.get('comparison_kinds', []) for kind in (
                 'webmainbench_frozen_html_to_markdown', 'public_benchmark_research',
@@ -2966,11 +3076,12 @@ def release_translations(history: dict) -> dict[str, str]:
                 or len(release.get('changes', [])) != len(english.get('changes', []))):
             raise ValueError('Web Fetch release requires complete English text: ' + release['id'])
         for key in ('title', 'summary'):
-            translations[release[key]] = english[key]
+            add(release[key], english[key])
         for source_row, target_row in zip(release['changes'], english['changes'], strict=True):
             if len(source_row) != 4 or len(target_row) != 4:
                 raise ValueError('Web Fetch release change rows must have four columns: ' + release['id'])
-            translations.update(zip(source_row, target_row, strict=True))
+            for source, target in zip(source_row, target_row, strict=True):
+                add(source, target)
 
     return translations
 
@@ -3228,8 +3339,16 @@ REGEX.insert(0, (
     r"All \1 stable-text groups belong to the reference answer. This area shows about 5 groups at a time; scroll to view all.",
 ))
 REGEX.insert(0, (
+    re.compile(r"^共 (\d+) 组稳定文字，只用于范围核对，不影响是否通过；当前区域显示约 5 组高度，向下滚动查看全部。$"),
+    r"All \1 stable-text groups are scope diagnostics and do not affect acceptance. This area shows about 5 groups at a time; scroll to view all.",
+))
+REGEX.insert(0, (
     re.compile(r"^共 (\d+) 项稳定文字判定，全部参与评分；当前区域显示约 5 项高度，向下滚动查看全部。$"),
     r"All \1 stable-text checks contribute to scoring. This area shows about 5 at a time; scroll to view all.",
+))
+REGEX.insert(0, (
+    re.compile(r"^共 (\d+) 项稳定文字判定，只用于范围核对，不影响是否通过；当前区域显示约 5 项高度，向下滚动查看全部。$"),
+    r"All \1 stable-text checks are scope diagnostics and do not affect acceptance. This area shows about 5 at a time; scroll to view all.",
 ))
 
 REGEX.insert(0, (
@@ -3324,6 +3443,11 @@ TEXT.update({
     "接收": "Received",
     "发送": "Sent",
     "同题口径：所列配置共同通过": "Matched-task scope: general pages passed by every listed configuration:",
+    "所列配置共同通过": "Tasks passed by every listed configuration:",
+    "；这项交集只作附加诊断，不用于选择资源表的样本。各方法成功调用的条件统计另保留在资源证据中。": "; this intersection is diagnostic only and does not select the resource-table population. Conditional statistics for each method's successful calls are retained in the resource evidence.",
+    "资源数据来自四种本地方法的独立同题测量，不回填到历史通过率调用。每次调用启动一个受限的 Linux 客户端容器及独立网络；宿主控制器和容器启停不计入。CPU 与网络总量读取累计计数，内存与速率分位数按 50 ms 采样。": "Resource data comes from a separate matched-task measurement of the four local methods and is not added to historical pass-rate calls. Each call starts a limited Linux client container with a dedicated network; the host controller and container lifecycle are excluded. CPU and network totals use cumulative counters, while memory and rate percentiles are sampled every 50 ms.",
+    "资源主表统计预先确定的全部任务，包括失败调用，并列出各方法的通过数；成功调用另作条件统计，共同通过的任务仅作诊断。短于采样间隔的内存或速率峰值可能遗漏；Kitesurf 等远端服务的服务端 CPU、内存与上游流量不可观测，因而不进入资源表。": "The primary resource table includes every predeclared task, including failed calls, and shows each method's pass count. Successful calls have separate conditional statistics; shared successes are diagnostic only. Memory or rate peaks shorter than the sampling interval may be missed. Server-side CPU, memory, and upstream traffic for remote services such as Kitesurf are unobservable, so they are excluded from the resource table.",
+    "资源主表纳入预先确定的全部任务，包括失败调用，统计容器内调用进程、浏览器与转换过程的消耗；同时列出各方法通过数。各方法成功调用另作条件统计，共同通过的任务仅作诊断。Kitesurf 的远端 CPU、内存和上游流量不可见，因此不进入资源表。缺少任一资源字段、非 Linux/cgroup v2、镜像或二进制身份变化、并发不为 1，都会阻断资源包构建。": "The primary resource table includes every predeclared task, including failed calls, and measures the caller process, browser, and conversion within the container. Each method's pass count is shown. Successful calls have separate conditional statistics; shared successes are diagnostic only. Kitesurf's remote CPU, memory, and upstream traffic are unobservable, so it is excluded. Missing resource fields, a non-Linux/cgroup-v2 backend, changed image or binary identity, or concurrency other than one block resource packaging.",
     "个普通网页；失败任务不进入资源排名。": "pages; failed tasks do not enter the resource ranking.",
     "CPU 与计算": "CPU and compute",
     "内存": "Memory",
@@ -3351,6 +3475,17 @@ TEXT.update({
 })
 
 REGEX.insert(0, (
+    re.compile(r"^资源表覆盖预先确定的全部 (\d+) 个普通网页，包含失败调用。这组任务的通过数：(.*)。各项平均值、P50、P95 使用同一完整范围。$"),
+    lambda match: (
+        f"The resource table covers all {match.group(1)} predeclared general pages, including failed calls. "
+        "Pass counts: " + match.group(2).replace(
+            "Moli 1.1.15 · 独立资源批次", "Moli 1.1.15 · independent resource cohort"
+        ).replace("，", ", ")
+        + ". Mean, P50, and P95 share this complete population."
+    ),
+))
+
+REGEX.insert(0, (
     re.compile(r"^(\d+)/(\d+)$"),
     r"\1/\2",
 ))
@@ -3364,8 +3499,10 @@ REGEX.insert(0, (
     + " / sent " + match.group(2).replace("、", ", "),
 ))
 REGEX.insert(0, (
-    re.compile(r"^(?:Chromium|Lightpanda|Moli 1\.1\.1|Obscura)(?:、(?:Chromium|Lightpanda|Moli 1\.1\.1|Obscura))+$"),
-    lambda match: match.group(0).replace("、", ", "),
+    re.compile(r"^(?:Chromium|Lightpanda|Moli(?: \d+(?:\.\d+)*)?(?: · 独立资源批次)?|Obscura)(?:、(?:Chromium|Lightpanda|Moli(?: \d+(?:\.\d+)*)?(?: · 独立资源批次)?|Obscura))+$"),
+    lambda match: match.group(0).replace(
+        "Moli 1.1.15 · 独立资源批次", "Moli 1.1.15 · independent resource cohort"
+    ).replace("、", ", "),
 ))
 REGEX.insert(0, (
     re.compile(r"^(.+) 是本轮资源效率领先者，在 (\d+) 个可按低消耗比较的指标中取得 (\d+) 项最低。这里的资源领先不等于综合任务通过率领先。$"),
@@ -3414,6 +3551,11 @@ REGEX[:0] = [
     (re.compile(r"^(\d+) 个案例 · (\d+) 次调用，机器判分。本轮未重新核验来源。$"), r"\1 cases · \2 calls, machine-scored. Sources were not reverified for this run."),
     (re.compile(r"^每种方法均使用同一组 (\d+) 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。各方法串行执行，仍受本地与远程环境、网络和产品内部限制影响。$"), r"Each method uses the same \1 tasks, including passes, failures, errors, and timeouts. Latency runs from input to return for a single call, excluding shared cooldown intervals. Each method runs serially and remains subject to local and remote environments, networks, and product limits."),
 ]
+TEXT.update({
+    '普通正文使用 Markdown；动态完成条件与正文提取范围分离。直接文档使用 Moli 原生正文接口；文件使用原生 CDP 的原始响应；附件事件使用同一二进制的原始附件接口，计入同一时限。图片、视频资源只从已取得的 DOM 中读取，不另抓模块挖掘链接。文档原生文字读取计入同一截止预算；私网保护默认开启，只对冻结公开测试域名使用精确白名单；不在失败后切换格式或借用其他 provider。': 'Ordinary body text uses Markdown; readiness conditions are separate from extraction scope. Direct documents use Moli native body output. Files use native CDP responses; attachment events use the same binary’s raw attachment interface within the deadline. Image and video resources are read only from the retrieved DOM, without fetching modules for more links. Native document text retrieval shares the deadline. Private-network protection is enabled by default, with exact exceptions for frozen public test domains. Failures do not trigger format changes or another provider.',
+    '读取预声明范围；资源和嵌入文档使用各浏览器共用的脚本': 'Read the declared scope; resource and embedded-document tasks use the same scripts across browsers.',
+    '普通正文使用 Markdown；动态完成条件与正文提取范围分离。直接文档与文件使用 Moli 原生 CDP 的原始响应；附件事件使用同一二进制的原始附件接口，计入同一时限。图片、视频资源只从已取得的 DOM 中读取，不另抓模块挖掘链接。文档解析计入同一截止预算；私网保护默认开启，只对冻结公开测试域名使用精确白名单；不在失败后切换格式或借用其他 provider。': 'Ordinary pages use Markdown; readiness conditions are separate from extraction scope. Direct documents and files use Moli native CDP responses; attachment events use the same binary’s raw attachment interface within the same deadline. Image and video resources are read only from the retrieved DOM, without crawling modules for more links. Document parsing shares the deadline. Private-network protection is enabled by default, with exact exceptions for frozen public test domains. Failures do not trigger format changes or another provider.',
+})
 
 REGEX.extend([
     (re.compile(r"^本报告纳入 ([\d,]+) 个逻辑结果。运行参数见下表；保留的物理调用与输出见各结果详情。$"),

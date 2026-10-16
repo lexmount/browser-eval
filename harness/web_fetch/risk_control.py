@@ -27,6 +27,47 @@ def _case_ids_digest(case_ids: list[str]) -> str:
     return hashlib.sha256(("\n".join(case_ids) + "\n").encode()).hexdigest()
 
 
+RISK_CONTROL_CERTIFICATIONS = {
+    "certified_risk_control_100_moli_v1": (
+        "reference-proof-verification.json", "reference_proof_verification_sha256"),
+    "certified_risk_control_100_moli_v2": (
+        "frozen-input-verification.json", "frozen_input_verification_sha256"),
+}
+
+
+def risk_control_verification_binding(receipt: dict) -> tuple[str, str]:
+    try:
+        return RISK_CONTROL_CERTIFICATIONS[receipt["kind"]]
+    except (KeyError, TypeError) as error:
+        raise ValueError("Unsupported risk-control certification") from error
+
+
+def frozen_risk_control_input_snapshot(profile_path: Path) -> dict:
+    """Verify executable inputs without reopening historical source qualification."""
+    root = profile_path.resolve().parents[2]
+    profile_raw = profile_path.read_bytes()
+    profile = json.loads(profile_raw)
+    files = [{"role": "profile", "path": profile_path.resolve().relative_to(root).as_posix(),
+              "sha256": hashlib.sha256(profile_raw).hexdigest(), "bytes": len(profile_raw)}]
+    bindings = {"dataset": profile["dataset"],
+                "provider_config": {"path": profile["provider"]["config_path"],
+                                    "sha256": profile["provider"]["config_sha256"]},
+                **profile["source_bindings"]}
+    for role, binding in sorted(bindings.items()):
+        path = contained_path(root, binding["path"])
+        if path.is_symlink():
+            raise ValueError("Missing frozen input: " + binding["path"])
+        raw = read_dataset_bytes(path) if role == 'dataset' else path.read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest != binding["sha256"]:
+            raise ValueError("Changed frozen input: " + binding["path"])
+        files.append({"role": role, "path": binding["path"], "sha256": digest, "bytes": len(raw)})
+    dataset = json.loads(read_dataset_bytes(contained_path(root, profile["dataset"]["path"])))
+    inventory = json.dumps(files, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return {"case_count": len(dataset["cases"]),
+            "inventory_sha256": hashlib.sha256(inventory.encode()).hexdigest(), "files": files}
+
+
 def risk_control_comparison(profile: dict[str, Any], profile_sha256: str) -> dict[str, Any]:
     execution = profile["execution"]
     return {
@@ -115,54 +156,67 @@ def validate_risk_control_certification(
             raise ValueError("Risk-control result provider identity or retry policy changed")
     manifest_path = contained_path(source, "manifest.json")
     execution_path = contained_path(source, "execution.json")
-    proof_verification_path = contained_path(source, "reference-proof-verification.json")
+    verification_name, verification_field = risk_control_verification_binding(receipt)
+    verification_path = contained_path(source, verification_name)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     execution_record = json.loads(execution_path.read_text(encoding="utf-8"))
-    proof_verification = json.loads(proof_verification_path.read_text(encoding="utf-8"))
-    proof_rows = proof_verification.get("before", {}).get("files", [])
-    expected_proofs = [
-        {"case_id": case["id"], **case["source_benchmark"]["risk_control"]["reference_proof"]}
-        for case in frozen_dataset["cases"]
-    ]
-    observed_proofs = [
-        {key: row.get(key) for key in ("case_id", "root", "path", "sha256")} for row in proof_rows
-    ]
-    proof_inventory = json.dumps(
-        proof_rows, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    )
-    if (
-        proof_verification.get("schema_version") != 1
-        or proof_verification.get("kind") != "risk_control_reference_proof_verification"
-        or proof_verification.get("unchanged") is not True
-        or (proof_verification.get("after") != proof_verification.get("before"))
-        or (proof_verification.get("before", {}).get("case_count") != 100)
-        or (
-            proof_verification.get("before", {}).get("inventory_sha256")
-            != hashlib.sha256(proof_inventory.encode()).hexdigest()
+    proof_verification = json.loads(verification_path.read_text(encoding="utf-8"))
+    if receipt["kind"] == "certified_risk_control_100_moli_v2":
+        expected_inputs = frozen_risk_control_input_snapshot(profile_path)
+        if (proof_verification.get("schema_version") != 1
+                or proof_verification.get("kind") != "risk_control_frozen_input_verification"
+                or proof_verification.get("unchanged") is not True
+                or proof_verification.get("before") != expected_inputs
+                or proof_verification.get("after") != expected_inputs):
+            raise ValueError("Risk-control frozen input verification is incomplete or mismatched")
+    else:
+        proof_rows = proof_verification.get("before", {}).get("files", [])
+        expected_proofs = [
+            {
+                "case_id": case["id"],
+                **case["source_benchmark"]["risk_control"]["reference_proof"],
+            }
+            for case in frozen_dataset["cases"]
+        ]
+        observed_proofs = [
+            {key: row.get(key) for key in ("case_id", "root", "path", "sha256")}
+            for row in proof_rows
+        ]
+        proof_inventory = json.dumps(
+            proof_rows, ensure_ascii=False, sort_keys=True, separators=(",", ":")
         )
-        or (observed_proofs != expected_proofs)
-        or any(type(row.get("bytes")) is not int or row["bytes"] < 1 for row in proof_rows)
-    ):
-        raise ValueError("Risk-control reference proof verification is incomplete or mismatched")
-    proof_verification_sha256 = _digest(proof_verification_path)
+        if (
+            proof_verification.get("schema_version") != 1
+            or proof_verification.get("kind") != "risk_control_reference_proof_verification"
+            or proof_verification.get("unchanged") is not True
+            or proof_verification.get("after") != proof_verification.get("before")
+            or proof_verification.get("before", {}).get("case_count") != 100
+            or proof_verification.get("before", {}).get("inventory_sha256")
+            != hashlib.sha256(proof_inventory.encode()).hexdigest()
+            or observed_proofs != expected_proofs
+            or any(type(row.get("bytes")) is not int or row["bytes"] < 1 for row in proof_rows)
+        ):
+            raise ValueError("Risk-control reference proof verification is incomplete or mismatched")
+    proof_verification_sha256 = _digest(verification_path)
     provider_rows = manifest.get("providers")
     parameters = manifest.get("parameters", {})
     if (
         manifest.get("attempt_count") != 100
         or manifest.get("attempt_ids") != expected_attempt_ids
         or manifest.get("unexecuted") != []
-        or (manifest.get("dataset_sha256") != frozen_dataset_sha256)
-        or (manifest.get("provider_config_sha256") != profile["provider"]["config_sha256"])
-        or (manifest.get("reference_proof_verification_sha256") != proof_verification_sha256)
-        or (not isinstance(provider_rows, list))
-        or (len(provider_rows) != 1)
-        or (provider_rows[0].get("name") != provider_name)
-        or (provider_rows[0].get("implementation_identity") != expected_identity)
-        or (parameters.get("runs") != execution["runs_per_case"])
-        or (parameters.get("timeout") != execution["timeout_seconds"])
-        or (parameters.get("delay") != execution["delay_seconds"])
-        or (parameters.get("provider_concurrency") != execution["concurrency"])
-        or (parameters.get("max_failure_retries") != execution["max_failure_retries"])
+        or manifest.get("dataset_sha256") != frozen_dataset_sha256
+        or manifest.get("provider_config_sha256") != profile["provider"]["config_sha256"]
+        or manifest.get(verification_field)
+        != proof_verification_sha256
+        or not isinstance(provider_rows, list)
+        or len(provider_rows) != 1
+        or provider_rows[0].get("name") != provider_name
+        or provider_rows[0].get("implementation_identity") != expected_identity
+        or parameters.get("runs") != execution["runs_per_case"]
+        or parameters.get("timeout") != execution["timeout_seconds"]
+        or parameters.get("delay") != execution["delay_seconds"]
+        or parameters.get("provider_concurrency") != execution["concurrency"]
+        or parameters.get("max_failure_retries") != execution["max_failure_retries"]
     ):
         raise ValueError("Risk-control manifest does not match the frozen execution contract")
     aggregate = execution_record.get("aggregate", {})
@@ -180,18 +234,19 @@ def validate_risk_control_certification(
     results_path = contained_path(source, "results.jsonl")
     if (
         receipt.get("schema_version") != 1
-        or receipt.get("kind") != "certified_risk_control_100_moli_v1"
+        or receipt.get("kind") not in RISK_CONTROL_CERTIFICATIONS
         or receipt.get("profile_sha256") != profile_sha256
-        or (receipt.get("dataset_sha256") != _digest(contained_path(source, "dataset.json")))
-        or (receipt.get("results_sha256") != _digest(results_path))
-        or (receipt.get("manifest_sha256") != _digest(manifest_path))
-        or (receipt.get("execution_sha256") != _digest(execution_path))
-        or (receipt.get("reference_proof_verification_sha256") != proof_verification_sha256)
-        or (receipt.get("provider_identity_before") != expected_identity)
-        or (receipt.get("provider_identity_after") != expected_identity)
-        or (receipt.get("logical_results") != 100)
-        or (receipt.get("physical_calls") != 100)
-        or (receipt.get("complete_diagnostic_logs") is not True)
+        or receipt.get("dataset_sha256") != _digest(contained_path(source, "dataset.json"))
+        or receipt.get("results_sha256") != _digest(results_path)
+        or receipt.get("manifest_sha256") != _digest(manifest_path)
+        or receipt.get("execution_sha256") != _digest(execution_path)
+        or receipt.get(verification_field)
+        != proof_verification_sha256
+        or receipt.get("provider_identity_before") != expected_identity
+        or receipt.get("provider_identity_after") != expected_identity
+        or receipt.get("logical_results") != 100
+        or receipt.get("physical_calls") != 100
+        or receipt.get("complete_diagnostic_logs") is not True
     ):
         raise ValueError("Risk-control certification receipt is incomplete or mismatched")
 
@@ -235,48 +290,6 @@ def require_complete_diagnostic_logs(records: list[dict]) -> None:
             "Every Moli call must retain complete hash-bound raw stderr; incomplete cases: "
             + ", ".join(incomplete)
         )
-
-
-def reference_proof_roots(profile: dict) -> dict[str, Path]:
-    """Resolve the external, Git-out source roots declared by the bound manifest."""
-    binding = profile["source_bindings"]["qualification_manifest"]
-    manifest = json.loads(rooted(binding["path"]).read_text(encoding="utf-8"))
-    return {
-        key: (data_home() / relative).resolve()
-        for key, relative in manifest["evidence_roots"].items()
-    }
-
-
-def reference_proof_snapshot(cases: list[dict], roots: dict[str, Path]) -> dict:
-    """Hash every declared reference text; missing or changed files fail closed."""
-    files = []
-    for case in cases:
-        binding = case["source_benchmark"]["risk_control"]["reference_proof"]
-        if binding.get("root") not in roots:
-            raise ValueError(f"Unknown reference proof root: {case['id']}")
-        path = contained_path(roots[binding["root"]], binding["path"])
-        if not path.is_file():
-            raise ValueError(f"Missing reference proof: {case['id']}")
-        observed = _digest(path)
-        if observed != binding.get("sha256"):
-            raise ValueError(f"Changed reference proof: {case['id']}")
-        files.append(
-            {
-                "case_id": case["id"],
-                "root": binding["root"],
-                "path": binding["path"],
-                "sha256": observed,
-                "bytes": path.stat().st_size,
-            }
-        )
-    if len(files) != 100 or len({row["case_id"] for row in files}) != 100:
-        raise ValueError("Reference proof scope is not the exact 100-case cohort")
-    inventory = json.dumps(files, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return {
-        "case_count": 100,
-        "inventory_sha256": hashlib.sha256(inventory.encode()).hexdigest(),
-        "files": files,
-    }
 
 
 def validate(profile_path: Path) -> tuple[dict, dict, list, object, Path]:
@@ -404,8 +417,7 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     profile_sha256 = _digest(profile_path)
     measured_dataset = measured_risk_control_dataset(profile, dataset, profile_sha256)
     execution = profile["execution"]
-    proof_roots = reference_proof_roots(profile)
-    proof_before = reference_proof_snapshot(dataset["cases"], proof_roots)
+    proof_before = frozen_risk_control_input_snapshot(profile_path)
     pre_identity = implementation_identity(provider)
     from harness.web_fetch.runner import run_evaluation
 
@@ -428,15 +440,15 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     post_identity = implementation_identity(provider, refresh=True)
     if post_identity != pre_identity:
         raise ValueError("Moli implementation identity changed during execution")
-    proof_after = reference_proof_snapshot(dataset["cases"], proof_roots)
+    proof_after = frozen_risk_control_input_snapshot(profile_path)
     if proof_after != proof_before:
-        raise ValueError("Reference proof inventory changed during execution")
-    proof_verification_path = output / "reference-proof-verification.json"
+        raise ValueError("Frozen benchmark inputs changed during execution")
+    proof_verification_path = output / "frozen-input-verification.json"
     proof_verification_path.write_text(
         json.dumps(
             {
                 "schema_version": 1,
-                "kind": "risk_control_reference_proof_verification",
+                "kind": "risk_control_frozen_input_verification",
                 "before": proof_before,
                 "after": proof_after,
                 "unchanged": True,
@@ -450,7 +462,7 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     proof_verification_sha256 = _digest(proof_verification_path)
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     manifest["run_profile_sha256"] = profile_sha256
-    manifest["reference_proof_verification_sha256"] = proof_verification_sha256
+    manifest["frozen_input_verification_sha256"] = proof_verification_sha256
     (output / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -476,13 +488,13 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     results_path = output / "results.jsonl"
     certification = {
         "schema_version": 1,
-        "kind": "certified_risk_control_100_moli_v1",
+        "kind": "certified_risk_control_100_moli_v2",
         "profile_sha256": profile_sha256,
         "dataset_sha256": _digest(output / "dataset.json"),
         "results_sha256": _digest(results_path),
         "manifest_sha256": _digest(output / "manifest.json"),
         "execution_sha256": _digest(output / "execution.json"),
-        "reference_proof_verification_sha256": proof_verification_sha256,
+        "frozen_input_verification_sha256": proof_verification_sha256,
         "provider_identity_before": pre_identity,
         "provider_identity_after": post_identity,
         "logical_results": len(records),

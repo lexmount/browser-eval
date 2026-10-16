@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import re
+import json
 import math
 import hashlib
 import statistics
 import unicodedata
 from collections import Counter, defaultdict
+from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlsplit, urlunsplit, unquote
 
@@ -183,6 +185,130 @@ def _image_content_candidates(
     return candidates
 
 
+class _VisibleInlineFrames(HTMLParser):
+    """Collect browser-serialized inline frame documents that are visibly embedded."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.documents: list[tuple[str, str | None]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.casefold() != "iframe":
+            return
+        values = {key.casefold(): value for key, value in attrs}
+        style = re.sub(r"\s+", "", values.get("style") or "").casefold()
+        if (
+            "hidden" in values
+            or "display:none" in style
+            or "visibility:hidden" in style
+            or (values.get("width") == "0" and values.get("height") == "0")
+        ):
+            return
+        source = values.get("srcdoc")
+        if source:
+            self.documents.append((source, values.get("data-moli-frame-url")))
+
+
+def _inline_frame_candidates(
+    content: str,
+    expected_resources: list[dict[str, Any]],
+    *,
+    base_url: str,
+    images_only: bool,
+) -> list[tuple[str, str]]:
+    """Read resource URLs from visible native ``srcdoc`` serialization.
+
+    Moli's official ``--with-frames`` output keeps child documents inside the
+    returned HTML.  This is still provider output; the scorer only resolves
+    URLs that the browser serialized, and ignores hidden synchronization or ad
+    frames.  The same parser applies to any provider returning inline frames.
+    """
+    parser = _VisibleInlineFrames()
+    parser.feed(content)
+    candidates: list[tuple[str, str]] = []
+    for document, declared_base in parser.documents[:100]:
+        try:
+            declared_base_is_http = bool(
+                declared_base
+                and urlsplit(declared_base).scheme in {"http", "https"}
+            )
+        except ValueError:
+            declared_base_is_http = False
+        frame_base = (
+            declared_base
+            if declared_base_is_http
+            else base_url
+        )
+        if images_only:
+            raw_candidates = _image_content_candidates(
+                document, expected_resources, base_url=frame_base,
+            )
+        else:
+            raw_candidates = [
+                (url, "content.frame_html_url")
+                for _, url in re.findall(
+                    r"(?:src|href)\s*=\s*([\"'])(.*?)\1", document, re.I
+                )
+            ]
+            raw_candidates.extend(
+                (url, "content.frame_bare_url")
+                for url in re.findall(r"https?://[^\s<>'\")\]]+", document)
+            )
+        for raw_url, source in raw_candidates:
+            normalized = normalize_resource_url(raw_url, frame_base)
+            if normalized:
+                candidates.append((normalized, source.replace("content.", "content.frame_", 1)))
+    return candidates
+
+
+def _native_json_resource_candidates(
+    content: str,
+    expected_resources: list[dict[str, Any]],
+    *,
+    base_url: str,
+) -> list[tuple[str, str]]:
+    """Read URLs from a browser's native JSON page and network record.
+
+    The accepted surface is deliberately structural: serialized page HTML and
+    network entries named ``url`` or ``final_url``. It never reads expected
+    answers to choose a field or invents a URL from a playback identifier.
+    """
+    try:
+        payload = json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not isinstance(payload, dict):
+        return []
+    candidates: list[tuple[str, str]] = []
+    html = payload.get("html")
+    if isinstance(html, str):
+        candidates.extend(
+            (match[1], "content.native_json_html_url")
+            for match in re.findall(
+                r"(?:src|href)\s*=\s*([\"'])(.*?)\1", html, re.I
+            )
+        )
+        candidates.extend(
+            (url, "content.native_json_html_bare_url")
+            for url in re.findall(r"https?://[^\s<>'\")\]]+", html)
+        )
+        candidates.extend(_inline_frame_candidates(
+            html, expected_resources, base_url=base_url, images_only=False,
+        ))
+    pending = [payload.get("network")]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key in {"url", "final_url"} and isinstance(item, str):
+                    candidates.append((item, f"content.native_json_network.{key}"))
+                elif isinstance(item, (dict, list)):
+                    pending.append(item)
+        elif isinstance(value, list):
+            pending.extend(value)
+    return candidates
+
+
 def _normalized_candidates(
     candidates: list[tuple[str, str]], *, base_url: str,
 ) -> tuple[list[str], list[dict[str, Any]]]:
@@ -244,6 +370,9 @@ def evaluate_resources(
         candidates.extend(_image_content_candidates(
             content, expected_resources, base_url=base_url,
         ))
+        candidates.extend(_inline_frame_candidates(
+            content, expected_resources, base_url=base_url, images_only=True,
+        ))
     elif eligible:
         answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
         candidates.extend(_metadata_resource_candidates(answer_fields))
@@ -256,6 +385,12 @@ def evaluate_resources(
                           for url in markdown_link_destinations(content))
         candidates.extend((url, "content.visible_file")
                           for url in _visible_relative_resource_urls(content))
+        candidates.extend(_inline_frame_candidates(
+            content, expected_resources, base_url=base_url, images_only=False,
+        ))
+        candidates.extend(_native_json_resource_candidates(
+            content, expected_resources, base_url=base_url,
+        ))
     normalized_candidates, candidate_evidence = _normalized_candidates(candidates, base_url=base_url)
     results = []
     allowed_urls: set[str] = set()
@@ -325,15 +460,14 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
     # Scored records carry the case kind so dataset-free summaries use the same
     # predicate as the report. Explicit case context still takes precedence.
     task_kind = task_kind if task_kind is not None else metrics.get('task_kind', 'body')
-    if (metrics.get('page_identity_required')
-            and metrics.get('page_identity_status') != 'verified'):
-        return False
     if (not task_measured(metrics, task_kind) or metrics.get('deadline_overrun')
             or metrics.get('blocked_page')):
         return False
     if "stable_task_pass" in metrics:
         combined = (metrics.get("content_pass")
-                    if "composite_acceptance_pass" in metrics or metrics.get("body_region_results")
+                    if ("composite_acceptance_pass" in metrics
+                        or metrics.get("body_region_results")
+                        or metrics.get("pattern_results"))
                     else True)
         return bool(ok and metrics["stable_task_pass"]
                     and combined
@@ -347,10 +481,8 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
 def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
     if metrics.get('rule_review_status') == 'unresolved':
         return False
-    if (metrics.get('page_identity_required')
-            and metrics.get('page_identity_status') == 'unavailable'
-            and metrics.get('request_ok') is not False):
-        return False
+    # A completed call missing required page observations is a measured failure.
+    # Missing benchmark rules remain unmeasured through rule_review_status above.
     kind = task_kind or metrics.get('task_kind', 'body')
     return kind != 'file' or isinstance(metrics.get('raw_file_pass'), bool)
 
@@ -441,6 +573,15 @@ def fact_in_text(text: str, fact: str) -> bool:
     return False
 
 
+def forbidden_in_text(text: str, phrase: str) -> bool:
+    """Match ASCII word boundaries without segmenting CJK phrases."""
+    if not phrase:
+        return False
+    left = r'(?<![a-z0-9_])' if phrase[0].isascii() and phrase[0].isalnum() else ''
+    right = r'(?![a-z0-9_])' if phrase[-1].isascii() and phrase[-1].isalnum() else ''
+    return bool(re.search(left + re.escape(phrase) + right, text))
+
+
 def text_corruption(value: str) -> tuple[int, float, bool]:
     """Detect substantial UTF-8 replacement-character damage in text output."""
     count = value.count('\ufffd')
@@ -486,12 +627,16 @@ def evaluate_content(
 ) -> dict[str, Any]:
     title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
     visible_content = content
-    is_html = bool(re.match(r'\s*<!doctype\s+html\b', content, re.I) or
-                   re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I))
+    from .reference_quality import is_html_document_or_fragment
+    is_html = is_html_document_or_fragment(content)
     if is_html:
         # Keep raw HTML for records and links; score prose from visible text.
         from .dynamic_lists import visible_html_text
         visible_content = visible_html_text(content)
+    else:
+        from .reference_quality import visible_mixed_html_text
+        visible_content = visible_mixed_html_text(content)
+    has_html_prose = is_html or visible_content != content
     answer_text = title_prefix + visible_content
     from .reference_quality import blocked_page_hits, script_payload_shell
     block_hits = blocked_page_hits(answer_text)
@@ -534,12 +679,12 @@ def evaluate_content(
         ]
         block_hits = [hit for hit in block_hits if hit not in block_reference_exemptions]
     reference_exemptions = [item for item in (forbidden_any or [])
-                            if reference_folded and (text := normalize_for_match(item)) and text in reference_folded]
+                            if reference_folded and forbidden_in_text(reference_folded, normalize_for_match(item))]
     if acceptance_contract:
         # A historical snapshot cannot exempt an explicit stable-mode block rule.
         reference_exemptions = []
     forbidden = [item for item in (forbidden_any or [])
-                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
+                 if item not in reference_exemptions and forbidden_in_text(folded, normalize_for_match(item))]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
@@ -550,7 +695,11 @@ def evaluate_content(
                     and not script_shell)
     pattern_results = []
     for rule in required_patterns or []:
-        count = len(set(re.findall(rule['pattern'], visible_content, re.I)))
+        scope = rule.get('match_scope', 'text')
+        if scope not in {'text', 'output'}:
+            raise ValueError('Required pattern match_scope must be text or output')
+        pattern_content = content if scope == 'output' else visible_content
+        count = len(set(re.findall(rule['pattern'], pattern_content, re.I)))
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements
@@ -604,16 +753,26 @@ def evaluate_content(
             if ground_truth_main_content else None),
     }
     if acceptance_contract:
-        # Frozen literal markers and snapshot facts are diagnostics once a
-        # stable contract owns acceptance.  A separately declared body-region
-        # contract is different: it remains an independent acceptance gate.
+        # Explicit body/record requirements own body-text acceptance. Stable
+        # page-shell literals remain inspectable diagnostics in those cases.
+        anchors_required = acceptance_contract.get("stable_text_role", "required") != "diagnostic"
+        if not anchors_required and not (
+            body_requirements
+            or (composite_acceptance and composite_acceptance.get("groups"))
+            or acceptance_contract.get("page_patterns")
+        ):
+            raise ValueError(
+                "Diagnostic stable text requires body, composite, or page-pattern acceptance"
+            )
         declared_body_pass = bool(result["body_coverage_pass"])
+        declared_pattern_pass = all(item["pass"] for item in result["pattern_results"])
         from .stable_tasks import evaluate_stable_task
         # Document metadata remains diagnostic; it cannot supply rendered
         # page anchors, records, or declared body coverage.
         result.update(evaluate_stable_task(content, acceptance_contract,
                                            base_url, links=named_links,
-                                           anchor_text=visible_content if is_html else None))
+                                            anchor_text=visible_content if has_html_prose else None,
+                                           anchors_required=anchors_required))
         if encoding_corruption:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
@@ -637,12 +796,21 @@ def evaluate_content(
             result["stable_content_pass"] = False
             if "content_too_short" not in result["stable_task_errors"]:
                 result["stable_task_errors"].append("content_too_short")
-        result["content_pass"] = bool(declared_body_pass and result["stable_task_pass"])
-        result["content_decision_basis"] = "stable_contract_and_declared_content_requirements"
+        result["content_pass"] = bool(
+            declared_body_pass and declared_pattern_pass and result["stable_task_pass"]
+        )
+        result["content_decision_basis"] = (
+            "declared_content_requirements_with_stable_text_diagnostics"
+            if not anchors_required else "stable_contract_and_declared_content_requirements")
     if composite_acceptance:
         from .composite_tasks import evaluate_composite_acceptance
+        from .dynamic_lists import visible_html_text
         composite = evaluate_composite_acceptance(
-            visible_content, composite_acceptance, base_url=base_url, links=named_links,
+            visible_html_text(content, preserve_links=True) if is_html else visible_content,
+            composite_acceptance,
+            base_url=base_url,
+            links=named_links,
+            table_content=content,
         )
         result.update(composite)
         result["content_pass"] = bool(result["content_pass"] and composite["composite_acceptance_pass"])

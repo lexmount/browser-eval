@@ -1042,6 +1042,46 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(selectors, [{"selector": "img"}, {"selector": "picture source"}])
 
     @patch("harness.web_fetch.providers.cloudflare.request")
+    @patch("harness.web_fetch.providers.cloudflare._get_document")
+    @patch("harness.web_fetch.providers.cloudflare._post_multipart")
+    def test_kitesurf_cannot_receive_external_download_and_ai_conversion_credit(self, convert, download, native_request):
+        case = EvalCase("pdf", "PDF", "https://example.com/paper.pdf", "document", [], track="document", task_kind="body")
+        native_request.return_value = HttpResponse(503, "u", {}, b'{"success":false,"errors":[]}')
+        result = CloudflareMarkdownProvider("kitesurf", {"api_token":"x", "account_id":"a", "browser":"kitesurf"}).fetch(case, 45)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_type, "api_error")
+        native_request.assert_called_once()
+        self.assertIn("/browser-rendering/markdown?browser=kitesurf", native_request.call_args.args[0])
+        download.assert_not_called()
+        convert.assert_not_called()
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_kitesurf_resource_request_cannot_silently_select_chromium(self, mock_request):
+        from urllib.parse import urlsplit, parse_qs
+        mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":[]}')
+        for track in ("image", "video"):
+            case = EvalCase("resource", "Resource", "https://example.com/", track, [], track=track, task_kind="resource")
+            CloudflareMarkdownProvider("kitesurf", {"api_token":"x", "account_id":"a", "browser":"kitesurf"}).fetch(case, 45)
+            self.assertEqual(parse_qs(urlsplit(mock_request.call_args.args[0]).query).get("browser"), ["kitesurf"])
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_kitesurf_headless_route_keeps_page_resources_in_native_markdown(self, mock_request):
+        mock_request.return_value = HttpResponse(
+            200, "u", {}, b'{"success":true,"result":"![image](asset.png)"}'
+        )
+        case = EvalCase("resource", "Resource", "https://example.com/", "image", [],
+                        track="image", task_kind="resource")
+        result = CloudflareMarkdownProvider("kitesurf", {
+            "api_token":"x", "account_id":"a", "browser":"kitesurf",
+            "page_output":"native_markdown",
+        }).fetch(case, 45)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.content, "![image](asset.png)")
+        self.assertIn("/browser-rendering/markdown?browser=kitesurf",
+                      mock_request.call_args.args[0])
+        self.assertEqual(result.metadata["route"], "browser_rendering_markdown")
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_video_resource_scrape_filters_ordinary_links(
         self, mock_request
     ) -> None:
@@ -1240,6 +1280,17 @@ class ProviderTest(unittest.TestCase):
         self.assertFalse(result.metadata["conversion_attempted"])
         self.assertEqual(base64.b64decode(result.metadata["_raw_response_b64"]), body)
         mock_post_multipart.assert_not_called()
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_identity_uses_observed_destination_only(self, mock_request):
+        provider = CloudflareMarkdownProvider("cf", {"api_token": "x", "account_id": "a"})
+        for meta, expected in (({}, None), ({"finalUrl": "https://example.com/final"},
+                                          "https://example.com/final")):
+            with self.subTest(meta=meta):
+                body = json.dumps({"success": True, "result": "Body", "meta": meta}).encode()
+                mock_request.return_value = HttpResponse(200, "u", {}, body)
+                result = provider.fetch(self.case, 45)
+                self.assertEqual(result.final_url, expected)
 
     @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_empty_target_2xx_succeeds_but_origin_error_fails(self, mock_request) -> None:

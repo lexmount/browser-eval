@@ -32,11 +32,40 @@ class ReferenceLifecycleTests(unittest.TestCase):
         self.now = datetime(2026, 9, 3, 12, tzinfo=timezone.utc)
         self.case = EvalCase(id="body", name="Body", url="https://example.test/body",
             category="static", expected_any=["Price"], ground_truth_main_content="Price 10 dollars",
-            source_verification={"state": "valid", "method": "independent source capture",
+            source_verification={"state": "valid", "reference_mode": "live_exact", "method": "independent source capture",
                 "checked_at": (self.now - timedelta(minutes=1)).isoformat(),
                 "reference_sha256": sha256("Price 10 dollars"), "reference_scope": "Complete article"})
         self.dataset_path = self.root / "dataset.json"
         self.run = self.root / "run"
+
+    def test_frozen_body_answer_does_not_imply_live_reference_checks(self):
+        from harness.web_fetch.reference_lifecycle import requires_fresh_reference
+        verification = {key: value for key, value in self.case.source_verification.items()
+                        if key != 'reference_mode'}
+        verification['checked_at'] = '2020-01-01T00:00:00Z'
+        case = replace(self.case, source_verification=verification)
+        original = deepcopy(case.__dict__)
+        self.assertFalse(requires_fresh_reference(case))
+        self.assertIsNone(self.checks(case))
+        self.assertEqual(case.__dict__, original)
+        self.assertFalse((self.root / 'sources').exists())
+
+    def test_live_reference_checks_require_an_explicit_mode(self):
+        from harness.web_fetch.reference_lifecycle import requires_fresh_reference
+        case = replace(self.case, source_verification={
+            **self.case.source_verification, 'reference_mode': 'live_exact'})
+        self.assertTrue(requires_fresh_reference(case))
+        self.assertIsNotNone(self.checks(case))
+        stale = replace(case, source_verification={
+            **case.source_verification, 'checked_at': '2020-01-01T00:00:00Z'})
+        with self.assertRaises(ReferenceLifecycleError):
+            self.checks(stale)
+
+    def test_misspelled_reference_mode_is_rejected(self):
+        case = replace(self.case, source_verification={
+            **self.case.source_verification, 'reference_mode': 'live_excat'})
+        with self.assertRaisesRegex(ReferenceLifecycleError, 'reference mode'):
+            self.checks(case)
 
     def write_json(self, path, value):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -171,6 +200,21 @@ class ReferenceLifecycleTests(unittest.TestCase):
         with self.assertRaisesRegex(ReferenceLifecycleError, "SHA-256 mismatch"):
             validate_resource_source_evidence(case, self.dataset_path)
 
+    def test_frozen_resource_execution_does_not_repeat_admission(self):
+        import shutil
+        case = self.resource_case()
+        self.dataset_path.write_text(json.dumps({'comparison': {
+            'source_reference_policy': 'frozen_benchmark_inputs_with_explicit_live_exact_checks'}}))
+        shutil.rmtree(self.root / 'sources')
+        self.assertIsNone(validate_resource_source_evidence(case, self.dataset_path, execution=True))
+        with self.assertRaisesRegex(ReferenceLifecycleError, 'invalid resource source evidence'):
+            validate_resource_source_evidence(case, self.dataset_path)
+        live = replace(case, source_verification={**case.source_verification, 'reference_mode': 'live_exact'})
+        with self.assertRaisesRegex(ReferenceLifecycleError, 'invalid resource source evidence'):
+            validate_resource_source_evidence(live, self.dataset_path, execution=True)
+        invalid = replace(case, source_verification={**case.source_verification, 'state': 'invalid'})
+        with self.assertRaisesRegex(ReferenceLifecycleError, 'not valid'):
+            validate_resource_source_evidence(invalid, self.dataset_path, execution=True)
     def test_resource_source_rejects_missing_target_and_http_challenge(self):
         missing = self.resource_case(evidence_updates={"resources": []})
         with self.assertRaisesRegex(ReferenceLifecycleError, "does not cover every"):
@@ -515,7 +559,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
             {"tool": "web_fetch", "attempt_ids": [record["attempt_id"]]},
             cases=self.dataset(), records=[record])
 
-    def test_public_guard_allows_uncertified_stable_and_resource_records(self):
+    def test_public_guard_allows_complete_current_batch_without_live_references(self):
         stable = replace(
             self.case,
             id="stable",
@@ -528,13 +572,85 @@ class ReferenceLifecycleTests(unittest.TestCase):
         )
         resource = replace(self.case, id="resource", track="image", task_kind="resource")
         records = [
-            {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p"},
-            {"attempt_id": "p__resource__r001", "case_id": "resource", "provider": "p"},
+            {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p",
+             "started_at": "2026-01-01T00:00:01+00:00", "elapsed_ms": 10,
+             "completed_at": "2026-01-01T00:00:01.010000+00:00"},
+            {"attempt_id": "p__resource__r001", "case_id": "resource", "provider": "p",
+             "started_at": "2026-01-01T00:00:02+00:00", "elapsed_ms": 10,
+             "completed_at": "2026-01-01T00:00:02.010000+00:00"},
         ]
+        batch = {"schema_version": 1, "tool": "web_fetch",
+                 "attempt_count": len(records),
+                 "attempt_ids": [record["attempt_id"] for record in records],
+                 "started_at": "2026-01-01T00:00:00+00:00",
+                 "completed_at": "2026-01-01T00:00:03+00:00"}
+        records[1]["elapsed_ms"] = 10_000
+        with patch(
+            "harness.web_fetch.reference_lifecycle.latency_correction_original_elapsed",
+            return_value={("p", "resource"): 10},
+        ):
+            require_verified_reference_checks(
+                [batch], cases=[stable, resource], records=records)
+
+    def test_public_guard_rejects_incomplete_current_batch_without_live_references(self):
+        stable = replace(
+            self.case,
+            id="stable",
+            acceptance_contract={
+                "version": 1,
+                "schema": "product",
+                "minimum_records": 1,
+                "stable_text_anchors": [{"id": "section", "alternatives": ["Catalog"]}],
+            },
+        )
+        records = [
+            {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p",
+             "started_at": "2026-01-01T00:00:01+00:00", "elapsed_ms": 10},
+            {"attempt_id": "q__stable__r001", "case_id": "stable", "provider": "q",
+             "started_at": "2026-01-01T00:00:02+00:00", "elapsed_ms": 10},
+        ]
+        base = {"schema_version": 1, "tool": "web_fetch",
+                "started_at": "2026-01-01T00:00:00+00:00",
+                "completed_at": "2026-01-01T00:00:03+00:00"}
+        empty = {**base, "attempt_count": 0, "attempt_ids": []}
+        with self.assertRaisesRegex(ReferenceLifecycleError, "Incomplete batch attempt identity"):
+            require_verified_reference_checks([empty], cases=[stable], records=records)
+        partial = {**base, "attempt_count": 1, "attempt_ids": [records[0]["attempt_id"]]}
+        with self.assertRaisesRegex(ReferenceLifecycleError, "exactly cover measured records"):
+            require_verified_reference_checks([partial], cases=[stable], records=records)
+        duplicate = {**base, "attempt_count": 2,
+                     "attempt_ids": [record["attempt_id"] for record in records]}
+        with self.assertRaisesRegex(ReferenceLifecycleError, "more than one current batch"):
+            require_verified_reference_checks(
+                [duplicate, deepcopy(duplicate)], cases=[stable], records=records)
+
+    def test_current_batch_is_strict_inside_mixed_historical_manifests(self):
+        stable = replace(
+            self.case,
+            id="stable",
+            acceptance_contract={
+                "version": 1,
+                "schema": "product",
+                "minimum_records": 1,
+                "stable_text_anchors": [{"id": "section", "alternatives": ["Catalog"]}],
+            },
+        )
+        current = {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p",
+                   "started_at": "2026-01-01T00:00:01+00:00", "elapsed_ms": 10}
+        historical = {"attempt_id": "legacy__stable__r001", "case_id": "stable",
+                      "provider": "legacy"}
+        batch = {"schema_version": 1, "tool": "web_fetch", "attempt_count": 1,
+                 "attempt_ids": [current["attempt_id"]],
+                 "started_at": "2026-01-01T00:00:00+00:00",
+                 "completed_at": "2026-01-01T00:00:02+00:00"}
         require_verified_reference_checks(
-            [{"schema_version": 1, "tool": "web_fetch",
-              "attempt_ids": [record["attempt_id"] for record in records]}],
-            cases=[stable, resource], records=records)
+            [batch, {"historical": True}], cases=[stable],
+            records=[current, historical])
+        damaged = {**batch, "attempt_ids": ["missing__stable__r001"]}
+        with self.assertRaisesRegex(ReferenceLifecycleError, "Missing or duplicate measured attempts"):
+            require_verified_reference_checks(
+                [damaged, {"historical": True}], cases=[stable],
+                records=[current, historical])
 
     def test_latency_only_correction_preserves_original_certificate_timeline(self):
         manifest = self.verified_run()

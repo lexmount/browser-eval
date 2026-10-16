@@ -15,6 +15,7 @@ from harness.web_fetch.artifacts import (
     materialize_reference_checks,
     materialize_task_references,
 )
+from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.publication_privacy import project_execution_manifest
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
@@ -27,16 +28,24 @@ from harness.web_fetch.reference_lifecycle import (
     valid_scoring_revision,
 )
 from harness.web_fetch.result_review import require_result_review
-from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, validate_report_ids
+from harness.web_fetch.safety import (
+    contained_path,
+    reject_evidence_symlinks,
+    unlinked_path,
+    validate_report_ids,
+)
 from harness.web_fetch.scoring_regressions import (
     build_correction_provenance,
     valid_correction_provenance,
 )
 from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
+REPOSITORY = Path(__file__).resolve().parents[2]
+
 ALLOWED_REVISION_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts', 'acceptance_contract',
     'forbidden_any', 'expected_resources', 'resource_output_contract', 'task_prompt',
+    'reference_answer',
     'mutable_body_policy',
 }
 
@@ -52,6 +61,195 @@ def _selected_record(selected, key):
 
 def read_records(root):
     return load_jsonl(root/'results.jsonl')
+
+
+def _materialize_canonical_references(output, canonical, canonical_dataset):
+    """Copy each assembled case's references from its hash-bound source dataset."""
+    declarations = canonical.get('comparison', {}).get('input_sources')
+    if not declarations:
+        materialize_task_references(output, {name: input_tree(canonical_dataset,name)
+            for name in ('sources','list-references')}, [case['id'] for case in canonical['cases']])
+        return
+    if not isinstance(declarations, list):
+        raise ValueError('Canonical input source bindings are invalid')
+    expected = {case['id'] for case in canonical['cases']}
+    owned = set()
+    sources = []
+    for declaration in declarations:
+        if (not isinstance(declaration, dict)
+                or set(declaration) != {'path', 'sha256', 'case_ids'}
+                or not isinstance(declaration['case_ids'], list)
+                or not declaration['case_ids']):
+            raise ValueError('Canonical input source binding is invalid')
+        identifiers = declaration['case_ids']
+        if (len(identifiers) != len(set(identifiers)) or owned.intersection(identifiers)
+                or not set(identifiers) <= expected):
+            raise ValueError('Canonical input source ownership is invalid')
+        source_dataset = contained_path(REPOSITORY, declaration['path'], reject_symlinks=True)
+        raw = read_dataset_bytes(source_dataset)
+        if hashlib.sha256(raw).hexdigest() != declaration['sha256']:
+            raise ValueError('Canonical input source changed: ' + declaration['path'])
+        source_ids = {case['id'] for case in json.loads(raw).get('cases', [])}
+        if not set(identifiers) <= source_ids:
+            raise ValueError('Canonical input source is missing an owned case')
+        trees = {name: input_tree(source_dataset,name)
+                 for name in ('sources','list-references')}
+        sources.append((set(identifiers), source_ids, trees))
+        materialize_task_references(output, trees, identifiers)
+        owned.update(identifiers)
+    if owned != expected:
+        raise ValueError('Canonical input sources do not own the complete case inventory')
+    # Some track-specific datasets reuse cases whose source capture remains in
+    # an earlier registered dataset.  Fall back only when the owning dataset has
+    # no reference for that case; copy every matching fallback so conflicts are
+    # still rejected rather than resolved by source order.
+    for identifiers, _source_ids, owner_trees in sources:
+        for identifier in identifiers:
+            owner_has_reference = (
+                (owner_trees['sources'] / identifier).exists()
+                or (owner_trees['list-references'] / (identifier + '.json')).exists()
+            )
+            if owner_has_reference:
+                continue
+            candidates = [trees for _owned, source_ids, trees in sources
+                          if identifier in source_ids and (
+                              (trees['sources'] / identifier).exists()
+                              or (trees['list-references'] / (identifier + '.json')).exists())]
+            if not candidates:
+                continue
+            for trees in candidates:
+                materialize_task_references(output, trees, [identifier])
+
+
+def _sha256_file(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+_PROVIDER_REPLACEMENT_RECEIPT_FIELDS = {
+    'schema_version', 'kind', 'provider_calls', 'baseline_dataset_sha256',
+    'baseline_results_sha256', 'source_dataset_sha256', 'source_results_sha256',
+    'replacements',
+}
+
+
+def _valid_provider_replacement_receipt(receipt):
+    if (not isinstance(receipt, dict)
+            or set(receipt) != _PROVIDER_REPLACEMENT_RECEIPT_FIELDS
+            or receipt.get('schema_version') != 1
+            or receipt.get('kind') != 'audited_provider_replacement_scope'
+            or receipt.get('provider_calls') != 0):
+        return False
+    replacements = receipt.get('replacements')
+    if not isinstance(replacements, list) or not replacements:
+        return False
+    seen = set()
+    for item in replacements:
+        if (not isinstance(item, dict) or set(item) != {
+                'provider', 'case_id', 'prior_attempt_id', 'selected_attempt_id',
+                'category', 'reason'}
+                or item.get('category') not in {
+                    'invalid_prior_call', 'input_correction', 'implementation_correction'}
+                or not isinstance(item.get('reason'), str) or not item['reason'].strip()):
+            return False
+        pair = (item.get('provider'), item.get('case_id'))
+        if not all(isinstance(value, str) and value for value in (
+                *pair, item.get('prior_attempt_id'), item.get('selected_attempt_id'))):
+            return False
+        if pair in seen:
+            return False
+        seen.add(pair)
+    return True
+
+
+def _provider_replacement_scope_history(root):
+    """Load immutable scope receipts already owned by an assembled baseline."""
+    index_path = root/'provider-replacement-scopes.json'
+    history_root = root/'history'/'provider-replacement-scopes'
+    if not index_path.exists():
+        if history_root.exists():
+            raise ValueError('Inherited provider replacement scope history has no index')
+        return []
+    if index_path.is_symlink() or not index_path.is_file():
+        raise ValueError('Invalid inherited provider replacement scope index')
+    try:
+        index = json.loads(index_path.read_text())
+    except (OSError, ValueError, TypeError) as error:
+        raise ValueError('Invalid inherited provider replacement scope index') from error
+    if not isinstance(index, list) or not index:
+        raise ValueError('Invalid inherited provider replacement scope index')
+    checked = []
+    seen = set()
+    for item in index:
+        if (not isinstance(item, dict) or set(item) != {'path', 'sha256', 'replacements'}
+                or not isinstance(item.get('path'), str)):
+            raise ValueError('Invalid inherited provider replacement scope index')
+        relative = Path(item['path'])
+        if relative.parent != Path('history/provider-replacement-scopes'):
+            raise ValueError('Inherited provider replacement scope is outside its history owner')
+        path = contained_path(root, relative, reject_symlinks=True)
+        if item['path'] in seen or not path.is_file():
+            raise ValueError('Inherited provider replacement scope is missing or duplicated')
+        seen.add(item['path'])
+        if item.get('sha256') != _sha256_file(path):
+            raise ValueError('Inherited provider replacement scope hash differs')
+        try:
+            receipt = json.loads(path.read_text())
+        except (OSError, ValueError, TypeError) as error:
+            raise ValueError('Invalid inherited provider replacement scope receipt') from error
+        if (not _valid_provider_replacement_receipt(receipt)
+                or item.get('replacements') != receipt['replacements']):
+            raise ValueError('Invalid inherited provider replacement scope receipt')
+        checked.append((item, path, receipt))
+    stored = set(history_root.iterdir()) if history_root.is_dir() else set()
+    if stored != {path for _, path, _ in checked}:
+        raise ValueError('Inherited provider replacement scope history differs from its index')
+    return checked
+
+
+def _selected_provider_replacement_rows(run, root, rows, receipt_path):
+    """Select a correction scope from a broader immutable call bundle."""
+    if receipt_path is None:
+        return rows, None
+    receipt_path = unlinked_path(Path(receipt_path))
+    if not receipt_path.is_file():
+        raise ValueError('Provider replacement scope receipt is missing')
+    receipt = json.loads(receipt_path.read_text())
+    if (not _valid_provider_replacement_receipt(receipt)
+            or receipt.get('baseline_dataset_sha256') != _sha256_file(run/'dataset.json')
+            or receipt.get('baseline_results_sha256') != _sha256_file(run/'results.jsonl')
+            or receipt.get('source_dataset_sha256') != _sha256_file(root/'dataset.json')
+            or receipt.get('source_results_sha256') != _sha256_file(root/'results.jsonl')):
+        raise ValueError('Provider replacement scope receipt is not bound to its source evidence')
+    replacements = receipt.get('replacements')
+    source_by_attempt = {row['attempt_id']: row for row in rows}
+    baseline_by_pair = {(row['provider'], row['case_id']): row for row in read_records(run)}
+    baseline_cases = {
+        case['id']: case for case in json.loads((run/'dataset.json').read_text())['cases']
+    }
+    selected = []
+    seen = set()
+    for item in replacements:
+        pair = (item['provider'], item['case_id'])
+        prior = baseline_by_pair.get(pair)
+        current = source_by_attempt.get(item['selected_attempt_id'])
+        if (pair in seen or prior is None or current is None
+                or prior['attempt_id'] != item['prior_attempt_id']
+                or (current['provider'], current['case_id']) != pair):
+            raise ValueError('Provider replacement scope differs from bound attempts')
+        if (item['category'] == 'invalid_prior_call'
+                and prior.get('provider_metadata', {}).get('binary_sha256') !=
+                current.get('provider_metadata', {}).get('binary_sha256')):
+            raise ValueError('Invalid-call correction changed the provider binary')
+        if item['category'] == 'implementation_correction':
+            case = baseline_cases.get(item['case_id'])
+            if case is None or task_passed(
+                    bool(prior.get('ok')), prior.get('metrics', {}),
+                    case.get('task_kind', 'body')):
+                raise ValueError(
+                    'Implementation correction baseline machine verdict is not a failure')
+        seen.add(pair)
+        selected.append(current)
+    return selected, receipt
 
 
 def has_bound_direct_scoring_revision(root):
@@ -206,11 +404,53 @@ def copy_projected_review(source, output, excluded_providers):
     return True
 
 
-def bind_assembled_scoring_revision(output):
-    """Bind inherited scoring history to exact assembled bytes and full blind review."""
+def bind_assembled_scoring_revision(output, *, source=None):
+    """Bind composed scoring; revalidate machine evidence without inventing review."""
     path=output/'scoring-revisions.json'
     review_path=output/'result-review.json'
-    if not path.is_file() or not review_path.is_file():return False
+    if not path.is_file():return False
+    if not review_path.is_file():
+        if source is None or valid_scoring_revision(output):return False
+        if not valid_scoring_revision(source):
+            raise ValueError('Assembly source has invalid scoring authority')
+        if json.loads((output/'dataset.json').read_text()).get('comparison',{}).get(
+                'require_independent_result_review'):
+            raise ValueError('Assembly requires its declared independent result review')
+        inherited=path.read_bytes()
+        if inherited != (source/'scoring-revisions.json').read_bytes():
+            raise ValueError('Inherited scoring authority differs from declared source')
+        from .scoring_regressions import active_scoring_regressions
+        from .scoring_revision import revise
+        controls=active_scoring_regressions()
+        history=json.loads(inherited)
+        identifiers=list(dict.fromkeys(identifier for receipt in history
+            for identifier in receipt.get('correction_provenance',{}).get('regression_ids',[])
+            if identifier in controls))
+        if not identifiers:
+            raise ValueError('Assembly scoring authority has no current executable controls')
+        categories={controls[identifier]['category'] for identifier in identifiers}
+        before=read_records(output)
+        archive=output/'diagnostics'/'inherited-scoring-history.json'
+        archive.parent.mkdir(parents=True,exist_ok=True)
+        archive.write_bytes(inherited)
+        path.unlink()
+        receipt=revise(output,output/'dataset.json',
+            root_cause_category=next(iter(categories)) if len(categories)==1 else 'multi-root',
+            root_cause='Revalidate inherited shared scoring corrections against the complete '
+                'certified assembled cohort. Task definitions, answers and selected physical '
+                'calls remain unchanged; independent result review is not inferred.',
+            regression_ids=identifiers,validate_only=True)
+        after=read_records(output)
+        if receipt['task_decision_changes'] or before!=after:
+            raise ValueError('Assembly revalidation changed measured calls or scores')
+        receipt['inherited_scoring_authority']={
+            'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
+            'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest(),
+            'receipts_sha256':hashlib.sha256(inherited).hexdigest()}
+        path.write_text(json.dumps([receipt],ensure_ascii=False,indent=2)+'\n')
+        if not valid_scoring_revision(output):
+            raise ValueError('Assembly revalidation left invalid scoring authority')
+        return True
     dataset=json.loads((output/'dataset.json').read_text())
     records=read_records(output)
     require_result_review(output,dataset,records)
@@ -231,7 +471,7 @@ def bind_assembled_scoring_revision(output):
             changed[json.dumps(change,ensure_ascii=False,sort_keys=True)]=change
         for change in row.get('task_decision_changes',[]):
             decisions[json.dumps(change,ensure_ascii=False,sort_keys=True)]=change
-    history.append({
+    assembled_receipt = {
         'kind':'audited_assembled_scoring_revision',
         'scored_at':datetime.now(timezone.utc).isoformat(),
         'input_dataset_sha256':history[-1]['output_dataset_sha256'],
@@ -244,7 +484,14 @@ def bind_assembled_scoring_revision(output):
         'immutable_call_fields':'attempt identity, output bytes/hash, timestamps, elapsed time, metrics and verdicts retained',
         'source_scoring_receipts_sha256':scoring_revision_history_sha256(history),
         'independent_result_review_sha256':hashlib.sha256(review_path.read_bytes()).hexdigest(),
-    })
+    }
+    scoring_source = history[-1].get('output_scoring_source_sha256')
+    if scoring_source is not None:
+        assembled_receipt.update(
+            input_scoring_source_sha256=scoring_source,
+            output_scoring_source_sha256=scoring_source,
+        )
+    history.append(assembled_receipt)
     candidate=json.dumps(history,ensure_ascii=False,indent=2)+'\n'
     # Validate the complete candidate chain before replacing the real receipt.
     # A failed inherited chain must never be persisted even transiently.
@@ -355,9 +602,14 @@ def _provider_request_contract(case, provider):
     Firecrawl records ``minimum_text_fragments`` as unsupported and never puts
     it in the Scrape request.  A cohort frozen immediately before that
     evaluator-only completion diagnostic was added is therefore physically
-    equivalent for Firecrawl, while every other task field remains exact.
+    equivalent for Firecrawl, while request-bearing task fields remain exact.
     """
     value = _without_reference(case)
+    # Reader-facing explanation and independent reference provenance are not
+    # sent to providers.  Keep the physical-call comparison focused on the
+    # URL, requested scope and execution/acceptance contract.
+    value.pop("description", None)
+    value.pop("ground_truth_evidence", None)
     benchmark = value.get("source_benchmark", {})
     annotation = benchmark.get("stable_annotation", {})
     if annotation.get("content_kind") == "changing_public_body":
@@ -570,9 +822,14 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
 
 def _assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
               provider_additions=None, speed_cohort=None, resource_cohort=None,
-              canonical_dataset=None, retain_unverified=False, exclude_providers=None):
+              canonical_dataset=None, retain_unverified=False, exclude_providers=None,
+              provider_replacement_scope_receipts=None):
     additions = additions or []
     provider_replacements = provider_replacements or []
+    provider_replacement_scope_receipts = provider_replacement_scope_receipts or []
+    if provider_replacement_scope_receipts and (
+            len(provider_replacement_scope_receipts) != len(provider_replacements)):
+        raise ValueError('Provider replacement sources and scope receipts differ in count')
     provider_additions = provider_additions or []
     exclude_providers = exclude_providers or []
     if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')
@@ -581,6 +838,13 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     reference_input_roots={identifier:run for identifier in cases}
     canonical=(json.loads(read_dataset_bytes(canonical_dataset)) if canonical_dataset else None)
     canonical_cases={c['id']:c for c in canonical['cases']} if canonical else {}
+    if canonical:
+        canonical_comparison = canonical.get('comparison', {})
+        comparison = dataset.setdefault('comparison', {})
+        for key in ('require_independent_result_review',
+                    'independent_result_review_scope'):
+            if key in canonical_comparison:
+                comparison[key] = deepcopy(canonical_comparison[key])
     case_replacements=(canonical.get('comparison',{}).get('case_replacements',{})
                        if canonical else {})
     if (not isinstance(case_replacements,dict)
@@ -600,6 +864,9 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                        and set(source_manifest.get('attempt_ids',[])) ==
                        {row['attempt_id'] for row in original})
     assembled_input=(run/'execution.json').exists() and not live_physical_run
+    inherited_replacement_scope_history = (
+        _provider_replacement_scope_history(run) if assembled_input else []
+    )
     replacement_cases={};batches=[];evidence=[];selected=[];audit=[]
     reference_evidence=[]
     if assembled_input:
@@ -650,6 +917,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         if cid in replacement_cases:continue
         rows=[r for r in original if r['case_id']==cid]
         if requires_fresh_reference(canonical_cases.get(cid,case)) and not assembled_input:
+            if certificates is None:
+                raise ValueError('Fresh-reference assembly requires certificate evidence: '+cid)
             cert=certificates/cid
             manifest=json.loads((cert/'manifest.json').read_text())
             if {r['attempt_id']:r for r in read_records(cert)}!={r['attempt_id']:r for r in rows}:
@@ -668,8 +937,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     for root in additions:
         new_dataset=json.loads((root/'dataset.json').read_text())
         rows=read_records(root)
-        manifest=json.loads((root/'manifest.json').read_text())
-        require_verified_reference_checks(manifest,cases=new_dataset,records=rows,source=root)
+        addition_batches=read_verified_batches(root,new_dataset,rows)
         incoming={c['id']:c for c in new_dataset['cases']}
         if set(incoming)&set(cases):raise ValueError('Addition overlaps existing cases')
         planned={(c['id'],p) for c in incoming.values() for p in new_dataset['coverage_plan'][c.get('track','web')]}
@@ -682,14 +950,25 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             dataset['coverage_plan'].setdefault(case.get('track','web'),new_dataset['coverage_plan'][case.get('track','web')])
         expected|=planned
         selected.extend((r,root) for r in rows)
-        batches.append(project_execution_manifest(manifest));evidence.append(root)
-        reference_evidence.append((root, [manifest]))
-        audit.extend({'case_id':cid,'selection_reason':'missing case completed as a full five-method addition; no score-based selection','excluded_attempts':[]} for cid in incoming)
+        batches.extend(project_execution_manifest(batch) for batch in addition_batches);evidence.append(root)
+        reference_evidence.append((root, addition_batches))
+        audit.extend({'case_id':cid,'selection_reason':'missing case completed as the full declared provider cohort; no score-based selection','excluded_attempts':[]} for cid in incoming)
     pair_replacements = {}
-    for root in provider_replacements:
+    replacement_scope_receipts = []
+    for replacement_index, root in enumerate(provider_replacements):
         new_dataset=json.loads((root/'dataset.json').read_text())
         rows=read_records(root)
         replacement_batches=read_verified_batches(root,new_dataset,rows)
+        receipt_path = (provider_replacement_scope_receipts[replacement_index]
+                        if provider_replacement_scope_receipts else None)
+        rows, scope_receipt = _selected_provider_replacement_rows(
+            run, root, rows, receipt_path)
+        if scope_receipt is not None:
+            replacement_scope_receipts.append((Path(receipt_path), scope_receipt))
+        scope_by_pair = {
+            (item['case_id'], item['provider']): item
+            for item in (scope_receipt or {}).get('replacements', [])
+        }
         incoming={c['id']:c for c in new_dataset['cases']}
         for row in rows:
             key=(row['case_id'],row['provider'])
@@ -708,8 +987,13 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                     raise ValueError('Provider replacement reference hash differs: '+row['case_id'])
             pair_replacements[key]=(row,root)
             old=_selected_record(selected,key)
+            declared = scope_by_pair.get(key)
             audit.append({'case_id':row['case_id'],'provider':row['provider'],
-                'selection_reason':'predeclared provider implementation replacement; complete scope selected without score-based retries',
+                'selection_reason':(
+                    declared['reason'] if declared else
+                    'predeclared provider implementation replacement; complete scope selected without score-based retries'),
+                **({'selection_category': declared['category']}
+                   if declared else {}),
                 'excluded_attempts':[{k:old[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')}]})
         batches.extend(project_execution_manifest(batch) for batch in replacement_batches);evidence.append(root)
         reference_evidence.append((root, replacement_batches))
@@ -774,8 +1058,6 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     validate_report_ids(dataset,records)
     if len(records)!=len(expected) or {(r['case_id'],r['provider']) for r in records}!=expected:
         raise ValueError('Assembled coverage differs from the complete cohort')
-    if added_providers:
-        dataset.setdefault('comparison',{})['require_independent_result_review']=True
     failed=[cid for batch in batches for cid,row in batch.get('reference_checks',{}).get('postcheck',{}).get('cases',{}).items() if row['status']!='verified']
     dataset['comparison']['publication_state']='blocked_reference_checks' if failed else 'verified'
     dataset['comparison']['unverified_reference_cases']=sorted(set(failed))
@@ -794,9 +1076,12 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     for case in dataset['cases']:
         path=canonical_dataset or reference_input_roots[case['id']]/'dataset.json'
         reference_groups.setdefault(path,[]).append(case['id'])
-    for path, identifiers in reference_groups.items():
-        materialize_task_references(output, {name: input_tree(path,name)
-            for name in ('sources','list-references')}, identifiers)
+    if canonical:
+        _materialize_canonical_references(output, canonical, canonical_dataset)
+    else:
+        for path, identifiers in reference_groups.items():
+            materialize_task_references(output, {name: input_tree(path,name)
+                for name in ('sources','list-references')}, identifiers)
     for row,root in selected:
         materialize_bound_artifacts(output, root, [row])
     for root, source_batches in reference_evidence:
@@ -807,8 +1092,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         rows=[r for r in original if r['case_id']==cid]
         # Keep the existing diagnostic serialization stable for downstream tools.
         (target/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in rows))
-        certificate=certificates/cid
-        if certificate.exists():
+        certificate=certificates/cid if certificates is not None else None
+        if certificate is not None and certificate.exists():
             rejected=project_execution_manifest(json.loads((certificate/'manifest.json').read_text()))
             (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n')
         elif (run/'manifest.json').exists():
@@ -825,13 +1110,32 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                 raise ValueError('Assembled input has no execution batch for replaced case: '+cid)
             (target/'execution.json').write_text(json.dumps(
                 {'batches':rejected_batches},ensure_ascii=False,indent=2)+'\n')
-        if (certificate/'manifest.json').is_file():
+        if certificate is not None and (certificate/'manifest.json').is_file():
             materialize_reference_checks(target, certificate,
                 [json.loads((certificate/'manifest.json').read_text())])
         materialize_bound_artifacts(target, run, rows)
     for name,payload in [('dataset.json',dataset),('execution.json',{'batches':batches}),('selection-audit.json',audit)]:
         (output/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
     (output/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records))
+    if inherited_replacement_scope_history or replacement_scope_receipts:
+        index = []
+        for item, source, _ in inherited_replacement_scope_history:
+            target = contained_path(output, item['path'], reject_symlinks=True)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            index.append(item)
+        history = output/'history'/'provider-replacement-scopes'
+        history.mkdir(parents=True, exist_ok=True)
+        for position, (receipt_path, receipt) in enumerate(replacement_scope_receipts):
+            target = history/f'{len(index) + position:03d}-{receipt_path.name}'
+            shutil.copy2(receipt_path, target)
+            index.append({
+                'path': str(target.relative_to(output)),
+                'sha256': _sha256_file(target),
+                'replacements': receipt['replacements'],
+            })
+        (output/'provider-replacement-scopes.json').write_text(
+            json.dumps(index, ensure_ascii=False, indent=2)+'\n')
     copy_scoring_revision_history(run, output)
     copy_projected_latency_correction(run, output)
     # Consolidate independently validated source reference-correction receipts
@@ -909,7 +1213,17 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         if not copied and not any((replacements, additions, provider_replacements,
                                    provider_additions, canonical_dataset)):
             copy_projected_review(run,output,[])
-    bind_assembled_scoring_revision(output)
+    review_required = dataset.get('comparison', {}).get(
+        'require_independent_result_review', False)
+    review_pending = review_required and not (output/'result-review.json').is_file()
+    canonical_review_policy = bool(canonical and
+        canonical.get('comparison', {}).get('require_independent_result_review') is True)
+    # A changed matrix cannot inherit the old review.  Keep the canonical gate
+    # on the staged cohort so the normal review installer can bind these exact
+    # bytes, then bind the inherited scoring history after that review exists.
+    if not (review_pending and canonical_review_policy
+            and (output/'scoring-revisions.json').is_file()):
+        bind_assembled_scoring_revision(output, source=run)
     if speed_cohort:
         if not (speed_cohort/'speed-comparison.json').is_file():
             raise ValueError('Speed cohort has not been packaged')
@@ -943,12 +1257,16 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
 
 def assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
              provider_additions=None, speed_cohort=None, resource_cohort=None,
-             canonical_dataset=None, retain_unverified=False, exclude_providers=None):
+             canonical_dataset=None, retain_unverified=False, exclude_providers=None,
+             provider_replacement_scope_receipts=None):
     """Build and verify in a sibling staging directory, then publish atomically."""
-    for source in [run, certificates, *(replacements or []), *(additions or []),
-                   *(provider_replacements or []), *(provider_additions or []),
-                   *([speed_cohort] if speed_cohort else []),
-                   *([resource_cohort] if resource_cohort else [])]:
+    sources = [run, *(replacements or []), *(additions or []),
+               *(provider_replacements or []), *(provider_additions or []),
+               *([speed_cohort] if speed_cohort else []),
+               *([resource_cohort] if resource_cohort else [])]
+    if certificates is not None:
+        sources.append(certificates)
+    for source in sources:
         reject_evidence_symlinks(source)
         for name in ('dataset.json', 'results.jsonl', 'manifest.json', 'execution.json'):
             contained_path(source, name, reject_symlinks=True)
@@ -961,7 +1279,8 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
             provider_replacements=provider_replacements,provider_additions=provider_additions,
             speed_cohort=speed_cohort,resource_cohort=resource_cohort,
             canonical_dataset=canonical_dataset,
-            retain_unverified=retain_unverified,exclude_providers=exclude_providers)
+            retain_unverified=retain_unverified,exclude_providers=exclude_providers,
+            provider_replacement_scope_receipts=provider_replacement_scope_receipts)
         staging.replace(output)
         work.rmdir()
     except BaseException:
@@ -972,10 +1291,11 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-dir',type=Path,required=True)
-    parser.add_argument('--certificates',type=Path,required=True)
+    parser.add_argument('--certificates',type=Path,help='Certificate tree required only for unfinalized fresh-reference physical runs')
     parser.add_argument('--replacements',type=Path,nargs='*',default=[])
     parser.add_argument('--additions',type=Path,nargs='*',default=[])
     parser.add_argument('--provider-replacements',type=Path,nargs='*',default=[])
+    parser.add_argument('--provider-replacement-scope-receipts',type=Path,nargs='*',default=[],help='Hash-bound exact pair scopes for broader provider replacement bundles')
     parser.add_argument('--provider-additions',type=Path,nargs='*',default=[])
     parser.add_argument('--speed-cohort',type=Path)
     parser.add_argument('--resource-cohort',type=Path)
@@ -986,6 +1306,7 @@ def main(argv=None):
     args=parser.parse_args(argv)
     assemble(args.run_dir,args.certificates,args.replacements,args.output,
         additions=args.additions,provider_replacements=args.provider_replacements,
+        provider_replacement_scope_receipts=args.provider_replacement_scope_receipts,
         provider_additions=args.provider_additions,
         speed_cohort=args.speed_cohort,resource_cohort=args.resource_cohort,
         canonical_dataset=args.canonical_dataset,

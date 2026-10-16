@@ -78,10 +78,10 @@ def create_report(base: Path, *, english=False, headless=False):
         path.write_bytes(b"fixture")
     pages = {
         "index.html": (
-            "<h2>1 类任务概览</h2><p>本类最高： 判分完整性</p>"
-            "<h2>综合通过率总榜</h2><h2>1 类分榜</h2>",
-            "<h2>1 task family</h2><p>Highest score. Scoring completeness.</p>"
-            "<h2>Overall ranking</h2><h2>1 task family ranking</h2>",
+            '<h2>综合通过率总榜</h2><div class="home-overview">Overview</div>'
+            "<h2>1 类任务概览</h2><p>本类最高： 判分完整性</p><h2>1 类分榜</h2>",
+            '<h2>Overall ranking</h2><div class="home-overview">Overview</div>'
+            "<h2>1 task family</h2><p>Highest score. Scoring completeness.</p><h2>1 task family ranking</h2>",
         ),
         "methodology/index.html": (
             "<p>计入耗时 不计入耗时 供应商上报的服务端耗时只作附加证据 "
@@ -113,7 +113,7 @@ def create_revision_report(base: Path):
     home = root / "index.html"
     home.write_text(
         home.read_text()
-        + """<div class="home-overview">Overview</div>
+        + """
     <div id="home-rankings"><div role="tabpanel">
     <div class="track-guide">Guide</div><div class="track-meaning">Meaning</div>
     <ul class="track-flow"><li>Input</li><li>Fetch</li><li>Score</li><li>Result</li></ul>

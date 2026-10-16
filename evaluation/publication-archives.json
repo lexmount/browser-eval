@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "archives": [
+    {
+      "id": "webfetch-browser-native-430-2026-10-15",
+      "site_url": "https://artifact-site.lexmount.cn/v/IqGpMUYHWat-dw4n8usQttTptoPzboAo",
+      "artifact_version": "ver_b5584a3d77524f5cbced6edd93105445",
+      "profile_sha256": "4144fec0ca5a3d0cccf3c31075ac1c55c0bef2bc3ec27f4c49b40b838250b272"
+    }
+  ]
+}

@@ -221,10 +221,10 @@
 [打开目标网页](https://wiki.archlinux.org/title/Main_page)
 
 - **网址、语言与目标：** 输入和观察最终网址相同；英文；ArchWiki 主页面介绍和主要导航内容。
-- **稳定文字：** 顶部站点导航 `Home`、`Packages`、`Forums`、`Wiki`、`GitLab`、`Security`、`AUR`、`Download`；页面与侧栏 `ArchWiki`、`Main page`、`Table of contents`、`Getting involved`、`Help`、`Contributing`、`Recent changes`、`Search`、`Appearance`；页面操作 `Read`、`View source`、`View history`；主体分别要求 `Welcome to the`、`your source for Arch Linux documentation on the web.`、`The distribution`、`Our community`、`Wiki interaction`。欢迎句中的 ArchWiki 是单独显示的链接文字，已由前面的 ArchWiki 组检查，不再把三段拼成一个稳定文字。所有文字都在独立保存的首次页面文本中，分布于顶部、侧栏、页面操作和完整主体，全部必需。
+- **稳定文字：** 顶部站点导航 `Home`、`Packages`、`Forums`、`Wiki`、`GitLab`、`Security`、`AUR`、`Download`；页面与侧栏 `ArchWiki`、`Main page`、`Table of contents`、`Getting involved`、`Help`、`Contributing`、`Search`、`Appearance`；页面操作 `Read`、`View source`、`View history`；主体分别要求 `Welcome to the`、`your source for Arch Linux documentation on the web.`、`The distribution`、`Our community`、`Wiki interaction`。欢迎句中的 ArchWiki 是单独显示的链接文字，已由前面的 ArchWiki 组检查，不再把三段拼成一个稳定文字。所有文字都在独立保存的首次页面文本中，分布于顶部、侧栏、页面操作和完整主体，全部必需。
 - **name-link：** 不采用数量列表。
 - **正文参考：** 三区为：欢迎语和 `Visit the Table of contents for a listing of article categories.`；The distribution 下 Overview、FAQ、Arch compared、Installation guide、General recommendations、List of applications 及说明；Our community 与 Wiki interaction 下各固定入口及说明。
-- **排除：** 语言数量、旧版本号、最后编辑时间、当前登录状态和外观选项的当前选中值。`Color (beta)` 及 Small/Standard/Large 等皮肤选项不冻结，因为名称和可用项可能随 MediaWiki 皮肤版本变化。3 区均需 60%，至少 2 区需 80%；只返回顶部导航、侧栏或主体其中一部分均不能通过。
+- **排除：** 语言数量、旧版本号、最后编辑时间、当前登录状态和外观选项的当前选中值。`Color (beta)` 及 Small/Standard/Large 等皮肤选项不冻结，因为名称和可用项可能随 MediaWiki 皮肤版本变化。3 区均需 60%，至少 2 区需 80%；只返回顶部导航、侧栏或主体其中一部分均不能通过；响应式导航中的 `Recent changes` 不参与通过判定。
 
 ## 18. risk-diverse-039｜FreeBSD SVNweb
 

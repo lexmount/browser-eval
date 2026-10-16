@@ -10,7 +10,11 @@ from urllib.parse import urlsplit
 
 from .models import EvalCase, validate_case
 from .reference_inputs import read_dataset_bytes
-from .retrieval_hints import parse_retrieval_hints, native_default_case
+from .retrieval_hints import (
+    native_default_case,
+    parse_retrieval_hints,
+    task_definition_sha256,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_FAILURE_RETRIES = 1
@@ -38,6 +42,7 @@ def _validate_retrieval_hints(item: dict[str, Any]) -> None:
         str(item.get("track", "web")),
         item.get("retrieval_hints") if "retrieval_hints" in item else None,
         identifier=str(item.get("id", "<unknown>")),
+        current_task_definition_sha256=task_definition_sha256(item),
     )
 
 

@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "kind": "dynamic_native_retrieval_contract_pre_call_revision",
+  "created_at": "2026-10-13T16:03:40+08:00",
+  "provider_calls": 0,
+  "predecessor_dataset_sha256": "1f3268366b17d490c85b75fbda329e5b3e6143d0a058523c1cad8a73ed916278",
+  "revised_dataset_sha256": "0da2bb30aaabe3ca2b93ec17b4cb88cdc1cf3ea46336bb3777fdb21c1f211b84",
+  "dataset_manifest": {
+    "path": "evaluation/dynamic-content-100-moli-webfetch/source-inputs.json",
+    "sha256": "710f9c91705b29bb9e4aa15af97dcc856e64e406baa4b9966446408d7e3d26a8"
+  },
+  "dataset_catalog": {
+    "path": "evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json",
+    "sha256": "ca1572aa80fc2324b2f00800a79b053cfd584d1831ffb16e6906ae0981522c6c"
+  },
+  "contract_registry": {
+    "path": "evaluation/native-retrieval-contracts.json",
+    "sha256": "210281ea49c61aa9c1ae4976be0f8b97adf1ef0eed6e08a74d77f54bab80b71b"
+  },
+  "assembly_correction": {
+    "predecessor_native_dataset_sha256": "def61624252afce7e21c36ec6970c387476fa65e2c31efe6ea19ef0087db94e9",
+    "revised_native_dataset_sha256": "de540d36c49ae49caf6189769627966f8975d87b82a1f355a91bbc20a70be8e7",
+    "removed_generated_field": "source_benchmark.scenario_track",
+    "reason": "The native compiler already preserves track=dynamic. Adding a second scenario marker changed the frozen task definition after its catalog and named retrieval contract had been verified.",
+    "provider_route_changed": false,
+    "acceptance_changed": false,
+    "provider_calls": 0
+  },
+  "delayed_completion_correction": {
+    "case_id": "dynamic-delayed",
+    "predecessor_contract_registry_sha256": "b54e31b9b1872cc126935c8e078611249d9cc2c5c17cf5a4cf49290990095132",
+    "revised_contract_registry_sha256": "210281ea49c61aa9c1ae4976be0f8b97adf1ef0eed6e08a74d77f54bab80b71b",
+    "completion": {
+      "selector": ".quote",
+      "minimum_count": 10,
+      "minimum_text_fragments": 3
+    },
+    "source_authority": {
+      "path": "evaluation/sources/dynamic-delayed/render-audit.json",
+      "sha256": "cb72f36b479827c25816f1df5e2448885c0935ab61c0ad130bc145a2d466cc93",
+      "provider_output_used": false
+    },
+    "source_basis": "The independent render audit records 30 of 30 populated fields across ten visible quote cards: quote text, author and tags. Counting empty card containers was insufficient.",
+    "provider_request_changed": true,
+    "acceptance_changed": false,
+    "scoring_changed": false,
+    "required_new_calls": {
+      "moli_fixed": 1,
+      "moli_pr919": 1,
+      "lightpanda": 1,
+      "obscura": 1,
+      "chromium": 1,
+      "kitesurf": 1,
+      "physical_calls": 6
+    },
+    "deduplication": "These six calls replace the already-declared dynamic-delayed calls in the method scopes below; they do not increase the 76-call physical total.",
+    "provider_calls": 0
+  },
+  "changed_cases": [
+    {
+      "case_id": "dynamic-015-015-testpages-iframe-list",
+      "contract": "iframe-list-one-hundred-items"
+    },
+    {
+      "case_id": "dynamic-019-selenium-dev-selenium",
+      "contract": "iframe-one-form"
+    },
+    {
+      "case_id": "dynamic-iframe",
+      "contract": "iframe-fourteen-family-headings"
+    },
+    {
+      "case_id": "dynamic-delayed",
+      "contract": "delayed-ten-records"
+    }
+  ],
+  "execution_effect": {
+    "provider_request_changed": true,
+    "ordinary_native_cases_changed": false,
+    "interface_policy": {
+      "lightpanda_dynamic": "official_native_markdown",
+      "lightpanda_dynamic_case_count": 100,
+      "lightpanda_iframe_behavior": "three contracts preserve their named completion plan and add official frame flags inside the native Markdown JSON transport envelope; native Markdown omission remains a scored failure",
+      "non_chromium_body": "browser-native Markdown",
+      "chromium_body": "rendered HTML converted by node-html-markdown 2.0.0"
+    },
+    "required_new_calls": {
+      "moli_fixed": 39,
+      "moli_pr919": 21,
+      "lightpanda": 4,
+      "obscura": 4,
+      "chromium": 4,
+      "kitesurf": 4,
+      "physical_calls": 76
+    },
+    "reason": "The four contracts change native completion or subdocument flags for every method. The fixed Moli build and the historical PR919 comparison also have independently audited implementation-change scopes. Overlap is removed within each method before summing; Lightpanda keeps the same native Markdown interface for its other 96 Dynamic tasks."
+  },
+  "acceptance_effect": {
+    "answers_changed": false,
+    "scoring_changed": false,
+    "task_scope_changed": false
+  },
+  "compiled_dataset_input": {
+    "assembly": {
+      "path": "evaluation/webfetch-seven-family-430/dataset-assembly.json",
+      "sha256": "63d6ead0b832b6020d02a74fa5270ed79549df76d9c138af6149d72361a77914"
+    },
+    "superseded_pre_call_dataset_sha256": "e708980fb9bfcbb003fda7e2219a6739f637b769359e7d150c6bb3b312661a90",
+    "revised_pre_call_dataset_sha256": "de540d36c49ae49caf6189769627966f8975d87b82a1f355a91bbc20a70be8e7",
+    "case_count": 430,
+    "provider_calls": 0
+  }
+}

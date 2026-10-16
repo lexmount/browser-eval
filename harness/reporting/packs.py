@@ -12,13 +12,13 @@ from collections.abc import Iterable
 from pathlib import Path
 
 
-def read_packed_file(archive, name):
+def read_packed_file(archive, name, *, cache=None):
     """Read and verify one virtual file from a schema-v2 block archive."""
     manifest = json.loads(archive.read('manifest.json'))
     if manifest.get('schema_version') != 2:
         raise ValueError('Unsupported virtual-file archive')
     entry = manifest['files'][name]
-    cache, chunks = {}, []
+    cache, chunks = {} if cache is None else cache, []
     for key in entry['parts']:
         block = manifest['blocks'][key]
         pack = block['pack']

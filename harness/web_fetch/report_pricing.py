@@ -24,7 +24,10 @@ def money(value):
 
 
 def render_pricing(out, names, *, table, cell, link, esc):
-    data = json.loads(SOURCE.read_text())
+    source = out / 'report-assets/provider-pricing.json'
+    if not source.is_file():
+        source = SOURCE
+    data = json.loads(source.read_text())
     dest = out / 'adoption'
     dest.mkdir(exist_ok=True)
     (dest / 'pricing.json').write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')

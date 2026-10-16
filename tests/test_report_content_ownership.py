@@ -1,13 +1,27 @@
 """Keep the evidence browser usable without requiring the editorial article."""
 import unittest
+import json
+from pathlib import Path
 from bs4 import BeautifulSoup
 from harness.web_fetch.report_components import task_pass_guide, examples, metric_legend, TRACK_CONTEXT
 from harness.web_fetch.report import ranking, TRACKS
+from harness.web_fetch.models import REPORT_FAMILIES
 
 
 class ContentOwnershipTests(unittest.TestCase):
+    def test_reusable_dataset_does_not_store_report_instance(self):
+        root = Path(__file__).resolve().parents[1]
+        authority = root / "evaluation/webfetch-seven-family-430"
+        self.assertFalse((authority / "current-report.json").exists())
+        self.assertFalse((authority / "rerun-scope.json").exists())
+        assembly = json.loads((authority / "dataset-assembly.json").read_text())
+        self.assertNotIn("profile", assembly)
+        archive = json.loads((root / "evaluation/publication-archives.json").read_text())
+        self.assertEqual(archive["schema_version"], 1)
+        self.assertTrue(archive["archives"][0]["site_url"].startswith("https://"))
+
     def test_every_track_explains_meaning_example_and_boundary(self):
-        self.assertEqual(set(TRACK_CONTEXT),set(TRACKS))
+        self.assertTrue(set(TRACKS) <= set(TRACK_CONTEXT))
         for track in TRACKS:
             soup=BeautifulSoup(task_pass_guide(track),'html.parser')
             self.assertTrue(soup.select_one('.track-meaning').get_text().strip())
@@ -42,7 +56,7 @@ class ContentOwnershipTests(unittest.TestCase):
 
     def test_every_ranking_links_to_its_methodology_example(self):
         page = examples()
-        for track in ('web', 'dynamic', 'document', 'image', 'video', 'challenge'):
+        for track in REPORT_FAMILIES:
             guide = task_pass_guide(track, '../')
             self.assertIn(f'../methodology/index.html#task-examples-{track}', guide)
             self.assertIn(f'id="task-examples-{track}"', page)

@@ -106,7 +106,7 @@ if __name__ == '__main__':
                                 language=requested_language(args.output or ROOT/'reports/wcxb')))
         raise SystemExit(0)
     evidence=require_evidence(args.evidence or current_evidence_dir())
-    if profile.get('comparison_kind')!='webmainbench_frozen_html_to_markdown':
+    if profile.get('comparison_kind')!='webmainbench_frozen_html_to_markdown' and not profile.get('frozen_inputs'):
         canonical=(profile_path.parent if (profile_path.parent/'dataset.json').is_file()
                    else ROOT/'evaluation')
         require_canonical_inputs(evidence,canonical)

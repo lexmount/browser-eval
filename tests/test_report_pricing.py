@@ -38,7 +38,7 @@ def test_catalog_has_sources_dates_and_no_invented_annual_prices():
     assert firecrawl['verified_at'] == '2026-09-11'
     assert 'proxy=auto' in firecrawl['scope']
     assert 'parsers=[]' in firecrawl['scope']
-    assert '不是本轮实测账单' in firecrawl['scope']
+    assert '不代表调用方的实际账单' in firecrawl['scope']
     assert '不代表实际扣费' in firecrawl['scope']
     assert firecrawl['rates'][0] == [
         '基础 Scrape / auto / enhanced',
@@ -87,6 +87,26 @@ def test_render_only_registered_providers():
     assert 'id="pricing-firecrawl"' not in rendered
 
 
+def test_report_bound_pricing_overrides_legacy_catalog(tmp_path):
+    bound = {
+        "checked_at": "2026-10-16",
+        "providers": [],
+        "other_methods": [{
+            "ids": ["local-browser"], "label": "Local browser",
+            "status": "Self-hosted", "note": "Caller pays infrastructure.",
+            "sources": [{"label": "Source", "url": "https://example.test/pricing"}],
+        }],
+    }
+    path = tmp_path / "report-assets/provider-pricing.json"
+    path.parent.mkdir()
+    path.write_text(json.dumps(bound))
+    rendered = render_pricing(
+        tmp_path, ["local-browser"], table=table, cell=cell, link=link, esc=esc
+    )
+    assert "Local browser" in rendered
+    assert json.loads((tmp_path / "adoption/pricing.json").read_text()) == bound
+
+
 def test_firecrawl_current_route_and_billing_boundaries_are_localized_one_to_one():
     with tempfile.TemporaryDirectory() as directory:
         rendered = render_pricing(
@@ -101,7 +121,7 @@ def test_firecrawl_current_route_and_billing_boundaries_are_localized_one_to_one
         'Official sources for this entry verified: 2026-09-11.',
         'Base Scrape / auto / enhanced',
         '+1 credit/PDF page on top of the base price',
-        'The capacity preflight only checks whether the account can cover the declared call count',
+        'Capacity preflight only checks whether the account can cover the declared call count',
     ]:
         assert text in english
     assert untranslated_english_narrative(english) == []

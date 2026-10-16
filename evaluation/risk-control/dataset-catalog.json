@@ -2,9 +2,9 @@
   "schema_version": 1,
   "kind": "frozen_dataset_catalog",
   "id": "risk-control-audited-100",
-  "name": "曾观察到访问限制的100个网址",
+  "name": "风控网站正文评测",
   "dataset": "dataset.json",
-  "dataset_sha256": "d0d038bae0114be107116edd94e501996ba6cda852ac29244c089e15a3e37437",
+  "dataset_sha256": "d3f18edd2b29f8ef19eb496841f91c433d7f9adfe33c591874d963db55760d7c",
   "case_count": 100,
   "cases": [
     {
@@ -174,7 +174,7 @@
       "category": "risk_control",
       "track": "risk_control",
       "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
-      "definition_sha256": "e2f62cd594e62a8532c8619feddc73b7d1223ef57c223d58c9fd574beb6a2858",
+      "definition_sha256": "30a2268fda5aa866597e5a75453e0e45fcbda67cca4961ab2f4278ed48e1707a",
       "reference_sha256": null
     },
     {
@@ -374,7 +374,7 @@
       "category": "risk_control",
       "track": "risk_control",
       "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
-      "definition_sha256": "af3cf6a1bb67192436aa23f494bf0ef88f15d5ed260900d45e67b483cd28c455",
+      "definition_sha256": "670fb01613742e048a7a8e4a1fdda5cb00d6b05108c35f38b8a65354679c34eb",
       "reference_sha256": null
     },
     {
@@ -634,7 +634,7 @@
       "category": "risk_control",
       "track": "risk_control",
       "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
-      "definition_sha256": "a3a504844c884eec0738a4f09a4d96a4b20fcbafbd3af67b92705301a3c73ff5",
+      "definition_sha256": "e5ff8417c616f09baf1a777b97836fceade0f645346257a70f5a1354dec356b4",
       "reference_sha256": null
     },
     {
@@ -674,7 +674,7 @@
       "category": "risk_control",
       "track": "risk_control",
       "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
-      "definition_sha256": "1114f12794678c618328774b456b87df176abd8738d00f94fd8adcc3ce40f6cb",
+      "definition_sha256": "d8a0e2a125965a94112c1936b9225bb08c7428c0a8aba14694bcc3c8b66d670b",
       "reference_sha256": null
     },
     {
@@ -754,7 +754,7 @@
       "category": "risk_control",
       "track": "risk_control",
       "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
-      "definition_sha256": "24c8cfda691df49fe7a2b5a7aff11535fc7ad0a75fce13aa0c5bf5df74bb75fa",
+      "definition_sha256": "866e2946b9c8f5dd5926bcacc92e10cff875fc216876a2d0709857db39374f77",
       "reference_sha256": null
     },
     {
@@ -794,7 +794,7 @@
       "category": "risk_control",
       "track": "risk_control",
       "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
-      "definition_sha256": "4f6bcbe618aa5269babc4854ef318c2ff4530490995280ff7b6b45f245d6bdf9",
+      "definition_sha256": "1086c03375e7d627c4b7cfbbcc1e33ea1df47542f98caddfc353402320e5d8ee",
       "reference_sha256": null
     },
     {
@@ -844,7 +844,7 @@
       "category": "risk_control",
       "track": "risk_control",
       "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
-      "definition_sha256": "a57af07b4bf14172356d25b6a870b09f62c48cbef17702b16e9145e64091859b",
+      "definition_sha256": "064a87a20cae59ad2d80433b40febe2b52b77b46f0fd6d35c3e43e63436ed686",
       "reference_sha256": null
     },
     {
@@ -974,7 +974,7 @@
       "category": "risk_control",
       "track": "risk_control",
       "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
-      "definition_sha256": "d8df38c8d1867e1148a5dfadd4a3e4a4a0f46c7f0594a02ee227a41a7cd2dedf",
+      "definition_sha256": "a8cef268823caf2a1432adce663ac39878e6bb6d36cd45d2bcd4c7abffe4d1f3",
       "reference_sha256": null
     },
     {

@@ -1,7 +1,17 @@
 """Deterministic reference preparation; original source bytes remain evidence."""
 import re
-from dataclasses import dataclass
 import unicodedata
+from dataclasses import dataclass
+from html import unescape
+
+
+HTML_BLOCK_ELEMENTS = frozenset({
+    "address", "article", "aside", "blockquote", "caption", "colgroup", "dd",
+    "details", "dialog", "div", "dl", "dt", "fieldset", "figcaption", "figure",
+    "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr",
+    "li", "main", "nav", "ol", "p", "pre", "section", "summary", "table",
+    "tbody", "thead", "tfoot", "tr", "ul",
+})
 
 
 def clean_reference_text(text: str) -> str:
@@ -25,6 +35,20 @@ def normalize_reference_anchor(text: str) -> str:
 def reference_anchor_in_text(reference: str, anchor: str) -> bool:
     expected = normalize_reference_anchor(anchor)
     return bool(expected and expected in normalize_reference_anchor(reference))
+
+
+def is_html_document_or_fragment(text: str) -> bool:
+    """Return whether an answer starts with a block HTML document surface.
+
+    A Markdown answer may retain inline tags inside link labels or prose.  Only
+    a leading document or block element selects the HTML projection path.
+    """
+    elements = "|".join(sorted(HTML_BLOCK_ELEMENTS | {"html", "body"}))
+    return bool(re.match(
+        rf"\s*(?:<!doctype\s+html\b[^>]*>\s*)?<(?:{elements})\b",
+        text,
+        re.I,
+    ))
 
 
 _BLOCKED_PAGE = re.compile(
@@ -89,35 +113,67 @@ class MarkdownLink:
 _MAX_MARKDOWN_LINK_SPAN = 8192
 
 
-def _closing(text: str, start: int, opening: str, closing: str) -> int | None:
-    depth = 1
-    index = start + 1
-    limit = min(len(text), start + _MAX_MARKDOWN_LINK_SPAN)
-    while index < limit:
-        if text[index] == "\\":
-            index += 2
+def is_markdown_image_start(text: str, index: int) -> bool:
+    """Return whether ``![`` starts image syntax at *index*.
+
+    CommonMark punctuation escapes are parity-sensitive: an odd number of
+    immediately preceding backslashes escapes the bang, while an even number
+    leaves it active after the backslashes are paired.
+    """
+    if not text.startswith("![", index):
+        return False
+    backslashes = 0
+    cursor = index - 1
+    while cursor >= 0 and text[cursor] == "\\":
+        backslashes += 1
+        cursor -= 1
+    return backslashes % 2 == 0
+
+
+def markdown_delimiter_pairs(text, *, maximum_span=None):
+    """Index escaped, nested Markdown delimiters once, including malformed prose."""
+    pairs = {}
+    stacks = {'[': [], '(': []}
+    escaped_starts = {'[': {}, '(': {}}
+    openings = {']': '[', ')': '('}
+    i = 0
+    while i < len(text):
+        char = text[i]
+        if char == "\\":
+            # Existing callers may begin at an escaped opening delimiter.
+            # Such an opening does not nest inside another candidate, but it
+            # shares that depth's next close when parsed as the link start.
+            if i + 1 < len(text) and text[i + 1] in stacks:
+                opening = text[i + 1]
+                escaped_starts[opening].setdefault(len(stacks[opening]), []).append(i + 1)
+            i += 2
             continue
-        if text[index] == opening:
-            depth += 1
-        elif text[index] == closing:
-            depth -= 1
-            if not depth:
-                return index
-        index += 1
-    return None
+        if char in stacks:
+            stacks[char].append(i)
+        elif char in openings:
+            opening = openings[char]
+            starts = escaped_starts[opening].pop(len(stacks[opening]), [])
+            if stacks[opening]:
+                starts.append(stacks[opening].pop())
+            for start in starts:
+                if maximum_span is None or i - start < maximum_span:
+                    pairs[start] = i
+        i += 1
+    return pairs
 
 
 def markdown_links(text: str) -> list[MarkdownLink]:
     """Return explicit balanced Markdown links without guessing from bare URLs."""
+    pairs = markdown_delimiter_pairs(text, maximum_span=_MAX_MARKDOWN_LINK_SPAN)
     links: list[MarkdownLink] = []
     index = 0
     while index < len(text):
-        image = text.startswith("![", index)
+        image = is_markdown_image_start(text, index)
         start = index + 1 if image else index
         if text[start:start + 1] != "[":
             index += 1
             continue
-        label_end = _closing(text, start, "[", "]")
+        label_end = pairs.get(start)
         if label_end is None:
             index += 1
             continue
@@ -127,7 +183,7 @@ def markdown_links(text: str) -> list[MarkdownLink]:
         if text[destination_start:destination_start + 1] != "(":
             index += 1
             continue
-        destination_end = _closing(text, destination_start, "(", ")")
+        destination_end = pairs.get(destination_start)
         if destination_end is None:
             index += 1
             continue
@@ -209,6 +265,51 @@ def visible_markdown_links(text: str) -> str:
     # segment so raw HTML closing tags such as ``</div>`` remain markup rather
     # than becoming evidence-bearing prose.
     return re.sub(r"<((?:/[^<>\s/]+){2,}(?:[?#][^<>\s]*)?)>", r"\1", visible)
+
+
+def visible_mixed_html_text(text: str) -> str:
+    """Project raw HTML in a Markdown answer, preserving literal code and autolinks."""
+    from .dynamic_lists import visible_html_text
+
+    literals = []
+    marker = "\ue010"
+    while marker in text:
+        marker += "\ue010"
+
+    def protect(match):
+        literals.append(match.group(0))
+        return f"{marker}{len(literals) - 1}{marker}"
+
+    # Native Markdown can serialize multiline code inside table cells.
+    # Recognize their opening fence before a closing fence is mistaken for one.
+    # Code examples and Markdown-escaped brackets are answer text.
+    # Consume escaped backslashes as pairs so an unescaped following tag
+    # remains HTML rather than being protected by its second backslash.
+    protected = re.sub(
+        r"(?ms)^ {0,3}(?:\|[ \t]*)?(`{3,}|~{3,})[^\n]*\n.*?^ {0,3}\1[ \t]*$"
+        r"|`+[^`\n]+`+|<(?:https?://|mailto:|/[^<>\s/]+/)[^<>\s]+>"
+        r"|<[^<>\s]+@[^<>\s]+>"
+        # Some Markdown serializers escape only the closing angle bracket of
+        # a literal HTML tag (``<td\>``). Protect the complete token so the
+        # unescaped opening bracket cannot turn a displayed code sample into
+        # live HTML. A wholly unescaped tag remains markup and is projected.
+        r"|(?:\\</?[A-Za-z][^<>\n]*>|</?[A-Za-z][^<>\n]*\\>)|\\[\\<>]",
+        protect, text,
+    )
+    if not re.search(
+        r"</?(?:a|article|aside|b|blockquote|br|code|dd|div|dl|dt|em|footer|"
+        r"h[1-6]|header|hr|i|li|main|nav|ol|p|pre|section|span|strong|table|"
+        r"tbody|td|th|thead|tr|ul|script|style|template)\b[^>]*>",
+        protected, re.I,
+    ):
+        projected = unescape(protected)
+        for index, literal in enumerate(literals):
+            projected = projected.replace(f"{marker}{index}{marker}", literal)
+        return projected
+    projected = visible_html_text(protected, preserve_source_whitespace=True)
+    for index, literal in enumerate(literals):
+        projected = projected.replace(f"{marker}{index}{marker}", literal)
+    return projected
 
 
 def audit_reference(text, facts, *, normalize):

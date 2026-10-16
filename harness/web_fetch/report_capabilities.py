@@ -154,18 +154,18 @@ SOURCES['moli'] = ('Moli 1.1.4 · WebFetch skill', 'https://github.com/lexmount/
 SOURCES['moli-recipes'] = ('Moli 1.1.4 · 输出与接口边界', 'https://github.com/lexmount/moli/blob/v1.1.4/skills/moli-webfetch/references/fetch-recipes.md')
 SOURCES['moli-release'] = ('Moli 1.1.4 · 官方发布', 'https://github.com/lexmount/moli/releases/tag/v1.1.4')
 CAPABILITIES['moli-webfetch'] = {
- 'scope':'moli fetch；普通正文使用 Markdown，挑战题使用 JSON 最终 DOM 与网络诊断，动态/资源/嵌入文档使用有界 DOM eval，直接文档与媒体使用裸 fetch 自动响应', 'sources':['moli','moli-recipes','moli-release'],
+ 'scope':'moli fetch；网页、文档正文、结构和网页内嵌媒体使用原生 Markdown，预声明完成条件只调用官方等待参数，直接媒体文件使用原始响应', 'sources':['moli','moli-recipes','moli-release'],
  'web':c('支持','JS 渲染网页 → Markdown / HTML'),
  'document':c('需配置','裸 fetch 取得原始 PDF 后在同一预算内本地解析；Office 取决于实际响应'),
- 'image':c('有限支持','页面引用；JSON HTML / eval 可取地址'),
- 'av':c('有限支持','页面入口；HTML / eval 可取地址'),
+ 'image':c('有限支持','原生 Markdown 中保留的图片地址；直接文件可验收原始字节'),
+ 'av':c('有限支持','原生 Markdown 中保留的媒体地址；直接文件可验收原始字节'),
  'file':c('有限支持','裸 fetch 可自动返回直接非 HTML 响应的原始字节'),
  'js':c('支持','默认运行 JS，支持多种就绪等待'),
  'input':'单个 URL；每个页面单独调用 fetch。',
- 'structure':'JSON 返回最终 URL、状态、标题、响应头、重定向链和 HTML；--eval 可返回 DOM 字段。',
+ 'structure':'网页与文档任务由 --dump markdown 返回原生 Markdown；直接媒体文件返回原始字节；等待条件不参与内容抽取。',
  'access':'支持授权 cookie-file / profile-dir 和请求头；仍可能被站点拒绝。默认适配器不加载登录状态。',
  'notes':'截图和 PDF 是启用 --layout 后生成的页面产物，不是读取已有文档或下载原媒体。官方未承诺文档 OCR、媒体理解或音频转写；直接非 HTML 输入不强制使用 Markdown。',
- 'tested':'Moli 1.1.4：普通正文使用 Markdown；挑战题一次请求返回 JSON 最终 DOM、HTTP 状态、最终 URL 和网络诊断，DOM 在同一截止内本地转 Markdown；动态任务分别使用预声明的完成 selector 与正文范围；资源页从渲染 DOM、同源 iframe 与有界同源模块返回 URL；直接 PDF 与媒体不传 --dump。DOCX 因当前 CLI 的 OOXML 误分类，在同一次 CLI 运行中由页面运行时二次 fetch 原始字节；冻结公开域名的 split-DNS 例外使用精确白名单。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。',
+ 'tested':'网页正文、文档正文、结构和网页内嵌媒体任务统一使用 Moli 原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不使用逐题 selector。网页媒体只核对同一 Markdown 输出里的目标地址，不下载媒体。直接 PDF/DOCX 未提供可读正文时按失败记录；直接媒体文件验收原始字节。失败后不切换格式，也不借用其他 provider 补抓；只有实际执行记录参与榜单。',
 }
 CAPABILITIES['lexmount-cn'] = {**CAPABILITIES['lexmount-global'], 'scope': 'POST /v1/extract · 中国区'}
 for engine,url in {
@@ -197,19 +197,19 @@ for provider,version in (('moli-1.0.6','1.0.6'),('moli','1.1.5'),('moli-1.1.3','
     SOURCES[source]=(f'Moli {version} · 官方发布',
         f'https://github.com/lexmount/moli/releases/tag/v{version}')
     CAPABILITIES[provider]={
-      'scope':'普通网页原生 Markdown；直接文档与媒体使用裸 fetch 自动响应；原始文档的正文解析计入任务耗时',
+      'scope':'网页和文档正文使用原生 Markdown；直接媒体文件使用原始响应',
       'sources':[source],
       'web':c('支持','CLI 原生 Markdown'),
-      'document':c('需配置','裸 fetch 取得原始 PDF 后在预算内解析；Office 格式取决于实际响应'),
+      'document':c('有限支持','HTML/TXT 可以直接返回正文；PDF/DOCX 必须由同一原生 Markdown 接口交付可读文字'),
       'image':c('仅链接','网页资源取决于 Markdown 保留；直接 URL 可验收原始字节'),
       'av':c('仅链接','网页资源取决于 Markdown 保留；直接 URL 可验收原始字节'),
       'file':c('支持','裸 fetch 返回直接 PDF、PNG、WebM、MP4 等原始响应'),
       'js':c('支持','兼容范围看逐例结果'),
       'input':'给定公开 HTTP(S) URL；不登录、不点击、不滚动。',
-      'structure':'普通网页输出 Markdown；直接文档或媒体输出序列化 HTML 或原始字节。',
+      'structure':'网页和文档正文输出 Markdown；直接媒体文件输出原始字节。',
       'access':'每次新进程；本地二进制，不使用托管服务凭据。',
-      'notes':'正文与文件是不同交付契约。直接文档若返回原始字节，评测在同一次预算内解析；直接媒体只校验格式、长度和冻结 SHA-256，不进行内容理解。1.0.6 与 1.1.1 的裸 fetch 行为由官方发行二进制实测确认，1.1.3 还在 CLI 帮助中明确说明。',
-      'tested':'普通网页 --dump markdown；直接 PDF、DOCX 和媒体不传 --dump；本轮没有启用失败重试，端到端预算 45 秒。',
+      'notes':'正文与文件是不同交付契约。文档题要求 Moli 的原生 Markdown 接口直接交付可读正文；只返回 PDF/DOCX 字节或地址不通过，评测端不再外部解析。直接媒体文件只校验格式、长度和冻结 SHA-256，不进行内容理解。',
+      'tested':'网页与文档正文使用 --dump markdown；直接媒体文件返回原始字节；本轮没有启用失败重试，端到端预算 45 秒。',
     }
 
 SOURCES['headless-moli-1.1.7']=('Moli 1.1.7 · 官方发布','https://github.com/lexmount/moli/releases/tag/v1.1.7')
@@ -227,17 +227,65 @@ CAPABILITIES['moli-1.1.7']={
     'tested':'fetch --dump markdown --wait-until done；最终结果为准，失败重试链单独保留。',
 }
 
-def render_capabilities(out, names, *, table, cell, link):
-    labels={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-1.1.11':'Moli 1.1.11'}
-    unknown = sorted(set(names) - set(CAPABILITIES))
+def task_capabilities(out, names, records):
+    """Describe the configured native task routes, without upgrading product claims."""
+    from .report_interfaces import browser_task_interface_matrix
+    from .methods import native_browser_engine, browser_method_registry
+    measured=[r for r in records if r.get('provider_metadata',{}).get('output_contract')]
+    if (not measured or not all(native_browser_engine(name) in {'moli','lightpanda','obscura','chromium','kitesurf'} for name in names)
+            or not (out/'dataset.json').is_file()):return None
+    dataset=json.loads((out/'dataset.json').read_text())
+    cases={case['id']:case for case in dataset['cases']}
+    matrix=browser_task_interface_matrix(cases,names)
+    configured={}
+    for name in names:
+        engine=native_browser_engine(name)
+        row={**CAPABILITIES[engine]}
+        row.update(
+            scope=matrix['capabilities'][name],
+            web=c('支持','原生网页正文输出' if engine!='chromium' else '原生 DOM 加共同 HTML 转换'),
+            document=(c('有限支持','HTML/TXT 可由原生 Markdown 返回；直接 PDF/DOCX 未提供可读正文，评测端不使用外部解析器')
+                      if engine=='moli' else
+                      c('共同转换','使用浏览器渲染后的完整 HTML，再由固定 HTML-to-Markdown 包转换；不读取查看器私有对象，不使用外部 PDF/DOCX 解析器')
+                      if engine=='chromium' else
+                      c('原生输出','直接使用浏览器正文接口；不使用外部 PDF/DOCX 解析器')),
+            image=c('资源地址 / 字节',
+                    '原生 Markdown 由共同评分器识别目标资源 URL；直接文件通过原生响应取得'
+                    if engine!='chromium' else
+                    '完整渲染 HTML 经过共同转换，评分器从 Markdown 核对资源地址；直接文件通过原生响应取得'),
+            av=c('资源与元数据',
+                 '完整渲染 HTML 经过共同转换，评分器从 Markdown 核对地址或页面信息；直接文件读取原始字节'
+                 if engine=='chromium' else
+                 '原生接口读取地址、页面元数据或原始字节；不做媒体理解'),
+            file=c('原生获取','使用该浏览器原始响应或附件接口，按固定规则验收字节'),
+            structure='按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。',
+            notes=('浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。'
+                   if engine!='chromium' else
+                   'Chromium 负责访问和渲染；所有页面类任务都取得完整 HTML，再由固定标准包转成 Markdown。评测端不运行资源提取脚本，也不读取文档查看器私有对象。完整分类及边界见报告解读的接口表。'),
+            tested='接口按任务大类预选；获取、等待和原生输出共享 45 秒预算。Chromium 的 HTML 转换也计入该预算。失败不切换引擎，不按评分结果选择更好的返回。')
+        source='task-native-'+name
+        source_url={'moli':'https://github.com/lexmount/moli','lightpanda':'https://github.com/lightpanda-io/browser','obscura':'https://github.com/h4ckf0r0day/obscura','chromium':'https://developer.chrome.com/docs/automation-and-testing/headless','kitesurf':'https://developers.cloudflare.com/browser-run/kitesurf/'}[engine]
+        source_url=browser_method_registry()[name].get('source_url',source_url)
+        SOURCES[source]=(name+' · 官方接口',source_url)
+        row['sources']=[source]
+        configured[name]=row
+    return configured
+
+def render_capabilities(out, names, *, table, cell, link, records=()):
+    labels={'moli-1.0.6':'Moli 1.0.6','moli':'Moli','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-1.1.11':'Moli 1.1.11'}
+    from .methods import measured_method_label
+    labels.update({name:measured_method_label(name,labels.get(name,name)) for name in names})
+    configured=task_capabilities(out,names,records)
+    capabilities=configured or CAPABILITIES
+    unknown = sorted(set(names) - set(capabilities))
     evidence = {'checked_at': CHECKED_AT, 'scope': '官方契约/固定源码能力，不是实测成绩',
-                'sources': SOURCES, 'methods': {n: CAPABILITIES[n] for n in names if n in CAPABILITIES}, 'unreviewed': unknown}
+                'sources': SOURCES, 'methods': {n: capabilities[n] for n in names if n in capabilities}, 'unreviewed': unknown}
     (out / 'adoption' / 'capabilities.json').write_text(json.dumps(evidence, ensure_ascii=False, indent=2)+'\n')
     content_rows, runtime_rows, details = [], [], []
     for name in names:
-        if name not in CAPABILITIES:
+        if name not in capabilities:
             continue
-        row = CAPABILITIES[name]
+        row = capabilities[name]
         method = cell(link('#capability-'+name, labels.get(name,name)))
         values = []
         for key in ['web', 'document', 'image', 'av', 'file']:
@@ -249,11 +297,13 @@ def render_capabilities(out, names, *, table, cell, link):
         sources = ' · '.join(link(SOURCES[s][1], SOURCES[s][0]+' ↗') for s in row['sources'])
         details.append(f'<details class="interface-panel" id="capability-{escape(name)}"><summary>{escape(labels.get(name,name))} · 范围与官方依据</summary>'+
                        f'<p><strong>对应接口：</strong>{escape(row["scope"])}</p><p>{escape(row["notes"])}</p>'+
-                       f'<p><strong>本轮配置：</strong>{escape(row["tested"])}</p><p class="source-note">{sources}</p></details>')
+                       f'<p><strong>登记配置：</strong>{escape(row["tested"])}</p><p class="source-note">{sources}</p></details>')
     legend = ('<p>原有资料核对日期：'+CHECKED_AT+'；本版新增 Cloudflare 与 Firecrawl 接口核对日期：'+ROUTE_CHECKED_AT+'。托管服务按官方文档；内置工具按固定源码。此处说明可选能力，<strong>不是实测成绩</strong>；没有启用的选项不补算进榜单。</p>'
               '<dl class="capability-legend"><div><dt>支持 / 需配置</dt><dd>有对应实现或契约；需配置表示要启用额外模式。</dd></div>'
               '<div><dt>仅链接 / 有限支持</dt><dd>仅返回地址，或只覆盖指定输入、正文区域。</dd></div>'
               '<div><dt>无此能力 / 未声明</dt><dd>前者有明确实现边界；后者是官方资料不足，不能当作不支持。</dd></div></dl>')
+    if configured:
+        legend='<p>下表说明本报告配置的接口与处理边界，浏览器版本及固定来源见“环境与复现”。共同解析、资源读取脚本和 HTML 转换由评测提供，不计作浏览器内置能力。接口可用不代表每题都能完成；实测结果见结果分析。</p>'
     content = ('<p class="source-note">能力声明不是实测任务成绩；任务通过按登记的稳定内容锚点与字段结构等规则判定，不证明频繁变化值的事实准确性或实时性。文档列指 PDF / Office 中的文字；普通 TXT 不等于文档解析。图片、音视频列说明网页资源取得方式，<strong>不代表视觉理解或转写</strong>；直接媒体 URL 能否取得字节看原文件列。原文件不是页面正文、截图或下载链接本身。</p>'+
                table(['方法 / 依据', '静态网站正文', '文档文字', '图片资源', '音视频资源', '原文件'], content_rows, cls='capability-matrix', metrics=[]))
     runtime = table(['方法 / 依据', 'JS 渲染', '输入范围', '结构化输出', '访问与会话'], runtime_rows, cls='capability-runtime', metrics=[])

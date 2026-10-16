@@ -12,6 +12,24 @@ def _platform_capability_restricted(message):
     ))
 
 
+def _unsupported_output_error(message):
+    """Use an explicit delivery-format rejection rather than debug option names."""
+    return re.search(
+        r'raw download output only supports[^\r\n]*|'
+        r'unsupported output format[^\r\n]*|'
+        r'(?:--dump[ =]+\S+|output format)[^\r\n]{0,80}\b(?:is not supported|unsupported)\b[^\r\n]*',
+        message, re.I,
+    )
+
+
+def _timeout_error(message, error_type):
+    if re.search(r'(?:^|_)(?:timeout|timed_out)$', str(error_type or '').lower()):
+        return True
+    # timeout_ms, request_timeout_ms and timeout=45000 describe configuration,
+    # whereas a standalone timeout or an explicit deadline failure is evidence.
+    return bool(re.search(r'timed out|\btimeout\b(?!["\']?\s*[:=])|deadline exceeded', message, re.I))
+
+
 def _stable_failure(metrics):
     """Describe measured contract errors; never infer a shortfall by default."""
     errors = metrics.get('stable_task_errors', [])
@@ -55,7 +73,10 @@ def diagnose(r,c,raw):
     elif meta.get('empty_content'):
         category,stage,proof=set_result('正文提取为空','内容提取','接口成功，但返回 result 为空；响应类型：'+str(meta.get('content_type') or '未提供'))
     elif not r['ok']:
-        if any(x in low for x in ['unsupported_content_type','unexpected_content_type','unsupported_file','file type that firecrawl cannot process']):
+        output_error = _unsupported_output_error(message)
+        if output_error:
+            category,stage,proof=set_result('不支持所需输出格式','内容交付',output_error.group(0)[:650])
+        elif any(x in low for x in ['unsupported_content_type','unexpected_content_type','unsupported_file','file type that firecrawl cannot process']):
             category,stage,proof=set_result('不支持输入类型','方法能力',message[:650])
         elif 'do not support this site' in low:
             category,stage,proof=set_result('方法不支持该站点','方法策略',message[:650])
@@ -85,7 +106,7 @@ def diagnose(r,c,raw):
             certainty='服务明确返回按调用地区限制请求能力；不据此归责源站'
         elif 'execution context was destroyed' in low:
             category,stage,proof=set_result('浏览器执行上下文中断','浏览器执行',message[:650])
-        elif re.search(r'timed out|(?<![a-z])timeout(?![a-z])|deadline exceeded',low):
+        elif _timeout_error(message, r.get('error_type')):
             category,stage,proof=set_result('加载 / 提取超时','取页或提取',message[:650])
         elif upstream in {401,403} or re.search(r'(?:http[_ :]*|failed \(|status code[: ]*|status_not_ok.{0,80})(?:401|403)',low) or re.search(r'(401|403) client error',low):
             category,stage,proof=set_result('源站拒绝该次访问','源站访问',str(nested.get('message') or r.get('error_message') or message)[:650])

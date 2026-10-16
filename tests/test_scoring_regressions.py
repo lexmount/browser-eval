@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.metrics import task_passed
+from harness.web_fetch.metrics import task_passed, task_measured
 from harness.web_fetch.reference_lifecycle import (
     reference_revision_cases,
     scoring_revision_history_sha256,
@@ -12,14 +12,65 @@ from harness.web_fetch.reference_lifecycle import (
 )
 from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.scoring_regressions import (
-    load_scoring_regressions,
-    require_scoring_regressions,
+    active_scoring_regressions, require_scoring_regressions,
     valid_correction_provenance,
 )
-from harness.web_fetch.scoring_revision import correction_provenance
+from harness.web_fetch.scoring_revision import ALLOWED_FIELDS, correction_provenance
 
 
 class ScoringRegressionTests(unittest.TestCase):
+    def test_policy_supersession_preserves_inputs_and_rejects_changed_body(self):
+        document=json.loads((Path(__file__).resolve().parents[1]/'evaluation/scoring-regressions.json').read_text())
+        self.assertTrue(document['superseded_cases'])
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'controls.json'
+            path.write_text(json.dumps(document))
+            current=active_scoring_regressions(path)
+            old,new=next(iter(document['superseded_cases'].items()))
+            self.assertNotIn(old,current)
+            self.assertIn(new,current)
+            for field,value in (('artifact','Changed body'),('final_url','https://different.test/')):
+                changed=json.loads(json.dumps(document))
+                next(row for row in changed['cases'] if row['id']==new)[field]=value
+                path.write_text(json.dumps(changed))
+                with self.subTest(field=field),self.assertRaises(ValueError):
+                    active_scoring_regressions(path)
+            changed=json.loads(json.dumps(document))
+            changed['superseded_cases'][old]='nonexistent-control'
+            path.write_text(json.dumps(changed))
+            with self.assertRaises(ValueError):
+                active_scoring_regressions(path)
+
+    def test_report_prose_rebinding_preserves_scoring_history_and_rejects_task_edits(self):
+        from harness.web_fetch.scoring_revision import rebind_report_interpretation
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            raw = b'{"cases": [{"id": "a", "url": "https://example.test"}]}\n'
+            (root/'dataset.json').write_bytes(raw)
+            (root/'results.jsonl').write_bytes(b'')
+            receipt = {'kind': 'audited_scoring_rule_revision', 'provider_calls': 0,
+                       'changed_cases': [], 'task_decision_changes': [],
+                       'input_dataset_sha256': 'a'*64, 'input_results_sha256': 'b'*64,
+                       'output_dataset_sha256': hashlib.sha256(raw).hexdigest(),
+                       'output_results_sha256': hashlib.sha256(b'').hexdigest()}
+            history = json.dumps([receipt]).encode()
+            (root/'scoring-revisions.json').write_bytes(history)
+            (root/'article.json').write_bytes(b'{}')
+            rebind_report_interpretation(root, {'path': 'article.json',
+                'sha256': hashlib.sha256(b'{}').hexdigest()})
+            self.assertTrue(valid_scoring_revision(root))
+            self.assertEqual((root/'scoring-revisions.json').read_bytes(), history)
+            self.assertEqual((root/'results.jsonl').read_bytes(), b'')
+            dataset = json.loads((root/'dataset.json').read_text())
+            dataset['cases'][0]['url'] = 'https://different.test'
+            changed = json.dumps(dataset).encode()
+            revisions = json.loads((root/'report-binding-revisions.json').read_text())
+            revisions[0]['output_dataset_sha256'] = hashlib.sha256(changed).hexdigest()
+            (root/revisions[0]['output_dataset_path']).write_bytes(changed)
+            (root/'dataset.json').write_bytes(changed)
+            (root/'report-binding-revisions.json').write_text(json.dumps(revisions))
+            self.assertFalse(valid_scoring_revision(root))
+
     def test_historical_blind_review_keeps_revision_chain_readable_after_new_anomaly_rule(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
@@ -58,7 +109,7 @@ class ScoringRegressionTests(unittest.TestCase):
             self.assertTrue(valid_scoring_revision(root))
 
     def test_every_registered_false_verdict_control_runs_through_shared_scorer(self):
-        rows = load_scoring_regressions()
+        rows = active_scoring_regressions()
         root_modes = {}
         for identifier, row in rows.items():
             with self.subTest(regression=identifier):
@@ -71,8 +122,19 @@ class ScoringRegressionTests(unittest.TestCase):
                     row["ok"], metrics, row["case"].get("task_kind", "body")
                 )
                 self.assertEqual(verdict, row["expected_task_pass"])
+                if "expected_task_measured" in row:
+                    self.assertEqual(task_measured(metrics), row["expected_task_measured"])
                 for key, expected in row.get("expected_metrics", {}).items():
                     self.assertEqual(metrics.get(key), expected, key)
+                if (row["root_cause"] == "table_escaped_pipe_boundaries"
+                        and row["expected_task_pass"]):
+                    if row["case"].get("composite_acceptance"):
+                        record = metrics["composite_group_results"][0]["records"][0]
+                        fields = record.get("fields", record)
+                        self.assertEqual(fields["owner"], "Alice | Bob")
+                    else:
+                        self.assertEqual(metrics["stable_records"][0]["fields"]["name"],
+                                         "Alpha | Beta")
                 root_modes.setdefault(row["root_cause"], set()).add(row["failure_mode"])
         paired = {"answer_surface_omission", "body_scope_calibration",
                   "declared_scope_exclusions", "declared_truncation",
@@ -85,6 +147,9 @@ class ScoringRegressionTests(unittest.TestCase):
                   "stable_contract_body_conjunction", "rule_unresolved_exclusion",
                   "body_region_structure_priority"}
         paired.add("source_observed_record_threshold")
+        paired.add("conditional_ui_control_not_body_requirement")
+        paired.add("scoped_markdown_heading_card_ownership")
+        paired.add("scoped_boundary_character_reference_projection")
         paired.add("dynamic_page_identity_alignment")
         paired.add("dynamic_page_query_identity")
         paired.add("declared_document_language_vs_visible_language")
@@ -95,6 +160,48 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("declared_full_page_stable_text_scope")
         paired.add("inline_emphasis_in_structured_fields")
         paired.add("markdown_list_prefix_ownership")
+        paired.add("scoped_markdown_bookmark_format_detection")
+        paired.add("scoped_markdown_list_boundary_semantics")
+        paired.add("mixed_html_prose_projection")
+        paired.add("pattern_output_and_prose_scope")
+        paired.add("rendered_result_section_ownership")
+        paired.add("equivalent_visible_label_alternatives")
+        paired.add("independent_stable_anchor_order")
+        paired.add("task_relevant_visible_text_scope")
+        paired.add("forbidden_phrase_substring_collision")
+        paired.add("scoped_markdown_caption_ownership")
+        paired.add("visible_html_record_projection")
+        paired.add("visible_character_reference_projection")
+        paired.add("visible_html_link_ownership")
+        paired.add("native_answer_surface_ownership")
+        paired.add("repeated_title_card_ownership")
+        paired.add("final_url_diagnostic_not_acceptance")
+        paired.add("html_language_metadata_diagnostic_not_acceptance")
+        paired.update({
+            "current_example_body_reference",
+            "retail_return_heading_reference",
+            "scrapy_python_version_reference",
+            "postgresql_stable_body_excludes_release_banner",
+            "openai_stable_body_excludes_model_catalog_copy",
+            "non_record_image_alt_visibility",
+            "microsoft_homepage_language_and_drift",
+            "complete_official_homepage_body_scope",
+        })
+        paired.update({"table_visible_section_boundaries", "table_escaped_pipe_boundaries"})
+        paired.update({"nested_image_accessible_link_name",
+                       "same_line_labeled_field_spans",
+                       "linearized_linked_table_ownership",
+                       "markdown_field_cell_ownership",
+                       "field_report_section_ownership",
+                       "declared_field_span_ownership"})
+        paired.update({"table_header_visual_line", "table_adjacent_split_body",
+                       "composite_html_table_ownership",
+                       "body_table_column_continuity",
+                       "unclosed_html_example_table_surface",
+                       "table_visible_markdown_scalar",
+                       "table_header_sort_control",
+                       "dynamic_record_badge_not_page_anchor"})
+        paired.add("escaped_literal_bang_before_link_misclassified_as_image")
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 
@@ -194,7 +301,7 @@ class ScoringRegressionTests(unittest.TestCase):
                 "input_results_sha256": hashlib.sha256(results).hexdigest(),
                 "output_dataset_sha256": hashlib.sha256(dataset).hexdigest(),
                 "output_results_sha256": hashlib.sha256(results).hexdigest(),
-                "changed_cases": [{"case_id": "case", "fields": ["forbidden_any"]}],
+                "changed_cases": [{"case_id": "case", "fields": sorted(ALLOWED_FIELDS)}],
                 "task_decision_changes": decisions,
                 "correction_provenance": correction_provenance(
                     "task-predicate",

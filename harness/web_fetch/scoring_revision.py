@@ -11,7 +11,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
-from harness.web_fetch.reference_lifecycle import reference_revision_cases, valid_scoring_revision
+from harness.web_fetch.reference_lifecycle import (
+    homepage_prompt_anchor_correction,
+    reference_revision_cases,
+    valid_scoring_revision,
+)
 from harness.web_fetch.rescoring import rescore
 from harness.web_fetch.result_review import (
     IndependentReviewRequired,
@@ -19,6 +23,7 @@ from harness.web_fetch.result_review import (
     rebind_unchanged_result_review,
 )
 from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.scoring_regressions import (
     ROOT_CAUSE_CATEGORIES,
     build_correction_provenance,
@@ -29,10 +34,12 @@ ALLOWED_FIELDS = {
     "required_patterns",
     "required_facts",
     "acceptance_contract",
+    "composite_acceptance",
     "forbidden_any",
     "expected_resources",
     "resource_output_contract",
     "task_prompt",
+    "reference_answer",
     "mutable_body_policy",
 }
 
@@ -47,13 +54,7 @@ def _without_rules(case):
 
 
 def _resource_prompt_policy_correction(old: dict, new: dict) -> bool:
-    """Allow wording to follow one narrowly audited resource-policy correction.
-
-    The physical resource request receives the URL and native resource route;
-    it never receives a target URL.  Changing an impossible target-only
-    precision requirement to recall acceptance therefore changes scoring and
-    its reader-facing wording, not the preserved provider call.
-    """
+    """Allow wording to follow one narrowly audited resource-policy correction."""
     before = old.get("resource_output_contract", {})
     after = new.get("resource_output_contract", {})
     old_targets = old.get("expected_resources", [])
@@ -76,6 +77,23 @@ def _resource_prompt_policy_correction(old: dict, new: dict) -> bool:
     )
 
 
+def _homepage_prompt_anchor_correction(old: dict, new: dict) -> bool:
+    """Allow a homepage scope description to stop embedding revised answer anchors."""
+    return homepage_prompt_anchor_correction(old, new)
+
+
+def _scoring_source_sha256s(records: list[dict], *, label: str) -> list[str]:
+    values = {
+        row.get("metrics", {}).get("scoring_source_sha256")
+        for row in records
+    }
+    if (not values or any(not isinstance(value, str) or len(value) != 64
+                          or any(char not in "0123456789abcdef" for char in value)
+                          for value in values)):
+        raise ValueError(label + " results require valid scoring source SHA-256 values")
+    return sorted(values)
+
+
 def _revise_unlocked(
     source: Path,
     canonical_path: Path,
@@ -83,6 +101,8 @@ def _revise_unlocked(
     root_cause_category: str,
     root_cause: str,
     regression_ids: list[str],
+    validate_only: bool = False,
+    jobs: int = 1,
 ):
     # Validate correction intent and executable controls before touching evidence.
     provenance = correction_provenance(root_cause_category, root_cause, regression_ids)
@@ -91,6 +111,10 @@ def _revise_unlocked(
     results_path = contained_path(source, "results.jsonl")
     before_dataset = read_dataset_bytes(dataset_path)
     before_results = results_path.read_bytes()
+    before_records = parse_jsonl(before_results)
+    input_scoring_source_sha256s = _scoring_source_sha256s(
+        before_records, label="Input",
+    )
     receipt_path = contained_path(source, "scoring-revisions.json", reject_symlinks=True)
     history = json.loads(receipt_path.read_bytes()) if receipt_path.exists() else []
     if not isinstance(history, list) or (history and not valid_scoring_revision(source)):
@@ -132,11 +156,12 @@ def _revise_unlocked(
         for key in ("url", "track", "task_kind"):
             if old.get(key) != canonical_case.get(key):
                 raise ValueError(identifier + ": captured task differs from canonical " + key)
-        if old.get("task_prompt") != canonical_case.get(
-            "task_prompt"
-        ) and not _resource_prompt_policy_correction(old, canonical_case):
+        if old.get("task_prompt") != canonical_case.get("task_prompt") and not (
+            _resource_prompt_policy_correction(old, canonical_case)
+            or _homepage_prompt_anchor_correction(old, canonical_case)
+        ):
             raise ValueError(
-                identifier + ": task_prompt changed outside the audited resource-policy correction"
+                identifier + ": task_prompt changed without its audited scoring contract"
             )
         new = dict(old)
         for key in ALLOWED_FIELDS:
@@ -149,14 +174,25 @@ def _revise_unlocked(
         if fields:
             changed.append({"case_id": identifier, "fields": fields})
     dataset["cases"] = [updated_cases[case["id"]] for case in dataset["cases"]]
-    validate_report_ids(dataset, parse_jsonl(before_results))
-    dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
+    validate_report_ids(dataset, before_records)
+    if input_scoring_source_sha256s != [SCORING_SOURCE_SHA256] and changed:
+        raise ValueError(
+            "Shared scorer and task requirements changed together; "
+            "apply a scorer-only revision first"
+        )
+    if validate_only and changed:
+        raise ValueError('Scoring validation cannot change task requirements')
+    if not validate_only:
+        dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
     staged_dataset = read_dataset_bytes(dataset_path)
     try:
         decisions = rescore(
             source,
+            case_ids={change["case_id"] for change in changed} if changed else None,
             allow_rule_revision=True,
             reference_revision_hashes=revised_reference_hashes or None,
+            validate_only=validate_only,
+            jobs=jobs,
         )
     except BaseException:
         # Never roll stale bytes over a different process's completed revision.
@@ -178,6 +214,11 @@ def _revise_unlocked(
         case_id = attempt_cases[decision["attempt_id"]]
         changed_by_case.setdefault(case_id, {"case_id": case_id, "fields": []})
     changed = [changed_by_case[case_id] for case_id in sorted(changed_by_case)]
+    output_scoring_source_sha256s = _scoring_source_sha256s(
+        parse_jsonl(results_path.read_bytes()), label="Output",
+    )
+    if output_scoring_source_sha256s != [SCORING_SOURCE_SHA256]:
+        raise ValueError("Scoring revision did not bind the current shared scorer")
     review_revision = {}
     try:
         rebind_unchanged_result_review(
@@ -200,9 +241,16 @@ def _revise_unlocked(
         "input_results_sha256": hashlib.sha256(before_results).hexdigest(),
         "output_dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest(),
         "output_results_sha256": hashlib.sha256(results_path.read_bytes()).hexdigest(),
+        **(
+            {"input_scoring_source_sha256": input_scoring_source_sha256s[0]}
+            if len(input_scoring_source_sha256s) == 1
+            else {"input_scoring_source_sha256s": input_scoring_source_sha256s}
+        ),
+        "output_scoring_source_sha256": output_scoring_source_sha256s[0],
         "changed_cases": changed,
         "task_decision_changes": decisions,
         "provider_calls": 0,
+        **({'validation_only': True} if validate_only else {}),
         "immutable_call_fields": (
             "attempt identity, output bytes/hash, timestamps and elapsed time retained"
         ),
@@ -224,6 +272,54 @@ def _revise_unlocked(
     return receipt
 
 
+def rebind_report_interpretation(source: Path, binding: dict, *, implementation_binding: dict | None = None):
+    """Bind presentation content while preserving the scored output bytes."""
+    from .reference_lifecycle import valid_scoring_revision
+    source = source.resolve()
+    if not valid_scoring_revision(source):
+        raise ValueError('Report binding requires a valid existing scoring chain')
+    if set(binding) != {'path', 'sha256'}:
+        raise ValueError('Invalid report interpretation binding')
+    asset = contained_path(source, binding['path'], reject_symlinks=True)
+    if hashlib.sha256(asset.read_bytes()).hexdigest() != binding['sha256']:
+        raise ValueError('Report interpretation content hash mismatch')
+    if implementation_binding is not None:
+        if (set(implementation_binding) != {'path', 'sha256'}
+                or implementation_binding['path'] != 'implementation-provenance.json'):
+            raise ValueError('Invalid implementation provenance binding')
+        implementation = contained_path(source, implementation_binding['path'], reject_symlinks=True)
+        if hashlib.sha256(implementation.read_bytes()).hexdigest() != implementation_binding['sha256']:
+            raise ValueError('Implementation provenance content hash mismatch')
+    dataset_path = contained_path(source, 'dataset.json')
+    before = dataset_path.read_bytes()
+    dataset = json.loads(before)
+    dataset.setdefault('comparison', {})['report_interpretation'] = binding
+    if implementation_binding is not None:
+        dataset['comparison']['implementation_provenance'] = implementation_binding
+    after = (json.dumps(dataset, ensure_ascii=False, indent=2)+'\n').encode()
+    results_hash = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
+    receipt = {'kind': 'report_interpretation_binding_revision', 'provider_calls': 0,
+               'input_results_sha256': results_hash, 'output_results_sha256': results_hash}
+    receipt['bound_asset_fields'] = ['report_interpretation'] + (
+        ['implementation_provenance'] if implementation_binding is not None else [])
+    for side, raw in (('input', before), ('output', after)):
+        digest = hashlib.sha256(raw).hexdigest()
+        relative = f'revision-history/dataset-{digest}.json'
+        target = contained_path(source, relative)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() and target.read_bytes() != raw:
+            raise ValueError('Dataset history collision')
+        target.write_bytes(raw)
+        receipt[f'{side}_dataset_sha256'] = digest
+        receipt[f'{side}_dataset_path'] = relative
+    path = source/'report-binding-revisions.json'
+    history = json.loads(path.read_text()) if path.exists() else []
+    history.append(receipt)
+    path.write_text(json.dumps(history, ensure_ascii=False, indent=2)+'\n')
+    dataset_path.write_bytes(after)
+    return receipt
+
+
 def revise(
     source: Path,
     canonical_path: Path,
@@ -231,6 +327,8 @@ def revise(
     root_cause_category: str,
     root_cause: str,
     regression_ids: list[str],
+    validate_only: bool = False,
+    jobs: int = 1,
 ):
     """Serialize evidence revisions and make rollback ownership explicit."""
     source = source.resolve()
@@ -245,6 +343,8 @@ def revise(
                 root_cause_category=root_cause_category,
                 root_cause=root_cause,
                 regression_ids=regression_ids,
+                validate_only=validate_only,
+                jobs=jobs,
             )
         finally:
             fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
@@ -268,6 +368,7 @@ def main(argv=None):
         required=True,
         help="Executable case id from evaluation/scoring-regressions.json; repeat as needed",
     )
+    parser.add_argument("--jobs",type=int,default=1,help="Parallel offline scoring workers (1–8); no provider calls")
     args = parser.parse_args(argv)
     print(
         json.dumps(
@@ -277,6 +378,7 @@ def main(argv=None):
                 root_cause_category=args.root_cause_category,
                 root_cause=args.root_cause,
                 regression_ids=args.regression_id,
+                jobs=args.jobs,
             ),
             ensure_ascii=False,
             indent=2,

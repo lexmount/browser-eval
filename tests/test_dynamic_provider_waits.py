@@ -451,3 +451,61 @@ def test_dynamic_providers_reject_answer_bearing_hint_fields(cloudflare_request,
     assert firecrawl.error_type == "configuration"
     cloudflare_request.assert_not_called()
     firecrawl_request.assert_not_called()
+
+
+@patch("harness.web_fetch.providers.cloudflare.request")
+def test_kitesurf_native_dynamic_completion_uses_ordinary_url_route(mock_request):
+    from dataclasses import replace
+    mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"Example"}')
+    case = replace(dynamic_case(), retrieval_hints={"version": 3, "mode": "native"})
+    result = CloudflareMarkdownProvider("kitesurf", {
+        "api_token": "x", "account_id": "a", "browser": "kitesurf"
+    }).fetch(case, 45)
+    assert result.ok
+    body = mock_request.call_args.kwargs["json_body"]
+    assert body["url"] == case.url
+    assert body["gotoOptions"]["waitUntil"] == "networkidle2"
+    assert "waitForSelector" not in body
+    assert "waitForTimeout" not in body
+    assert result.metadata["route"] == "browser_rendering_markdown"
+
+
+@patch("harness.web_fetch.providers.cloudflare.request")
+def test_kitesurf_maps_shared_completion_but_discloses_missing_frame_output(mock_request):
+    from dataclasses import replace
+    mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"outer page"}')
+    case = replace(dynamic_case(), id="dynamic-iframe", retrieval_hints={
+        "version": 3, "mode": "native", "contract": "iframe-fourteen-family-headings"})
+    with patch("harness.web_fetch.retrieval_hints._verify_contract_source"):
+        result = CloudflareMarkdownProvider("kitesurf", {
+            "api_token": "x", "account_id": "a", "browser": "kitesurf"
+        }).fetch(case, 45)
+    assert result.ok
+    body = mock_request.call_args.kwargs["json_body"]
+    assert "waitForTimeout" not in body
+    assert "waitForSelector" not in body
+    assert result.metadata["wait"]["completion_support"] == "approximate"
+    assert result.metadata["wait"]["subdocuments"] == {
+        "requested": True, "support": "unsupported", "harness_content_assembly": False}
+
+
+@patch("harness.web_fetch.providers.cloudflare.request")
+def test_kitesurf_uniform_dynamic_family_uses_product_default_completion(mock_request):
+    from dataclasses import replace
+    mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"records"}')
+    case = replace(
+        dynamic_case(),
+        id="dynamic-delayed",
+        retrieval_hints={"version": 3, "mode": "native"},
+    )
+    result = CloudflareMarkdownProvider("kitesurf", {
+        "api_token": "x", "account_id": "a", "browser": "kitesurf",
+        "uniform_native_parameters": True,
+    }).fetch(case, 45)
+    assert result.ok
+    body = mock_request.call_args.kwargs["json_body"]
+    assert "waitForSelector" not in body
+    assert "waitForTimeout" not in body
+    assert "timeout" not in body["gotoOptions"]
+    assert "actionTimeout" not in body
+    assert result.metadata["wait"] is None

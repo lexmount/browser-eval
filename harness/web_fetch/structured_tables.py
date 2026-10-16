@@ -142,6 +142,18 @@ def _valid(value, col):
     return col.get('minimum', float('-inf')) <= number <= col.get('maximum', float('inf'))
 
 
+def _visible_markdown_scalar(value):
+    """Project inline Markdown syntax without changing cell boundaries."""
+    from .reference_quality import visible_markdown_links
+
+    value = visible_markdown_links(value)
+    value = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\1', value)
+    value = re.sub(r'`([^`\n]+)`', r'\1', value)
+    value = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', value)
+    value = re.sub(r'__(?=\S)([^_\n]*\S)__', r'\1', value)
+    return value.strip()
+
+
 def _canonical(value, column):
     if column.get('compact_whitespace'):
         return re.sub(r'\s+', '', value).casefold()
@@ -174,6 +186,148 @@ def _without_example_fences(text):
     return ''.join(lines)
 
 
+def table_header_label(value):
+    """The first visual line names a column; later lines are controls/help."""
+    return _visible_markdown_scalar(
+        re.split(r'<br\s*/?>', value, maxsplit=1, flags=re.I)[0]
+    )
+
+
+def _table_header_labels(values):
+    """Remove a table-wide, standalone sort affordance from header labels."""
+    labels = [table_header_label(value) for value in values]
+    sortable = [re.fullmatch(r'(.*?)\s+([↕↥↧⇅⇵])', value) for value in labels]
+    if labels and all(sortable):
+        return [match[1].rstrip() for match in sortable]
+    return labels
+
+
+def _contains_rendered_html_table(content):
+    """Distinguish rendered table markup from literal Markdown examples."""
+    candidate = re.sub(r'`+[^`\n]+`+', '', content)
+    candidate = re.sub(
+        r'(?:\\</?[A-Za-z][^<>\n]*>|</?[A-Za-z][^<>\n]*\\>|\\[<>])',
+        '', candidate,
+    )
+    # A lone opening token commonly appears in API documentation after the
+    # Markdown projection has removed code delimiters.  Real serialized table
+    # markup has an owned closing boundary; do not feed the rest of the answer
+    # to an HTML parser when that boundary is absent.
+    return bool(re.search(r'<table\b[^>]*>[\s\S]*?</table\s*>', candidate, re.I))
+
+
+def table_text_surface(content):
+    """Preserve owned HTML cells/links and adjacent split Markdown bodies."""
+    from bs4 import BeautifulSoup
+    content = _without_example_fences(content)
+    if _contains_rendered_html_table(content):
+        from .dynamic_lists import _scoped_html
+        content = str(_scoped_html(content))
+        content = re.sub(
+            r"<h([1-6])\b[^>]*>[\s\S]*?</h\1\s*>",
+            lambda m: "\n" + BeautifulSoup(m[0], "html.parser").get_text(" ", strip=True) + "\n",
+            content, flags=re.I,
+        )
+
+    def convert(match):
+        soup = BeautifulSoup(match[0], 'html.parser')
+        table = soup.find('table')
+        lines = []
+        for row in table.find_all('tr'):
+            if row.find_parent('table') is not table:
+                continue
+            cells = row.find_all(['th', 'td'], recursive=False)
+            values = []
+            for cell in cells:
+                if cell.get('colspan', '1') != '1' or cell.get('rowspan', '1') != '1':
+                    break
+                for link in cell.find_all('a', href=True):
+                    link.replace_with('[' + link.get_text(' ', strip=True) + '](' + link['href'] + ')')
+                values.append(cell.get_text(' ', strip=True).replace('\\', r'\\').replace('|', r'\|'))
+            else:
+                if values:
+                    lines.append('| ' + ' | '.join(values) + ' |')
+                    if all(cell.name == 'th' for cell in cells):
+                        lines.append('| ' + ' | '.join('---' for _ in cells) + ' |')
+        return '\n' + '\n'.join(lines) + '\n'
+    content = re.sub(r'<table\b[^>]*>[\s\S]*?</table\s*>', convert, content, flags=re.I)
+    lines = content.splitlines()
+    output = []
+    index = 0
+    def separator(line):
+        return '|' in line and all(
+            re.fullmatch(r'\s*:?-{3,}:?\s*', c) for c in _pipe_cells(line))
+    while index < len(lines):
+        cells = _pipe_cells(lines[index])
+        prior = []
+        if '|' in lines[index] and all(not c.strip() for c in cells):
+            for line in reversed(output):
+                if line.strip():
+                    prior.append(line)
+                    if len(prior) == 2:
+                        break
+            prior.reverse()
+        if ('|' in lines[index] and all(not c.strip() for c in cells)
+                and index + 1 < len(lines) and separator(lines[index + 1])
+                and len(_pipe_cells(lines[index + 1])) == len(cells)
+                and len(prior) >= 2 and separator(prior[-1])
+                and len(_pipe_cells(prior[-2])) == len(cells)
+                and any(c.strip() for c in _pipe_cells(prior[-2]))):
+            while output and not output[-1].strip():
+                output.pop()
+            index += 2
+            continue
+        output.append(lines[index])
+        index += 1
+    return '\n'.join(output)
+
+
+def table_header_column_surfaces(content):
+    """Return each real table's header followed by one complete body column.
+
+    A visible reference can legitimately omit graphical or auxiliary cell values
+    while retaining every header and the text-bearing column.  Keep each table
+    and column isolated: values from another column, table, or surrounding prose
+    must never repair a missing cell.
+    """
+    lines = table_text_surface(content).splitlines()
+    surfaces = []
+    table_index = 0
+    index = 0
+    while index + 1 < len(lines):
+        headers = _pipe_cells(lines[index])
+        separators = _pipe_cells(lines[index + 1])
+        if ("|" not in lines[index] or len(headers) < 2
+                or len(separators) != len(headers)
+                or not all(header.strip() for header in headers)
+                or not all(re.fullmatch(r"\s*:?-{3,}:?\s*", cell)
+                           for cell in separators)):
+            index += 1
+            continue
+        rows = []
+        cursor = index + 2
+        while cursor < len(lines) and "|" in lines[cursor]:
+            cells = _pipe_cells(lines[cursor])
+            if len(cells) != len(headers):
+                break
+            rows.append(cells)
+            cursor += 1
+        if rows:
+            from .reference_quality import visible_markdown_links
+            table_index += 1
+            visible_headers = [visible_markdown_links(value).strip() for value in headers]
+            for column_index in range(len(headers)):
+                column = [visible_markdown_links(row[column_index]).strip() for row in rows]
+                if all(column):
+                    surfaces.append({
+                        "text": "\n".join(visible_headers + column),
+                        "table_index": table_index,
+                        "column_index": column_index,
+                    })
+        index = max(index + 1, cursor)
+    return surfaces
+
+
 def parse_table_records(content, visible, contract):
     columns, scope = contract['table_columns'], contract['table_scope']
     names = [c['name'] for c in columns]
@@ -184,7 +338,8 @@ def parse_table_records(content, visible, contract):
         visible = _without_example_fences(visible)
     explicit_html = bool(re.match(document_pattern, content, re.I))
     root = None
-    if re.search(r'<(?:html|body|main|div|table|section|article|ul|ol)\b', content, re.I):
+    if (re.search(r'<(?:html|body|main|div|section|article|ul|ol)\b', content, re.I)
+            or _contains_rendered_html_table(content)):
         from .dynamic_lists import _scoped_html
         soup = _scoped_html(content)
         root = soup
@@ -227,7 +382,13 @@ def parse_table_records(content, visible, contract):
     if root is None:
         # Inline layout breaks do not create new Markdown rows/cells. Preserve
         # a space so split numeric tokens cannot become a different valid value.
-        visible = re.sub(r'<br\s*/?>', ' ', visible, flags=re.I)
+        lines = table_text_surface(visible).splitlines()
+        for i in range(len(lines) - 1):
+            cells = _pipe_cells(lines[i])
+            if ('|' in lines[i] and len(cells) == len(_pipe_cells(lines[i + 1]))
+                    and all(re.fullmatch(r'\s*:?-{3,}:?\s*', c) for c in _pipe_cells(lines[i + 1]))):
+                lines[i] = '| ' + ' | '.join(_table_header_labels(cells)) + ' |'
+        visible = re.sub(r'<br\s*/?>', ' ', '\n'.join(lines), flags=re.I)
         # Only source-verified, case-declared auxiliary text is removed.
         # This also normalizes headers before locating the target table.
         for pattern in scope.get('plain_text_ignored_patterns', []):
@@ -272,7 +433,7 @@ def parse_table_records(content, visible, contract):
         for i in range(len(lines) - 1):
             if i in occupied or '|' not in lines[i]:
                 continue
-            labels = [s.strip().casefold() for s in _pipe_cells(lines[i])]
+            labels = [s.casefold() for s in _table_header_labels(_pipe_cells(lines[i]))]
             ignored = {v.casefold() for v in scope.get('ignored_column_labels', [])}
             selected = [j for j, label in enumerate(labels) if label not in ignored]
             headings = [aliases.get(labels[j]) for j in selected]
@@ -285,7 +446,10 @@ def parse_table_records(content, visible, contract):
             while j < len(lines) and '|' in lines[j]:
                 values = [v.strip() for v in _pipe_cells(lines[j])]
                 if len(values) == len(labels):
-                    candidates.append(dict(zip(headings, (values[j] for j in selected))))
+                    candidates.append(dict(zip(
+                        headings,
+                        (_visible_markdown_scalar(values[j]) for j in selected),
+                    )))
                 occupied.add(j); j += 1
             table_count += 1
             if table_count == scope.get('markdown_table_limit'):
@@ -309,5 +473,23 @@ def parse_table_records(content, visible, contract):
 
 
 def _pipe_cells(line):
-    # Remove only the table's outer delimiters; adjacent pipes are empty cells.
-    return line.strip().removeprefix('|').removesuffix('|').split('|')
+    """Split real delimiters, preserving escaped pipes and empty owned cells."""
+    line = line.strip()
+    cells = ['']
+    index = 0
+    while index < len(line):
+        char = line[index]
+        if char == '\\' and index + 1 < len(line) and line[index + 1] in {'|', '\\'}:
+            cells[-1] += line[index + 1]
+            index += 2
+            continue
+        if char == '|':
+            cells.append('')
+        else:
+            cells[-1] += char
+        index += 1
+    if line.startswith('|'):
+        cells.pop(0)
+    if cells and cells[-1] == '' and line.endswith('|'):
+        cells.pop()
+    return cells

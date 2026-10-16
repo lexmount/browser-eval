@@ -8,6 +8,23 @@ class DynamicListTests(unittest.TestCase):
     def setUp(self):
         self.contract = {"hosts": ["example.com"], "entry_path": r"/item/\d+", "minimum_entries": 3}
 
+    def test_named_table_columns_must_be_complete_and_distinct(self):
+        from harness.web_fetch.stable_tasks import validate_acceptance_contract
+        for columns in (
+            {"markdown_title_column": "Name"},
+            {"markdown_link_column": "Details"},
+            {"markdown_title_column": "Name", "markdown_link_column": "Name"},
+        ):
+            with self.subTest(columns=columns):
+                contract = {
+                    "version": 1, "schema": "named_link", "minimum_records": 1,
+                    "hosts": ["example.com"], "entry_path": r"/item/\d+",
+                    "stable_text_anchors": [],
+                    "entry_scope": {"html_selector": "tr[data-item]", **columns},
+                }
+                with self.assertRaisesRegex(ValueError, "distinct title and link columns"):
+                    validate_acceptance_contract(contract)
+
     def test_declared_identity_deduplicates_tracking_paths_for_same_entity(self):
         contract = {
             "hosts": ["example.com"],
@@ -120,17 +137,13 @@ class DynamicListTests(unittest.TestCase):
         )
         self.assertEqual(extract_named_entries(prose, self.contract, 'https://example.com/'), [])
 
-    def test_image_link_can_use_one_matching_heading_in_the_same_card(self):
-        content = (
-            '[![First title](https://img.example/1.jpg)](/item/1)\n\n'
-            '[Category](/category)\n\n## First title\n\nDescription\n\n'
-            '[![Second title](https://img.example/2.jpg)](/item/2)\n\n'
-            '## Different heading\n'
-        )
-        self.assertEqual(
-            extract_named_entries(content, self.contract, 'https://example.com/'),
-            [{'url': 'https://example.com/item/1', 'title': 'First title'}],
-        )
+    def test_image_alternative_and_unlinked_heading_do_not_name_a_record(self):
+        content = ('[![First title](https://img.example/1.jpg)](/item/1)\n\n'
+                   '## Different visible title\n\nDescription\n')
+        self.assertEqual(extract_named_entries(content, self.contract, 'https://example.com/'), [])
+        visible = content.replace('Different visible title', 'First title')
+        self.assertEqual(extract_named_entries(visible, self.contract, 'https://example.com/'), [
+            {'url': 'https://example.com/item/1', 'title': 'First title'}])
 
     def check(self, text, ok=True):
         return evaluate_dynamic_list(text, self.contract, "https://example.com", ok)
@@ -182,10 +195,10 @@ class DynamicListTests(unittest.TestCase):
             f"[![Poster](https://img.test/{i}.png) Title {i}](/item/{i})" for i in range(3)
         )
         self.assertTrue(self.check(visible_names)["structure_pass"])
-        image_only = "\n".join(
+        accessible_image_links = "\n".join(
             f"[![New title {i}](https://img.test/{i}.png)](/item/{i})" for i in range(3)
         )
-        self.assertFalse(self.check(image_only)["structure_pass"])
+        self.assertFalse(self.check(accessible_image_links)["structure_pass"])
         text = "\n".join(f"- {i}\nhttps://example.com/item/{i}" for i in range(10))
         self.assertEqual(self.check(text)["named_entry_count"], 0)
 
@@ -237,3 +250,12 @@ class DynamicListTests(unittest.TestCase):
                 }
             ],
         )
+
+
+def test_long_non_table_output_keeps_linear_processing_cost():
+    import time
+    from harness.web_fetch.structured_tables import table_text_surface
+    body = '\n'.join('Ordinary prose line number ' + str(i) for i in range(20000))
+    started = time.monotonic()
+    assert table_text_surface(body) == body
+    assert time.monotonic() - started < 1.5

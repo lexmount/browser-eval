@@ -8,12 +8,17 @@ import json
 import re
 import tempfile
 from pathlib import Path
+from urllib.parse import quote, urlsplit, urlunsplit
+from urllib.request import urlopen
 
 from harness.reporting.assets import copy_bound_assets
+from harness.reporting.packs import read_packed_file
 from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, safe_identifier
 from harness.web_fetch.storage import data_home
 
 MANIFEST_NAME = "source-inputs.json"
+_PACKED_INPUT_PREFIXES = ("sources/", "list-references/")
+_MAX_REMOTE_FILE_BYTES = 64_000_000
 
 
 def digest(path: Path) -> str:
@@ -230,10 +235,130 @@ def import_inputs(manifest_path: Path, source: Path) -> Path:
     return output
 
 
+def _remote_file_url(manifest_url: str, relative: str) -> str:
+    parts = urlsplit(manifest_url)
+    if parts.scheme != "https" or not parts.netloc or not parts.path.endswith("/manifest.json"):
+        raise ValueError("Packed snapshot manifest must use an HTTPS manifest.json URL")
+    selected = Path(relative)
+    if selected.is_absolute() or not selected.parts or ".." in selected.parts:
+        raise ValueError("Packed snapshot file path escapes its origin")
+    path = parts.path[: -len("manifest.json")] + quote(relative, safe="/")
+    return urlunsplit((parts.scheme, parts.netloc, path, parts.query, ""))
+
+
+def _download_bytes(url: str) -> bytes:
+    with urlopen(url, timeout=60) as response:
+        declared = response.headers.get("Content-Length")
+        if declared is not None and int(declared) > _MAX_REMOTE_FILE_BYTES:
+            raise ValueError("Packed snapshot file exceeds the download limit")
+        raw = response.read(_MAX_REMOTE_FILE_BYTES + 1)
+    if len(raw) > _MAX_REMOTE_FILE_BYTES:
+        raise ValueError("Packed snapshot file exceeds the download limit")
+    return raw
+
+
+def import_packed_snapshot(
+    manifest_url: str,
+    expected_manifest_sha256: str,
+    expected_dataset_sha256: str,
+    identifier: str,
+    *,
+    fetch_bytes=_download_bytes,
+) -> Path:
+    """Restore only benchmark inputs from one immutable public packed snapshot."""
+    safe_identifier(identifier)
+    for label, value in (
+        ("manifest", expected_manifest_sha256),
+        ("dataset", expected_dataset_sha256),
+    ):
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+            raise ValueError(f"Packed snapshot {label} SHA-256 is invalid")
+    manifest_raw = fetch_bytes(manifest_url)
+    if hashlib.sha256(manifest_raw).hexdigest() != expected_manifest_sha256:
+        raise ValueError("Packed snapshot manifest differs from its pinned hash")
+    manifest = json.loads(manifest_raw)
+    if manifest.get("schema_version") != 2 or not isinstance(manifest.get("files"), dict):
+        raise ValueError("Unsupported packed snapshot manifest")
+    if any(not isinstance(name, str) for name in manifest["files"]):
+        raise ValueError("Packed snapshot file name is invalid")
+    selected = {
+        name: entry
+        for name, entry in manifest["files"].items()
+        if name == "dataset.json" or name.startswith(_PACKED_INPUT_PREFIXES)
+    }
+    if "dataset.json" not in selected:
+        raise ValueError("Packed snapshot does not contain dataset.json")
+    if selected["dataset.json"].get("sha256") != expected_dataset_sha256:
+        raise ValueError("Packed snapshot dataset differs from its pinned hash")
+    source_dataset_sha256 = selected["dataset.json"].get("source_sha256")
+    if (
+        source_dataset_sha256 is not None
+        and source_dataset_sha256 != expected_dataset_sha256
+    ):
+        raise ValueError(
+            "Packed snapshot dataset is a publication projection, not the scored source dataset"
+        )
+    for name, entry in selected.items():
+        relative = Path(name)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError("Packed snapshot input path escapes its destination")
+        if not isinstance(entry, dict) or not isinstance(entry.get("parts"), list):
+            raise ValueError("Packed snapshot file entry is invalid")
+
+    class RemoteArchive:
+        def __init__(self):
+            self.downloaded = {"manifest.json": manifest_raw}
+
+        def read(self, name):
+            if name not in self.downloaded:
+                self.downloaded[name] = fetch_bytes(_remote_file_url(manifest_url, name))
+            return self.downloaded[name]
+
+    output = data_home() / "reference-inputs" / identifier
+    if output.exists() or output.is_symlink():
+        raise ValueError(
+            "Reference input destination already exists; verify it or select a new snapshot id"
+        )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    archive = RemoteArchive()
+    decompressed = {}
+    with tempfile.TemporaryDirectory(prefix=".reference-inputs-", dir=output.parent) as work:
+        staging = Path(work) / "inputs"
+        staging.mkdir()
+        for name in sorted(selected):
+            raw = read_packed_file(archive, name, cache=decompressed)
+            target = contained_path(staging, name, reject_symlinks=True)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(raw)
+        if digest(staging / "dataset.json") != expected_dataset_sha256:
+            raise ValueError("Restored packed dataset differs from its pinned hash")
+        receipt = {
+            "schema_version": 1,
+            "kind": "packed_reference_input_import",
+            "id": identifier,
+            "manifest_url": manifest_url,
+            "manifest_sha256": expected_manifest_sha256,
+            "dataset_sha256": expected_dataset_sha256,
+            "input_file_count": len(selected),
+            "downloaded_packs": sorted(
+                name for name in archive.downloaded if name != "manifest.json"
+            ),
+        }
+        (staging / "import-receipt.json").write_text(
+            json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        staging.rename(output)
+    return output
+
+
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", type=Path, required=True)
-    action = parser.add_mutually_exclusive_group(required=True)
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--packed-manifest-url")
+    parser.add_argument("--expected-manifest-sha256")
+    parser.add_argument("--expected-dataset-sha256")
+    parser.add_argument("--snapshot-id")
+    action = parser.add_mutually_exclusive_group()
     action.add_argument(
         "--source", type=Path, help="Approved local source copy; no network download"
     )
@@ -243,6 +368,29 @@ def main(argv=None) -> None:
         help="Verify every installed input against the manifest",
     )
     args = parser.parse_args(argv)
+    if args.packed_manifest_url:
+        if args.manifest or args.check or args.source:
+            parser.error("--packed-manifest-url cannot be combined with local manifest actions")
+        required = {
+            "--expected-manifest-sha256": args.expected_manifest_sha256,
+            "--expected-dataset-sha256": args.expected_dataset_sha256,
+            "--snapshot-id": args.snapshot_id,
+        }
+        missing = [name for name, value in required.items() if not value]
+        if missing:
+            parser.error("packed snapshot import requires " + ", ".join(missing))
+        output = import_packed_snapshot(
+            args.packed_manifest_url,
+            args.expected_manifest_sha256,
+            args.expected_dataset_sha256,
+            args.snapshot_id,
+        )
+        print(output)
+        return
+    if args.manifest is None:
+        parser.error("--manifest is required for local source and check actions")
+    if not args.check and args.source is None:
+        parser.error("select --source or --check")
     if args.check:
         manifest = load_manifest(args.manifest)
         root = input_root(manifest)

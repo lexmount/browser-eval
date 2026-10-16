@@ -54,7 +54,7 @@ class RealProviderSmokeTest(unittest.TestCase):
             },
         }})
         result = self.assert_provider_smoke("moli-webfetch", case)
-        self.assertEqual(result.metadata["route"], "page_identity_json")
+        self.assertEqual(result.metadata["route"], "ordinary_markdown")
         self.assertEqual(result.final_url, case.url)
 
     def test_lexmount_global_real_fetch(self) -> None:

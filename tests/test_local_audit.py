@@ -181,7 +181,8 @@ def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, mo
         local_audit.require_local_audit(source, dataset, [record])
 
 
-def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp_path, monkeypatch):
+@pytest.mark.parametrize("include_english,primary_language", [(False,"zh"), (True,"zh"), (True,"en")])
+def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp_path, monkeypatch, include_english, primary_language):
     from pathlib import Path
     from harness.web_fetch.config import load_dataset
     from harness.web_fetch.providers import build_provider
@@ -230,7 +231,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     monkeypatch.setattr(local_audit, "ROOT", tmp_path / "repo")
     assert local_audit.require_local_audit(evidence, dataset, records) is None
     output = tmp_path / "report"
-    build_report(evidence, output, local_audit=True)
+    build_report(evidence, output, local_audit=True, include_english=include_english)
     home = (output / "index.html").read_text()
     assert "本地实测版" in home
     assert "1 个案例 · 1 次调用，机器判分。" in home
@@ -267,6 +268,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     assert "Actions" not in page
     assert "Actions" in provider_page_body("firecrawl", method_records, method_cases, [], [])
 
+    from harness.report_languages import select_report_language
+    select_report_language(output, primary_language)
     # Explanatory edits of a historical snapshot must preserve every measured
     # byte, even after the repository scorer has moved on.
     from harness.web_fetch.report_build import refresh_local_presentation
@@ -304,6 +307,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     allowed = {"index.html", "methodology/index.html", "adoption/index.html",
                "reproduce/index.html", "changes/index.html", "providers/fixture.html",
                "adoption/interfaces/fixture.json", "report-manifest.json"}
+    if include_english:
+        allowed.update('en/' + path for path in list(allowed) if path.endswith('.html'))
     for relative, digest in before.items():
         if relative not in allowed:
             assert _digest(output / relative) == digest

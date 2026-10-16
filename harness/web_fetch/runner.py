@@ -7,6 +7,7 @@ import math
 import platform
 import re
 import socket
+import ssl
 import sys
 import threading
 import time
@@ -112,10 +113,14 @@ def utc_now() -> str:
 
 
 def classify_exception(error: Exception) -> tuple[str, str]:
+    if isinstance(error, (ssl.SSLCertVerificationError, ssl.CertificateError)):
+        return "tls_certificate", str(error)
     if isinstance(error, (TimeoutError, socket.timeout)):
         return "timeout", str(error)
     if isinstance(error, urllib.error.URLError):
         reason = getattr(error, "reason", None)
+        if isinstance(reason, (ssl.SSLCertVerificationError, ssl.CertificateError)):
+            return "tls_certificate", str(error)
         if isinstance(reason, socket.gaierror):
             return "dns", str(error)
         if isinstance(reason, (TimeoutError, socket.timeout)):
@@ -461,6 +466,7 @@ def run_evaluation(
     provider_concurrency: int = 1,
     max_failure_retries: int = DEFAULT_FAILURE_RETRIES,
     resource_sample_interval_ms: int | None = None,
+    call_order: str = "provider",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
     for name, value, minimum in (
@@ -473,6 +479,10 @@ def run_evaluation(
         if (not isinstance(value, (int, float)) or isinstance(value, bool)
                 or not math.isfinite(value) or value < minimum or (name == 'timeout' and value == 0)):
             raise ValueError(f'{name} must be finite and {"positive" if name == "timeout" else "nonnegative"}')
+    if call_order not in {"provider", "case-alternating"}:
+        raise ValueError("Unsupported call order")
+    if call_order == "case-alternating" and provider_concurrency != 1:
+        raise ValueError("Alternating case calls require serial provider execution")
     if resource_sample_interval_ms is not None and (
         type(resource_sample_interval_ms) is not int or resource_sample_interval_ms < 10
     ):
@@ -549,7 +559,10 @@ def run_evaluation(
             "timeout": timeout,
             "delay": delay,
             "provider_concurrency": min(provider_concurrency, max(1, len(providers))),
-            "concurrency_scope": "providers_parallel_cases_sequential_per_provider",
+            "concurrency_scope": ("serial_alternating_providers_per_case"
+                                  if call_order == "case-alternating"
+                                  else "providers_parallel_cases_sequential_per_provider"),
+            "call_order": call_order,
             "max_failure_retries": max_failure_retries,
             "retry_selection": "retry_only_after_failed_task; final_physical_attempt_is_authoritative",
             "primary_latency": "final_physical_call",
@@ -584,10 +597,14 @@ def run_evaluation(
     results_path = output_dir / "results.jsonl"
     result_lock = threading.Lock()
     with results_path.open("w", encoding="utf-8") as results_file:
-        def run_provider(provider: Provider) -> None:
-            previous_request_completed: float | None = None
-            for run_number in range(1, runs + 1):
-                for case_index, case in enumerate(cases, 1):
+        completed_by_provider = {}
+        case_positions = {case.id: index for index, case in enumerate(cases, 1)}
+
+        def run_provider(provider: Provider, selected_cases=None, selected_runs=None) -> bool:
+            previous_request_completed = completed_by_provider.get(provider.name)
+            for run_number in (range(1, runs + 1) if selected_runs is None else selected_runs):
+                for case in (cases if selected_cases is None else selected_cases):
+                    case_index = case_positions[case.id]
                     throttle_wait_ms = 0.0
                     if previous_request_completed is not None and provider.min_interval_seconds:
                         remaining = provider.min_interval_seconds - (time.monotonic() - previous_request_completed)
@@ -651,6 +668,7 @@ def run_evaluation(
                             '_answer_elapsed_ms', wall_elapsed_ms
                         )
                         previous_request_completed = time.monotonic()
+                        completed_by_provider[provider.name] = previous_request_completed
                         if case.task_kind == 'file':
                             result.metadata.setdefault('file_evaluation', {'files': [], 'pass': False,
                                 'scope': 'returned_bytes_signature_length_sha256'})
@@ -793,12 +811,34 @@ def run_evaluation(
                                 manifest['unexecuted'].append({'provider': provider.name,
                                     'after_attempt_id': attempt_id,
                                     'reason': 'non_cancellable_call_still_running; remaining provider cases not executed'})
-                            return
+                        return False
+            return True
 
         workers = min(provider_concurrency, max(1, len(providers)))
         try:
-            with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="webfetch-provider") as executor:
-                list(executor.map(run_provider, providers))
+            if call_order == "case-alternating":
+                stopped = False
+                for run_number in range(1, runs + 1):
+                    for index, case in enumerate(cases):
+                        ordered = providers if (index + run_number - 1) % 2 == 0 else providers[::-1]
+                        for provider in ordered:
+                            if not run_provider(provider, [case], [run_number]):
+                                # A live non-cancellable call would overlap the next
+                                # method. Stop the serial cohort, preserving evidence.
+                                manifest['unexecuted'].append({
+                                    'provider': provider.name,
+                                    'after_attempt_id': f"{provider.name}__{case.id}__r{run_number:03d}",
+                                    'reason': 'non_cancellable_call_still_running; alternating cohort stopped',
+                                })
+                                stopped = True
+                                break
+                        if stopped:
+                            break
+                    if stopped:
+                        break
+            else:
+                with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="webfetch-provider") as executor:
+                    list(executor.map(run_provider, providers))
         except ReferenceLifecycleError as error:
             if reference_checks is not None:
                 reference_checks.update(status=error.status, callcheck_error=str(error))

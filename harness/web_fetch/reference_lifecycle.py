@@ -17,9 +17,65 @@ from typing import Any
 from harness.record_io import load_jsonl, parse_jsonl
 
 from .metrics import normalize_for_match, normalize_resource_url
-from .reference_inputs import input_tree
+from .reference_inputs import input_tree, read_dataset_bytes
 from .render_evidence import validate_render_reference
+
+
+HOMEPAGE_READER_SCOPE_PROMPTS = frozenset({
+    "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。"
+    "不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、"
+    "不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+    "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。"
+    "不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、"
+    "不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。"
+    "同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[0-9]+。",
+    "直接获取这个热门网站首次加载后可见的稳定正文，保留栏目和支持入口文字；同时返回至少 10 条不同的"
+    "具名文章入口，每条包含有意义的名称和 HTTP(S) 链接。不固定当前文章、顺序、排名或数量；不点击子页面、"
+    "不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、按钮控件文字、隐藏名称、"
+    "网页标题和脚本文字不能代替正文。",
+})
 from .safety import contained_path, safe_identifier
+
+
+def _same_homepage_reader_constraints(old: dict, new: dict) -> bool:
+    """Accept revised homepage prose only when its operational suffix is unchanged."""
+    old_prompt = old.get("task_prompt", "")
+    new_prompt = new.get("task_prompt", "")
+    constraint_marker = "不点击子页面"
+    return (
+        isinstance(old_prompt, str)
+        and isinstance(new_prompt, str)
+        and constraint_marker in old_prompt
+        and constraint_marker in new_prompt
+        and old_prompt[old_prompt.index(constraint_marker):]
+        == new_prompt[new_prompt.index(constraint_marker):]
+    )
+
+
+def homepage_prompt_anchor_correction(old: dict, new: dict) -> bool:
+    """Recognize a reader-scope prompt synchronized with narrowed homepage anchors."""
+    before = old.get("acceptance_contract", {})
+    after = new.get("acceptance_contract", {})
+    without_anchors = lambda value: {
+        key: item for key, item in value.items() if key != "stable_text_anchors"
+    }
+    anchors = after.get("stable_text_anchors", [])
+    new_prompt = new.get("task_prompt", "")
+    return (
+        old.get("source_benchmark", {}).get("mode")
+        == new.get("source_benchmark", {}).get("mode")
+        == "ranked_domain_homepage"
+        and before.get("stable_text_anchors") != anchors
+        and without_anchors(before) == without_anchors(after)
+        and bool(anchors)
+        and (
+            new_prompt in HOMEPAGE_READER_SCOPE_PROMPTS
+            or (
+                new.get("reference_answer") == new_prompt
+                and _same_homepage_reader_constraints(old, new)
+            )
+        )
+    )
 
 MAX_REFERENCE_AGE_SECONDS = 30 * 60
 
@@ -81,29 +137,22 @@ def _not_future(value, now: datetime) -> datetime:
     return checked
 
 
-def source_unqualified_contract_cases(cases) -> list[str]:
-    """Invariant rule validation is not current source-solvability evidence.
-
-    The generic lifecycle does not currently qualify live acceptance contracts.
-    Specialized frozen-input tracks have their own certificates and boundaries.
-    """
-    return [_get(case, 'id') for case in cases if _get(case, 'acceptance_contract', {})]
-
-
 def requires_fresh_reference(case) -> bool:
+    """Existing answers stay frozen unless the task explicitly selects live checks."""
     contract = _get(case, "acceptance_contract", {})
     if contract:
-        # This mode evaluates invariant rules, not equality with live values.
-        # Validate before choosing it; snapshot-bound runs retain all checks.
         from .stable_tasks import validate_acceptance_contract
         validate_acceptance_contract(contract)
         return False
-    # Tiny synthetic fixtures intentionally have no independent verification.
-    # Production body cases carry this metadata, including invalid attestations.
-    return (_get(case, "track", "web") in {"web", "dynamic", "challenge"}
+    verification = _get(case, "source_verification", {}) or {}
+    mode = verification.get("reference_mode", "frozen")
+    if mode not in {"frozen", "live_exact"}:
+        raise ReferenceLifecycleError("Unknown reference mode; use frozen or live_exact")
+    return (mode == "live_exact"
+            and _get(case, "track", "web") in {"web", "dynamic", "challenge"}
             and _get(case, "task_kind", "body") == "body"
             and bool((_get(case, "ground_truth_main_content", "") or "").strip())
-            and bool(_get(case, "source_verification", {})))
+            and bool(verification))
 
 
 def expected_providers(dataset, case):
@@ -215,13 +264,15 @@ def _resource_target_matches(case, candidates: list[dict]) -> list[dict]:
     return results
 
 
-def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
-    """Fail closed unless every resource target has independent, hash-bound evidence.
+def validate_resource_source_evidence(case, dataset_path: Path, *, execution: bool = False) -> dict | None:
+    """Qualify resource sources, or reuse fixed targets during declared execution.
 
     HTTP probes remain useful diagnostics, but a blocked probe cannot become a
     valid source merely because an unbound human-review note says the page was
     checked. A successful browser observation may qualify only when its bounded
     candidate list, completion condition and exact resource scope are retained.
+    Execution of frozen benchmark inputs binds the existing task and answer
+    bytes instead of reopening historical admission files.
     """
     if _get(case, "task_kind", "body") != "resource":
         return None
@@ -235,6 +286,14 @@ def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
     if verification.get("state") != "valid":
         raise ReferenceLifecycleError(
             f"{identifier}: independent resource source verification is not valid")
+    if execution and verification.get('reference_mode', 'frozen') == 'frozen':
+        dataset = json.loads(read_dataset_bytes(Path(dataset_path)))
+        if dataset.get('comparison', {}).get('source_reference_policy') in {
+                'frozen_benchmark_inputs_with_explicit_live_exact_checks',
+                'frozen_acceptance_contracts_with_live_exact_reference_checks'}:
+            # Admission has already qualified these fixed answers. Execution
+            # binds the task bytes; it does not repeat historical qualification.
+            return None
     expected_path = f"sources/{identifier}/evidence.json"
     evidence_path = verification.get("evidence_path")
     evidence_hash = verification.get("evidence_sha256")
@@ -547,7 +606,7 @@ def preflight_reference_checks(cases, dataset_path: Path, now=None) -> dict | No
     checked = _now(now)
     bindings = {}
     for case in cases:
-        validate_resource_source_evidence(case, dataset_path)
+        validate_resource_source_evidence(case, dataset_path, execution=True)
         if requires_fresh_reference(case):
             identifier = _get(case, "id")
             if identifier in bindings:
@@ -638,9 +697,18 @@ def check_case_scoring_revision_binding(case, binding: dict) -> None:
         and {key: value for key, value in before_policy.items() if key != "unexpected"}
             == {key: value for key, value in after_policy.items() if key != "unexpected"}
     )
+    prompt_homepage_correction = (
+        current.get("source_benchmark", {}).get("mode")
+        == original.get("source_benchmark", {}).get("mode")
+        == "ranked_domain_homepage"
+        and (
+            current.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
+            or _same_homepage_reader_constraints(original, current)
+        )
+    )
     current.pop("evaluation_contract", None)
     original.pop("evaluation_contract", None)
-    if prompt_policy_correction:
+    if prompt_policy_correction or prompt_homepage_correction:
         current.pop("task_prompt", None)
         original.pop("task_prompt", None)
     if (sha256(reference) != binding.get("reference_sha256")
@@ -881,6 +949,42 @@ def valid_scoring_revision(source) -> bool:
         return before, after
 
     reference_edges = set()
+    presentation_path = root/'report-binding-revisions.json'
+    if presentation_path.is_file():
+        try:
+            presentation_rows = json.loads(presentation_path.read_text())
+            if not isinstance(presentation_rows, list):
+                return False
+            for receipt in presentation_rows:
+                edge = revision_edge(receipt)
+                if (edge is None or receipt.get('kind') != 'report_interpretation_binding_revision'
+                        or receipt.get('provider_calls') != 0 or edge[0][1] != edge[1][1]):
+                    return False
+                asset_fields = receipt.get('bound_asset_fields', ['report_interpretation'])
+                if (not isinstance(asset_fields, list) or not asset_fields
+                        or any(not isinstance(field, str) for field in asset_fields)
+                        or len(asset_fields) != len(set(asset_fields))
+                        or 'report_interpretation' not in asset_fields
+                        or set(asset_fields) - {'report_interpretation', 'implementation_provenance'}):
+                    return False
+                snapshots = []
+                for side, binding in zip(('input', 'output'), edge):
+                    raw = contained_path(root, receipt[f'{side}_dataset_path']).read_bytes()
+                    if sha256(raw) != binding[0]:
+                        return False
+                    document = json.loads(raw)
+                    if not isinstance(document, dict):
+                        return False
+                    for field in asset_fields:
+                        document.get('comparison', {}).pop(field, None)
+                    if not document.get('comparison'):
+                        document.pop('comparison', None)
+                    snapshots.append(document)
+                if snapshots[0] != snapshots[1]:
+                    return False
+                reference_edges.add(edge)
+        except (OSError, ValueError, TypeError, KeyError):
+            return False
     reference_path = root/'reference-revisions.json'
     if reference_path.is_file():
         try:
@@ -936,11 +1040,13 @@ def valid_scoring_revision(source) -> bool:
         return False
     allowed_fields = {
         'body_requirements', 'required_patterns', 'required_facts',
-        'acceptance_contract', 'forbidden_any', 'expected_resources',
-        'resource_output_contract', 'task_prompt',
+        'acceptance_contract', 'composite_acceptance', 'forbidden_any', 'expected_resources',
+        'resource_output_contract', 'task_prompt', 'reference_answer',
         'mutable_body_policy',
     }
     previous_output = None
+    previous_scoring_source = None
+    scoring_source_binding_started = False
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             return False
@@ -966,7 +1072,45 @@ def valid_scoring_revision(source) -> bool:
                            and set(change.get('fields', ())) <= allowed_fields
                            for change in row['changed_cases'])):
             return False
+        if any(
+            'task_prompt' in set(change.get('fields', ()))
+            and not ({'acceptance_contract', 'resource_output_contract'}
+                     & set(change.get('fields', ())))
+            for change in row['changed_cases']
+        ):
+            return False
+        input_scoring_sources = row.get('input_scoring_source_sha256s')
+        single_input_scoring_source = row.get('input_scoring_source_sha256')
+        output_scoring_source = row.get('output_scoring_source_sha256')
+        if input_scoring_sources is not None and single_input_scoring_source is not None:
+            return False
+        if input_scoring_sources is None and single_input_scoring_source is not None:
+            input_scoring_sources = [single_input_scoring_source]
+        if input_scoring_sources is not None or output_scoring_source is not None:
+            if (not isinstance(input_scoring_sources, list)
+                    or not input_scoring_sources
+                    or input_scoring_sources != sorted(set(input_scoring_sources))
+                    or any(not isinstance(value, str)
+                           or re.fullmatch(r'[0-9a-f]{64}', value) is None
+                           for value in input_scoring_sources)
+                    or not isinstance(output_scoring_source, str)
+                    or re.fullmatch(r'[0-9a-f]{64}', output_scoring_source) is None
+                    or (previous_scoring_source is not None
+                        and input_scoring_sources != [previous_scoring_source])):
+                return False
+            previous_scoring_source = output_scoring_source
+            scoring_source_binding_started = True
+        else:
+            if scoring_source_binding_started:
+                return False
+            previous_scoring_source = None
         previous_output = output_binding
+    if previous_scoring_source is not None:
+        current_scoring_sources = {
+            row.get('metrics', {}).get('scoring_source_sha256') for row in (records or [])
+        }
+        if current_scoring_sources != {previous_scoring_source}:
+            return False
     return previous_output is not None and bridged(
         previous_output, (current_dataset, current_results)
     )
@@ -1103,8 +1247,9 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
             return {}
         allowed = {
             "body_requirements", "required_patterns", "required_facts",
-            "acceptance_contract", "forbidden_any", "expected_resources",
-            "resource_output_contract", "task_prompt", "mutable_body_policy",
+            "acceptance_contract", "composite_acceptance", "forbidden_any", "expected_resources",
+            "resource_output_contract", "task_prompt", "reference_answer",
+            "mutable_body_policy",
         }
         for receipt in scoring if isinstance(scoring, list) else ():
             before, after = hash_pair(receipt, "input"), hash_pair(receipt, "output")
@@ -1195,14 +1340,24 @@ def check_case_reference_and_scoring_revision_binding(
     )
     before_policy = before_contract.get("resource_output_contract", {})
     after_policy = after_contract.get("resource_output_contract", {})
-    if (
+    prompt_policy_correction = (
         current.get("task_kind") == original.get("task_kind") == "resource"
         and aliases_expand_only
         and before_policy.get("candidate_scope") == after_policy.get("candidate_scope")
             == "image_answer_fields"
         and before_policy.get("unexpected") == "reject"
         and after_policy.get("unexpected") == "allow"
-    ):
+    )
+    prompt_homepage_correction = (
+        current.get("source_benchmark", {}).get("mode")
+        == original.get("source_benchmark", {}).get("mode")
+        == "ranked_domain_homepage"
+        and (
+            current.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
+            or _same_homepage_reader_constraints(original, current)
+        )
+    )
+    if prompt_policy_correction or prompt_homepage_correction:
         current.pop("task_prompt", None)
         original.pop("task_prompt", None)
     if binding.get("reference_sha256") not in original_hashes or current != original:
@@ -1237,7 +1392,8 @@ def require_certifiable_evidence(dataset=None, manifests=()) -> None:
 
 def require_verified_reference_checks(manifests, *, cases=None, records=None, source=None,
                                       equivalent_capture_bindings=False,
-                                      allow_scoring_rule_revision=False) -> None:
+                                      allow_scoring_rule_revision=False,
+                                      allow_diagnostic=False) -> None:
     """Fail closed for explicit live lifecycles; leave historical batches readable.
 
     Call before report/append writes. The minimum call validates certificate
@@ -1254,7 +1410,8 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
         manifests = [manifests]
     if not isinstance(manifests, (list, tuple)):
         raise ReferenceLifecycleError("Expected manifest batches")
-    require_certifiable_evidence(cases, manifests)
+    if not allow_diagnostic:
+        require_certifiable_evidence(cases, manifests)
     case_map = None
     if cases is not None:
         if isinstance(cases, dict) and "cases" in cases and isinstance(cases["cases"], list):
@@ -1306,8 +1463,33 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
     allow_scoring_rule_revision = (allow_scoring_rule_revision or valid_scoring_revision(source))
     revised_references = reference_revision_cases(source)
     original_latency = latency_correction_original_elapsed(source, records=records)
+    selected_current_batches = {}
+    duplicate_current_attempts = []
+    if records is not None:
+        current_indexes = [
+            index for index, batch in enumerate(manifests) if current_protocol(batch)
+        ]
+        current_coverage = {}
+        for index in current_indexes:
+            selected = _selected_records(manifests[index], records, original_latency)
+            selected_current_batches[index] = selected
+            for record in selected:
+                attempt_id = record["attempt_id"]
+                current_coverage[attempt_id] = current_coverage.get(attempt_id, 0) + 1
+        duplicate_current_attempts = sorted(
+            attempt_id for attempt_id, count in current_coverage.items() if count != 1
+        )
+        if current_indexes and len(current_indexes) == len(manifests):
+            record_ids = [record.get("attempt_id") for record in records]
+            if (any(not isinstance(attempt_id, str) or not attempt_id
+                    for attempt_id in record_ids)
+                    or len(record_ids) != len(set(record_ids))
+                    or set(record_ids) != set(current_coverage)):
+                raise ReferenceLifecycleError(
+                    "Current batch attempts do not exactly cover measured records"
+                )
     try:
-        for batch in manifests:
+        for batch_index, batch in enumerate(manifests):
             if not isinstance(batch, dict):
                 raise ReferenceLifecycleError("Invalid manifest")
             if "reference_checks" not in batch:
@@ -1331,7 +1513,12 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
             finalized_at = timestamp(post.get("checked_at"))
             if finalized_at < preflight_at:
                 raise ReferenceLifecycleError("Reference postcheck precedes preflight")
-            selected = _selected_records(batch, records, original_latency) if records is not None else None
+            selected = (
+                selected_current_batches.get(batch_index)
+                if records is not None and current_protocol(batch)
+                else (_selected_records(batch, records, original_latency)
+                      if records is not None else None)
+            )
             if fresh_attempt_coverage is not None and current_protocol(batch):
                 for record in selected or []:
                     attempt_id = record.get("attempt_id")
@@ -1449,3 +1636,8 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
             raise ReferenceLifecycleError(
                 "Fresh-reference measured attempts require exactly one certificate: "
                 + "; ".join(detail))
+    if duplicate_current_attempts:
+        raise ReferenceLifecycleError(
+            "Measured attempt appears in more than one current batch: "
+            + ", ".join(duplicate_current_attempts)
+        )

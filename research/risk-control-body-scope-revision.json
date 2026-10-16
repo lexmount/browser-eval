@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "kind": "risk_control_body_scope_policy_revision",
+  "provider_calls": 0,
+  "correction_provenance": {
+    "category": "acceptance-contract",
+    "root_cause": "Page-shell stable anchors incorrectly veto outputs that satisfy the independently declared initial-load body or record contract.",
+    "regression_ids": [
+      "explicit-body-without-page-shell-passes",
+      "page-shell-without-complete-body-fails",
+      "explicit-record-without-page-shell-passes",
+      "page-shell-with-incomplete-record-fails",
+      "explicit-record-placeholder-link-fails",
+      "anchor-only-contract-missing-shell-fails",
+      "anchor-only-contract-present-shell-passes",
+      "explicit-body-request-failure-stays-failed",
+      "body-and-record-both-remain-required"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 0,
+      "total": 0
+    }
+  },
+  "policy": {
+    "body_text_with_body_or_composite_contract": "diagnostic_stable_text",
+    "body_text_without_content_contract": "required_stable_text",
+    "other_schemas": "unchanged"
+  },
+  "independent_authorities": {
+    "evaluation/risk-control/qualification/cohort/cohort-manifest.json": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26",
+    "evaluation/risk-control/body-contracts.json": "db7d3083ff5430c2c56e9dcd7000cb340b78792dfb426ec3b9e08bd17fb81552",
+    "evaluation/risk-control/list-contracts.json": "4d848525cc47179904443758ccdea39ea12c0e959b07237e4193fe2540a59299"
+  },
+  "baseline_scorer_commit": "4b91f6bc8ef9d27e8d7824d6ea0c66cb3ee292a1",
+  "baseline_scoring_source_sha256": "315cad157f30cf25c2933295aec88539cacb07b48c7bb8b3c78ef9f37b02534a",
+  "data_home_bindings": {
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/summary.json": "db9161b7e49de3ed85230d75c83de804d973303c3f4adfbe853a2da18799a1f0",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/scoring-policy.patch": "a54f192abf61e6432054723f9d553eb99d829f6edb6076f07f5b01d402060ca6",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/reproduce.py": "e83fd1565f68b8ff7cfe9a3d4d46b630bdf3f73379742dd7a3a1183a23e2f2f8",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/revised-risk-control-contracts.json": "c7cc2b333ca590ec09f79fba2bbfa6ddeaba04be59a7309e179affbe57efc047",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/six-method-current-scorer-dd3504d8/revision-receipt.json": "61fee24fc86d1f28b8304716b168924398cb3dfd756067e490bc73420e9ed662",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/six-method-current-scorer-dd3504d8/dataset.json": "319839d5187f2948ab2914392f45019aa6d2dd556f41d9e89a51dafce1999359",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/six-method-current-scorer-dd3504d8/results.jsonl": "55b4d6630e4ec4bcd0f9c05b59e38ad378bb9400784f17d58fea9950631369cf",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/six-method-current-scorer-dd3504d8/changes.json": "d9bdca35fdad643238a8125f61b730242b7293ba5a4cc5862180b8c0b353eb75",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/moli-1436-all-prior-failures/revision-receipt.json": "771634fb1de89b5196f65c75ff0d18247cd87b6a9dd1ac6273e3ada6b3a14652",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/moli-1436-all-prior-failures/dataset.json": "889c0b5789c208adec9cee81a8e991d91e1763da22077afd1cfa1145d476162e",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/moli-1436-all-prior-failures/results.jsonl": "b893660fbef6d6bd1a507c2754d1712ecdf9c37e6cf7901f11701e5147c17b96",
+    "evidence/research/webfetch-430-refresh-20261012/body-contract-pinned-offline-impact-20261013/moli-1436-all-prior-failures/changes.json": "e31840d7e5261a95a075dd013ed344e739019bc92e56964ed386d6d4d9afabdb"
+  },
+  "historical_profiles_and_certificates": "unchanged"
+}

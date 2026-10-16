@@ -42,6 +42,15 @@ def definitions(tmp_path, monkeypatch):
         if index < 79:
             section += "- **正文参考：** 单区\n"
             bodies[identifier] = {"regions": [{"lines": [2, 2]}]}
+            if index == 0:
+                bodies[identifier]["stable_text_role"] = "diagnostic"
+            elif index == 1:
+                bodies[identifier].update(
+                    {
+                        "stable_text_role": "diagnostic",
+                        "page_patterns": [r"^Independent anchor 001-00$"],
+                    }
+                )
         sections.append(section)
         cases.append(
             {
@@ -58,7 +67,7 @@ def definitions(tmp_path, monkeypatch):
                 },
             }
         )
-        if index < 21:
+        if index < 20:
             lists[identifier] = {
                 "groups": [
                     {
@@ -71,11 +80,28 @@ def definitions(tmp_path, monkeypatch):
                     for group in range(7 if index == 0 else 1)
                 ]
             }
+        elif index == 20:
+            lists[identifier] = {
+                "stable_text_role": "diagnostic",
+                "page_patterns": [r"^Independent source body paragraph 020\.$"],
+                "groups": [],
+            }
         elif index < 23:
             lists[identifier] = {
                 "groups": [
                     {"id": "literal", "kind": "literals", "required_literals": ["Independent"]}
                 ]
+                + (
+                    [
+                        {
+                            "id": "second-field-scope",
+                            "kind": "literals",
+                            "required_literals": ["source"],
+                        }
+                    ]
+                    if index == 21
+                    else []
+                )
             }
     rules = [root / name for name in ("first-30-rule-review.md", "remaining-70-rule-review.md")]
     rules[0].write_text("\n".join(sections[:30]))
@@ -108,6 +134,7 @@ def definitions(tmp_path, monkeypatch):
         compiler, "EXPECTED_RULE_HASHES", {path.name: digest(path.read_bytes()) for path in rules}
     )
     monkeypatch.setattr(compiler, "EXPECTED_COHORT_HASH", digest(cohort.read_bytes()))
+    monkeypatch.setattr(compiler, "EXPECTED_STABLE_LITERAL_COUNT", 1600)
     return root, proofs
 
 
@@ -119,12 +146,54 @@ def test_complete_independent_definitions_compile_to_an_executable_dataset(defin
     assert dataset["case_count"] == len(dataset["cases"]) == 100
     assert dataset["body_case_count"] == 79
     assert dataset["stable_literal_count"] == 1600
-    assert dataset["independent_quantity_group_count"] == 27
+    assert dataset["independent_quantity_group_count"] == 26
+    assert dataset["list_or_field_case_count"] == 22
+    assert dataset["composite_group_count"] == 29
     assert dataset["source_bindings"]["body_contracts_sha256"] == digest(
         (root / "body-contracts.json").read_bytes()
     )
     assert dataset["cases"][0]["body_requirements"]["regions"][0]["text"] == (
         "Independent source body paragraph 000."
+    )
+    roles = [
+        case["acceptance_contract"].get("stable_text_role", "required")
+        for case in dataset["cases"]
+    ]
+    assert roles.count("diagnostic") == 3
+    assert roles.count("required") == 97
+    assert dataset["cases"][1]["acceptance_contract"]["page_patterns"] == [
+        r"^Independent anchor 001-00$"
+    ]
+    assert dataset["cases"][20]["acceptance_contract"]["stable_text_role"] == "diagnostic"
+    assert "composite_acceptance" not in dataset["cases"][20]
+
+
+def test_current_scope_owners_declare_only_proven_complete_contracts():
+    bodies = json.loads(compiler.BODY_CONTRACTS.read_text())["contracts"]
+    lists = json.loads(compiler.LIST_CONTRACTS.read_text())["contracts"]
+    assert bodies["risk-diverse-042"]["stable_text_role"] == "diagnostic"
+    assert bodies["risk-diverse-011"]["stable_text_role"] == "required"
+    assert lists["risk-diverse-192"]["stable_text_role"] == "diagnostic"
+    assert len(lists["risk-diverse-192"]["page_patterns"]) == 1
+
+
+def test_current_rules_keep_responsive_page_chrome_out_of_body_acceptance():
+    removed = {
+        "risk-diverse-038": {"Recent changes"},
+        "risk-diverse-117": {"Search"},
+        "risk-diverse-225": {"Resources"},
+        "risk-diverse-241": {"Cart", "Home"},
+        "risk-diverse-268": {"Main Site", "Recent Changes", "Site Index", "Categories"},
+        "risk-diverse-201": {"Main page", "Table of contents", "Getting involved"},
+        "risk-diverse-209": {"Search"},
+        "risk-diverse-237": {"Discord"},
+    }
+    sections = {row["id"]: row for row in compiler.parse_sections()}
+    for case_id, labels in removed.items():
+        stable = {value for alternatives in sections[case_id]["stable"] for value in alternatives}
+        assert labels.isdisjoint(stable), case_id
+    assert sum(len(row["stable"]) for row in sections.values()) == (
+        compiler.EXPECTED_STABLE_LITERAL_COUNT
     )
 
 

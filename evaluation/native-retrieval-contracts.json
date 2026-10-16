@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "kind": "native_retrieval_contract_registry",
+  "contracts": {
+    "delayed-ten-records": {
+      "case_id": "dynamic-delayed",
+      "task_definition_sha256": "fb358c76b50d670d547bc8a4b86839bc1cfbd6c343f289d13cfc33aa57d2fd5b",
+      "source_authority": {
+        "path": "evaluation/sources/dynamic-delayed/render-audit.json",
+        "sha256": "cb72f36b479827c25816f1df5e2448885c0935ab61c0ad130bc145a2d466cc93",
+        "provider_output_used": false
+      },
+      "capabilities": {
+        "completion": {
+          "selector": ".quote",
+          "minimum_count": 10,
+          "minimum_text_fragments": 3
+        }
+      }
+    },
+    "iframe-fourteen-family-headings": {
+      "case_id": "dynamic-iframe",
+      "task_definition_sha256": "d612b823798a1e3409a30c407a1e7cb52b22e7f4cf98608ed6095c1e3d164222",
+      "source_authority": {
+        "path": "evaluation/sources/dynamic-iframe/initial.html.txt",
+        "sha256": "c15cf12b2fa2c6d8c25c36b598fbcaca516fc93f87409d92eb9932a3644cca77",
+        "provider_output_used": false
+      },
+      "capabilities": {
+        "include_subdocuments": true,
+        "completion": {
+          "frame_selector": "iframe",
+          "selector": "h3.family-name",
+          "minimum_count": 14
+        }
+      }
+    },
+    "iframe-list-one-hundred-items": {
+      "case_id": "dynamic-015-015-testpages-iframe-list",
+      "task_definition_sha256": "f3dfb5832ac20c50a2246db9991fa255594a126ae0a8f4ad584e2434c269b60e",
+      "source_authority": {
+        "path": "evaluation/sources/dynamic-015-015-testpages-iframe-list/mixed-session-stable-text.json",
+        "sha256": "cc1c90aec8f0550b7dc91b747abbe591e346ec4195fa75693a0c8e4ebb048800",
+        "provider_output_used": false
+      },
+      "capabilities": {
+        "include_subdocuments": true,
+        "completion": {
+          "frame_selector": "iframe",
+          "selector": "li",
+          "minimum_count": 100
+        }
+      }
+    },
+    "iframe-one-form": {
+      "case_id": "dynamic-019-selenium-dev-selenium",
+      "task_definition_sha256": "cfd57dd7273d49da4a9792c5802eaab43969d1cf3412f85c55f377f397861187",
+      "source_authority": {
+        "path": "evaluation/sources/dynamic-019-selenium-dev-selenium/mixed-session-stable-text.json",
+        "sha256": "2931d10a0dec9fd1ba467e3e8dab7f311d4e996d1d3792cdf70c6e1ff2a41020",
+        "provider_output_used": false
+      },
+      "capabilities": {
+        "include_subdocuments": true,
+        "completion": {
+          "frame_selector": "iframe",
+          "selector": "form",
+          "minimum_count": 1
+        }
+      }
+    }
+  }
+}

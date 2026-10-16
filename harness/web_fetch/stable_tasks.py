@@ -6,17 +6,18 @@ Passing establishes the declared output structure, not factual source fidelity.
 """
 from __future__ import annotations
 
-from datetime import date, datetime
-from html import unescape
 import hashlib
 import math
 import re
 import unicodedata
+from datetime import date, datetime
+from html import unescape
 from urllib.parse import urlsplit
 
 from .dynamic_lists import extract_named_entries, named_entry_source_pair_hash
-from .reference_quality import clean_reference_text
-
+from .reference_quality import (
+    clean_reference_text, is_markdown_image_start, markdown_delimiter_pairs,
+)
 
 SCHEMA_FIELDS = {
     "table_row": (),
@@ -60,23 +61,7 @@ def _key(text):
 
 
 _CARD_BOUNDARY = "\ue000"
-
-
-def _closing(text, start, opening, closing):
-    depth = 1
-    i = start + 1
-    while i < len(text):
-        if text[i] == "\\":
-            i += 2
-            continue
-        if text[i] == opening:
-            depth += 1
-        elif text[i] == closing:
-            depth -= 1
-            if not depth:
-                return i
-        i += 1
-    return None
+_MEDIA_BOUNDARY = "\ue001"
 
 
 def _unwrap_links(text, schema):
@@ -85,17 +70,18 @@ def _unwrap_links(text, schema):
     Only explicit markup creates boundaries; text from separate cards is never
     flattened together. Image alt text is not a substitute for a visible title.
     """
+    pairs = markdown_delimiter_pairs(text)
     output, i = [], 0
     while i < len(text):
-        image = text.startswith("![", i)
+        image = is_markdown_image_start(text, i)
         start = i + 1 if image else i
         if text[start:start + 1] != "[":
             output.append(text[i])
             i += 1
             continue
-        end = _closing(text, start, "[", "]")
+        end = pairs.get(start)
         destination = end + 1 if end is not None else len(text)
-        close = _closing(text, destination, "(", ")") if text[destination:destination + 1] == "(" else None
+        close = pairs.get(destination) if text[destination:destination + 1] == "(" else None
         if close is None:
             output.append(text[i])
             i += 1
@@ -107,6 +93,14 @@ def _unwrap_links(text, schema):
             prefix = "".join(output).rsplit("\n", 1)[-1]
             if re.fullmatch(r"\s*(?:[-*+]|\d+[.)])\s*", prefix):
                 output.append(_CARD_BOUNDARY)
+            elif image and not prefix.strip():
+                line_end = text.find("\n", close + 1)
+                suffix = text[close + 1:line_end if line_end >= 0 else len(text)]
+                if not suffix.strip():
+                    # A standalone image is an explicit local card boundary.
+                    # Keep it as ownership evidence without treating alt text as
+                    # the record name or joining prose across adjacent cards.
+                    output.append(_MEDIA_BOUNDARY)
         if label:
             rendered = "".join(output)
             prefix = rendered.rsplit("\n", 1)[-1]
@@ -133,17 +127,29 @@ def _unwrap_links(text, schema):
 
 
 def _visible(text, schema=None):
+    from .reference_quality import is_html_document_or_fragment
+
+    projected_html = (
+        schema in SCHEMA_FIELDS
+        and schema not in {"named_link", "linked_product", "table_row", "body_text", "page_identity"}
+        and is_html_document_or_fragment(text)
+    )
+    if projected_html:
+        from .dynamic_lists import visible_html_text
+
+        text = visible_html_text(text)
     text = clean_reference_text(text)
     # Decode one character-reference layer, as a browser does for both HTML
     # and Markdown. In particular, ``&amp;`` is the visible ``&`` while an
     # intentionally escaped ``&amp;amp;`` remains the literal text ``&amp;``.
-    text = unescape(text)
+    if not projected_html:
+        text = unescape(text)
     # Extractors represent Markdown hard breaks using one or two backslashes.
     text = re.sub(r"\\{1,2}[ \t]*(?=\n)", "", text)
     text = _unwrap_links(text, schema)
     # CommonMark punctuation escapes preserve the same visible characters.
     # Remove them before date/field parsing (for example ``2023\-05\-18``).
-    text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', r'\1', text)
+    text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', lambda m: m[0] if schema == 'table_row' and m[1] in {'|', '\\'} else m[1], text)
     if schema == "name_description":
         # Image-only card links intentionally contribute no visible title.
         # Remove their now-empty bullet line so blank-delimited card parsing
@@ -151,8 +157,9 @@ def _visible(text, schema=None):
         text = re.sub(r"(?m)^\s*(?:[-*+]|\d+[.)])\s*$", "", text)
         text = re.sub(rf"(?m)^\s*(?:[-*+]|\d+[.)])\s*{_CARD_BOUNDARY}\s*$",
                       f"\n{_CARD_BOUNDARY}\n", text)
-        text = "\n".join(line if line.strip() == _CARD_BOUNDARY
-                         else line.replace(_CARD_BOUNDARY, "")
+        boundaries = {_CARD_BOUNDARY, _MEDIA_BOUNDARY}
+        text = "\n".join(line if line.strip() in boundaries
+                         else line.replace(_CARD_BOUNDARY, "").replace(_MEDIA_BOUNDARY, "")
                          for line in text.splitlines())
     text = re.sub(r"\*\*|__|`", "", text)
     # Link unwrapping may insert boundary spaces inside surrounding emphasis
@@ -471,6 +478,38 @@ def _descriptions(text):
     return records
 
 
+def _closed_title_descriptions(text):
+    """Treat title-description-title triples as explicitly closed cards."""
+    paragraphs = [block.strip() for block in re.split(r"\n\s*\n", text) if block.strip()]
+    records = []
+    for first, description, repeated in zip(
+        paragraphs, paragraphs[1:], paragraphs[2:], strict=False
+    ):
+        if any("\n" in value for value in (first, description, repeated)):
+            continue
+        name = _line(first)
+        if _key(name) != _key(_line(repeated)):
+            continue
+        record = _record(
+            {"name": name, "description": _line(description)},
+            "name_description",
+        )
+        if record["valid"]:
+            records.append(record)
+    return records
+
+
+def _media_closed_title_descriptions(text):
+    """Read title-description-title closures only inside image-owned blocks."""
+    if _MEDIA_BOUNDARY not in text:
+        return []
+    return [
+        record
+        for block in text.split(_MEDIA_BOUNDARY)[1:]
+        for record in _closed_title_descriptions(block)
+    ]
+
+
 def _earthquakes(text):
     """Read contiguous magnitude/location/time/depth cards, never bag-of-fields.
 
@@ -507,7 +546,7 @@ def _earthquakes(text):
     return records
 
 
-def _parse_records(visible, schema):
+def _parse_records(visible, schema, *, allow_closed_title_cards=False):
     raw_lines = visible.splitlines()
     records, occupied = _table_records(raw_lines, schema)
     remainder = "\n".join(line if i not in occupied else "" for i, line in enumerate(raw_lines))
@@ -529,7 +568,30 @@ def _parse_records(visible, schema):
         for section in sections:
             records.extend(_operations([_line(line) for line in section.splitlines() if line.strip()]))
     elif schema == "name_description":
-        records.extend(_descriptions(remainder))
+        # Scoped title-description-title cards and image-owned cards are two
+        # ways to establish the same ownership boundary.  When the caller has
+        # already bounded the target section, parsing both routes would emit
+        # every image-backed card twice and reject an otherwise valid answer as
+        # a duplicate-name list.
+        closed = (
+            _closed_title_descriptions(remainder)
+            if allow_closed_title_cards
+            else _media_closed_title_descriptions(remainder)
+        )
+        weak = _descriptions(remainder)
+        for record in weak:
+            description = _key(record["fields"].get("description", ""))
+            name = _key(record["fields"].get("name", ""))
+            if any(
+                name != _key(owner["fields"]["name"])
+                and _key(owner["fields"]["name"]) in description
+                and _key(owner["fields"]["description"]) in description
+                for owner in closed
+            ):
+                record["valid"] = False
+                record["errors"].append("description_contains_separate_owned_record")
+        records.extend(weak)
+        records.extend(closed)
     elif schema == "taxonomy_family":
         records.extend(_record({"family": _field(line, "family")}, schema) for line in lines
                        if re.fullmatch(r"(?:family\s*:\s*)?[A-Za-z]+idae", line, re.I))
@@ -539,8 +601,9 @@ def _parse_records(visible, schema):
 def _non_record_visible(content, contract, records, base_url):
     """Remove owned record links, without erasing identical navigation text."""
     from urllib.parse import urljoin
-    from .dynamic_lists import named_entry_identity, _scoped_html
-    from .reference_quality import markdown_links
+
+    from .dynamic_lists import _scoped_html, named_entry_identity
+    from .reference_quality import markdown_links, visible_markdown_links
 
     identities = {named_entry_identity(r['fields']['url'], contract)
                   for r in records if r.get('valid') and r.get('fields', {}).get('url')}
@@ -567,7 +630,11 @@ def _non_record_visible(content, contract, records, base_url):
         for link in reversed(links):
             if is_record(link.destination):
                 content = content[:link.start] + ' ' + content[link.end:]
-        return _visible(content)
+        # A linked logo can be the only reader-visible site identity. Preserve
+        # its alt text for page-level anchors after owned record links are
+        # removed. Record parsing still uses ``_visible`` above, so image alt
+        # text cannot manufacture a named-link record title.
+        return _visible(visible_markdown_links(content))
     # Plain text has no URL ownership; retain the conservative fallback.
     return None
 
@@ -621,8 +688,12 @@ def validate_acceptance_contract(contract: dict) -> None:
             or contract.get("version") != 1 or not isinstance(contract.get("schema"), str)
             or contract.get("schema") not in SCHEMA_FIELDS):
         raise ValueError("Unsupported stable acceptance contract")
-    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "entry_scope", "name_validation", "identity_query_keys", "field_minimum_records", "record_name_exclusions", "title_exclusion_patterns", "price_patterns", "price_exclusion_patterns", "price_unavailable_patterns", "record_count_policy", "source_record_pair_hashes", "source_record_pairs_sha256", "table_columns", "record_identity_fields", "table_scope", "duplicate_policy", "link_base_url"}:
+    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "stable_text_role", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "entry_scope", "name_validation", "identity_query_keys", "field_minimum_records", "record_name_exclusions", "title_exclusion_patterns", "price_patterns", "price_exclusion_patterns", "price_unavailable_patterns", "record_count_policy", "source_record_pair_hashes", "source_record_pairs_sha256", "table_columns", "record_identity_fields", "table_scope", "duplicate_policy", "link_base_url"}:
         raise ValueError("Unknown stable acceptance contract fields")
+    if contract.get("stable_text_role", "required") not in {"required", "diagnostic"}:
+        raise ValueError("Invalid stable text role")
+    if contract.get("stable_text_role") == "diagnostic" and contract["schema"] != "body_text":
+        raise ValueError("Diagnostic stable text requires a body-text contract")
     if contract['schema'] == 'table_row':
         from .structured_tables import validate_table
         validate_table(contract)
@@ -716,7 +787,7 @@ def validate_acceptance_contract(contract: dict) -> None:
         scope = contract.get("entry_scope")
         if scope is not None:
             if (not isinstance(scope, dict) or not scope.get("html_selector")
-                    or set(scope) - {"html_selector", "start_pattern", "end_pattern", "title_selector", "link_selector", "price_selector", "auxiliary_links_end_pattern", "markdown_title_identity_pattern", "markdown_detail_identity_pattern", "markdown_label_pattern"}
+                    or set(scope) - {"html_selector", "start_pattern", "end_pattern", "title_selector", "link_selector", "price_selector", "auxiliary_links_end_pattern", "markdown_title_identity_pattern", "markdown_detail_identity_pattern", "markdown_label_pattern", "markdown_card_title_pattern", "markdown_title_column", "markdown_link_column"}
                     or any(not isinstance(v, str) or not v.strip() for v in scope.values())
                     or (("title_selector" in scope) != ("link_selector" in scope))):
                 raise ValueError("Invalid linked record section scope")
@@ -730,11 +801,24 @@ def validate_acceptance_contract(contract: dict) -> None:
                     compiled = re.compile(scope[key], re.M)
                     if compiled.search(""):
                         raise ValueError("Record section boundary cannot match empty text")
+            column_keys = ("markdown_title_column", "markdown_link_column")
+            if any(key in scope for key in column_keys):
+                if (not all(key in scope for key in column_keys)
+                        or scope[column_keys[0]] == scope[column_keys[1]]
+                        or contract["schema"] != "named_link"):
+                    raise ValueError("Named table records require distinct title and link columns")
             pair_keys = ("markdown_title_identity_pattern", "markdown_detail_identity_pattern")
             if 'markdown_label_pattern' in scope:
                 pattern = re.compile(scope['markdown_label_pattern'])
                 if 'label' not in pattern.groupindex or pattern.search(''):
                     raise ValueError('Markdown card label requires a nonempty named label capture')
+            if 'markdown_card_title_pattern' in scope:
+                pattern = re.compile(scope['markdown_card_title_pattern'])
+                if ('title' not in pattern.groupindex or pattern.search('')
+                        or not scope.get('start_pattern') or not scope.get('end_pattern')):
+                    raise ValueError(
+                        'Markdown heading cards require bounded scope and a nonempty title capture'
+                    )
             if any(key in scope for key in pair_keys):
                 if not all(key in scope for key in pair_keys):
                     raise ValueError("Markdown row identity patterns must be paired")
@@ -830,14 +914,15 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Invalid stable acceptance regex") from error
 
 
-def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None) -> dict:
+def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True, allow_closed_title_cards: bool = False) -> dict:
     """Validate a version-1 schema/count contract, without fetching or snapshots.
 
     Required keys: version, schema, minimum_records. Optional maximum_records
     imposes a finite exact scope when equal to the minimum. page_patterns is a
     list of required regexes for stable page/section identity (not current items).
     stable_text_anchors contains explicit {id, alternatives} groups; every group
-    must match, independently of record shape and optional snapshot word metrics.
+    must match unless the caller supplies a separate body or composite contract
+    and selects diagnostic anchors. Record and page-pattern gates remain required.
     named_link additionally requires hosts and entry_path, using the existing
     same-site detail-link parser. Raw URL identity is not factual verification.
     anchor_text may reuse the caller's normalized visible HTML prose;
@@ -923,7 +1008,15 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             from .structured_tables import parse_table_records
             records = parse_table_records(content, visible, contract)
         else:
-            records = [] if schema in {"body_text", "page_identity"} else _parse_records(visible, schema)
+            records = (
+                []
+                if schema in {"body_text", "page_identity"}
+                else _parse_records(
+                    visible,
+                    schema,
+                    allow_closed_title_cards=allow_closed_title_cards,
+                )
+            )
     anchors = []
     non_record_visible = None
     if schema == 'named_link' and any(a.get('match_scope') == 'non_record_lines'
@@ -933,7 +1026,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         matched = _anchor_matches(anchor, records, visible, schema,
                                   non_record_visible, anchor_visible)
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
-    content_errors += ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
+    anchor_errors = ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
+    if anchors_required:
+        content_errors += anchor_errors
     complete = [r for r in records if r["valid"]]
     identity_fields = contract["record_identity_fields"] if schema == "table_row" else UNIQUE_FIELDS[schema]
     compact_fields = {c['name'] for c in contract.get('table_columns', [])
@@ -980,7 +1075,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             "stable_field_results": field_checks,
             "stable_structure_pass": structure_pass, "stable_content_pass": not content_errors,
             "stable_blocked_page": blocked_page,
-            "stable_anchor_results": anchors, "stable_page_pattern_results": page_results,
+            "stable_anchors_required": anchors_required,
+            "stable_anchor_errors": anchor_errors, "stable_anchor_results": anchors, "stable_page_pattern_results": page_results,
             "stable_anchor_hits": sum(r["pass"] for r in anchors),
             "stable_anchor_total": len(anchors),
             "stable_anchor_coverage": sum(r["pass"] for r in anchors) / len(anchors) if anchors else None,

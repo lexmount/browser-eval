@@ -16,10 +16,12 @@ from harness.web_fetch.report import (
     write_support,
 )
 from harness.web_fetch.report_components import (
-    task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status, task_instruction,
+    task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status,
+    stable_contract_details, task_instruction,
 )
 from harness.web_fetch.stable_tasks import evaluate_stable_task
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+from harness.web_fetch.report_i18n import translate_text
 
 
 def case(identifier='list', kind='structure', track='challenge'):
@@ -52,6 +54,56 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_scoped_presentation_refresh_updates_only_explicit_result_details(self):
+        cases=[case('first'),case('second')]
+        rows=[record(c,passed=False,ok=False) for c in cases]
+        for row in rows:
+            row['error_type']='tool_error'
+            row['error_message']='raw download output only supports automatic output or --dump json'
+            row['diagnosis']={'category':'旧分类','stage':'旧阶段','evidence':'旧解释','certainty':'直接返回依据'}
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory)
+            for row in rows:
+                artifact=out/row['artifact_path'];artifact.parent.mkdir(parents=True,exist_ok=True);artifact.write_text('output')
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':cases},rows,[])
+                detail_paths=[out/'attempts'/f"{row['attempt_id']}.html" for row in rows]
+                before=[path.read_bytes() for path in detail_paths]
+                dataset_before=(out/'datasets/first.html').read_bytes()
+                from harness.web_fetch.failure_diagnosis import diagnose
+                for row in rows:row['diagnosis']=diagnose(row,cases[0],'')
+                generate(out,{'cases':cases},rows,[],presentation_only=True)
+                self.assertEqual([path.read_bytes() for path in detail_paths],before)
+                generate(out,{'cases':cases},rows,[],presentation_only=True,detail_attempt_ids={rows[0]['attempt_id']})
+                self.assertIn('不支持所需输出格式',detail_paths[0].read_text())
+                self.assertNotEqual(detail_paths[0].read_bytes(),before[0])
+                self.assertEqual(detail_paths[1].read_bytes(),before[1])
+                self.assertEqual((out/'datasets/first.html').read_bytes(),dataset_before)
+                with self.assertRaisesRegex(ValueError,'Unknown detail'):
+                    generate(out,{'cases':cases},rows,[],presentation_only=True,detail_attempt_ids={'absent'})
+
+    def test_media_report_families_follow_the_deliverable(self):
+        from harness.web_fetch.models import REPORT_FAMILIES, report_family
+        cases = [
+            {'track': 'image', 'task_kind': 'resource'},
+            {'track': 'video', 'task_kind': 'resource'},
+            {'track': 'video', 'task_kind': 'body'},
+            {'track': 'image', 'task_kind': 'file'},
+            {'track': 'video', 'task_kind': 'file'},
+        ]
+        self.assertEqual(
+            [report_family(case) for case in cases],
+            ['web_media', 'web_media', 'web_media', 'media_file', 'media_file'],
+        )
+        self.assertEqual(REPORT_FAMILIES['web_media'], '网页内嵌媒体')
+        self.assertEqual(REPORT_FAMILIES['media_file'], '直接媒体文件')
+
+    def test_task_family_names_and_order_share_the_report_registry(self):
+        from harness.web_fetch.report_explainer import TRACK_NAMES
+        self.assertIs(TRACK_NAMES, TRACKS)
+        self.assertEqual(list(TRACKS), ['web','dynamic','challenge','risk_control','document','image','video'])
+        self.assertEqual(TRACKS['risk_control'], '风控网页正文')
+
     def test_all_call_latency_keeps_failed_calls_and_rejects_partial_matrix(self):
         c=case('body',kind='body')
         rows=[record(c,passed=True,elapsed=100),record(c,passed=False,elapsed=900)]
@@ -77,6 +129,21 @@ class ReportBodyScopeTests(unittest.TestCase):
                 rows,cards=body_region_rows(c,metrics,scoring_text)
                 self.assertEqual(len(rows),1)
                 self.assertNotIn('ghijkl</pre>',cards)
+
+    def test_body_display_uses_same_mixed_html_surface_as_scorer(self):
+        from harness.web_fetch.scoring import score_attempt
+        contract={'version':3,'unit':'region_compact_hexagram_recall',
+                  'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
+                  'regions':[{'id':'body','text':'abcdefghijkl'}]}
+        c=case('body',kind='body');c['body_requirements']=contract
+        output='# Heading\nabcdefghijkl<script>hidden words</script>'
+        r={'ok':True,'status_code':200}
+        metrics=score_attempt(c,output.encode(),ok=True)
+        scoring_text=_body_scoring_text(r,output)
+        self.assertNotIn('hidden words',scoring_text)
+        rows,cards=body_region_rows(c,metrics,scoring_text)
+        self.assertEqual(len(rows),1)
+        self.assertIn('abcdefghijkl',''.join(cards))
 
     def test_body_evidence_uses_the_canonical_global_allocation(self):
         shared='abcdefghijklmnopqrstuvwx'*3
@@ -123,6 +190,50 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertIn('<div class="anchor-grid" data-scroll-after="5">',evidence)
         self.assertIn('<div class="record-scroll" data-scroll-after="5">',stable_checks(metrics))
         self.assertNotIn('data-scroll-after="5"',stable_answer_panel({**contract,'stable_text_anchors':anchors[:5]}))
+
+    def test_diagnostic_stable_text_is_not_described_as_required(self):
+        anchors=[{'id':f'a-{index}','alternatives':[f'Stable text {index}']} for index in range(6)]
+        contract={'version':1,'schema':'body_text','minimum_records':0,
+                  'stable_text_role':'diagnostic','stable_text_anchors':anchors}
+        c=case('diagnostic-anchor','body','risk_control');c['acceptance_contract']=contract
+        answer=stable_answer_panel(contract)
+        details=stable_contract_details(c)
+        metrics={'stable_anchors_required':False,'stable_anchor_results':[
+            {'id':item['id'],'alternatives':item['alternatives'],'matched':[],'pass':False}
+            for item in anchors]}
+        evidence=stable_anchor_evidence(metrics,'complete body without shell labels')
+        guide=task_pass_guide('risk_control',cases={c['id']:c})
+        for rendered in (answer,details,evidence,guide):
+            self.assertIn('不影响是否通过',rendered)
+            self.assertNotIn('全部参与评分',rendered)
+            self.assertNotIn('所有组均须通过',rendered)
+        self.assertNotIn('必须出现的稳定文字',answer)
+        self.assertIn('范围核对文字',evidence)
+        self.assertNotIn('<b>标准答案</b>',evidence)
+
+    def test_required_stable_text_keeps_acceptance_language(self):
+        contract={'version':1,'schema':'body_text','minimum_records':0,
+                  'stable_text_role':'required',
+                  'stable_text_anchors':[{'id':'a','alternatives':['Required text']}]}
+        c=case('required-anchor','body','risk_control');c['acceptance_contract']=contract
+        self.assertIn('必须出现的稳定文字',stable_answer_panel(contract))
+        self.assertIn('所有组均须通过',stable_contract_details(c))
+
+    def test_diagnostic_stable_text_explanation_has_english_copy(self):
+        chinese=('页面正文按登记的正文规则核验；稳定文字只用于核对抓取范围，不影响是否通过；'
+                 '新闻、日期、轮播卡片、仓库状态等易变内容不固定为答案。'
+                 '历史完整快照只作诊断，不进入全文质量汇总。')
+        english=translate_text(chinese)
+        self.assertNotEqual(english,chinese)
+        self.assertIn('does not affect acceptance',english)
+
+    def test_method_guide_distinguishes_required_and_diagnostic_anchors(self):
+        rendered=task_contract_guide()
+        self.assertIn('必需锚点参与验收',rendered)
+        self.assertIn('诊断锚点只核对抓取范围',rendered)
+        self.assertNotIn('稳定内容锚点仍用于任务验收',rendered)
+        english=translate_text('标为必需的稳定内容锚点参与验收；诊断锚点只核对抓取范围。')
+        self.assertIn('required affect acceptance',english)
     def test_local_report_links_complete_private_debug_log(self):
         c = case('debug-log', 'body', 'risk_control')
         r = record(c)
@@ -252,9 +363,9 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertEqual(row[7],'100.0%')
         self.assertNotIn('· 1/2 例',rendered)
 
-    def test_four_text_tracks_share_columns_and_text_coverage_semantics(self):
+    def test_all_text_tracks_share_columns_and_text_coverage_semantics(self):
         headers=[]
-        for track in ('web','dynamic','challenge','document'):
+        for track in ('web','dynamic','challenge','risk_control','document'):
             c=case('example','body');c['track']=track
             r=record(c,passed=False)
             r['metrics']['fact_results']=[{'id':'a','pass':True},{'id':'b','pass':False}]
@@ -266,6 +377,18 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertEqual(row[3],'0.0%')
             headers.append([re.sub(r'<[^>]*>','',h) for h in re.findall(r'<th[^>]*>(.*?)</th>',rendered,re.S)])
         self.assertTrue(all(h==headers[0] for h in headers))
+
+    def test_body_without_full_reference_keeps_metrics_unavailable(self):
+        for track in ('web','dynamic','challenge','risk_control','document'):
+            with self.subTest(track=track):
+                c=case('example','body',track)
+                c['ground_truth_main_content']=''
+                r=record(c)
+                rendered=ranking([r],{'example':c},track)
+                row=table_cells(rendered,'ranking-'+track)[0]
+                self.assertEqual(row[4:7],['—']*3)
+                self.assertNotIn('资源命中率',rendered)
+                self.assertNotIn('直接文件必须',rendered)
 
     def test_nonliteral_snapshot_not_promoted_into_invariant_body_quality(self):
         c=case('example','body'); c['track']='dynamic'
@@ -358,7 +481,7 @@ class ReportBodyScopeTests(unittest.TestCase):
 
     def test_example_order_and_metric_explanations(self):
         rendered=examples()
-        positions=[rendered.index('data-tab="'+t+'"') for t in ['web','dynamic','challenge','document','image','video']]
+        positions=[rendered.index('data-tab="'+t+'"') for t in ['web','dynamic','challenge','risk_control','document','web_media','media_file']]
         self.assertEqual(positions,sorted(positions))
         guide=metric_guide()
         for phrase in ['0 次通过不等于 F1 为 0','请求失败计 0','仍按实际正文评分','不是平均完整度与平均纯净度的调和平均']:
@@ -412,7 +535,9 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertIn(phrase,detail)
             self.assertNotIn('正文未评测',detail)
             self.assertNotIn('评分方式',detail)
-            self.assertIn('100.0%',(out/'datasets/index.html').read_text())
+            self.assertIn('100.0%',(out/'index.html').read_text())
+            self.assertNotIn('<th>达标率</th>',(out/'datasets/index.html').read_text())
+            self.assertIn('../analysis/index.html#inspect?query=list',(out/'datasets/list.html').read_text())
             self.assertNotIn('正文未评测',(out/'datasets/list.html').read_text())
             for page in ['index.html', 'datasets/list.html']:
                 self.assertIn('稳定标题、栏目、说明', (out/page).read_text())
@@ -500,9 +625,9 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('查看本次真实日志',detail)
             self.assertIn('<ol class="log-lines">',detail)
             self.assertIn('event=request.start',detail)
-            self.assertIn('下载已保存的公开日志',detail)
             self.assertIn('下载调用日志 JSON',detail)
             self.assertIn(r['call_log_sha256'],detail)
+            self.assertFalse((out/'public-logs').exists())
 
     def test_attempt_call_record_renders_every_retry_log(self):
         c=case('retried','body','web');r=record(c)
@@ -522,8 +647,20 @@ class ReportBodyScopeTests(unittest.TestCase):
             for phrase in ('物理调用 1','物理调用 2','ERROR first physical call',
                            'final_url=https://example.com/retried','physical-1.json','physical-2.json'):
                 self.assertIn(phrase,rendered)
-            self.assertTrue((out/'public-logs/fixture/retried/run-001-physical-001.stderr.log').is_file())
-            self.assertTrue((out/'public-logs/fixture/retried/run-001-physical-002.stderr.log').is_file())
+            self.assertFalse((out/'public-logs').exists())
+
+    def test_failure_log_exposes_complete_runtime_error_and_actual_method_identity(self):
+        r=record(case());r.update(ok=False,error_type='timeout',error_message='Full runtime error '+('details '*100),
+            provider_metadata={'browser_version':'155.0.8059.39','binary_sha256':'actual-hash'})
+        with tempfile.TemporaryDirectory() as directory:
+            rendered=run_log_section(Path(directory),r,'')
+        self.assertIn(r['error_message'],rendered)
+        self.assertIn('<h3>程序错误</h3>',rendered)
+        self.assertIn('timeout',rendered)
+        self.assertIn('155.0.8059.39',rendered)
+        self.assertIn('actual-hash',rendered)
+        self.assertNotIn('Moli 版本',rendered)
+        self.assertNotIn('Markdown 输出',rendered)
 
     def test_run_log_section_uses_supplied_output_when_artifact_path_is_absent(self):
         c=case('unpersisted','body','web');r=record(c);r.pop('artifact_path')
@@ -575,12 +712,11 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('ERROR challenge page returned',detail)
             self.assertIn('../'+debug_path,detail)
             self.assertIn(hashlib.sha256(debug).hexdigest(),detail)
-            for phrase in ['查看完整运行字段','查看本次真实日志','下载已保存的公开日志','下载调用日志 JSON']:
+            for phrase in ['查看完整运行字段','查看本次真实日志','下载调用日志 JSON']:
                 self.assertIn(phrase,detail)
             english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
             for phrase in ['View complete run fields','View this run\'s real log',
-                           'ERROR challenge page returned','Download the retained public log',
-                           'Download call-log JSON']:
+                           'ERROR challenge page returned','Download call-log JSON']:
                 self.assertIn(phrase,english)
             for phrase in ['查看本次真实日志','下载已保存的公开日志']:
                 self.assertNotIn(phrase,english)
@@ -815,6 +951,31 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertEqual(failure_category(r,c),label)
                 self.assertIn((label,label),failure_filters([r],{'list':c})[1][2])
                 self.assertIn('data-failure-category="'+label+'"',attempt_row(r,c)[0])
+
+    def test_fixed_contract_rules_survive_absent_historical_attachment(self):
+        from harness.web_fetch.report_components import stable_contract_details
+        c=case();c['acceptance_contract']={'schema':'named_link','minimum_records':3,
+            'hosts':['example.com'],'entry_path':'/items/.*',
+            'stable_text_anchors':[{'id':'heading','alternatives':['Fixed heading']}]}
+        c['source_benchmark']['stable_annotation']={'anchor_evidence':'sources/early.txt'}
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            rendered=stable_contract_details(c,evidence_root=root)
+            self.assertIn('Fixed heading',rendered)
+            self.assertNotIn('href="../sources/early.txt"',rendered)
+            (root/'sources').mkdir();(root/'sources/early.txt').write_text('Fixed heading')
+            self.assertIn('href="../sources/early.txt"',stable_contract_details(c,evidence_root=root))
+
+    def test_body_coverage_explanation_uses_the_declared_unit_and_region_rules(self):
+        c=case(kind='body',track='web');c['body_requirements']={
+            'unit':'region_compact_hexagram_recall','minimum_coverage':.8,
+            'minimum_floor':.6,'minimum_region_passes':4,
+            'regions':[{'id':str(i),'text':'reference'} for i in range(5)]}
+        rendered=task_pass_guide('web',cases={c['id']:c})
+        self.assertIn('字符六元组',rendered)
+        self.assertIn('通过区域数',rendered)
+        self.assertNotIn('词语计数覆盖',rendered)
+        self.assertNotIn('逐区达到 80%',rendered)
 
     def test_schema_fields_are_explained_without_internal_version_or_empty_sections(self):
         from harness.web_fetch.report_components import stable_contract_details, FIELD_REQUIREMENTS

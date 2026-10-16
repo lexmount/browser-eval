@@ -555,8 +555,10 @@
     "risk-diverse-181": {
       "groups": [
         {
-          "id": "report-fields",
+          "id": "general-statistics",
           "kind": "field_report",
+          "start_pattern": "^(?:#{1,6}\\s*)?General statistics(?:\\s+(?:\\\\)?\\[(?:show|hide)(?:\\\\)?\\])*$",
+          "end_pattern": "^(?:#{1,6}\\s*)?Prose\\s*$",
           "required_fields": [
             {
               "id": "page_id",
@@ -628,12 +630,24 @@
               "aliases": [
                 "Latest edit"
               ]
-            },
+            }
+          ],
+          "fixed_values": {
+            "page_id": "1164",
+            "wikidata_id": "Q11660"
+          }
+        },
+        {
+          "id": "prose-statistics",
+          "kind": "field_report",
+          "start_pattern": "^(?:#{1,6}\\s*)?Prose\\s*$",
+          "end_pattern": "^(?:#{1,6}\\s*)?Registered edits(?:\\s*(?:·|:|[-–—])\\s*.*)?$",
+          "required_fields": [
             {
-              "id": "prose",
+              "id": "prose_words",
               "kind": "integer",
               "aliases": [
-                "Prose"
+                "Words"
               ]
             },
             {
@@ -643,38 +657,16 @@
                 "References"
               ]
             }
-          ],
-          "fixed_values": {
-            "page_id": "1164",
-            "wikidata_id": "Q11660"
-          }
+          ]
         }
       ]
     },
     "risk-diverse-192": {
-      "groups": [
-        {
-          "id": "homepage-news",
-          "kind": "named_link",
-          "minimum_records": 3,
-          "hosts": [
-            "www.ibiblio.org"
-          ],
-          "entry_path": "/archive/(?:19|20)[0-9]{2}/(?:0?[1-9]|1[0-2])/[a-z0-9][a-z0-9-]*",
-          "link_base_url": "https://www.ibiblio.org/",
-          "required_fields": [
-            {
-              "id": "published",
-              "kind": "date_or_time"
-            },
-            {
-              "id": "summary",
-              "kind": "text",
-              "minimum_chars": 40
-            }
-          ]
-        }
-      ]
+      "stable_text_role": "diagnostic",
+      "page_patterns": [
+        "(?is)\\bibiblio(?:\\.org)?\\b.{0,500}\\b(?:collections? of collections|public digital (?:library|archive)|digital (?:library|archive|repository))\\b.{0,700}\\b(?:freely available information|free(?:ly)? available (?:digital )?(?:information|resources|collections))\\b.{0,700}\\b(?:software|music|literature|art|history|science|politics|cultural studies)\\b.{0,700}\\b(?:UNC|University of North Carolina(?: at|-)? Chapel Hill)\\b"
+      ],
+      "groups": []
     },
     "risk-diverse-012": {
       "groups": [

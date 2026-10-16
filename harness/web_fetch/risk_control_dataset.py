@@ -29,17 +29,65 @@ RULE_FILES = (RISK / "first-30-rule-review.md", RISK / "remaining-70-rule-review
 LIST_CONTRACTS = RISK / "list-contracts.json"
 BODY_CONTRACTS = RISK / "body-contracts.json"
 EXPECTED_RULE_HASHES = {
-    "first-30-rule-review.md": "280f18c04a0fc83f2e59816b07454525780366500bfb8b2faef3019749759344",
+    "first-30-rule-review.md": "6945a6aa7b0d8d5990d8abf5d24fc41b5a42a22c70940a7c996d8698c6e9bf81",
     "remaining-70-rule-review.md": (
-        "a1c743a2df97b20eddf10c28bf179f1125d8937e1a568abf6c9cf9e79c225da7"
+        "301574dddcfddf6d30ed4d882cdd40b1ae859fdc95a0a02cf9868f55e3fd1079"
     ),
 }
 EXPECTED_COHORT_HASH = "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26"
+EXPECTED_STABLE_LITERAL_COUNT = 1586
 CHINESE_NUMBERS = {"一": 1, "两": 2, "二": 2, "三": 3, "四": 4, "五": 5}
 
 
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def assign_content_acceptance_roles(cases: list[dict]) -> None:
+    """Default stable text to required; preserve explicit audited declarations."""
+    for case in cases:
+        contract = case["acceptance_contract"]
+        role = contract.get("stable_text_role", "required")
+        if role == "diagnostic" and not (
+            case.get("body_requirements")
+            or (
+                case.get("composite_acceptance")
+                and case["composite_acceptance"].get("groups")
+            )
+            or contract.get("page_patterns")
+        ):
+            raise ValueError(
+                "Diagnostic stable text requires body, composite, or page-pattern acceptance"
+            )
+        validate_acceptance_contract(contract)
+
+
+def apply_content_acceptance_policy(acceptance: dict, *owners: dict | None) -> None:
+    """Apply an explicit scope-completeness decision from an existing contract owner."""
+    roles = {
+        owner["stable_text_role"]
+        for owner in owners
+        if owner is not None and "stable_text_role" in owner
+    }
+    if len(roles) > 1:
+        raise ValueError("Conflicting stable-text roles across content contracts")
+    if roles:
+        acceptance["stable_text_role"] = roles.pop()
+
+    page_patterns = []
+    for owner in owners:
+        if owner is None:
+            continue
+        declared = owner.get("page_patterns", [])
+        if not isinstance(declared, list) or any(
+            not isinstance(pattern, str) or not pattern for pattern in declared
+        ):
+            raise ValueError("Invalid content-contract page patterns")
+        page_patterns.extend(declared)
+    if len(page_patterns) != len(set(page_patterns)):
+        raise ValueError("Duplicate content-contract page patterns")
+    if page_patterns:
+        acceptance["page_patterns"] = page_patterns
 
 
 def compact_key(value: str) -> str:
@@ -278,8 +326,10 @@ def build(output: Path, definition_dir: Path = RISK) -> dict:
     ] != [case["id"] for case in qualified]:
         raise ValueError("Rule/cohort order mismatch")
     stable_literal_count = sum(len(section["stable"]) for section in sections)
-    if stable_literal_count != 1600:
-        raise ValueError("Expected exactly 1600 required stable literals")
+    if stable_literal_count != EXPECTED_STABLE_LITERAL_COUNT:
+        raise ValueError(
+            f"Expected exactly {EXPECTED_STABLE_LITERAL_COUNT} required stable literals"
+        )
 
     roots = evidence_roots(manifest_path)
     list_source = json.loads(list_contracts_path.read_text())
@@ -309,15 +359,15 @@ def build(output: Path, definition_dir: Path = RISK) -> dict:
         for group in value["groups"]
     )
     # The replacement removes Kuaishou's two independently counted list groups
-    # and adds a fixed full-body About page.  The remaining multi-group cases are
-    # Scioly (3), HydroOJ (2), and Global European (4).
+    # and adds a fixed full-body About page. Ibiblio's owner carries only its
+    # explicit page-scope policy: the task does not require its changing news list.
     if (
-        len(quantity_contracts) != 21
-        or quantity_groups != 27
+        len(quantity_contracts) != 20
+        or quantity_groups != 26
         or len(contracts) != 23
         or groups != 29
     ):
-        raise ValueError("Expected 21 quantity cases/27 groups plus 2 field groups")
+        raise ValueError("Expected 20 quantity cases/26 groups plus 3 field groups")
     cases = []
     body_count = 0
     for section, qualified_case in zip(sections, qualified, strict=True):
@@ -347,11 +397,16 @@ def build(output: Path, definition_dir: Path = RISK) -> dict:
             "minimum_records": 0,
             "stable_text_anchors": anchors,
         }
+        apply_content_acceptance_policy(
+            acceptance,
+            body_contracts.get(section["id"]),
+            contracts.get(section["id"]),
+        )
         validate_acceptance_contract(acceptance)
         body = body_reference(section, source, body_contracts.get(section["id"]))
         body_count += bool(body)
         composite = None
-        if section["id"] in contracts:
+        if section["id"] in contracts and contracts[section["id"]]["groups"]:
             composite = {"version": 1, "groups": contracts[section["id"]]["groups"]}
             validate_composite_acceptance(composite)
         final_url = qualified_case.get("observed_final_url") or section["url"]
@@ -385,11 +440,14 @@ def build(output: Path, definition_dir: Path = RISK) -> dict:
                 }
             },
         }
+        # Keep independently observed anchors intact. Shared scoring makes
+        # them diagnostic when body or composite requirements own acceptance.
         if body:
             case["body_requirements"] = body
         if composite:
             case["composite_acceptance"] = composite
         cases.append(case)
+    assign_content_acceptance_roles(cases)
     dataset = {
         "schema_version": 1,
         "id": "risk-control-audited-100",
@@ -400,7 +458,7 @@ def build(output: Path, definition_dir: Path = RISK) -> dict:
         "body_case_count": body_count,
         "quantity_case_count": len(quantity_contracts),
         "independent_quantity_group_count": quantity_groups,
-        "list_or_field_case_count": len(contracts),
+        "list_or_field_case_count": sum(bool(owner["groups"]) for owner in contracts.values()),
         "composite_group_count": groups,
         "stable_literal_count": stable_literal_count,
         "observed_literal_count": stable_literal_count,

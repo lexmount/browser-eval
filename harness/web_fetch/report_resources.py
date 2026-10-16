@@ -6,7 +6,7 @@ from html import escape
 PROVIDER_NAMES = {
     'chromium': 'Chromium',
     'lightpanda': 'Lightpanda',
-    'moli': 'Moli 1.1.1',
+    'moli': 'Moli 1.1.15 · 独立资源批次',
     'obscura': 'Obscura',
 }
 
@@ -122,10 +122,14 @@ def render_resource_comparison(summary, providers):
             cells = []
             for provider in local:
                 rendered = escape(_format(values[provider], unit))
-                if lower_is_better and values[provider] == best:
-                    rendered = (f'<strong class="resource-best" data-resource-metric-winner="{escape(provider)}">'
+                if lower_is_better and values[provider] == best and list(values.values()).count(best) == 1:
+                    rendered = (f'<strong class="resource-best comparison-winner" data-resource-metric-winner="{escape(provider)}">'
                                 f'{rendered}<span>本项最低</span></strong>')
-                cells.append('<td>' + rendered + '</td>')
+                cells.append(f'<td data-resource-provider="{escape(provider)}" '
+                    f'data-resource-key="{key}" data-resource-statistic="{statistic}" '
+                    f'data-metric="resource-{key}-{statistic}" '
+                    f'data-metric-direction="{"min" if lower_is_better else "neutral"}" '
+                    f'data-sort="{values[provider]}">' + rendered + '</td>')
             rows.append(f'<tr><td>{row_index}</td><td class="resource-metric">' + escape(metric_name) + '</td>'
                         + ''.join(cells) + '</tr>')
         header = ''.join('<th scope="col">' + escape(PROVIDER_NAMES.get(provider, provider)) + '</th>'
@@ -138,9 +142,16 @@ def render_resource_comparison(summary, providers):
             '<table><thead><tr><th scope="col">序号</th><th scope="col">指标</th>' + header + '</tr></thead><tbody>'
             + ''.join(rows) + '</tbody></table></div></section>')
 
-    sample = (f'<p class="resource-sample">同题口径：所列配置共同通过 '
-              f'<strong>{len(summary["common_pass_cases"])}/{len(summary["planned_cases"])}</strong> 个普通网页；'
-              '失败任务不进入资源排名。</p>')
+    count = len(summary['planned_cases'])
+    completions = '，'.join(PROVIDER_NAMES.get(provider, provider) + ' ' +
+        str(indexed[provider].get('successful_attempts', '—')) + '/' + str(count)
+        for provider in local)
+    sample = (f'<p class="resource-sample" data-resource-population="all_declared_calls" '
+              f'data-resource-cases="{count}">资源表覆盖预先确定的全部 {count} 个普通网页，包含失败调用。'
+              f'这组任务的通过数：{escape(completions)}。各项平均值、P50、P95 使用同一完整范围。</p>'
+              '<p>所列配置共同通过 '
+              f'<strong>{len(summary["common_pass_cases"])}/{count}</strong>；'
+              '这项交集只作附加诊断，不用于选择资源表的样本。各方法成功调用的条件统计另保留在资源证据中。</p>')
     caveat = ('<p class="callout"><b>可比边界：</b>每次调用使用一次性 Linux 客户端容器、cgroup v2 与独立网络命名空间；'
               '宿主控制器和容器启停不计入。Kitesurf 的远端浏览器 CPU、内存和远端上游流量不可见，'
               '因此不进入资源表或本地引擎资源排名。</p>'
@@ -153,3 +164,40 @@ def render_resource_comparison(summary, providers):
         'ranked_metric_count': len(winners),
         'winner_tied': leader_tied,
     }
+
+
+def check_resource_presentation(html, summary):
+    """Verify complete-population values and unique extrema at release time."""
+    from harness.reporting.presentation import check_presentation
+    soup = check_presentation(html)
+    if summary.get('primary_population') != 'all_declared_calls':
+        raise ValueError('Resource ranking must retain every declared call')
+    count = len(summary['planned_cases'])
+    sample = soup.select('[data-resource-population="all_declared_calls"]')
+    if len(sample) != 1 or sample[0].get('data-resource-cases') != str(count):
+        raise ValueError('Resource comparison has the wrong population or denominator')
+    headline = soup.select('[data-resource-winner]')
+    expected_html, _ = render_resource_comparison(summary, summary['providers'])
+    from bs4 import BeautifulSoup
+    expected_leaders = BeautifulSoup(expected_html, 'html.parser').select_one(
+        '[data-resource-winner]')['data-resource-winner']
+    if len(headline) != 1 or headline[0]['data-resource-winner'] != expected_leaders:
+        raise ValueError('Resource leader differs from measured metric winners')
+    expected = {(row['provider'], key, statistic): row['metrics'][key][statistic]
+        for row in summary['rows'] for _, metrics in GROUPS
+        for _, key, statistic, _, _ in metrics}
+    cells = soup.select('td[data-resource-provider][data-resource-key][data-resource-statistic]')
+    observed = {}
+    for cell in cells:
+        identity = (cell['data-resource-provider'], cell['data-resource-key'], cell['data-resource-statistic'])
+        if identity in observed or cell.get('data-sort') is None:
+            raise ValueError('Resource comparison contains duplicate or unavailable measurements')
+        direction = next('min' if lower else 'neutral' for _, metrics in GROUPS
+            for _, key, statistic, _, lower in metrics if identity[1:] == (key, statistic))
+        if cell.get('data-metric-direction') != direction or cell.get('data-metric') != (
+                'resource-' + identity[1] + '-' + identity[2]):
+            raise ValueError('Resource metric direction or identity changed')
+        observed[identity] = float(cell['data-sort'])
+    if observed != expected or any(row['attempts'] != count or any(
+            value['n'] != count for value in row['metrics'].values()) for row in summary['rows']):
+        raise ValueError('Resource comparison differs from its complete measured cohort')

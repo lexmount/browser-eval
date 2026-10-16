@@ -1,11 +1,48 @@
 """Release archives must contain exactly the validated bytes or preserve the prior release."""
 import json
+import os
 import zipfile
 from pathlib import Path
 
 import pytest
 
-from harness.reporting.publication import package_archive
+from harness.reporting.publication import package_archive, snapshot_publication
+
+
+@pytest.mark.skipif(os.name == 'nt', reason='Windows lacks Unix change-time semantics')
+def test_packet_guards_do_not_reread_unchanged_report_payloads(tmp_path, monkeypatch):
+    report, authority, output, _ = fixture(tmp_path)
+    with snapshot_publication(output, inputs=[report, authority]) as snapshot:
+        with monkeypatch.context() as guards:
+            guards.setattr(Path, 'read_bytes', lambda _: pytest.fail('unchanged payload reread'))
+            for _ in range(100):
+                snapshot.check()
+        snapshot.verify()
+
+
+@pytest.mark.parametrize('damage', ['page', 'profile', 'source-archive', 'frozen-archive',
+                                  'new-file', 'deleted-file', 'replacement', 'symlink'])
+def test_packet_guards_detect_input_edits_even_with_restored_mtime(tmp_path, damage):
+    report, authority, output, _ = fixture(tmp_path)
+    with snapshot_publication(output, inputs=[report, authority]) as snapshot:
+        target = {'page': report / 'index.html', 'profile': authority,
+                  'source-archive': output, 'frozen-archive': snapshot.archive}.get(damage)
+        if target is not None:
+            before = target.stat()
+            target.write_bytes(target.read_bytes()[::-1])
+            os.utime(target, ns=(before.st_atime_ns, before.st_mtime_ns))
+        elif damage == 'new-file':
+            (report / 'extra.txt').write_text('unexpected')
+        elif damage == 'deleted-file':
+            (report / 'index.html').unlink()
+        elif damage == 'replacement':
+            page = report / 'index.html'
+            page.unlink()
+            page.write_text('different page')
+        else:
+            (report / 'linked').symlink_to(authority)
+        with pytest.raises(ValueError):
+            snapshot.check()
 
 
 def fixture(tmp_path):
@@ -200,3 +237,24 @@ def test_stable_parent_alias_is_supported_but_retargeting_is_rejected(tmp_path):
         run(report, authority, alias / output.name, alias / receipt.name, retarget)
     assert (output.read_bytes(), receipt.read_bytes()) == before
     assert not list(other.iterdir())
+
+
+@pytest.mark.parametrize('status', [404, 403, 410, 500])
+def test_operation_recovery_handles_real_http_errors_without_replacing_key(tmp_path, status):
+    from urllib.error import HTTPError
+
+    from harness.reporting.publication import PublicationOperation
+    operation = PublicationOperation(tmp_path / 'pending.json', 'test-')
+    identity = {'slug': 'existing', 'archive_sha256': 'bound'}
+    pending, _ = operation.pending(identity, allow_create=True)
+    before = operation.journal.read_bytes()
+    error = HTTPError('https://example.test/api/operations/key', status, 'status', {}, None)
+    def request(*args, **kwargs):
+        raise error
+    if status == 404:
+        assert operation.completed(pending['key'], request=request, decode=lambda *_: None) is None
+    else:
+        with pytest.raises(HTTPError) as caught:
+            operation.completed(pending['key'], request=request, decode=lambda *_: None)
+        assert caught.value.code == status
+    assert operation.journal.read_bytes() == before

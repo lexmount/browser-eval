@@ -1,3 +1,5 @@
+import subprocess
+import sys
 import unittest
 from harness.web_fetch.reference_quality import (audit_reference, clean_reference_text,
     blocked_page_hits, markdown_link_destinations, markdown_links, reference_anchor_in_text,
@@ -7,6 +9,36 @@ from harness.web_fetch.models import execution_id
 
 
 class ReferenceQualityTests(unittest.TestCase):
+    def test_unmatched_markdown_brackets_preserve_body_scoring_within_budget(self):
+        code = """
+from harness.web_fetch.scoring import score_attempt
+case = {'id': 'body', 'url': 'https://example.test/', 'track': 'web',
+        'acceptance_contract': {'version': 1, 'schema': 'body_text',
+            'minimum_records': 0, 'stable_text_anchors': [
+                {'id': 'body', 'alternatives': ['Source prose']}]}}
+for brackets in ('[' * 20000, '[x](' * 5000):
+    for present in (True, False):
+        text = ('Source prose' if present else 'Unrelated prose') + brackets
+        result = score_attempt(case, text.encode(), ok=True)
+        assert result['content_pass'] is present
+"""
+        result = subprocess.run([sys.executable, '-c', code], capture_output=True,
+                                text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_nested_and_escaped_link_delimiters_retain_existing_destinations(self):
+        samples = [
+            (r'\[Docs](/guide)', 'Docs', '/guide'),
+            (r'[Docs \[with note](/guide)', r'Docs \[with note', '/guide'),
+            ('[Docs [nested]](/guide(a))', 'Docs [nested]', '/guide(a)'),
+            (r'[Docs](/guide\))', 'Docs', r'/guide\)'),
+        ]
+        for text, label, destination in samples:
+            with self.subTest(text=text):
+                self.assertEqual([(link.label, link.destination)
+                                  for link in markdown_links(text)],
+                                 [(label, destination)])
+
     def test_script_payload_shell_rejects_state_dump_but_not_readable_js_article(self):
         state = '\n'.join(
             f'window.__STATE{i}__ = {{"article":"Required readable sentence {i}",'
@@ -66,6 +98,20 @@ class ReferenceQualityTests(unittest.TestCase):
         self.assertEqual(markdown_link_destinations(
             '[![Moon](//cdn.example/moon(large).jpg)](/file/moon)'),
             ['/file/moon', '//cdn.example/moon(large).jpg'])
+
+    def test_escaped_literal_bang_before_link_is_not_an_image(self):
+        odd = r'OpenWrt wants you\![Join the project](#join)'
+        even = r'OpenWrt wants you\\![Join the project](avatar.png)'
+
+        odd_links = markdown_links(odd)
+        self.assertEqual([(link.label, link.is_image) for link in odd_links],
+                         [('Join the project', False)])
+        self.assertEqual(normalize_for_match(visible_markdown_links(odd)),
+                         normalize_for_match('OpenWrt wants you! Join the project'))
+
+        even_links = markdown_links(even)
+        self.assertEqual([(link.label, link.is_image) for link in even_links],
+                         [('Join the project', True)])
     def test_relative_path_autolinks_are_visible_but_html_closing_tags_are_not_rewritten(self):
         value = ('Questions: </help/start>, </help/advanced>, or '
                  '[Support](https://support.example.test/). </div>')

@@ -84,7 +84,11 @@ class NativeDnsBrokerTests(unittest.TestCase):
             self.assertEqual(broker.traces, [])
 
 
-@unittest.skipUnless(platform.system() == "Darwin" and shutil.which("cc"), "Darwin native bridge")
+@unittest.skipUnless(
+    platform.system() == "Darwin" and shutil.which("cc")
+    and subprocess.run(["xcode-select", "-p"], capture_output=True).returncode == 0,
+    "Darwin native bridge requires installed developer tools; cc alone can be an installer shim",
+)
 class NativeDnsInteropTests(unittest.TestCase):
     def test_native_addresses_flags_concurrent_allocations_and_binding(self):
         source = r"""

@@ -1,9 +1,78 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import os
+import signal
+import subprocess
+import time
 from typing import Any
 
 from ..models import EvalCase, ProviderResult
+
+
+def terminate_owned_process_tree(process):
+    """Stop an owned POSIX session, including detached descendant groups.
+
+    If the process tree cannot be observed, leave the worker alive so the
+    caller can quarantine unresolved work instead of claiming it stopped.
+    """
+    if process is None or process.poll() is not None:
+        return True
+    if os.name != 'posix':
+        return False
+    try:
+        observed = subprocess.run(
+            ['ps', '-axo', 'pid=,ppid=,pgid='], capture_output=True,
+            text=True, check=True, timeout=.5,
+        )
+        rows = [tuple(map(int, line.split())) for line in observed.stdout.splitlines()]
+        if any(len(row) != 3 for row in rows):
+            return False
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return False
+    parents = {pid: parent for pid, parent, _ in rows}
+    groups = {pid: group for pid, _, group in rows}
+    if groups.get(process.pid) != process.pid:
+        return process.poll() is not None
+    owned = {process.pid}
+    while True:
+        descendants = {pid for pid, parent in parents.items() if parent in owned}
+        expanded = owned | descendants
+        if expanded == owned:
+            break
+        owned = expanded
+    owned_groups = {groups[pid] for pid in owned}
+    if os.getpgrp() in owned_groups:
+        return False
+    # Descendants may call setsid (Playwright does this for Chromium). Stop
+    # their groups first, then the original worker, preserving its diagnostics.
+    for group in sorted(owned_groups, key=lambda value: value == process.pid):
+        try:
+            os.killpg(group, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        except OSError:
+            return False
+    # SIGKILL delivery is asynchronous. Confirm the owned groups are quiescent
+    # before releasing the next call; zombies cannot perform physical work.
+    deadline = time.monotonic() + .5
+    while True:
+        try:
+            observed = subprocess.run(
+                ['ps', '-axo', 'pgid=,stat='], capture_output=True,
+                text=True, check=True, timeout=.5,
+            )
+            survivors = [parts for line in observed.stdout.splitlines()
+                         if len(parts := line.split()) == 2
+                         and int(parts[0]) in owned_groups
+                         and not parts[1].startswith('Z')]
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return False
+        if not survivors:
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(.01)
 
 
 class Provider(ABC):
@@ -13,13 +82,26 @@ class Provider(ABC):
         self.type = str(config.get("type", name))
 
     def check_native_call(self, case: EvalCase) -> None:
-        """The fixed native cohort permits no per-case assistance or extra routes."""
+        """Allow only shared, answer-free capabilities on fixed native calls."""
         if not self.config.get("uniform_native_parameters"):
             return
         if case.retrieval_hints:
-            raise ValueError("fixed native calls prohibit per-case retrieval hints")
-        if case.track not in {"web", "dynamic"} or case.task_kind not in {"body", "structure"}:
-            raise ValueError("fixed native calls support webpage body/structure only; auxiliary routes are prohibited")
+            if (
+                case.track != "dynamic"
+                or case.retrieval_hints != {"version": 3, "mode": "native"}
+            ):
+                raise ValueError("fixed native calls prohibit per-case retrieval hints")
+        supported = {
+            "web": {"body", "structure"},
+            "dynamic": {"body", "structure"},
+            "challenge": {"body", "structure"},
+            "risk_control": {"body", "structure"},
+            "document": {"body", "file"},
+            "image": {"body", "resource"},
+            "video": {"body", "resource"},
+        }
+        if case.task_kind not in supported.get(case.track, set()):
+            raise ValueError("fixed native calls do not support this declared task route")
 
     @property
     def min_interval_seconds(self) -> float:

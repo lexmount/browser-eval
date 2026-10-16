@@ -17,7 +17,7 @@ from pathlib import Path
 from harness.record_io import load_jsonl
 from harness.reporting.packs import write_packs
 from harness.reporting.links import validate_virtual_links
-from harness.web_fetch.publication_privacy import project_file
+from harness.web_fetch.publication_privacy import project_file, project_redundant_result_streams
 from harness.web_fetch.safety import evidence_tree_identity
 
 
@@ -37,11 +37,19 @@ def validate_release(source: Path) -> bool:
             value = json.loads(path.read_text())
             manifests.extend(value.get('batches', [value]))
     require_certifiable_evidence(dataset, manifests)
+    content_binding = dataset.get('comparison', {}).get('report_interpretation')
+    if content_binding:
+        from .report_explainer import current_browser_article_model
+        current_browser_article_model(source, {case['id']:case for case in dataset['cases']},
+                                      load_jsonl(source/'results.jsonl'), content_binding)
     sampled = dataset.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown"
     if not sampled:
         reliability = json.loads((source / "reliability.json").read_text())
         if reliability.get("complete") is not True:
             raise ValueError("Refusing to package an incomplete or unjudged benchmark report")
+        if dataset.get("comparison", {}).get("require_independent_result_review"):
+            from .result_review import require_result_review
+            require_result_review(source, dataset, load_jsonl(source / "results.jsonl"))
         return False
     review = json.loads((source / "result-review.json").read_text())
     if review.get("status") != "passed" or review.get("failures"):
@@ -82,6 +90,7 @@ def _build(source: Path, destination: Path, archive: Path, *, webmainbench: bool
     original = {}
     pages = {}
     redactions = []
+    footprint_projections = []
     source_paths = sorted(path for path in source.rglob("*") if path.is_file())
     source_file_count = sum(path.name != ".generated-report" for path in source_paths)
     logical_route_count = sum(path.suffix == ".html" for path in source_paths)
@@ -113,6 +122,9 @@ def _build(source: Path, destination: Path, archive: Path, *, webmainbench: bool
         if path.is_symlink():
             raise ValueError("Publication source must not contain symlinks: " + name)
         data, redaction = project_file(name, data)
+        data, footprint_projection = project_redundant_result_streams(name, data)
+        if footprint_projection:
+            footprint_projections.append(footprint_projection)
         if redaction:
             if name in scored_paths:
                 redaction["scored_output"] = True
@@ -241,6 +253,11 @@ def _build(source: Path, destination: Path, archive: Path, *, webmainbench: bool
             redaction["published_sha256"] = hashlib.sha256(data).hexdigest()
             redaction["published_bytes"] = len(data)
             redactions.append(redaction)
+        if footprint_projection:
+            footprint_projection["original_sha256"] = source_sha256
+            footprint_projection["original_bytes"] = path.stat().st_size
+            footprint_projection["published_sha256"] = hashlib.sha256(data).hexdigest()
+            footprint_projection["published_bytes"] = len(data)
         add(name, data, source_sha256=source_sha256)
     privacy = {
         "schema_version": 1,
@@ -253,6 +270,7 @@ def _build(source: Path, destination: Path, archive: Path, *, webmainbench: bool
             "Key validity is not tested."
         ),
         "files": redactions,
+        "footprint_projections": footprint_projections,
     }
     add(
         "publication-privacy.json",
@@ -437,7 +455,10 @@ def _build_incremental(source: Path, baseline: Path, destination: Path):
 
         if (
             old_bytes("results.jsonl")
-            != project_file("results.jsonl", (source / "results.jsonl").read_bytes())[0]
+            != project_redundant_result_streams(
+                "results.jsonl",
+                project_file("results.jsonl", (source / "results.jsonl").read_bytes())[0],
+            )[0]
         ):
             raise ValueError("Incremental update cannot replace measured results")
         refresh = json.loads((source / "report-manifest.json").read_text()).get(
