@@ -257,6 +257,9 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
         raise ValueError("Frozen presentation output must be outside its source tree")
     before = evidence_tree_identity(source)
     _, dataset, records, manifest = validate_local_presentation(source, presentation_binding)
+    if authored_interpretation is None:
+        authored_interpretation = manifest.get('presentation', {}).get(
+            'authored_interpretation', bool(dataset.get('comparison', {}).get('report_interpretation')))
     review_path = source / "result-review.json"
     binding = json.loads(presentation_binding.read_text())
     required = ["local-run-contract.json", "execution.json"]
@@ -295,7 +298,8 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
         write_frozen_result_summary(staging, dataset, records)
         if language is not None:
             select_report_language(staging, language)
-        write_frozen_presentation_manifest(staging, manifest, show_local_status_banners=show_local_status_banners)
+        write_frozen_presentation_manifest(staging, manifest, show_local_status_banners=show_local_status_banners,
+                                           authored_interpretation=authored_interpretation)
         validate_local_presentation(staging, presentation_binding)
         if evidence_tree_identity(source) != before:
             raise ValueError("Presentation source changed during rendering")
@@ -303,14 +307,14 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
     return output / "index.html"
 
 
-def write_frozen_presentation_manifest(output, manifest, *, show_local_status_banners=True):
+def write_frozen_presentation_manifest(output, manifest, *, show_local_status_banners=True, authored_interpretation=False):
     """Refresh renderer metadata while retaining the frozen measurement bindings."""
     from harness.report_languages import generated_languages
     current = dict(manifest)
     languages = list(generated_languages(output))
     current.update(template=None, languages=languages, generated_languages=languages,
                    presentation={"show_local_status_banners": show_local_status_banners,
-                                 "frozen_scores": True})
+                                 "frozen_scores": True, "authored_interpretation": authored_interpretation})
     (output / "report-manifest.json").write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n")
 
 
@@ -1491,6 +1495,8 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     output = unlinked_path(output)
     before_tree = evidence_tree_identity(output)
     binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
+    authored_interpretation = manifest.get('presentation', {}).get(
+        'authored_interpretation', bool(dataset.get('comparison', {}).get('report_interpretation')))
     # The existing owner renders from saved metrics. Only these explanatory
     # routes may be installed; result pages, logs and every measured byte stay.
     routes = ['index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html', 'changes/index.html']
@@ -1502,9 +1508,10 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     with tempfile.TemporaryDirectory(prefix='.presentation-', dir=output.parent) as scratch:
         staging = Path(scratch) / 'report'
         shutil.copytree(output, staging, copy_function=copy_evidence_file)
-        shutil.rmtree(staging / 'en', ignore_errors=True)
         batches = json.loads((output / 'execution.json').read_text())['batches']
-        generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True, frozen_scores=True)
+        generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True,
+                 frozen_scores=True, authored_interpretation=authored_interpretation,
+                 english_routes=[r for r in routes if r.endswith('.html') and not r.startswith('en/')])
         changed = []
         for relative in routes:
             before, after = contained_path(output, relative), contained_path(staging, relative)
@@ -1526,7 +1533,8 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
         for relative in changed:
             shutil.copy2(staging / relative, selected / relative)
         write_frozen_presentation_manifest(selected, manifest,
-            show_local_status_banners=manifest.get('presentation', {}).get('show_local_status_banners', True))
+            show_local_status_banners=manifest.get('presentation', {}).get('show_local_status_banners', True),
+            authored_interpretation=authored_interpretation)
         if evidence_tree_identity(output) != before_tree:
             raise ValueError('Presentation snapshot changed during rendering')
         _install_report_tree(selected, output)

@@ -3660,6 +3660,10 @@ TEXT.update({
 })
 
 REGEX.extend([
+    (re.compile(r"^核验于 (\d{4}-\d{2}-\d{2})。算力、网络、存储、代理和维护成本自担；没有测量这些成本，不把本地调用等同于零成本。官方托管产品或服务价格不属于本地执行模式。$"),
+     r"Checked on \1. The caller pays compute, network, storage, proxy, and maintenance costs. These costs were not measured, so local calls are not treated as free. Official managed-product or service prices do not apply to local execution."),
+    (re.compile(r"^本方法只使用官方 (\d+(?:\.\d+)+) 发行二进制，与其他 Moli 版本分开计分。网页正文、文档正文、结构题和网页内嵌媒体题统一使用原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不按题目设置 selector。网页媒体只核对这份输出中的目标地址，不下载，也不切换 HTML、JSON 或网络跟踪接口。直接 PDF/DOCX 没有交付可读正文时按失败记录；直接媒体文件验收原始字节。评测端不使用外部 PDF/DOCX 解析器补正文，也不在失败后切换引擎或输出模式。$"),
+     r"This method uses only the official \1 release binary and is scored separately from other Moli versions. Webpage body text, document body text, structured tasks, and webpage media tasks use native Markdown. Every dynamic-body task enables --layout, --with-frames, and domstable, without task-specific selectors. Webpage media tasks check only target URLs in that output; they do not download media or switch to HTML, JSON, or network-tracing interfaces. Direct PDF/DOCX tasks fail without readable body text; direct media files are evaluated as original bytes. The benchmark does not supply external PDF/DOCX parsing or switch engines or output modes after a failure."),
     (re.compile(r"^必需文字组 (\d+)（任一写法即可）$"), r"Required text group \1 (any alternative may match)"),
     (re.compile(r"^· 原始采集记录 ([\d,]+) 字节（可含协议返回） · 原始 SHA-256：$"), r"· Original capture: \1 bytes (may include protocol responses) · Original SHA-256:"),
     (re.compile(r"^本报告纳入 ([\d,]+) 个逻辑结果。运行参数见下表；保留的物理调用与输出见各结果详情。$"),
@@ -4317,14 +4321,28 @@ TEXT.update({
     "版本优先使用调用时记录的版本号；源码实现使用冻结的提交号。云端服务没有公开后端版本时如实标注。二进制哈希用于确认具体执行文件；事后核验的版本会说明依据。": "Versions use call-time records where available; source implementations use frozen commits. Undisclosed cloud backend versions are stated explicitly. Binary hashes identify the executable, and retrospectively verified versions state their evidence.",
 })
 
-def write_english_report(out: Path) -> int:
-    """Mirror every Chinese HTML route and return the mirrored route count."""
+def write_english_report(out: Path, *, source_routes=None) -> int:
+    """Mirror Chinese HTML routes; a scoped refresh preserves other editions."""
+    if source_routes is None:
+        sources = sorted(path for path in out.rglob("*.html") if "en" not in path.relative_to(out).parts)
+    else:
+        from .safety import contained_path
+        sources = []
+        for name in sorted(set(source_routes)):
+            route = PurePosixPath(name)
+            if route.is_absolute() or '..' in route.parts or not route.parts or route.parts[0] == 'en' or route.suffix != '.html':
+                raise ValueError('Scoped English routes must be relative Chinese HTML paths')
+            path = contained_path(out, str(route), reject_symlinks=True)
+            contained_path(out, 'en/' + str(route), reject_symlinks=True)
+            if not path.is_file():
+                raise FileNotFoundError('Missing Chinese route: ' + str(route))
+            sources.append(out / str(route))
     history_path = out / "report-changes.json"
     translations = release_translations(json.loads(history_path.read_text())) if history_path.is_file() else {}
     from .report_reading import archived_translations
     article_translations = archived_translations(out)
     english_root = out / "en"
-    if english_root.exists():
+    if source_routes is None and english_root.exists():
         shutil.rmtree(english_root)
     dataset_path = out / "dataset.json"
     allowed_source_text = {"中文"}
@@ -4336,7 +4354,6 @@ def write_english_report(out: Path) -> int:
     archived_manifest = out / "archived-reading.json"
     if archived_manifest.is_file():
         allowed_source_text.update(json.loads(archived_manifest.read_text()).get("preserved_source_names", []))
-    sources = sorted(path for path in out.rglob("*.html") if "en" not in path.relative_to(out).parts)
     for source_path in sources:
         source = PurePosixPath(source_path.relative_to(out).as_posix())
         target = out / "en" / Path(str(source))

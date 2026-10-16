@@ -1970,9 +1970,11 @@ def local_audit_banner(dataset):
 from .methods import with_measured_method_labels
 
 @with_measured_method_labels
-def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None,frozen_scores:bool=False):
+def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None,frozen_scores:bool=False,english_routes=None):
  from .publication_privacy import public_render_views
  _public_views=public_render_views(out,records)
+ if english_routes is not None and not presentation_only:
+  raise ValueError('Scoped English refresh requires presentation_only=True')
  for _record in records:
   if _record['attempt_id'] in _public_views:
    _record.setdefault('provider_metadata',{})['publication_views']=_public_views[_record['attempt_id']]
@@ -2426,7 +2428,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   render_changes(out,cases,records,dataset)
  if include_english:
   from .report_i18n import write_english_report
-  write_english_report(out)
+  write_english_report(out,source_routes=english_routes)
  from harness.report_languages import write_language_contract
  if presentation_only and (out/'report-languages.json').is_file():
   from harness.report_languages import check_language_contract, generated_languages

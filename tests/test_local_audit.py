@@ -366,6 +366,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     rebuilt_manifest = json.loads((rebuilt / "report-manifest.json").read_text())
     assert rebuilt_manifest["template"] is None
     assert rebuilt_manifest["generated_languages"] == ["zh", "en"]
+    assert rebuilt_manifest["presentation"]["authored_interpretation"] is False
     reproduce = (rebuilt / "reproduce/index.html").read_text()
     assert "--language zh --include-english" in reproduce
     assert "--language bilingual" not in reproduce
@@ -397,7 +398,10 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
             refresh_local_presentation(output, binding_path)
     assert {path.relative_to(output).as_posix(): _digest(path)
             for path in output.rglob('*') if path.is_file()} == before
-    refresh_local_presentation(output, binding_path)
+    from harness.web_fetch.report_build import generate as current_renderer
+    with patch('harness.web_fetch.report_build.generate', wraps=current_renderer) as rendered:
+        refresh_local_presentation(output, binding_path)
+    assert rendered.call_args.kwargs['authored_interpretation'] is False
     allowed = {"index.html", "methodology/index.html", "adoption/index.html",
                "reproduce/index.html", "changes/index.html", "providers/fixture.html",
                "adoption/interfaces/fixture.json", "report-manifest.json"}
