@@ -7,14 +7,15 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from lexbench_webfetch.metrics import evaluate_resources
+from lexbench_webfetch.metrics import evaluate_resources, task_passed, task_measured
 from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.cloudflare import (
     CloudflareContentProvider,
     CloudflareMarkdownProvider,
     _post_multipart,
 )
-from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider, _sanitize_public_content
+from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
 from harness.web_fetch.providers.exa import ExaContentsProvider
 from harness.web_fetch.providers.firecrawl import FirecrawlProvider
 from harness.web_fetch.providers.http import HttpProvider
@@ -23,9 +24,36 @@ from harness.web_fetch.providers.lexmount import LexmountProvider
 from harness.web_fetch.providers.tavily import TavilyExtractProvider
 from harness.web_fetch.publication_privacy import project_file
 from harness.web_fetch.runner import run_evaluation
+from lexbench_webfetch.scoring import score_attempt
 
 
 class ProviderTest(unittest.TestCase):
+    @patch('harness.web_fetch.providers.firecrawl.request')
+    def test_native_final_url_controls_identity(self, request):
+        case=EvalCase(id='redirect-control',name='Redirect control',url='https://example.test/start',
+            category='static',expected_any=['Expected body'],track='risk_control',page_identity_required=True,
+            acceptance_contract={'version':1,'schema':'body_text','minimum_records':0,
+                'stable_text_anchors':[{'id':'body','alternatives':['Expected body']}]},
+            source_benchmark={'risk_control':{'navigation_contract':{
+                'requested_url':'https://example.test/start','observed_final_url':'https://example.test/final'}}})
+        for native_url, passed, measured, identity in (
+            ('https://example.test/final',True,True,'verified'),
+            ('https://example.test/other',False,True,'mismatch'),
+            (None,False,False,'unavailable'),
+        ):
+            with self.subTest(native_url=native_url):
+                metadata={'sourceURL':case.url,'statusCode':200}
+                if native_url is not None: metadata['url']=native_url
+                request.return_value=HttpResponse(200,'https://api.firecrawl.dev/v2/scrape',{},
+                    json.dumps({'success':True,'data':{'markdown':'Expected body','metadata':metadata}}).encode())
+                result=FirecrawlProvider('firecrawl',{'api_key':'synthetic','uniform_native_parameters':True}).fetch(case,45)
+                self.assertEqual(result.final_url,native_url)
+                m=score_attempt(case,result.content.encode(),ok=result.ok,metadata=result.metadata,
+                    status_code=result.status_code,final_url=result.final_url)
+                self.assertEqual(m['page_identity_status'],identity)
+                self.assertEqual(task_passed(result.ok,m),passed)
+                self.assertEqual(task_measured(m),measured)
+
     @patch("harness.web_fetch.providers.firecrawl.request")
     def test_firecrawl_native_page_scope_is_explicit_and_preserves_answer(self, mock_request):
         returned = "Header\n\nMain text\n\nFooter"
@@ -1115,9 +1143,9 @@ class ProviderTest(unittest.TestCase):
         ).fetch(video, 45)
 
         self.assertEqual(result.metadata["videos"], [
-            "https://example.com/watch/clip.webm"
+            "https://example.com/about", "https://example.com/watch/clip.webm"
         ])
-        self.assertNotIn("/about", result.content)
+        self.assertEqual(json.loads(result.content), mock_request.return_value.json()['result'])
 
     @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_video_resource_keeps_packaged_video_downloads(
@@ -1156,11 +1184,11 @@ class ProviderTest(unittest.TestCase):
 
         self.assertTrue(result.ok)
         self.assertEqual(result.metadata["videos"], [
-            "https://example.com/movies/movie.mp4.zip",
+            "https://example.com/", "https://example.com/movies/movie.mp4.zip",
             "https://example.com/movies/movie.webm.zip?mirror=1",
+            "https://example.com/movies/notes.zip",
         ])
-        self.assertNotIn("notes.zip", result.content)
-        self.assertNotIn("\nhttps://example.com/\n", "\n" + result.content + "\n")
+        self.assertEqual(json.loads(result.content), mock_request.return_value.json()['result'])
 
     @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_video_link_task_keeps_page_href_without_media_suffix(
@@ -1206,11 +1234,10 @@ class ProviderTest(unittest.TestCase):
 
         self.assertTrue(result.ok)
         self.assertEqual(result.metadata["videos"], [
+            "https://example.com/about", "https://example.com/short/iframe.html",
             "https://example.com/video/BV1234567890",
         ])
-        self.assertIn("https://example.com/video/BV1234567890", result.content)
-        self.assertNotIn("https://example.com/about", result.content)
-        self.assertNotIn("https://example.com/short/iframe.html", result.content)
+        self.assertEqual(json.loads(result.content), mock_request.return_value.json()['result'])
         self.assertEqual(mock_request.call_args.kwargs["json_body"]["elements"],
                          [{"selector": "a[href]"}])
 
@@ -1284,7 +1311,7 @@ class ProviderTest(unittest.TestCase):
     @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_identity_uses_observed_destination_only(self, mock_request):
         provider = CloudflareMarkdownProvider("cf", {"api_token": "x", "account_id": "a"})
-        for meta, expected in (({}, None), ({"finalUrl": "https://example.com/final"},
+        for meta, expected in (({}, self.case.url), ({"finalUrl": "https://example.com/final"},
                                           "https://example.com/final")):
             with self.subTest(meta=meta):
                 body = json.dumps({"success": True, "result": "Body", "meta": meta}).encode()
@@ -1450,15 +1477,18 @@ class ProviderTest(unittest.TestCase):
         self.assertIn("expected_repo_revision", errors)
         self.assertIn("required runtime paths", errors)
 
-    def test_cowagent_removes_workspace_path_but_keeps_document_text(self) -> None:
-        content = (
-            "[Document: guide.pdf | Size: 10KB | Saved to: "
-            "/Users/person/.browser-eval/runs/work/tmp/guide.pdf]\n\nBody"
-        )
-        self.assertEqual(
-            _sanitize_public_content(content),
-            "[Document: guide.pdf | Size: 10KB]\n\nBody",
-        )
+    @patch('harness.web_fetch.providers.subprocess_jsonl.SubprocessJsonlProvider.fetch')
+    def test_cowagent_preserves_native_answer_and_error_before_scoring(self, fetch):
+        content = ('[Document: guide.pdf | Size: 10KB | Saved to: '
+                   '/Users/person/work/guide.pdf]\n\nBody')
+        native = ProviderResult(False, content, error_message=content,
+            metadata={'raw_response_sha256': 'native-envelope'})
+        fetch.return_value = native
+        result = CowAgentBuiltinProvider('cowagent', {'repo_path': '.'}).fetch(self.case, 1)
+        self.assertIs(result, native)
+        self.assertEqual(result.content, content)
+        self.assertEqual(result.error_message, content)
+        self.assertEqual(result.metadata, {'raw_response_sha256': 'native-envelope'})
 
 
 if __name__ == "__main__":

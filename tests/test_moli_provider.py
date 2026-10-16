@@ -201,6 +201,34 @@ class MoliTests(unittest.TestCase):
         values.update(changes)
         return SimpleNamespace(**values)
 
+    def test_native_families_never_use_caller_scripts_or_conversion(self):
+        provider = self.provider(
+            "assert '--eval' not in sys.argv and '--wait-script' not in sys.argv\n"
+            "assert '--trace-network' not in sys.argv\n"
+            "if sys.argv[-1].endswith(('.pdf', '.docx')):\n"
+            "    assert '--dump' not in sys.argv\n"
+            "else:\n"
+            "    assert sys.argv[sys.argv.index('--dump') + 1] in ('markdown', 'html')\n"
+            "print('native output')\n", uniform_native_parameters=True)
+        with patch("harness.web_fetch.document_text.extract_document_text", side_effect=AssertionError("caller conversion")):
+            for track, kind, url, media in [("challenge", "structure", "https://example.com/", "html_page"),
+                    ("risk_control", "body", "https://example.com/", "html_page"),
+                    ("document", "body", "https://example.com/a.docx", "direct_docx"),
+                    ("document", "body", "https://example.com/a.pdf", "direct_pdf"),
+                    ("document", "body", "https://example.com/viewer.html", "html_page"),
+                    ("image", "resource", "https://example.com/", "html_page"),
+                    ("video", "resource", "https://example.com/", "html_page"),
+                    ("video", "body", "https://example.com/", "html_page")]:
+                result = provider.fetch(self.case_with(track=track, task_kind=kind, url=url,
+                    source_benchmark={"input_media_kind": media}), 5)
+                self.assertTrue(result.ok, result.error_message)
+                if url.endswith((".pdf", ".docx")):
+                    self.assertEqual(result.content, "")
+                    self.assertEqual(result.files[0]["data"].strip(), b"native output")
+                else:
+                    self.assertEqual(result.content.strip(), "native output")
+                    self.assertEqual(result.metadata["dump"], "html" if kind == "resource" else "markdown")
+
     def test_fixed_native_cli_omits_internal_timers(self):
         provider = self.provider(
             "import sys\n"
@@ -397,6 +425,11 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
 
     def test_native_wait_override_applies_to_every_page_in_a_family(self):
+        for fixed_native in (False, True):
+            with self.subTest(fixed_native=fixed_native):
+                self._assert_family_wait_override(fixed_native)
+
+    def _assert_family_wait_override(self, fixed_native):
         provider = self.provider(
             "import sys\n"
             "url = sys.argv[-1]\n"
@@ -406,6 +439,7 @@ class MoliTests(unittest.TestCase):
             "assert '--eval' not in sys.argv and '--delay-ms' not in sys.argv\n"
             "print('native page body')\n",
             wait_until_by_track={"risk_control": "domstable"},
+            uniform_native_parameters=fixed_native,
         )
         for index in range(2):
             with self.subTest(index=index):
@@ -1086,11 +1120,11 @@ class MoliTests(unittest.TestCase):
         )
         self.assertTrue(scored["resource_pass"])
 
-    def test_fixed_native_resource_uses_product_timers_and_native_markdown(self):
+    def test_fixed_native_resource_uses_product_timers_and_native_html(self):
         provider = self.provider(
             "import sys\n"
             "assert not {'--timeout', '--http-timeout', '--http-connect-timeout', '--eval'} & set(sys.argv)\n"
-            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "html"\n'
             'print("![photo](https://example.com/photo.jpg)")',
             uniform_native_parameters=True,
         )

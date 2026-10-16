@@ -83,26 +83,46 @@ class Provider(ABC):
         self.type = str(config.get("type", name))
 
     def check_native_call(self, case: EvalCase) -> None:
-        """Allow only shared, answer-free capabilities on fixed native calls."""
+        """Permit native task outputs, never case-specific retrieval assistance."""
         if not self.config.get("uniform_native_parameters"):
             return
-        if case.retrieval_hints:
-            if (
-                case.track != "dynamic"
-                or case.retrieval_hints != {"version": 3, "mode": "native"}
-            ):
-                raise ValueError("fixed native calls prohibit per-case retrieval hints")
-        supported = {
-            "web": {"body", "structure"},
-            "dynamic": {"body", "structure"},
-            "challenge": {"body", "structure"},
-            "risk_control": {"body", "structure"},
-            "document": {"body", "file"},
-            "image": {"body", "resource"},
-            "video": {"body", "resource"},
-        }
-        if case.task_kind not in supported.get(case.track, set()):
-            raise ValueError("fixed native calls do not support this declared task route")
+        if case.retrieval_hints and not (case.track == "dynamic" and case.retrieval_hints == {"version": 3, "mode": "native"}):
+            raise ValueError("fixed native calls prohibit per-case retrieval hints")
+        if case.track not in {"web", "dynamic", "challenge", "risk_control", "document", "image", "video", "file"}:
+            raise ValueError("fixed native calls require a declared task route")
+        if case.track == "document" and case.task_kind == "resource":
+            raise ValueError("fixed native calls require a declared task route")
+        if case.task_kind not in {"body", "structure", "resource", "file"}:
+            raise ValueError("fixed native calls require a declared native output kind")
+
+    def capture_native_request(self, case, *, transport, parameters, endpoint=None, interface=None):
+        ledger = getattr(self, '_native_route_ledger', None)
+        if ledger is not None:
+            ledger.observe(self, case, transport=transport, parameters=parameters,
+                           endpoint=endpoint, interface=interface)
+
+    def native_http_request(self, case, callback, endpoint, **kwargs):
+        """Observe exact transport arguments before a fixed-native HTTP call."""
+        ledger = getattr(self, '_native_route_ledger', None)
+        if self.config.get('uniform_native_parameters'):
+            native_endpoint, native_arguments = self.native_http_arguments(case, kwargs.get('timeout'))
+            if endpoint != native_endpoint or kwargs != native_arguments:
+                if ledger is not None:
+                    ledger.reject(self, case, 'Native adapter arguments differ from its canonical request builder')
+                raise ValueError('Native adapter arguments differ from its canonical request builder')
+            endpoint, kwargs = native_endpoint, native_arguments
+        if ledger is not None:
+            from ..native_routes import normalized_http_parameters
+            self.capture_native_request(case, transport='http', endpoint=endpoint,
+                                        parameters=normalized_http_parameters(case, kwargs))
+        return callback(endpoint, **kwargs)
+
+    def native_http_arguments(self, case, timeout):
+        raise ValueError('Provider has no fixed-native HTTP request builder')
+
+    def native_http_options(self, body, headers, timeout):
+        return {'method': 'POST', 'json_body': body, 'headers': headers,
+                'timeout': timeout, 'max_bytes': int(self.config.get('max_bytes', 20_000_000))}
 
     @property
     def min_interval_seconds(self) -> float:

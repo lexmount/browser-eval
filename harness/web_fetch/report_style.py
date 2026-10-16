@@ -1,5 +1,6 @@
 """Shared visual styling for the current report and standalone editorial export."""
 STYLE = r"""
+[data-archived-reading] img{max-width:100%;height:auto}
 .browser-interface-matrix table{min-width:1440px;table-layout:fixed}.browser-interface-matrix th:first-child{width:140px}.browser-interface-matrix td{overflow-wrap:anywhere}.browser-interface-matrix th{white-space:nowrap}
 .browser-interpretation .browser-interface-matrix table{min-width:1100px;font-size:13px}.browser-interpretation .browser-interface-matrix th:first-child{width:32px}.browser-interpretation .browser-interface-matrix th:nth-child(2){width:150px}.browser-interpretation pre{max-height:24rem;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 :root{color-scheme:light;--bg:#f6f8fb;--panel:#fff;--panel2:#eef3f8;--ink:#17212b;--muted:#5d6b78;--line:#d9e2ea;--accent:#1268d8;--accent-soft:#e9f2ff;--violet:#6756d8;--lime:#3f7b26;--coral:#bd402f;--good:#117a47;--bad:#c22e43;--warn:#8a5a00;--callout:#fff6d8;--failure-bg:#fff0f2;--success-bg:#eaf8f0;--code-bg:#101820;--code-ink:#e9f1f5;--shadow:0 8px 28px rgba(30,55,80,.08);--max:1180px}

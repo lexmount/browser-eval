@@ -248,9 +248,111 @@ def _install_report_tree(staging: Path, output: Path):
         staging.rename(output)
 
 
+def _build_frozen_presentation(source, output, presentation_binding, *,
+                               include_english, language, authored_interpretation,
+                               show_local_status_banners):
+    """Render a bound historical report using saved scores and public evidence."""
+    from harness.report_languages import select_report_language
+    from .safety import evidence_tree_identity, copy_evidence_file
+    if source in output.parents:
+        raise ValueError("Frozen presentation output must be outside its source tree")
+    before = evidence_tree_identity(source)
+    _, dataset, records, manifest = validate_local_presentation(source, presentation_binding)
+    if authored_interpretation is None:
+        authored_interpretation = manifest.get('presentation', {}).get(
+            'authored_interpretation', bool(dataset.get('comparison', {}).get('report_interpretation')))
+    review_path = source / "result-review.json"
+    binding = json.loads(presentation_binding.read_text())
+    required = ["local-run-contract.json", "execution.json"]
+    if review_path.is_file():
+        required.append("result-review.json")
+    for relative in required:
+        if not any(item.get("path") == relative
+                   and item.get("sha256") == before.get(relative)
+                   for item in binding.get("evidence_bindings", [])):
+            raise ValueError("Frozen presentation input lacks a hash binding: " + relative)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".frozen-presentation-", dir=output.parent) as work:
+        staging = Path(work) / "report"
+        shutil.copytree(source, staging, copy_function=copy_evidence_file)
+        shutil.rmtree(staging / "en", ignore_errors=True)
+        shutil.copy2(presentation_binding, staging / "presentation-binding.json")
+        batches = json.loads((source / "execution.json").read_text())["batches"]
+        for record in records:
+            case = next(item for item in dataset['cases'] if item['id'] == record['case_id'])
+            if not record.get('diagnosis'):
+                text = contained_path(source, record['artifact_path']).read_text(errors='replace')
+                record['diagnosis'] = diagnose(record, case, text)
+            metadata = record.setdefault("provider_metadata", {})
+            metadata["public_log_note"] = dataset.get("comparison", {}).get(
+                "call_chain_audit", {}).get("call_log_notes", {}).get(record["attempt_id"], "")
+            for kind, suffix in (("debug_log", "debug"), ("response", "response")):
+                relative = "logs/" + record["attempt_id"] + "." + suffix + ".txt"
+                if relative in before:
+                    metadata["public_" + kind + "_path"] = relative
+                    metadata["public_" + kind + "_sha256"] = before[relative]
+        generate(staging, dataset, records, batches, include_english=include_english,
+                 authored_interpretation=authored_interpretation,
+                 show_local_status_banners=show_local_status_banners, frozen_scores=True)
+        # Scores remain frozen, but cached inventory/summary files must describe
+        # those exact current scores after an explicitly bound offline revision.
+        write_frozen_result_summary(staging, dataset, records)
+        if language is not None:
+            select_report_language(staging, language)
+        write_frozen_presentation_manifest(staging, manifest, show_local_status_banners=show_local_status_banners,
+                                           authored_interpretation=authored_interpretation)
+        validate_local_presentation(staging, presentation_binding)
+        if evidence_tree_identity(source) != before:
+            raise ValueError("Presentation source changed during rendering")
+        _install_report_tree(staging, output)
+    return output / "index.html"
+
+
+def write_frozen_presentation_manifest(output, manifest, *, show_local_status_banners=True, authored_interpretation=False):
+    """Refresh renderer metadata while retaining the frozen measurement bindings."""
+    from harness.report_languages import generated_languages
+    from harness.reporting.templates import resolve_template
+    current = dict(manifest)
+    languages = list(generated_languages(output))
+    current.update(template=resolve_template('webfetch'), languages=languages, generated_languages=languages,
+                   presentation={"show_local_status_banners": show_local_status_banners,
+                                 "frozen_scores": True, "authored_interpretation": authored_interpretation})
+    (output / "report-manifest.json").write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n")
+
+
+def write_frozen_result_summary(output, dataset, records):
+    cases = {case['id']: case for case in dataset['cases']}
+    summary = {}
+    for track in TRACKS:
+        providers = {}
+        for provider in sorted({row['provider'] for row in records}):
+            rows = [row for row in records if row['provider'] == provider
+                    and cases[row['case_id']].get('track', 'web') == track]
+            if not rows:
+                continue
+            eligible = [row for row in rows if measured(row, cases[row['case_id']])]
+            text = [row for row in eligible if row['metrics'].get('content_check_coverage') is not None]
+            item = {'attempts': len(rows), 'task_pass': sum(succeeded(row, cases[row['case_id']]) for row in rows),
+                    'task_evaluated_attempts': len(eligible), 'task_unmeasured_attempts': len(rows) - len(eligible),
+                    'task_excluded_attempts': sum(bool(row['metrics'].get('evaluation_excluded')) for row in rows),
+                    'scoring_scope': scoring_scope(eligible, cases), 'text_checked_attempts': len(text),
+                    'text_checked_cases': len({row['case_id'] for row in text})}
+            if track == 'challenge':
+                body = [row for row in eligible if cases[row['case_id']].get('task_kind', 'body') == 'body'
+                        and cases[row['case_id']].get('ground_truth_main_content')]
+                item.update(body_evaluated_attempts=len(body),
+                            body_task_pass=sum(succeeded(row, cases[row['case_id']]) for row in body) if body else None)
+            providers[provider] = item
+        summary[track] = providers
+    for name, value in [('summary.json', summary), ('reliability.json', assess_reliability(dataset, records))]:
+        (output / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
+
+
 def build_report(source: Path, output: Path, *, include_english: bool = False,
                  local_audit: bool = False, authored_interpretation: bool | None = None,
-                 diagnostic_preview: bool = False, language: str | None = None) -> Path:
+                 diagnostic_preview: bool = False, language: str | None = None,
+                 show_local_status_banners: bool = True,
+                 presentation_binding: Path | None = None) -> Path:
     from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
@@ -259,6 +361,13 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     marker = '.generated-report'
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
+    if presentation_binding is not None:
+        if not local_audit:
+            raise ValueError("A frozen presentation binding requires local audit mode")
+        return _build_frozen_presentation(
+            source, output, presentation_binding, include_english=include_english,
+            language=language, authored_interpretation=authored_interpretation,
+            show_local_status_banners=show_local_status_banners)
     dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
     diagnostic_preview = (diagnostic_preview and
         dataset_probe.get('comparison', {}).get('kind') == 'web_fetch_diagnostic')
@@ -362,6 +471,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
     manifests = json.loads(execution.read_text())['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text())]
+    from .native_routes import verify_native_execution_manifests
+    verify_native_execution_manifests(source, manifests, dataset, records)
     if not local_audit and not diagnostic_preview:
         require_verified_reference_checks(manifests, cases=dataset, records=records, source=source,
             equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
@@ -605,14 +716,31 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')
         if dataset.get("comparison", {}).get("kind") == "uniform_native_local_measurement":
             shutil.copy2(source / "local-run-contract.json", staging / "local-run-contract.json")
+            if (source/"providers.json").is_file():
+                # Publish only an explicit allowlist from the already validated frozen config.
+                config=json.loads((source/'providers.json').read_text())['providers']
+                allowed={'wait_until','block_private_networks','max_bytes','max_age','proxy','formats','only_main_content','extract_depth','include_images','text_verbosity','max_age_hours','include_resource_links','rich_links_limit','document_max_bytes','min_interval_seconds','log_level','retain_complete_diagnostic_log','max_diagnostic_bytes','uniform_native_parameters','dns_mode'}
+                public_options={name:{k:v for k,v in options.items() if k in allowed} for name,options in config.items()}
+                (staging/'frozen-method-options.json').write_text(json.dumps({'schema_version':1,'provider_config_sha256':hashlib.sha256((source/'providers.json').read_bytes()).hexdigest(),'providers':public_options},ensure_ascii=False,indent=2))
+            from harness.reporting.templates import resolve_template
+            (staging / "report-manifest.json").write_text(json.dumps({
+                "schema_version": 1, "template": resolve_template("webfetch"),
+                "evidence_state": "local_measurement", "certified": False,
+                "languages": ["zh", "en"] if include_english else ["zh"], "provider_calls_added": 0,
+                "dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
+                "results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
+                "presentation": {"show_local_status_banners": show_local_status_banners},
+            }, ensure_ascii=False, indent=2))
+        from .report_reading import copy_archived_reading
+        copy_archived_reading(source,staging)
         generate(staging,dataset,records,manifests,include_english=include_english,
-                 authored_interpretation=authored_interpretation)
+                 authored_interpretation=authored_interpretation,
+                 show_local_status_banners=show_local_status_banners)
         if language is not None:
             select_report_language(staging, language)
         from harness.reporting.templates import resolve_template
         from harness.report_languages import generated_languages
-        nonpublication = diagnostic_preview or dataset.get('comparison', {}).get('kind') == 'uniform_native_local_measurement'
-        template_manifest = {'schema_version': 1, 'template': None if nonpublication else resolve_template('webfetch'),
+        template_manifest = {'schema_version': 1, 'template': None if diagnostic_preview else resolve_template('webfetch'),
             'dataset_sha256': hashlib.sha256((staging/'dataset.json').read_bytes()).hexdigest(),
             'results_sha256': hashlib.sha256((staging/'results.jsonl').read_bytes()).hexdigest(),
             'generated_languages': generated_languages(staging)}
@@ -1287,6 +1415,7 @@ def validate_local_presentation(output: Path, binding_path: Path):
     not a fresh build or certification. All measured files remain untouched.
     """
     from lexbench_webfetch.paths import contained_path
+    from harness.report_languages import generated_languages
     output = output.resolve()
     binding = json.loads(binding_path.read_text())
     manifest_path = contained_path(output, 'report-manifest.json')
@@ -1294,7 +1423,7 @@ def validate_local_presentation(output: Path, binding_path: Path):
     if (binding.get('comparison_kind') != 'uniform_native_local_measurement'
             or manifest.get('evidence_state') != 'local_measurement'
             or manifest.get('certified') is not False
-            or manifest.get('languages') not in (['zh'], ['zh', 'en'])
+            or manifest.get('languages') != list(generated_languages(output))
             or not (output / '.generated-report').is_file()):
         raise ValueError('Presentation refresh requires a bound diagnostic snapshot')
     for name, key in [('dataset.json', 'frozen_dataset_sha256'), ('results.jsonl', 'results_sha256')]:
@@ -1303,33 +1432,72 @@ def validate_local_presentation(output: Path, binding_path: Path):
         if (not expected or manifest.get(manifest_key) != expected
                 or hashlib.sha256(contained_path(output, name).read_bytes()).hexdigest() != expected):
             raise ValueError('Presentation input binding changed: ' + name)
+    for item in binding.get('evidence_bindings', []):
+        path = contained_path(output, item['path'], reject_symlinks=True)
+        if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
+            raise ValueError('Presentation evidence binding changed: ' + item['path'])
+    if binding.get('publication_projection'):
+        from .publication_privacy import require_host_metadata_projection
+        require_host_metadata_projection(output, binding['publication_projection'])
     dataset = json.loads((output / 'dataset.json').read_text())
     records = load_jsonl(contained_path(output, 'results.jsonl'))
+    if binding.get('publication_evidence_views'):
+        from .publication_privacy import require_public_evidence_view_inventory
+        require_public_evidence_view_inventory(output, binding['publication_evidence_views'], records)
+    from .native_routes import verify_native_execution_manifests
+    execution = output/'execution.json'
+    if execution.is_file():
+        verify_native_execution_manifests(output, json.loads(execution.read_text())['batches'], dataset, records)
+    scoring_sources = {row['attempt_id']: binding.get('measured_scoring_source_sha256') for row in records}
+    if binding.get('offline_revision'):
+        from .local_revision import validate_revision_chain, read_bound
+        scoring_sources, input_dataset, input_results = validate_revision_chain(
+            output, binding['offline_revision'], dataset, records)
+        if binding.get('task_replacement'):
+            from .local_revision import require_local_task_replacement
+            previous_dataset = json.loads(read_bound(output, input_dataset).read_text())
+            previous_records = load_jsonl(read_bound(output, input_results))
+            require_local_task_replacement(output, binding['task_replacement'], previous_dataset, previous_records)
+    elif binding.get('task_replacement'):
+        from .local_revision import require_local_task_replacement
+        scoring_sources = require_local_task_replacement(output, binding['task_replacement'], dataset, records)
     if (len(records) != binding.get('result_count')
             or len(dataset['cases']) != binding.get('case_count')
             or sorted({row['provider'] for row in records}) != sorted(binding['providers'])
-            or any(row['metrics'].get('scoring_source_sha256') != binding.get('measured_scoring_source_sha256') for row in records)):
+            or any(row['metrics'].get('scoring_source_sha256') != scoring_sources[row['attempt_id']] for row in records)):
         raise ValueError('Presentation refresh cannot change the measured matrix or scoring revision')
     if any(path.is_symlink() for path in output.rglob("*")):
         raise ValueError("Presentation snapshot must not contain symlinks")
     validate_report_ids(dataset, records)
-    if not assess_reliability(dataset, records)['complete']:
+    reliability = assess_reliability(dataset, records)
+    from .cohort_exclusions import require_cohort_exclusions
+    excluded = require_cohort_exclusions(output, dataset, records)
+    if (not reliability['complete'] and
+            (any(reliability[key] for key in ('missing', 'extra', 'duplicates'))
+             or any(item['case_id'] not in excluded for item in reliability['unjudged']))):
         raise ValueError('Presentation refresh requires the complete declared matrix')
     for row in records:
-        artifact = contained_path(output, row['artifact_path'])
-        if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['metrics']['content_sha256']:
-            raise ValueError('Saved output changed: ' + row['attempt_id'])
-        verify_record_public_call_logs(output, row)
+        from .publication_privacy import read_evidence_binding
+        try:
+            read_evidence_binding(output, {'path': row['artifact_path'],
+                                           'sha256': row['metrics']['content_sha256']})
+        except ValueError as error:
+            if binding.get('publication_evidence_views'):
+                raise
+            raise ValueError('Saved output changed: ' + row['attempt_id']) from error
+        verify_record_public_call_logs(output, row,
+            allow_public_views=bool(binding.get('publication_evidence_views')))
     return binding, dataset, records, manifest
 
 
 def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     """Install explanatory routes from the single report owner."""
-    from .safety import unlinked_path, evidence_tree_identity
+    from .safety import unlinked_path, evidence_tree_identity, copy_evidence_file
     output = unlinked_path(output)
     before_tree = evidence_tree_identity(output)
     binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
-    manifest_path = output / "report-manifest.json"
+    authored_interpretation = manifest.get('presentation', {}).get(
+        'authored_interpretation', bool(dataset.get('comparison', {}).get('report_interpretation')))
     # The existing owner renders from saved metrics. Only these explanatory
     # routes may be installed; result pages, logs and every measured byte stay.
     routes = ['index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html', 'changes/index.html']
@@ -1340,10 +1508,11 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
         routes += ['en/' + relative for relative in routes if relative.endswith('.html')]
     with tempfile.TemporaryDirectory(prefix='.presentation-', dir=output.parent) as scratch:
         staging = Path(scratch) / 'report'
-        shutil.copytree(output, staging)
-        shutil.rmtree(staging / 'en', ignore_errors=True)
+        shutil.copytree(output, staging, copy_function=copy_evidence_file)
         batches = json.loads((output / 'execution.json').read_text())['batches']
-        generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True)
+        generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True,
+                 frozen_scores=True, authored_interpretation=authored_interpretation,
+                 english_routes=[r for r in routes if r.endswith('.html') and not r.startswith('en/')])
         changed = []
         for relative in routes:
             before, after = contained_path(output, relative), contained_path(staging, relative)
@@ -1353,7 +1522,7 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
                 changed.append(relative)
         manifest['presentation_refresh'] = {
             'provider_calls_added': 0, 'scores_changed': False,
-            'scoring_git_revision': binding['measured_scoring_git_revision'],
+            'scoring_git_revision': binding.get('measured_scoring_git_revision'),
             'scoring_source_sha256': binding['measured_scoring_source_sha256'],
             'renderer_sha256': hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest(),
             'changed_routes': sorted(set(changed) | set(manifest.get('presentation_refresh', {}).get('changed_routes', []))),
@@ -1361,10 +1530,12 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
         # Stage the permitted pages into a copy of the original snapshot so no
         # renderer side effects can change evidence or unrelated routes.
         selected = Path(scratch) / 'selected'
-        shutil.copytree(output, selected)
+        shutil.copytree(output, selected, copy_function=copy_evidence_file)
         for relative in changed:
             shutil.copy2(staging / relative, selected / relative)
-        (selected / manifest_path.name).write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
+        write_frozen_presentation_manifest(selected, manifest,
+            show_local_status_banners=manifest.get('presentation', {}).get('show_local_status_banners', True),
+            authored_interpretation=authored_interpretation)
         if evidence_tree_identity(output) != before_tree:
             raise ValueError('Presentation snapshot changed during rendering')
         _install_report_tree(selected, output)

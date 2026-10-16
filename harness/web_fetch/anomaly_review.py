@@ -105,7 +105,7 @@ def _normalized(text):
 def _only_forbidden_failed(metrics):
     stable_errors = metrics.get('stable_task_errors', [])
     if (metrics.get('stable_structure_pass') is True
-            and metrics.get('forbidden_hits')
+            and metrics.get('forbidden_requirement_hits')
             and stable_errors
             and all('forbidden' in str(error).lower() for error in stable_errors)):
         return True

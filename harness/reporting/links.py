@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import posixpath
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
@@ -94,6 +95,12 @@ def check(root: Path) -> None:
         return parsed_pages[path]
 
     for page in pages:
+        # Frozen source HTML retains the original site's relative navigation.
+        # It is evidence, while report links pointing to it still need to exist.
+        relative = page.relative_to(root)
+        if "local-evidence" in relative.parts and not re.search(
+                r'<meta\b[^>]*name=[\'"]browser-eval-report[\'"]', page.read_text(encoding="utf-8", errors="replace")):
+            continue
         parser = parse_page(page)
         base_dir = root if (root / 'sample-manifest.json').is_file() else page.parent
         if parser.base_href:

@@ -28,6 +28,7 @@ from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 from lexbench_webfetch.scoring_regressions import ROOT_CAUSE_CATEGORIES, build_correction_provenance
 
 ALLOWED_FIELDS = {
+    "page_identity_required",
     "body_requirements",
     "required_patterns",
     "required_facts",

@@ -28,6 +28,12 @@ def _public_failure_errors(values: list[object]) -> list[str]:
 
 
 class TavilyExtractProvider(Provider):
+    def native_http_arguments(self, case, timeout):
+        body = {'urls': [case.url], 'extract_depth': self.config.get('extract_depth', 'advanced'),
+                'format': 'markdown', 'include_images': bool(self.config.get('include_images', False))}
+        return (str(self.config.get('base_url', 'https://api.tavily.com')).rstrip('/') + '/extract',
+                self.native_http_options(body, {'Authorization': 'Bearer '+str(self.config.get('api_key', ''))}, timeout))
+
     def validate(self) -> list[str]:
         return [] if self.config.get("api_key") else ["api_key"]
 
@@ -49,7 +55,7 @@ class TavilyExtractProvider(Provider):
         # deadline remains authoritative and we omit an invalid API value.
         if extract_timeout >= 1.0 and not self.config.get("uniform_native_parameters"):
             request_body["timeout"] = round(extract_timeout, 3)
-        response = request(
+        response = self.native_http_request(case, request,
             f"{str(self.config.get('base_url', 'https://api.tavily.com')).rstrip('/')}/extract",
             method="POST",
             timeout=http_timeout,
@@ -84,7 +90,7 @@ class TavilyExtractProvider(Provider):
             ok=ok,
             content=content,
             status_code=response.status,
-            final_url=(result.get("url") or case.url) if ok else case.url,
+            final_url=result.get("url") or case.url,
             error_type=error_type,
             error_message=error_message,
             metadata={
@@ -110,5 +116,12 @@ class TavilyExtractProvider(Provider):
                     request_body.get("timeout")
                 ),
                 "images": (result.get("images") or payload.get("images") or []) if ok else [],
+                **({'native_answer_projection': {
+                    'schema_version': 2, 'content_pointer': ['results', 0, 'raw_content'],
+                    'content_format': 'text', 'optional_content': True,
+                    'result_fields': {'final_url': {'pointer': ['results', 0, 'url'], 'fallback': 'request_url'}},
+                    'answer_fields': ({'images': {
+                        'pointer': ['results', 0, 'images'] if result.get('images') else ['images'],
+                        'format': 'identity', 'default': []}} if ok else {})}} if ok or content or result.get('url') else {}),
             },
         )

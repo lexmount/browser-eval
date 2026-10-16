@@ -125,10 +125,11 @@ class ReportRevisionTests(unittest.TestCase):
    self.assertNotRegex(translate_text(source),r'[\u4e00-\u9fff]',source)
  def test_regional_endpoint_distinct(self):
   self.assertNotEqual(SPECS['lexmount-cn']['entry'],SPECS['lexmount-global']['entry'])
- def test_review_label_names_codex(self):
+ def test_review_label_links_records_without_claiming_fresh_verification(self):
   audit={'attempts':[{'attempt_id':'one','final_verdict':'pass'}]}
   row=review_cell(audit,[{'attempt_id':'one'}])
-  self.assertIn('1/1 · Codex 已核验',row)
+  self.assertIn('1/1 · 复核记录',row)
+  self.assertNotIn('已核验',row)
  def test_headless_access_covers_every_method_and_lists_setup_variables(self):
   self.assertEqual(set(HEADLESS_ACCESS),{'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','moli-1.1.11','moli-pr643','chromium'})
   for access in HEADLESS_ACCESS.values():
@@ -286,6 +287,15 @@ class ReportRevisionTests(unittest.TestCase):
    self.assertIn('src="../../guide/figures/en.png"',translated)
    self.assertNotIn('data-en-',translated)
    self.assertIn('data-evidence="原始证据"',translated)
+ def test_methodology_selects_english_figure_without_localizing_measured_markup(self):
+  from pathlib import PurePosixPath
+  from harness.web_fetch.report_i18n import localize_html
+  markup='<img src="../assets/methodology/zh.png" data-en-src="../assets/methodology/en.png" alt="参考标注"><pre><img src="https://example.org/evidence.png" data-en-src="https://example.org/wrong.png"></pre>'
+  result=localize_html(markup,PurePosixPath('methodology/index.html'))
+  self.assertIn('src="../../assets/methodology/en.png"',result)
+  self.assertNotIn('src="../../assets/methodology/zh.png"',result)
+  self.assertIn('<pre><img src="https://example.org/evidence.png" data-en-src="https://example.org/wrong.png"></pre>',result)
+
  def test_article_embedded_assets_and_measured_markup_stay_distinct(self):
   from pathlib import PurePosixPath
   from harness.web_fetch.report_i18n import localize_html
@@ -296,6 +306,21 @@ class ReportRevisionTests(unittest.TestCase):
   outside=localize_html(markup,PurePosixPath('attempts/example.html'))
   self.assertIn('src="data:image/png;base64,YQ==" data-en-src="data:image/png;base64,Yg=="',outside)
 
+
+def test_methodology_image_parity_rejects_wrong_or_missing_english_companion(tmp_path):
+ import pytest
+ from harness.web_fetch.report_check import PageShape, check_localized_image_sources
+ zh=PageShape(tmp_path/'methodology/index.html')
+ zh.feed('<img src="zh.png" data-en-src="en.png">')
+ for source in ('en.png','zh.png','missing.png',None):
+  en=PageShape(tmp_path/'en/methodology/index.html')
+  en.feed('<img src="'+source+'">' if source else '<p>No figure</p>')
+  if source=='en.png':
+   check_localized_image_sources(zh,en,lambda page,value:value)
+   assert zh.data==en.data
+  else:
+   with pytest.raises(ValueError,match='Localized image'):
+    check_localized_image_sources(zh,en,lambda page,value:value)
 class MeasuredInterfaceIdentityTests(unittest.TestCase):
  def render(self, records, name='moli'):
   import json

@@ -63,7 +63,8 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
                 '<p>输入为任务定义与超时预算，输出为预设的内容或错误。完整输出见该方法的结果详情。</p>',
                 'interface-' + name)
         return body
-    if not authored:
+    native=(out/'dataset.json').is_file() and json.loads((out/'dataset.json').read_text()).get('comparison',{}).get('kind')=='uniform_native_local_measurement'
+    if not authored and not native:
         body=hero('本轮方法与接口','以下内容来自本轮结果记录与适配器契约。')
         anchors={'method-guide-pricing'}
         for name in sorted({row['provider'] for row in records}):
@@ -98,6 +99,11 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
         kind,desc,url=PROFILES.get(name,PROFILES.get(engine,('测试适配器','本地可重复测试实现。','https://example.com')))
         if engine and engine!=name:url=browser_method_registry()[name].get('source_url',url)
         r=next(r for r in records if r['provider']==name);info=method_info(r['provider_type'])
+        if native:
+            model=method_page_model(name,name,[row for row in records if row['provider']==name])
+            desc=model['contract']
+            if name=='moli-webfetch':url='https://github.com/lexmount/moli'
+            info={**info,'output':'产品原生返回；保留实际输出与日志','freshness':'缓存与等待选项见本轮固定配置'}
         intro.append(('',cell(link('../providers/'+name+'.html',display_name(name)))+cell(kind)+cell(desc)+cell(esc(info['output']))+cell(esc(info['freshness']))+cell(link(url,'文档 / 源码 ↗'))))
     for item in counts:
         name=item['provider'];n=item['repository_count'];known=n is not None
@@ -122,7 +128,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
         body+=section('参评方法',cards([('远程接口','Kitesurf 使用指定 browser=kitesurf 的 Cloudflare Browser Run API；耗时包含公网往返、远端排队与执行。'),('本地原生接口','Lightpanda、Obscura 与 Moli 按任务使用各自官方接口。正文、文档和媒体任务的具体调用及输出格式见报告解读中的接口表。'),('Chromium 的正文转换','Chromium 通过原生接口读取渲染后的 DOM，再用 node-html-markdown 2.0.0 转成 Markdown。其他浏览器的正文不经过共同转换；文档任务不使用外部 PDF / DOCX 解析器。所有方法均不调用模型。')]))
         body+=section('Kitesurf 能否本地部署',cards([('当前结论','截至 2026-09-07，Cloudflare 尚未发布 Kitesurf 源码或自行部署包；本轮只能通过 Cloudflare 账号版 Browser Run 远程测试，不能把它当作本地开源浏览器。'),('后续意向','Cloudflare 官方博客表示计划在准备好后开源，并希望允许客户部署到自己的账户。这是未来计划，不是当前已有能力。')])+'<p class="source-note"><a href="https://developers.cloudflare.com/browser-run/kitesurf/">当前官方接入说明</a> · <a href="https://blog.cloudflare.com/kitesurf/">官方开源计划说明</a></p>')
     else:
-        body+=section('参评方法',cards([('托管 API','Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地运行','LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。')]))
+        body+=section('参评方法',cards([('托管 API','Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地运行','LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。')]))
     body+=section('能力、价格与接口',tabs('method-guide',[
         ('capabilities','官方能力',render_capabilities(out,names,table=table,cell=cell,link=link,records=records)),
         ('pricing','价格与计费',render_pricing(out,names,table=table,cell=cell,link=link,esc=esc)),

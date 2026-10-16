@@ -145,6 +145,9 @@ def is_direct_pdf_document(request):
         return False
     if request.get("task_kind", "body") != "body":
         return False
+    if request.get("uniform_native_parameters"):
+        from harness.web_fetch.native_routes import declared_input_media_kind
+        return declared_input_media_kind(request) == "direct_pdf"
     path = urlsplit(request["url"]).path.lower().rstrip("/")
     return path.endswith(".pdf") or "/pdf/" in path
 
@@ -166,7 +169,7 @@ async def fetch_file(request, directory):
     ) as crawler:
         result = await crawler.crawl(
             request["url"],
-            config=CrawlerRunConfig(page_timeout=int(request["timeout_seconds"] * 1000)),
+            config=CrawlerRunConfig(**({} if request.get("uniform_native_parameters") else {"page_timeout": int(request["timeout_seconds"] * 1000)})),
         )
     return {
         "ok": 200 <= result.status_code < 300,
@@ -192,9 +195,9 @@ async def _run_pdf_document(request):
             url=request["url"],
             config=CrawlerRunConfig(
                 cache_mode=CacheMode.BYPASS,
-                page_timeout=int(timeout_seconds * 1000),
+                **({} if request.get("uniform_native_parameters") else {"page_timeout": int(timeout_seconds * 1000)}),
                 scraping_strategy=scraping_strategy,
-                verbose=False,
+                verbose=request.get("log_level") == "debug",
             ),
         )
     markdown = result.markdown.raw_markdown if result.markdown else ""
@@ -408,7 +411,7 @@ async def main() -> None:
                     "ok": bool(result.success),
                     # Preserve HTML, canonical Markdown, headers and native errors
                     # privately; answer selection remains raw_markdown.
-                    "raw_tool_response": result.model_dump(mode="json"),
+                    "raw_tool_response": result.model_dump(mode="json", fallback=str),
                     "content": markdown,
                     "files": files,
                     "status_code": result.redirected_status_code if result.redirected_status_code is not None else result.status_code,

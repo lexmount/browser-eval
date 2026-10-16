@@ -8,7 +8,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from pathlib import PurePosixPath
-from urllib.parse import urlencode, urljoin, urlsplit
+from urllib.parse import urlencode, urlsplit
 
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
@@ -27,22 +27,6 @@ _DIRECT_DOCUMENT_EXTENSIONS = (
     ".xls",
     ".xlsx",
 )
-_MEDIA_EXTENSIONS = (".mp4", ".webm", ".mov", ".m4v", ".mp3", ".wav", ".ogg")
-_VIDEO_ARCHIVE_EXTENSIONS = (".mp4.zip", ".webm.zip", ".mov.zip", ".m4v.zip")
-
-
-def _video_page_href(path: str) -> bool:
-    """Classify a page link by its URL route, not by the expected answer.
-
-    A video-link task needs detail-page hrefs, but ordinary site navigation
-    must not be reported as a video merely because it was in ``a[href]``.
-    This is intentionally a conservative candidate filter; it does not claim
-    to discover every provider's opaque video URL scheme.
-    """
-    return any(segment in {"video", "videos", "watch"}
-               for segment in path.lower().split("/") if segment)
-
-
 def _uses_direct_document_route(case: EvalCase) -> bool:
     """Choose file conversion only when the supplied URL itself names a file.
 
@@ -203,65 +187,6 @@ def _markdown_conversion_content(payload: dict[str, object]) -> str:
     return result if isinstance(result, str) else ""
 
 
-def _resource_urls(
-    payload: dict[str, object],
-    *,
-    base_url: str,
-    track: str,
-    include_video_page_links: bool = False,
-) -> list[str]:
-    result = payload.get("result")
-    if not isinstance(result, list):
-        return []
-    raw_values: list[tuple[str, str]] = []
-    for group in result:
-        if not isinstance(group, dict) or not isinstance(group.get("results"), list):
-            continue
-        if include_video_page_links and group.get("selector") != "a[href]":
-            # A declared detail-link task does not ask for player/audio/iframe
-            # sources. Those can be ordinary utility embeds on a homepage.
-            continue
-        for element in group["results"]:
-            if not isinstance(element, dict) or not isinstance(element.get("attributes"), list):
-                continue
-            for attribute in element["attributes"]:
-                if not isinstance(attribute, dict):
-                    continue
-                name, value = attribute.get("name"), attribute.get("value")
-                if isinstance(name, str) and isinstance(value, str):
-                    folded = name.casefold()
-                    if folded in {"src", "srcset", "href", "data-src", "data-original"}:
-                        raw_values.append((folded, value))
-    urls: set[str] = set()
-    for name, value in raw_values:
-        candidates = [value]
-        if name == "srcset":
-            candidates = [part.strip().split()[0] for part in value.split(",") if part.strip()]
-        for candidate in candidates:
-            try:
-                absolute = urljoin(base_url, candidate.strip())
-                parsed = urlsplit(absolute)
-            except ValueError:
-                continue
-            if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-                continue
-            # A downloadable video may be packaged as a ZIP (for example,
-            # ``movie.mp4.zip``).  Keep those media archives without admitting
-            # unrelated page/navigation links or arbitrary ZIP files.
-            if name == "href" and track == "video":
-                media_file = parsed.path.lower().endswith(
-                    _MEDIA_EXTENSIONS + _VIDEO_ARCHIVE_EXTENSIONS
-                )
-                video_page = (include_video_page_links
-                              and _video_page_href(parsed.path))
-                if not (media_file or video_page):
-                    continue
-            if name == "href" and track == "image":
-                continue
-            urls.add(absolute)
-    return sorted(urls)
-
-
 def _origin_status(value: object) -> int | None:
     """Normalize Cloudflare's target-page status without accepting booleans."""
     if isinstance(value, bool):
@@ -291,6 +216,22 @@ def _interface_error(*, response_status: int,
 
 
 class CloudflareMarkdownProvider(Provider):
+    def native_http_interface(self, case):
+        return ('/content' if self.type == 'cloudflare_content' else '/scrape'
+                if case.task_kind == 'resource' and case.track in {'image', 'video'} else '/markdown')
+
+    def native_http_arguments(self, case, timeout):
+        interface = self.native_http_interface(case)
+        body = {'url': case.url, 'gotoOptions': {'waitUntil': self.config.get('wait_until', 'networkidle2')}}
+        if interface == '/scrape':
+            selectors = (['img', 'picture source'] if case.track == 'image' else
+                         ['video', 'video source', 'audio', 'audio source', 'iframe', 'a[href]'])
+            body['elements'] = [{'selector': value} for value in selectors]
+        endpoint = 'https://api.cloudflare.com/client/v4/accounts/'+str(self.config.get('account_id', ''))+'/browser-rendering'+interface
+        if interface != '/content' and self.config.get('browser'):
+            endpoint += '?' + urlencode({'browser': self.config['browser']})
+        return endpoint, self.native_http_options(body, {'Authorization': 'Bearer '+str(self.config.get('api_token', ''))}, timeout)
+
     def validate(self) -> list[str]:
         return [name for name in ("api_token", "account_id") if not self.config.get(name)]
 
@@ -330,7 +271,7 @@ class CloudflareMarkdownProvider(Provider):
                 account_id=account_id,
                 http_timeout=http_timeout,
             )
-        if _uses_direct_document_route(case) and self.config.get("browser") != "kitesurf":
+        if not self.config.get("uniform_native_parameters") and self.config.get("browser") != "kitesurf" and _uses_direct_document_route(case):
             return self._fetch_direct_document(
                 case,
                 account_id=account_id,
@@ -355,7 +296,7 @@ class CloudflareMarkdownProvider(Provider):
         wait_metadata = None
         plan = None
         native_contract = None
-        if case.track == "dynamic" and not native_default_case(case) and "url" in request_body:
+        if case.track == "dynamic" and not self.config.get("uniform_native_parameters") and not native_default_case(case) and "url" in request_body:
             try:
                 if not math.isfinite(timeout) or timeout <= 0:
                     raise ValueError
@@ -445,7 +386,7 @@ class CloudflareMarkdownProvider(Provider):
                 "support": "unsupported",
                 "harness_content_assembly": False,
             }
-        response = request(
+        response = self.native_http_request(case, request,
             endpoint + ("?" + query if query else ""),
             method="POST",
             timeout=http_timeout,
@@ -481,7 +422,7 @@ class CloudflareMarkdownProvider(Provider):
             # Task scoring, not request classification, decides its usefulness.
             content=content if envelope_success else "",
             status_code=response.status,
-            final_url=meta.get("finalUrl"),
+            final_url=meta.get("finalUrl") or case.url,
             title=meta.get("title"),
             error_type=error_type,
             error_message=error_message,
@@ -491,6 +432,11 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                **({'native_answer_projection': {'schema_version': 2,
+                    'content_pointer': ['result'], 'content_format': 'text' if envelope_success and isinstance(payload.get('result', ''), str) else 'empty', 'optional_content': True,
+                    'result_fields': {'title': {'pointer': ['meta', 'title']},
+                        'final_url': {'pointer': ['meta', 'finalUrl'], 'fallback': 'request_url'}}}}
+                   if (envelope_success and isinstance(payload.get('result', ''), str)) or meta else {}),
                 "route": route,
                 "wait": wait_metadata,
                 "browser": self.config.get("browser"),
@@ -517,17 +463,20 @@ class CloudflareMarkdownProvider(Provider):
         http_timeout: float,
     ) -> ProviderResult:
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
-        include_video_page_links = case.track == "video" and any(
+        native = bool(self.config.get("uniform_native_parameters"))
+        include_video_page_links = case.track == "video" and (native or any(
             isinstance(resource, dict) and resource.get("kind") == "video-link"
             for resource in case.expected_resources
-        )
-        selectors = (
-            ["img", "picture source"]
-            if case.track == "image"
-            else (["a[href]"] if include_video_page_links else
-                  ["video", "video source", "audio", "audio source", "iframe", "a[href]"])
-        )
-        response = request(
+        ))
+        if case.track == "image":
+            selectors = ["img", "picture source"]
+        elif include_video_page_links and not native:
+            selectors = ["a[href]"]
+        else:
+            # One native media request for every video-resource task; never
+            # choose selectors from expected URLs or reference answers.
+            selectors = ["video", "video source", "audio", "audio source", "iframe", "a[href]"]
+        response = self.native_http_request(case, request,
             f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/scrape"
             + ("?" + urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""),
             method="POST",
@@ -539,9 +488,9 @@ class CloudflareMarkdownProvider(Provider):
                 "elements": [{"selector": selector} for selector in selectors],
                 "gotoOptions": {
                     "waitUntil": self.config.get("wait_until", "networkidle2"),
-                    "timeout": service_timeout_ms,
+                    **({} if self.config.get("uniform_native_parameters") else {"timeout": service_timeout_ms}),
                 },
-                "actionTimeout": service_timeout_ms,
+                **({} if self.config.get("uniform_native_parameters") else {"actionTimeout": service_timeout_ms}),
             },
         )
         try:
@@ -551,15 +500,20 @@ class CloudflareMarkdownProvider(Provider):
         if not isinstance(payload, dict):
             payload = {}
         envelope_success = payload.get("success") is True
-        # The declared output *kind* is part of the public task contract, not
-        # answer/reference data. A video-link task needs page hrefs; playback
-        # resource tasks still exclude ordinary navigation links.
-        urls = _resource_urls(
-            payload,
-            base_url=case.url,
-            track=case.track,
-            include_video_page_links=include_video_page_links,
-        )
+        from lexbench_webfetch.answer_projection import project_native_answer
+        answer_key = 'images' if case.track == 'image' else 'videos'
+        meta = payload.get('meta') if isinstance(payload.get('meta'), dict) else {}
+        effective_url = meta.get('finalUrl') or case.url
+        projection = {'schema_version': 2, 'content_pointer': ['result'],
+                      'content_format': 'json', 'result_fields': {'final_url': {
+                          'pointer': ['meta', 'finalUrl'], 'fallback': 'request_url'}},
+                      'answer_fields': {answer_key: {
+                          'pointer': ['result'], 'format': 'html_attribute_urls',
+                          'base_url': effective_url}}}
+        answer, fields = ('', {})
+        if envelope_success:
+            answer, fields = project_native_answer(payload, projection)
+        urls = fields.get(answer_key, [])
         error_type, error_message = _interface_error(
             response_status=response.status,
             envelope_success=envelope_success,
@@ -570,9 +524,9 @@ class CloudflareMarkdownProvider(Provider):
         answer_key = "images" if case.track == "image" else "videos"
         return ProviderResult(
             ok=error_type is None,
-            content="\n".join(urls) if envelope_success else "",
+            content=answer,
             status_code=response.status,
-            final_url=case.url,
+            final_url=effective_url,
             error_type=error_type,
             error_message=error_message,
             metadata={
@@ -580,6 +534,9 @@ class CloudflareMarkdownProvider(Provider):
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
                 "route": "browser_rendering_scrape_resources",
+                **({'native_answer_projection': (projection if envelope_success else {
+                    **projection, 'content_format': 'empty', 'answer_fields': {}})}
+                   if envelope_success or meta else {}),
                 "browser": self.config.get("browser"),
                 "endpoint_route": "/browser-rendering/scrape" + ("?" + urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""),
                 "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -755,12 +712,18 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                **({'native_answer_projection': {'schema_version': 2,
+                    'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True,
+                    'result_fields': {'final_url': {'format': 'transport_response_url'}}}}
+                   if envelope_success and isinstance(payload.get('result', ''), str) else {}),
                 "route": "workers_ai_tomarkdown",
                 "source_status": source.status,
                 "source_sha256": hashlib.sha256(source.body).hexdigest(),
                 "source_bytes": len(source.body),
                 "source_content_type": content_type,
                 "source_final_url": source.url,
+                "source_transport_receipt": {"response_url": source.url,
+                    "body_sha256": hashlib.sha256(source.body).hexdigest()},
                 "source_elapsed_ms": source_elapsed_ms,
                 "conversion_elapsed_ms": conversion_elapsed_ms,
                 "conversion_attempted": True,
@@ -774,6 +737,9 @@ class CloudflareMarkdownProvider(Provider):
 
 
 class CloudflareContentProvider(Provider):
+    native_http_interface = CloudflareMarkdownProvider.native_http_interface
+    native_http_arguments = CloudflareMarkdownProvider.native_http_arguments
+
     """Rendered HTML diagnostic. It is deliberately excluded from the readable-text leaderboard."""
 
     def validate(self) -> list[str]:
@@ -784,7 +750,7 @@ class CloudflareContentProvider(Provider):
         account_id = str(self.config.get("account_id", ""))
         http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
-        response = request(
+        response = self.native_http_request(case, request,
             f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/content",
             method="POST",
             timeout=http_timeout,
@@ -822,13 +788,17 @@ class CloudflareContentProvider(Provider):
             ok=ok,
             content=content if envelope_success else "",
             status_code=response.status,
-            final_url=case.url,
+            final_url=meta.get("finalUrl") or case.url,
             error_type=error_type,
             error_message=error_message,
             metadata={
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                **({'native_answer_projection': {'schema_version': 2,
+                    'content_pointer': ['result'], 'content_format': 'text' if envelope_success and isinstance(payload.get('result', ''), str) else 'empty', 'optional_content': True,
+                    'result_fields': {'final_url': {'pointer': ['meta', 'finalUrl'], 'fallback': 'request_url'}}}}
+                   if (envelope_success and isinstance(payload.get('result', ''), str)) or meta else {}),
                 "output_contract": "rendered_html",
                 "upstream_status": upstream_status,
                 "empty_content": envelope_success and not content,

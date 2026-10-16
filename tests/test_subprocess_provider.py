@@ -121,8 +121,70 @@ class SubprocessProviderTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             from harness.web_fetch.runner import persist_result_artifacts
             target=Path(directory)
-            persist_result_artifacts(target, Path('artifacts/worker/control.txt'), result)
+            persist_result_artifacts(target, Path('artifacts/worker/control.txt'), result, request_url='https://example.com')
             self.assertEqual(json.loads((target/result.metadata['raw_response_path']).read_bytes()),payload)
+
+    def test_persistence_rejects_answer_edit_or_candidate_filtering(self):
+        import hashlib
+        from harness.web_fetch.models import ProviderResult
+        from harness.web_fetch.runner import persist_result_artifacts
+        from lexbench_webfetch.answer_projection import project_native_answer
+        cases = [
+            ({'content': 'Body | Saved to: /Users/person/work/page.txt'},
+             {'schema_version': 1, 'content_pointer': ['content'], 'content_format': 'text'}),
+            ({'result': [{'selector': 'a[href]', 'results': [{'attributes': [
+                {'name': 'href', 'value': '/opaque-resource'},
+                {'name': 'href', 'value': '/about'},
+                {'name': 'title', 'value': 'Native label'}]}]}]},
+             {'schema_version': 1, 'content_pointer': ['result'], 'content_format': 'json',
+              'answer_fields': {'videos': {'pointer': ['result'],
+                  'format': 'html_attribute_urls', 'base_url': 'https://example.test/'}}}),
+        ]
+        for payload, declaration in cases:
+            content, fields = project_native_answer(payload, declaration)
+            raw = json.dumps(payload).encode()
+            for defect in (None, 'edited_text', 'filtered_field', 'missing_raw'):
+                if defect == 'filtered_field' and not fields:
+                    continue
+                with self.subTest(format=declaration['content_format'], defect=defect):
+                    metadata = {**fields, 'native_answer_projection': declaration,
+                        '_raw_response_b64': base64.b64encode(raw).decode(),
+                        'raw_response_sha256': hashlib.sha256(raw).hexdigest(),
+                        'raw_response_bytes': len(raw)}
+                    answer = content
+                    if defect == 'edited_text': answer = content.replace('/about', '') + 'changed'
+                    if defect == 'filtered_field': metadata['videos'] = metadata['videos'][:1]
+                    if defect == 'missing_raw': metadata.pop('_raw_response_b64')
+                    result = ProviderResult(True, answer, metadata=metadata)
+                    with tempfile.TemporaryDirectory() as directory:
+                        target = Path(directory)/'artifacts/control/result.txt'
+                        if defect:
+                            with self.assertRaisesRegex(ValueError, 'native'):
+                                persist_result_artifacts(Path(directory),
+                                    Path('artifacts/control/result.txt'), result)
+                            self.assertFalse(target.exists())
+                        else:
+                            persist_result_artifacts(Path(directory),
+                                Path('artifacts/control/result.txt'), result)
+                            self.assertEqual(target.read_text(), content)
+                            if declaration['content_format'] == 'json':
+                                self.assertEqual(json.loads(content), payload['result'])
+
+    def test_deadline_discards_answer_without_discarding_native_evidence(self):
+        import hashlib
+        from harness.web_fetch.models import ProviderResult
+        from harness.web_fetch.runner import persist_result_artifacts
+        raw = json.dumps({'content': 'late native answer'}).encode()
+        answer = ProviderResult(False, '', error_type='timeout', metadata={
+            'native_answer_projection': {'schema_version': 1,
+                'content_pointer': ['content'], 'content_format': 'text'},
+            '_raw_response_b64': base64.b64encode(raw).decode(),
+            'raw_response_sha256': hashlib.sha256(raw).hexdigest(),
+            'raw_response_bytes': len(raw)})
+        with tempfile.TemporaryDirectory() as directory:
+            persist_result_artifacts(Path(directory), Path('artifacts/worker/late.txt'), answer)
+            self.assertEqual((Path(directory)/'artifacts/worker/late.txt').read_bytes(), b'')
+            self.assertEqual((Path(directory)/answer.metadata['raw_response_path']).read_bytes(), raw)
 
     def test_native_langchain_document_is_retained_without_changing_answer(self):
         import threading
@@ -260,3 +322,89 @@ class SubprocessProviderTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# These controls operate only on synthetic saved responses; no provider calls.
+import pytest
+
+
+@pytest.mark.parametrize('field', ['images', 'links', 'videos', 'media', 'extras'])
+@pytest.mark.parametrize('declare_content', [False, True])
+def test_undeclared_score_fields_cannot_enter_persistence(tmp_path, field, declare_content):
+    import hashlib
+    from harness.web_fetch.models import ProviderResult
+    from harness.web_fetch.runner import persist_result_artifacts
+    raw = b'{"content":"answer","metadata":{"images":["https://example.test/native.png"]}}'
+    metadata = {field: ['https://example.test/forged.png'],
+                '_raw_response_b64': base64.b64encode(raw).decode(),
+                'raw_response_sha256': hashlib.sha256(raw).hexdigest(), 'raw_response_bytes': len(raw)}
+    if declare_content:
+        metadata['native_answer_projection'] = {'schema_version': 1,
+            'content_pointer': ['content'], 'content_format': 'text'}
+    with pytest.raises(ValueError, match='undeclared'):
+        persist_result_artifacts(tmp_path, Path('artifacts/test.txt'), ProviderResult(True, 'answer', metadata=metadata))
+    assert not (tmp_path/'artifacts/test.txt').exists()
+
+
+@pytest.mark.parametrize('defect', [None, 'replace_image', 'drop_wrong_image', 'forge_file'])
+def test_native_worker_fields_and_files_are_exactly_bound(tmp_path, defect):
+    import hashlib
+    from harness.web_fetch.models import ProviderResult
+    from harness.web_fetch.runner import persist_result_artifacts
+    from harness.web_fetch.call_boundary import prepare_answer
+    payload = {'content': 'answer', 'metadata': {'images': ['https://example.test/good.png',
+                                                         'https://example.test/wrong.png']},
+               'files': [{'base64': base64.b64encode(b'original file bytes').decode()}]}
+    raw = json.dumps(payload).encode()
+    metadata = {**payload['metadata'], 'native_answer_projection': {'schema_version': 1,
+        'content_pointer': ['content'], 'content_format': 'text',
+        'answer_fields': {'images': {'pointer': ['metadata', 'images'], 'format': 'identity'}},
+        'files': {'pointer': ['files'], 'format': 'worker_files'}},
+        '_raw_response_b64': base64.b64encode(raw).decode(),
+        'raw_response_sha256': hashlib.sha256(raw).hexdigest(), 'raw_response_bytes': len(raw)}
+    files = [{'data': b'original file bytes'}]
+    if defect == 'replace_image': metadata['images'] = ['https://example.test/forged.png']
+    if defect == 'drop_wrong_image': metadata['images'] = metadata['images'][:1]
+    if defect == 'forge_file': files = [{'data': b'forged file bytes'}]
+    result = prepare_answer(ProviderResult(True, 'answer', metadata=metadata, files=files),
+                           EvalCase('case', 'Case', 'https://example.test/', 'control', []))
+    if defect:
+        with pytest.raises(ValueError, match='projection'):
+            persist_result_artifacts(tmp_path, Path('artifacts/test.txt'), result)
+    else:
+        persist_result_artifacts(tmp_path, Path('artifacts/test.txt'), result)
+        from harness.web_fetch.artifacts import verify_record_artifacts
+        record = {'attempt_id': 'test', 'ok': True, 'artifact_path': 'artifacts/test.txt',
+                  'metrics': {'content_sha256': hashlib.sha256(b'answer').hexdigest()},
+                  'provider_metadata': result.metadata}
+        verify_record_artifacts(tmp_path, record)
+        result.metadata['file_evaluation']['pass'] = True
+        with pytest.raises(ValueError, match='file evaluation'):
+            verify_record_artifacts(tmp_path, record)
+        result.metadata['file_evaluation']['pass'] = False
+        result.metadata['images'] = ['https://example.test/forged.png']
+        with pytest.raises(ValueError, match='projection'):
+            verify_record_artifacts(tmp_path, record)
+
+
+def test_file_scoring_recomputes_acceptance_from_native_bytes():
+    from lexbench_webfetch.scoring import score_attempt
+    from lexbench_webfetch.metrics import task_passed
+    raw = json.dumps({'content': '', 'files': [{'base64': base64.b64encode(b'not a PNG').decode()}]}).encode()
+    metadata = {'file_evaluation': {'pass': True}, 'native_answer_projection': {'schema_version': 1,
+        'content_pointer': ['content'], 'content_format': 'text',
+        'files': {'pointer': ['files'], 'format': 'worker_files'}}}
+    metrics = score_attempt({'url': 'https://example.test/', 'task_kind': 'file'}, b'', ok=True,
+        metadata=metadata, previous_metrics={'raw_file_pass': True}, native_response=raw,
+        native_files=[{'data': b'not a PNG'}])
+    assert metrics['raw_file_pass'] is False
+    assert not task_passed(True, metrics, 'file')
+
+
+def test_byte_projection_cannot_claim_unverified_structured_metadata():
+    from lexbench_webfetch.answer_projection import require_native_answer_projection
+    metadata = {'images': ['https://example.test/forged.png'], 'native_answer_projection': {
+        'schema_version': 1, 'source_format': 'bytes', 'content_format': 'utf8',
+        'answer_fields': {'images': {'pointer': ['images'], 'format': 'identity'}}}}
+    with pytest.raises(ValueError, match='cannot declare'):
+        require_native_answer_projection('native stdout', metadata, b'native stdout')

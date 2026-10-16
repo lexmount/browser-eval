@@ -8,9 +8,7 @@ import pytest
 from harness.web_fetch import local_audit
 from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report import local_audit_banner, provider_configuration
-from lexbench_webfetch.scoring import score_attempt
-from lexbench_webfetch.metrics import task_passed
-from lexbench_webfetch.scoring_regressions import load_scoring_regressions
+from harness.web_fetch.storage import data_home
 from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
 
@@ -41,7 +39,26 @@ def _dataset():
     return json.loads(read_frozen_dataset_bytes(DATASET_PATH).decode("utf-8"))
 
 
-def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
+def test_current_scorer_successor_keeps_bound_corrections_executable():
+    from lexbench_webfetch.scoring_regressions import require_scoring_regressions
+    revision = json.loads(REVISION_PATH.read_text())
+    successor = revision['current_shared_scorer_authority']
+    path = ROOT / successor['path']
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == successor['sha256']
+    receipt = json.loads(path.read_text())
+    assert receipt['provider_calls'] == 0
+    assembly = json.loads((ROOT / 'evaluation/webfetch-seven-family-430/dataset-assembly.json').read_text())
+    binding = assembly['case_corrections']
+    path = ROOT / binding['path']
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == binding['sha256']
+    corrections = json.loads(path.read_text())
+    identifiers = set(receipt['correction_provenance']['regression_ids'])
+    identifiers.update(identifier for row in corrections['cases']
+                       for identifier in row.get('evidence', {}).get('regression_ids', []))
+    require_scoring_regressions(sorted(identifiers))
+
+
+def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig, tmp_path):
     dataset = _dataset()
     cases = dataset["cases"]
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
@@ -319,7 +336,6 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
                 restored.pop(leaf)
         historical = json.dumps(historical_dataset, ensure_ascii=False, indent=2) + '\n'
         assert hashlib.sha256(historical.encode()).hexdigest()==followup['predecessor_sha256']
-    controls = load_scoring_regressions()
     for change in revision["dynamic_dataset"]["changes"]:
         case = next(case for case in cases if case["id"] == change["case_id"])
         assert case[change["field"]] == change["value"]
@@ -345,45 +361,29 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
                    for row in revision['shared_scorer_followups'])
         assert set(parallel['regression_ids']) <= set(scorer_revision['regression_ids'])
     assert scorer_revision["main_baseline_sha256"] == compatibility["bindings"]["scoring_source_sha256"]
-    successor = revision["current_shared_scorer_authority"]
-    successor_path = ROOT / successor["path"]
-    assert hashlib.sha256(successor_path.read_bytes()).hexdigest() == successor["sha256"]
-    successor_receipt = json.loads(successor_path.read_text())
-    assert successor_receipt["provider_calls"] == 0
-    assert successor_receipt["scorer_binding"]["revised_scoring_source_sha256"] == (
-        "8bc386c7c081b70701d635e4fc2ead8c22a7f9a6004ec42adcaf391f9d470f1b"
-    )
-    assembly_definition = json.loads(
-        (ROOT / "evaluation/webfetch-seven-family-430/dataset-assembly.json").read_text())
-    correction_binding = assembly_definition["case_corrections"]
-    correction_path = ROOT / correction_binding["path"]
-    assert hashlib.sha256(correction_path.read_bytes()).hexdigest() == correction_binding["sha256"]
-    current_corrections = json.loads(correction_path.read_text())
-    current_scorer_bindings = {
-        row["evidence"]["scoring_source_sha256"]
-        for row in current_corrections["cases"]
-        if row.get("evidence", {}).get("scoring_source_sha256")
-    }
-    # These reference-correction receipts record their original scorer, not
-    # whatever unrelated scoring fixes are present in the current checkout.
-    assert current_scorer_bindings == {
-        "db507a6f0a90c8346aaa0fc7613505c8050c20427547cfccd94754548f1c8e9f"}
-    current_regression_ids = {
-        identifier
-        for row in current_corrections["cases"]
-        for identifier in row.get("evidence", {}).get("regression_ids", [])
-    }
-    assert current_regression_ids <= set(controls)
-    for identifier in current_regression_ids:
-        control = controls[identifier]
-        metrics = score_attempt(control['case'], control['artifact'].encode(), ok=control['ok'],
-                                metadata=control.get('metadata'), title=control.get('title'),
-                                final_url=control.get('final_url'))
-        assert task_passed(control['ok'], metrics, control['case'].get('task_kind','body')) is control['expected_task_pass']
-        for key, expected in control.get('expected_metrics', {}).items():
-            assert metrics.get(key) == expected
-
-    assert set(successor_receipt["correction_provenance"]["regression_ids"]) <= set(controls)
+    # Validate the frozen audit against its actual source bytes, not a later
+    # implementation. Keep historical snapshots external and read-only.
+    scorer_files = ("scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
+        "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
+        "response_input.py", "body_coverage.py", "structured_tables.py",
+        "ordered_tree.py", "composite_tasks.py")
+    snapshot = data_home() / "scoring-snapshots" / scorer_revision["revised_sha256"]
+    required = ["harness/web_fetch/" + name for name in scorer_files]
+    required += ["evaluation/scoring-regressions.json", "tests/test_composite_tasks.py", "tests/test_stable_tasks.py"]
+    missing = [name for name in required if not (snapshot / name).is_file()]
+    if missing:
+        message = "Requires frozen historical scorer inputs: " + str(snapshot)
+        if pytestconfig.getoption("--require-reference-inputs"):
+            pytest.fail(message)
+        pytest.skip(message)
+    assert not snapshot.is_symlink()
+    assert not any((snapshot / name).is_symlink() for name in required)
+    assert scorer_revision["revised_sha256"] == hashlib.sha256(b"\0".join(
+        (snapshot / "harness/web_fetch" / name).read_bytes() for name in scorer_files)).hexdigest()
+    assert scorer_revision["scoring_regressions_sha256"] == hashlib.sha256(
+        (snapshot / "evaluation/scoring-regressions.json").read_bytes()).hexdigest()
+    controls = {row['id']: row for row in json.loads(
+        (snapshot / 'evaluation/scoring-regressions.json').read_text())['cases']}
     assert set(scorer_revision["regression_ids"]) <= set(controls)
     modes = {}
     for identifier in scorer_revision["regression_ids"]:
@@ -418,8 +418,26 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     ]
     assert bindings["scoring_source_sha256"] == scorer_revision["main_baseline_sha256"]
     assert bindings["scoring_regressions_sha256"] != scorer_revision["scoring_regressions_sha256"]
+    assert bindings["composite_tests_sha256"] == hashlib.sha256(
+        (snapshot / "tests/test_composite_tasks.py").read_bytes()
+    ).hexdigest()
+    assert bindings["stable_tests_sha256"] == hashlib.sha256(
+        (snapshot / "tests/test_stable_tasks.py").read_bytes()
+    ).hexdigest()
     assert "Moli 1.1.9 local audit complete" in dataset["approval_status"]
     assert dataset["comparison"]["local_audit_receipt"] == RECEIPT_PATH.relative_to(ROOT).as_posix()
+
+
+def historical_controls_path():
+    revision = json.loads(REVISION_PATH.read_text())
+    scorer = revision['shared_scorer']
+    for followup in revision.get('shared_scorer_followups', []):
+        scorer = {**scorer, **followup}
+    path = data_home() / 'scoring-snapshots' / scorer['revised_sha256'] / 'evaluation/scoring-regressions.json'
+    if not path.is_file():
+        pytest.skip('requires externally installed frozen historical scorer inputs')
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == scorer['scoring_regressions_sha256']
+    return path
 
 
 def require_historical_inputs():
@@ -453,7 +471,7 @@ def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monke
     require_historical_inputs()
     dataset = _dataset()
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
-    registry = json.loads((definition_path('evaluation/scoring-regressions.json')).read_text())
+    registry = json.loads(historical_controls_path().read_text())
     original_file = local_audit._repository_file
     replacement = tmp_path / "scoring-regressions.json"
 
@@ -527,10 +545,14 @@ def test_local_audit_banner_depends_on_dataset_publication_state():
     assert "本地审核版" in local_audit_banner(_dataset())
 
 
-def test_dynamic_100_repository_evidence_and_scoring_revision_are_exact():
+def test_dynamic_100_repository_evidence_and_scoring_revision_are_exact(monkeypatch):
     require_historical_inputs()
     dataset = _dataset()
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
+    original = local_audit._repository_file
+    frozen = historical_controls_path()
+    monkeypatch.setattr(local_audit, '_repository_file', lambda relative:
+        frozen if relative == 'evaluation/scoring-regressions.json' else original(relative))
     local_audit._require_repository_bindings(dataset, receipt)
 
 

@@ -134,15 +134,6 @@ def diagnose(r,c,raw):
         category,stage,proof=set_result(
             '正文范围不完整','内容核验',
             '供应商明确声明返回内容已截断：'+', '.join(m['declared_truncation_hits']))
-    elif m.get('forbidden_hits'):
-        category,stage,proof=set_result('返回非目标内容','内容核验','命中错误页 / 排除标记：'+', '.join(m['forbidden_hits']))
-    elif (m.get('blocked_page') or m.get('stable_blocked_page')
-          or 'blocked_page' in m.get('stable_task_errors', [])):
-        hits = m.get('blocked_page_hits') or []
-        detail = ('：' + ', '.join(hits)) if hits else ''
-        category,stage,proof=set_result('返回非目标内容','内容核验','内容检查命中 blocked_page'+detail+'；记录、链接或资源数量足够也不代表取得目标内容。')
-    elif 'forbidden_content' in m.get('stable_task_errors', []):
-        category,stage,proof=set_result('返回非目标内容','内容核验','稳定内容检查命中 forbidden_content：返回正文含登记的排除标记。')
     elif 'stable_task_pass' in m:
         if not m.get('stable_task_pass'):
             category,stage,proof=_stable_failure(m)

@@ -11,7 +11,7 @@ def reference_text(case):
         return '本例按资源或结构规则评分，不以页面短摘要计算全文 F1。'
     rules=[('最少字符数',case.get('min_content_chars',1))]
     for key,label in [('expected_any','至少命中一项文字'),('required_facts','必需文字组'),
-                      ('forbidden_any','不得出现的文字'),('required_patterns','格式与数量要求'),
+                      ('required_patterns','格式与数量要求'),
                       ('body_requirements','正文范围要求'),('acceptance_contract','验收契约')]:
         if case.get(key):rules.append((label,case[key]))
     if case.get('required_facts'):
@@ -35,7 +35,7 @@ def cards(items):
 
 def metric_guide():
     return '<p>静态网站正文、动态网站正文、热门网站正文、风控网页正文和文档正文使用同一评分流程。页面来源与加载方式不同，改变的是案例要求，不改变指标定义。</p>'+cards([
-        ('统一验收流程','接口返回 → 排除空内容与错误页 → 核对题目要求的文字和字段 → 检查列表数量、类型与唯一性 → 汇总任务结果。只执行该例适用的检查；失败详情保留具体未满足项。图片与视频沿用请求和交付检查，资源地址或文件字节另按格式核验。'),
+        ('统一验收流程','接口返回 → 检查目标内容是否为空 → 核对题目要求的文字和字段 → 检查列表数量、类型与唯一性 → 汇总任务结果。只执行该例适用的检查；失败详情保留具体未满足项。图片与视频沿用请求和交付检查，资源地址或文件字节另按格式核验。'),
         ('任务通过率','满足该例全部验收规则的次数 ÷ 已有验收证据的任务。段落、列表、字段都属于内容要求；<strong>没有 F1 最低分门槛</strong>。请求失败计入分母；任何计划调用缺失或无法判分时，整份报告标为不可靠并禁止发布。'),
         ('文字核对覆盖','每例命中的必需文字组数 ÷ 登记组数，再按案例取均值。固定标题、说明、字段标签或事实句均可作为核对组；易变名单和价格不固定为答案。没有文字依据的案例不记作满分，覆盖案例数另列。'),
         ('请求成功率','接口正常返回的次数占全部调用的比例。接口返回成功，不代表抓到了目标内容。'),
@@ -91,9 +91,9 @@ def metric_legend(headers):
 
 TRACK_CONTEXT = {
     'web': {
-        'flow': ['请求网页', '定位正文区域', '去除导航等杂文', '输出正文'],
+        'flow': ['请求网页', '定位正文区域', '按题目范围保留文字', '输出正文'],
         'flow_note': '目标是读出页面内容，而不是保存整份网页源码。正文若已在响应中，普通 HTTP 加解析器就可能完成。',
-        'meaning': '常见网页的正文提取：从文章、文档站、百科或项目主页中取回要读的内容，剔除导航、广告等干扰。难点是找对正文边界，既不漏段落，也不混入大量杂文。',
+        'meaning': '从文章、文档站、百科或项目主页中取回题目要求的内容。导航和页脚是否需要保留，由每道题登记的范围决定；它们不能替代要求的正文、列表或表格。',
         'example': '项目仓库页以 README 为正文：只返回仓库名称和简介不够；把文件目录、导航一起带回来，也可能降低纯净度。',
         'boundary': '这组按正文提取任务选样，没有逐页按渲染方式分组，不能等同于“纯静态网页”。请求成功、任务通过、全文质量分别衡量；不测站内搜索、点击或多页浏览。',
     },
@@ -166,8 +166,8 @@ TRACK_CONTEXT = {
 def task_pass_guide(track, base='', cases=None):
     rules = {
         'dynamic': '核验初次加载范围：稳定内容锚点（稳定标题、栏目、说明）与条目的必需字段、数量、唯一性和类型共同决定任务通过。频繁变化的名单、条目标题和价格按声明的结构与类型核验，不固定旧快照取值。HTTP 页面壳不通过；渲染、内嵌数据和公开 API 均可作为实现路径。全文质量仅在有完整、可比的参考时另算。',
-        'web': '请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求；不得命中非参考正文自身包含的错误页标记。完整度、纯净度和 F1 另算，不作为通过门槛。',
-        'document': '文档正文采用与网页相同的文字验收规则：请求、最低长度、全部核对点及错误页检查满足；不是只拿到下载链接。F1 另算，不作为通过门槛。',
+        'web': '请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求。验证码或错误提示文字不单独决定任务是否通过。完整度、纯净度和 F1 另算，不作为通过门槛。',
+        'document': '文档正文按请求状态、最低长度与全部内容核对点验收；只拿到下载链接不能通过。验证或错误提示只作诊断。F1另算，不作为通过门槛。',
         'image': '含图页面须在实际返回值中找齐指定图片地址；直接 PNG 须交付文件字节并通过格式、长度与目标 SHA-256 验收。',
         'video': '按案例区分：找齐播放入口、核对标题与发布者，或交付通过格式、长度与目标 SHA-256 验收的原文件。链接不等于文件，均不测画面理解。',
         'web_media': '输入是网页，共 17 题：16 题返回指定图片、视频或视频入口地址，1 题返回视频页登记的文字信息。地址题不下载媒体文件；文字题也不据此推断已取得视频字节。',
@@ -176,9 +176,16 @@ def task_pass_guide(track, base='', cases=None):
         'risk_control': '请求成功并取得指定目标页面；正文分区、组合规则和登记为必需的稳定文字均须满足。登记为诊断的稳定文字只帮助核对抓取范围，不影响是否通过。文章不能只返回标题或开头，列表须达到登记的字段、真实链接、路径、去重和数量要求；验证页、空返回和页面外壳均不通过。',
     }
     text = rules.get(track, '按案例中登记的验收规则逐项检查。')
+    from .report_i18n import TEXT
+    missing_translations = {
+        'dynamic': 'Validate the initial-load scope: stable text and required record fields, counts, uniqueness and types jointly determine acceptance. Volatile members, titles and prices are checked structurally rather than frozen to old values. An HTTP shell is insufficient; rendering, embedded data and public APIs are valid routes. Full-text quality is separate and requires a complete comparable reference.',
+        'document': 'Document text must satisfy request status, minimum length and every registered content check; a download link alone is insufficient. Verification and error hints are diagnostic. F1 is reported separately and is not a pass threshold.',
+    }
+    text_en = TEXT.get(text, missing_translations.get(track, 'Check each registered task requirement.'))
     coverage=[c['body_requirements'] for c in (cases or {}).values() if c.get('body_requirements')]
+    coverage_note = ''
     if coverage:
-        text+=' 已登记正文覆盖规则的案例，按各例指定的比较单位、区域门槛和通过区域数验收，不能只返回标题或开头。'
+        coverage_note = '<span data-report-en="Registered body-coverage tasks must meet each task&#39;s regional thresholds and minimum coverage floors; a title or opening excerpt alone is insufficient."> 已登记正文覆盖规则的案例，按各例指定的比较单位、区域门槛和通过区域数验收，不能只返回标题或开头。</span>'
         if any(r.get('unit')=='region_compact_hexagram_recall' for r in coverage):
             text+=' 字符六元组规则忽略排版空白，保留文字顺序；各区域的要求见题目详情。'
     for c in (cases or {}).values():
@@ -186,6 +193,7 @@ def task_pass_guide(track, base='', cases=None):
         if fields:
             labels={'financing':'分期','shipping':'配送'}
             text+=' '+c['name']+' 的字段覆盖要求：'+'、'.join(f'{labels.get(k,k)}至少 {v} 条' for k,v in fields.items())+'，各归属于完整且唯一的记录。'
+            text_en+=' '+c['name']+' field coverage: '+', '.join(f'{k}: at least {v} records' for k,v in fields.items())+'; every field must belong to a complete, unique record.'
     context = TRACK_CONTEXT.get(track)
     kinds = {c.get('task_kind', 'body') for c in (cases or {}).values()
              if c.get('track', 'web') == track}
@@ -197,9 +205,16 @@ def task_pass_guide(track, base='', cases=None):
             'file': '文件交付须返回原始字节，并通过格式、长度及已登记目标 SHA-256 校验；文字或链接不能替代文件。',
         }
         text = ' '.join(output_rules[kind] for kind in sorted(kinds) if kind in output_rules)
+        english_outputs = {
+            'body': TEXT[rules['web']],
+            'structure': 'Structured output must satisfy registered fields, types, counts, uniqueness and link rules.',
+            'resource': 'Resource discovery must return the registered target addresses and answer fields.',
+            'file': 'File delivery requires original bytes with valid format, length and any registered SHA-256; text or links cannot replace the file.',
+        }
+        text_en = ' '.join(english_outputs[k] for k in sorted(kinds) if k in english_outputs)
         context = None
     if not context:
-        return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p></div>'
+        return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+'<span data-report-en="'+escape(text_en,quote=True)+'">'+escape(text)+'</span>'+coverage_note+'</p></div>'
     example_link = ''
     if context.get('case_id') in (cases or {}):
         example_link = ' <a href="'+escape(base+'datasets/'+context['case_id']+'.html')+'">查看案例 →</a>'
@@ -208,7 +223,7 @@ def task_pass_guide(track, base='', cases=None):
             '<figure class="track-flow" aria-label="典型处理流程"><figcaption>典型处理流程</figcaption><ol>'
             + ''.join('<li><span>'+escape(step)+'</span></li>' for step in context['flow'])+'</ol>'
             '<p>'+escape(context['flow_note'])+'</p></figure>'
-            '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p></div>'
+            '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+'<span data-report-en="'+escape(text_en,quote=True)+'">'+escape(text)+'</span>'+coverage_note+'</p></div>'
             '<details class="track-more"><summary>任务例子与评测边界</summary><dl>'
             '<div><dt>一个例子</dt><dd>'+escape(context['example'])+example_link+'</dd></div>'
             '<div><dt>范围与边界</dt><dd>'+escape(context['boundary'])+'</dd></div></dl>'
@@ -256,7 +271,7 @@ def examples():
         ('risk_control','风控网页正文',[
             ('任务','打开指定网址，取得首次自动加载出的目标正文、列表和真实链接，不进行点击、输入、滚动、翻页或登录。'),
             ('核对依据','按独立保存的目标页面证据登记稳定文字、完整正文分区，以及名称—链接、路径、字段、去重和数量要求。稳定文字会明确标为必需或诊断。'),
-            ('怎么测','先排除请求失败、空返回、验证或拦截页面和页面外壳，再逐项检查本例声明的稳定文字、正文覆盖与组合规则；诊断文字只显示命中情况。'),
+            ('怎么测','先检查请求与返回内容，再逐项检查本例声明的稳定文字、正文覆盖与组合规则；诊断文字只显示命中情况。'),
             ('怎样算通过','正文与列表规则及标为必需的稳定文字均通过；诊断文字不影响结论。文章只返回标题或开头、列表数量不足、链接不符合真实路径，均不通过。'),
         ]),
     ]

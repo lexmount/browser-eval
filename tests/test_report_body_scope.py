@@ -130,18 +130,18 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertEqual(len(rows),1)
                 self.assertNotIn('ghijkl</pre>',cards)
 
-    def test_body_display_uses_same_mixed_html_surface_as_scorer(self):
+    def test_bound_body_evidence_is_displayed_without_rescoring(self):
         from lexbench_webfetch.scoring import score_attempt
         contract={'version':3,'unit':'region_compact_hexagram_recall',
                   'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
                   'regions':[{'id':'body','text':'abcdefghijkl'}]}
         c=case('body',kind='body');c['body_requirements']=contract
-        output='# Heading\nabcdefghijkl<script>hidden words</script>'
-        r={'ok':True,'status_code':200}
-        metrics=score_attempt(c,output.encode(),ok=True)
-        scoring_text=_body_scoring_text(r,output)
-        self.assertNotIn('hidden words',scoring_text)
-        rows,cards=body_region_rows(c,metrics,scoring_text)
+        metrics=score_attempt(c,b'abcdefghijkl',ok=True)
+        saved=copy.deepcopy(metrics)
+        with patch('lexbench_webfetch.body_coverage.evaluate_body_requirements',
+                   side_effect=AssertionError('presentation must not rescore saved passages')):
+            rows,cards=body_region_rows(c,metrics,'abcdefghijkl')
+        self.assertEqual(metrics,saved)
         self.assertEqual(len(rows),1)
         self.assertIn('abcdefghijkl',''.join(cards))
 
@@ -289,7 +289,7 @@ class ReportBodyScopeTests(unittest.TestCase):
 
         def failed(**metrics):
             r = record(c, passed=False)
-            r["metrics"].update(request_ok=True, content_chars=500,
+            r["metrics"].update(forbidden_requirement_hits=[], request_ok=True, content_chars=500,
                                 stable_task_pass=False)
             r["metrics"].update(metrics)
             return r
@@ -298,6 +298,11 @@ class ReportBodyScopeTests(unittest.TestCase):
             failure_category(failed(blocked_page=True, composite_acceptance_pass=False), c),
             "返回验证或拦截页面",
         )
+        for track in ("risk_control", "web", "challenge", "popular"):
+            qualified_case = case("qualified", "body", track)
+            qualified = record(qualified_case, passed=True)
+            qualified["metrics"].update(forbidden_requirement_hits=[], blocked_page=True, stable_blocked_page=True)
+            self.assertEqual(failure_category(qualified, qualified_case), "—")
         self.assertEqual(failure_category(failed(content_chars=0), c), "完全空返回")
         self.assertEqual(
             failure_category(failed(content_chars=37, markdown_headings=0, markdown_links=0,
@@ -1098,3 +1103,44 @@ class ReportBodyScopeTests(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+
+
+def test_body_display_shares_native_markup_and_entity_handling_with_scorer():
+    from lexbench_webfetch.scoring import score_attempt
+    contract = {"version": 3, "unit": "region_compact_hexagram_recall",
+                "minimum_coverage": .8, "minimum_floor": .6, "minimum_region_passes": 1,
+                "regions": [{"id": "body", "text": "abcdefghijkl"}]}
+    definition = {"id": "markup", "url": "https://example.test", "body_requirements": contract}
+    for output in ("abcdef<br>ghijkl", "abcdef&#103;hijkl", "`<br>` abcdefghijkl",
+                   "\\<br> abcdefghijkl", "<main>abcdef<script>ghijkl</script></main>",
+                   'abcdef <a href="https://example.test/ghijkl">source</a>',
+                   'abcdef <img src="https://example.test/ghijkl" alt="photo">'):
+        record = {"ok": True, "title": "abcdefghijkl"}
+        metrics = score_attempt(definition, output.encode(), ok=True, title=record["title"])
+        display = _body_scoring_text(record, output)
+        rows, cards = body_region_rows(definition, metrics, display)
+        assert len(rows) == 1
+        assert "<script>" not in display
+        if output.startswith(("`", "\\")):
+            assert "<br>" in display
+
+
+def test_frozen_body_details_preserve_saved_allocation_and_redact_excerpts():
+    from lexbench_webfetch.body_coverage import evaluate_body_requirements
+    contract = {"version": 3, "unit": "region_compact_hexagram_recall", "minimum_coverage": .8, "minimum_floor": .6,
+                "minimum_region_passes": 1, "regions": [{"id": "body", "text": "abcdefghijkl"}]}
+    definition = {"body_requirements": contract}
+    metrics = evaluate_body_requirements("abcdefghijkl https://example.test/?access_token=secret123456", contract)
+    original = copy.deepcopy(metrics)
+    with unittest.TestCase().assertRaisesRegex(ValueError, 'Saved body evidence differs'):
+        body_region_rows(definition, metrics, 'changed public output')
+    rows, cards = body_region_rows(definition, metrics, 'changed public output', frozen_scores=True)
+    assert len(rows) == 1
+    assert 'abcdefghijkl' in ''.join(cards)
+    assert 'secret123456' not in ''.join(cards)
+    assert metrics == original
+    for region in metrics['body_region_results']:
+        region.pop('matched_output_passages')
+    with patch('lexbench_webfetch.body_coverage.evaluate_body_requirements', side_effect=AssertionError('Must not rescore')):
+        _, cards = body_region_rows(definition, metrics, 'different output', frozen_scores=True)
+    assert '历史评分未保存' in ''.join(cards)

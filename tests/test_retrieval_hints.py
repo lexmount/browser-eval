@@ -22,7 +22,7 @@ def test_native_execution_keeps_dynamic_scenario_and_acceptance_without_injected
     dataset={'tool':'web_fetch','coverage_plan':{'dynamic':['browser']},'cases':[
         {'id':'native-page','name':'Dynamic site','url':'https://example.com/',
          'category':'dynamic_content','track':'dynamic','expected_any':[],
-         'task_kind':'body','acceptance_contract':{'version':1,'schema':'body_text'},
+         'task_kind':'body','acceptance_contract':{'version':1,'schema':'body_text','minimum_records':0,'stable_text_anchors':[{'id':'body','alternatives':['Expected body']}]},
          'min_content_chars':1000}]}
     original = deepcopy(dataset)
     selected = native_fetch_dataset(dataset)

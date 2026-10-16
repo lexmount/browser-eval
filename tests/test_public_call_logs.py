@@ -65,10 +65,12 @@ class PublicCallLogTests(unittest.TestCase):
             self.assertIn('view=full', serialized)
 
     def test_success_has_closed_complete_hash_bound_log(self):
-        raw = b'{"private":"Bearer never-publish"}'
+        raw = b'{"content":"Expected","final_url":"https://example.com/final#fragment","private":"Bearer never-publish"}'
         result = ProviderResult(
             True, "Expected", status_code=200, final_url="https://example.com/final#fragment",
             metadata={
+                "native_answer_projection": {'schema_version': 2, 'content_format': 'text',
+                    'content_pointer': ['content'], 'result_fields': {'final_url': {'pointer': ['final_url']}}},
                 "route": "advanced_extract", "content_type": "text/markdown",
                 "request_id": "request-123", "exit_code": 0,
                 "request_method": "POST",

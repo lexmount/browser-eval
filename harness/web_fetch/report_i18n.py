@@ -37,6 +37,7 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "先检查请求与返回内容，再逐项检查本例声明的稳定文字、正文覆盖与组合规则；诊断文字只显示命中情况。": "Check the request and returned content, then apply the declared stable text, body coverage and composite requirements. Diagnostic text reports matches without changing the verdict.",
     "本轮所有本地方法的每个主机名和跳转都使用固定的 Cloudflare HTTPS DNS，且不回退到系统 DNS。Moli、Lightpanda 和 Obscura 通过进程内解析器取得同一组公网地址；Chromium 使用自身的严格安全 DNS 配置。各浏览器原有的私网访问保护保持不变。": "Every local method uses the fixed Cloudflare HTTPS DNS service for each hostname and redirect, with no fallback to system DNS. Moli, Lightpanda, and Obscura receive the same public addresses through a process-scoped resolver; Chromium uses its own strict secure-DNS profile. Each browser keeps its existing private-network protection.",
     "Kitesurf 在 Cloudflare Browser Run 中执行，使用云端网络。它的任务结果可以按同一验收规则比较，但耗时包含不同的部署位置和公网路径，不能据此判断本地浏览器引擎谁更快。": "Kitesurf runs in Cloudflare Browser Run and uses its cloud network. Its task outcomes use the same acceptance rules, but its latency includes a different deployment location and public-network path and therefore cannot rank local browser-engine speed.",
     "CLI · 原生 Markdown 或原始响应路线": "CLI · native Markdown or raw-response route",
@@ -66,8 +67,9 @@ TEXT = {
     "CLI · 按任务预选原生 Markdown、HTML 或原始响应路线": "CLI · preselects native Markdown, HTML, or raw-response routes by task",
     "网页内嵌媒体": "Embedded webpage media",
     "直接媒体文件": "Direct media files",
-    "输入是网页，共 17 题：16 题返回指定图片、视频或视频入口地址，1 题返回视频页登记的文字信息。地址题不下载媒体文件；文字题也不据此推断已取得视频字节。": "The input is a webpage. Across 17 tasks, 16 require specified image, video, or video-entry URLs and one requires registered text from a video page. URL tasks do not download the media file, and the text task does not imply that video bytes were obtained.",
-    "输入直接指向媒体文件，共 3 题：必须取得原始字节，并通过格式特征、长度与目标 SHA-256 验收。只复述输入网址不通过，也不要求把二进制内容转换成 Markdown。": "The input points directly to a media file. Across three tasks, the method must obtain the original bytes and pass format-signature, length, and target SHA-256 checks. Repeating the input URL fails, and binary content does not need conversion to Markdown.",
+    "输入是网页，共 17 题：16 题返回指定图片、视频或视频入口地址，1 题返回视频页登记的文字信息。地址题不下载媒体文件；文字题也不据此推断已取得视频字节。": "The input is a webpage. Across 17 tasks, 16 require specified image, video, or video-entry URLs and 1 requires registered text from a video page. URL tasks do not download the media file, and the text task does not imply that video bytes were obtained.",
+    "输入直接指向媒体文件，共 3 题：必须取得原始字节，并通过格式特征、长度与目标 SHA-256 验收。只复述输入网址不通过，也不要求把二进制内容转换成 Markdown。": "The input points directly to a media file. Across 3 tasks, the method must obtain the original bytes and pass format-signature, length, and target SHA-256 checks. Repeating the input URL fails, and binary content does not need conversion to Markdown.",
+    "16 道题只要求网页中的资源地址，另 1 道题要求视频页标题与发布者；这组不下载媒体文件。": "16 tasks require resource URLs from a webpage; 1 requires the video-page title and publisher. This group does not download media files.",
     "直接取得 Moli 原生 HTML；共同评分器只识别其中的资源 URL": "Returns Moli's native HTML directly; the shared scorer only identifies resource URLs in it",
     "使用 Moli 官方等待能力；只等待，不抽取或拼接正文": "Uses Moli's official wait capability for readiness only; it neither extracts nor assembles body text",
     "所有正文与结构任务使用 Moli 原生 Markdown。旧版 selector 合同只映射到官方等待参数，不参与正文抽取。图片、视频资源页使用原生 HTML，共同评分器只识别其中的资源 URL。直接 PDF/DOCX 仍调用同一原生接口；接口没有交付可读正文时按失败记录，评测端不下载后解析。文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。": "All body and structured tasks use Moli's native Markdown. Legacy selector contracts map only to official wait parameters and do not extract body text. Image and video resource pages use native HTML, from which the shared scorer only identifies resource URLs. Direct PDF and DOCX inputs still use the same native interface; if it does not deliver readable text, the task fails and the benchmark does not download and parse the file. File tasks use native CDP responses or the same binary's raw attachment interface. The final URL is diagnostic only and does not determine body-task acceptance. A failure never triggers a format switch or another provider.",
@@ -101,7 +103,45 @@ TEXT = {
     "下载最终物理调用记录": "Download the final physical-call record",
     "。运行记录保留请求状态、耗时和证据路径；原始输出保持调用后保存的字节。": ". The record retains request status, duration and evidence paths. Raw output preserves the saved response bytes.",
     "请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求；不得命中非参考正文自身包含的错误页标记。完整度、纯净度和 F1 另算，不作为通过门槛。": "A successful request must satisfy the task's minimum length, all required text checks, salient markers and structure requirements. Error-page markers absent from the reference must not appear. Recall, precision and F1 are calculated separately and do not determine acceptance.",
+    "云端服务未公开后端版本": "The cloud service does not disclose its backend version",
+    "未取得可确认的版本信息": "No verifiable version information is available",
+    "本轮使用版本／源码提交": "Version / source commit used in this run",
+    "显示本轮使用的软件版本或源码提交。云端服务未公开可确认的后端版本号时，直接说明；这不代表服务没有版本。": "Software versions or source commits used for this run. Undisclosed cloud backend versions are stated explicitly; this does not mean the service has no version.",
+    "本轮启用自身 DEBUG 并捕获网络库日志。": "This run enabled native DEBUG output and captured network-library logs.",
+    "列出本轮核验后的修正；修正读取已保存的返回，不代表重新调用产品。": "Corrections after verification of this run use saved responses; they do not represent new product calls.",
+    "本轮结果修正": "Corrections to this run",
+    "详细依据": "Supporting evidence",
+    "核验范围与修正说明": "Review scope and corrections",
+    "产品原生返回；保留实际输出与日志": "Native product output; actual responses and logs are retained",
+    "缓存与等待选项见本轮固定配置": "See the frozen configuration for cache and wait settings",
+    "Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。": "Firecrawl, Tavily, Exa and Cloudflare, called through their respective APIs.",
+    "本轮实际固定配置": "Frozen settings used in this run",
+    "本轮保存了哪些日志": "Logs retained in this run",
+    "产品与依赖库日志范围": "Product and dependency log coverage",
+
+    "比例只对应本报告列出的案例与配置。先看总榜和分榜，再打开具体案例，对照验收要求与实际返回。请求成功只表示方法正常返回；任务通过表示返回内容满足该案例的全部要求。": "Rates apply only to the cases and configurations in this report. Start with the overall and category rankings, then open individual cases to compare requirements with actual output. Request success means the method returned normally; task success means the returned content met every requirement for that case.",
+    "评分规则与计时范围见“评测方法”，检查和修正记录见“核验记录”，方法版本、固定配置与日志范围见“环境与复现”。": "See Methodology for scoring and timing, Review history for checks and corrections, and Reproduce for method versions, fixed options and log coverage.",
     "已保存的诊断日志": "Saved diagnostic logs",
+    "已保存的诊断日志 · Web Fetch": "Saved diagnostic logs · Web Fetch",
+    "完整原始响应": "Complete original response",
+    "完整原始响应 · Web Fetch": "Complete original response · Web Fetch",
+    "查看完整 API 响应（已隐藏凭据与本机路径）": "View complete API response (credentials and local paths hidden)",
+    "查看已保存的诊断日志（已隐藏凭据与本机路径）": "View saved diagnostic logs (credentials and local paths hidden)",
+    "已隐藏凭据与本机路径": "Credentials and local paths hidden",
+    "真实保存记录；仅为浏览显示，未增加产品调用。": "Actual saved records, formatted for browsing without additional product calls.",
+    "记录来源": "Record source",
+    "下载原始公开文件": "Download original public file",
+    "仅包含实际观测的日志。": "Contains only observed logs.",
+    "产品实际返回；公开副本已隐藏凭据与本机路径。": "Actual product response; credentials and local paths are hidden in this public copy.",
+    "或": "or",
+    "稳定内容与结构检查通过。": "Stable content and structure checks passed.",
+    "条目结构检查通过；本例未设置稳定文字核对点。": "Record structure passed; this task has no stable-text checks.",
+    "稳定文字或记录结构没有满足任务要求。": "Stable text or record structure did not meet the task requirements.",
+    "全部文字组都须命中。": "Every text group must match.",
+    "完整参考正文": "Complete reference body",
+    "查看原始验收规则": "View raw acceptance rules",
+    "正文长度要求": "Body length requirement",
+    "· 公开 SHA-256：": "· Public SHA-256:",
     "已保存文件截断；原生日志范围见说明": "Saved file truncated; see native log coverage notes",
     "已保存文件未截断；原生日志范围见说明": "Saved file not truncated; see native log coverage notes",
     "本次没有取得产品或依赖库的原生日志。已保存的调用方记录见下方。": "No native product or dependency logs were obtained for this call. Saved caller records appear below.",
@@ -113,6 +153,35 @@ TEXT = {
     "已保存真实诊断（原生日志范围见说明）": "Observed diagnostics saved (see native log coverage notes)",
     "本轮未重新核验来源。": "Sources were not reverified for this run.",
     "本地实测版": "Local measured comparison",
+    "本地未认证诊断快照 · 不可用于排名": "Local uncertified diagnostic snapshot · not for ranking",
+    "来源未在调用前后完成全量核验。保存的评分、质量指标和复核记录仅供诊断，不代表正式发布或认证结果。": "Sources were not fully verified before and after calls. Saved scores, quality metrics and review records are diagnostic evidence, not a certified release.",
+    "本地诊断结果，不提供名次。": "Local diagnostic results; no ranks are assigned.",
+    "任务判定汇总（非排名）": "Task judgments (not a ranking)",
+    "按任务类别查看诊断结果": "Diagnostic results by task family",
+    "方法按名称排列，不提供名次。任务判定、内容质量和耗时分别展示。": "Methods are listed by name without ranks. Task judgments, content quality and latency are shown separately.",
+    "本地未认证诊断结果，仅展示保存的任务判定与耗时，不用于产品排名。通过不代表返回内容干净；请同时查看全文指标和挑战提示。": "Local uncertified diagnostic results show saved task judgments and latency, not product rankings. Passing does not establish clean content; also inspect full-text metrics and challenge indicators.",
+    "诊断指标说明": "Diagnostic metric definitions",
+    "无命中": "No matches",
+    "评分修正账目": "Scoring revision ledger",
+    "每轮增加、减少与最终通过数均从逐条状态记录计算；排除结果保留原始调用，不计入比较分母。": "Additions, removals and final passes are derived from individual result states. Excluded results retain their original calls and stay outside comparison denominators.",
+    "阶段": "Stage",
+    "修正前通过": "Passes before",
+    "新增通过": "Passes added",
+    "减少通过": "Passes removed",
+    "修正后通过": "Passes after",
+    "下载逐条增减账目": "Download per-result revision ledger",
+    "通过结果的内容诊断": "Content diagnostics for passing results",
+    "目标覆盖与附加内容": "Target coverage and additional content",
+    "目标要求：": "Target requirements:",
+    "附加内容诊断：": "Additional-content diagnostics:",
+    "参考词精确率：": "Reference word precision:",
+    "包含验证码组件文字": "Challenge-widget text is present",
+    "未检测到该组件文字特征": "No matching widget-text signature detected",
+    "排除比较": "Excluded from comparison",
+    "通过只表示满足登记的目标要求，不保证干净正文。提示词命中不证明整页被拦截；词精确率也受参考范围和时间影响。低于 30% 仅用于定位检查对象，不是统一失败线。": "Passing means the registered target requirements were met, not that the body is clean. Hint words do not establish that the whole page was blocked; word precision also depends on reference scope and time. Below 30% identifies inspection candidates, not a universal failure threshold.",
+    "评测环境异常：统一排除比较": "Evaluation environment defect: excluded across all methods",
+    "已有复核记录；覆盖和裁定依据见核验页面。": "Review records are available; see the review page for coverage and adjudication evidence.",
+    "结果为机器判定，未进行独立人工审核。": "Results are machine judgments without independent human review.",
     "全部方法使用同一组已提交案例和判分规则，每例一次调用，统一45秒外部时限，不设逐例等待或提取参数，不重试。结果为机器判定，未进行独立人工审核；本报告仅供本地查看，不代表正式发布。": "All methods use the same committed cases and scoring rules: one call per case, a shared 45-second caller deadline, no per-case wait or extraction parameters, and no retries. Results are machine-scored without independent human review. This report is for local inspection and is not a formal release.",
     "调用链与日志检查": "Call-chain and log audit",
     "题目通过": "Task passes",
@@ -120,6 +189,7 @@ TEXT = {
     "原生日志范围": "Native log coverage",
     "检查结论": "Audit findings",
     "如何读取本轮结果": "How to read these results",
+    "本轮按保存的实际返回进行机器判分，比例只对应本报告列出的案例与配置。日志可用于复查调用和判分；失败原因须结合原始响应、调用记录及核验记录判断，不能一概归因于产品内部。": "Saved outputs are machine-scored. Rates apply only to the cases and configurations listed here. Assess failure causes using the native response, call log and review record; failures cannot all be attributed to product internals.",
     "本轮按保存的实际返回进行机器判分，比例只对应本报告列出的案例与配置。日志可用于复查调用和判分；未经过独立人工审核，不能将失败一概归因于产品内部。": "Saved outputs are machine-scored. Rates apply only to the cases and configurations listed here. Logs support review of calls and scoring; without independent human review, failures cannot all be attributed to product internals.",
     "逐次结果与筛选": "Per-call results and filters",
     "题目与计时规则": "Tasks and timing rules",
@@ -207,6 +277,8 @@ TEXT = {
     "从官方 v1.1.7 release 获取二进制，配置 MOLI_1_1_7_BINARY。": "Obtain the binary from the official v1.1.7 release and configure MOLI_1_1_7_BINARY.",
     "Moli 1.1.7 正式发布": "Moli 1.1.7 official release",
     "本方法只使用官方 1.1.7 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与媒体的裸 fetch 路线在正式二进制上实测确认。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。": "This method uses only the official 1.1.7 release binary and is scored separately from other Moli versions. Ordinary web pages use native Markdown; bare-fetch routes for direct documents and media were verified on the release binary. If a body-text task retrieves a supported original document, text is parsed within the same timing budget; file tasks validate bytes directly. The method does not switch engines or output modes after a failure.",
+    "风控网站": "Risk-control websites",
+    "历史访问受限网址内容": "Historically access-restricted URL content",
     "风控网站正文": "Risk-control website body text",
     "请求指定网址": "Request the specified URL",
     "识别目标页或拦截页": "Identify the target page or a blocked page",
@@ -1736,6 +1808,8 @@ TEXT.update({
     "请求网页": "Request page",
     "定位正文区域": "Locate body region",
     "去除导航等杂文": "Remove navigation and noise",
+    "按题目范围保留文字": "Retain text within the task scope",
+    "从文章、文档站、百科或项目主页中取回题目要求的内容。导航和页脚是否需要保留，由每道题登记的范围决定；它们不能替代要求的正文、列表或表格。": "Retrieve the required content from articles, documentation, encyclopedias or project pages. Each task declares whether navigation and footer text must be retained; they cannot substitute for the required body, lists or tables.",
     "输出正文": "Return body text",
     "目标是读出页面内容，而不是保存整份网页源码。正文若已在响应中，普通 HTTP 加解析器就可能完成。": "The goal is readable page content, not a copy of the complete page source. When the body is already present in the response, ordinary HTTP plus a parser may be sufficient.",
     "项目仓库页以 README 为正文：只返回仓库名称和简介不够；把文件目录、导航一起带回来，也可能降低纯净度。": "For a repository page, the README is the body target. A repository name and short description are insufficient, while including the file tree and navigation may reduce precision.",
@@ -2326,11 +2400,26 @@ TEXT.update({
 # rendered on the methodology page and therefore need full English editions;
 # measured task names and prompts remain unchanged.
 TEXT.update({
-    "输入网页，从页面里找到指定图片、视频或视频入口地址；另有 1 题读取视频页标题与发布者。": "Given a web page, find the specified image, video, or playback URL. One additional task asks for the video-page title and publisher.",
-    "16 道地址题使用独立保存的资源地址或地址规则；1 道文字题使用可见标题与发布者。": "Sixteen URL tasks use independently saved resource URLs or URL rules. One text task uses the visible title and publisher.",
+    "从网页中找到指定图片、视频资源或视频入口地址，或读取视频页登记的文字信息。这里测的是网页取数，不是图片或视频理解。": "Find the specified image, video, or video-entry URLs on a webpage, or read its registered video information. These tasks measure webpage data retrieval; image and video understanding are outside their scope.",
+    "请求媒体网页": "Request the media webpage",
+    "定位指定资源或信息": "Locate the required resource or information",
+    "提取地址或文字": "Extract URLs or text",
+    "交付题目要求的结果": "Return the required result",
+    "含图页面须返回登记的图片地址；视频信息页须返回标题与发布者。拿到地址不代表已经取得对应文件。": "Image pages must return the registered image URLs; video-information pages must return the title and publisher. Returning a URL does not establish that its file was obtained.",
+    "地址题只核对目标地址，文字题只核对登记信息；不检查画面、字幕、声音，也不要求下载媒体字节。": "URL tasks check the target URLs and text tasks check the registered information. They do not assess frames, captions, or audio, and do not require downloading media bytes.",
+    "取得直接媒体文件。必须返回可验证的图片或视频字节；复述网址、返回文件名或网页文字都不能代替文件。": "Retrieve a direct media file and return verifiable image or video bytes. Repeating a URL, filename, or webpage text cannot substitute for the file.",
+    "请求直接文件地址": "Request the direct file URL",
+    "接收响应字节": "Receive response bytes",
+    "识别文件格式": "Identify the file format",
+    "核对长度与 SHA-256": "Verify length and SHA-256",
+    "输入直接指向图片或视频文件，评测对象是返回的原始字节，不进行 Markdown 转换。": "The input points directly to an image or video file. Evaluation uses the returned original bytes without Markdown conversion.",
+    "直接 PNG 地址须交付与独立保存样本一致的文件格式、长度和 SHA-256；只返回该 PNG 的网址不通过。": "A direct PNG task must deliver a file matching the independently saved sample's format, length, and SHA-256. Returning only the PNG URL fails.",
+    "这组只验证文件交付，不测试图片描述、视频理解、语音转写或字幕质量。": "These tasks assess file delivery only. Image descriptions, video understanding, speech transcription, and caption quality are outside their scope.",
+    "输入网页，从页面里找到指定图片、视频或视频入口地址；另有 1 题读取视频页标题与发布者。": "Given a web page, find the specified image, video, or playback URL. 1 additional task asks for the video-page title and publisher.",
+    "16 道地址题使用独立保存的资源地址或地址规则；1 道文字题使用可见标题与发布者。": "16 URL tasks use independently saved resource URLs or URL rules. 1 text task uses the visible title and publisher.",
     "地址题只核对返回值里是否出现目标地址，不要求另行下载媒体文件；文字题按登记事实核对。": "URL tasks check whether the returned value contains the target URL and do not require a separate media download. The text task checks the registered facts.",
     "完成该题声明的地址或文字交付。拿到地址不等于取得文件，也不表示理解了图片、画面、字幕或声音。": "Return the URL or text required by the task. A URL alone does not deliver the file or show understanding of images, video, captions, or audio.",
-    "输入 1 个直接图片地址或 2 个直接视频地址，取得原始文件。": "Retrieve the original file from one direct image URL or either of two direct video URLs.",
+    "输入 1 个直接图片地址或 2 个直接视频地址，取得原始文件。": "Retrieve the original file from 1 direct image URL or either of 2 direct video URLs.",
     "独立保存的原文件格式、长度和 SHA-256。": "Independently saved file format, length, and SHA-256.",
     "核对实际返回字节的格式特征、长度和目标 SHA-256；不对二进制文件做 Markdown 转换。": "Check the returned bytes against the required file signature, length, and SHA-256. Binary files are not converted to Markdown.",
     "必须实际交付匹配的文件字节；复述输入网址或只返回网页文字不通过。本组不测试媒体理解。": "The method must return the matching file bytes. Repeating the input URL or returning page text does not pass. These tasks do not test media understanding.",
@@ -2489,6 +2578,7 @@ TEXT.update({
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
 PHRASES = {
+    "处理路线：": "Retrieval path: ",
     "Moli 1.1.15 · 独立资源批次": "Moli 1.1.15 · independent resource cohort",
     "的 Moli 已保存输出仍包含": "'s saved Moli output still contains ",
     "，内容规则未通过。请求成功在这里记录了一个正常返回的结果，却没有等来任务要求的内容。这比方法是否具备浏览器功能更接近本次接入要解决的问题。": ", but failed the content rule. A normal response did not wait for the required content. This is closer to the integration problem than whether the method has browser features.",
@@ -2626,6 +2716,17 @@ for adoption_text in (
     TEXT.update(adoption_text)
 
 
+def _body_region_summary(match):
+    regions = match[1]
+    for source, target in (("开头", "Opening"), ("前部", "Early section"),
+                           ("中部", "Middle"), ("后部", "Late section"),
+                           ("结尾", "Ending"), ("位置", "Region")):
+        regions = regions.replace(source + " ", target + " ")
+    return ("Body coverage is incomplete. Regions below target: "
+            + regions.replace("、", ", ")
+            + ". The complete reference and actual output are shown side by side below.")
+
+
 REGEX = [
     (re.compile(r"^每次物理调用预算为 ([\d.]+) 秒，重试后的累计耗时可能超过该预算。$"), r"Each physical call has a \1-second budget; accumulated latency after retries can exceed it."),
     (re.compile(r"^本报告包含 (\d+) 个任务、(\d+) 个逻辑结果，任务通过 (\d+)/(\d+)。结论仅适用于已登记的任务和规则。$"), r"This report contains \1 tasks and \2 logical results, with \3/\4 task passes. Conclusions apply only to the registered tasks and rules."),
@@ -2682,6 +2783,7 @@ REGEX = [
      lambda match: f"The evaluation does not cover its plan; {match.group(1)} unplanned calls are present"
                    + (f"; {match.group(2)} calls have no pass/fail judgement" if match.group(2) else "")
                    + ". Rankings on this page must not be used for conclusions or publication."),
+    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · 本地未认证诊断快照。$"), r"\1 tasks · \2 methods · local uncertified diagnostic snapshot."),
     (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · (\d+)\s*类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · \3 family rankings and one overall coverage ranking."),
     (re.compile(r"^(\d+)\s*类任务概览$"), r"\1 task families"),
     (re.compile(r"^(\d+)\s*类分榜$"), r"Rankings for \1 task families"),
@@ -2793,7 +2895,7 @@ REGEX = [
     (re.compile(r"^实际解析出 (\d+) 条完整且不重复的记录，要求至少 (\d+) 条；结构检查未通过，稳定文字检查未通过。$"), r"Parsed \1 complete, unique records against a minimum of \2; structure and stable-text checks failed."),
     (re.compile(r"^实际解析出 (\d+) 条完整且不重复的记录，要求至少 (\d+) 条；结构检查(通过|未通过)，稳定文字检查(通过|未通过)。$"), lambda m: f"Parsed {m.group(1)} complete, unique records against a minimum of {m.group(2)}; structure {'passed' if m.group(3) == '通过' else 'failed'} and stable-text checks {'passed' if m.group(4) == '通过' else 'failed'}."),
     (re.compile(r"^完整度 / 纯净度 / F1 为 ([^。]+)。$"), r"Recall / precision / F1: \1."),
-    (re.compile(r"^正文没有抓全；低于目标的位置为：(.+)。下方会把完整标准答案与实际返回并排展示。$"), r"Body coverage is incomplete. Regions below target: \1. The complete reference and actual output are shown side by side below."),
+    (re.compile(r"^正文没有抓全；低于目标的位置为：(.+)。下方会把完整标准答案与实际返回并排展示。$"), _body_region_summary),
     (re.compile(r"^这一段标准答案产生 ([\d,]+) 个连续六字符片段；在上方完整实际返回（([\d,]+) 字符）中命中 ([\d,]+) 个，所以覆盖率为 ([\d,]+) ÷ ([\d,]+) = ([\d.]+%)。目标 ([\d.]+%)，硬下限 ([\d.]+%)。$"), r"This reference region produces \1 contiguous six-character shingles. \3 are found in the complete output above (\2 characters), so coverage is \4 ÷ \5 = \6. Target: \7; hard floor: \8."),
     (re.compile(r"^· 采集时间 (.+)$"), r"· captured at \1"),
 ]
@@ -3558,6 +3660,12 @@ TEXT.update({
 })
 
 REGEX.extend([
+    (re.compile(r"^核验于 (\d{4}-\d{2}-\d{2})。算力、网络、存储、代理和维护成本自担；没有测量这些成本，不把本地调用等同于零成本。官方托管产品或服务价格不属于本地执行模式。$"),
+     r"Checked on \1. The caller pays compute, network, storage, proxy, and maintenance costs. These costs were not measured, so local calls are not treated as free. Official managed-product or service prices do not apply to local execution."),
+    (re.compile(r"^本方法只使用官方 (\d+(?:\.\d+)+) 发行二进制，与其他 Moli 版本分开计分。网页正文、文档正文、结构题和网页内嵌媒体题统一使用原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不按题目设置 selector。网页媒体只核对这份输出中的目标地址，不下载，也不切换 HTML、JSON 或网络跟踪接口。直接 PDF/DOCX 没有交付可读正文时按失败记录；直接媒体文件验收原始字节。评测端不使用外部 PDF/DOCX 解析器补正文，也不在失败后切换引擎或输出模式。$"),
+     r"This method uses only the official \1 release binary and is scored separately from other Moli versions. Webpage body text, document body text, structured tasks, and webpage media tasks use native Markdown. Every dynamic-body task enables --layout, --with-frames, and domstable, without task-specific selectors. Webpage media tasks check only target URLs in that output; they do not download media or switch to HTML, JSON, or network-tracing interfaces. Direct PDF/DOCX tasks fail without readable body text; direct media files are evaluated as original bytes. The benchmark does not supply external PDF/DOCX parsing or switch engines or output modes after a failure."),
+    (re.compile(r"^必需文字组 (\d+)（任一写法即可）$"), r"Required text group \1 (any alternative may match)"),
+    (re.compile(r"^· 原始采集记录 ([\d,]+) 字节（可含协议返回） · 原始 SHA-256：$"), r"· Original capture: \1 bytes (may include protocol responses) · Original SHA-256:"),
     (re.compile(r"^本报告纳入 ([\d,]+) 个逻辑结果。运行参数见下表；保留的物理调用与输出见各结果详情。$"),
      r"This report includes \1 logical results. Run parameters are listed below; each result detail contains its retained physical calls and outputs."),
     (re.compile(r"^· 请求：(成功|失败) · 耗时：([\d,.]+) ms · 实际输出：([\d,]+) 字符$"),
@@ -3606,10 +3714,19 @@ class Localizer(HTMLParser):
         self.stack: list[str] = []
         self.source = source
         self.translations = translations
+        self.translate_stack = []
+        self.model_text_stack = []
+
+    def _allows_translation(self, attrs):
+        mode = (dict(attrs).get("translate") or "").lower()
+        if mode in {"yes", "no"}:
+            return mode == "yes"
+        return self.translate_stack[-1] if self.translate_stack else True
 
     def _start_tag(self, attrs) -> str:
         original = self.get_starttag_text()
-        if any(tag in self.stack for tag in ("pre", "code", "script", "style")):
+        if (not self._allows_translation(attrs)
+                or any(tag in self.stack for tag in ("pre", "code", "script", "style"))):
             return original
         values = dict(attrs)
         article = self.source in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}
@@ -3620,7 +3737,7 @@ class Localizer(HTMLParser):
             return pattern.sub(lambda match: match.group(1) + '"'
                                + html.escape(value, quote=True) + '"', markup)
 
-        if article:
+        if article or self.source == PurePosixPath("methodology/index.html"):
             # The renderer supplies both language assets. Localization only selects
             # an existing URL; it never reads files or modifies measured evidence.
             for name in ("src", "href"):
@@ -3641,8 +3758,14 @@ class Localizer(HTMLParser):
         self.parts.append(f"<!{decl}>")
 
     def handle_starttag(self, tag: str, attrs) -> None:
+        localized = dict(attrs).get('data-report-en') if tag == 'span' else None
+        parent_model = any(self.model_text_stack)
+        self.model_text_stack.append(localized is not None or parent_model)
+        self.translate_stack.append(self._allows_translation(attrs))
         self.stack.append(tag)
         self.parts.append(self._start_tag(attrs))
+        if localized is not None and not parent_model:
+            self.parts.append(html.escape(localized))
 
     def handle_startendtag(self, tag: str, attrs) -> None:
         self.parts.append(self._start_tag(attrs))
@@ -3650,18 +3773,27 @@ class Localizer(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag in self.stack:
             self.stack = self.stack[:len(self.stack) - 1 - self.stack[::-1].index(tag)]
+            self.translate_stack = self.translate_stack[:len(self.stack)]
+            self.model_text_stack = self.model_text_stack[:len(self.stack)]
         self.parts.append(f"</{tag}>")
 
     def handle_data(self, data: str) -> None:
-        if any(tag in self.stack for tag in ("pre", "code", "script", "style")):
+        if any(self.model_text_stack):
+            return
+        if ((self.translate_stack and not self.translate_stack[-1])
+                or any(tag in self.stack for tag in ("pre", "code", "script", "style"))):
             self.parts.append(data)
         else:
             self.parts.append(translate_text(data, self.translations))
 
     def handle_entityref(self, name: str) -> None:
+        if any(self.model_text_stack):
+            return
         self.parts.append(f"&{name};")
 
     def handle_charref(self, name: str) -> None:
+        if any(self.model_text_stack):
+            return
         self.parts.append(f"&#{name};")
 
     def handle_comment(self, data: str) -> None:
@@ -3766,18 +3898,451 @@ def localize_html(page: str, source: PurePosixPath, *, translations=None) -> str
     english = PurePosixPath("en") / source
     page = page.replace('<html lang="zh-CN">', '<html lang="en">', 1)
     page = re.sub(r'<header class="top">.*?</header>', _header(source, english), page, count=1, flags=re.S)
+    # Raw evidence and executable/style blocks are preserved, never translated.
+    # Mask them before parsing so large responses do not incur entity-by-entity work.
+    preserved = []
+    def preserve(match):
+        preserved.append(match.group(0))
+        return f"<!--LOCALIZATION-PRESERVED-{len(preserved)-1}-->"
+    page = re.sub(r"<(pre|script|style)\b[^>]*>.*?</\1>", preserve, page, flags=re.S | re.I)
     parser = Localizer(source, translations)
     parser.feed(page)
     parser.close()
-    return _rewrite_links("".join(parser.parts), source, english)
+    localized = "".join(parser.parts)
+    for index, block in enumerate(preserved):
+        localized = localized.replace(f"<!--LOCALIZATION-PRESERVED-{index}-->", block)
+    return _rewrite_links(localized, source, english)
 
 
-def write_english_report(out: Path) -> int:
-    """Mirror every Chinese HTML route and return the mirrored route count."""
+TEXT.update({
+    "安装与账号准备": "Installation and account setup",
+    "账号与安装 · Web Fetch": "Access & setup · Web Fetch",
+})
+
+TEXT.update({'内容选择': 'Content selection',
+ '典型处理流程': 'Typical processing flow',
+ '变更记录 · Web Fetch': 'Changelog · Web Fetch',
+ '已知 URL → 网页正文、页面资源地址或直接文档文字': 'Known URL → page body, resource URLs, or direct document text',
+ '已知 URL → 可读文本/文档文字': 'Known URL → readable text or document text',
+ '本地浏览器渲染 + Markdown 抽取': 'Local browser rendering + Markdown extraction',
+ '匿名 HTTP provider + Turndown': 'Anonymous HTTP provider + Turndown',
+ '已知 URL → 正文文本': 'Known URL → body text',
+ 'HTTP + BeautifulSoup 网页文本加载器': 'HTTP + BeautifulSoup page-text loader',
+ '已知 URL → 渲染正文、结构化资源 URL 或原文件字节': 'Known URL → rendered body, structured resource URLs, or original file '
+                                   'bytes',
+ 'HTTP GET + Readability 正文抽取（关闭 Firecrawl 回退）': 'HTTP GET + Readability body extraction (Firecrawl fallback '
+                                                 'disabled)',
+ '已知 URL → raw_content': 'Known URL → raw_content',
+ '逐任务结果与证据': 'Per-task results and evidence',
+ '运行参数与版本': 'Run parameters and versions',
+ '本报告纳入 4,300 个逻辑结果。运行参数见下表；保留的物理调用与输出见各结果详情。': 'This report includes 4,300 logical results. Run parameters '
+                                                'are listed below; retained physical calls and outputs are '
+                                                'available in each result detail.',
+ '以下选项来自调用前冻结的配置。每题调用一次，外层截止时间45秒；产品内部超时保留默认值。调用间隔不计入单次耗时。这里只展示影响抓取与日志的选项，具体请求和按任务选择的输出格式见各案例的调用日志。': 'These '
+                                                                                                      'options '
+                                                                                                      'come '
+                                                                                                      'from '
+                                                                                                      'configuration '
+                                                                                                      'frozen '
+                                                                                                      'before '
+                                                                                                      'calls. '
+                                                                                                      'Each '
+                                                                                                      'task '
+                                                                                                      'is '
+                                                                                                      'called '
+                                                                                                      'once '
+                                                                                                      'with '
+                                                                                                      'an '
+                                                                                                      'outer '
+                                                                                                      'deadline '
+                                                                                                      'of 45 '
+                                                                                                      'seconds; '
+                                                                                                      'product-internal '
+                                                                                                      'timeouts '
+                                                                                                      'keep '
+                                                                                                      'their '
+                                                                                                      'defaults. '
+                                                                                                      'Inter-call '
+                                                                                                      'intervals '
+                                                                                                      'are '
+                                                                                                      'excluded '
+                                                                                                      'from '
+                                                                                                      'call '
+                                                                                                      'latency. '
+                                                                                                      'Only '
+                                                                                                      'retrieval '
+                                                                                                      'and '
+                                                                                                      'logging '
+                                                                                                      'options '
+                                                                                                      'are '
+                                                                                                      'shown '
+                                                                                                      'here; '
+                                                                                                      'see '
+                                                                                                      'each '
+                                                                                                      'call '
+                                                                                                      'log '
+                                                                                                      'for '
+                                                                                                      'actual '
+                                                                                                      'requests '
+                                                                                                      'and '
+                                                                                                      'task-dependent '
+                                                                                                      'output '
+                                                                                                      'formats.',
+ '固定选项': 'Fixed options',
+ '页面完成条件：': 'Page completion condition:',
+ '阻止访问私网：': 'Block private-network access:',
+ '返回内容上限（字节）：': 'Maximum returned bytes:',
+ '调用间隔（秒）：': 'Inter-call interval (seconds):',
+ '日志级别：': 'Log level:',
+ '完整保存诊断日志：': 'Retain full diagnostic logs:',
+ '日志保存上限（字节）：': 'Maximum retained log bytes:',
+ '使用统一固定原生选项：': 'Use uniform fixed native options:',
+ '域名解析方式：': 'DNS resolution mode:',
+ '缓存最长年龄：': 'Maximum cache age:',
+ '代理选择：': 'Proxy selection:',
+ '请求输出格式：': 'Requested output formats:',
+ '只取主要正文：': 'Main content only:',
+ '提取深度：': 'Extraction depth:',
+ '包含图片：': 'Include images:',
+ '正文详细程度：': 'Text verbosity:',
+ '缓存最长年龄（小时）：': 'Maximum cache age (hours):',
+ '包含资源链接：': 'Include resource links:',
+ '具名链接数量上限：': 'Maximum named links:',
+ '文档大小上限（字节）：': 'Maximum document bytes:',
+ '每次调用都保存了测试程序的调用记录：何时开始、传入什么参数、何时返回，以及是否发生错误。各案例详情中的“调用方事件”展示这些记录。': 'Every call retains harness events: '
+                                                                      'start time, input parameters, return '
+                                                                      'time, and errors. These appear under '
+                                                                      'Caller events in each case detail.',
+ '“产品与依赖库日志”展示产品或底层库实际输出的运行信息。云端服务没有开放的内部日志，不会用测试程序的记录代替。下表说明各方法留下了哪些日志。': 'Product and dependency logs '
+                                                                           'contain runtime information '
+                                                                           'actually emitted by the product '
+                                                                           'or underlying libraries. Harness '
+                                                                           'events do not substitute for '
+                                                                           'unavailable cloud-internal logs. '
+                                                                           'The table lists what was '
+                                                                           'retained for each method.',
+ '已启用产品 debug；日志文件另含调用方记录。': 'Product debug enabled; the log file also contains caller events.',
+ '保留真实请求、返回错误及可用请求标识；未取得云服务内部 debug，后台能力尚未确认。': 'Actual requests, returned errors, and available request IDs '
+                                                'retained; cloud-internal debug was not obtained, and '
+                                                'backend capabilities remain unconfirmed.',
+ '已启用 debug；实际原生日志可能很少，不能以日志文件存在推断内部过程完整。': 'Debug enabled; native logs may be sparse, and the presence of a '
+                                            'log file does not prove complete internal-process coverage.',
+ '保留真实调用、返回和错误；此抓取路径未确认可开启内部 debug。': 'Actual calls, responses, and errors retained; internal debug '
+                                      'availability for this retrieval path is unconfirmed.',
+ '保留底层 HTTP 库日志；不等同于完整产品内部执行日志。': 'Underlying HTTP-library logs retained; these are not complete '
+                                  'product-internal execution logs.',
+ '启用原生 verbose 运行日志，并捕获进程输出。': 'Native verbose logging enabled, with process output captured.',
+ '完整日志在各案例详情中查看。日志可以帮助定位问题，但没有记录的内部过程不能据此推断；日志文件存在，也不等于产品的全部内部过程都有记录。': 'Full retained logs are available in '
+                                                                        'each case detail. They help locate '
+                                                                        'problems, but unrecorded internal '
+                                                                        'processes cannot be inferred; a log '
+                                                                        'file does not mean every internal '
+                                                                        'process was recorded.',
+ '以下命令从本轮保存的证据构建本地报告，不重新调用产品：': 'These commands build the local report from saved evidence without '
+                                'additional product calls:',
+ '使用与本轮结果对应的证据目录。调用时的版本、配置和评分器哈希见': 'Use the evidence directory corresponding to these results. Call-time '
+                                    'versions, configuration, and scorer hashes are in',
+ '调用前冻结协议': 'Pre-call frozen protocol',
+ '。上面的构建命令读取保存的评分；修改评分规则后，应先按声明范围复评分，不能仅重建页面就称成绩已经更新。': '. The build commands read saved scores. After '
+                                                        'changing scoring rules, rescore the declared scope '
+                                                        'before rebuilding; rebuilding pages alone does not '
+                                                        'update scores.',
+ '430 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。': 'Passed / decidable results among 430 planned tasks; each task '
+                                            'has equal weight, and undecidable results are excluded from the '
+                                            'denominator.',
+ '每种方法均使用同一组 430 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。': 'Each '
+                                                                                                                                'method '
+                                                                                                                                'uses '
+                                                                                                                                'the '
+                                                                                                                                'same '
+                                                                                                                                '430 '
+                                                                                                                                'tasks, '
+                                                                                                                                'including '
+                                                                                                                                'passes, '
+                                                                                                                                'failures, '
+                                                                                                                                'errors, '
+                                                                                                                                'and '
+                                                                                                                                'timeouts. '
+                                                                                                                                'Latency '
+                                                                                                                                'runs '
+                                                                                                                                'from '
+                                                                                                                                'input '
+                                                                                                                                'to '
+                                                                                                                                'return '
+                                                                                                                                'and '
+                                                                                                                                'excludes '
+                                                                                                                                'the '
+                                                                                                                                'common '
+                                                                                                                                'cooldown '
+                                                                                                                                'between '
+                                                                                                                                'calls. '
+                                                                                                                                'Cases '
+                                                                                                                                'execute '
+                                                                                                                                'sequentially '
+                                                                                                                                'within '
+                                                                                                                                'each '
+                                                                                                                                'method; '
+                                                                                                                                'inter-method '
+                                                                                                                                'scheduling '
+                                                                                                                                'and '
+                                                                                                                                'limits '
+                                                                                                                                'are '
+                                                                                                                                'documented '
+                                                                                                                                'in '
+                                                                                                                                'the '
+                                                                                                                                'call-chain '
+                                                                                                                                'audit. '
+                                                                                                                                'Local '
+                                                                                                                                'and '
+                                                                                                                                'remote '
+                                                                                                                                'environments, '
+                                                                                                                                'networks, '
+                                                                                                                                'and '
+                                                                                                                                'product '
+                                                                                                                                'limits '
+                                                                                                                                'still '
+                                                                                                                                'affect '
+                                                                                                                                'latency.',
+ '全部调用均值': 'All-call mean',
+ '全部调用 P50': 'All-call P50',
+ '全部调用 P95': 'All-call P95',
+ '请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求。验证码或错误提示文字不单独决定任务是否通过。完整度、纯净度和 F1 另算，不作为通过门槛。 已登记正文覆盖规则的案例，还须在最多 5 个参考区域中逐区达到 80% 词语计数覆盖，不能只返回标题或开头。': 'The '
+                                                                                                                                             'request '
+                                                                                                                                             'must '
+                                                                                                                                             'succeed '
+                                                                                                                                             'and '
+                                                                                                                                             'satisfy '
+                                                                                                                                             'the '
+                                                                                                                                             'case '
+                                                                                                                                             'minimum '
+                                                                                                                                             'length, '
+                                                                                                                                             'every '
+                                                                                                                                             'required '
+                                                                                                                                             'checkpoint, '
+                                                                                                                                             'significant '
+                                                                                                                                             'marker, '
+                                                                                                                                             'and '
+                                                                                                                                             'structure '
+                                                                                                                                             'requirement. '
+                                                                                                                                             'Verification '
+                                                                                                                                             'or '
+                                                                                                                                             'error '
+                                                                                                                                             'text '
+                                                                                                                                             'does '
+                                                                                                                                             'not '
+                                                                                                                                             'independently '
+                                                                                                                                             'determine '
+                                                                                                                                             'acceptance. '
+                                                                                                                                             'Completeness, '
+                                                                                                                                             'purity, '
+                                                                                                                                             'and '
+                                                                                                                                             'F1 '
+                                                                                                                                             'are '
+                                                                                                                                             'separate '
+                                                                                                                                             'metrics, '
+                                                                                                                                             'not '
+                                                                                                                                             'pass '
+                                                                                                                                             'thresholds. '
+                                                                                                                                             'Cases '
+                                                                                                                                             'with '
+                                                                                                                                             'body-coverage '
+                                                                                                                                             'rules '
+                                                                                                                                             'must '
+                                                                                                                                             'reach '
+                                                                                                                                             '80% '
+                                                                                                                                             'token-count '
+                                                                                                                                             'coverage '
+                                                                                                                                             'in '
+                                                                                                                                             'each '
+                                                                                                                                             'of '
+                                                                                                                                             'up '
+                                                                                                                                             'to '
+                                                                                                                                             '5 '
+                                                                                                                                             'reference '
+                                                                                                                                             'regions; '
+                                                                                                                                             'a '
+                                                                                                                                             'title '
+                                                                                                                                             'or '
+                                                                                                                                             'opening '
+                                                                                                                                             'alone '
+                                                                                                                                             'is '
+                                                                                                                                             'insufficient.',
+ '文档正文按请求状态、最低长度与全部内容核对点验收；只拿到下载链接不能通过。验证或错误提示只作诊断。F1另算，不作为通过门槛。 已登记正文覆盖规则的案例，还须在最多 5 个参考区域中逐区达到 80% 词语计数覆盖，不能只返回标题或开头。': 'Document '
+                                                                                                                          'text '
+                                                                                                                          'is '
+                                                                                                                          'accepted '
+                                                                                                                          'by '
+                                                                                                                          'request '
+                                                                                                                          'status, '
+                                                                                                                          'minimum '
+                                                                                                                          'length, '
+                                                                                                                          'and '
+                                                                                                                          'all '
+                                                                                                                          'content '
+                                                                                                                          'checkpoints; '
+                                                                                                                          'a '
+                                                                                                                          'download '
+                                                                                                                          'link '
+                                                                                                                          'alone '
+                                                                                                                          'is '
+                                                                                                                          'insufficient. '
+                                                                                                                          'Verification '
+                                                                                                                          'and '
+                                                                                                                          'error '
+                                                                                                                          'notices '
+                                                                                                                          'are '
+                                                                                                                          'diagnostic '
+                                                                                                                          'only. '
+                                                                                                                          'F1 '
+                                                                                                                          'is '
+                                                                                                                          'separate, '
+                                                                                                                          'not '
+                                                                                                                          'a '
+                                                                                                                          'pass '
+                                                                                                                          'threshold. '
+                                                                                                                          'Cases '
+                                                                                                                          'with '
+                                                                                                                          'body-coverage '
+                                                                                                                          'rules '
+                                                                                                                          'must '
+                                                                                                                          'reach '
+                                                                                                                          '80% '
+                                                                                                                          'token-count '
+                                                                                                                          'coverage '
+                                                                                                                          'in '
+                                                                                                                          'each '
+                                                                                                                          'of '
+                                                                                                                          'up '
+                                                                                                                          'to '
+                                                                                                                          '5 '
+                                                                                                                          'reference '
+                                                                                                                          'regions; '
+                                                                                                                          'a '
+                                                                                                                          'title '
+                                                                                                                          'or '
+                                                                                                                          'opening '
+                                                                                                                          'alone '
+                                                                                                                          'is '
+                                                                                                                          'insufficient.',
+ '不支持输入类型': 'Unsupported input type',
+ '任务规则未满足': 'Task requirements not met',
+ '取页返回 404': 'Retrieval returned 404',
+ '取页连接失败': 'Retrieval connection failed',
+ '方法安全限制': 'Method safety restriction',
+ '方法禁止跨站跳转': 'Method blocks cross-site redirects',
+ '方法空页规则拦截': 'Method empty-page rule blocked retrieval',
+ '正文提取为空': 'Body extraction empty',
+ '源站要求验证码': 'Source site requires verification',
+ '搜索': 'Search',
+ '搜索案例、方法或原因': 'Search cases, methods, or reasons',
+ '参考标注': 'Reference annotations',
+ '任务验收': 'Task acceptance',
+ '评分口径': 'Scoring scope',
+ '核对请求是否成功，再逐项检查本例要求的稳定文字、正文覆盖与完整条目。验证或拦截提示只作诊断，出现提示不单独导致失败；只有页面外壳而没有合格目标内容仍不通过。': 'Check request success, '
+                                                                                   'then validate the '
+                                                                                   'required stable text, '
+                                                                                   'body coverage, and '
+                                                                                   'complete records. '
+                                                                                   'Verification or blocking '
+                                                                                   'notices are diagnostic '
+                                                                                   'only and do not '
+                                                                                   'independently cause '
+                                                                                   'failure; a page shell '
+                                                                                   'without qualifying '
+                                                                                   'target content still '
+                                                                                   'fails.',
+ '接口返回 → 检查目标内容是否为空 → 核对题目要求的文字和字段 → 检查列表数量、类型与唯一性 → 汇总任务结果。只执行该例适用的检查；失败详情保留具体未满足项。图片与视频沿用请求和交付检查，资源地址或文件字节另按格式核验。': 'Response '
+                                                                                                                      '→ '
+                                                                                                                      'check '
+                                                                                                                      'for '
+                                                                                                                      'empty '
+                                                                                                                      'target '
+                                                                                                                      'content '
+                                                                                                                      '→ '
+                                                                                                                      'verify '
+                                                                                                                      'required '
+                                                                                                                      'text '
+                                                                                                                      'and '
+                                                                                                                      'fields '
+                                                                                                                      '→ '
+                                                                                                                      'check '
+                                                                                                                      'list '
+                                                                                                                      'count, '
+                                                                                                                      'types, '
+                                                                                                                      'and '
+                                                                                                                      'uniqueness '
+                                                                                                                      '→ '
+                                                                                                                      'aggregate '
+                                                                                                                      'the '
+                                                                                                                      'task '
+                                                                                                                      'verdict. '
+                                                                                                                      'Only '
+                                                                                                                      'checks '
+                                                                                                                      'applicable '
+                                                                                                                      'to '
+                                                                                                                      'that '
+                                                                                                                      'case '
+                                                                                                                      'run; '
+                                                                                                                      'failure '
+                                                                                                                      'details '
+                                                                                                                      'retain '
+                                                                                                                      'unmet '
+                                                                                                                      'requirements. '
+                                                                                                                      'Images '
+                                                                                                                      'and '
+                                                                                                                      'videos '
+                                                                                                                      'use '
+                                                                                                                      'request '
+                                                                                                                      'and '
+                                                                                                                      'delivery '
+                                                                                                                      'checks, '
+                                                                                                                      'with '
+                                                                                                                      'resource '
+                                                                                                                      'URLs '
+                                                                                                                      'or '
+                                                                                                                      'file '
+                                                                                                                      'bytes '
+                                                                                                                      'validated '
+                                                                                                                      'by '
+                                                                                                                      'format.'})
+REGEX.insert(0, (re.compile(r"^源码提交：(.+)$"), r"Source commit: \1"))
+
+TEXT.update({'本轮修正与检查限制': 'Corrections and review limits'})
+PHRASES.update({"Codex 独立复核": "Codex independent review", "见原始复核材料绑定记录": "see the binding in the original review evidence", "见原始复核材料": "see original review evidence"})
+
+TEXT.update({
+    "请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求。验证码或错误提示文字不单独决定任务是否通过。完整度、纯净度和 F1 另算，不作为通过门槛。": "The request must succeed and satisfy minimum length, every required checkpoint, significant marker, and structure requirement. Verification or error notices do not independently determine acceptance. Completeness, purity, and F1 are separate metrics, not pass thresholds.",
+})
+REGEX.insert(0, (re.compile(r"^(\d+) 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。$"), r"Passed / decidable results among \1 planned tasks; every task has equal weight, and undecidable results are excluded from the denominator."))
+REGEX.insert(0, (re.compile(r"^(\d+)/(\d+) · 复核记录$"), r"\1/\2 · review records"))
+REGEX.insert(0, (re.compile(r"^(\d+) 条通过结果的参考词精确率低于 30%。此比例用于定位检查对象，不是统一失败线；通过不保证干净正文，正文参考的范围和时间也会影响该指标。$"), r"\1 passing results have reference word precision below 30%. This locates inspection candidates, not a universal failure threshold. Passing does not establish clean body text; reference scope and time also affect this metric."))
+
+TEXT.update({
+    "版本优先使用调用时记录的版本号；源码实现使用冻结的提交号。云端服务没有公开后端版本时如实标注。二进制哈希用于确认具体执行文件；事后核验的版本会说明依据。": "Versions use call-time records where available; source implementations use frozen commits. Undisclosed cloud backend versions are stated explicitly. Binary hashes identify the executable, and retrospectively verified versions state their evidence.",
+})
+
+def write_english_report(out: Path, *, source_routes=None) -> int:
+    """Mirror Chinese HTML routes; a scoped refresh preserves other editions."""
+    if source_routes is None:
+        sources = sorted(path for path in out.rglob("*.html") if "en" not in path.relative_to(out).parts)
+    else:
+        from lexbench_webfetch.paths import contained_path
+        sources = []
+        for name in sorted(set(source_routes)):
+            route = PurePosixPath(name)
+            if route.is_absolute() or '..' in route.parts or not route.parts or route.parts[0] == 'en' or route.suffix != '.html':
+                raise ValueError('Scoped English routes must be relative Chinese HTML paths')
+            path = contained_path(out, str(route), reject_symlinks=True)
+            contained_path(out, 'en/' + str(route), reject_symlinks=True)
+            if not path.is_file():
+                raise FileNotFoundError('Missing Chinese route: ' + str(route))
+            sources.append(out / str(route))
     history_path = out / "report-changes.json"
     translations = release_translations(json.loads(history_path.read_text())) if history_path.is_file() else {}
+    from .report_reading import archived_translations
+    article_translations = archived_translations(out)
     english_root = out / "en"
-    if english_root.exists():
+    if source_routes is None and english_root.exists():
         shutil.rmtree(english_root)
     dataset_path = out / "dataset.json"
     allowed_source_text = {"中文"}
@@ -3786,12 +4351,28 @@ def write_english_report(out: Path) -> int:
         allowed_source_text.update(
             case.get("name") for case in dataset.get("cases", []) if case.get("name")
         )
-    sources = sorted(path for path in out.rglob("*.html") if "en" not in path.relative_to(out).parts)
+    archived_manifest = out / "archived-reading.json"
+    if archived_manifest.is_file():
+        allowed_source_text.update(json.loads(archived_manifest.read_text()).get("preserved_source_names", []))
     for source_path in sources:
         source = PurePosixPath(source_path.relative_to(out).as_posix())
         target = out / "en" / Path(str(source))
         target.parent.mkdir(parents=True, exist_ok=True)
-        localized = localize_html(source_path.read_text(encoding="utf-8"), source, translations=translations)
+        raw=source_path.read_text(encoding="utf-8")
+        if str(source)=='guide/index.html' and (out/'archived-reading.json').is_file():
+            from .report_reading import render_archived_reading
+            from bs4 import BeautifulSoup, Comment
+            parsed = BeautifulSoup(raw, 'html.parser')
+            article = parsed.select_one('[data-archived-reading="true"]')
+            if article is None:
+                raise ValueError('Historical article route lacks its scoped wrapper')
+            article.replace_with(Comment('ARCHIVED-ARTICLE'))
+            shell = localize_html(str(parsed), source, translations=translations)
+            body = localize_html(render_archived_reading(out,'en'), source,
+                                 translations=article_translations)
+            localized = shell.replace('<!--ARCHIVED-ARTICLE-->', body)
+        else:
+            localized=localize_html(raw,source,translations=translations)
         if source in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}:
             untranslated = untranslated_english_narrative(localized, allowed_source_text)
             if untranslated:

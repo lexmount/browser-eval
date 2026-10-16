@@ -23,7 +23,15 @@ class NativeFixture(Provider):
             "binary_sha256": config["expected_binary_sha256"],
         }
 
+    def native_cli_command(self, case):
+        from harness.web_fetch.providers.moli import MoliWebFetchProvider
+        return MoliWebFetchProvider.native_cli_command(self, case)
+
     def fetch(self, case, timeout):
+        command = self.native_cli_command(case)
+        self.capture_native_request(case, transport='cli', interface='dynamic_native_markdown' if case.track=='dynamic' else 'ordinary_markdown',
+            parameters={'argv': ['<native-binary>', *command[1:-1], '<input-url>'],
+                        'binary_sha256': self.config['expected_binary_sha256']})
         diagnostic = (self.name + "/" + case.id + " debug\n").encode()
         metadata = {
             "route": "dynamic_native_markdown" if case.track == "dynamic" else "ordinary_markdown",
@@ -67,6 +75,9 @@ class NativeFixture(Provider):
             else "anchor"
         )
         return ProviderResult(True, content, metadata={**metadata,
+            '_raw_stdout_b64': base64.b64encode(content.encode()).decode(),
+            'raw_stdout_sha256': hashlib.sha256(content.encode()).hexdigest(),
+            'native_answer_projection': {'schema_version': 2, 'source_format': 'bytes', 'content_format': 'utf8'},
             "reported_version": self.config["expected_reported_version"],
             "binary_sha256": self.config["expected_binary_sha256"],
         })
@@ -82,7 +93,7 @@ def comparison_cohort(tmp_path: Path, *, call_order="case-alternating") -> dict[
     source = {
         "id": "source",
         "tool": "web_fetch",
-        "cases": [asdict(case) for case in source_cases],
+        "cases": [{**asdict(case), "source_benchmark": {"input_media_kind": "html_page"}, "acceptance_contract": {"version": 1, "schema": "body_text", "minimum_records": 0, "stable_text_anchors": [{"id": "anchor", "alternatives": ["anchor"]}]}} for case in source_cases],
     }
     source_path = tmp_path / "source.json"
     source_path.write_text(json.dumps(source))
@@ -223,6 +234,7 @@ def convert_to_provider_batches(paths):
     batches = []
     for provider in providers:
         batch = json.loads(json.dumps(original))
+        batch["projection"] = {"kind": "complete-provider-case-subset-from-retained-run"}
         batch["providers"] = [
             item for item in batch["providers"] if item["name"] == provider
         ]

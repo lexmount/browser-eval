@@ -546,7 +546,7 @@ def native_contract_for_case(case: Any) -> NativeRetrievalContract | None:
 def native_default_case(case: Any) -> bool:
     """Stable acceptance contracts permit a URL-only provider-default route."""
     get = case.get if isinstance(case, dict) else lambda key, default=None: getattr(case, key, default)
-    if get("track", "web") != "dynamic" or get("retrieval_hints"):
+    if get("track", "web") != "dynamic" or get("retrieval_hints") not in (None, {}, {"version": 3, "mode": "native"}):
         return False
     contract = get("acceptance_contract")
     if not contract:

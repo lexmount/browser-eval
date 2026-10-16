@@ -409,7 +409,9 @@ def render_interfaces(out,records):
    if not bindings:
     raise ValueError("Measured native interface requires a saved call log: "+name)
    request=json.loads(verify_public_call_log(out,bindings[-1]).read_text())["request"]
-   s={**s,"params":[],"request":request,"notes":"此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。"}
+   from .methods import method_page_model
+   model=method_page_model(name,name,[x for x in records if x["provider"]==name])
+   s={**s,"entry":model["endpoint"],"params":[],"request":request,"notes":"此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。"}
   access=method_access(name,records)
   if r:
    content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)

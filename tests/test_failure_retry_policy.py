@@ -1,4 +1,5 @@
 import json
+from dataclasses import asdict
 
 import pytest
 
@@ -17,15 +18,24 @@ class Responses(Provider):
 
     def fetch(self, case, timeout):
         self.calls += 1
-        return next(self.answers)
+        result = next(self.answers)
+        if self.config['uniform_native_parameters']:
+            import base64
+            import hashlib
+            raw = json.dumps({'content': result.content}).encode()
+            result.metadata.update(_raw_response_b64=base64.b64encode(raw).decode(),
+                raw_response_sha256=hashlib.sha256(raw).hexdigest(), raw_response_bytes=len(raw),
+                native_answer_projection={'schema_version': 2, 'content_pointer': ['content'], 'content_format': 'text'})
+        return result
 
 
 @pytest.fixture
 def run_task(tmp_path):
     def run(provider, **options):
+        case = EvalCase('one', 'One', 'https://example.com', 'static', ['Expected'], source_benchmark={'input_media_kind': 'html_page'})
         rows, _ = run_evaluation(
-            output_dir=tmp_path, dataset_meta={'id': 'retry'}, dataset_path=tmp_path/'dataset.json',
-            cases=[EvalCase('one', 'One', 'https://example.com', 'static', ['Expected'])],
+            output_dir=tmp_path, dataset_meta={'id': 'retry', 'cases': [asdict(case)]}, dataset_path=tmp_path/'dataset.json',
+            cases=[case],
             providers=[provider], provider_config_path=tmp_path/'providers.json',
             runs=1, timeout=2, delay=0, **options,
         )

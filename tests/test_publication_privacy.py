@@ -575,3 +575,141 @@ class PublicationPrivacyTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_host_metadata_projection_rebinds_dependencies_without_changing_measurements():
+    import hashlib
+    import json
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    config = json.dumps({'binary': '/Users/fixture/tool/bin', 'version': '1.2.3', 'environment': {'hostname': 'private-machine'}}).encode()
+    config_hash = hashlib.sha256(config).hexdigest()
+    result = json.dumps({'ok': True, 'duration': 1.25, 'content_sha256': 'a'*64,
+                         'provider_config_sha256': config_hash,
+                         'provider_metadata': {'stderr': 'at /Users/fixture/work/main.py:4'}}).encode()+b'\n'
+    files = {'config.json': config, 'results.jsonl': result, 'answer.txt': b'actual answer'}
+    original = files.copy()
+    public, receipt = project_host_metadata_files(files, ['/Users/fixture'])
+    assert files == original
+    assert public['answer.txt'] == files['answer.txt']
+    row = json.loads(public['results.jsonl'])
+    assert row['provider_config_sha256'] == hashlib.sha256(public['config.json']).hexdigest()
+    assert (row['ok'], row['duration'], row['content_sha256']) == (True, 1.25, 'a'*64)
+    assert json.loads(public['config.json'])['version'] == '1.2.3'
+    assert 'hostname' not in json.loads(public['config.json'])['environment']
+    assert b'/Users/fixture' not in b''.join(public.values())
+    assert receipt['files'][0]['original_sha256'] == config_hash
+    assert receipt['files'][0]['published_sha256'] != config_hash
+    assert '/Users/fixture' not in json.dumps(receipt)
+    repeated, unchanged = project_host_metadata_files(public, ['/Users/fixture'])
+    assert repeated == public and unchanged['files'] == []
+
+
+def test_public_diagnostic_contexts_redact_queries_and_preserve_scores():
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    row = {'ok': True, 'elapsed_ms': 12.5, 'metrics': {'content_pass': True,
+        'content_sha256': 'a' * 64, 'composite_group_results': [{'records': [
+            {'context': '[Forum](https://example.test/thread?access_token=private-token-canary)'}]}]}}
+    raw = (json.dumps(row) + '\n').encode()
+    files = {'results.jsonl': raw, 'receipt.json': json.dumps({'results_sha256': hashlib.sha256(raw).hexdigest()}).encode()}
+    public, receipt = project_host_metadata_files(files, ['/Users/fixture'], public_excerpt_views=True)
+    projected = json.loads(public['results.jsonl'])
+    assert b'private-token-canary' not in public['results.jsonl']
+    assert projected['ok'] == row['ok'] and projected['elapsed_ms'] == row['elapsed_ms']
+    assert projected['metrics']['content_pass'] is True
+    assert projected['metrics']['content_sha256'] == 'a' * 64
+    assert json.loads(public['receipt.json'])['results_sha256'] == hashlib.sha256(public['results.jsonl']).hexdigest()
+    assert files['results.jsonl'] == raw
+    assert any('.metrics.' in field and field.endswith('.context') for item in receipt['files'] for field in item['redacted_fields'])
+    unchanged, _ = project_host_metadata_files(files, ['/Users/fixture'])
+    assert unchanged == files
+
+
+def test_host_metadata_projection_requires_an_explicit_non_root_prefix():
+    import pytest
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    for prefixes in ([], ['/'], ['relative/path']):
+        with pytest.raises(ValueError):
+            project_host_metadata_files({}, prefixes)
+
+
+def test_public_metadata_receipt_checks_bytes_and_excludes_scored_payloads(tmp_path):
+    import hashlib
+    import json
+    import pytest
+    from harness.web_fetch.publication_privacy import project_host_metadata_files, require_host_metadata_projection
+    original={'config.json': b'{"binary":"/Users/fixture/tool"}'}
+    public,receipt=project_host_metadata_files(original,['/Users/fixture'])
+    (tmp_path/'config.json').write_bytes(public['config.json'])
+    def bind():
+        path=tmp_path/'projection.json'
+        path.write_text(json.dumps(receipt))
+        return {'path':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+    require_host_metadata_projection(tmp_path,bind())
+    (tmp_path/'config.json').write_text('{"binary":"changed"}')
+    with pytest.raises(ValueError):require_host_metadata_projection(tmp_path,bind())
+    (tmp_path/'config.json').write_bytes(public['config.json'])
+    receipt['files'][0]['path']='artifacts/answer.json'
+    with pytest.raises(ValueError,match='preserve scored payloads'):
+        require_host_metadata_projection(tmp_path,bind())
+
+
+def test_host_projection_does_not_match_another_user_with_the_same_prefix():
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    files={'config.json': b'{"binary":"/Users/fixture-other/tool"}'}
+    public,receipt=project_host_metadata_files(files,['/Users/fixture'])
+    assert public==files and receipt['files']==[]
+
+
+def test_named_host_in_auxiliary_log_is_projected_with_bound_public_hash(tmp_path):
+    import hashlib
+    import json
+    from harness.web_fetch.publication_privacy import project_host_metadata_files, require_host_metadata_projection
+    name='logs/case.debug.txt'
+    raw=b'{"hostname":"fixture.local","message":"response completed"}'
+    inputs={name:raw,'answer.txt':b'unchanged scored text'}
+    public,receipt=project_host_metadata_files(inputs,['/Users/fixture'],host_names=['fixture.local'])
+    assert public['answer.txt']==inputs['answer.txt']
+    assert b'fixture.local' not in public[name]
+    assert b'response completed' in public[name]
+    (tmp_path/'logs').mkdir();(tmp_path/name).write_bytes(public[name])
+    path=tmp_path/'projection.json';path.write_text(json.dumps(receipt))
+    require_host_metadata_projection(tmp_path,{'path':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+
+
+def test_host_projection_refuses_to_rewrite_score_bearing_or_response_payloads():
+    import pytest
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    for name in ('artifacts/answer.json','logs/case.response.txt','answer.txt'):
+        raw=b'{"host":"fixture.local"}'
+        with pytest.raises(ValueError,match='must not alter scored'):
+            project_host_metadata_files({name:raw},['/Users/fixture'],host_names=['fixture.local'])
+def test_long_unterminated_escaped_string_preserves_content_without_rescanning_suffixes():
+    from harness.web_fetch.publication_privacy import redact_url_queries
+    text = '"' + ('\\"fragment' * 20000)
+    assert redact_url_queries(text) == (text, 0)
+
+
+def test_long_escaped_url_still_redacts_sensitive_query_value():
+    from harness.web_fetch.publication_privacy import redact_url_queries
+    text = 'ordinary log ' * 500 + r'"https:\/\/example.com\/image?apiKey=private-value&width=300"'
+    public, count = redact_url_queries(text)
+    assert count == 1
+    assert 'private-value' not in public
+    assert 'width=300' in public
+
+
+def test_large_and_small_string_tokenization_have_identical_public_redaction_semantics():
+    import random
+    from harness.web_fetch.publication_privacy import redact_url_queries
+    rng = random.Random(51)
+    prefix = ' ' * 4097
+    fragments = [
+        '"abc\\"def" tail "https://example.com/?token=private-value"',
+        '"unterminated\\"suffix', '"line\nfeed"', '"line\\\nfeed"',
+        '"line\\\rfeed"', '"\\u0068ttps://example.com/?token=private-value"',
+        '"nul\x00boundary"', '"backslash\\\\"',
+    ]
+    fragments += [''.join(rng.choice('ab"\\\r\n\t\x00') for _ in range(60)) for _ in range(64)]
+    for text in fragments:
+        expected, count = redact_url_queries(text)
+        assert redact_url_queries(prefix+text) == (prefix+expected, count)
