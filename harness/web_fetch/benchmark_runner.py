@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from .artifacts import materialize_bound_artifacts, materialize_task_references
-from .config import load_dataset, load_provider_config, load_runtime_env
+from .config import load_dataset, load_provider_config, load_runtime_env, add_failure_retry_argument
 from .providers import build_provider
 from .reference_inputs import input_tree
 from .report_build import build_report
@@ -32,7 +32,7 @@ def main(argv=None):
     parser.add_argument('--measure-only',action='store_true',help='Persist measured evidence without building an unreviewed report')
     parser.add_argument('--workers',type=int,default=11)
     parser.add_argument('--runs',type=int,default=1)
-    parser.add_argument('--max-failure-retries',type=int,choices=(0,1),default=0)
+    add_failure_retry_argument(parser)
     args=parser.parse_args(argv)
     if args.provider_config and not args.provider_config.is_file():
         parser.error('--provider-config must be an existing file')

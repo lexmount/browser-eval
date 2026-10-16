@@ -145,7 +145,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
             identity = manifest['providers'][0]['implementation_identity']
             self.assertEqual(identity['repository']['head'], 'a' * 40)
 
-    def test_failed_task_is_called_once(self):
+    def test_zero_retries_calls_failed_task_once(self):
         class Flaky(Provider):
             def __init__(self):
                 super().__init__('flaky', {'type': 'fixture'})
@@ -161,7 +161,8 @@ class RunnerConcurrencyTest(unittest.TestCase):
             root = Path(directory)
             records, _ = run_evaluation(output_dir=root, dataset_meta={'id': 'test'},
                 dataset_path=Path('dataset.json'), cases=[case], providers=[provider],
-                provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0)
+                provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0,
+                max_failure_retries=0)
             self.assertEqual(provider.calls, 1)
             self.assertEqual(len(records), 1)
             self.assertFalse(records[0]['metrics']['content_pass'])
@@ -330,7 +331,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
                 providers=[Cancellable('slow', {})], provider_config_path=Path('providers.json'),
                 runs=1, timeout=.02, delay=0,
             )
-        self.assertEqual(calls, ['case-0', 'case-1'])
+        self.assertEqual(calls, ['case-0', 'case-0', 'case-1', 'case-1'])
         self.assertEqual([record['error_type'] for record in records], ['timeout', 'timeout'])
         self.assertTrue(all(record['elapsed_ms'] < 100 for record in records))
 

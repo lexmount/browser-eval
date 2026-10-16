@@ -71,6 +71,7 @@ def test_runner_keeps_real_observations_for_every_outcome(tmp_path, outcome):
             self.stop = threading.Event()
             self.calls = 0
         def begin_call(self):
+            self.stop.clear()
             if outcome == 'startup_error':
                 raise OSError('fixture startup unavailable')
         def fetch(self, case, timeout):
@@ -108,7 +109,7 @@ def test_runner_keeps_real_observations_for_every_outcome(tmp_path, outcome):
     assert rows[0]['event'] == 'call_started'
     assert rows[-1]['event'] == 'collection_completed'
     assert len({r['call_id'] for r in rows}) == 1
-    assert provider.calls == (0 if outcome == 'startup_error' else 1)
+    assert provider.calls == (0 if outcome == 'startup_error' else 1 if outcome == 'content' else 2)
     if outcome != 'startup_error':
         assert ('actual fixture log before '+outcome).encode() in raw
     if outcome in {'startup_error','product_error'}:

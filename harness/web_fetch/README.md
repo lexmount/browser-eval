@@ -204,15 +204,18 @@ validation, not each measured fetch; a changed binary requires revalidation.
 
 ### Retries
 
-Runs default to no benchmark-level retry. A run may predeclare one failure retry
-with `max_failure_retries=1` (the headless CLI flag is
-`--max-failure-retries 1`). The retry is triggered only after the first physical
-call fails the shared task predicate. Both physical outputs and supplemental
-artifacts are retained; the logical record always uses the final physical call,
-never whichever response scored better. Its displayed latency sums both physical
-call intervals and any provider-required wait between them. A correction for a
-proven wrong command, version, scorer or reference is not a retry: supersede the
-affected result explicitly and rerun the complete declared correction scope.
+All methods default to one retry after a failed task. Set
+`--max-failure-retries N` to any nonnegative integer; `0` disables retries.
+There are at most N+1 calls per task, stopping as soon as the task passes.
+The same rule covers request errors, timeouts, empty output and content-rule
+failures, including methods using native parameters.
+
+Each method and task produces one result. The final call replaces the earlier
+answer, verdict, metrics and primary latency; retries do not add samples or a
+separate result category. Call artifacts remain available for audit, with
+accumulated execution cost stored separately from the final-call latency.
+An uncancellable call must stop before another starts; a still-running call
+makes the cohort incomplete. Historical cohorts retain their frozen retry policy.
 
 ### Timeouts
 
@@ -605,7 +608,8 @@ protocol remain dated observations and cannot be certified retroactively.
 Native workers receive the caller deadline and fixed native capacity options,
 and record effective limits. In fixed-native mode, the outer deadline does not
 override product timers. CowAgent uses its native `DEFAULT_TIMEOUT` unchanged.
-No retry or case-specific retrieval rule is added.
+Workers do not add case-specific retrieval rules. Caller failure retries follow
+the shared [retry policy](#retries).
 
 The runner and validation entry point check system DNS before guarded native
 methods execute. Synthetic `198.18.0.0/15` answers stop the comparison before
@@ -623,8 +627,9 @@ when selected together. `public_doh` uses the fixed
 [Cloudflare JSON DoH endpoint](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/)
 for every hostname and redirect, not a case allowlist or failure fallback.
 Native Chrome uses the same endpoint with its DNS wire-format client; other
-callers query A and AAAA through the JSON client. No caller retries are added; DNS time counts inside the existing
-call deadline. Python resolution is scoped to the calling thread and restored;
+callers query A and AAAA through the JSON client. DNS selection does not change
+the shared [retry policy](#retries); DNS time counts inside each call's deadline.
+Python resolution is scoped to the calling thread and restored;
 Node uses the products' resolver interfaces. Native private-address checks and
 address pinning remain active where the product provides them. CowAgent's native
 SSRF setting is preserved (the pinned implementation defaults to disabled).
@@ -689,7 +694,7 @@ logs, requests or bare URLs.
 
 `uniform_native_parameters: true` selects the fixed-native body/structure policy for web and dynamic tasks. Choose documented native extraction options once per method (for example Tavily advanced, Cloudflare networkidle2, Crawl4AI iframe/overlay options, native freshness and capacity options). The caller deadline is 45 seconds; product connection, navigation and extraction timers retain their native defaults. HTTP-client deadlines and worker cancellation enforce collection time, not product-side budgets. CowAgent globals are never patched.
 
-Per-case retrieval hints and auxiliary document/media/challenge routes are rejected before invocation in this mode. No caller failure retry, cross-provider fallback, injected extraction algorithm or answer synthesis is permitted. Keep the native response envelope and its declared answer; the product may still impose its own limits or internal retries. Prepare a new frozen invocation profile after a policy change; preserve previous measurements and do not infer revised scores without calls.
+Per-case retrieval hints and auxiliary document/media/challenge routes are rejected before invocation in this mode. Cross-provider fallback, injected extraction algorithms and answer synthesis are prohibited. Caller failure retries follow the shared [retry policy](#retries); historical cohorts retain their frozen retry budgets. Keep the native response envelope and its declared answer; the product may still impose its own limits or internal retries. Prepare a new frozen invocation profile after a policy change; preserve previous measurements and do not infer revised scores without calls.
 ### Main-document identity on declared navigation tasks
 
 When a body task declares `source_benchmark.risk_control.navigation_contract`,

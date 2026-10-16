@@ -3241,6 +3241,10 @@ REGEX.insert(0, (
     r"Physical call \1",
 ))
 REGEX.insert(0, (
+    re.compile(r"^下载物理调用 (\d+)记录$"),
+    r"Download physical call \1 record",
+))
+REGEX.insert(0, (
     re.compile(r"^本题的最终交付物是 (\d+) 个原始文件；文本输出为空不表示没有交付，文件字节在详情页下方单独列出。$"),
     r"This task delivered \1 original files. Empty text does not mean nothing was delivered; the file bytes are listed separately below.",
 ))

@@ -39,7 +39,7 @@ def _read_profile(path: Path) -> tuple[dict, str]:
             or type(profile.get("runs_per_case")) is not int or profile["runs_per_case"] != 1
             or type(profile.get("concurrency")) is not int or profile["concurrency"] != 1
             or type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0
-            or type(profile.get("max_failure_retries")) is not int or profile["max_failure_retries"] not in (0, 1)
+            or type(profile.get("max_failure_retries")) is not int or profile["max_failure_retries"] < 0
             or not isinstance(versions, dict)
             or any(not isinstance(versions.get(name), str) or not versions[name].strip()
                    for name in methods if name != "kitesurf")

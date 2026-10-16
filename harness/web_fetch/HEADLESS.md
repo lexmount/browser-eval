@@ -47,10 +47,7 @@ personal sessions, stealth fallback or model post-processing. The original
 published matrix used one provider call per task and did not retry; later
 documented corrections may supersede affected logical results while preserving
 the earlier physical evidence.
-Future runs may predeclare `--max-failure-retries 1`: only a failed task may
-receive one additional physical call, both artifacts are retained, total
-logical latency includes the retry path, and the final physical call is always
-authoritative. Choosing the better response after seeing outcomes is forbidden.
+The shared [retry policy](README.md#retries) applies to every method.
 
 ## What is and is not fair
 
@@ -243,11 +240,9 @@ The resource-mode default is the four local methods: Lightpanda, Obscura, Moli
 is excluded from the resource table because its remote browser CPU, memory, and
 upstream network traffic are not observable from the client.
 
-Failure retry is disabled by default. Add `--max-failure-retries 1` only when
-the protocol calls for one retry before measurement begins. This is distinct
-from correcting a proven wrong command, implementation version, scorer or
-reference: a correction explicitly supersedes the affected logical results,
-reruns the complete declared comparison scope and records its score impact.
+Correct a proven wrong command, implementation version, scorer or reference
+by explicitly superseding the affected logical results, rerunning the complete
+declared comparison scope and recording the score impact.
 
 A failed or incomplete evidence directory is immutable. A reference failure
 suspends that case's new body measurement; it is not a provider failure. A

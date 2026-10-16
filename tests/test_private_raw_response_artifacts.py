@@ -67,7 +67,7 @@ class PrivateRawResponseArtifactTests(unittest.TestCase):
             self.assertFalse(metadata['diagnostic_log_truncated'])
             path = Path(metadata['diagnostic_log_path'])
             self.assertEqual(path.parts[0], 'private_artifacts')
-            self.assertEqual(path.name, 'run-001.stderr.log')
+            self.assertEqual(path.stem, Path(record['artifact_path']).stem + '.stderr')
             self.assertEqual((root / path).read_bytes(), raw)
             call_log = json.loads(
                 (root / metadata['call_log']['path']).read_text(encoding='utf-8')

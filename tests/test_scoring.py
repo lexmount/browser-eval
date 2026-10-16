@@ -554,7 +554,7 @@ class ScoringPipelineTests(unittest.TestCase):
         with redirect_stdout(io.StringIO()):
             return runner.run_evaluation(output_dir=self.run, dataset_meta=self.dataset, dataset_path=self.path,
                 cases=self.cases, providers=[self.provider], provider_config_path=self.root / "providers.json",
-                runs=1, timeout=1, delay=0)
+                runs=1, timeout=1, delay=0, max_failure_retries=0)
 
     def prepare_script_references(self):
         refs = self.run / "list-references"

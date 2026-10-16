@@ -14,7 +14,8 @@ def write_rows(path, rows):
     path.write_text(''.join(json.dumps(row) + '\n' for row in rows))
 
 
-def sample_fixture(root, *, providers=('engine-a', 'new-engine'), size=2, parent_size=3):
+def sample_fixture(root, *, providers=('engine-a', 'new-engine'), size=2, parent_size=3,
+                   max_failure_retries=1, recovery_call=2):
     root.mkdir(parents=True, exist_ok=True)
     source = root / 'source.jsonl'
     parents = [{'track_id': f'case-{index}', 'html': f'<main>Fact {index}</main>',
@@ -32,7 +33,7 @@ def sample_fixture(root, *, providers=('engine-a', 'new-engine'), size=2, parent
     write_json(profile, {'dataset_id': 'synthetic-sample', 'comparison_kind': 'webmainbench_frozen_html_to_markdown',
                          'case_count': size, 'providers': list(providers),
                          'source_dataset_sha256': digest(source), 'sample_manifest_sha256': digest(manifest),
-                         'timeout_seconds': 45, 'runs_per_case': 1, 'concurrency': 1, 'max_failure_retries': 1,
+                         'timeout_seconds': 45, 'runs_per_case': 1, 'concurrency': 1, 'max_failure_retries': max_failure_retries,
                          'official_scorer_commit': SCORER_COMMIT, 'metric_config': {'use_llm': False},
                          'metric_source_manifest_sha256': hashlib.sha256(json.dumps(metric_sources, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
                          'publication_state': 'diagnostic_not_for_release'})
@@ -50,7 +51,8 @@ def sample_fixture(root, *, providers=('engine-a', 'new-engine'), size=2, parent
             input_hash = hashlib.sha256(case['html'].encode()).hexdigest()
             reference_hash = hashlib.sha256(content.encode()).hexdigest()
             chain = []
-            for physical, body in enumerate(('first call failed', content) if index == 0 else (content,), 1):
+            answers = ('first call failed',) * (recovery_call - 1) + (content,) if index == 0 else (content,)
+            for physical, body in enumerate(answers, 1):
                 physical_path = f'artifacts/{provider}/{track_id}-p{physical:02d}.txt'
                 (shard / physical_path).write_text(body)
                 chain.append({'provider': provider, 'track_id': track_id,
@@ -76,7 +78,7 @@ def sample_fixture(root, *, providers=('engine-a', 'new-engine'), size=2, parent
         selection = {'sha256': digest(manifest)}
         write_json(shard / 'dataset.json', {'case_count': size, 'case_ids': [row['track_id'] for row in selected], 'selection_manifest': selection})
         write_json(shard / 'execution.json', {'provider': provider, 'case_count': size,
-                                              'timeout_seconds': 45, 'max_failure_retries': 1,
+                                              'timeout_seconds': 45, 'max_failure_retries': max_failure_retries,
                                               'source_dataset_sha256': digest(source), 'selection_manifest': selection,
                                               'network_isolation_probe': {'mode': 'cloudflare_reject_external_resource_types'}})
         write_json(shard / 'score-summary.json', {'provider': provider, 'case_count': size,

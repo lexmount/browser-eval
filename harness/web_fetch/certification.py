@@ -21,6 +21,7 @@ from harness.web_fetch import (
     webmainbench_runner,
 )
 from harness.web_fetch.reference_inputs import read_dataset_bytes
+from harness.web_fetch.config import add_failure_retry_argument
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -146,6 +147,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--providers", required=True)
     parser.add_argument("--case-ids", required=True)
     parser.add_argument("--workers", type=int, default=1)
+    add_failure_retry_argument(parser)
     parser.add_argument("--capture-workers", type=int, default=8)
     parser.add_argument("--browser-capture-attempts", type=int, default=2)
     parser.add_argument("--browser-binary")
@@ -309,6 +311,8 @@ def main(argv: list[str] | None = None) -> None:
         selected,
         "--workers",
         str(args.workers),
+        "--max-failure-retries",
+        str(args.max_failure_retries),
         "--measure-only",
     ]
     if args.env_file:

@@ -33,8 +33,8 @@ class CertifiedBenchmarkTests(unittest.TestCase):
         )
         from harness.web_fetch.report_build import build_report
         from harness.web_fetch.evidence import finalize_aggregate
-        for mode in ('declared', 'native'):
-            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+        for mode, retries in (('declared', 0), ('native', 3)):
+            with self.subTest(mode=mode, retries=retries), tempfile.TemporaryDirectory() as directory:
                 root=Path(directory); dataset=root/'dataset.json'; output=root/'run'
                 case={'id':'stable','name':'Stable page','url':'https://example.test/page',
                       'category':'web','track':'web','expected_any':['Required label'],
@@ -68,7 +68,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     main(['--dataset',str(dataset),'--output',str(output),
                           '--work-root',str(root/'work'),'--providers','fixture',
                           '--provider-config',str(config),'--case-ids','stable',
-                          '--retrieval-mode',mode,'--diagnostic'])
+                          '--retrieval-mode',mode,'--max-failure-retries',str(retries),'--diagnostic'])
                 (output/'sources').mkdir(exist_ok=True)
                 (output/'list-references').mkdir(exist_ok=True)
                 with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
@@ -78,6 +78,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 self.assertEqual(saved['comparison']['evidence_state'],'diagnostic')
                 self.assertEqual(saved['comparison']['unqualified_reference_cases'],['stable'])
                 batches=json.loads((output/'execution.json').read_text())['batches']
+                self.assertTrue(all(b['parameters']['max_failure_retries']==retries for b in batches))
                 self.assertTrue(all(b['evidence_state']=='diagnostic' and
                     b['unqualified_reference_cases']==['stable'] for b in batches))
                 # Dropping dataset display metadata cannot erase execution provenance.
