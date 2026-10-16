@@ -772,3 +772,32 @@ def test_public_scorer_keeps_html_fields_with_their_record_owner(content, minimu
     metrics=score_attempt(case,content.encode(),ok=True)
     assert metrics['composite_acceptance_pass'] is expected
     assert task_passed(True,metrics,'body') is expected
+
+
+@pytest.mark.parametrize('container', ['article','li','div'])
+@pytest.mark.parametrize('wrappers', [0,1,3])
+@pytest.mark.parametrize('field_tags', ['paragraphs','attribute_list'])
+@pytest.mark.parametrize('complete', [False,True])
+def test_html_record_layout_wrappers_and_attribute_lists_preserve_verdict(container, wrappers, field_tags, complete):
+    from harness.web_fetch.scoring import score_attempt
+    from harness.web_fetch.metrics import task_passed
+    def fields(values):
+        if field_tags=='attribute_list':
+            return '<ul>'+''.join('<li>'+value+'</li>' for value in values)+'</ul>'
+        return ''.join('<p>'+value+'</p>' for value in values)
+    first=('<a href="/item/1">First House</a>'
+           +fields(['$100,000','900 sqft'] if complete else ['$100,000']))
+    second=(fields(['$200,000','1000 sqft'] if complete else ['900 sqft'])
+            +'<a href="/item/2">Second House</a>')
+    for _ in range(wrappers):
+        first='<div class="content">'+first+'</div>'
+        second='<div class="content">'+second+'</div>'
+    content='<main><'+container+'>'+first+'</'+container+'><'+container+'>'+second+'</'+container+'></main>'
+    if container=='li':content='<ul>'+content+'</ul>'
+    rules=contract(named('houses',None,None,2 if complete else 1,required_fields=[
+        {'id':'price','kind':'price'},{'id':'area','kind':'area'}]))
+    rules['groups'][0].pop('start_pattern');rules['groups'][0].pop('end_pattern')
+    case={'url':'https://example.test/catalog','task_kind':'body','min_content_chars':1,'composite_acceptance':rules}
+    metrics=score_attempt(case,content.encode(),ok=True)
+    assert metrics['composite_acceptance_pass'] is complete
+    assert task_passed(True,metrics,'body') is complete

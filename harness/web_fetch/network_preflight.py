@@ -97,10 +97,8 @@ def preflight_guarded_providers(providers, cases):
     ]
     # ``usable_for_guarded_local_comparison`` keeps its original strict
     # meaning: every declared host resolved only to public addresses.  Under
-    # strict public DoH, a partial lookup outage is left to the affected
-    # measured call, but a nonempty scope with no successful lookup still
-    # indicates an unusable benchmark environment and fails closed here.
-    require_usable_public_dns(
-        audit, allow_partial_resolution_failures=mode == "public_doh"
-    )
+    # either declared resolver, a partial lookup outage is left to the affected
+    # measured call. No successful lookup in a nonempty scope still indicates
+    # an unusable environment; unsafe answers always fail closed above.
+    require_usable_public_dns(audit, allow_partial_resolution_failures=True)
     return audit

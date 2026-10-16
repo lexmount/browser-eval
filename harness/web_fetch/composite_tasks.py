@@ -282,10 +282,29 @@ def _link_identity(url: str, group: dict) -> str | None:
 
 def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, str]:
     """Keep real DOM ownership while projecting visible links and field text."""
-    from bs4 import NavigableString, Tag
+    from bs4 import Comment, NavigableString, Tag
     from .dynamic_lists import _scoped_html, visible_html_text
 
     soup = _scoped_html(content)
+    # Layout-only single-child divs cannot change which record owns a field.
+    # Normalize them before looking for repeated sibling cards, while retaining
+    # explicitly declared article/list-item semantics and visible direct text.
+    for node in reversed(soup.find_all('div')):
+        elements = [child for child in node.children if isinstance(child, Tag)]
+        direct_text = any(isinstance(child, NavigableString) and not isinstance(child, Comment)
+                          and str(child).strip() for child in node.children)
+        if (len(elements) == 1 and not direct_text
+                and node.get('role') not in {'article','listitem'}):
+            node.unwrap()
+
+    identity_cache = {}
+    def target_identities(node):
+        if id(node) not in identity_cache:
+            identity_cache[id(node)] = {
+                _link_identity(urljoin(group.get('link_base_url', base_url), anchor['href']), group)
+                for anchor in node.find_all('a', href=True)} - {None}
+        return identity_cache[id(node)]
+
     owners = {id(node): node for node in soup.select(
         'article,li,aside,nav,[role="article"],[role="listitem"]')}
     # Generic div cards have no semantic tag. Repeated sibling containers with
@@ -298,12 +317,20 @@ def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, 
         for node in siblings:
             if sum(isinstance(child, Tag) for child in node.children) < 2:
                 continue
-            identities = {_link_identity(urljoin(group.get('link_base_url', base_url), anchor['href']), group)
-                          for anchor in node.find_all('a', href=True)} - {None}
+            identities = target_identities(node)
             if identities:
                 cards.append((node, identities))
         if len(cards) > 1 and len(set().union(*(ids for _, ids in cards))) > 1:
             owners.update((id(node), node) for node, _ in cards)
+    # A property's bullet list is content of its enclosing identified record.
+    # A nested item with its own target link remains independently bounded.
+    attribute_items = [key for key, node in owners.items()
+                       if (node.name == 'li' or node.get('role') == 'listitem')
+                       and not target_identities(node)
+                       and any(id(parent) in owners and parent.name not in {'aside','nav'}
+                               and target_identities(parent) for parent in node.parents)]
+    for key in attribute_items:
+        del owners[key]
     # A section/header/footer inside an identified record still belongs to
     # that record. Outside records, these delimit unrelated page regions.
     for node in soup.select('section,header,footer'):
