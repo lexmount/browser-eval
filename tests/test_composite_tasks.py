@@ -801,3 +801,136 @@ def test_html_record_layout_wrappers_and_attribute_lists_preserve_verdict(contai
     metrics=score_attempt(case,content.encode(),ok=True)
     assert metrics['composite_acceptance_pass'] is complete
     assert task_passed(True,metrics,'body') is complete
+
+
+@pytest.mark.parametrize(
+    ("content", "minimum", "expected"),
+    [
+        (
+            '<main><div><p><a href="/item/1">First House</a><br>$100,000</p></div>'
+            '<div><p>900 sqft<br><a href="/item/2">Second House</a></p></div></main>',
+            1,
+            False,
+        ),
+        (
+            '<main><section><div><p><a href="/item/1">First House</a><br>$100,000</p></div></section>'
+            '<section><div><p>900 sqft<br><a href="/item/2">Second House</a></p></div></section></main>',
+            1,
+            False,
+        ),
+        (
+            '<article><ul><li><a href="/item/1">First House</a></li></ul>'
+            '<p>$100,000</p><p>900 sqft</p></article>',
+            1,
+            True,
+        ),
+        (
+            '<article><ul><li><a href="/item/1">First House</a></li>'
+            '<li><a href="/item/2">Second House</a></li></ul>'
+            '<p>$100,000</p><p>900 sqft</p></article>',
+            2,
+            False,
+        ),
+    ],
+)
+def test_html_record_owner_uses_effective_card_not_layout_container(
+    content, minimum, expected
+):
+    from harness.web_fetch.metrics import task_passed
+    from harness.web_fetch.scoring import score_attempt
+
+    rules = contract(
+        named(
+            "houses",
+            None,
+            None,
+            minimum,
+            required_fields=[
+                {"id": "price", "kind": "price"},
+                {"id": "area", "kind": "area"},
+            ],
+        )
+    )
+    rules["groups"][0].pop("start_pattern")
+    rules["groups"][0].pop("end_pattern")
+    case = {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": rules,
+    }
+    metrics = score_attempt(case, content.encode(), ok=True)
+    assert metrics["composite_acceptance_pass"] is expected
+    assert task_passed(True, metrics, "body") is expected
+
+
+@pytest.mark.parametrize("complete_first", [False, True])
+def test_duplicate_identity_is_validated_per_dom_record_before_deduplication(
+    complete_first,
+):
+    from harness.web_fetch.metrics import task_passed
+    from harness.web_fetch.scoring import score_attempt
+
+    incomplete = '<article><a href="/item/1">First House</a><p>$100,000</p></article>'
+    complete = (
+        '<article><a href="/item/1">First House</a>'
+        '<p>$100,000</p><p>900 sqft</p></article>'
+    )
+    content = complete + incomplete if complete_first else incomplete + complete
+    rules = contract(
+        named(
+            "houses",
+            None,
+            None,
+            1,
+            required_fields=[
+                {"id": "price", "kind": "price"},
+                {"id": "area", "kind": "area"},
+            ],
+        )
+    )
+    rules["groups"][0].pop("start_pattern")
+    rules["groups"][0].pop("end_pattern")
+    case = {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": rules,
+    }
+    metrics = score_attempt(case, content.encode(), ok=True)
+    assert metrics["composite_acceptance_pass"] is True
+    assert task_passed(True, metrics, "body") is True
+
+
+def test_duplicate_incomplete_dom_records_cannot_combine_name_and_fields():
+    from harness.web_fetch.metrics import task_passed
+    from harness.web_fetch.scoring import score_attempt
+
+    content = (
+        '<article><a href="/item/1"><img alt="First House" src="/one.png"></a>'
+        '<p>$100,000</p><p>900 sqft</p></article>'
+        '<article><a href="/item/1">First House</a></article>'
+    )
+    rules = contract(
+        named(
+            "houses",
+            None,
+            None,
+            1,
+            required_fields=[
+                {"id": "price", "kind": "price"},
+                {"id": "area", "kind": "area"},
+            ],
+        )
+    )
+    rules["groups"][0].pop("start_pattern")
+    rules["groups"][0].pop("end_pattern")
+    case = {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": rules,
+    }
+    metrics = score_attempt(case, content.encode(), ok=True)
+    assert metrics["composite_acceptance_pass"] is False
+    assert task_passed(True, metrics, "body") is False

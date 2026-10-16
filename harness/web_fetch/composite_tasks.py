@@ -286,17 +286,6 @@ def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, 
     from .dynamic_lists import _scoped_html, visible_html_text
 
     soup = _scoped_html(content)
-    # Layout-only single-child divs cannot change which record owns a field.
-    # Normalize them before looking for repeated sibling cards, while retaining
-    # explicitly declared article/list-item semantics and visible direct text.
-    for node in reversed(soup.find_all('div')):
-        elements = [child for child in node.children if isinstance(child, Tag)]
-        direct_text = any(isinstance(child, NavigableString) and not isinstance(child, Comment)
-                          and str(child).strip() for child in node.children)
-        if (len(elements) == 1 and not direct_text
-                and node.get('role') not in {'article','listitem'}):
-            node.unwrap()
-
     identity_cache = {}
     def target_identities(node):
         if id(node) not in identity_cache:
@@ -315,21 +304,29 @@ def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, 
             continue
         cards = []
         for node in siblings:
-            if sum(isinstance(child, Tag) for child in node.children) < 2:
-                continue
             identities = target_identities(node)
             if identities:
                 cards.append((node, identities))
         if len(cards) > 1 and len(set().union(*(ids for _, ids in cards))) > 1:
             owners.update((id(node), node) for node, _ in cards)
-    # A property's bullet list is content of its enclosing identified record.
-    # A nested item with its own target link remains independently bounded.
-    attribute_items = [key for key, node in owners.items()
-                       if (node.name == 'li' or node.get('role') == 'listitem')
-                       and not target_identities(node)
-                       and any(id(parent) in owners and parent.name not in {'aside','nav'}
-                               and target_identities(parent) for parent in node.parents)]
-    for key in attribute_items:
+    # Lists may represent fields or merely wrap a record title.  A nested list
+    # item is a separate record only when it identifies a narrower target set
+    # than its enclosing record; otherwise the enclosing card owns its fields.
+    nested_layout_items = []
+    for key, node in owners.items():
+        if node.name != 'li' and node.get('role') != 'listitem':
+            continue
+        identities = target_identities(node)
+        enclosing = [
+            parent
+            for parent in node.parents
+            if id(parent) in owners
+            and parent.name not in {'aside', 'nav'}
+            and target_identities(parent)
+        ]
+        if enclosing and (not identities or identities == target_identities(enclosing[0])):
+            nested_layout_items.append(key)
+    for key in nested_layout_items:
         del owners[key]
     # A section/header/footer inside an identified record still belongs to
     # that record. Outside records, these delimit unrelated page regions.
@@ -337,6 +334,16 @@ def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, 
         if not any(id(parent) in owners and parent.name not in {'aside','nav'}
                    for parent in node.parents):
             owners[id(node)] = node
+    # Remove layout-only wrappers only after effective record owners are known.
+    # This keeps a one-child sibling card as a boundary while making deeper
+    # presentation wrappers irrelevant to ownership.
+    for node in reversed(soup.find_all('div')):
+        elements = [child for child in node.children if isinstance(child, Tag)]
+        direct_text = any(isinstance(child, NavigableString) and not isinstance(child, Comment)
+                          and str(child).strip() for child in node.children)
+        if (id(node) not in owners and len(elements) == 1 and not direct_text
+                and node.get('role') not in {'article','listitem'}):
+            node.unwrap()
     marker = '\ufdd1record-owner-'
     while marker in content:
         marker += '_'
@@ -478,6 +485,11 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             candidate = _named_candidate(destination, label, candidate_contract, base_url, [])
             if candidate and name_only(candidate[1]["title"]) and _key(candidate[1]["title"]) not in exclusions:
                 allowed_rows.setdefault(identity, candidate[1])
+        def owner_for(position):
+            containing = [(begin, end) for begin, end in owner_ranges
+                          if begin <= position < end]
+            return min(containing, key=lambda item: item[1] - item[0]) if containing else None
+
         preferred_titles = {}
         for link in markdown_links(content):
             destination = urljoin(group.get("link_base_url", base_url), link.destination)
@@ -493,7 +505,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             )
             if (label and not field_like and label not in {link.destination, destination}
                     and _key(label) not in exclusions):
-                preferred_titles.setdefault(identity, label)
+                preferred_titles.setdefault((identity, owner_for(link.start)), label)
         candidates = []
         for link in markdown_links(content):
             destination = urljoin(group.get("link_base_url", base_url), link.destination)
@@ -501,12 +513,16 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             if identity is None or link.is_image or not is_record_start(link):
                 continue
             entry = allowed_rows.get(identity)
-            title = preferred_titles.get(identity, entry["title"] if entry else "")
+            owner = owner_for(link.start)
+            title = preferred_titles.get(
+                (identity, owner),
+                entry["title"] if entry and owner is None else "",
+            )
             # Even an unnamed target starts a different card. Its fields must
             # never complete the preceding named record.
             previous = previous_scalar(link)
             start = previous[0] if previous else link.start
-            candidates.append((identity, destination, title, start, link.start))
+            candidates.append((identity, destination, title, start, link.start, owner))
         owned = {}
         # Consecutive links to the same identity belong to one card (for
         # example, a title link followed by a linked date).  A later duplicate
@@ -514,17 +530,20 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         # intervening record's field context.
         ordered = []
         for candidate in sorted(candidates, key=lambda row: row[3]):
-            if not ordered or ordered[-1][0] != candidate[0]:
+            if (not ordered or ordered[-1][0] != candidate[0]
+                    or ordered[-1][5] != candidate[5]):
                 ordered.append(candidate)
-        for index, (identity, destination, label, start, link_start) in enumerate(ordered):
+        for index, (identity, destination, label, start, link_start, owner) in enumerate(ordered):
             line_start = content.rfind("\n", 0, start) + 1
             finish = ordered[index + 1][3] if index + 1 < len(ordered) else len(content)
             next_line = content.rfind("\n", 0, finish) + 1 if finish < len(content) else finish
-            containing = [(begin, end) for begin, end in owner_ranges if begin <= link_start < end]
-            if containing:
-                begin, end = min(containing, key=lambda item: item[1]-item[0])
+            if owner:
+                begin, end = owner
                 # The first link can have fields before it in the same card.
-                first = not any(begin <= previous[4] < link_start for previous in ordered[:index])
+                first = not any(
+                    begin <= previous[4] < link_start and previous[5] == owner
+                    for previous in ordered[:index]
+                )
                 line_start = begin if first else max(line_start, begin)
                 next_line = min(next_line, end)
             # Exclude unrelated owners rather than discarding the parent's

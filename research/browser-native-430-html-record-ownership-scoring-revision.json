@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "browser_native_430_score_only_revision",
+  "created_at": "2026-10-16T16:40:00+08:00",
+  "root_cause": "HTML named-link scoring normalized layout wrappers and deduplicated target URLs before it had bound each visible name and required field set to one effective DOM record. This could erase one-child card boundaries, treat a nested title list item as the whole record, or combine separate same-URL records.",
+  "correction": {
+    "behavior": "Determine effective DOM record owners first, validate each owner-local candidate, then deduplicate accepted target identities.",
+    "provider_specific_logic": false,
+    "provider_calls": 0,
+    "predecessor_composite_tasks_sha256": "98bee26d83a097e48eba0fb531623da902a220c36b4e5f57ac89d02b695657b1",
+    "revised_composite_tasks_sha256": "245ba0c069d6951ac339aa69fba6bd6c0724bf69c347a4141831b90a014078ea"
+  },
+  "scoring_provenance": {
+    "predecessor_scoring_regressions_sha256": "a26c905a165655f7a07ede54a67d5b7d8cd08e47cb42520ec754fc9f4d76941d",
+    "revised_scoring_regressions_sha256": "d519f86e327d9e2fd1c884670642eb31714435864e834592e2c7b65ef21ee655",
+    "regression_ids": [
+      "html-record-single-child-sibling-cards-stay-isolated",
+      "html-record-single-child-sibling-card-complete",
+      "html-record-nested-title-list-uses-enclosing-card",
+      "html-record-nested-distinct-title-stays-independent",
+      "html-record-duplicate-identity-validates-before-dedup",
+      "html-record-duplicate-identity-cannot-combine-name-and-fields"
+    ]
+  },
+  "current_report_impact": {
+    "dataset_sha256": "fd0e2b11ebda91d314041e16f4d6a39eb2dc7b2aaee9b6dfaf5c2f0ecfa08d3d",
+    "results_sha256": "e0949fa98339588145cd0df9602ab5566c11efaf29c443636c476a2a965c57d6",
+    "candidate_case_count": 8,
+    "candidate_result_count": 48,
+    "html_result_count": 0,
+    "verdict_changes": 0,
+    "metric_changes": 0,
+    "report_rebuild_required": false,
+    "provider_rerun_required": false
+  },
+  "verification": {
+    "related_tests": {
+      "passed": 356,
+      "skipped": 1,
+      "subtests_passed": 1003
+    },
+    "scoring_registry_tests": {
+      "passed": 116,
+      "subtests_passed": 896
+    },
+    "repository_python_lint": "passed"
+  }
+}
