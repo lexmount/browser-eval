@@ -75,14 +75,14 @@ def test_historical_read_uses_the_original_frozen_bytes(historical_dataset):
 
 
 @pytest.mark.parametrize("spelling", ["evaluation/dataset.json",
-    "evaluation/risk-control/../dataset.json", "evaluation/../evaluation/dataset.json"])
+    "evaluation/risk-control/../dataset.json", "evaluation/../evaluation/dataset.json", "../checkout/evaluation/dataset.json"])
 @pytest.mark.parametrize("linked_checkout", [False, True])
 def test_equivalent_historical_paths_cannot_read_or_modify_shadow_inputs(
         tmp_path, monkeypatch, spelling, linked_checkout):
     import json
     from harness.web_fetch.reference_inputs import load_manifest
 
-    checkout = tmp_path / "checkout"
+    checkout = tmp_path / "real/checkout"
     (checkout / "evaluation/risk-control").mkdir(parents=True)
     (checkout / "evaluation/lexbench-webfetch.json").write_bytes(
         (ROOT / "evaluation/lexbench-webfetch.json").read_bytes())
@@ -104,14 +104,37 @@ def test_equivalent_historical_paths_cannot_read_or_modify_shadow_inputs(
 
 
 @pytest.mark.parametrize("spelling", ["evaluation/dataset.json",
-    "evaluation/risk-control/../dataset.json"])
-def test_equivalent_historical_paths_still_reject_a_symlinked_input(tmp_path, spelling):
-    checkout = tmp_path / "checkout"
+    "evaluation/risk-control/../dataset.json", "../checkout/evaluation/dataset.json"])
+@pytest.mark.parametrize("linked_checkout", [False, True])
+def test_equivalent_historical_paths_still_reject_a_symlinked_input(tmp_path, spelling, linked_checkout):
+    checkout = tmp_path / "real/checkout"
     (checkout / "evaluation/risk-control").mkdir(parents=True)
     (checkout / "evaluation/lexbench-webfetch.json").write_bytes(
         (ROOT / "evaluation/lexbench-webfetch.json").read_bytes())
     source = tmp_path / "candidate.json"
     source.write_text('{"cases":[]}')
     (checkout / "evaluation/dataset.json").symlink_to(source)
+    if linked_checkout:
+        alias = tmp_path / "linked-checkout"
+        alias.symlink_to(checkout, target_is_directory=True)
+        checkout = alias
     with pytest.raises(ValueError, match="symlinked"):
         benchmark_input_path(checkout / spelling)
+
+
+def test_linked_input_directory_cannot_hide_its_checkout_binding(tmp_path, monkeypatch):
+    checkout = tmp_path / "checkout"
+    (checkout / "evaluation").mkdir(parents=True)
+    (checkout / "evaluation/lexbench-webfetch.json").write_bytes(
+        (ROOT / "evaluation/lexbench-webfetch.json").read_bytes())
+    candidate = tmp_path / "candidate"
+    candidate.mkdir()
+    (candidate / "dataset.json").write_text('{"id":"shadow","cases":[]}')
+    (checkout / "evaluation/popular-sites").symlink_to(candidate, target_is_directory=True)
+    logical = checkout / "evaluation/popular-sites/dataset.json"
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "missing-inputs"))
+    assert benchmark_input_path(logical) == definition_path("evaluation/popular-sites/source-inputs.json").parent / "dataset.json"
+    with pytest.raises(ValueError, match="immutable"):
+        require_mutable_inputs(logical)
+    with pytest.raises(FileNotFoundError, match="Reference inputs are not installed"):
+        read_dataset_bytes(logical)

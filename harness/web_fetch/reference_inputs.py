@@ -29,29 +29,33 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def benchmark_input_path(path: Path) -> Path:
     """Resolve historical inputs through the caller's hash-bound checkout authority."""
-    absolute = Path(os.path.abspath(path))
-    for checkout in absolute.parents:
-        authority = checkout / "evaluation/lexbench-webfetch.json"
-        if not authority.is_file():
-            continue
-        if authority.is_symlink():
-            raise ValueError("Benchmark checkout binding must not be symlinked")
-        binding = json.loads(authority.read_text(encoding="utf-8"))
-        if (binding.get("kind") != "external_benchmark_binding"
-                or binding.get("repository") != "https://github.com/lexmount/lexbench-webfetch"):
-            raise ValueError("Invalid benchmark checkout binding")
-        relative = absolute.relative_to(checkout)
-        selected = (relative.parent / MANIFEST_NAME
-                    if relative.name == 'dataset.json' else relative)
-        expected = binding.get("definition_files", {}).get(selected.as_posix())
-        if expected is None:
-            continue
-        if path.is_symlink():
-            raise ValueError("Benchmark inputs must not be symlinked")
-        target = definition_path(selected.as_posix())
-        if digest(target) != expected:
-            raise ValueError("Installed benchmark definition differs from checkout binding")
-        return target.parent / relative.name if relative.name == 'dataset.json' else target
+    # Resolve directory links before interpreting '..', leaving the input leaf
+    # unresolved so a symlinked file is still rejected. Keep the lexical route
+    # too: linked input directories must not hide a declared checkout binding.
+    candidates = dict.fromkeys((path.parent.resolve() / path.name, Path(os.path.abspath(path))))
+    for absolute in candidates:
+        for checkout in absolute.parents:
+            authority = checkout / "evaluation/lexbench-webfetch.json"
+            if not authority.is_file():
+                continue
+            if authority.is_symlink():
+                raise ValueError("Benchmark checkout binding must not be symlinked")
+            binding = json.loads(authority.read_text(encoding="utf-8"))
+            if (binding.get("kind") != "external_benchmark_binding"
+                    or binding.get("repository") != "https://github.com/lexmount/lexbench-webfetch"):
+                raise ValueError("Invalid benchmark checkout binding")
+            relative = absolute.relative_to(checkout)
+            selected = (relative.parent / MANIFEST_NAME
+                        if relative.name == 'dataset.json' else relative)
+            expected = binding.get("definition_files", {}).get(selected.as_posix())
+            if expected is None:
+                continue
+            if path.is_symlink():
+                raise ValueError("Benchmark inputs must not be symlinked")
+            target = definition_path(selected.as_posix())
+            if digest(target) != expected:
+                raise ValueError("Installed benchmark definition differs from checkout binding")
+            return target.parent / relative.name if relative.name == 'dataset.json' else target
     return path
 
 
