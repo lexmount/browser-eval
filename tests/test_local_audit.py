@@ -364,8 +364,16 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     assert (rebuilt / "logs" / response.name).read_bytes() == response.read_bytes()
     assert json.loads((rebuilt / "report-manifest.json").read_text())["presentation"]["frozen_scores"]
     rebuilt_manifest = json.loads((rebuilt / "report-manifest.json").read_text())
-    assert rebuilt_manifest["template"] is None
+    from harness.reporting.templates import resolve_template
+    assert rebuilt_manifest["template"] == resolve_template("webfetch")
     assert rebuilt_manifest["generated_languages"] == ["zh", "en"]
+    from harness.web_fetch.report_check import check
+    for invalid_template in (None, {"renderer": "unregistered-renderer"}):
+        _write(rebuilt/"report-manifest.json", {**rebuilt_manifest, "template": invalid_template})
+        with pytest.raises(ValueError, match="maintained template"):
+            check(rebuilt, authority_root=Path(__file__).resolve().parents[1],
+                  presentation_binding=binding_path)
+    _write(rebuilt/"report-manifest.json", rebuilt_manifest)
     reproduce = (rebuilt / "reproduce/index.html").read_text()
     assert "--language zh --include-english" in reproduce
     assert "--language bilingual" not in reproduce

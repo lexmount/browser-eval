@@ -306,9 +306,10 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
 def write_frozen_presentation_manifest(output, manifest, *, show_local_status_banners=True):
     """Refresh renderer metadata while retaining the frozen measurement bindings."""
     from harness.report_languages import generated_languages
+    from harness.reporting.templates import resolve_template
     current = dict(manifest)
     languages = list(generated_languages(output))
-    current.update(template=None, languages=languages, generated_languages=languages,
+    current.update(template=resolve_template('webfetch'), languages=languages, generated_languages=languages,
                    presentation={"show_local_status_banners": show_local_status_banners,
                                  "frozen_scores": True})
     (output / "report-manifest.json").write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n")
@@ -734,8 +735,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             select_report_language(staging, language)
         from harness.reporting.templates import resolve_template
         from harness.report_languages import generated_languages
-        nonpublication = diagnostic_preview or dataset.get('comparison', {}).get('kind') == 'uniform_native_local_measurement'
-        template_manifest = {'schema_version': 1, 'template': None if nonpublication else resolve_template('webfetch'),
+        template_manifest = {'schema_version': 1, 'template': None if diagnostic_preview else resolve_template('webfetch'),
             'dataset_sha256': hashlib.sha256((staging/'dataset.json').read_bytes()).hexdigest(),
             'results_sha256': hashlib.sha256((staging/'results.jsonl').read_bytes()).hexdigest(),
             'generated_languages': generated_languages(staging)}
