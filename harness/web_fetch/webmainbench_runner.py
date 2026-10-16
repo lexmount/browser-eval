@@ -26,7 +26,7 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[2]
 
 from harness.record_io import parse_jsonl
-from harness.web_fetch.config import load_provider_config, load_runtime_env
+from harness.web_fetch.config import load_provider_config, load_runtime_env, add_failure_retry_argument
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
@@ -570,7 +570,7 @@ def main() -> None:
     parser.add_argument("--case-ids-file", type=Path)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--timeout", type=float, default=45.0)
-    parser.add_argument("--max-failure-retries", type=int, choices=(0, 1), default=1)
+    add_failure_retry_argument(parser)
     parser.add_argument("--expected-version", help="Exact release version required for this provider")
     parser.add_argument(
         "--expected-dataset-sha256",

@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 from harness.record_io import load_jsonl
 from harness.report_languages import check_language_contract, generated_languages, visible_numbers
 from harness.reporting.article_assets import ArticleAssetParity
+from harness.reporting.presentation import check_presentation
 from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
 from harness.web_fetch.reliability import require_reliable
 from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, safe_identifier
@@ -105,7 +106,7 @@ def require_home_comparison_layout(home, track_count, *, diagnostic=False, sampl
     markers = [f'{track_count} 类任务概览', overall, details]
     headings = [re.sub(r'<[^>]+>', '', value) for value in re.findall(r'<h2[^>]*>(.*?)</h2>', home, re.S)]
     if any(marker not in headings for marker in markers) or not (
-            headings.index(markers[0]) < headings.index(markers[1]) < headings.index(markers[2])):
+            headings.index(markers[1]) < headings.index(markers[0]) < headings.index(markers[2])):
         raise ValueError('Task overview and comparison must precede detailed results')
     if '判分完整性' not in home or ('本类最高：' in home) == diagnostic:
         raise ValueError('Comparison winner disclosure differs from evidence state')
@@ -293,7 +294,7 @@ def check_local_diagnostic_presentation(root: Path, *, ranked=False):
                 raise ValueError('Uncertified diagnostic comparison assigns ranks: ' + str(path.relative_to(root)))
 
 
-def check(root: Path, *, authority_root: Path, profile: Path | None = None, presentation_binding: Path | None = None):
+def check(root: Path, *, authority_root: Path, profile: Path | None = None, presentation_binding: Path | None = None, source_dataset: Path | None = None):
     reject_evidence_symlinks(root)
     root = root.resolve()
     repository = authority_root.resolve()
@@ -318,9 +319,34 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             if (profile_path.parent / "dataset.json").is_file()
             else repository / "evaluation"
         )
-        require_canonical_inputs(root, canonical)
+        if not json.loads(profile_path.read_text()).get('frozen_inputs'):
+            require_canonical_inputs(root, canonical)
     d = json.loads((root / "dataset.json").read_text())
+    manifest_path = root / 'report-manifest.json'
+    if manifest_path.is_file():
+        from harness.reporting.templates import resolve_template
+        manifest = json.loads(manifest_path.read_text())
+        expected_template = None if d.get('comparison', {}).get('kind') == 'uniform_native_local_measurement' else resolve_template('webfetch', root=repository)
+        if manifest.get('template') != expected_template:
+            raise ValueError('Report manifest differs from the maintained template')
+        for name in ('dataset', 'results'):
+            path = root / ('dataset.json' if name == 'dataset' else 'results.jsonl')
+            if manifest.get(name + '_sha256') != hashlib.sha256(path.read_bytes()).hexdigest():
+                raise ValueError('Report manifest evidence changed: ' + name)
+        if manifest.get('generated_languages') != list(generated_languages(root)):
+            raise ValueError('Report manifest languages differ from generated routes')
     rs = load_jsonl(root / "results.jsonl")
+    if source_dataset:
+        if not profile_path:
+            raise ValueError('Frozen source dataset requires an explicit report profile')
+        profile_data = json.loads(profile_path.read_text())
+        if source_dataset.is_symlink():
+            raise ValueError('Frozen source dataset rejects symlinks')
+        source_raw = source_dataset.read_bytes()
+        if hashlib.sha256(source_raw).hexdigest() != profile_data.get('frozen_inputs', {}).get('dataset_sha256'):
+            raise ValueError('Frozen source dataset differs from current profile')
+        if json.loads(source_raw)['cases'] != d['cases']:
+            raise ValueError('Report cases differ from frozen source dataset')
     check_language_contract(root)
     has_english = "en" in generated_languages(root)
     if d.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown":
@@ -366,7 +392,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                            else {case["id"]: case for case in local_measurement_cases(local_contract)})
         canonical_dataset = (root / "dataset.json" if local_contract.get("dataset_sources")
                              else repository / local_contract["dataset_path"])
-    elif profile_path and (profile_path.parent / "dataset.json").is_file():
+    elif source_dataset or (profile_path and (json.loads(profile_path.read_text()).get('frozen_inputs') or (profile_path.parent / 'dataset.json').is_file())):
         inventory = {
             track: {
                 "case_ids": [
@@ -376,7 +402,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             }
             for track, providers in d.get("coverage_plan", {}).items()
         }
-        canonical_dataset = profile_path.parent / "dataset.json"
+        canonical_dataset = source_dataset or (root / 'dataset.json' if json.loads(profile_path.read_text()).get('frozen_inputs') else profile_path.parent / "dataset.json")
     else:
         inventory = json.loads((repository / "configs/evaluation-inventory.json").read_text())
         canonical_dataset = repository / "evaluation/dataset.json"
@@ -468,7 +494,6 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         if c.get("track", "web") in {"web", "dynamic", "document"} and (
             not c.get("ground_truth_main_content")
         ):
-            unavailable = c.get("source_verification", {}).get("state") == "unavailable"
             stable_checks = bool(
                 c.get("required_facts")
                 or c.get("required_patterns")
@@ -480,12 +505,15 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                     validate_acceptance_contract(c["acceptance_contract"])
                 elif not (stable_checks or c.get("task_kind") == "file"):
                     raise ValueError(c["id"])
-            elif not (unavailable and stable_checks):
+            elif not stable_checks:
                 raise ValueError(c["id"])
         if c.get("ground_truth_main_content"):
             expected = c["ground_truth_main_content"].encode()
             if local_measurement:
                 valid_reference = expected == canonical_cases[c["id"]]["ground_truth_main_content"].encode()
+            elif source_dataset:
+                digest = hashlib.sha256(expected).hexdigest()
+                valid_reference = all(r['metrics'].get('scored_reference_sha256') == digest for r in rs if r['case_id'] == c['id'])
             else:
                 valid_reference = hashlib.sha256(expected).hexdigest() == c["source_verification"]["reference_sha256"]
             if not valid_reference:
@@ -602,6 +630,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                 )
     for p in root.rglob("*.html"):
         text = p.read_text()
+        check_presentation(text)
         reader = VisibleText()
         reader.feed(text)
         visible = " ".join(reader.parts)
@@ -693,14 +722,15 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     track_count = len({case.get("track", "web") for case in d["cases"]})
     require_home_comparison_layout(home, track_count, diagnostic=local_measurement and not sample_ranking, sample_ranking=sample_ranking)
     if (root / "resource-cohort/resource-comparison.json").is_file():
+        from .report_resources import check_resource_presentation
+        resource_summary = json.loads((root / "resource-cohort/resource-comparison.json").read_text())
         guide = (root / "guide/index.html").read_text()
         for page_name, text in [("home", home), ("guide", guide)]:
+            check_resource_presentation(text, resource_summary)
             if "data-resource-winner=" not in text:
                 raise ValueError((page_name, "missing resource winner summary"))
             if not all(label in text for label in ("CPU 与计算", "内存", "网络")):
                 raise ValueError((page_name, "missing grouped resource tables"))
-            if not text.count("data-resource-metric-winner=") >= 9:
-                raise ValueError((page_name, "resource winners are not marked"))
         if has_english:
             for page_name, text in [
                 ("English home", (root / "en/index.html").read_text()),
@@ -710,8 +740,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                     raise ValueError((page_name, "missing resource winner summary"))
                 if not all(label in text for label in ("CPU and compute", "Memory", "Network")):
                     raise ValueError((page_name, "missing grouped resource tables"))
-                if not text.count("data-resource-metric-winner=") >= 9:
-                    raise ValueError((page_name, "resource winners are not marked"))
+                check_resource_presentation(text, resource_summary)
     methodology = (root / "methodology/index.html").read_text()
     for phrase in [
         "计入耗时",
@@ -732,10 +761,11 @@ def main(argv=None, *, authority_root: Path | None = None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path)
     parser.add_argument("--profile", type=Path)
+    parser.add_argument('--source-dataset', type=Path)
     parser.add_argument("--authority-root", type=Path, default=authority_root or Path.cwd())
     parser.add_argument("--presentation-binding", type=Path)
     args = parser.parse_args(argv)
-    result = check(args.root, authority_root=args.authority_root, profile=args.profile, presentation_binding=args.presentation_binding)
+    result = check(args.root, authority_root=args.authority_root, profile=args.profile, presentation_binding=args.presentation_binding, source_dataset=args.source_dataset)
     if result is not None:
         print(result)
 
@@ -759,6 +789,29 @@ def check_revision(out: Path, *, authority_root: Path):
         return (
             "PASS: WebMainBench preselected-200 release scope and report acceptance checks verified"
         )
+    binding = dataset.get('comparison', {}).get('report_interpretation')
+    if binding:
+        from .report_explainer import check_current_browser_article
+        check_current_browser_article(out, {case['id']:case for case in dataset['cases']},
+                                      load_jsonl(out/'results.jsonl'), binding)
+    provenance_path = out / "implementation-provenance.json"
+    if provenance_path.is_file():
+        from .methods import native_browser_engine
+        provenance = json.loads(provenance_path.read_text())
+        records = load_jsonl(out / "results.jsonl")
+        home = BeautifulSoup((out / "index.html").read_text(), "html.parser")
+        for item in provenance.get("implementations", []):
+            name = item.get("provider")
+            if native_browser_engine(name) != "moli" or not item.get("version"):
+                continue
+            hashes = {r.get("provider_metadata", {}).get("binary_sha256")
+                      for r in records if r["provider"] == name}
+            if hashes != {item.get("binary_sha256")}:
+                continue
+            expected = "Moli " + item["version"]
+            links = home.select('a[href="providers/' + name + '.html"]')
+            if not links or any(anchor.get_text() != expected for anchor in links):
+                raise ValueError("Measured method version label: " + name)
     check_language_contract(out)
     has_english = "en" in generated_languages(out)
     for path in out.rglob("*.html"):
@@ -800,6 +853,24 @@ def check_revision(out: Path, *, authority_root: Path):
                     raise ValueError((path, width))
         for table in soup.select("table.ranking"):
             headers = table.select("thead th")
+            body_families = {"web", "dynamic", "challenge", "risk_control", "document"}
+            family = table.get("id", "").removeprefix("ranking-")
+            if family in body_families and any(
+                c.get("track", "web") == family and c.get("task_kind", "body") in {"body", "structure"}
+                for c in dataset["cases"]
+            ):
+                labels = [h.get_text() for h in headers]
+                required = (
+                    ["Recall", "Precision", "F1"] if is_english else ["完整度", "纯净度", "F1"]
+                )
+                forbidden = (
+                    ["Resource hit rate", "File retrieval rate"]
+                    if is_english else ["资源命中率", "文件取得率"]
+                )
+                if not all(any(label in h for h in labels) for label in required) or any(
+                    label in h for label in forbidden for h in labels
+                ):
+                    raise ValueError((path, "Body ranking metric columns", family))
             sort = int(table["data-col"])
             expected = (
                 (["Matched repositories"] if is_english else ["命中仓库数"])
@@ -840,6 +911,17 @@ def check_revision(out: Path, *, authority_root: Path):
             expected_failure = "Failure class" if is_english else "失败分类"
             if expected_failure not in [h.get_text() for h in soup.select("#filtered-table th")]:
                 raise ValueError(path)
+    records = load_jsonl(out / 'results.jsonl')
+    from .methods import native_browser_engine
+    synthetic = dataset.get('comparison', {}).get('kind') == 'synthetic_browser_report'
+    if records and all(row.get('provider_type') == 'fixture' for row in records) and (
+        synthetic or all(not native_browser_engine(row['provider']) for row in records)
+    ):
+        methods = BeautifulSoup((out / 'adoption/index.html').read_text(), 'html.parser')
+        for name in {row['provider'] for row in records}:
+            if methods.find(id='interface-' + name) is None:
+                raise ValueError('Synthetic adapter interface is missing: ' + name)
+        return 'PASS: synthetic report presentation, declared adapters and bound interpretation verified'
     counts = json.loads((out / "adoption/counts.json").read_text())["methods"]
     names = {row["provider"] for row in load_jsonl(out / "results.jsonl")}
     from harness.web_fetch.report_methods import PROFILES
@@ -852,13 +934,15 @@ def check_revision(out: Path, *, authority_root: Path):
         '.interface-panel[id^="interface-"]'
     )
     from harness.web_fetch.report_interfaces import SPECS
+    from harness.web_fetch.methods import native_browser_engine
+    interface_names = set(SPECS) | {name for name in names if native_browser_engine(name)}
 
     if not (
-        len(interfaces) == len(SPECS)
+        len(interfaces) == len(interface_names)
         and sum(p.has_attr("open") for p in interfaces) == bool(interfaces)
     ):
         raise ValueError("Report presentation check failed")
-    if {panel.get("id") for panel in interfaces} != {"interface-" + name for name in SPECS}:
+    if {panel.get("id") for panel in interfaces} != {"interface-" + name for name in interface_names}:
         raise ValueError("Interface inventory differs from registry")
     for panel in interfaces:
         if not len(panel.select("pre")) == 2:

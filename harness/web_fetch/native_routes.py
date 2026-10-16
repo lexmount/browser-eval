@@ -68,7 +68,7 @@ def native_route_cell(provider, case):
         else:
             interface = provider.native_http_interface(case)
             endpoint = 'https://api.cloudflare.com/client/v4/accounts/' + str(config.get('account_id', '')) + '/browser-rendering' + interface
-            if method=='cloudflare_markdown' and interface=='/markdown' and config.get('browser'):
+            if method=='cloudflare_markdown' and config.get('browser'):
                 from urllib.parse import urlencode
                 endpoint += '?'+urlencode({'browser': config['browser']})
             fields = ['result', 'meta.title', 'meta.finalUrl']
@@ -76,7 +76,7 @@ def native_route_cell(provider, case):
         transport, interface = 'jsonl', 'native_worker_command'
         fields = ['content', 'metadata.links', 'metadata.images', 'metadata.videos', 'metadata.media', 'metadata.extras', 'files', 'title', 'final_url']
     elif method == 'fixture':
-        transport, interface, fields = 'fixture', 'synthetic_fixture', ['content']
+        transport, interface, fields = 'fixture', 'synthetic_fixture', ['content', 'title', 'final_url']
     else:
         raise ValueError('Unsupported fixed-native interface: ' + method)
     options = ('max_bytes', 'max_age', 'max_age_hours', 'only_main_content', 'include_images',

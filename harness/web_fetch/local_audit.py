@@ -461,10 +461,10 @@ def _require_local_record_correction(source, original, corrected, receipt=None):
             raise ValueError("Local URL correction differs from native response")
 
 
-def score_reviewed_page_identity(source, case, record, annotation, captures):
+def score_reviewed_page_identity(source, case, record, annotation, captures, *, historical_scoring_source=None):
     """Apply a bound retrospective content correspondence, never a native URL."""
     from .metrics import normalize_for_match, task_measured
-    from .scoring import score_attempt, _same_page_url
+    from .scoring import score_attempt, _same_page_url, SCORING_SOURCE_SHA256
 
     if (annotation.get("attempt_id") != record["attempt_id"]
             or annotation.get("case_sha256") != _canonical_sha256(case)
@@ -474,13 +474,14 @@ def score_reviewed_page_identity(source, case, record, annotation, captures):
             or annotation.get("basis") != "retrospective_content_correspondence"
             or not annotation.get("reviewed_at")):
         raise ValueError("Page review lost its case, answer or physical call binding")
-    original_metrics = score_attempt(
+    historical = historical_scoring_source is not None and historical_scoring_source != SCORING_SOURCE_SHA256
+    original_metrics = None if historical else score_attempt(
         case, contained_path(source, record["artifact_path"]).read_bytes(),
         ok=record["ok"], metadata=record.get("provider_metadata"),
         previous_metrics=record["metrics"], status_code=record.get("status_code"),
         title=record.get("title"), final_url=record.get("final_url"),
     )
-    if (task_measured(original_metrics)
+    if not historical and (task_measured(original_metrics)
             or original_metrics.get("page_identity_status") != "unavailable"):
         raise ValueError("Page review may only fill an unavailable page identity")
     capture = captures[annotation["capture_index"]]
@@ -505,6 +506,19 @@ def score_reviewed_page_identity(source, case, record, annotation, captures):
     acceptable = [navigation.get("requested_url"), navigation.get("observed_final_url")]
     if not any(value and _same_page_url(corresponding_url, value) for value in acceptable):
         raise ValueError("Reviewed page does not satisfy the frozen URL requirement")
+    if historical:
+        # The revision chain already hash-verifies these historical results.
+        # Validate their review evidence without replaying a different scorer
+        # and pretending its metrics were produced by the historical version.
+        metrics = record['metrics']
+        if (metrics.get('scoring_source_sha256') != historical_scoring_source
+                or metrics.get('page_identity_required') is not True
+                or metrics.get('page_identity_status') != 'verified'
+                or metrics.get('final_url_consistent') is not True
+                or metrics.get('content_chars') != len(answer.decode('utf-8'))
+                or metrics.get('page_identity_review_sha256') != _canonical_sha256(annotation)):
+            raise ValueError('Reviewed result differs from its bound historical shared scorer')
+        return dict(metrics)
     metrics = score_attempt(
         case, answer, ok=record["ok"], metadata=record.get("provider_metadata"),
         previous_metrics=record["metrics"], status_code=record.get("status_code"),
@@ -542,15 +556,14 @@ def _require_page_identity_review(source, dataset, records, *, scoring_sources=N
     indexed = {r["attempt_id"]: r for r in records}
     for annotation in annotations:
         record = indexed[annotation["attempt_id"]]
-        expected = score_reviewed_page_identity(
-            source, cases[record["case_id"]], record, annotation, captures)
+        declared = None
         if scoring_sources is not None:
-            # The revision validator proves this exact historical scorer binding.
-            # Recompute all content/identity checks without relabeling its version.
             declared = scoring_sources.get(record["attempt_id"])
             if not declared or record["metrics"].get("scoring_source_sha256") != declared:
                 raise ValueError("Reviewed result lost its revision scoring source")
-            expected["scoring_source_sha256"] = declared
+        expected = score_reviewed_page_identity(
+            source, cases[record["case_id"]], record, annotation, captures,
+            historical_scoring_source=declared)
         if expected != record["metrics"]:
             raise ValueError("Reviewed result differs from the shared scorer")
 
@@ -1049,8 +1062,20 @@ def _require_identity_binding_revision(source, dataset, receipt):
     for annotation in previous['attempts']:
         identifier = annotation['attempt_id'].split('__')[1]
         old = old_cases[identifier]
+        migrated = _hint_migrated_case(old)
+        # Older compiled navigation tasks implied identity acceptance. Keep
+        # that requirement explicit when adopting the diagnostic default.
+        if (cases[identifier].get('page_identity_required') is True
+                and 'page_identity_required' not in old):
+            navigation = old.get('source_benchmark', {}).get('risk_control', {}).get('navigation_contract', {})
+            dynamic_identity = (old.get('track') == 'dynamic' and old.get('evaluation_url')
+                                and old.get('expected_final_url') and old.get('target_language')
+                                and old.get('target_region'))
+            if ((old.get('track') == 'risk_control' and navigation.get('requested_url')
+                 and navigation.get('observed_final_url')) or dynamic_identity):
+                migrated['page_identity_required'] = True
         if (annotation['case_sha256'] != _canonical_sha256(old)
-                or _hint_migrated_case(old) != cases[identifier]):
+                or migrated != cases[identifier]):
             raise ValueError('Page identity migration changed its target contract')
         annotations.append({**annotation, 'prior_case_sha256': annotation['case_sha256'],
                             'case_sha256': _canonical_sha256(cases[identifier])})

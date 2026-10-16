@@ -15,12 +15,12 @@
     "openclaw-built-in",
     "tavily"
   ],
-  "frozen_dataset_sha256": "e2a5c68fa7c2640414c56c0949a8f344f8091e602e6479f8fd2bb07fec5b9681",
-  "results_sha256": "314a5adb2225fde74cfe0672d25d972c2c99e65b40e337d93c0a1d7418e4fe00",
+  "frozen_dataset_sha256": "640e6dda990e79d8db4f8d9fb9551a9d5317b2f2669f74f121ddf8089c795f84",
+  "results_sha256": "6f43a3419940bfdb87b09c0652801817722ff38afcf48036da96ffb030903cb9",
   "measured_scoring_source_sha256": "4ce40cdf2ecb1af4088915a2b869ffbdcb65dce5222d1429578e97d175f13bfc",
   "evidence_state": "local_measurement",
   "certified": false,
-  "evidence_storage": "External public saved-input snapshot with source-bound title/final URL corrections. Private originals and the immutable baseline are retained; restore the baseline and correction overlay before rebuilding.",
+  "evidence_storage": "Local score revision of the retained PR51 public snapshot; original answers were hash-verified privately for scoring and existing public views are unchanged. The predecessor packages remain immutable historical inputs.",
   "evidence_bindings": [
     {
       "path": "local-run-contract.json",
@@ -28,7 +28,7 @@
     },
     {
       "path": "result-review.json",
-      "sha256": "427b1532a875fb0d196d6f2b529d67a2551e48d84355eaaef1e36bc91081eb49"
+      "sha256": "4d44137bcf71d546309ca77fdf9457846edfa6762530a31324eb1a2f46b3f9ec"
     },
     {
       "path": "archived-reading.json",
@@ -36,11 +36,11 @@
     },
     {
       "path": "execution.json",
-      "sha256": "c519a68dcd812a1e6e41f3fc4efbf50f589f7dd72d90efd4f90bad41a5d64646"
+      "sha256": "bc6c113a85d5e6bb345e08f39924032ff55b47220e16b338d20e52592317c0d8"
     },
     {
       "path": "local-evidence/result-ledger.json",
-      "sha256": "2404c76226bb39c5a8820ef926898173e2da88a3c44e56c804c275d99a394d92"
+      "sha256": "3293b04e245c8a92ba4e35c33f0f4d0254d608539a4d7ff3be0c26f6470a900f"
     },
     {
       "path": "frozen-method-options.json",
@@ -84,17 +84,21 @@
     },
     {
       "path": "local-evidence/code-block-impact.json",
-      "sha256": "9d973e63712bff719b58f7ef10bd0202997a8abdd0ed97be584135ab239c0810"
+      "sha256": "c49297a036fa007bf29117ac5220061b7e7fcd393ad4d2fed7671c2341b9a66d"
+    },
+    {
+      "path": "report-assets/report-changes.json",
+      "sha256": "d6e786f05db2843d7d078fc82c5559dd558e5acd5bf8a13f144f8cbfbca82180"
     }
   ],
-  "evidence_path": "runs/pr51-native-fairness-20261015/evidence-context-corrected-public",
+  "evidence_path": "runs/pr51-main-sync-20261016/evidence",
   "task_replacement": {
     "path": "local-evidence/task-replacement/receipt.json",
-    "sha256": "0ef2db8b05a6df206ea293cd8a02601a3d7e71aceb14119d286b8f2e386d100a"
+    "sha256": "55a21acee65634351cc394c020c9943d320cef2f99c12c2d902aa5e724c6ffd4"
   },
   "offline_revision": {
-    "path": "local-evidence/offline-revisions/2d2a35f6b51cd102-6012bbf9c23a9899/receipt.json",
-    "sha256": "3ee08ef92933714b8e990ca469131cc3871e0f41ebacafc86b454569e7a9deaa"
+    "path": "local-evidence/offline-revisions/f3052148f4f4930a-abead7654b4e78f3/receipt.json",
+    "sha256": "2eaec8db641953267422e8158f776977d0996be4963a0c886099e306e6b704c6"
   },
   "replacement_case": {
     "id": "static-sqlite-quickstart",
@@ -149,22 +153,19 @@
       "authority": "Frozen pre-call official source; preserve code tokens while allowing whitespace and HTML entities."
     }
   },
-  "current_scoring_source_sha256": "b17fc68566409232d3840f69aa4511c6dcdfd154c774eb169ea43787659496f7",
-  "supplemental_review": {
-    "path": "local-evidence/native-context-review/supplement.json",
-    "sha256": "9f4d9b577b6a39e7c9dd1b631d02d133ad2f424af0a502729c57ad3245f16741"
-  },
+  "current_scoring_source_sha256": "a96b88127c304ba035cbe0e52dd0940b181334075feb47cc621bdbc443089295",
   "retained_review": {
-    "path": "local-evidence/native-answer-review/retention.json",
-    "sha256": "fd8f769c376e9c3b22bcd8878ae8b8ae32ec536bbbed01d5d20ca417c6c82b75"
+    "path": "local-evidence/main-sync/review-retention.json",
+    "sha256": "2db81ea76dff03b797bf74255d85ff5f4f60a3e876fc51fde413a6505a869e39"
   },
   "review_scope": {
-    "fresh": 72,
-    "retained": 4228,
+    "fresh": 0,
+    "retained": 2980,
+    "unreviewed": 1320,
     "total": 4300,
-    "fresh_independent_blind_review": false
+    "fresh_independent_blind_review": false,
+    "new_score_revision_independently_reviewed": false
   },
-  "implementation_commit": "c6c004f7840f3ed10ed370d2abc2ce621eec429c",
   "review_evidence_package": {
     "archive_name": "PR-51-public-saved-inputs-20261016.tar.xz",
     "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-public-saved-inputs-20261016.tar.xz",
@@ -187,8 +188,8 @@
       "path": "PUBLIC-EVIDENCE-VIEWS.json",
       "sha256": "3b4ad900100bfc94cc004ee2f67c0fae54a2199ea78265c60c623d91db6fd79b"
     },
-    "public_dataset_sha256": "e2a5c68fa7c2640414c56c0949a8f344f8091e602e6479f8fd2bb07fec5b9681",
-    "public_results_sha256": "2d2a35f6b51cd1023ee940f9a310c05610806f36d9c6363410200ffb26556dbe",
+    "public_dataset_sha256": "19a102898c9ab3988d6c794d05b9def1db430d29bdf2d137acd811b5051fe1b3",
+    "public_results_sha256": "08a9020c8ac3523fa6d1c5872e4c59133877ed03b412ae7f3b53339b7ee2fc66",
     "verification": {
       "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-verification-20261016.json",
       "sha256": "2fe714e6e8b410890f8be0329da3cb01bb02796c051b5477de0c2f5e3f4a6b40"
@@ -224,13 +225,13 @@
     "sha256": "c1719bd6694c7fd5c6c93471e82916da4b449ca15ef7f5e0533402ff108af519"
   },
   "publication_projection": {
-    "path": "PUBLICATION-PROJECTION.json",
-    "sha256": "87b2c6ab0f11698a92b3037abfea37871f1577d8b203da9108d5621e57b8a27e",
+    "path": "local-evidence/main-sync/diagnostic-context-publication-projection.json",
+    "sha256": "0f6d2285b55f558c5d8b515f14e0fe2f7a51359e88212ede7132b291ae9d90b1",
     "kind": "host_metadata_publication_projection"
   },
   "native_answer_context_audit": {
     "path": "local-evidence/native-context-audit/PR-51-native-context-audit-20261016.json",
-    "sha256": "22fe45a35b43753f1fee5e7cb0180d3b2037533d63e009e3b4fbef37d646544b",
+    "sha256": "1c676e00c5b2a0f18928f6cc8de7e1674659fc92e70ae9978f4a9a80c3789eab",
     "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-native-context-audit-20261016.json",
     "bytes": 8046875,
     "result_count": 4300,
@@ -248,13 +249,13 @@
     "bytes": 43947732,
     "implementation_commit": "31a00bad2bbbdd33d50f47ef17fd8beb6dd4900d",
     "baseline_archive_sha256": "6ceb6a8bb35bc0e1d4ba40ff183dbb66e975d37426d7277ec6fca27ef58ad1ea",
-    "input_public_results_sha256": "2d2a35f6b51cd1023ee940f9a310c05610806f36d9c6363410200ffb26556dbe",
-    "output_public_results_sha256": "314a5adb2225fde74cfe0672d25d972c2c99e65b40e337d93c0a1d7418e4fe00",
+    "input_public_results_sha256": "08a9020c8ac3523fa6d1c5872e4c59133877ed03b412ae7f3b53339b7ee2fc66",
+    "output_public_results_sha256": "b2e3546914de91912ff648184f0df3db6b6d1bb32784d3d3cc4c8b74af206bdb",
     "presentation_binding": {
       "path": "presentation-binding.json",
       "sha256": "b2dc50c1ae3f75638dc10faea09a39ad5fd451611cf8cc04385abcbbd6d879f2"
     },
-    "manifest_sha256": "5186f43a41c66cbbab3c9c49c896e2d6862482039c8e203e6ea4e90520f04d0d",
+    "manifest_sha256": "fa003f1c01eff9bed30de49fc7bb3b8acac51ef2999c1424d912fd647a950675",
     "restore_verified": true,
     "restored_input_files": 33352,
     "native_revision_chain_verified": true,
@@ -278,5 +279,49 @@
     "page_layout_issues": 0,
     "historical_limits_unchanged": true,
     "presentation_revision": "Aligned English numeric copy in the new review round; original opinions and scoring inputs unchanged."
+  },
+  "predecessor_presentation": {
+    "path": "local-evidence/main-sync/predecessor-presentation-binding.json",
+    "sha256": "8a134b98183f3ab1b0a2c60e079c84866b5876a8e9a8e0ef3e6f44cfead3f046"
+  },
+  "historical_review": {
+    "path": "local-evidence/main-sync/predecessor-result-review.json",
+    "sha256": "12c5874acf32fbec1bd680835779525894447a440ad41aa72b8e8eba02bfd7d9"
+  },
+  "implementation_parents": {
+    "pr51": "fa7d93a2997f022e89eee0aba5902094563e2363",
+    "main": "637bd5171b296af6431b7a570f3d8a48ec5c671f"
+  },
+  "score_revision_configurations": [
+    {
+      "path": "local-evidence/main-sync/revision-config.json",
+      "sha256": "bff6292c9a38ebf4688c61ffb3d599e00b97326ada659554221a05a7191fe8d3"
+    },
+    {
+      "path": "local-evidence/main-sync/table-scope-revision-config.json",
+      "sha256": "c49810417427e72a4e2c741bf231418a8801cb43348f44ed6683c4bc564f4f67"
+    }
+  ],
+  "report_changes": {
+    "path": "report-assets/report-changes.json",
+    "sha256": "d6e786f05db2843d7d078fc82c5559dd558e5acd5bf8a13f144f8cbfbca82180"
+  },
+  "main_sync_correction": {
+    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-main-sync-correction-20261016.tar.gz",
+    "sha256": "6656c4b6057a2e7bd966ba4d664de2326229af7a918e0d630256ddd7bd63bd2e",
+    "bytes": 1174128171,
+    "manifest_url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-main-sync-manifest-20261016.json",
+    "manifest_sha256": "83c2f9e6cea1a792fe620c0a65ce9a7e714ee0b3f0594015410ff1d7d2dee20a",
+    "presentation_binding": {
+      "path": "presentation-binding.json",
+      "sha256": "f150a4c339482ff8d0e00394b4df5082a9e1811a8e0f0101242bfeea4a626acc"
+    },
+    "base_dataset_sha256": "e2a5c68fa7c2640414c56c0949a8f344f8091e602e6479f8fd2bb07fec5b9681",
+    "base_results_sha256": "314a5adb2225fde74cfe0672d25d972c2c99e65b40e337d93c0a1d7418e4fe00",
+    "output_dataset_sha256": "640e6dda990e79d8db4f8d9fb9551a9d5317b2f2669f74f121ddf8089c795f84",
+    "output_results_sha256": "6f43a3419940bfdb87b09c0652801817722ff38afcf48036da96ffb030903cb9",
+    "restored_input_files": 33373,
+    "restore_verified": true,
+    "provider_calls_added": 0
   }
 }

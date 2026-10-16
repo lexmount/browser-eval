@@ -67,7 +67,7 @@ class PrivateRawResponseArtifactTests(unittest.TestCase):
             self.assertFalse(metadata['diagnostic_log_truncated'])
             path = Path(metadata['diagnostic_log_path'])
             self.assertEqual(path.parts[0], 'private_artifacts')
-            self.assertEqual(path.name, 'run-001.stderr.log')
+            self.assertEqual(path.stem, Path(record['artifact_path']).stem + '.stderr')
             self.assertEqual((root / path).read_bytes(), raw)
             call_log = json.loads(
                 (root / metadata['call_log']['path']).read_text(encoding='utf-8')
@@ -121,7 +121,9 @@ class PrivateRawResponseArtifactTests(unittest.TestCase):
             def fetch(self, case, timeout):
                 self.calls += 1
                 raw = f'private-{self.calls}'.encode()
-                return ProviderResult(self.calls == 2, 'wrong' if self.calls == 1 else 'Expected',
+                return ProviderResult(self.calls == 2, '' if self.calls == 1 else 'Expected',
+                    error_type='network' if self.calls == 1 else None,
+                    error_message='synthetic transient failure' if self.calls == 1 else None,
                     metadata={
                         '_raw_response_b64': base64.b64encode(raw).decode('ascii'),
                         'raw_response_sha256': hashlib.sha256(raw).hexdigest(),

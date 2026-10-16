@@ -36,9 +36,9 @@ METRICS = (
 def _stats(values):
     return {
         "n": len(values),
-        "p50": statistics.median(values),
-        "p95": percentile(values, 0.95),
-        "mean": statistics.fmean(values),
+        "p50": statistics.median(values) if values else None,
+        "p95": percentile(values, 0.95) if values else None,
+        "mean": statistics.fmean(values) if values else None,
     }
 
 
@@ -101,21 +101,29 @@ def build_summary(dataset: dict, records: list[dict], batches: list[dict]) -> di
             for provider in providers
         )
     )
-    if len(common) < 5:
-        raise ValueError("Too few all-provider successful cases for resource comparison")
     by_key = {(record["provider"], record["case_id"]): record for record in records}
     rows = []
     for provider in providers:
         metrics = {
-            metric: _stats([value(by_key[provider, case_id], metric) for case_id in common])
+            metric: _stats([value(by_key[provider, case_id], metric) for case_id in cases])
             for metric in METRICS
         }
-        rows.append({"provider": provider, "attempts": len(common), "metrics": metrics})
+        successful = [case_id for case_id, case in cases.items() if task_passed(
+            by_key[provider, case_id]['ok'], by_key[provider, case_id]['metrics'],
+            case.get('task_kind', 'body'))]
+        rows.append({"provider": provider, "attempts": len(cases), "metrics": metrics,
+            "successful_attempts": len(successful), "successful_case_ids": sorted(successful),
+            "successful_metrics": {metric: _stats([value(by_key[provider, case_id], metric)
+                for case_id in successful]) for metric in METRICS}})
     summary = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "primary_population": "all_declared_calls",
+        "conditional_population": "individually_successful_calls",
+        "common_pass_population": "diagnostic_only",
         "selection": (
-            "Predeclared provider-blind ordinary-web cohort; aggregates use the single "
-            "all-provider successful case intersection."
+            "Every predeclared provider-task call is included in the primary distribution. "
+            "Per-provider successful-call distributions are conditional; the common-pass "
+            "intersection is diagnostic only and never selects ranking samples."
         ),
         "interpretation": "isolated_local_browser_client_container_cost",
         "scope": (

@@ -72,7 +72,7 @@ class ResourceContractLifecycleTests(unittest.TestCase):
         self.assertNotEqual(digest(scope_identity(changed_targets)), original)
         self.assertNotEqual(digest(scope_identity(changed_policy)), original)
 
-    def test_audited_recall_policy_may_update_matching_prompt_but_not_prompt_alone(self):
+    def test_audited_revision_may_update_reader_prompt_but_not_provider_url(self):
         original = self.resource_case()
         original["source_verification"] = {"reference_sha256": sha256("")}
         binding = {
@@ -89,6 +89,49 @@ class ResourceContractLifecycleTests(unittest.TestCase):
         prompt_only["task_prompt"] = corrected["task_prompt"]
         with self.assertRaises(ReferenceLifecycleError):
             check_case_scoring_revision_binding(prompt_only, binding)
+
+        different_call = json.loads(json.dumps(prompt_only))
+        different_call["url"] = "https://other.example.test/gallery"
+        with self.assertRaises(ReferenceLifecycleError):
+            check_case_scoring_revision_binding(different_call, binding)
+
+    def test_audited_homepage_revision_may_sync_anchor_prose_but_not_call_scope(self):
+        suffix = "不点击子页面、翻页、登录或执行其他 Browser Use 操作。"
+        original = {
+            "id": "homepage",
+            "url": "https://example.test/",
+            "track": "challenge",
+            "task_kind": "structure",
+            "task_prompt": "保留 Current；Retired。" + suffix,
+            "source_benchmark": {"mode": "ranked_domain_homepage"},
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [
+                    {"id": "current", "alternatives": ["Current"]},
+                    {"id": "retired", "alternatives": ["Retired"]},
+                ],
+            },
+            "ground_truth_main_content": "",
+            "source_verification": {"reference_sha256": sha256("")},
+        }
+        binding = {
+            "reference_sha256": sha256(""),
+            "expected_normalized_sha256": sha256(""),
+            "scope_identity": scope_identity(original),
+        }
+        corrected = json.loads(json.dumps(original))
+        corrected["task_prompt"] = "保留 Current。" + suffix
+        corrected["acceptance_contract"]["stable_text_anchors"] = [
+            {"id": "current", "alternatives": ["Current"]},
+        ]
+        check_case_scoring_revision_binding(corrected, binding)
+
+        changed_call = json.loads(json.dumps(corrected))
+        changed_call["task_prompt"] = "保留 Current。不点击子页面、翻页后再登录。"
+        with self.assertRaises(ReferenceLifecycleError):
+            check_case_scoring_revision_binding(changed_call, binding)
 
     def test_dynamic_frozen_case_retains_complete_resource_contract(self):
         case = self.resource_case()

@@ -1,0 +1,245 @@
+{
+  "schema_version": 2,
+  "kind": "current_page_reference_and_contract_revision",
+  "provider_calls": 0,
+  "request_invariants": {
+    "provider_input": "URL only, with the saved native route and runtime settings",
+    "url_route_runtime_changed": false,
+    "task_prompt_provider_visible": false,
+    "saved_output_bytes_and_timing_retained": true
+  },
+  "reference_revisions": {
+    "case_ids": [
+      "static-simple",
+      "redirect",
+      "live-010-navigation-menu",
+      "live-025-api-reference",
+      "live-035-part-i-tutorial"
+    ],
+    "source_authority": "Independent rendered browser DOM in the declared target scope",
+    "browser_observation_sha256": {
+      "static-simple": "3d62e4dde450cc223daa9ae4af4c12a7c359362d9565824a6ee02a5215567979",
+      "redirect": "f8dd763cbfa9a7850633fce8017761e22e99037623058697bc2c5033c5d2989e",
+      "live-010-navigation-menu": "ff95d3912968b817b934aa594435750bce8181f8ea36e23291a0782835d1fac8",
+      "live-025-api-reference": "f585c751e30c2aa64206f7987863225daac6167c4257d3205606e15908eae1b6",
+      "live-035-part-i-tutorial": "c41db85761d58a8de345a67ee9bc23d250bbb6634234f86217f78e5692b90fb4"
+    },
+    "receipt_sha256": "2197fbd2ecd0d0f1a7537b339f4521060eebb12196943407fb93340c3175794b",
+    "input_dataset_sha256": "965911fc190e42316d9b16be2282791f0159f242c8edbe63a5f9a735c53bfc30",
+    "input_results_sha256": "b2106cfcf099b6c081fb047bac8f8a7d3729512eec3790c9755a924fb3256524",
+    "output_dataset_sha256": "fec06de905fffac9e42c6add8a1de4ac97424fb4242c9ef97346095697f1bf43",
+    "output_results_sha256": "478b0958176b51fa714c279acb5034ad7a230d3377b955932e88dd13ba2d7486"
+  },
+  "acceptance_contract_revisions": {
+    "case_ids": [
+      "china-homepage-033-dingtalk-com",
+      "china-homepage-040-quark-cn",
+      "china-homepage-048-douyu-com",
+      "china-homepage-085-shopify-com",
+      "china-homepage-088-figma-com",
+      "dynamic-082-allocine-films",
+      "global-homepage-008-whatsapp-com",
+      "global-homepage-010-bing-com",
+      "global-homepage-067-deepseek-com",
+      "global-homepage-086-usps-com"
+    ],
+    "homepage_contract_source": "Task-relevant intersection of two same-region independent first loads",
+    "popular_source_input_id": "popular-sites-85544512d4cf-v6",
+    "popular_dataset_sha256": "85544512d4cfd9459c22af1f70b1eb400844742dbf3179807662b76db2dcfc2e",
+    "popular_observations": [
+      {
+        "case_id": "china-homepage-033-dingtalk-com",
+        "observation_times": [
+          "2026-10-13T06:10:26.844053+00:00",
+          "2026-10-13T06:24:40.449295+00:00"
+        ],
+        "evidence_sha256": "b124d67b50f17db6bc15b988ff9714c454c59165a5701fdcb0bbc557c0ce4bf8",
+        "anchor_groups": 5
+      },
+      {
+        "case_id": "china-homepage-040-quark-cn",
+        "observation_times": [
+          "2026-10-13T06:24:41.283324+00:00",
+          "2026-10-13T06:25:39.586243+00:00"
+        ],
+        "evidence_sha256": "4882f58b1dd814b7d4682343923e48c7dee9c3533b3908e22fdcd4e1659439c1",
+        "anchor_groups": 11
+      },
+      {
+        "case_id": "china-homepage-048-douyu-com",
+        "observation_times": [
+          "2026-10-13T06:10:27.636028+00:00",
+          "2026-10-13T06:24:41.500563+00:00"
+        ],
+        "evidence_sha256": "3239f658eaf00a0e9289757df24d5d575ffb015cb14108ec8033927194c2137a",
+        "anchor_groups": 21
+      },
+      {
+        "case_id": "china-homepage-085-shopify-com",
+        "observation_times": [
+          "2026-10-13T06:10:31.465406+00:00",
+          "2026-10-13T06:24:40.502873+00:00"
+        ],
+        "evidence_sha256": "db803b5d4ce0b5628c39497f6e7750523eda54e8b40500e295b46cf26ff05d06",
+        "anchor_groups": 14
+      },
+      {
+        "case_id": "china-homepage-088-figma-com",
+        "observation_times": [
+          "2026-10-13T06:10:31.585141+00:00",
+          "2026-10-13T06:24:50.759331+00:00"
+        ],
+        "evidence_sha256": "bb868fdfb8ccaf39f6ad734207d1ec7f195e162c4598efc17bf1391c4e78cc44",
+        "anchor_groups": 12
+      },
+      {
+        "case_id": "global-homepage-010-bing-com",
+        "observation_times": [
+          "2026-10-13T06:24:51.080990+00:00",
+          "2026-10-13T06:26:02.580389+00:00"
+        ],
+        "evidence_sha256": "76782d2f51b5f1b47ccd1cdbc461515247f2041067ee3e4c49524d0e16789205",
+        "anchor_groups": 5
+      },
+      {
+        "case_id": "global-homepage-067-deepseek-com",
+        "observation_times": [
+          "2026-10-13T06:10:36.515625+00:00",
+          "2026-10-13T06:24:46.639922+00:00"
+        ],
+        "evidence_sha256": "2ebbde4f22e3a45c6c3a771406609c6443fc884b78fcedaa02fb786095a9b093",
+        "anchor_groups": 6
+      },
+      {
+        "case_id": "global-homepage-086-usps-com",
+        "observation_times": [
+          "2026-10-13T06:10:40.867834+00:00",
+          "2026-10-13T06:24:54.745623+00:00"
+        ],
+        "evidence_sha256": "556031894e8d797f93fff54372a616cf0618f1cbd664fa7d5cf093fc0acfcd2b",
+        "anchor_groups": 19
+      },
+      {
+        "case_id": "global-homepage-008-whatsapp-com",
+        "observation_times": [
+          "2026-10-13T06:10:33.765548+00:00",
+          "2026-10-13T06:24:53.505915+00:00"
+        ],
+        "evidence_sha256": "3d379cb138e21709683e314d07bac7576279bfedea8796af61c4baecbaff0584",
+        "anchor_groups": 2
+      }
+    ],
+    "dynamic_source_input_id": "dynamic-content-100-moli-webfetch-1f3268366b17-v4",
+    "dynamic_dataset_sha256": "1f3268366b17d490c85b75fbda329e5b3e6143d0a058523c1cad8a73ed916278",
+    "dynamic_observation": {
+      "case_id": "dynamic-082-allocine-films",
+      "evidence_sha256": "717a0d1a864f561ae80c601c5733fccdfda16120e37b2ff4d0837c2718d86038",
+      "change": "Remove one navigation token absent from the independent current-page observation; retain the named-film-link contract."
+    },
+    "regression_ids": [
+      "current-homepage-stable-intersection-passes",
+      "obsolete-homepage-anchor-does-not-pass"
+    ],
+    "receipt_sha256": "f52ea78ab9714cf4ced3719dcecdd8c04f4720b6864f12f522220d61e458e6fc",
+    "input_dataset_sha256": "fec06de905fffac9e42c6add8a1de4ac97424fb4242c9ef97346095697f1bf43",
+    "input_results_sha256": "478b0958176b51fa714c279acb5034ad7a230d3377b955932e88dd13ba2d7486",
+    "output_dataset_sha256": "046bf1fc86bfb62d5e60cc7fa806cb854fa3da09c97d4b08685e3a2987952275",
+    "output_results_sha256": "6801b8ccc9262ca79b7426cc9b53eac5a8e918e786a039e06ef16b081f41065f"
+  },
+  "offline_six_method_impact": {
+    "reference_revision": {
+      "false_to_true": 4,
+      "true_to_false": 0,
+      "attempt_ids": [
+        "obscura__static-simple__r001",
+        "obscura__redirect__r001",
+        "kitesurf__static-simple__r001",
+        "kitesurf__redirect__r001"
+      ]
+    },
+    "contract_revision": {
+      "false_to_true": 34,
+      "true_to_false": 0,
+      "by_method": {
+        "moli": 7,
+        "moli-pr919": 6,
+        "lightpanda": 5,
+        "obscura": 6,
+        "chromium": 6,
+        "kitesurf": 4
+      },
+      "attempt_ids": [
+        "moli__dynamic-082-allocine-films__r001",
+        "moli__china-homepage-088-figma-com__r001",
+        "moli__global-homepage-067-deepseek-com__r001",
+        "moli__global-homepage-086-usps-com__r001",
+        "moli__china-homepage-033-dingtalk-com__r001",
+        "moli__china-homepage-040-quark-cn__r001",
+        "moli__china-homepage-085-shopify-com__r001",
+        "lightpanda__china-homepage-088-figma-com__r001",
+        "lightpanda__global-homepage-067-deepseek-com__r001",
+        "lightpanda__china-homepage-033-dingtalk-com__r001",
+        "lightpanda__china-homepage-040-quark-cn__r001",
+        "lightpanda__china-homepage-048-douyu-com__r001",
+        "obscura__china-homepage-088-figma-com__r001",
+        "obscura__global-homepage-067-deepseek-com__r001",
+        "obscura__china-homepage-033-dingtalk-com__r001",
+        "obscura__china-homepage-040-quark-cn__r001",
+        "obscura__china-homepage-048-douyu-com__r001",
+        "obscura__china-homepage-085-shopify-com__r001",
+        "chromium__dynamic-082-allocine-films__r001",
+        "chromium__china-homepage-088-figma-com__r001",
+        "chromium__global-homepage-067-deepseek-com__r001",
+        "chromium__china-homepage-033-dingtalk-com__r001",
+        "chromium__china-homepage-040-quark-cn__r001",
+        "chromium__china-homepage-085-shopify-com__r001",
+        "kitesurf__dynamic-082-allocine-films__r001",
+        "kitesurf__global-homepage-010-bing-com__r001",
+        "kitesurf__global-homepage-067-deepseek-com__r001",
+        "kitesurf__china-homepage-085-shopify-com__r001",
+        "moli-pr919__dynamic-082-allocine-films__r001",
+        "moli-pr919__china-homepage-088-figma-com__r001",
+        "moli-pr919__global-homepage-067-deepseek-com__r001",
+        "moli-pr919__china-homepage-033-dingtalk-com__r001",
+        "moli-pr919__china-homepage-040-quark-cn__r001",
+        "moli-pr919__china-homepage-085-shopify-com__r001"
+      ]
+    },
+    "final_dataset_sha256": "046bf1fc86bfb62d5e60cc7fa806cb854fa3da09c97d4b08685e3a2987952275",
+    "final_results_sha256": "6801b8ccc9262ca79b7426cc9b53eac5a8e918e786a039e06ef16b081f41065f"
+  },
+  "unchanged_cases": [
+    {
+      "case_id": "dynamic-022-en-stable-syncfusion-grid",
+      "reason": "The current official grid reports no records; current source cannot qualify a replacement contract."
+    },
+    {
+      "case_id": "dynamic-034-034-vuetify-server-table",
+      "reason": "The declared target scope does not independently expose the required rows; whole-page text mixes unrelated site navigation."
+    },
+    {
+      "case_id": "dynamic-035-035-vuetify-virtual-table",
+      "reason": "The declared target scope does not independently expose the required rows; whole-page text mixes unrelated site navigation."
+    },
+    {
+      "case_id": "dynamic-086-joyn-prosieben",
+      "reason": "No complete independent source evidence qualifies a reference or scoring correction."
+    },
+    {
+      "case_id": "china-homepage-044-kimi-com",
+      "reason": "Independent first loads end at a CAPTCHA, so no replacement body contract is qualified."
+    },
+    {
+      "case_id": "china-homepage-050-openai-com",
+      "reason": "Independent first loads return blocked or empty content, so no replacement body contract is qualified."
+    },
+    {
+      "case_id": "web-retail-returns",
+      "reason": "Independent first loads return 403 or CAPTCHA content, so no replacement body contract is qualified."
+    },
+    {
+      "case_id": "global-homepage-072-rakuten-co-jp",
+      "reason": "Independent current-page evidence still supports the existing contract; retain the method failure."
+    }
+  ]
+}

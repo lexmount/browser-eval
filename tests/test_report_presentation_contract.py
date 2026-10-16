@@ -24,3 +24,17 @@ class PresentationContractTests(unittest.TestCase):
         check_presentation(page)
         for broken in [page.replace('id="result-logs"','id="missing"'),page.replace('data-kind="error"',''),page.replace('</div><dl','</div><div data-result-summary></div><dl'),page.replace('</dialog>','</dialog><pre>flattened raw log</pre>')]:
             with self.assertRaises(ValueError):check_presentation(broken)
+
+
+class SharedRankingPresentationTests(unittest.TestCase):
+    def test_raw_column_extremes_zero_ties_and_unavailable_values(self):
+        from harness.web_fetch.report import cell, comparative_rows, table
+        rows=[('',cell('A')+cell('0 ms',0)+cell('50%',0.5)),
+              ('',cell('B')+cell('10 ms',10)+cell('50%',0.5)),
+              ('',cell('C')+cell('—',-1)+cell('—',-1))]
+        rendered=table(['Method','Mean','Pass rate'],comparative_rows(rows,{1:('mean','min'),2:('pass','max')}))
+        check_presentation(rendered)
+        self.assertEqual(rendered.count('comparison-winner'),1)
+        self.assertIn('comparison-winner good">0 ms',rendered)
+        with self.assertRaises(ValueError):
+            check_presentation(rendered.replace('comparison-winner good','good'))

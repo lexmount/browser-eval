@@ -44,7 +44,7 @@ def setup_replacement(tmp_path):
         rows, _ = run_evaluation(output_dir=tmp_path,
             dataset_meta={'tool': 'web_fetch', 'cases': [added]}, dataset_path=tmp_path/'frozen.json',
             cases=cases, providers=[build_provider(method, {'type': 'fixture'})],
-            provider_config_path=tmp_path/'providers.json', runs=1, timeout=45, delay=0)
+            provider_config_path=tmp_path/'providers.json', runs=1, timeout=45, delay=0, max_failure_retries=0)
         batch = json.loads((tmp_path/'manifest.json').read_text())
         calls.extend(rows)
         batches.append(batch)

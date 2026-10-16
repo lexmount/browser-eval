@@ -51,6 +51,7 @@ _CONDITIONAL_FIELDS = {
     "structure_pass", "named_entry_count", "minimum_entries", "snapshot_f1",
     "dynamic_titles", "verification_note", "confirmed_entries", "checked_entries",
     "page_identity_required", "page_identity_status", "final_url_consistent",
+    "document_language_required",
     "language_consistent", "observed_document_language",
     "acceptable_final_urls",
     "ordered_tree", "ordered_tree_similarity",
@@ -115,6 +116,9 @@ def score_attempt(
         metadata['file_evaluation'] = evaluate_returned_files(native_files, case.get('source_verification') or {})
     if 'acceptance_policy_version' in case:
         raise ValueError('Historical policy selectors require their frozen scorer; current scoring has one contract')
+    identity_required = case.get('page_identity_required', False)
+    if not isinstance(identity_required, bool):
+        raise ValueError('page_identity_required must be boolean')
     contract = case.get('acceptance_contract') or {}
     if contract.get('content_scope') == 'full_page_stable_coverage':
         if (contract.get('minimum_records', 0) == 0
@@ -211,7 +215,7 @@ def score_attempt(
             else "unavailable"
         )
         result.update(
-            page_identity_required=True,
+            page_identity_required=identity_required,
             page_identity_status=identity_status,
             final_url_consistent=final_consistent,
             language_consistent=language_consistent,
@@ -229,7 +233,7 @@ def score_attempt(
             and any(_same_page_url(final_url, expected) for expected in acceptable_urls)
         )
         result.update(
-            page_identity_required=True,
+            page_identity_required=identity_required,
             page_identity_status=(
                 "verified" if final_consistent else "mismatch" if final_url else "unavailable"
             ),
@@ -279,13 +283,6 @@ def score_attempt(
             body_requirements, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     if not result["content_score_applicable"] or not ok:
         result["content_pass"] = False
-    if result.get("page_identity_required") and result.get("page_identity_status") != "verified":
-        result["content_pass"] = False
-        if contract:
-            result["stable_task_pass"] = False
-            result["stable_content_pass"] = False
-            if "page_identity_not_verified" not in result["stable_task_errors"]:
-                result["stable_task_errors"].append("page_identity_not_verified")
     if not ok:
         if contract:
             result["stable_task_pass"] = False

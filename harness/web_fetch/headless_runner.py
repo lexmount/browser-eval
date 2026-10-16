@@ -11,6 +11,7 @@ from harness.web_fetch.config import (
     load_dataset,
     load_provider_settings,
     load_runtime_env,
+    add_failure_retry_argument,
 )
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
@@ -87,13 +88,7 @@ def main(argv=None):
     parser.add_argument("--tracks", help="Comma-separated task families; default all")
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--timeout", type=float, default=45)
-    parser.add_argument(
-        "--max-failure-retries",
-        type=int,
-        choices=(0, 1),
-        default=0,
-        help="Retry a failed task at most once; the final call is authoritative",
-    )
+    add_failure_retry_argument(parser)
     parser.add_argument(
         "--resource-sample-interval-ms",
         type=int,
@@ -141,6 +136,21 @@ def main(argv=None):
         providers=args.providers,
     )
     names = list(config)
+    incompatible = {
+        name: value.get("type")
+        for name, value in config.items()
+        if value.get("type") != "headless_markdown"
+    }
+    if incompatible:
+        details = ", ".join(
+            f"{name} ({provider_type or 'missing type'})"
+            for name, provider_type in incompatible.items()
+        )
+        parser.error(
+            "Headless benchmark providers must use type headless_markdown; "
+            f"incompatible provider configuration: {details}. "
+            "Use scripts/run_benchmark.py for native Web Fetch providers."
+        )
     if args.resource_sample_interval_ms is not None:
         if args.resource_container_image is None:
             args.resource_container_image = cohort_config.get("resource_container_image")

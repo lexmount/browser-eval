@@ -2,17 +2,65 @@ import unittest
 
 from harness.web_fetch.metrics import (
     evaluate_content, evaluate_resources, normalize_for_match,
-    normalize_resource_url, summarize, word_overlap,
+    normalize_resource_url, summarize, task_passed, word_overlap,
 )
 
 
 class MetricsTest(unittest.TestCase):
+    def test_entity_decoding_preserves_markdown_anchor_boundaries(self):
+        contract = {"version": 1, "schema": "body_text", "minimum_records": 0,
+                    "stable_text_anchors": [{"id": "help", "alternatives": ["Help"]},
+                                            {"id": "plugins", "alternatives": ["Plugins"]}]}
+        positive = "A &amp; B [Images](/images)[Plugins](/plugins)Deep research [Help](/help)Settings"
+        self.assertTrue(evaluate_content(positive, [], acceptance_contract=contract)["stable_task_pass"])
+        negative = "A &amp; B Helpful settings and PluginsExtra"
+        self.assertFalse(evaluate_content(negative, [], acceptance_contract=contract)["stable_task_pass"])
+
+    def test_decoded_markdown_anchor_keeps_emphasis_and_links_equivalent(self):
+        contract = {"version": 1, "schema": "body_text", "minimum_records": 0,
+                    "stable_text_anchors": [{"id": "purpose", "alternatives": ["the official resource for the Team Fortress series"]}]}
+        positive = "A &amp; B the official resource for the *[Team Fortress](/series)* series."
+        self.assertTrue(evaluate_content(positive, [], acceptance_contract=contract)["stable_task_pass"])
+        self.assertFalse(evaluate_content(positive.replace("official resource", "unrelated material"), [], acceptance_contract=contract)["stable_task_pass"])
+
     def test_html_required_pattern_counts_only_visible_prose(self):
         rule = [{"id": "order-number", "pattern": r"Order ID \d+", "minimum": 1}]
         hidden = "<html><body><script>Order ID 123</script><p>Page ready</p></body></html>"
         visible = "<html><body><p>Order ID 123</p></body></html>"
         self.assertFalse(evaluate_content(hidden, [], required_patterns=rule)["content_pass"])
         self.assertTrue(evaluate_content(visible, [], required_patterns=rule)["content_pass"])
+
+    def test_required_result_section_remains_an_acceptance_gate_with_stable_rules(self):
+        contract = {
+            "version": 1,
+            "schema": "body_text",
+            "minimum_records": 0,
+            "stable_text_anchors": [{
+                "id": "page-section",
+                "alternatives": ["Result"],
+            }],
+        }
+        rules = [{
+            "id": "rendered-result",
+            "pattern": r"(?is)\bResult\b\s+(?!Loading\b).*?\bName\b.*?\bJohn\b",
+        }]
+        loading = evaluate_content(
+            "const rows = ['John'];\nResult Loading...",
+            [],
+            acceptance_contract=contract,
+            required_patterns=rules,
+        )
+        rendered = evaluate_content(
+            "Result\nName\nJohn",
+            [],
+            acceptance_contract=contract,
+            required_patterns=rules,
+        )
+        self.assertTrue(loading["stable_task_pass"])
+        self.assertFalse(loading["content_pass"])
+        self.assertFalse(task_passed(True, loading, "body"))
+        self.assertTrue(rendered["content_pass"])
+        self.assertTrue(task_passed(True, rendered, "body"))
 
     def test_only_pure_markdown_table_rules_are_layout(self):
         divider = 'December 2007\n| Sun | Mon | Tue |\n| :---- | ---: | --- |'
@@ -264,6 +312,29 @@ class MetricsTest(unittest.TestCase):
                          ["content.html_img", "content.html_img_srcset"])
         self.assertEqual(by_url["https://example.test/logo.png"],
                          ["content.html_img_srcset"])
+
+    def test_resource_discovery_reads_only_visible_inline_frame_documents(self) -> None:
+        content = (
+            '<iframe id="result" data-moli-frame-url="about:blank" '
+            'srcdoc="&lt;img src=&quot;pic_trulli.jpg&quot;&gt;"></iframe>'
+            '<iframe style="display:none" srcdoc="&lt;img src=&quot;ad.jpg&quot;&gt;"></iframe>'
+        )
+        result = evaluate_resources(
+            content,
+            {},
+            [{"id": "target", "kind": "image", "urls": ["/html/pic_trulli.jpg"]}],
+            base_url="https://www.w3schools.com/html/tryit.asp?filename=images",
+            output_contract={"candidate_scope": "image_answer_fields", "unexpected": "reject"},
+        )
+        self.assertTrue(result["resource_pass"])
+        self.assertEqual(
+            result["resource_candidate_urls"],
+            ["https://www.w3schools.com/html/pic_trulli.jpg"],
+        )
+        self.assertEqual(
+            result["resource_candidates"][0]["sources"],
+            ["content.frame_html_img"],
+        )
 
     def test_invalid_target_only_contract_fails_closed(self) -> None:
         invalid = (

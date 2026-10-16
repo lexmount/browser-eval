@@ -1,14 +1,100 @@
 from __future__ import annotations
 
+import json
+import importlib.metadata
 import re
+from collections import Counter
+from functools import lru_cache, wraps
+from contextvars import ContextVar
+from pathlib import Path
 from typing import Any
+
+
+@lru_cache(maxsize=1)
+def browser_method_registry():
+    """Use the execution registry for release and source-build participants."""
+    path = Path(__file__).resolve().parents[2] / "configs/providers.headless.json"
+    if not path.is_file():
+        from harness.distribution import installed_data_path
+        try:
+            path = installed_data_path("share/browser-harness-eval/providers.headless.json")
+        except importlib.metadata.PackageNotFoundError:
+            return {}
+        except ValueError as error:
+            if str(error).startswith('Distribution must declare one data file:'):
+                return {}
+            raise
+    return json.loads(path.read_text())["providers"]
+
+
+def native_browser_engine(name):
+    return browser_method_registry().get(name, {}).get("engine")
+
+
+def browser_method_label(name):
+    return _MEASURED_LABELS.get().get(
+        name, browser_method_registry().get(name, {}).get("label", name)
+    )
+
+
+_MEASURED_LABELS = ContextVar("webfetch_measured_labels", default={})
+
+
+def measured_method_label(name, fallback):
+    return _MEASURED_LABELS.get().get(name, fallback)
+
+
+def with_measured_method_labels(render):
+    """Scope Moli version labels to the actual report's hash-bound binaries."""
+    @wraps(render)
+    def wrapped(out, dataset, records, *args, **kwargs):
+        path = Path(out) / "implementation-provenance.json"
+        provenance = json.loads(path.read_text()) if path.is_file() else {}
+        identities = {
+            item["binary_sha256"]: item["version"]
+            for item in provenance.get("implementations", [])
+            if item.get("version") and item.get("binary_sha256")
+        }
+        labels = {}
+        for name in {r["provider"] for r in records}:
+            if native_browser_engine(name) != "moli":
+                continue
+            subset = [r for r in records if r["provider"] == name]
+            versions = [
+                identities.get(r.get("provider_metadata", {}).get("binary_sha256"))
+                for r in subset
+            ]
+            if versions and all(versions):
+                counts = Counter(versions)
+                if len(counts) == 1:
+                    labels[name] = "Moli " + next(iter(counts))
+                else:
+                    releases = [
+                        match.group(1) if (match := re.match(r"^(\d+\.\d+\.\d+)", version)) else None
+                        for version in counts
+                    ]
+                    if None not in releases and len(set(releases)) == 1:
+                        release = releases[0]
+                        configured = browser_method_registry().get(name, {}).get("label", "")
+                        qualifier = "（候选版）" if "candidate" in configured.lower() else ""
+                        labels[name] = f"Moli {release}{qualifier}"
+                    else:
+                        labels[name] = "Moli 多构建结果（" + "；".join(
+                            f"{count} 例 {version}" for version, count in sorted(counts.items())
+                        ) + "）"
+        token = _MEASURED_LABELS.set(labels)
+        try:
+            return render(out, dataset, records, *args, **kwargs)
+        finally:
+            _MEASURED_LABELS.reset(token)
+    return wrapped
 
 
 METHOD_REGISTRY: dict[str, dict[str, Any]] = {
     "http": {"endpoint":"HTTP GET","contract":"已知 URL → HTML 文本或文件任务的原始字节","output":"HTML 提取文本；文件任务保留响应字节","freshness":"每次独立请求，不执行页面 JavaScript","leaderboard":"独立 HTTP 对照"},
     "headless_html": {"endpoint":"browser HTML → node-html-markdown 2.0.0","contract":"已知 URL → DOM HTML → Markdown","output":"Markdown；独立保存 HTML 和诊断","freshness":"每次新进程/会话；domcontentloaded；45 秒外层预算","leaderboard":"六类任务分别验收","report":{"observed_routes":True}},
     "headless_markdown": {"endpoint":"各方法最快的正式任务原生产物路径","contract":"已知 URL → 正文 Markdown/文本，或文件任务的原始字节","output":"正文 Markdown/文本；文件任务为原始字节；保留接口与阶段诊断","freshness":"每次新进程/会话；45 秒端到端预算","leaderboard":"六类任务分别验收","report":{"observed_routes":True}},
-    "moli_webfetch": {"endpoint":"moli fetch（按任务预选 Markdown、DOM eval 或裸响应）","contract":"已知 URL → 渲染正文、结构化资源 URL 或原文件字节","output":"stdout 文本/JSON/字节；stderr 独立诊断","freshness":"每次启动独立进程；使用预声明的有界完成条件","leaderboard":"六类任务分别验收","report":{"reported_version":{"pattern":r"^moli\s+","replacement":"Moli "},"profiles":[{"metadata_equals":{"dump":"markdown","route":"dynamic_native_markdown","wait_until":"done","wait.strategy":"native_default_completion"},"endpoint":"moli fetch --dump markdown --wait-until done URL","freshness":"每例启动一个独立进程；由 Moli 的默认 done 完成方式决定何时交付内容。","configuration":"本轮 {record_count} 例统一使用 Moli 原生 Markdown Fetch 与默认 done 完成方式；除目标 URL 外没有逐例等待元素、额外等待时间、提取脚本或特殊参数。未启用额外的理解模型或付费后备方法。"}]}},
+    "moli_webfetch": {"endpoint":"moli fetch（网页、文档正文、结构与网页内嵌媒体用原生 Markdown，直接媒体文件用原始响应）","contract":"已知 URL → 原生 Markdown 或原文件字节","output":"stdout Markdown/字节；stderr 独立诊断","freshness":"每次启动独立进程；结构完成条件只控制官方等待参数","leaderboard":"七类任务分别验收","report":{"reported_version":{"pattern":r"^moli\s+","replacement":"Moli "},"profiles":[{"metadata_equals":{"dump":"markdown","route":"dynamic_native_markdown","wait_until":"domstable","wait.strategy":"native_task_family_completion","layout":True,"with_frames":True},"endpoint":"moli fetch --dump markdown --layout --with-frames --wait-until domstable URL","freshness":"每例启动一个独立进程；动态网站正文统一等待 Moli 原生 DOM 稳定信号，并启用原生页面布局和已加载子文档。","configuration":"本轮 {record_count} 个动态网站正文任务统一使用 Moli 原生 Markdown、--layout、--with-frames 和 domstable。除目标 URL 外，没有逐题等待元素、延迟、提取脚本或特殊参数，也没有启用理解模型、格式回退或付费后备方法。"},{"metadata_equals":{"dump":"markdown","route":"dynamic_native_markdown","wait_until":"done","wait.strategy":"native_default_completion"},"endpoint":"moli fetch --dump markdown --wait-until done URL","freshness":"每例启动一个独立进程；由 Moli 的默认 done 完成方式决定何时交付内容。","configuration":"本轮 {record_count} 例统一使用 Moli 原生 Markdown 和默认 done 完成方式。除目标 URL 外，没有逐例等待元素、额外等待时间、提取脚本或特殊参数，也没有启用理解模型、格式回退或付费后备方法。"}]}},
     "cowagent_builtin": {"endpoint":"仓库内 WebFetch.execute","contract":"已知 URL → 可读文本/文档文字","output":"纯文本","freshness":"实时请求","leaderboard":"可读正文"},
     "lexmount": {"endpoint":"POST https://api.lexmount.com/v1/extract","contract":"已知 URL → 主正文 + 元数据","output":"main_text","freshness":"托管实时抓取","leaderboard":"可读正文"},
     "lexmount_cn": {"endpoint":"POST https://api.lexmount.cn/v1/extract","contract":"已知 URL → 主正文 + 元数据","output":"main_text","freshness":"中国区托管实时抓取","leaderboard":"可读正文"},
@@ -25,6 +111,13 @@ METHOD_REGISTRY: dict[str, dict[str, Any]] = {
 }
 
 
+def is_browser_comparison(records: list[dict[str, Any]]) -> bool:
+    """Recognize browser cohorts independently of their task-specific adapters."""
+    types = {row.get("provider_type") for row in records}
+    return bool(types & {"headless_html", "headless_markdown"}) and types <= {
+        "headless_html", "headless_markdown", "moli_webfetch"}
+
+
 def method_info(provider_type: str) -> dict[str, Any]:
     return METHOD_REGISTRY.get(provider_type, {"endpoint":"未记录","contract":"未知","output":"未知","freshness":"未知","leaderboard":"未分类"})
 
@@ -34,7 +127,7 @@ ROUTE_LABELS = {
     "lightpanda_native_markdown": "Lightpanda CLI 直接返回 Markdown",
     "obscura_native_markdown": "Obscura CLI 直接返回 Markdown",
     "moli_native_markdown": "Moli CLI 直接返回 Markdown",
-    "node-html-markdown": "Chromium 渲染 DOM → node-html-markdown 2.0.0",
+    "node-html-markdown": "浏览器渲染 DOM → node-html-markdown 2.0.0",
 }
 
 
@@ -68,7 +161,8 @@ def method_page_model(name: str, label: str, records: list[dict[str, Any]]) -> d
             version_rule["pattern"], version_rule.get("replacement", ""), versions[0],
             flags=re.I,
         )
-        title += f" · {version}"
+        if version not in title:
+            title += f" · {version}"
     model = {
         "title": title,
         "contract": info["contract"],

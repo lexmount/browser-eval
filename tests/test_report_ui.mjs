@@ -271,3 +271,21 @@ vm.runInContext('wmbCompare()',wmbCompareContext);
 assert.deepEqual(wmbCompareRows.map(r=>r.hidden),[true,false,true]);
 assert.equal(wmbCompareChecks[0].disabled,true);
 console.log('PASS: WebMainBench same-page group comparison combines methods, delivery pattern and official categories');
+
+// A task deep link must show both pass and fail results across providers,
+// even when the inventory was previously narrowed to one provider's failures.
+const taskFilters=[choices('provider',['one','two']),choices('result',['fail','pass']),
+ {tagName:'INPUT',dataset:{filter:'query'},value:''}];
+taskFilters.slice(0,2).forEach(f=>f.tagName='SELECT');
+const taskRows=[
+ {dataset:{provider:'one',result:'fail',search:'case-a'},textContent:'First result'},
+ {dataset:{provider:'two',result:'pass',search:'case-a'},textContent:'Second result'},
+ {dataset:{provider:'two',result:'fail',search:'case-b'},textContent:'Other task'}];
+const taskContext=vm.createContext({URLSearchParams,window:{addEventListener(){}},document:{
+ addEventListener(){},querySelectorAll(s){return s==='#rows tr'?taskRows:s==='select[data-filter]'?taskFilters.slice(0,2):s==='[data-filter]'?taskFilters:[]},
+ querySelector(s){return s==='#count'?count:{scrollIntoView(){}}}}});
+vm.runInContext(js,taskContext);
+assert.equal(vm.runInContext("wmbInspect('inspect?query=case-a')",taskContext),true);
+assert.deepEqual(taskFilters.map(f=>f.value),['','','case-a']);
+assert.deepEqual(taskRows.map(r=>r.hidden),[false,false,true]);
+console.log('PASS: same-task deep link clears unrelated filters and includes every outcome');

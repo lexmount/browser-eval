@@ -363,6 +363,7 @@
       ]
     },
     "risk-diverse-042": {
+      "stable_text_role": "diagnostic",
       "regions": [
         {
           "lines": [
@@ -1199,6 +1200,7 @@
       ]
     },
     "risk-diverse-011": {
+      "stable_text_role": "required",
       "regions": [
         {
           "lines": [

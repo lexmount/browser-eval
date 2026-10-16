@@ -11,7 +11,7 @@ from pathlib import PurePosixPath
 from urllib.parse import urlencode, urlsplit
 
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case, native_default_case
+from ..retrieval_hints import native_contract_for_case, native_default_case, plan_for_case
 from ..safety import validate_http_url
 from .base import Provider
 from .http_client import HttpOnlyRedirectHandler, HttpResponse, inner_timeout_budget, request
@@ -227,7 +227,7 @@ class CloudflareMarkdownProvider(Provider):
                          ['video', 'video source', 'audio', 'audio source', 'iframe', 'a[href]'])
             body['elements'] = [{'selector': value} for value in selectors]
         endpoint = 'https://api.cloudflare.com/client/v4/accounts/'+str(self.config.get('account_id', ''))+'/browser-rendering'+interface
-        if interface == '/markdown' and self.config.get('browser'):
+        if interface != '/content' and self.config.get('browser'):
             endpoint += '?' + urlencode({'browser': self.config['browser']})
         return endpoint, self.native_http_options(body, {'Authorization': 'Bearer '+str(self.config.get('api_token', ''))}, timeout)
 
@@ -260,13 +260,17 @@ class CloudflareMarkdownProvider(Provider):
     def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
         http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
-        if case.task_kind == "resource" and case.track in {"image", "video"}:
+        if (
+            case.task_kind == "resource"
+            and case.track in {"image", "video"}
+            and self.config.get("page_output") != "native_markdown"
+        ):
             return self._fetch_media_resources(
                 case,
                 account_id=account_id,
                 http_timeout=http_timeout,
             )
-        if not self.config.get("uniform_native_parameters") and _uses_direct_document_route(case):
+        if not self.config.get("uniform_native_parameters") and self.config.get("browser") != "kitesurf" and _uses_direct_document_route(case):
             return self._fetch_direct_document(
                 case,
                 account_id=account_id,
@@ -289,12 +293,16 @@ class CloudflareMarkdownProvider(Provider):
             request_body.get("gotoOptions", {}).pop("timeout", None)
             request_body.pop("actionTimeout", None)
         wait_metadata = None
-        if case.track == "dynamic" and not native_default_case(case) and "url" in request_body:
+        plan = None
+        native_contract = None
+        if case.track == "dynamic" and not self.config.get("uniform_native_parameters") and not native_default_case(case) and "url" in request_body:
             try:
                 if not math.isfinite(timeout) or timeout <= 0:
                     raise ValueError
                 plan = plan_for_case(case)
-                assert plan is not None
+                native_contract = native_contract_for_case(case)
+                if plan is None and native_contract is not None:
+                    plan = native_contract.completion_plan(service_timeout_ms)
             except (KeyError, TypeError, ValueError):
                 return ProviderResult(
                     False,
@@ -303,6 +311,7 @@ class CloudflareMarkdownProvider(Provider):
                     error_message="invalid dynamic retrieval_hints v1",
                 )
 
+        if plan is not None:
             # The Markdown endpoint exposes waitForSelector, but no selector-count
             # or arbitrary-function wait. Use only independently declared,
             # answer-free readiness signals and disclose unsupported semantics.
@@ -321,9 +330,10 @@ class CloudflareMarkdownProvider(Provider):
                 )
             request_body["gotoOptions"] = {
                 "waitUntil": wait_until,
-                "timeout": effective_timeout_ms,
             }
-            request_body["actionTimeout"] = effective_timeout_ms
+            if not self.config.get("uniform_native_parameters"):
+                request_body["gotoOptions"]["timeout"] = effective_timeout_ms
+                request_body["actionTimeout"] = effective_timeout_ms
             # Quick Actions documents these as independent readiness timers, not
             # an ordered selector-then-delay chain. Supplying both can let the
             # shorter timer win, so choose the strongest single native signal.
@@ -331,13 +341,15 @@ class CloudflareMarkdownProvider(Provider):
                 # The endpoint cannot target a child browsing context. For this
                 # route a predeclared delay is stronger than the outer iframe,
                 # which is normally present before its child content is ready.
-                request_body["waitForTimeout"] = plan.delay_ms
-                strategy = "predeclared_delay"
+                if plan.delay_ms:
+                    request_body["waitForTimeout"] = plan.delay_ms
+                    strategy = "predeclared_delay"
+                else:
+                    strategy = "native_completion_unsupported"
             else:
-                request_body["waitForSelector"] = {
-                    "selector": plan.selector,
-                    "timeout": effective_timeout_ms,
-                }
+                request_body["waitForSelector"] = {"selector": plan.selector}
+                if not self.config.get("uniform_native_parameters"):
+                    request_body["waitForSelector"]["timeout"] = effective_timeout_ms
                 strategy = "selector"
             count_enforced = plan.frame_selector is None and plan.minimum_count == 1
             exact = count_enforced and plan.delay_ms == 0
@@ -346,6 +358,8 @@ class CloudflareMarkdownProvider(Provider):
                 unsupported.extend(["child_frame_selector", "selector"])
             if plan.minimum_count != 1:
                 unsupported.append("minimum_count")
+            if plan.minimum_text_fragments:
+                unsupported.append("minimum_text_fragments")
             if plan.delay_ms and not plan.frame_selector:
                 unsupported.append("post_selector_delay")
             route = "browser_rendering_markdown_dynamic"
@@ -358,9 +372,18 @@ class CloudflareMarkdownProvider(Provider):
                 "completion_support": "exact" if exact else "approximate",
                 "unsupported": unsupported,
                 "delay_ms": plan.delay_ms,
-                "timeout_ms": effective_timeout_ms,
+                "timeout_ms": (
+                    None if self.config.get("uniform_native_parameters") else effective_timeout_ms
+                ),
                 "client_http_timeout_ms": int(http_timeout * 1000),
                 "wait_until": wait_until,
+            }
+        if native_contract is not None and native_contract.include_subdocuments:
+            wait_metadata = dict(wait_metadata or {})
+            wait_metadata["subdocuments"] = {
+                "requested": True,
+                "support": "unsupported",
+                "harness_content_assembly": False,
             }
         response = self.native_http_request(case, request,
             endpoint + ("?" + query if query else ""),
@@ -453,7 +476,8 @@ class CloudflareMarkdownProvider(Provider):
             # choose selectors from expected URLs or reference answers.
             selectors = ["video", "video source", "audio", "audio source", "iframe", "a[href]"]
         response = self.native_http_request(case, request,
-            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/scrape",
+            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/scrape"
+            + ("?" + urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""),
             method="POST",
             timeout=http_timeout,
             max_bytes=int(self.config.get("max_bytes", 20_000_000)),
@@ -512,6 +536,9 @@ class CloudflareMarkdownProvider(Provider):
                 **({'native_answer_projection': (projection if envelope_success else {
                     **projection, 'content_format': 'empty', 'answer_fields': {}})}
                    if envelope_success or meta else {}),
+                "browser": self.config.get("browser"),
+                "endpoint_route": "/browser-rendering/scrape" + ("?" + urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""),
+                "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 "request_method": "POST",
                 "request_summary": {
                     "selectors": selectors,

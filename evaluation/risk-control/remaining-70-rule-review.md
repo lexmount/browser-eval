@@ -81,9 +81,9 @@
 [打开目标网页](https://rpmfusion.org/)
 
 - **网址、语言与目标：** 输入和最终网址相同；英文；项目身份、用途和面向用户/打包者的入口说明。
-- **稳定文字：** `RPM Fusion provides software that the Fedora Project or Red Hat doesn't want to ship`、`Our goal is to simplify end-user experience`、`For users`、`For packagers`、`Browse available packages`；`Search`、`RPM Fusion`、`Configuration`、`ReportingBugs`、`Howto`、`FAQ`、`Contribute`、`Edit`、`Info`、`Other`、`Login`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
+- **稳定文字：** `RPM Fusion provides software that the Fedora Project or Red Hat doesn't want to ship`、`Our goal is to simplify end-user experience`、`For users`、`For packagers`、`Browse available packages`；`RPM Fusion`、`Configuration`、`ReportingBugs`、`Howto`、`FAQ`、`Contribute`、`Edit`、`Info`、`Other`、`Login`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
 - **正文参考：** 三区覆盖项目用途介绍、用户安装/使用入口、打包者和包浏览入口的固定说明。
-- **排除：** 当前 Fedora/EL 版本号、具体仓库矩阵和更新时间。
+- **排除：** 当前 Fedora/EL 版本号、具体仓库矩阵和更新时间；响应式导航中的 `Search` 不参与通过判定。
 
 ## 38. risk-diverse-118｜SquirrelJME
 
@@ -334,9 +334,9 @@
 [打开目标网页](https://wiki.anton-paar.com/)
 
 - **网址、语言与目标：** 正式输入为根网址；绑定证据在 `Accept-Language: en-US` 下跳转到 `/us-en/`；英文；同一 Anton Paar 科学知识 Wiki 首页。补查观察到其他浏览器语言环境可能转到 `/cn-cn/`，因此评分取证必须保持英文请求环境，不能把任意地区跳转当作目标正文。
-- **稳定文字：** `Anton Paar Wiki`、`Anton Paar Wiki is a living, growing scientific platform dedicated to highlighting the science behind your measurement solution.`、`Are you ready for your Eureka moment?`、`Articles`、`Tables`、`Calculators`。不再使用“平台介绍句”这种未给出原文的描述；`Home`、`Products`、`Services & Support`、`Resources`、`Shop`、`About Us`、`Careers`、`Contact`、`Recommended`、`Density`、`Viscosity`、`Rheology`、`Microwave Digestion`、`Surface characterization`、`Particle characterization`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
+- **稳定文字：** `Anton Paar Wiki`、`Anton Paar Wiki is a living, growing scientific platform dedicated to highlighting the science behind your measurement solution.`、`Are you ready for your Eureka moment?`、`Articles`、`Tables`、`Calculators`。不再使用“平台介绍句”这种未给出原文的描述；`Home`、`Products`、`Services & Support`、`Shop`、`About Us`、`Careers`、`Contact`、`Recommended`、`Density`、`Viscosity`、`Rheology`、`Microwave Digestion`、`Surface characterization`、`Particle characterization`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
 - **正文参考：** 单区覆盖从 `Anton Paar Wiki is a living, growing scientific platform` 到 `Are you ready for your Eureka moment?` 的完整平台用途介绍；Articles/Tables/Calculators 只有入口名称，没有独立资源说明，因此仍作为稳定文字核对，不重复充当正文。
-- **排除：** Cookie 设置、地区列表、隐藏菜单、当前内容数量和页脚。
+- **排除：** Cookie 设置、地区列表、隐藏菜单、当前内容数量和页脚；响应式导航中的 `Resources` 不参与通过判定。
 
 ## 64. risk-diverse-226｜Team Fortress Wiki
 
@@ -371,9 +371,9 @@
 [打开目标网页](https://www.power-z.cn/blogs/新闻/chargerlab-power-z-测试仪购买方式)
 
 - **网址、语言与目标：** 输入经正常编码后仍是同一中文文章；使用首次加载出的整篇文章正文，不能只取 KM/KT 区别摘要。
-- **稳定文字：** `ChargerLAB POWER-Z 测试仪购买方式`、`POWER-Z.cn`、`KM系列`、`主要区别`、`店长推荐`、`KT系列`、`重大事件`；`商品`、`下载`、`APP`、`PowerPi`、`THG Start`、`English`、`Cart`、`Home`、`新闻`、`联系我们`、`关于我们`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
+- **稳定文字：** `ChargerLAB POWER-Z 测试仪购买方式`、`POWER-Z.cn`、`KM系列`、`主要区别`、`店长推荐`、`KT系列`、`重大事件`；`商品`、`下载`、`APP`、`PowerPi`、`THG Start`、`English`、`新闻`、`联系我们`、`关于我们`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
 - **正文参考：** 从文章首段 `POWER-Z是ChargerLAB推出的便携式电源测试仪` 到文章内“联系我们”信息结束，分五个连续区域：①项目介绍和官方购买渠道；②KM 系列总述、区别、推荐及 KM002C；③KM001C 与 KM001Pro；④KT 系列总述、区别、推荐、KT002 与 KT001；⑤加群说明、重大事件和文章内联系信息。每区包含边界内全部正文，包括正文中的价格和真实购买/说明链接文字。
-- **排除：** 顶部产品导航、购物车、评论表单、文章后的站点页脚和站点级“关于我们”。5 区均需 60%，至少 4 区需 80%。
+- **排除：** 顶部产品导航、购物车、评论表单、文章后的站点页脚和站点级“关于我们”。5 区均需 60%，至少 4 区需 80%；响应式导航中的 `Cart`、`Home` 不参与通过判定。
 
 ## 68. risk-diverse-242｜TIB English homepage
 
@@ -445,9 +445,9 @@
 [打开目标网页](https://wiki.alpinelinux.org/wiki/Main_Page)
 
 - **网址、语言与目标：** 最终网址仅增加 `__goaway_challenge` 参数，正文仍为同一英文 Main Page；挑战参数不作为页面身份。
-- **稳定文字：** `Welcome to Alpine Linux Wiki!`、`Alpine Linux is a security-oriented, lightweight Linux distribution`、`How can we help you?`、`Installation`、`FAQ`、`Glossary`、`Tutorials and Howtos`、`Developer Documentation`、`Contribute`；`Alpine Linux`、`Search`、`Create account`、`Log in`、`Main Site`、`Wiki`、`Recent Changes`、`Site Index`、`Categories`、`Help`、`Read`、`View source`、`View history`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
+- **稳定文字：** `Welcome to Alpine Linux Wiki!`、`Alpine Linux is a security-oriented, lightweight Linux distribution`、`How can we help you?`、`Installation`、`FAQ`、`Glossary`、`Tutorials and Howtos`、`Developer Documentation`、`Contribute`；`Alpine Linux`、`Search`、`Create account`、`Log in`、`Wiki`、`Help`、`Read`、`View source`、`View history`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
 - **正文参考：** 两区覆盖发行版用途介绍和帮助栏目名称/说明。
-- **排除：** `Current releases` 的版本号、最后编辑时间、挑战参数值和页脚。
+- **排除：** `Current releases` 的版本号、最后编辑时间、挑战参数值和页脚；响应式导航中的 `Main Site`、`Recent Changes`、`Site Index`、`Categories` 不参与通过判定。
 
 ---
 
@@ -485,9 +485,9 @@
 [打开目标网页](https://wiki.archlinux.org/title/Installation_guide)
 
 - **网址、语言与目标：** 输入和最终网址相同；英文；首次加载出的整篇安装指南，不进入链接后的专题页。
-- **稳定文字：** `Installation guide`、`Pre-installation`、`Installation`、`Configure the system`、`Reboot`、`Post-installation`；`Home`、`Packages`、`Forums`、`Wiki`、`GitLab`、`Security`、`AUR`、`Download`、`Main page`、`Table of contents`、`Getting involved`、`Read`、`View source`、`View history`、`Appearance`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
+- **稳定文字：** `Installation guide`、`Pre-installation`、`Installation`、`Configure the system`、`Reboot`、`Post-installation`；`Home`、`Packages`、`Forums`、`Wiki`、`GitLab`、`Security`、`AUR`、`Download`、`Read`、`View source`、`View history`、`Appearance`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
 - **正文参考：** 使用文章导言到 Post-installation 结束的全文，分五区：①导言及 Pre-installation 从镜像获取到联网；②时钟、分区、格式化和挂载；③镜像选择和安装基本软件包；④Fstab、Chroot、Time、Localization；⑤Network configuration、Initramfs、Root password、Boot loader、Reboot、Post-installation。代码、警告和注释均属于正文。
-- **排除：** 目录的重复标题、语言导航、Retrieved from、最后编辑时间和页脚。5 区均需 60%，至少 4 区需 80%。
+- **排除：** 目录的重复标题、语言导航、Retrieved from、最后编辑时间和页脚。5 区均需 60%，至少 4 区需 80%；响应式导航中的 `Main page`、`Table of contents`、`Getting involved` 不参与通过判定。
 
 ## 80. risk-diverse-202｜Haiku Trac guide
 
@@ -530,9 +530,9 @@
 [打开目标网页](https://rpmfusion.org/FAQ)
 
 - **网址、语言与目标：** 输入和最终网址相同；英文；首次加载出的整篇 FAQ。
-- **稳定文字：** `Frequently Asked Questions`、`What is RPM Fusion?`、`What packages are available from RPM Fusion?`、`How do I use RPM Fusion?`、`General`、`Packages`；`Search`、`RPM Fusion`、`Configuration`、`ReportingBugs`、`Howto`、`FAQ`、`Contribute`、`Edit`、`Info`、`Other`、`Login`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
+- **稳定文字：** `Frequently Asked Questions`、`What is RPM Fusion?`、`What packages are available from RPM Fusion?`、`How do I use RPM Fusion?`、`General`、`Packages`；`RPM Fusion`、`Configuration`、`ReportingBugs`、`Howto`、`FAQ`、`Contribute`、`Edit`、`Info`、`Other`、`Login`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
 - **正文参考：** 从 What is RPM Fusion 的回答到最后 `How can I list all installed RPM Fusion Packages` 的回答，分五区：①项目和四类仓库；②使用/配置/安装及 Fedora 不收录原因；③合法性、信任、支持版本/架构；④报错、贡献和 broken dependencies；⑤General 与 Packages 下的全部问答。
-- **排除：** 顶部目录的重复问题、站点导航和页脚。5 区均需 60%，至少 4 区需 80%。
+- **排除：** 顶部目录的重复问题、站点导航和页脚。5 区均需 60%，至少 4 区需 80%；响应式导航中的 `Search` 不参与通过判定。
 
 ## 85. risk-diverse-210｜Installing Free Pascal
 
@@ -647,9 +647,9 @@
 [打开目标网页](https://dolphin-emu.org/docs/faq/)
 
 - **网址、语言与目标：** 正式输入为无参数网址；绑定的 `Accept-Language: en-US` HTTP 证据保持同一网址并取得英文全文；Dolphin FAQ 首次加载出的全部问答正文。补查观察到其他浏览器语言环境可能转到 `/cn/`，因此评分取证必须保持英文请求环境；`?nocr=true` 只能作为人工核对同一英文目标的辅助入口，不能替换正式输入。
-- **稳定文字：** `About Dolphin`、`Hardware and system requirements`、`Installation issues`、`Configuration issues`、`Common issues`、`Game issues`、`Dolphin development`、`Miscellaneous`；`Download`、`Blog`、`Screenshots`、`FAQ`、`Guides`、`Compatibility`、`Community`、`Discord`、`Forum`、`Wiki`、`GitHub`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
+- **稳定文字：** `About Dolphin`、`Hardware and system requirements`、`Installation issues`、`Configuration issues`、`Common issues`、`Game issues`、`Dolphin development`、`Miscellaneous`；`Download`、`Blog`、`Screenshots`、`FAQ`、`Guides`、`Compatibility`、`Community`、`Forum`、`Wiki`、`GitHub`。以上稳定文字均来自绑定的首次加载证据，全部参与任务通过判定；排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
 - **正文参考：** 从 `What is Dolphin?` 到 Supported Dump Formats 最后一项，分五区：①About Dolphin 与许可证/开发者；②硬件和系统要求；③安装、配置和常见问题；④游戏问题和 Dolphin development；⑤Miscellaneous，包括核心数、性能、ROM/ISO 与支持格式。
-- **排除：** 顶部目录重复项、语言列表、站点导航和页脚。5 区均需 60%，至少 4 区需 80%。
+- **排除：** 顶部目录重复项、语言列表、站点导航和页脚。5 区均需 60%，至少 4 区需 80%；响应式导航中的 `Discord` 不参与通过判定。
 
 ## 98. risk-diverse-238｜Egosoft forum FAQ
 

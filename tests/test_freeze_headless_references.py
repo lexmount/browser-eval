@@ -8,6 +8,7 @@ from pathlib import Path
 from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.reference_freeze import (
     _digest_json,
+    _change_for_case,
     _require_promotion,
     compute_reference_update,
     main,
@@ -36,6 +37,32 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                 'url':'https://en.wikipedia.org/w/index.php?title=AI&oldid=123',
                 'revision':'oldid:123','source_snapshot_sha256':'c'*64},
         }
+
+    def test_freezing_preserves_explicit_result_review_scope(self):
+        # Reference capture must not opt a cohort into a separate result audit.
+        for policy in ({}, {'require_independent_result_review': False},
+                       {'require_independent_result_review': True}):
+            with self.subTest(policy=policy), tempfile.TemporaryDirectory() as directory:
+                root=Path(directory)
+                captures=root/'captures';captures.mkdir()
+                (captures/'audit.json').write_text('[]\n')
+                source=root/'input.json';output=root/'frozen'
+                dataset={'comparison': policy, 'cases': [{
+                    'id': 'synthetic-stable', 'track': 'web',
+                    'acceptance_contract': {'version': 1, 'schema': 'body_text',
+                                            'minimum_records': 0,
+                                            'stable_text_anchors': [{'id': 'body',
+                                                'alternatives': ['Source prose']}]}}]}
+                source.write_text(json.dumps(dataset))
+                main(['--dataset', str(source), '--captures', str(captures),
+                      '--output', str(output)])
+                frozen=json.loads((output/'dataset.json').read_text())
+                self.assertEqual(frozen['comparison'], policy)
+                self.assertEqual(json.loads(source.read_text()), dataset)
+
+    def test_promotion_reports_missing_computed_change_as_validation_error(self):
+        with self.assertRaisesRegex(ValueError,'omit promoted case: missing'):
+            _change_for_case([{'case_id':'present'}],'missing')
 
     def test_changed_reference_fails_closed_without_explicit_promotion(self):
         with self.assertRaisesRegex(ValueError,'explicit --reference-promotion'):
@@ -121,7 +148,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                   'url':'https://example.com/docs','track':'web','task_kind':'body',
                   'ground_truth_main_content':'','body_requirements':{},
                   'required_facts':[{'id':'fact','alternatives':['recovery fact']}],
-                  'source_verification':{'state':'unavailable','checked_at':'2026-09-01T00:00:00Z',
+                  'source_verification':{'reference_mode':'live_exact','state':'unavailable','checked_at':'2026-09-01T00:00:00Z',
                                          'method':'Independent HTTP response'}}
             audit={'case_id':case['id'],'status':200,'state':'captured',
                    'checked_at':'2026-09-14T00:00:00Z','selector':'main',
@@ -145,7 +172,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                   'url':'https://example.com/blocked','track':'web','task_kind':'body',
                   'ground_truth_main_content':'','body_requirements':{},
                   'required_facts':[],
-                  'source_verification':{'state':'unavailable','checked_at':'2026-09-01T00:00:00Z',
+                  'source_verification':{'reference_mode':'live_exact','state':'unavailable','checked_at':'2026-09-01T00:00:00Z',
                                          'method':'Independent HTTP response'}}
             audit={'case_id':case['id'],'status':403,'state':'unavailable',
                    'checked_at':'2026-09-14T00:00:00Z','selector':'main',
@@ -166,7 +193,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                   'url':'https://en.wikipedia.org/w/index.php?title=Fixture&oldid=123',
                   'track':'web','task_kind':'body','ground_truth_main_content':old,
                   'body_requirements':body_requirements(old),'required_facts':[],
-                  'source_verification':{'state':'valid','checked_at':checked,
+                  'source_verification':{'reference_mode':'live_exact','state':'valid','checked_at':checked,
                                          'method':'fixture','reference_sha256':
                                          hashlib.sha256(old.encode()).hexdigest()}}
             dataset={'cases':[case],'coverage_plan':{'web':['p']}}

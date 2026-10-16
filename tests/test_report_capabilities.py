@@ -9,6 +9,32 @@ from harness.web_fetch.report_interfaces import SPECS
 
 
 class CapabilityTests(unittest.TestCase):
+    def test_native_cohort_discloses_native_document_output_without_external_processing(self):
+        from harness.web_fetch.report_capabilities import task_capabilities
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory)
+            (out/'dataset.json').write_text(json.dumps({'cases':[
+                {'id':'body','url':'https://example.com/','track':'web','task_kind':'body'},
+                {'id':'pdf','url':'https://example.com/a.pdf','track':'document','task_kind':'body'}]}))
+            names=['moli','lightpanda','obscura','chromium','kitesurf']
+            claims=task_capabilities(out,names,[{'provider_metadata':{'output_contract':'readable_document_text'}}])
+            self.assertEqual(claims['moli']['document']['status'],'有限支持')
+            self.assertIn('直接 PDF/DOCX 未提供可读正文',claims['moli']['document']['detail'])
+            for name in ('lightpanda','obscura','kitesurf'):
+                self.assertEqual(claims[name]['document']['status'],'原生输出')
+            self.assertEqual(claims['chromium']['document']['status'],'共同转换')
+            for name in ('moli','lightpanda','obscura','kitesurf'):
+                self.assertIn('网页内嵌媒体与正文统一走原生 Markdown',claims[name]['notes'])
+            self.assertIn('固定标准包',claims['chromium']['notes'])
+            for name in names:
+                self.assertIn('不使用外部',claims[name]['document']['detail'])
+                self.assertNotIn('没有 PDF / Office 解析器',claims[name]['document']['detail'])
+            self.assertIn('官方 JS 实现',claims['obscura']['scope'])
+            self.assertIn('原生 Markdown',claims['moli']['scope'])
+            self.assertIn('browser=kitesurf',claims['kitesurf']['scope'])
+            self.assertEqual(CAPABILITIES['lightpanda']['document']['status'],'未声明')
+            self.assertIsNone(task_capabilities(out,['firecrawl'],[{'provider_metadata':{'output_contract':'markdown'}}]))
+
     def test_source_backed_capabilities_link_to_current_pinned_revisions(self):
         expected = {
             'claw': '12c4bdf7482f24c85b011e9d858fdec3c245101c',
@@ -59,9 +85,16 @@ class CapabilityTests(unittest.TestCase):
         self.assertNotIn('未启用专用 PDF 策略', CAPABILITIES['crawl4ai']['tested'])
         self.assertIn('Actions wait', CAPABILITIES['firecrawl']['tested'])
         self.assertIn('iframe', CAPABILITIES['firecrawl']['tested'])
-        self.assertIn('Moli 1.1.4', CAPABILITIES['moli-webfetch']['tested'])
-        self.assertIn('不传 --dump', CAPABILITIES['moli-webfetch']['tested'])
+        self.assertIn('统一使用 Moli 原生 Markdown', CAPABILITIES['moli-webfetch']['tested'])
+        self.assertIn('网页媒体只核对同一 Markdown 输出', CAPABILITIES['moli-webfetch']['tested'])
         self.assertIn('selector', CAPABILITIES['moli-webfetch']['tested'])
+
+    def test_moli_document_capabilities_never_credit_external_parsing(self):
+        for name in ('moli-1.0.6', 'moli', 'moli-1.1.3', 'moli-1.1.11'):
+            row = CAPABILITIES[name]
+            self.assertIn('原生 Markdown 接口直接交付', row['notes'])
+            self.assertIn('不再外部解析', row['notes'])
+            self.assertNotIn('评测在同一次预算内解析', row['notes'])
 
     def test_official_task_routes_are_not_collapsed_into_webpage_markdown(self):
         cloudflare = CAPABILITIES['cloudflare-markdown']

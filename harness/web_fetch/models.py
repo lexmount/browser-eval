@@ -8,10 +8,29 @@ from .safety import safe_identifier, validate_http_url
 
 TASK_KINDS = ('body', 'structure', 'resource', 'file')
 TRACKS = {
-    'web': '静态网站正文', 'dynamic': '动态网站正文', 'challenge': '热门网站正文',
+    'web': '普通网页正文', 'dynamic': '动态网站正文', 'challenge': '热门网站正文',
+    'risk_control': '风控网页正文',
     'document': '文档正文', 'image': '图片获取', 'video': '视频获取',
-    'risk_control': '风控网站',
 }
+
+# The frozen dataset retains image/video as source tracks. Public comparisons
+# group those cases by the deliverable a caller must receive.
+REPORT_FAMILIES = {
+    'web': '静态网站正文',
+    'dynamic': '动态网站正文',
+    'challenge': '热门网站正文',
+    'risk_control': '风控网页正文',
+    'document': '文档正文',
+    'web_media': '网页内嵌媒体',
+    'media_file': '直接媒体文件',
+}
+
+
+def report_family(case: dict[str, Any]) -> str:
+    track = case.get('track', 'web')
+    if track in {'image', 'video'}:
+        return 'media_file' if case.get('task_kind', 'body') == 'file' else 'web_media'
+    return track
 
 
 def execution_id(record: dict[str, Any]) -> str:
@@ -53,6 +72,7 @@ class EvalCase:
     retrieval_hints: dict[str, Any] = field(default_factory=dict)
     source_review_url: str = ""
     evaluation_url: str = ""
+    page_identity_required: bool = False
     expected_final_url: str = ""
     expected_document_language: str = ""
     expected_document_language_present: bool = True
@@ -63,6 +83,8 @@ class EvalCase:
 
 def validate_case(case: EvalCase) -> None:
     """Validate required fields, routing and identity before acquisition."""
+    if not isinstance(case.page_identity_required, bool):
+        raise ValueError("page_identity_required must be boolean")
     safe_identifier(case.id)
     validate_http_url(case.url)
     if not isinstance(case.name, str) or not case.name.strip():

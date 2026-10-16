@@ -41,6 +41,22 @@ class AdoptionTests(unittest.TestCase):
   self.assertIn('本轮 100 例',model['configuration'])
   self.assertIn('默认 done',model['configuration'])
 
+ def test_method_page_model_reports_uniform_dynamic_family_completion(self):
+  record={'provider_type':'moli_webfetch','provider_metadata':{
+      'reported_version':'moli 1.1.15','dump':'markdown',
+      'route':'dynamic_native_markdown','wait_until':'domstable',
+      'layout':True,'with_frames':True,
+      'wait':{'strategy':'native_task_family_completion'}}}
+  model=method_page_model('moli','Moli',[record]*100)
+  self.assertEqual(
+      model['endpoint'],
+      'moli fetch --dump markdown --layout --with-frames --wait-until domstable URL')
+  self.assertIn('100 个动态网站正文任务',model['configuration'])
+  self.assertIn('统一使用',model['configuration'])
+  self.assertIn('没有逐题等待元素',model['configuration'])
+  self.assertIn('--layout',model['configuration'])
+  self.assertIn('--with-frames',model['configuration'])
+
  def test_future_method_page_is_registry_driven_without_renderer_changes(self):
   method={'endpoint':'future fetch URL','contract':'URL → text','output':'text',
           'freshness':'fresh process','leaderboard':'body',
@@ -111,3 +127,36 @@ class AdoptionTests(unittest.TestCase):
   for title in ['请求成功率','任务通过率','结构达标率','资源命中率','文件取得率','信息通过率','完整度','纯净度','F1','均值','P50','P95']:
    self.assertIn('<dt>'+title+'</dt>',metric_legend([title]))
   self.assertNotIn('条件通过率',metric_guide())
+
+def test_report_labels_distinguish_release_and_source_build_with_same_version(tmp_path):
+    import json
+    from harness.web_fetch.methods import with_measured_method_labels
+    from harness.web_fetch.report import provider_label
+    from harness.web_fetch.report_methods import display_name
+    from harness.web_fetch.report_explainer import provider_name
+
+    identities={'implementations':[
+        {'provider':'moli-release','binary_sha256':'stable','version':'1.1.15'},
+        {'provider':'moli-candidate','binary_sha256':'branch',
+         'version':'1.1.17 · candidate build (99a22382)'}]}
+    (tmp_path/'implementation-provenance.json').write_text(json.dumps(identities))
+    records=[{'provider':x['provider'],'provider_metadata':{'binary_sha256':x['binary_sha256']}}
+             for x in identities['implementations']]
+    original=provider_label('moli-release')
+
+    @with_measured_method_labels
+    def render(out,dataset,rows):
+        for label in (provider_label,display_name,lambda n:provider_name(n,n)):
+            assert label('moli-release')=='Moli 1.1.15'
+            assert label('moli-candidate')=='Moli 1.1.17 · candidate build (99a22382)'
+
+    render(tmp_path,{},records)
+    assert provider_label('moli-release')==original
+    records[0]['provider_metadata']['binary_sha256']='different-build'
+
+    @with_measured_method_labels
+    def unrelated(out,dataset,rows):
+        assert provider_label('moli-release')==original
+
+    unrelated(tmp_path,{},records)
+    assert provider_label('moli-release')==original

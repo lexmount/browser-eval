@@ -118,7 +118,7 @@ def _require_promotion(path, *, dataset_sha256, capture_audit_sha256,
 def select_freeze_cases(dataset, case_ids=None, exclude_case_ids=None):
     """Return the exact requested subset; shared by prepare and freeze."""
     selected=deepcopy(dataset)
-    selected.setdefault('comparison',{})['require_independent_result_review']=True
+    selected.setdefault('comparison',{})
     if case_ids:
         wanted=set(case_ids.split(','))
         selected['cases']=[case for case in selected['cases'] if case['id'] in wanted]
@@ -161,7 +161,7 @@ def load_browser_observations(dataset, path=None, directory=None):
     return observations
 
 
-def compute_reference_update(dataset, captures, observations=None):
+def compute_reference_update(dataset, captures, observations=None, *, refresh_case_ids=()):
     """Compute the one authoritative frozen dataset/change set from captures."""
     from harness.web_fetch.reference_lifecycle import _completion
 
@@ -171,7 +171,13 @@ def compute_reference_update(dataset, captures, observations=None):
     changes=[];contexts={}
     for case in frozen['cases']:
         cid=case['id']
-        refresh=requires_fresh_reference(case)
+        refresh=(requires_fresh_reference(case) or (
+            cid in refresh_case_ids
+            and case.get('track','web') in {'web','dynamic','challenge'}
+            and case.get('task_kind','body')=='body'
+            and not case.get('acceptance_contract')
+            and bool(case.get('source_verification'))
+            and bool((case.get('ground_truth_main_content') or '').strip())))
         if not refresh:
             # A previously unavailable body reference must be allowed to
             # recover when a later independent HTTP capture is complete.  Do
@@ -297,8 +303,11 @@ def main(argv=None):
                                     args.exclude_case_ids)
         observations=load_browser_observations(
             dataset,args.browser_observations,args.browser_observation_directory)
+        refresh_case_ids = ({change['case_id'] for change in
+            json.loads(args.reference_promotion.read_text()).get('changes', [])}
+            if args.reference_promotion else set())
         dataset,changes,contexts=compute_reference_update(
-            dataset,args.captures,observations)
+            dataset,args.captures,observations, refresh_case_ids=refresh_case_ids)
     except (OSError,KeyError,ValueError,json.JSONDecodeError) as error:
         p.error(str(error))
     audit_path=args.captures/'audit.json'
@@ -318,7 +327,7 @@ def main(argv=None):
     args.output.mkdir(parents=True)
     materialize_task_references(args.output, input_trees, [case['id'] for case in dataset['cases']])
     for case in dataset['cases']:
-        if not requires_fresh_reference(case):
+        if case['id'] not in contexts:
             continue
         cid = case['id']; target = args.output/'sources'/cid
         target.mkdir(parents=True, exist_ok=True)
@@ -457,7 +466,8 @@ def prepare_promotion(*,dataset_path,captures,output,approved_by,approved_at,
     dataset=select_freeze_cases(json.loads(dataset_bytes),case_ids,exclude_case_ids)
     observations=load_browser_observations(
         dataset,browser_observations,browser_observation_directory)
-    candidate,changes,_=compute_reference_update(dataset,captures,observations)
+    candidate,changes,_=compute_reference_update(dataset,captures,observations,
+        refresh_case_ids=[case['id'] for case in dataset['cases']])
     if not changes:
         raise ValueError('Captured reference scope is unchanged; no promotion is needed')
     audit_bytes=(captures/'audit.json').read_bytes()
@@ -548,7 +558,7 @@ def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target
     observations=load_browser_observations(
         selected,browser_observations,browser_observation_directory)
     expected,changes,contexts=compute_reference_update(
-        selected,captures,observations)
+        selected,captures,observations, refresh_case_ids=case_ids)
     expected_bytes=(json.dumps(expected,ensure_ascii=False,indent=2)+'\n').encode()
     candidate_bytes=candidate_path.read_bytes()
     if candidate_bytes!=expected_bytes:

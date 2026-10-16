@@ -1,9 +1,78 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import os
+import signal
+import subprocess
+import time
 from typing import Any
 
 from ..models import EvalCase, ProviderResult
+
+
+def terminate_owned_process_tree(process):
+    """Stop an owned POSIX session, including detached descendant groups.
+
+    If the process tree cannot be observed, leave the worker alive so the
+    caller can quarantine unresolved work instead of claiming it stopped.
+    """
+    if process is None or process.poll() is not None:
+        return True
+    if os.name != 'posix':
+        return False
+    try:
+        observed = subprocess.run(
+            ['ps', '-axo', 'pid=,ppid=,pgid='], capture_output=True,
+            text=True, check=True, timeout=.5,
+        )
+        rows = [tuple(map(int, line.split())) for line in observed.stdout.splitlines()]
+        if any(len(row) != 3 for row in rows):
+            return False
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return False
+    parents = {pid: parent for pid, parent, _ in rows}
+    groups = {pid: group for pid, _, group in rows}
+    if groups.get(process.pid) != process.pid:
+        return process.poll() is not None
+    owned = {process.pid}
+    while True:
+        descendants = {pid for pid, parent in parents.items() if parent in owned}
+        expanded = owned | descendants
+        if expanded == owned:
+            break
+        owned = expanded
+    owned_groups = {groups[pid] for pid in owned}
+    if os.getpgrp() in owned_groups:
+        return False
+    # Descendants may call setsid (Playwright does this for Chromium). Stop
+    # their groups first, then the original worker, preserving its diagnostics.
+    for group in sorted(owned_groups, key=lambda value: value == process.pid):
+        try:
+            os.killpg(group, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        except OSError:
+            return False
+    # SIGKILL delivery is asynchronous. Confirm the owned groups are quiescent
+    # before releasing the next call; zombies cannot perform physical work.
+    deadline = time.monotonic() + .5
+    while True:
+        try:
+            observed = subprocess.run(
+                ['ps', '-axo', 'pgid=,stat='], capture_output=True,
+                text=True, check=True, timeout=.5,
+            )
+            survivors = [parts for line in observed.stdout.splitlines()
+                         if len(parts := line.split()) == 2
+                         and int(parts[0]) in owned_groups
+                         and not parts[1].startswith('Z')]
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return False
+        if not survivors:
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(.01)
 
 
 class Provider(ABC):
@@ -16,8 +85,12 @@ class Provider(ABC):
         """Permit native task outputs, never case-specific retrieval assistance."""
         if not self.config.get("uniform_native_parameters"):
             return
-        if case.retrieval_hints:
+        if case.retrieval_hints and not (case.track == "dynamic" and case.retrieval_hints == {"version": 3, "mode": "native"}):
             raise ValueError("fixed native calls prohibit per-case retrieval hints")
+        if case.track not in {"web", "dynamic", "challenge", "risk_control", "document", "image", "video", "file"}:
+            raise ValueError("fixed native calls require a declared task route")
+        if case.track == "document" and case.task_kind == "resource":
+            raise ValueError("fixed native calls require a declared task route")
         if case.task_kind not in {"body", "structure", "resource", "file"}:
             raise ValueError("fixed native calls require a declared native output kind")
 

@@ -9,7 +9,7 @@
     ]
   },
   "dataset": "dataset.json",
-  "dataset_sha256": "0703badca3978cafe4f6db67fb9723f433781e1b87b4ef2af343756126e72cb5",
+  "dataset_sha256": "85544512d4cfd9459c22af1f70b1eb400844742dbf3179807662b76db2dcfc2e",
   "case_count": 100,
   "cases": [
     {
@@ -48,8 +48,8 @@
       "url": "https://yuque.com/",
       "category": "popular_site",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：画板；互动交流；文档协同；权限管理；特色卡片；目录编排；知识管理；个人免费使用；团队免费使用；组件化编辑器；专业好用的编辑器；像书一样的知识库；Edge 插件；Chrome 插件；Help Center；Security；Terms；Join us；Pricing；Support；Welfare；About Us；Download；Feedback；Homepage；Developer；Contact us；Media reports；Product information；Template Gallery；Login / Register。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "fa553521956c988b34fda49a713d4236cb74d19922a5e9ecc2a6388e904f3032",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：画板；互动交流；文档协同；权限管理；特色卡片；目录编排；知识管理；个人免费使用；团队免费使用；组件化编辑器；专业好用的编辑器；像书一样的知识库；Edge 插件；Chrome 插件；Help Center；Security；Terms；Join us；Pricing；Support；Download/下载；Feedback；Developer；Contact us；Media reports；Product information；Login / Register。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "54a9ac13bc98bdcad886dea102e6b82af94fc6841776b50460ddf83716defe77",
       "reference_sha256": null
     },
     {
@@ -58,8 +58,8 @@
       "url": "https://whatsapp.com/",
       "category": "global_homepage",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中确认的稳定普通网页文字：Apps；Blog；Log In；Mobile；Tablet；Careers；Desktop；Sitemap；About us；Download；Features；Contact Us；Learn more；Need help?；What we do；Who we are；Help Center；Brand Center；For Business；Use WhatsApp；WhatsApp Web；Keep in touch；Message privately；Never miss a moment with voice and video calls；Security Advisories；Terms & Privacy Policy。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "dcfd8b1e54ea580e56fd3cf5d4f7d120ec0e84e97bce1977fd882f132a837db1",
+      "task_prompt": "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+      "definition_sha256": "7ee2656ed20ae532286dd7c9029aa79d72602ef1b26fbae7f86a34567d0b67ea",
       "reference_sha256": null
     },
     {
@@ -68,8 +68,8 @@
       "url": "https://www.bing.com/?cc=us&setlang=en-us",
       "category": "global_homepage",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Help；Maps；News；Legal；Images；Videos；Sign in；DISCOVER；Feedback；Shopping；Advertise；Text creator；About our ads；Image creator；Bing homepage quiz；Privacy and Cookies；Your Privacy Choices；Consumer Health Privacy。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "f8230467f8c7a831a354c342cead877524f30f562814f8b4f03af599d636e3ac",
+      "task_prompt": "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+      "definition_sha256": "b08fe8228eb15dbc36695fd8fed6e5feaa081c755451f4e1f7f7ccb81f62e052",
       "reference_sha256": null
     },
     {
@@ -388,8 +388,8 @@
       "url": "https://figma.com/",
       "category": "popular_site",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Blog；Plans；Events；FigJam；Log in；Status；Careers；Company；Pricing；Product；Support；Dev Mode；Newsroom；Customers；Downloads；Resources；Templates；UI design；Use cases；UX design；Developers；Enterprise；Figma Design；Figma Slides；Integrations；Prototyping；Wireframing；Contact sales；Release notes；Legal and privacy；Online whiteboard；Build with intention；Design anything you can imagine；The intelligent canvas for infinite creativity。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "2a58e240ad573f15b77a457d3f1e94ac6a2b000136f450ea0d7e97339782e107",
+      "task_prompt": "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+      "definition_sha256": "dfa4452952722c73a8ae1315edee484c9757a35ad7552058e0e03567dd71236c",
       "reference_sha256": null
     },
     {
@@ -398,8 +398,8 @@
       "url": "https://www.deepseek.com/en/",
       "category": "global_homepage",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：More；Careers；Join Us；API Docs；Products；Research；API Pricing；DeepSeek App；DeepSeek Web；Terms of Use；Transparency；Privacy Policy；Service Status；DeepSeek Harness；Into the Unknown；Legal & Security；Use API Platform；Chat with DeepSeek；Report Security Issue。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "b2717adcdee3c3142defdb392ce3e5ec68e4ecc1c6f8046c7db9d805bce4f8d2",
+      "task_prompt": "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+      "definition_sha256": "3fc32f903fa8c070c1b7c04dbe4a6d2b2c40f89383820b63249ea843a6380ced",
       "reference_sha256": null
     },
     {
@@ -488,8 +488,8 @@
       "url": "https://usps.com/",
       "category": "global_homepage",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：FAQs；FOIA；Send；Shop；Careers；English；Español；Receive；Sign In；Support；Business；Feedback；Newsroom；PO BOXES；PASSPORTS；PostalPro；USPS Jobs；Contact Us；FREE BOXES；Site Index；Text Scams；Email Scams；Quick Tools；USPS Stamps；Click-N-Ship；Terms of Use；Top Searches；USPS Updates；Helpful Links；International；Privacy Policy；About USPS Home；Online Services；Postal Explorer；Search USPS.com；Informed Delivery；Inspector General；Stamps & Supplies；Track a Package；Find USPS Locations；Buy Stamps。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "f142bc76021b8d4176481ed6525950608b58a57c1e5b258202d6ee2154cf1437",
+      "task_prompt": "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+      "definition_sha256": "975309122d6870f8e1713a06e4b4232feb0988e6195d13978e08dabe6b1bb4dc",
       "reference_sha256": null
     },
     {
@@ -608,8 +608,8 @@
       "url": "https://feishu.cn/",
       "category": "popular_site",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：定价；审批；邮箱；云文档；知识库；下载飞书；产品功能；企业服务；关于飞书；加入我们；协同办公；博客中心；即时消息；友情链接；合作伙伴；多维表格；安全合规；帮助中心；应用目录；开放平台；技术支持；探索飞书；更新日志；服务协议；查看案例；管理后台；组织管理；联系我们；联系销售；营业执照；视频会议；解决方案；隐私政策；飞书人事；飞书招聘；飞书绩效；飞书项目；举报与反馈；飞书 AI；智能会议纪要；字节跳动旗下 AI 工作平台。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "314266967664c009389d3fc298b402aaa310d30eb2d737c41e1fba72cbce7078",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：定价；审批；邮箱；云文档；知识库；下载飞书；产品功能；企业服务；关于飞书；加入我们；协同办公；博客中心；即时消息；友情链接；合作伙伴；多维表格；安全合规；帮助中心；应用目录；开放平台；技术支持；探索飞书；更新日志；服务协议；查看案例/了解更多客户案例；管理后台；组织管理；联系我们；联系销售；营业执照；视频会议；解决方案；隐私政策；飞书人事；飞书招聘；飞书绩效；飞书项目；举报与反馈；飞书 AI；智能会议纪要；字节跳动旗下 AI 工作平台。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "b11303b1cccafbd5933c46e5f3de52c6b31e711efbc5599ca044fe73e8c469ba",
       "reference_sha256": null
     },
     {
@@ -668,8 +668,8 @@
       "url": "https://dingtalk.com/",
       "category": "popular_site",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：专业版；专属版；中国站；标准版；下载钉钉；产品功能；付费产品；企业培训；企业百科；使用手册；加入我们；合作伙伴；商业版本；客户案例；市场活动；帮助中心；廉正举报；开放平台；服务协议；法律声明；注册钉钉；管理后台；组织管理；视频会议；钉钉动态；钉钉招聘；钉钉教育；钉钉文档；钉钉项目；支持与服务；服务与学习；安全合规中心；市场商务合作；钉钉隐私政策；案例与解决方案；钉钉服务状态中心。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "21b85dbce749d9d7ecd59901a839d5fb73d9d75e47553f7f8454f69f3bb8ffce",
+      "task_prompt": "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+      "definition_sha256": "f78521edf38c4f11ae7c58fede9238ba4e47e77673d0daffa5d5f195e2ab99df",
       "reference_sha256": null
     },
     {
@@ -698,8 +698,8 @@
       "url": "https://quark.cn/",
       "category": "popular_site",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：客户端；移动端；网页版；反馈入口；夸克网盘；校园招聘；用户协议；隐私协议；AI浏览器；iPad端；多设备体验；夸克PDF；夸克扫描王；浏览器插件；超级播放器；AI侧边栏：；PDF编辑：；搜索API；联系方式：；违法和不良信息举报；未成年人有害信息举报。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "9c01d5d31555e91efe12156819fddf266aa9e058913ec0d6575c7ef57af09618",
+      "task_prompt": "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+      "definition_sha256": "8857d0962fa0e03e11198936e27ba4a59d55ac93d2da8744d971b0668dc91164",
       "reference_sha256": null
     },
     {
@@ -758,8 +758,8 @@
       "url": "https://douyu.com/",
       "category": "popular_site",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：首页；直播；分类；赛事；视频；鱼吧；游戏；娱乐；户外；美食；关注；历史；消息；开播；下载；帮助。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
-      "definition_sha256": "3c757be2dccc1088c78772ab40864b3ba37bf483cc6399fecf7bddc11b898f8b",
+      "task_prompt": "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[0-9]+。",
+      "definition_sha256": "c448cb3c4e2485921b0d7f073829d51e5fa9fac618d756ed617f72dff6e3dc42",
       "reference_sha256": null
     },
     {
@@ -878,8 +878,8 @@
       "url": "https://lingxing.com/",
       "category": "popular_site",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：中文；价格；咨询；演示；首页；登录；白皮书；免费试用；关于领星；加入我们；快速响应；新闻中心；服务中心；核心功能；案例中心；物流追踪；立即体验；立即试用；获取报价；解决方案；跨境资讯；全周期服务；全方位保障；全生态产品；资源与支持；亚马逊ERP；多平台ERP；海外仓WMS；财务精准管理；进销存一体管理；领星ERP。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "228d4a87238776675c1603bbe7a818868e0e3e62c64ea648086f11aeb4d1ccba",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：中文；价格；咨询；演示；首页；登录；白皮书；免费试用；关于领星；加入我们；快速响应；新闻中心；服务中心；核心功能；案例中心；物流追踪；获取报价；解决方案；跨境资讯；全周期服务；全方位保障；全生态产品；资源与支持；亚马逊ERP；多平台ERP；海外仓WMS；财务精准管理；进销存一体管理；领星ERP。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "527b0968907c50b171456dac149b92a962b077bc1784776ca4a80a61830ad8d6",
       "reference_sha256": null
     },
     {
@@ -1008,8 +1008,8 @@
       "url": "https://www.shopify.com/",
       "category": "popular_site",
       "track": "challenge",
-      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Blog；Legal；Taxes；Global；Guides；Log in；Online；Themes；Careers；Courses；Domains；Pricing；Sitemap；Support；Payments；Products；Shipping；Shop App；Shop Pay；Sidekick；Analytics；App Store；Changelog；Discounts；Ecosystem；Investors；Resources；Affiliates；Build apps；Enterprise；Free Tools；Shopify POS；Shopify.dev；Theme Store；Why Shopify；Developer Docs；Hire a Partner；Privacy Policy；Service Status；Start for free；Sustainability；Community Forum；Compare Shopify；Website Builder；Shopify Checkout；Terms of Service；What is Shopify?；Shopify Help Center。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
-      "definition_sha256": "697e494de49f481ae0834478820f03e67f68ccb1283a5b60d705a5d55b4beab4",
+      "task_prompt": "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+      "definition_sha256": "15a609144a72478cdb24ab0e7d958c37384130f45053369864567e2413316edb",
       "reference_sha256": null
     }
   ]

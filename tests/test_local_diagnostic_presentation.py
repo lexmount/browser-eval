@@ -65,7 +65,7 @@ def test_table_header_gate_accepts_explicit_unranked_methods_only_locally():
 
 def test_home_gate_requires_diagnostic_summary_and_rejects_winner_claims():
     from harness.web_fetch.report_check import require_home_comparison_layout
-    home = ('<h2>7 类任务概览</h2><h2>任务判定汇总（非排名）</h2>'
+    home = ('<h2>任务判定汇总（非排名）</h2><h2>7 类任务概览</h2>'
             '<h2>按任务类别查看诊断结果</h2><p>判分完整性</p>')
     require_home_comparison_layout(home, 7, diagnostic=True)
     with pytest.raises(ValueError, match='winner disclosure'):

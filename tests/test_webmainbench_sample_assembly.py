@@ -104,6 +104,33 @@ def test_audit_binds_actual_evidence_and_unknown_provider_names(tmp_path):
     assemble(fixture)
 
 
+@pytest.mark.parametrize('budget,calls,accepted', [
+    (0, 1, True), (0, 2, False), (1, 2, True), (1, 3, False),
+    (3, 3, True), (3, 4, True), (3, 5, False),
+])
+def test_audit_and_assembly_enforce_the_declared_retry_budget(tmp_path, budget, calls, accepted):
+    fixture = sample_fixture(tmp_path, providers=('custom',), size=1,
+                             max_failure_retries=budget, recovery_call=calls)
+    fixture['review'] = tmp_path / 'actual-review.json'
+    arguments = ['--source-root', str(fixture['root']), '--dataset', str(fixture['source']),
+                 '--sample-manifest', str(fixture['manifest']), '--profile', str(fixture['profile']),
+                 '--output', str(fixture['review'])]
+    if accepted:
+        sample_review_main(arguments)
+        assemble(fixture)
+        assert len(read_jsonl(fixture['output'] / 'results.jsonl')) == 1
+        assert len(read_jsonl(fixture['output'] / 'physical-attempts.jsonl')) == calls
+    else:
+        with pytest.raises(SystemExit):
+            sample_review_main(arguments)
+        review = json.loads(fixture['review'].read_text())
+        assert review['status'] == 'failed'
+        assert 'custom/case-0: final retry selection' in review['failures']
+        with pytest.raises(ValueError):
+            assemble(fixture)
+        assert not fixture['output'].exists()
+
+
 def test_reference_inapplicability_is_excluded_but_applicable_metric_failure_is_zero(tmp_path):
     fixture = sample_fixture(tmp_path, providers=('custom',))
     shard = fixture['root'] / 'custom'

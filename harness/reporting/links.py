@@ -64,10 +64,10 @@ class Links(HTMLParser):
             self.base_href = attrs_by_name.get("href")
             return
         if tag=='select':
-            self.current_filter=attrs_by_name.get('data-wmb-filter')
+            self.current_filter=(attrs_by_name.get('data-wmb-filter') or attrs_by_name.get('data-filter'))
             if self.current_filter:self.filter_options.setdefault(self.current_filter,set())
-        elif tag=='input' and attrs_by_name.get('data-wmb-filter'):
-            self.text_filters.add(attrs_by_name['data-wmb-filter'])
+        elif tag=='input' and (attrs_by_name.get('data-wmb-filter') or attrs_by_name.get('data-filter')):
+            self.text_filters.add(attrs_by_name.get('data-wmb-filter') or attrs_by_name['data-filter'])
         elif tag=='option' and self.current_filter:
             self.filter_options[self.current_filter].add(attrs_by_name.get('value') or '')
         for key, value in attrs:

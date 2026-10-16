@@ -109,7 +109,9 @@ def test_collected_retries_bind_all_auxiliary_bytes_before_aggregation(tmp_path)
 
         def fetch(self, case, timeout):
             self.calls += 1
-            return ProviderResult(True, 'Expected' if self.calls == 2 else 'Wrong',
+            return ProviderResult(self.calls == 2, 'Expected' if self.calls == 2 else '',
+                error_type=None if self.calls == 2 else 'network',
+                error_message=None if self.calls == 2 else 'synthetic transient failure',
                 metadata={'_rendered_html': html.decode(),
                           'rendered_html_sha256': digest(html),
                           '_raw_stdout_b64': base64.b64encode(binary).decode(),

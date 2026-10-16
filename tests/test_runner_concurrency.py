@@ -1,13 +1,17 @@
 import json
+import socket
+import ssl
 import tempfile
 import threading
 import unittest
+import urllib.error
 from pathlib import Path
 
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import (
     IncompleteEvaluationError, preflight_declared_capacity, run_evaluation,
+    classify_exception,
 )
 
 
@@ -22,6 +26,19 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_certificate_and_transport_errors_are_classified(self):
+        certificate = ssl.SSLCertVerificationError(1, "certificate verify failed")
+        for error, expected in (
+            (certificate, "tls_certificate"),
+            (urllib.error.URLError(certificate), "tls_certificate"),
+            (urllib.error.URLError(socket.gaierror("DNS lookup failed")), "dns"),
+            (urllib.error.URLError(TimeoutError("read timed out")), "timeout"),
+        ):
+            with self.subTest(error=error):
+                kind, message = classify_exception(error)
+                self.assertEqual(kind, expected)
+                self.assertTrue(message)
+
     def test_deadline_retains_cancelled_process_diagnostics_never_late_answer(self):
         from harness.web_fetch.call_boundary import fetch_with_deadline
         class Cancelled(Provider):
@@ -173,7 +190,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
             identity = manifest['providers'][0]['implementation_identity']
             self.assertEqual(identity['repository']['head'], 'a' * 40)
 
-    def test_failed_task_is_called_once(self):
+    def test_zero_retries_calls_failed_task_once(self):
         class Flaky(Provider):
             def __init__(self):
                 super().__init__('flaky', {'type': 'fixture'})
@@ -189,7 +206,8 @@ class RunnerConcurrencyTest(unittest.TestCase):
             root = Path(directory)
             records, _ = run_evaluation(output_dir=root, dataset_meta={'id': 'test'},
                 dataset_path=Path('dataset.json'), cases=[case], providers=[provider],
-                provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0)
+                provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0,
+                max_failure_retries=0)
             self.assertEqual(provider.calls, 1)
             self.assertEqual(len(records), 1)
             self.assertFalse(records[0]['metrics']['content_pass'])
@@ -199,7 +217,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
             self.assertEqual(manifest['attempt_count'], 1)
             self.assertNotIn('physical_attempt_count', manifest)
 
-    def test_explicit_failure_retry_keeps_both_calls_and_uses_second(self):
+    def test_transient_failure_retry_keeps_both_calls_and_uses_second(self):
         class Flaky(Provider):
             def __init__(self):
                 super().__init__('flaky', {'type': 'fixture'})
@@ -207,7 +225,9 @@ class RunnerConcurrencyTest(unittest.TestCase):
 
             def fetch(self, case, timeout):
                 self.calls += 1
-                return ProviderResult(True, 'wrong' if self.calls == 1 else 'Expected')
+                if self.calls == 1:
+                    return ProviderResult(False, '', error_type='network')
+                return ProviderResult(True, 'Expected')
 
         case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
         provider = Flaky()
@@ -224,7 +244,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
             self.assertEqual(retry['physical_attempts'], 2)
             self.assertEqual(retry['retries_used'], 1)
             self.assertEqual([item['task_pass'] for item in retry['attempts']], [False, True])
-            self.assertEqual((root / retry['attempts'][0]['artifact_path']).read_text(), 'wrong')
+            self.assertEqual((root / retry['attempts'][0]['artifact_path']).read_text(), '')
             self.assertEqual((root / records[0]['artifact_path']).read_text(), 'Expected')
             manifest = json.loads((root / 'manifest.json').read_text())
             self.assertEqual(manifest['attempt_count'], 1)
@@ -358,7 +378,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
                 providers=[Cancellable('slow', {})], provider_config_path=Path('providers.json'),
                 runs=1, timeout=.02, delay=0,
             )
-        self.assertEqual(calls, ['case-0', 'case-1'])
+        self.assertEqual(calls, ['case-0', 'case-0', 'case-1', 'case-1'])
         self.assertEqual([record['error_type'] for record in records], ['timeout', 'timeout'])
         self.assertTrue(all(record['elapsed_ms'] < 100 for record in records))
 

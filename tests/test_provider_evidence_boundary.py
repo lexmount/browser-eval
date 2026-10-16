@@ -203,7 +203,7 @@ def dataset(fresh=False):
                      'synthetic', ['Expected']) for identifier in ('one', 'two')]
     if fresh:
         cases = [replace(case, ground_truth_main_content='Expected fixture',
-            source_verification={'state': 'valid', 'method': 'independent source capture',
+            source_verification={'reference_mode': 'live_exact', 'state': 'valid', 'method': 'independent source capture',
                 'checked_at': datetime.now(timezone.utc).isoformat(),
                 'reference_scope': 'Complete article',
                 'reference_sha256': hashlib.sha256(b'Expected fixture').hexdigest()}) for case in cases]
@@ -338,6 +338,8 @@ def test_case_certificates_remain_the_authority_for_an_unfinalized_physical_run(
             'completion': {'satisfied': True, 'elapsed_ms': 1, 'timeout_ms': 1000}}
         certify_case(source, certificates, case,
                      [row for row in rows if row['case_id'] == case['id']], observation)
+    with pytest.raises(ValueError, match='requires certificate evidence'):
+        assemble(source, None, [], tmp_path / 'missing-certificates')
     output = tmp_path / 'assembled'
     assemble(source, certificates, [], output)
     saved = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]

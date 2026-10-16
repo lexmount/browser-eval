@@ -1,5 +1,6 @@
 """Reference-input boundaries independent of any third-party historical dataset."""
 
+import gzip
 import hashlib
 import json
 import shutil
@@ -12,6 +13,7 @@ import pytest
 from harness.web_fetch.reference_inputs import (
     check_reference_input_boundary,
     import_inputs,
+    import_packed_snapshot,
     input_tree,
     load_manifest,
     main,
@@ -168,9 +170,9 @@ def test_certified_native_preparation_uses_bound_external_dataset_bytes(inputs, 
     assert prepared['cases'] == json.loads(original)['cases']
     assert not dataset.exists()
     assert read_dataset_bytes(dataset) == original
-    from harness.web_fetch.source_capture import main as collect_sources
-    assert commands[0][0] is collect_sources
-    assert commands[0][1][0] == str(work / 'input-dataset.json')
+    from harness.web_fetch import reference_freeze
+    assert commands[0][0] is reference_freeze.main
+    assert str(work / 'input-dataset.json') in commands[0][1]
 
 
 @pytest.mark.parametrize("with_source_tree", [True, False])
@@ -416,6 +418,127 @@ def test_manifest_rejects_wrong_dataset_escaping_paths_and_invalid_bindings(inpu
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(ValueError):
         load_manifest(manifest_path, dataset)
+
+
+def packed_snapshot(files):
+    payload = bytearray()
+    blocks = {}
+    entries = {}
+    for name, raw in files.items():
+        key = sha(raw)
+        blocks[key] = {"pack": "data/0.gz", "offset": len(payload), "size": len(raw)}
+        entries[name] = {"parts": [key], "size": len(raw), "sha256": key}
+        payload.extend(raw)
+    manifest = json.dumps(
+        {"schema_version": 2, "files": entries, "blocks": blocks},
+        sort_keys=True,
+    ).encode()
+    return manifest, gzip.compress(bytes(payload), mtime=0)
+
+
+def test_packed_snapshot_import_restores_only_hash_bound_benchmark_inputs(tmp_path, monkeypatch):
+    dataset = b'{"cases": []}'
+    manifest, pack = packed_snapshot(
+        {
+            "dataset.json": dataset,
+            "sources/case-a/reference.txt": b"frozen source",
+            "list-references/list-a.json": b'{"items": []}',
+            "results/private-attempt.json": b"must not be imported",
+        }
+    )
+    manifest_url = "https://artifact.example/release/manifest.json?version=frozen"
+    requested = []
+
+    def fetch(url):
+        requested.append(url)
+        if url == manifest_url:
+            return manifest
+        assert url == "https://artifact.example/release/data/0.gz?version=frozen"
+        return pack
+
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data-home"))
+    output = import_packed_snapshot(
+        manifest_url,
+        sha(manifest),
+        sha(dataset),
+        "public-snapshot-v1",
+        fetch_bytes=fetch,
+    )
+    assert (output / "dataset.json").read_bytes() == dataset
+    assert (output / "sources/case-a/reference.txt").read_bytes() == b"frozen source"
+    assert (output / "list-references/list-a.json").read_bytes() == b'{"items": []}'
+    assert not (output / "results").exists()
+    assert requested.count("https://artifact.example/release/data/0.gz?version=frozen") == 1
+    receipt = json.loads((output / "import-receipt.json").read_text())
+    assert receipt["input_file_count"] == 3
+    assert receipt["downloaded_packs"] == ["data/0.gz"]
+
+
+def test_packed_snapshot_import_rejects_publication_projected_dataset(
+    tmp_path, monkeypatch
+):
+    dataset = b'{"cases": []}'
+    manifest, pack = packed_snapshot({"dataset.json": dataset})
+    definition = json.loads(manifest)
+    definition["files"]["dataset.json"]["source_sha256"] = "0" * 64
+    manifest = json.dumps(definition, sort_keys=True).encode()
+    manifest_url = "https://artifact.example/release/manifest.json"
+
+    def fetch(url):
+        return manifest if url == manifest_url else pack
+
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data-home"))
+    with pytest.raises(ValueError, match="publication projection"):
+        import_packed_snapshot(
+            manifest_url,
+            sha(manifest),
+            sha(dataset),
+            "public-snapshot-v1",
+            fetch_bytes=fetch,
+        )
+    assert not (tmp_path / "data-home/reference-inputs/public-snapshot-v1").exists()
+
+
+@pytest.mark.parametrize("damage", ["manifest", "dataset", "block", "path"])
+def test_packed_snapshot_import_rejects_changed_or_escaping_evidence(
+    tmp_path, monkeypatch, damage
+):
+    dataset = b'{"cases": []}'
+    names = {"dataset.json": dataset, "sources/case-a/reference.txt": b"source"}
+    manifest, pack = packed_snapshot(names)
+    expected_manifest = sha(manifest)
+    expected_dataset = sha(dataset)
+    if damage == "manifest":
+        expected_manifest = "0" * 64
+    elif damage == "dataset":
+        expected_dataset = "0" * 64
+    elif damage == "block":
+        pack = gzip.compress(b"changed", mtime=0)
+    else:
+        definition = json.loads(manifest)
+        definition["files"]["sources/../../escape.txt"] = definition["files"].pop(
+            "sources/case-a/reference.txt"
+        )
+        manifest = json.dumps(definition, sort_keys=True).encode()
+        expected_manifest = sha(manifest)
+
+    manifest_url = "https://artifact.example/release/manifest.json"
+
+    def fetch(url):
+        return manifest if url == manifest_url else pack
+
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data-home"))
+    with pytest.raises(ValueError):
+        import_packed_snapshot(
+            manifest_url,
+            expected_manifest,
+            expected_dataset,
+            "public-snapshot-v1",
+            fetch_bytes=fetch,
+        )
+    parent = tmp_path / "data-home/reference-inputs"
+    assert not (parent / "public-snapshot-v1").exists()
+    assert not list(parent.glob(".reference-inputs-*"))
 
 
 def test_explicit_custom_dataset_uses_its_own_sources_without_global_state(tmp_path):

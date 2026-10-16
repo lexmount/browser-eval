@@ -614,6 +614,45 @@ class StableTaskTests(unittest.TestCase):
         result = self.check(text, "name_description", stable_text_anchors=anchors)
         self.assertTrue(result["stable_task_pass"], result)
 
+    def test_standalone_images_bound_repeated_title_description_cards(self):
+        text = (
+            "![](/alpha.jpg)\n\nVIP\n\nAlpha film\n\nA complete first description.\n\n"
+            "Alpha film\n\n![](/beta.jpg)\n\nBeta film\n\n"
+            "A complete second description.\n\nBeta film"
+        )
+        result = self.check(text, "name_description")
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(
+            [record["fields"]["name"] for record in result["stable_records"]],
+            ["Alpha film", "Beta film"],
+        )
+
+    def test_unowned_or_cross_image_text_cannot_form_description_cards(self):
+        for text in (
+            "Home\n\nNavigation summary.\n\nHome\n\nAbout\n\nCompany summary.\n\nAbout",
+            "![](/alpha.jpg)\n\nAlpha film\n\n![](/beta.jpg)\n\n"
+            "A complete first description.\n\nAlpha film\n\nBeta film",
+            "![](/same-1.jpg)\n\nSame film\n\nFirst description.\n\nSame film\n\n"
+            "![](/same-2.jpg)\n\nSame film\n\nSecond description.\n\nSame film",
+        ):
+            self.assertFalse(self.check(text, "name_description")["stable_task_pass"], text)
+
+    def test_scoped_image_cards_are_not_parsed_twice(self):
+        text = (
+            "![](/alpha.jpg)\n\nAlpha film\n\nA complete first description.\n\n"
+            "Alpha film\n\n![](/beta.jpg)\n\nBeta film\n\n"
+            "A complete second description.\n\nBeta film"
+        )
+        result = evaluate_stable_task(
+            text,
+            contract("name_description", 2),
+            "https://example.test/catalog",
+            allow_closed_title_cards=True,
+        )
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_unique_record_count"], 2)
+        self.assertEqual(len(result["stable_records"]), 2)
+
     def test_named_link_page_anchor_accepts_dropped_inline_link_spacing(self):
         text = ('- Do you have a question? Check out[/r/learnprogramming](/r/learnprogramming),'
                 '[/r/cscareerquestions](/r/cscareerquestions), or[Stack Overflow](https://stackoverflow.com/).\n'

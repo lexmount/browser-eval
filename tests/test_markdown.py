@@ -30,3 +30,33 @@ def test_converter_rejects_absent_or_wrong_dependency_without_using_another_copy
         (tmp_path / 'package.json').write_text(json.dumps({'version': version}))
     with pytest.raises(ValueError, match='node-html-markdown 2.0.0'):
         require_converter(str(tmp_path))
+
+
+@pytest.mark.parametrize('markup', ['<script setup>', '<span data-value="literal">'])
+def test_converter_keeps_literal_markup_in_link_labels_and_prose(tmp_path, markup):
+    from html import escape
+    from harness.web_fetch.scoring import score_attempt
+    from harness.web_fetch.metrics import task_passed
+
+    package = require_converter(str(DEFAULT_PACKAGE))
+    literal = escape(markup)
+    html = (f'<p>Syntax: {literal}</p>'
+            f'<a href="https://example.test/syntax">{literal}</a>'
+            '<p>Following explanation remains readable.</p>'
+            '<span data-secret="not reader text">Visible text</span>')
+    result = subprocess.run(converter_command(package), input=html, text=True,
+                            capture_output=True, check=True, cwd=tmp_path)
+    case = {'url': 'https://example.test/', 'required_facts': [
+        {'id': 'following-prose', 'alternatives': ['Following explanation remains readable.']},
+        {'id': 'literal-syntax', 'alternatives': [markup]},
+    ]}
+    assert task_passed(True, score_attempt(case, result.stdout.encode(), ok=True))
+    assert 'not reader text' not in result.stdout
+
+
+def test_converter_keeps_fenced_literal_code_without_prose_escaping(tmp_path):
+    package = require_converter(str(DEFAULT_PACKAGE))
+    html = '<pre><code class="language-html">&lt;span&gt;Example&lt;/span&gt;</code></pre>'
+    result = subprocess.run(converter_command(package), input=html, text=True,
+                            capture_output=True, check=True, cwd=tmp_path)
+    assert '```html\n<span>Example</span>\n```' in result.stdout

@@ -135,12 +135,43 @@ checks where applicable, and one authoritative task predicate. Live execution an
 offline rescoring use the same entry point. Case contracts define the differences;
 provider identity never selects a more lenient evaluator.
 
-Live stable-contract cohorts use `scripts/run_certified_benchmark.py --diagnostic`.
-The stable-rule path does not qualify the current site's solvability; the generic
-entry therefore rejects such a cohort before external work unless its diagnostic
-state is explicit. This does not waive any scoring requirement. For a declared
-native-completion experiment, add `--retrieval-mode native`: it preserves all
-acceptance rules and rejects existing retrieval hints rather than dropping them.
+Text acceptance reads the visible prose of raw HTML embedded in Markdown. HTML
+attributes, scripts and explicitly hidden elements cannot supply body coverage
+or required facts. Literal HTML in code examples remains answer text. This
+projection runs inside the shared scorer and leaves provider artifacts unchanged.
+`required_patterns` defaults to `match_scope: "text"`; a rule that checks serialized
+output structure, such as an HTML table tag, must declare `match_scope: "output"`.
+Unknown scopes are rejected. Use paired controls in `evaluation/scoring-regressions.json`
+to guard equivalent prose, attribute-only answers and structural output.
+
+Reruns of an unchanged compiled stable-contract dataset use
+`scripts/run_certified_benchmark.py` normally: freeze existing task and acceptance
+rule bytes without recovering historical qualification files or rechecking
+admission. Source qualification is required when adding tasks or changing
+references or acceptance rules. Live exact-reference cases retain their pre/post
+reference checks. Use `--diagnostic` only when a diagnostic run is intended; its
+outputs cannot be upgraded to certified evidence.
+
+This applies to resource targets as well as text answers. Execution and report
+checks use the frozen resource target list without reopening historical source
+qualification files. Adding or changing a resource task still requires independent
+source qualification; an invalid source state or an explicitly live reference
+cannot take the frozen-input route.
+
+For declared native completion, add `--retrieval-mode native`: it preserves
+acceptance rules and rejects existing
+selector-guided retrieval hints rather than dropping them.
+Dynamic task families stay `dynamic`: the explicit
+`retrieval_hints: {"version": 3, "mode": "native"}` contract selects each
+provider's ordinary completion without injecting selectors, extraction hints or
+extra waits. A small number of independently qualified page shapes may add only
+`"contract": "<registered-name>"`. The shared registry in
+`evaluation/native-retrieval-contracts.json` binds each name to one case and one
+hash-verified source observation. Dataset rows cannot carry selectors, counts,
+delays or answer text directly; unknown names and names used by another case fail
+closed. Selecting native mode again preserves either form unchanged, and the
+runner validates it through the same strict parser.
+Version 1/2 selector-guided contracts keep their existing meaning.
 The diagnostic report accepts a `webfetch_diagnostic_inputs/1` manifest naming
 complete runs, independently captured whole-page observations and hash-bound
 per-case reviews. The supported builder adapts these inputs, preserves scored
@@ -194,6 +225,14 @@ borrowing without using aggregate F1 as an acceptance gate, while
 allowing one mildly noisy conversion region. It does not verify semantics. The
 thresholds and regions are stored in each case, never selected by provider.
 
+A `body_text` acceptance contract can declare `stable_text_role: diagnostic`
+when the case also supplies `body_requirements` or `composite_acceptance`.
+The declared body and record requirements remain mandatory; stable anchor hits,
+misses and coverage are retained as diagnostics. A diagnostic role without either
+content contract is rejected. Other schemas and contracts that omit the role keep
+their existing mandatory anchors. The risk-control compiler assigns this role
+from the independent contracts, without reading provider outputs.
+
 ## End-to-end budget and missing measurements
 
 The common call boundary includes provider acquisition, network retries, rendering,
@@ -204,15 +243,18 @@ validation, not each measured fetch; a changed binary requires revalidation.
 
 ### Retries
 
-Runs default to no benchmark-level retry. A run may predeclare one failure retry
-with `max_failure_retries=1` (the headless CLI flag is
-`--max-failure-retries 1`). The retry is triggered only after the first physical
-call fails the shared task predicate. Both physical outputs and supplemental
-artifacts are retained; the logical record always uses the final physical call,
-never whichever response scored better. Its displayed latency sums both physical
-call intervals and any provider-required wait between them. A correction for a
-proven wrong command, version, scorer or reference is not a retry: supersede the
-affected result explicitly and rerun the complete declared correction scope.
+All methods default to one retry after a failed task. Set
+`--max-failure-retries N` to any nonnegative integer; `0` disables retries.
+There are at most N+1 calls per task, stopping as soon as the task passes.
+The same rule covers request errors, timeouts, empty output and content-rule
+failures, including methods using native parameters.
+
+Each method and task produces one result. The final call replaces the earlier
+answer, verdict, metrics and primary latency; retries do not add samples or a
+separate result category. Call artifacts remain available for audit, with
+accumulated execution cost stored separately from the final-call latency.
+An uncancellable call must stop before another starts; a still-running call
+makes the cohort incomplete. Historical cohorts retain their frozen retry policy.
 
 ### Timeouts
 
@@ -381,16 +423,14 @@ Credentials and local executable/repository paths belong in the root `.env`
 variables take precedence; `--env-file` overrides which file is read.
 
 `moli-webfetch` invokes the official local Moli CLI; set `MOLI_BINARY` when it
-is not on PATH. Ordinary body tasks use `moli fetch --dump markdown`; challenge
-tasks use one `--dump json --trace-network` call and convert its final DOM to
-Markdown within the same deadline while retaining only a public-safe trace
-summary. Dynamic,
-resource-page, and embedded-document tasks use one bounded `--eval` call for
-their declared rendered output. Direct file tasks use bare `moli fetch URL`,
-without `--dump` or page-wait flags, so the evaluator can receive and verify
-original bytes. No alternate provider or output-format fallback is used after
-a failed call. The seven-method cohort's direct PDF and DOCX body route is
-defined separately in [HEADLESS.md](HEADLESS.md).
+is not on PATH. All webpage and document-body tasks use the CLI's native
+Markdown output. Webpage media-information tasks use that same native Markdown
+call with native frame inclusion; the shared scorer checks only the requested
+resource URLs already present in the output and does not download the media.
+Direct-media-file tasks use the CLI's raw response path so the evaluator can
+verify the original bytes. These routes are selected by deliverable before
+execution and do not fall back after failure. The six measured configurations
+and their document limits are defined in [HEADLESS.md](HEADLESS.md).
 
 The installed console command is `browser-harness-eval`. There is no legacy
 Python package or compatibility entrypoint.
@@ -543,11 +583,22 @@ dynamic examples are fixed demonstration data delivered after loading; popular
 rankings and catalogs change frequently. Annotate fields, not whole websites:
 
 - Stable document titles, headings and instructions can be explicit
-  `stable_text_anchors` with independently justified equivalent alternatives.
+  `stable_text_anchors`. Every alternative must be grounded in the same frozen
+  page and declared content scope. Formatting variants and explicitly
+  interchangeable statements within that page are allowed; alternatives must
+  not accept different regional, historical, or redesigned page bodies. DNS,
+  redirects, access failures, and variant page responses are retrieval
+  outcomes, not reasons to add acceptable answers.
+  Fix a wrong source or reference only from independent evidence. A change to
+  the target URL requires new calls for every affected method; retain the old
+  task and calls as historical evidence.
 - Frequently changing names, prices, dates and ranking positions use an
   `acceptance_contract`: required fields, types, record grouping, minimum count,
-  uniqueness and optional stable page identity. Values are not compared to a
-  previous ranking. Duplicate cards cannot satisfy the minimum.
+  uniqueness and stable page text. Values are not compared to a previous
+  ranking. Duplicate cards cannot satisfy the minimum. Final-URL agreement is
+  diagnostic: a missing or mismatched URL does not change acceptance or the
+  evaluated denominator. HTML document-language tags are also diagnostic;
+  content acceptance comes from the declared answer requirements.
 - Full-reference word precision, recall and F1 remain separate diagnostics.
   Historical demonstration snapshots describe their captured sample; they do
   not certify arbitrary later content. Without a comparable full reference,
@@ -643,7 +694,8 @@ native resource/PDF routes retain product-default internal timeouts.
 Native workers receive the caller deadline and fixed native capacity options,
 and record effective limits. In fixed-native mode, the outer deadline does not
 override product timers. CowAgent uses its native `DEFAULT_TIMEOUT` unchanged.
-No retry or case-specific retrieval rule is added.
+Workers do not add case-specific retrieval rules. Caller failure retries follow
+the shared [retry policy](#retries).
 
 The runner and validation entry point check system DNS before guarded native
 methods execute. Synthetic `198.18.0.0/15` answers stop the comparison before
@@ -680,8 +732,9 @@ when selected together. `public_doh` uses the fixed
 [Cloudflare JSON DoH endpoint](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/)
 for every hostname and redirect, not a case allowlist or failure fallback.
 Native Chrome uses the same endpoint with its DNS wire-format client; other
-callers query A and AAAA through the JSON client. No caller retries are added; DNS time counts inside the existing
-call deadline. Python resolution is scoped to the calling thread and restored;
+callers query A and AAAA through the JSON client. DNS selection does not change
+the shared [retry policy](#retries); DNS time counts inside each call's deadline.
+Python resolution is scoped to the calling thread and restored;
 Node uses the products' resolver interfaces. Native private-address checks and
 address pinning remain active where the product provides them. CowAgent's native
 SSRF setting is preserved (the pinned implementation defaults to disabled).
@@ -689,8 +742,10 @@ Moli on Darwin uses a process-local native resolver bridge. Build it explicitly
 outside Git with `uv run --frozen python scripts/build_native_dns.py
 ~/.browser-eval/toolchains/native-dns/libbrowser-eval-dns.dylib`, and configure
 `native_dns_library` (or `MOLI_NATIVE_DNS_LIBRARY` in the example). The adapter
-checks the library hash, current source hashes and architecture before calls;
-changed source requires rebuilding. It never compiles during a measured call.
+checks the library hash, compiled C source hash and architecture before calls;
+a changed compiled source requires rebuilding. The Python coordinator remains
+covered by the run's runtime-source hash. It never compiles during a measured
+call.
 Crawl4AI's browser route starts the configured Chrome channel with a temporary
 strict-DoH profile and connects through its native CDP interface. The original
 native launch arguments are preserved; there is no system-DNS fallback for
@@ -742,19 +797,75 @@ while retaining the original status. Native `links.internal`/`links.external`
 name/URL pairs enter shared link input directly; names are not reconstructed from
 logs, requests or bare URLs.
 
-### Fixed native webpage calls
+### Named records in Markdown tables
 
-`uniform_native_parameters: true` selects the fixed-native body/structure policy for web and dynamic tasks. Choose documented native extraction options once per method (for example Tavily advanced, Cloudflare networkidle2, Crawl4AI iframe/overlay options, native freshness and capacity options). The caller deadline is 45 seconds; product connection, navigation and extraction timers retain their native defaults. HTTP-client deadlines and worker cancellation enforce collection time, not product-side budgets. CowAgent globals are never patched.
+A `named_link` task can declare `markdown_title_column` and
+`markdown_link_column` in its `entry_scope`. These are exact table headers from
+the independent source. A visible name and one detail link in the same row form
+a record, including when a native converter renders a JavaScript-backed name as
+plain text. The existing host, path, identity and minimum-count checks still
+apply. Missing or repeated declared headers, empty names and multiple detail links do not
+supply records. Content in another row or a fenced example cannot fill a missing
+field.
 
-Per-case retrieval hints and auxiliary document/media/challenge routes are rejected before invocation in this mode. No caller failure retry, cross-provider fallback, injected extraction algorithm or answer synthesis is permitted. Keep the native response envelope and its declared answer; the product may still impose its own limits or internal retries. Prepare a new frozen invocation profile after a policy change; preserve previous measurements and do not infer revised scores without calls.
+### Output and download limits
+
+Moli's `max_bytes` bounds the captured answer. Page and subresource downloads use
+Moli's native capacity policy; the adapter does not pass this answer limit as
+`--http-max-response-size`. A large script can produce a small answer, so limiting
+its download would change page execution. Answers above `max_bytes` fail with
+`output_too_large`; truncated answers are not scored.
+
+### Moli native family completion
+
+For native dynamic-body tasks, Moli requests `--layout`, `--with-frames`, and
+`--wait-until domstable` for the whole family. Markdown comes directly from
+Moli; the harness does not assemble frame content or refresh DOM geometry.
+
+A Moli provider configuration can override completion with
+`wait_until_by_track`, for example `{"risk_control": "domstable"}`. Keys must
+be registered task families and values must be supported native wait modes.
+The policy is declared before calls and applies to every task in that family;
+case IDs, hostname rules, answer-dependent delays, and extraction scripts are
+not accepted by this setting. Call metadata records the selected family policy.
+
+### Fixed native calls
+
+`uniform_native_parameters: true` freezes class-level interfaces, answer fields,
+and request parameters before calls. Each task declares `input_media_kind`
+independently of its URL spelling or reference answer. The 45-second caller
+budget leaves product timers at their native defaults. Per-case extraction hints,
+cross-provider fallback, injected extraction algorithms, and answer synthesis are
+prohibited. The exact dynamic marker `{"version": 3, "mode": "native"}` declares
+no per-case assistance and is allowed with a stable acceptance contract.
+
+Moli's fixed-native request builder uses Markdown for webpage text, HTML for
+resource discovery, and original bytes for declared direct PDF, DOCX, and file
+inputs. Its ordinary native task-family interface supports native Markdown with
+layout and child documents. The invocation profile declares which interface was
+measured; a newer implementation never relabels historical calls. Output capture
+limits do not cap underlying downloads. Caller retries follow the shared
+[retry policy](#retries), while historical cohorts retain their frozen budgets.
+Keep the complete native response, projection declaration, and request receipts.
+
+### Content acceptance and page identity
+
+Final URLs and document-language metadata are diagnostic by default. A task that
+requires these observations declares `page_identity_required: true`; its existing
+navigation/language fields define the accepted identity. Missing identity stays
+unavailable unless another independently failed requirement establishes failure.
+A proven mismatch fails that task. Native response provenance is always checked,
+including the title and final URL supplied to the scorer, regardless of whether
+identity itself is an acceptance requirement.
+
+When migrating a historical task that already required page identity, make that
+requirement explicit through a bound offline revision. Preserve its original
+outputs, timings, review observations, and prior task definition. Adding this
+annotation does not authorize dropping any other task requirement or creating a
+new provider call. Content requirements continue to reject missing target text,
+records, fields, empty answers, or error-page shells independently of metadata.
+
 ### Main-document identity on declared navigation tasks
-
-When a body task declares `source_benchmark.risk_control.navigation_contract`,
-Moli uses the existing `fetch --dump json` final-DOM route, without network tracing,
-except in fixed-native mode, which preserves the same native Markdown route for every case.
-The same response binds `final_url`, HTTP status and HTML; the existing local
-Markdown conversion stays inside the call deadline. It adds no second fetch.
-Ordinary body tasks without that requirement retain native Markdown output.
 
 Legacy debug GET completion rows do not bind redirect request owners or Location
 headers. Their order, a challenge query hint, or the first completion after a
@@ -959,3 +1070,74 @@ they do not retroactively prove title/address provenance. Bind a separate offlin
 context audit to historical results, replay the complete affected route when a
 context difference is found, and retain the original records and exact score effects.
 These checks add no provider calls.
+按任务类型预选官方支持的正文、资源或原始文件接口。JSON 包装中的原生 Markdown
+可以解包；不能把 JSON DOM、HTML 或下载的 PDF/DOCX 另行转换成选手的正文成绩。
+Chromium 没有原生 Markdown，网页 HTML 使用固定版本的 node-html-markdown；此例外
+不授权外部文档解析器。浏览器内已经加载的 PDF 查看器可通过原生脚本接口读取文字，
+不得下载嵌入文件后交给外部解析器。图片、视频的原始文件交付只验收字节，不冒充正文提取。
+
+Lightpanda 使用 `--dump markdown --json` 的原生正文；Obscura 使用其固定官方
+`HTML_TO_MARKDOWN_JS`，脚本哈希必须与所测版本绑定；Kitesurf 使用显式指定该浏览器
+的官方 `/markdown` 或 CDP 接口。Moli 的网页正文、文档正文、结构与网页内嵌媒体
+统一使用原生 Markdown；网页媒体只核对同一次输出里的目标地址。直接媒体文件才走
+原始响应。禁止失败后切换为 HTML、JSON、网络跟踪或查看器脚本补结果。
+
+`output_mode_for_case` 负责路线选择，`browser_task_interface_matrix` 使用同一选择器
+生成每类任务与每种浏览器的接口表。`require_native_task_routes` 检查实测路线与外部
+转换标记；当前报告配置必须启用该门禁，检查失败时不得汇总或发布。
+改变调用接口应冻结完整受影响范围、保留旧调用并通过认证入口补跑；只改共享评分时
+离线重算所有选手，不重复请求网站。合成正反测试必须同时覆盖正确正文缺少网址和错误正文。
+
+方法名与浏览器引擎分开登记在 `configs/providers.headless.json`。同一浏览器的发布版和分支构建分别计分，
+原生路线检查、接口表和官方能力说明共用该登记的引擎；未知方法不能跳过检查。
+报告分别统计浏览器引擎和执行配置，同一引擎的多个版本不算成多种浏览器。
+资源属性中的单个 URL 保留完整地址；只有 `srcset` 按候选及描述符解析，URL 中间的逗号不能拆开。
+分支构建在调用前固定来源提交、基线提交、构建环境和二进制 SHA-256。新增配置只调用完整固定题库，
+旧配置的原始结果保持不变。不同日期的批次用于展示各自任务完成情况；代码带来的耗时变化须另按同窗配对协议测量。
+
+### 资源比较的统计范围
+
+`resource_cohort.py` 的主统计保留预先确定的完整方法与任务矩阵，包括失败调用。
+平均值、P50 和 P95 使用同一范围，报告同时显示各方法的通过数。各方法成功调用的统计另存为
+条件分布；所有方法共同通过的任务只作附加诊断，不能据此挑选排名样本。没有共同成功项时，
+仍须保留完整调用的资源统计；没有成功项的条件指标为不可用，不填零。
+
+改正统计范围时，用已保存、哈希校验通过的测量重新汇总，不重新调用浏览器，不覆盖旧汇总。
+主结果、原始输出和每次调用的资源计数保持不变。发布检查核对全部测量值、分母、指标方向
+及唯一最低值标记；并列项保持中性。资源消耗与任务通过率分别呈现，不合成总分。
+
+### 已编译评测集的重跑
+
+`scripts/run_certified_benchmark.py` 直接使用冻结的题目与验收规则。已有固定答案或稳定规则的题目
+不重新审核入选资格，不读取历史资格调查原文，也不因旧归档缺失而改成诊断结果。
+新增题目、修改参考或验收规则时，仍须通过相应构建与修订流程核验来源。
+固定答案不会因为有来源核验信息、旧核验日期或缺少新版验收契约而自动变成实时参考。
+只有题目明确声明 `source_verification.reference_mode: live_exact`，才执行调用前冻结和调用后核验。
+没有该声明时，执行器保持题库中的答案和评分规则不变。明确修订参考答案仍走独立的参考修订入口。
+
+已授权的错误修正应自动完成：先查明共享原因并添加必要的正反测试，再冻结受影响的完整调用范围，经认证入口补跑。
+接口、版本或执行错误需要新调用；评分或展示错误只重算或重建。不能为提高分数挑选失败题重试，
+不能让无关题目重复调用，也不能把已有题库的重跑变成重新收集资格证明。保留旧结果及修订影响。
+评测配置错误或适配器在调用前拦截属于执行问题，不能当作浏览器能力失败发布；原生路线门禁拒绝 `configuration` 结果。供应商实际调用返回的错误仍按原规则保留。
+
+
+### Reviewed browser interpretation inputs
+
+A current browser interpretation can require a complete failure diagnosis by setting
+`require_failure_review: true` and binding `failure_review: {path, sha256}` in its
+external `webfetch_browser_interpretation/1` content. The bound file uses
+`schema: webfetch_failure_review/1`, binds the exact `results.jsonl` bytes with
+`results_sha256`, and contains one `failures` entry for every failed result and no
+passing result. Each entry identifies `attempt_id`, `provider` and `case_id`, a
+stable lowercase `category`, a reader-facing `category_label`, an evidenced
+`reason`, a `remediation_status`, and nonempty hash-bound
+`evidence_paths: [{path, sha256}]`. A program error type remains a separate
+classification; it does not establish the reviewed cause. The build, report check
+and publication boundary reject stale, incomplete, duplicate or mismatched reviews.
+
+The same content may supply `background`, raster
+`figures: [{path, sha256, alt, caption}]`, and measured
+`case_examples: [{provider, case_id, explanation}]`. These use the existing report
+builder and its six-chapter interpretation. Assets stay outside Git and are copied
+only through their hash bindings. The independent HTML embeds figures and reviewed
+causes without copying every failure's complete output and logs.

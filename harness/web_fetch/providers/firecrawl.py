@@ -48,7 +48,8 @@ class FirecrawlProvider(Provider):
         max_failure_retries: int,
     ) -> int:
         """Return the declared Firecrawl credit bound for an exact case scope."""
-        if runs < 1 or max_failure_retries not in {0, 1}:
+        if (type(runs) is not int or runs < 1
+                or type(max_failure_retries) is not int or max_failure_retries < 0):
             raise ValueError("invalid Firecrawl run or retry capacity bound")
         base_credits = self.config.get("capacity_credits_per_call", 1)
         if (

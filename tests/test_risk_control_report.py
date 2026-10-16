@@ -8,7 +8,7 @@ from harness.web_fetch.runner import run_evaluation
 from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
-DATASET = ROOT / "evaluation/risk-control/dataset.json"
+DATASET = ROOT / "evaluation/risk-control/current/dataset.json"
 
 
 def test_full_risk_control_matrix_builds_existing_interactive_report(tmp_path, capsys):
@@ -46,8 +46,8 @@ def test_full_risk_control_matrix_builds_existing_interactive_report(tmp_path, c
     capsys.readouterr()
     report = tmp_path / "report"
     index = build_report(evidence, report, include_english=True)
-    detail = (report / "attempts/fixture-risk__risk-diverse-192__r001.html").read_text()
-    case_page = (report / "datasets/risk-diverse-192.html").read_text()
+    detail = (report / "attempts/fixture-risk__risk-diverse-045__r001.html").read_text()
+    case_page = (report / "datasets/risk-diverse-045.html").read_text()
     style = (report / "assets/style.css").read_text()
     home = index.read_text()
 
@@ -57,17 +57,21 @@ def test_full_risk_control_matrix_builds_existing_interactive_report(tmp_path, c
     guide = (report / 'guide/index.html').read_text()
     assert '本报告包含 100 个任务' in guide
     assert '静态网站正文：0' not in guide
-    assert "风控网站" in home
+    assert "风控网页正文" in home
     assert "风控网站内容" not in home
     assert "资格只解释样本来源" in home
     assert "组合规则结果" in detail
-    assert "homepage-news" in detail
+    assert "news" in detail
     assert "同条目字段" in detail
     assert "运行日志与证据" in detail
     assert "查看本次真实日志" in detail
     assert "diagnostic-log" in detail
     assert "至少 3 条" in case_page
-    assert "/archive/" in case_page
+    assert "/admin_posts/" in case_page
+    archive_detail = (report / "attempts/fixture-risk__risk-diverse-192__r001.html").read_text()
+    archive_case = (report / "datasets/risk-diverse-192.html").read_text()
+    assert "homepage-news" not in archive_detail
+    assert "freely" in archive_case
     assert ".table-wrap{overflow:auto" in style
     assert "pre{white-space:pre-wrap;overflow-wrap:anywhere" in style
     assert "max-height:70vh;overflow:auto" in style

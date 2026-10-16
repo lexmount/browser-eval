@@ -14,10 +14,124 @@ from bs4 import BeautifulSoup
 
 from harness.web_fetch.publication_check import check as check_bundle
 from harness.web_fetch.publication_check import scored_output_hash
-from harness.web_fetch.publication_privacy import project_file, publication_risk
+from harness.web_fetch.publication_privacy import (
+    project_file,
+    project_redundant_result_streams,
+    publication_risk,
+)
 
 
 class PublicationPrivacyTests(unittest.TestCase):
+    def test_result_streams_are_omitted_only_when_a_public_call_log_owns_them(self):
+        with_log = {
+            'attempt_id': 'browser__case__r001',
+            'provider_metadata': {
+                'stderr': 'large diagnostic stream',
+                'browser_stderr': 'browser stream',
+                'call_log': {'path': 'call-logs/browser/case/run-001.json', 'sha256': 'abc'},
+            },
+            'metrics': {'content_pass': False},
+        }
+        without_log = {
+            'attempt_id': 'browser__other__r001',
+            'provider_metadata': {'stderr': 'only retained copy'},
+        }
+        raw = (json.dumps(with_log) + '\n' + json.dumps(without_log) + '\n').encode()
+        projected, receipt = project_redundant_result_streams('results.jsonl', raw)
+        rows = [json.loads(line) for line in projected.splitlines()]
+        self.assertNotIn('stderr', rows[0]['provider_metadata'])
+        self.assertNotIn('browser_stderr', rows[0]['provider_metadata'])
+        self.assertEqual(rows[0]['provider_metadata']['call_log'], with_log['provider_metadata']['call_log'])
+        self.assertEqual(rows[0]['metrics'], with_log['metrics'])
+        self.assertEqual(rows[1], without_log)
+        self.assertEqual(receipt['omitted_fields'], {'stderr': 1, 'browser_stderr': 1})
+        self.assertEqual(project_redundant_result_streams('dataset.json', raw), (raw, None))
+
+    def test_truncated_quoted_sensitive_values_are_redacted_at_text_boundaries(self):
+        import html
+        fragments=["{'cookie':'PRIVATE_CANARY", '{"authorization":"Bearer PRIVATE_CANARY',
+                   '"api_key":"PRIVATE_CANARY', "'refresh_token':'PRIVATE_CANARY"]
+        for fragment in fragments:
+            for encoding in (lambda value:value,html.escape):
+                with self.subTest(fragment=fragments.index(fragment),encoded=encoding is html.escape):
+                    raw=('<p>Recorded failure: '+encoding(fragment)+'</p><p>Independent explanation.</p><a href="../result.html">Evidence</a>').encode()
+                    self.assertEqual(publication_risk(raw),'sensitive field value')
+                    projected,receipt=project_file('attempts/example.html',raw)
+                    self.assertNotIn(b'PRIVATE_CANARY',projected)
+                    self.assertIn(b'Independent explanation.',projected)
+                    self.assertIn(b'href="../result.html"',projected)
+                    self.assertIsNone(publication_risk(projected))
+                    self.assertEqual(project_file('attempts/example.html',projected),(projected,None))
+                    self.assertTrue(receipt)
+        # Ordinary partial JSON and already-redacted values remain intact.
+        for fragment in ("{'status':'unavailable", "{'cookie':'[REDACTED]", "{'authorization':'<TOKEN>"):
+            raw=('<p>'+html.escape(fragment)+'</p>').encode()
+            self.assertIsNone(publication_risk(raw))
+            self.assertEqual(project_file('attempts/example.html',raw),(raw,None))
+
+    def test_public_cors_boolean_and_abnf_are_not_credentials(self):
+        for policy in (b'Access-Control-Allow-Credentials: true',
+                       b'Access-Control-Allow-Credentials = %s"true"',
+                       b'Access-Control-Allow-Credentials = %i"false"',
+                       b'Access&#45;Control&#45;Allow&#45;Credentials = %s"true"'):
+            with self.subTest(policy=policy):
+                self.assertIsNone(publication_risk(policy))
+                self.assertEqual(project_file('response.txt',policy),(policy,None))
+                mixed=policy+b'\nAuthorization: Bearer PRIVATE_CANARY\n'
+                projected,receipt=project_file('response.txt',mixed)
+                self.assertIn(policy,projected)
+                self.assertNotIn(b'PRIVATE_CANARY',projected)
+                self.assertIsNone(publication_risk(projected))
+                self.assertIsNotNone(receipt)
+        for secret in (b'Access-Control-Allow-Credentials: PRIVATE_CANARY',
+                       b'Credentials: PRIVATE_CANARY',b'Authorization: Bearer PRIVATE_CANARY'):
+            with self.subTest(secret=secret):
+                self.assertEqual(publication_risk(secret),'sensitive field value')
+                projected,_=project_file('response.txt',secret)
+                self.assertNotIn(b'PRIVATE_CANARY',projected)
+                self.assertIsNone(publication_risk(projected))
+
+    def test_header_at_end_of_json_text_cannot_consume_following_record_fields(self):
+        record={'body':'RFC example: Authorization: Basic PRIVATE_CANARY',
+                'metrics':{'passed':False,'count':7},'case_id':'rfc-example'}
+        raw=(json.dumps(record)+'\n').encode()
+        projected, receipt=project_file('results.jsonl',raw)
+        result=json.loads(projected)
+        self.assertEqual(result['metrics'],record['metrics'])
+        self.assertEqual(result['case_id'],record['case_id'])
+        self.assertNotIn('PRIVATE_CANARY',result['body'])
+        self.assertIsNone(publication_risk(projected))
+        self.assertEqual(project_file('results.jsonl',projected),(projected,None))
+        self.assertEqual(receipt['replacements'],1)
+
+    def test_entity_encoded_query_equals_in_rendered_text_and_links_are_projected(self):
+        for equals in ('&#61;', '&#x3d;', '&equals;'):
+            with self.subTest(equals=equals):
+                url='https://example.test/video?category'+equals+'news&amp;x-signature'+equals+'PRIVATE_CANARY'
+                raw=('<p>'+url+'</p><a href="'+url+'">video</a>').encode()
+                self.assertEqual(publication_risk(raw), 'sensitive URL query value')
+                projected, receipt=project_file('attempts/case.html',raw)
+                self.assertNotIn(b'PRIVATE_CANARY', projected)
+                self.assertIsNone(publication_risk(projected))
+                self.assertEqual(receipt['replacements'],2)
+                soup=BeautifulSoup(projected,'html.parser')
+                self.assertEqual(soup.a['href'], 'https://example.test/video?category=news&x-signature=[REDACTED]')
+                self.assertEqual(project_file('attempts/case.html',projected),(projected,None))
+                clean=('<p>https://example.test/video?category'+equals+'news&amp;page'+equals+'2</p>').encode()
+                self.assertEqual(project_file('attempts/case.html',clean),(clean,None))
+
+    def test_nested_entity_escaped_query_separator_is_projected_once(self):
+        raw = json.dumps({
+            'url': 'https://example.test/video?category=news&amp;amp;token=PRIVATE_CANARY',
+        }).encode()
+        self.assertEqual(publication_risk(raw), 'sensitive URL query value')
+        projected, receipt = project_file('results.jsonl', raw)
+        self.assertNotIn(b'PRIVATE_CANARY', projected)
+        self.assertIn('[REDACTED]', json.loads(projected)['url'])
+        self.assertIsNone(publication_risk(projected))
+        self.assertEqual(project_file('results.jsonl', projected), (projected, None))
+        self.assertEqual(receipt['replacements'], 1)
+
     def test_entity_escaped_fields_inside_json_logs_preserve_json_and_mask_values(self):
         for quote in ('&quot;','&#34;','&#x22;','&apos;','&#39;','&#x27;'):
             with self.subTest(quote=quote):
@@ -281,6 +395,8 @@ class PublicationPrivacyTests(unittest.TestCase):
                 '<pre data-kind="call-log">{"event":"complete"}</pre></dialog></body></html>')
             (source / 'attempts/browser__file-case__r001.html').write_text(
                 '<html><body><h2>目标文件与实际返回</h2>'
+                '<pre>DEBUG href="/not-a-report-link.css" '
+                '&lt;link href="/another-diagnostic.css"&gt;</pre>'
                 '<pre data-kind="metadata">{"field":"parsed"}</pre>'
                 '<pre data-kind="metadata">{&quot;access_token&quot;:&quot;canary-private-123&quot;}</pre>'
                 '<pre data-kind="metadata">{"field":"response"}</pre></body></html>')
@@ -486,6 +602,26 @@ def test_host_metadata_projection_rebinds_dependencies_without_changing_measurem
     assert '/Users/fixture' not in json.dumps(receipt)
     repeated, unchanged = project_host_metadata_files(public, ['/Users/fixture'])
     assert repeated == public and unchanged['files'] == []
+
+
+def test_public_diagnostic_contexts_redact_queries_and_preserve_scores():
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    row = {'ok': True, 'elapsed_ms': 12.5, 'metrics': {'content_pass': True,
+        'content_sha256': 'a' * 64, 'composite_group_results': [{'records': [
+            {'context': '[Forum](https://example.test/thread?access_token=private-token-canary)'}]}]}}
+    raw = (json.dumps(row) + '\n').encode()
+    files = {'results.jsonl': raw, 'receipt.json': json.dumps({'results_sha256': hashlib.sha256(raw).hexdigest()}).encode()}
+    public, receipt = project_host_metadata_files(files, ['/Users/fixture'], public_excerpt_views=True)
+    projected = json.loads(public['results.jsonl'])
+    assert b'private-token-canary' not in public['results.jsonl']
+    assert projected['ok'] == row['ok'] and projected['elapsed_ms'] == row['elapsed_ms']
+    assert projected['metrics']['content_pass'] is True
+    assert projected['metrics']['content_sha256'] == 'a' * 64
+    assert json.loads(public['receipt.json'])['results_sha256'] == hashlib.sha256(public['results.jsonl']).hexdigest()
+    assert files['results.jsonl'] == raw
+    assert any('.metrics.' in field and field.endswith('.context') for item in receipt['files'] for field in item['redacted_fields'])
+    unchanged, _ = project_host_metadata_files(files, ['/Users/fixture'])
+    assert unchanged == files
 
 
 def test_host_metadata_projection_requires_an_explicit_non_root_prefix():

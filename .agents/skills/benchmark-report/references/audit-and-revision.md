@@ -18,7 +18,7 @@ release manifest + deployed bytes
 
 Hash and bind transitions where accidental mixing is plausible. Validate exact cardinality and uniqueness, not only totals. Treat raw outputs, timestamps, request status, method version, and call IDs as immutable measured evidence.
 
-Source-dependent calls require a fail-closed boundary: capture and freeze the declared reference scope immediately before execution, repeat the independent observation after execution, and bind both checks to the complete cohort. A process exit, partial attempt count, changed reference, or missing post-check makes the cohort diagnostic rather than publishable; never salvage its successful rows into the release matrix.
+Live exact-reference calls require a fail-closed boundary: capture and freeze the declared reference scope immediately before execution, repeat the independent observation after execution, and bind both checks to the complete cohort. A process exit, partial attempt count, changed reference, or missing post-check makes the cohort diagnostic rather than publishable; never salvage its successful rows into the release matrix.
 
 ## Independent result review
 
@@ -49,6 +49,10 @@ Use dependency impact, not convenience:
 
 Never overwrite old evidence or select a later response because it scores better. Assemble a new complete evidence view atomically, record inherited versus rerun attempts, and verify all downstream bindings.
 
+Before a cohort-wide offline recomputation, finish the paired controls and compare the known affected output family with its independent judgments. Cover equivalent serializers and adjacent invalid forms together, including visible text outside a link, image alternatives, and record ownership. Batch the shared corrections before the expensive sweep; do not rerun unchanged browser calls. Bound both worker count and queued payloads when saved outputs or logs are large.
+
+A subresource network error does not establish a main-navigation failure. Failure categories must agree with the reviewed cause and its actual stage; keep missing embedded content, unsupported direct-file conversion, empty output, and process crashes distinct. Interpretation pages show complete distributions and representative evidence. Full per-result diagnoses belong in the existing result inventory and details.
+
 ## Revision receipts
 
 A score-only revision must record old and new dataset/result hashes, changed fields, decision changes, provider call count of zero, reviewer binding, and predecessor history hash. A new provider call must receive a new call identity and must not be described as a scoring correction.
@@ -78,3 +82,4 @@ private evidence. Never rescue an empty declared body from a nonempty display
 message. Reproject retained full responses without new product calls when only
 this selection changed; missing historical envelopes require fresh calls across
 the full declared correction scope before claiming revised benchmark scores.
+Reruns of unchanged compiled acceptance-contract tasks freeze the existing executable dataset. They do not require recovering historical qualification raw files or repeating admission review. Source qualification is part of task authoring and reference/rule correction, not a prerequisite for every provider-version comparison. Preserve historical receipts without applying their evidence-file requirements to a new execution protocol.

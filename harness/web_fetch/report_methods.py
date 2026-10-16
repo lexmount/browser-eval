@@ -1,7 +1,7 @@
 """Provider-centred introduction and reproducible, sample-scoped adoption counts."""
 import json
 from pathlib import Path
-from .methods import method_info, method_page_model
+from .methods import method_info, method_page_model, is_browser_comparison, browser_method_label, measured_method_label
 from .report_components import tabs,cards
 from .report_interfaces import render_interfaces
 from .report_capabilities import render_capabilities
@@ -12,12 +12,12 @@ PROFILES={
  'lightpanda':('本地浏览器 CLI','Lightpanda fetch --dump markdown，直接输出浏览器原生 Markdown。','https://github.com/lightpanda-io/browser'),
  'obscura':('本地浏览器 CLI','Obscura fetch --dump markdown；标准模式，不启用 stealth 或备用引擎。','https://github.com/h4ckf0r0day/obscura'),
  'moli-1.0.6':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.0.6'),
- 'moli':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.1.5'),
+ 'moli':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli'),
  'moli-1.1.7':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.1.7'),
  'moli-1.1.11':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；本轮风险网站评测固定 debug 日志并逐次完整留存。','https://github.com/lexmount/moli/releases/tag/v1.1.11'),
  'moli-1.1.3':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.1.3'),
  'chromium':('本地浏览器 CDP','Playwright 启动 Chromium，取完整渲染 DOM，再由 node-html-markdown 2.0.0 生成 Markdown。','https://playwright.dev/python/docs/browsers'),
- 'moli-webfetch':('本地 CLI','Moli：普通正文用 Markdown，挑战题用 JSON 返回最终 DOM、状态和跳转诊断；动态等待与正文范围分离。DOCX 在同一次 CLI 运行中二次 fetch 原始字节；不调用模型。','https://github.com/lexmount/moli/tree/v1.1.4/skills/moli-webfetch'),
+ 'moli-webfetch':('本地 CLI','Moli：网页正文、文档正文、结构和网页内嵌媒体统一使用原生 Markdown；直接媒体文件使用原始响应。完成条件只控制官方等待参数；不调用模型。','https://github.com/lexmount/moli/tree/main/skills/moli-webfetch'),
  'cowagent-built-in':('项目内置','CowAgent 内的 HTTP 抓取和文本、文档解析工具。','https://github.com/zhayujie/CowAgent/blob/main/agent/tools/web_fetch/web_fetch.py'),
  'lexmount-global':('托管 API','Lexmount 国际 API，返回网页主正文与元数据。','https://browser.lexmount.com/en/docs/webfetch'),
  'lexmount-cn':('托管 API','Lexmount 中国区 API；与国际 API 分开实测，不重复计算品牌采用。','https://browser.lexmount.com/en/docs/webfetch'),
@@ -30,8 +30,8 @@ PROFILES={
  'langchain-webbase':('本地开源库','WebBaseLoader 使用 HTTP 与 BeautifulSoup 取得网页文字。','https://reference.langchain.com/python/langchain-community/document_loaders/web_base/WebBaseLoader'),
  'crawl4ai':('本地开源库','本地浏览器渲染，再抽取 Markdown、媒体及链接信息。','https://docs.crawl4ai.com/'),
 }
-DISPLAY_NAMES={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-1.1.11':'Moli 1.1.11'}
-def display_name(name):return DISPLAY_NAMES.get(name,name)
+DISPLAY_NAMES={'moli-1.0.6':'Moli 1.0.6','moli':'Moli','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-1.1.11':'Moli 1.1.11'}
+def display_name(name):return measured_method_label(name,DISPLAY_NAMES.get(name,browser_method_label(name)))
 
 def adoption_counts(data,names):
     result=[]
@@ -94,7 +94,11 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
     (dest/'counts.json').write_text(json.dumps({'snapshot':data['generated_at'],'scope':'签名命中线索，不是运行调用次数或全网采用量','methods':counts},ensure_ascii=False,indent=2)+'\n')
     intro=[];rows=[];details=''
     for name in names:
-        kind,desc,url=PROFILES.get(name,('测试适配器','本地可重复测试实现。','https://example.com'));r=next(r for r in records if r['provider']==name);info=method_info(r['provider_type'])
+        from .methods import native_browser_engine, browser_method_registry
+        engine=native_browser_engine(name)
+        kind,desc,url=PROFILES.get(name,PROFILES.get(engine,('测试适配器','本地可重复测试实现。','https://example.com')))
+        if engine and engine!=name:url=browser_method_registry()[name].get('source_url',url)
+        r=next(r for r in records if r['provider']==name);info=method_info(r['provider_type'])
         if native:
             model=method_page_model(name,name,[row for row in records if row['provider']==name])
             desc=model['contract']
@@ -120,13 +124,13 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
         ('方法归属规则','逐一读取命中的 Git 文件并校验内容。通用 web_fetch 和同名函数不能证明归属；Exa 要求 Contents 端点或 SDK 导入及 get_contents。内置方法也包括源码复制与官方仓库，不能冒充第三方集成。'),
     ])+'<p>'+link('evidence.json','完整检索证据')+' · '+link('counts.json','逐方法统计数据')+'</p>'
     body=hero('方法介绍','参评方法的官方能力、价格、接口与开源采用；实测表现见各方法执行记录。')
-    if records and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records):
-        body+=section('参评方法',cards([('远程正文接口','Kitesurf 使用 Cloudflare 账户级 Browser Run /markdown API；耗时包含公网往返、远端排队与执行。'),('本地原生产物','Lightpanda、Obscura 与 Moli 1.1.1 的普通网页使用 CLI 正文输出。Moli 的直接文档和媒体 URL 使用裸 fetch：正文任务在预算内解析，文件任务校验字节。'),('本地 DOM 转换','Chromium 152 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。五种方法都不调用模型。')]))
+    if is_browser_comparison(records):
+        body+=section('参评方法',cards([('远程接口','Kitesurf 使用指定 browser=kitesurf 的 Cloudflare Browser Run API；耗时包含公网往返、远端排队与执行。'),('本地原生接口','Lightpanda、Obscura 与 Moli 按任务使用各自官方接口。正文、文档和媒体任务的具体调用及输出格式见报告解读中的接口表。'),('Chromium 的正文转换','Chromium 通过原生接口读取渲染后的 DOM，再用 node-html-markdown 2.0.0 转成 Markdown。其他浏览器的正文不经过共同转换；文档任务不使用外部 PDF / DOCX 解析器。所有方法均不调用模型。')]))
         body+=section('Kitesurf 能否本地部署',cards([('当前结论','截至 2026-09-07，Cloudflare 尚未发布 Kitesurf 源码或自行部署包；本轮只能通过 Cloudflare 账号版 Browser Run 远程测试，不能把它当作本地开源浏览器。'),('后续意向','Cloudflare 官方博客表示计划在准备好后开源，并希望允许客户部署到自己的账户。这是未来计划，不是当前已有能力。')])+'<p class="source-note"><a href="https://developers.cloudflare.com/browser-run/kitesurf/">当前官方接入说明</a> · <a href="https://blog.cloudflare.com/kitesurf/">官方开源计划说明</a></p>')
     else:
         body+=section('参评方法',cards([('托管 API','Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地运行','LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。')]))
     body+=section('能力、价格与接口',tabs('method-guide',[
-        ('capabilities','官方能力',render_capabilities(out,names,table=table,cell=cell,link=link)),
+        ('capabilities','官方能力',render_capabilities(out,names,table=table,cell=cell,link=link,records=records)),
         ('pricing','价格与计费',render_pricing(out,names,table=table,cell=cell,link=link,esc=esc)),
         ('adoption','采用统计',f'<p>{data["generated_at"][:10]} 核验的公开源码候选集，包括搜索结果与登记文件。计数是已核验下限，不是全网采用量；点击数字查看仓库与文件。</p>'+stats+details),
         ('profiles','方法详情','<p>下表介绍本轮实际调用的实现；方法名称可打开其全部已测案例。各组覆盖数量以执行记录为准，功能范围以本轮配置为准。</p>'+table(['方法','形态','做什么','本轮输出','本轮新鲜度设置','来源'],intro)),

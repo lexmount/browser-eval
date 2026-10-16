@@ -30,10 +30,11 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
                     path.write_bytes(data)
                     records.append({"attempt_id": f"{provider}__{identifier}__r001",
                         "provider": provider, "case_id": identifier, "run": 1,
+                        "error_message": "正文\u2028包含\u2029合法 Unicode 分隔符",
                         "started_at": "2026-01-01T00:00:00+00:00",
                         "completed_at": "2026-01-01T00:00:01+00:00", "elapsed_ms": 1000,
                         "artifact_path": relative, "metrics": {"content_sha256": hashlib.sha256(data).hexdigest()}})
-            (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in records))
+            (source / "results.jsonl").write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in records))
             manifest = {"started_at": "2026-01-01T00:00:00+00:00",
                 "completed_at": "2026-01-01T00:00:02+00:00",
                 "dataset": {"id": "d", "case_count": 2},

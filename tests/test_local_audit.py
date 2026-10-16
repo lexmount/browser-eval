@@ -195,7 +195,8 @@ def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, mo
         local_audit.require_local_audit(source, dataset, [record])
 
 
-def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp_path, monkeypatch):
+@pytest.mark.parametrize("include_english,primary_language", [(False,"zh"), (True,"zh"), (True,"en")])
+def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp_path, monkeypatch, include_english, primary_language):
     from pathlib import Path
     from harness.web_fetch.config import load_dataset
     from harness.web_fetch.providers import build_provider
@@ -226,7 +227,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     evidence = tmp_path / "evidence"
     records, _ = run_evaluation(output_dir=evidence, dataset_meta=dataset,
         dataset_path=inputs, cases=cases, providers=[build_provider("fixture", {"type": "fixture"})],
-        provider_config_path=config, runs=1, timeout=45, delay=0)
+        provider_config_path=config, runs=1, timeout=45, delay=0, max_failure_retries=0)
     batch = json.loads((evidence / "manifest.json").read_text())
     _write(evidence / "execution.json", {"batches": [batch]})
     _write(evidence / "local-run-contract.json", {
@@ -244,7 +245,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     monkeypatch.setattr(local_audit, "ROOT", tmp_path / "repo")
     assert local_audit.require_local_audit(evidence, dataset, records) is None
     output = tmp_path / "report"
-    build_report(evidence, output, local_audit=True)
+    build_report(evidence, output, local_audit=True, include_english=include_english)
     home = (output / "index.html").read_text()
     assert "本地未认证诊断快照" in home
     assert "查看调用链问题和日志留存范围" not in home
@@ -281,6 +282,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     assert "Actions" not in page
     assert "Actions" in provider_page_body("firecrawl", method_records, method_cases, [], [])
 
+    from harness.report_languages import select_report_language
+    select_report_language(output, primary_language)
     # Explanatory edits of a historical snapshot must preserve every measured
     # byte, even after the repository scorer has moved on.
     from harness.web_fetch.report_build import refresh_local_presentation
@@ -392,6 +395,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     allowed = {"index.html", "methodology/index.html", "adoption/index.html",
                "reproduce/index.html", "changes/index.html", "providers/fixture.html",
                "adoption/interfaces/fixture.json", "report-manifest.json"}
+    if include_english:
+        allowed.update('en/' + path for path in list(allowed) if path.endswith('.html'))
     for relative, digest in before.items():
         if relative not in allowed:
             assert _digest(output / relative) == digest
@@ -709,7 +714,7 @@ def test_retrospective_page_review_preserves_call_and_checks_other_requirements(
     from harness.web_fetch.metrics import task_passed
     body = 'Expected complete body. A second distinctive sentence describing this page.'
     case = {'id': 'synthetic', 'url': 'https://example.test/start', 'track': 'risk_control',
-            'task_kind': 'body', 'source_benchmark': {'risk_control': {'navigation_contract': {
+            'task_kind': 'body', 'page_identity_required': True, 'source_benchmark': {'risk_control': {'navigation_contract': {
                 'requested_url': 'https://example.test/start',
                 'observed_final_url': 'https://example.test/document'}}},
             'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
@@ -775,17 +780,20 @@ def test_retrospective_page_review_requires_bound_receipt(tmp_path):
 
 
 @pytest.mark.parametrize('defect', [None, 'target_changed', 'sample_changed'])
-def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defect):
+@pytest.mark.parametrize('implicit_identity', [False, True])
+def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defect, implicit_identity):
     import copy
     from harness.web_fetch.scoring import score_attempt
     body = 'Expected complete body. A second distinctive sentence describing this page.'
     old = {'id': 'synthetic', 'url': 'https://example.test/start', 'track': 'risk_control',
         'task_kind': 'body', 'forbidden_any': ['CAPTCHA'],
-        'source_benchmark': {'risk_control': {'navigation_contract': {
+        'page_identity_required': True, 'source_benchmark': {'risk_control': {'navigation_contract': {
             'requested_url': 'https://example.test/start', 'observed_final_url': 'https://example.test/document'}}},
         'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
             'stable_text_anchors': [{'id': 'body', 'alternatives': ['Expected complete body']}]}}
     current = copy.deepcopy(old)
+    if implicit_identity:
+        old.pop('page_identity_required')
     current['diagnostic_any'] = current.pop('forbidden_any')
     (tmp_path/'answer.txt').write_text(body)
     record = {'attempt_id': 'method__synthetic__r001', 'case_id': 'synthetic',

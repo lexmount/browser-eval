@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "kind": "risk_control_reference_scope_revision",
+  "predecessor_revision": "research/risk-control-navigation-language-revision.json",
+  "root_cause": "Eight rules required labels that appear only in some responsive navigation layouts. The labels are outside the declared target body and are absent from other valid first-load layouts, so they cannot be universal body acceptance requirements.",
+  "source_authority": {
+    "path": "research/moli-111-three-cohort-evaluation-revision.json",
+    "sha256": "b21974be8e887043617d43aaac08b786ed9abd808c9e18c2becc08226be63293",
+    "provider_output_used": false
+  },
+  "correction": {
+    "predecessor_dataset_sha256": "d0d038bae0114be107116edd94e501996ba6cda852ac29244c089e15a3e37437",
+    "predecessor_run_profile_sha256": "079d0a171a040dd56342ba737ad9279710bd18a44aefdd23f2208e00c03cc2f1",
+    "new_dataset_sha256": "d3f18edd2b29f8ef19eb496841f91c433d7f9adfe33c591874d963db55760d7c",
+    "new_run_profile_sha256": "08cd1faf6118263a6cf9a18e53c8722ed4d512b83068950372a5ad9ad4a87da5",
+    "provider_calls": 0,
+    "score_only_revision": true,
+    "unchanged_case_count": 100,
+    "stable_anchor_count_before": 1600,
+    "stable_anchor_count_after": 1586,
+    "affected_case_ids": [
+      "risk-diverse-038",
+      "risk-diverse-117",
+      "risk-diverse-201",
+      "risk-diverse-209",
+      "risk-diverse-225",
+      "risk-diverse-237",
+      "risk-diverse-241",
+      "risk-diverse-268"
+    ]
+  },
+  "regression_ids": [
+    "complete-body-passes-without-responsive-navigation-labels",
+    "page-title-without-required-body-still-fails"
+  ]
+}

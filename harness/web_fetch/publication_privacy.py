@@ -45,6 +45,70 @@ def project_execution_manifest(manifest: dict) -> dict:
     return result
 
 
+_DUPLICATED_RESULT_STREAMS = ('stderr', 'stdout', 'browser_stderr')
+
+
+def project_redundant_result_streams(name: str, data: bytes):
+    """Omit result-embedded streams when the public call log owns the same evidence.
+
+    The measured result remains unchanged in the retained evidence tree.  The hosted
+    ``results.jsonl`` keeps scores, verdicts, timings, hashes and the call-log binding;
+    large diagnostic streams are loaded from that bound log instead of being shipped
+    a second time inside every result row.
+    """
+    if name != 'results.jsonl':
+        return data, None
+    lines = data.splitlines(keepends=True)
+    try:
+        rows = [json.loads(line) if line.strip() else None for line in lines]
+    except (ValueError, UnicodeError):
+        return data, None
+    counts = {key: 0 for key in _DUPLICATED_RESULT_STREAMS}
+    omitted_bytes = 0
+    output = []
+    changed = False
+    for raw, row in zip(lines, rows):
+        row_changed = False
+        metadata = row.get('provider_metadata') if isinstance(row, dict) else None
+        retry = metadata.get('retry') if isinstance(metadata, dict) else None
+        has_public_call_log = bool(
+            isinstance(metadata, dict)
+            and (
+                metadata.get('call_log')
+                or metadata.get('call_log_path')
+                or (isinstance(retry, dict) and retry.get('attempts'))
+            )
+            or isinstance(row, dict)
+            and (row.get('call_log') or row.get('call_log_path'))
+        )
+        if has_public_call_log:
+            for key in _DUPLICATED_RESULT_STREAMS:
+                if key in metadata:
+                    value = metadata.pop(key)
+                    omitted_bytes += len(str(value).encode('utf-8', errors='replace'))
+                    counts[key] += 1
+                    changed = True
+                    row_changed = True
+        if row_changed:
+            ending = b'\r\n' if raw.endswith(b'\r\n') else b'\n' if raw.endswith(b'\n') else b''
+            output.append(json.dumps(row, ensure_ascii=False, separators=(',', ':')).encode() + ending)
+        else:
+            output.append(raw)
+    if not changed:
+        return data, None
+    projected = b''.join(output)
+    return projected, {
+        'path': name,
+        'reason': 'diagnostic streams are served once from hash-bound public call logs',
+        'omitted_fields': {key: value for key, value in counts.items() if value},
+        'omitted_payload_bytes': omitted_bytes,
+        'original_sha256': hashlib.sha256(data).hexdigest(),
+        'published_sha256': hashlib.sha256(projected).hexdigest(),
+        'original_bytes': len(data),
+        'published_bytes': len(projected),
+    }
+
+
 GOOGLE_KEY = re.compile(rb'AIzaSy[A-Za-z0-9_-]{20,}')
 OTHER_SECRET = re.compile(
     rb'(?<![A-Za-z0-9_-])(?:ahp_[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|'
@@ -58,6 +122,19 @@ PUBLIC_AUTH_PLACEHOLDER = re.compile(
     rb'(?i)(?:proxy-)?authorization\s*[:=]\s*'
     rb'(?:[A-Za-z][A-Za-z0-9_-]*\s+)?(?:<[^>\r\n]+>|\[[^\]\r\n]+\])'
 )
+PUBLIC_CORS_CREDENTIAL_POLICY = re.compile(
+    rb'''(?i)["']?access[-_]control[-_]allow[-_]credentials["']?\s*[:=]\s*'''
+    rb'''(?:%[si])?["'`]*(?:true|false)["'`]*'''
+)
+
+
+def _public_cors_policy(data):
+    """A CORS permission Boolean (including ABNF) is not a credential value."""
+    decoded = html.unescape(data.decode('utf-8', errors='surrogateescape'))
+    return bool(PUBLIC_CORS_CREDENTIAL_POLICY.fullmatch(decoded.strip().encode(
+        'utf-8', errors='surrogateescape')))
+
+
 AUTH_SENSITIVE_VALUE = re.compile(
     rb'(?im)((?:proxy[-_]?authorization|authorization)[ \t]*[:=][ \t]*)'
     rb'(?![A-Za-z][A-Za-z0-9_-]*[ \t]+(?:<|\[)|(?:<|\[))'
@@ -87,11 +164,24 @@ ENTITY_SENSITIVE_VALUE = re.compile(
     rb'(?i)((&quot;|&#0*34;|&#x0*22;|&apos;|&#0*39;|&#x0*27;)'
     + SENSITIVE_KEY + rb'\2\s*:\s*\2)(?!<|\[)([^\r\n]*?)(\2)'
 )
+# Reader-facing excerpts can stop inside a quoted header value. Bound such a
+# value by the current line/text node rather than waiting for a later HTML quote.
+JSON_SENSITIVE_TAIL = re.compile(
+    rb'(?im)(["\']' + SENSITIVE_KEY + rb'["\']\s*:\s*["\'])(?!<|\[)'
+    rb'((?:\\.|[^"\'\r\n<])*)(?=<|$)'
+)
+ENTITY_SENSITIVE_TAIL = re.compile(
+    rb'(?im)((&quot;|&#0*34;|&#x0*22;|&apos;|&#0*39;|&#x0*27;)'
+    + SENSITIVE_KEY + rb'\2\s*:\s*\2)(?!<|\[|&lt;|&#0*60;|&#x0*3c;)'
+    rb'((?:(?!\2)[^\r\n<])*)(?=<|$)'
+)
 LOCAL_USER_PATH = re.compile(
     rb'(?<![A-Za-z0-9])(?:/(?:Users|home)/[^/\s"\'<>]+/|/root/)'
 )
 
 REDACTIONS = (
+    (ENTITY_SENSITIVE_TAIL, 'sensitive_field', rb'\1[REDACTED]'),
+    (JSON_SENSITIVE_TAIL, 'sensitive_field', rb'\1[REDACTED]'),
     (ENTITY_SENSITIVE_VALUE, 'sensitive_field', rb'\1[REDACTED]\4'),
     (AUTH_SENSITIVE_VALUE, 'sensitive_field', rb'\1[REDACTED]'),
     (JSON_SENSITIVE_VALUE, 'sensitive_field', rb'\1[REDACTED]\3'),
@@ -252,12 +342,14 @@ def auth_matches(data):
             or PUBLIC_AUTH_PLACEHOLDER.fullmatch(data.strip())):
         return []
     matches = sorted(
-        [*ENTITY_SENSITIVE_VALUE.finditer(data), *AUTH_SENSITIVE_VALUE.finditer(data), *JSON_SENSITIVE_VALUE.finditer(data),
+        [*ENTITY_SENSITIVE_TAIL.finditer(data), *JSON_SENSITIVE_TAIL.finditer(data), *ENTITY_SENSITIVE_VALUE.finditer(data), *AUTH_SENSITIVE_VALUE.finditer(data), *JSON_SENSITIVE_VALUE.finditer(data),
          *LINE_SENSITIVE_VALUE.finditer(data)],
         key=lambda match: (match.start(), -match.end()),
     )
     distinct = []
     for match in matches:
+        if _public_cors_policy(match.group()):
+            continue
         if distinct and match.start() < distinct[-1].end():
             continue
         distinct.append(match)
@@ -334,12 +426,18 @@ def publication_risk(data):
 
 
 def project_file(name, data):
-    """Redact only auxiliary HTML. Any match elsewhere requires human review."""
+    """Project public copies and bind their hashes to retained original evidence."""
     path = PurePosixPath(name)
     if 'private_artifacts' in path.parts:
         raise ValueError('Private evidence is not publishable: ' + name)
     if any(part.startswith('.') for part in path.parts):
         raise ValueError('Private/hidden file is not publishable: ' + name)
+    if OTHER_SECRET.search(data):
+        raise ValueError('Potential credential-shaped value in publication file: ' + name)
+    if name.endswith(('.json', '.jsonl')):
+        structured = _project_json(name, data)
+        if structured is not None:
+            return structured
     original = data
     inline_replacements = 0
     inline_kinds = set()
@@ -367,7 +465,8 @@ def project_file(name, data):
     projected = GOOGLE_KEY.sub(b'[REDACTED_GOOGLE_API_KEY]',
                                url_projected.encode('utf-8', errors='surrogateescape'))
     for pattern, _, replacement in REDACTIONS:
-        projected = pattern.sub(replacement, projected)
+        projected = pattern.sub(lambda match: match.group() if _public_cors_policy(
+            match.group()) else match.expand(replacement), projected)
     projected = LOCAL_USER_PATH.sub(b'/[REDACTED_USER]/', projected)
     categories = []
     kinds = []
@@ -460,7 +559,8 @@ def project_host_metadata_files(files, host_prefixes, *, host_names=(), public_e
                     raise ValueError('Host names must be explicit nonempty identities')
                 result = result.replace(host, '[HOSTNAME_OMITTED]')
             if public_excerpt_views and (path.endswith('.samples[].text')
-                    or path.endswith('.agent_evidence_quotes[]') or path.endswith('.evidence_quotes[]')):
+                    or path.endswith('.agent_evidence_quotes[]') or path.endswith('.evidence_quotes[]')
+                    or ('.metrics.' in path and path.endswith('.context'))):
                 public, _ = project_evidence_view('public-evidence/excerpt.txt', result.encode('utf-8'),
                     role='scored_answer', host_prefixes=host_prefixes, host_names=host_names,
                     content_format='text')
@@ -820,3 +920,57 @@ def public_render_views(source, records):
             views[role]['receipt'] = binding['path']
         result[row['attempt_id']] = views
     return result
+
+
+def _project_json(name, data):
+    """Project decoded values so header text cannot consume JSON delimiters."""
+    lines = data.splitlines(keepends=True) if name.endswith('.jsonl') else [data]
+    try:
+        documents = [json.loads(line) if line.strip() else None for line in lines]
+    except (ValueError, UnicodeError):
+        return None
+    replacements = 0
+    kinds = set()
+
+    def project(value):
+        nonlocal replacements
+        if isinstance(value, dict):
+            result = {}
+            for key, child in value.items():
+                if (isinstance(child, str) and child
+                        and re.fullmatch(SENSITIVE_KEY, key.encode(), re.I)
+                        and not child.startswith(('<', '['))
+                        and not PUBLIC_AUTH_PLACEHOLDER.fullmatch((key+': '+child).encode())):
+                    result[key] = '[REDACTED]'
+                    replacements += 1
+                    kinds.add('credential')
+                else:
+                    result[key] = project(child)
+            return result
+        if isinstance(value, list):
+            return [project(child) for child in value]
+        if isinstance(value, str):
+            raw, receipt = project_file(name+'.value.txt', value.encode())
+            if receipt:
+                replacements += receipt['replacements']
+                kinds.update(receipt['kinds'])
+            return raw.decode()
+        return value
+
+    output = []
+    for raw, document in zip(lines, documents):
+        revised = project(document)
+        if revised == document:
+            output.append(raw)
+        else:
+            ending = b'\r\n' if raw.endswith(b'\r\n') else b'\n' if raw.endswith(b'\n') else b''
+            output.append(json.dumps(revised, ensure_ascii=True).encode()+ending)
+    projected = b''.join(output)
+    if projected == data:
+        return data, None
+    return projected, {'path': name, 'kinds': sorted(kinds),
+        'reason': 'sensitive values in decoded JSON; JSON structure and non-sensitive fields retained',
+        'replacements': replacements,
+        'original_sha256': hashlib.sha256(data).hexdigest(),
+        'published_sha256': hashlib.sha256(projected).hexdigest(),
+        'original_bytes': len(data), 'published_bytes': len(projected)}

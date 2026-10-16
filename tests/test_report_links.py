@@ -57,6 +57,18 @@ class ReportLinkCheckTest(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertIn("missing fragment", result.stdout)
 
+    def test_inspection_links_use_the_declared_filter_contract(self):
+        for attribute in ('data-filter','data-wmb-filter'):
+            with self.subTest(attribute=attribute), tempfile.TemporaryDirectory() as directory:
+                root=Path(directory)
+                (root/'index.html').write_text('<a href="analysis.html#inspect?query=case-a">结果</a>')
+                (root/'analysis.html').write_text('<input '+attribute+'="query"><select '+attribute+'="result"><option value="">全部</option><option value="fail">失败</option></select>')
+                self.assertEqual(self.run_check(root).returncode,0)
+                (root/'index.html').write_text('<a href="analysis.html#inspect?unknown=case-a">结果</a>')
+                self.assertEqual(self.run_check(root).returncode,1)
+                (root/'index.html').write_text('<a href="analysis.html#inspect?result=invalid">结果</a>')
+                self.assertEqual(self.run_check(root).returncode,1)
+
     def test_honors_document_base(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

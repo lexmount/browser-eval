@@ -7,6 +7,50 @@ from harness.web_fetch.report_changes import render_changes, render_webmainbench
 from harness.web_fetch.report import overview_card, ranking
 
 class ReportChangesTests(unittest.TestCase):
+    def test_report_bound_history_overrides_legacy_registry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out = Path(directory)
+            source = out / 'report-assets/report-changes.json'
+            source.parent.mkdir()
+            data = {
+                'schema_version': 2,
+                'history_scope': 'Bound history.',
+                'review_rounds': [{
+                    'date': '2026-10-16', 'title': 'Review', 'scope': 'Two results',
+                    'finding': 'No defect', 'fix': 'No change', 'pending': 'None',
+                }],
+                'releases': [{
+                    'id': 'bound-release', 'date': '2026-10-16',
+                    'comparison_kinds': ['headless_markdown'],
+                    'title': 'Bound release', 'summary': 'Evidence-bound summary.',
+                    'changes': [['Scope', 'Old', 'New', 'No score change']],
+                }],
+            }
+            source.write_text(json.dumps(data))
+            render_changes(
+                out, {}, [{'provider': 'p', 'provider_type': 'headless_markdown'}],
+                {'comparison': {'kind': 'headless_markdown'}},
+            )
+            public = json.loads((out / 'report-changes.json').read_text())
+            self.assertEqual([row['id'] for row in public['releases']], ['bound-release'])
+
+    def test_unpublished_corrections_are_not_public_history_or_revision_bindings(self):
+        from harness.web_fetch.report_changes import select_cohort_history, require_revision_release_bindings
+        public={'id':'public','publication_state':'published','comparison_kinds':['headless_markdown'],'scoring_revision_input_sha256':'published'}
+        draft={'id':'draft','comparison_kinds':['headless_markdown'],'publication_state':'unpublished','scoring_revision_input_sha256':'draft'}
+        data={'schema_version':3,'releases':[draft,public],'review_rounds':[{'id':'review','description':'Synthetic review'}]}
+        with patch('harness.web_fetch.report_changes.require_review_rounds',return_value=[]):
+            selected=select_cohort_history(data,{'comparison':{'kind':'headless_markdown'}},[])
+        self.assertEqual(selected['releases'],[public])
+        unmarked={k:v for k,v in public.items() if k!='publication_state'}
+        with patch('harness.web_fetch.report_changes.require_review_rounds',return_value=[]), self.assertRaisesRegex(ValueError,'publication state'):
+            select_cohort_history({**data,'releases':[unmarked]}, {'comparison':{'kind':'headless_markdown'}}, [])
+        require_revision_release_bindings([{'input_results_sha256':'published'}],[draft,public])
+        with self.assertRaises(ValueError):
+            require_revision_release_bindings([{'input_results_sha256':'draft'}],[draft,public])
+        with self.assertRaisesRegex(ValueError,'publication state'):
+            require_revision_release_bindings([{'input_results_sha256':'published'}],[{**public,'publication_state':'typo'}])
+
     def test_webmainbench_history_is_localized_from_one_record(self):
         from harness.web_fetch.report_changes import ROOT
         source = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))
@@ -48,6 +92,29 @@ class ReportChangesTests(unittest.TestCase):
             for source, target in zip(row['changes'], english['changes'], strict=True):
                 for zh, en in zip(source, target, strict=True):
                     self.assertEqual(translate_text(zh, translations), en, row['id'])
+
+    def test_release_translation_reuse_requires_one_unambiguous_english_value(self):
+        from harness.web_fetch.report_i18n import release_translations, translate_text
+        release = {
+            'id': 'first', 'title': '版本', 'summary': '摘要',
+            'changes': [['项目', '原问题', '修正', '边界']],
+            'i18n': {'en': {'title': 'Release', 'summary': 'Summary',
+                           'changes': [['Item', 'Prior issue', 'Correction', 'Limits']]}},
+        }
+        matching = json.loads(json.dumps(release))
+        matching['id'] = 'second'
+        translations = release_translations({'releases': [release, matching]})
+        self.assertEqual(translate_text('修正', translations), 'Correction')
+        for field in ('title', 'summary', 'changes'):
+            conflicting = json.loads(json.dumps(matching))
+            if field == 'changes':
+                conflicting['i18n']['en']['changes'][0][2] = 'Different correction'
+            else:
+                conflicting['i18n']['en'][field] = 'Different English text'
+            with self.subTest(field=field), self.assertRaisesRegex(
+                ValueError, 'Conflicting English release translation'
+            ):
+                release_translations({'releases': [release, conflicting]})
 
     def test_dynamic_local_audit_release_is_selected_only_for_its_cohort(self):
         from harness.web_fetch.report_changes import ROOT, select_cohort_history
@@ -204,7 +271,7 @@ class ReportChangesTests(unittest.TestCase):
     def test_ranking_uses_planned_judgment_denominator(self):
         c={'id':'file','name':'File','track':'video','task_kind':'file'}
         r={'case_id':'file','provider':'p','ok':True,'elapsed_ms':1,'metrics':{'task_kind':'file'}}
-        page=ranking([r],{'file':c},'video')
+        page=ranking([r],{'file':c},'media_file')
         self.assertIn('判分完整性',page)
         self.assertNotIn('已执行/总案例',page)
         self.assertIn('缺少验收证据的案例',page)

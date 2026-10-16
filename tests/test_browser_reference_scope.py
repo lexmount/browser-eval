@@ -1,6 +1,9 @@
 """Browser reference capture must preserve scope and isolate case failures."""
 import json
 import os
+import sys
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -101,6 +104,97 @@ def test_browser_audit_resume_is_input_bound_and_preserves_access_failures(tmp_p
     data['observation']['status']='success';saved.write_text(json.dumps(data))
     with pytest.raises(ValueError,match='observation changed'):
         browser_capture.capture_batch([cases[1]],**options)
+
+
+def test_checkpoint_cannot_cross_dns_modes(tmp_path, monkeypatch):
+    binary = tmp_path / 'browser'
+    binary.write_bytes(b'synthetic browser identity')
+    monkeypatch.setattr(browser_capture, 'capture_with_retries', lambda case, *args, **kwargs: {
+        'case_id': case['id'], 'status': 'success', 'completion': {'satisfied': True},
+    })
+    options = dict(timeout_ms=1000, attempts=1, checkpoints=tmp_path / 'checkpoints',
+                   browser_binary=str(binary))
+    case = {'id': 'article', 'url': 'https://example.com/article'}
+    browser_capture.capture_batch([case], dns_mode='system', **options)
+    with pytest.raises(ValueError, match='inputs changed'):
+        browser_capture.capture_batch([case], dns_mode='public_doh', **options)
+
+
+def test_public_doh_capture_uses_fresh_persistent_profile_and_records_route(monkeypatch):
+    observed = {}
+    class Response:
+        def server_addr(self):
+            return {'ip_address': '203.0.113.8', 'port': 443}
+    class Page:
+        url = 'https://example.com/'
+        def goto(self, *args, **kwargs): return Response()
+        def title(self): return 'Example'
+    browser = SimpleNamespace(version='Chromium 155')
+    class Context:
+        def __init__(self): self.browser = browser
+        def new_page(self): return Page()
+        def close(self): observed['closed'] = True
+    class Chromium:
+        def launch_persistent_context(self, directory, **kwargs):
+            from harness.web_fetch.network_dns import DNS_ENDPOINT
+            observed['directory'] = directory
+            observed['launch'] = kwargs
+            state = json.loads((browser_capture.Path(directory) / 'Local State').read_text())
+            assert state['dns_over_https'] == {
+                'mode': 'secure', 'templates': DNS_ENDPOINT + '{?dns}',
+            }
+            return Context()
+        def launch(self, **kwargs):
+            raise AssertionError('public_doh must not use an ephemeral non-profile launch')
+    class Driver:
+        def __enter__(self): return SimpleNamespace(chromium=Chromium())
+        def __exit__(self, *args): observed['driver_closed'] = True
+    module = SimpleNamespace(sync_playwright=lambda: Driver())
+    captured = {
+        'content_text': '', 'selector': 'resources', 'observation_method': 'fixture',
+        'observed_records': 1, 'resource_scope_identity': {}, 'resource_candidates': [],
+        'resource_candidates_sha256': 'a' * 64, 'target_matches': [],
+        'completion': {'satisfied': True, 'elapsed_ms': 1, 'timeout_ms': 1000},
+    }
+    monkeypatch.setattr(browser_capture, 'capture_resource_observation',
+                        lambda *args, **kwargs: captured)
+    with patch.dict(sys.modules, {'playwright.sync_api': module}):
+        row = browser_capture.capture(
+            {'id': 'resource', 'url': 'https://example.com/', 'track': 'image',
+             'task_kind': 'resource', 'expected_resources': []},
+            1000, '/chrome', dns_mode='public_doh')
+    assert row['observer']['dns_mode'] == 'public_doh'
+    assert row['observer']['resolution_method'] == 'chromium_secure_dns'
+    assert row['observer']['system_dns_fallback'] is False
+    assert row['observer']['dns_override'] is False
+    assert row['observer']['browser_version'] == 'Chromium 155'
+    assert row['observer']['primary_response_server_addr'] == {
+        'ip_address': '203.0.113.8', 'port': 443,
+    }
+    assert observed['launch']['args'] == []
+    assert observed['closed'] and observed['driver_closed']
+    assert not browser_capture.Path(observed['directory']).exists()
+
+
+def test_public_doh_retry_never_pre_resolves_or_accepts_forced_ip(monkeypatch):
+    monkeypatch.setattr(browser_capture, 'resolve_public_host', lambda *args: (_ for _ in ()).throw(
+        AssertionError('public_doh must not use system DNS or a forced-IP mapping')))
+    observed = {}
+    def capture(case, timeout_ms, browser_binary, resolved_ip, **kwargs):
+        observed.update(resolved_ip=resolved_ip, kwargs=kwargs)
+        return {'case_id': case['id'], 'status': 'success', 'observer': {},
+                'completion': {'satisfied': True}}
+    monkeypatch.setattr(browser_capture, 'capture', capture)
+    row = capture_with_retries(
+        {'id': 'public', 'url': 'https://example.com/'}, 1000, 1, '/chrome',
+        dns_mode='public_doh')
+    assert observed == {'resolved_ip': None, 'kwargs': {'dns_mode': 'public_doh'}}
+    assert row['observer']['resolution_method'] == 'chromium_secure_dns'
+    assert row['observer']['system_dns_fallback'] is False
+    with pytest.raises(ValueError, match='cannot use a resolved-IP'):
+        capture_with_retries(
+            {'id': 'public', 'url': 'https://example.com/'}, 1000, 1, '/chrome',
+            '203.0.113.8', dns_mode='public_doh')
 
 
 def test_rendered_wikipedia_selector_preserves_main_article_text():

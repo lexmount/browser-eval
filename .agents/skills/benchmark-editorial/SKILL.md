@@ -17,7 +17,7 @@ Treat feedback as editorial input, not publishable copy. Identify the reader pro
 
 ## Evidence and argument
 
-Read the supplied reports and relevant reference articles, including their charts, cases and methodology. Track material that could not be inspected privately; do not claim full coverage from a landing page. Study how reference articles develop their reasoning as well as how they look. Their facts are not evidence for this benchmark.
+Read the supplied reports and relevant reference articles, including their charts, cases and methodology. Track material that could not be inspected privately; do not claim full coverage from a landing page. Study how reference articles develop their reasoning as well as how they look. Their facts are not evidence for this benchmark. When reproducing a supplied reference, compare its actual opening, result charts, specimen interactions and conclusion with the delivered page. Reuse the owning presentation components where available; matching headings and factual claims alone does not establish presentation parity.
 
 For this repository, use `evaluation/current-report.json`, the normalized persisted results and the current scoring implementation. Read [benchmark-report](../benchmark-report/SKILL.md) when building or auditing them. Keep a private ledger for consequential claims: evidence, calculation, interpretation and limits. Do not rerun providers, alter scores or select better attempts to improve a narrative.
 

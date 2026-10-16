@@ -42,6 +42,52 @@ from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .webmainbench_latency_correction import prior_results_path
 from .webmainbench_latency_diagnostic import load_diagnostic as load_latency_diagnostic
 
+REPOSITORY = Path(__file__).resolve().parents[2]
+
+
+def _validate_stable_annotation_evidence(case, source, dataset):
+    """Validate anchors against their primary or registered qualification evidence."""
+    from copy import deepcopy
+
+    from .reference_inputs import input_tree, read_dataset_bytes
+    from .stable_annotations import bind_annotation_evidence
+
+    checked = deepcopy(case)
+    try:
+        bind_annotation_evidence(checked, source)
+        return checked['source_benchmark']['stable_annotation']['anchor_evidence_sha256']
+    except ValueError as error:
+        if not str(error).startswith('Stable text lacks independent evidence:'):
+            raise
+    identifier = case['id']
+    relative = f'sources/{identifier}/mixed-session-stable-text.json'
+    aggregate = contained_path(source, relative, reject_symlinks=True)
+    if not aggregate.is_file():
+        raise ValueError('Stable text lacks registered qualification evidence: ' + identifier)
+    matches = []
+    for declaration in dataset.get('comparison', {}).get('input_sources', []):
+        if (not isinstance(declaration, dict)
+                or set(declaration) != {'path', 'sha256', 'case_ids'}):
+            continue
+        path = contained_path(REPOSITORY, declaration['path'], reject_symlinks=True)
+        raw = read_dataset_bytes(path)
+        if hashlib.sha256(raw).hexdigest() != declaration['sha256']:
+            raise ValueError('Registered input source changed: ' + declaration['path'])
+        source_ids = {row['id'] for row in json.loads(raw).get('cases', [])}
+        candidate = contained_path(input_tree(path, 'sources'),
+                                   f'{identifier}/mixed-session-stable-text.json',
+                                   reject_symlinks=True)
+        if identifier in source_ids and candidate.is_file():
+            matches.append(candidate)
+    if not matches or any(candidate.read_bytes() != aggregate.read_bytes() for candidate in matches):
+        raise ValueError('Stable text qualification evidence is not registry-bound: ' + identifier)
+    annotation = checked['source_benchmark']['stable_annotation']
+    primary_sha256 = annotation['anchor_evidence_sha256']
+    annotation['anchor_evidence'] = relative
+    annotation.pop('anchor_evidence_sha256', None)
+    bind_annotation_evidence(checked, source)
+    return primary_sha256
+
 
 def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | None = None) -> Path:
     """Build an explicitly requested diagnostic edition using the WebFetch owner."""
@@ -289,7 +335,7 @@ def write_frozen_result_summary(output, dataset, records):
 
 
 def build_report(source: Path, output: Path, *, include_english: bool = False,
-                 local_audit: bool = False, authored_interpretation: bool = False,
+                 local_audit: bool = False, authored_interpretation: bool | None = None,
                  diagnostic_preview: bool = False, language: str | None = None,
                  show_local_status_banners: bool = True,
                  presentation_binding: Path | None = None) -> Path:
@@ -320,6 +366,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     if not local_audit:
         require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
+    if authored_interpretation is None:
+        authored_interpretation = bool(dataset.get('comparison', {}).get('report_interpretation'))
     records = load_jsonl(contained_path(source,'results.jsonl'))
     validate_report_ids(dataset,records)
     require_risk_control_certification(source, dataset, records)
@@ -360,17 +408,15 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     for c in cases.values():
         annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
         if annotation.get('anchor_evidence_sha256'):
-            if local_audit:
+            if (local_audit or dataset.get('comparison', {}).get('reference_binding_mode') == 'frozen_task_contracts'
+                    or dataset.get('comparison', {}).get('source_reference_policy') in {
+                        'frozen_acceptance_contracts_with_live_exact_reference_checks',
+                        'frozen_benchmark_inputs_with_explicit_live_exact_checks'}):
                 # The two historical dynamic cohorts retain their own source
                 # audit receipts.  Do not reinterpret those revisions with the
                 # newer origin/main release gate in a local merged view.
                 continue
-            from copy import deepcopy
-
-            from .stable_annotations import bind_annotation_evidence
-            checked=deepcopy(c)
-            bind_annotation_evidence(checked,source)
-            if checked['source_benchmark']['stable_annotation']['anchor_evidence_sha256'] != annotation['anchor_evidence_sha256']:
+            if _validate_stable_annotation_evidence(c, source, dataset) != annotation['anchor_evidence_sha256']:
                 raise ValueError('Stable text evidence changed: '+c['id'])
     for r in records:
         if r.get('metrics', {}).get('scoring_source_sha256') != SCORING_SOURCE_SHA256:
@@ -540,12 +586,17 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 text=[r for r in subset if r['metrics'].get('content_check_coverage') is not None]
                 row['text_checked_attempts']=len(text)
                 row['text_checked_cases']=len({r['case_id'] for r in text})
-        for name,data in [('dataset.json',dataset),('execution.json',{'batches':manifests}),('summary.json',summary)]:
+        # Preserve frozen input bytes across build and release profile checks.
+        shutil.copy2(contained_path(source,'dataset.json'), staging/'dataset.json')
+        for name,data in [('execution.json',{'batches':manifests}),('summary.json',summary)]:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
         if (source / 'certification.json').is_file():
             shutil.copy2(source / 'certification.json', staging / 'certification.json')
             if dataset.get('comparison', {}).get('kind') == 'risk_control_100_moli':
-                for name in ('dataset.json', 'manifest.json', 'execution.json', 'reference-proof-verification.json'):
+                from .risk_control import risk_control_verification_binding
+                receipt = json.loads((source / 'certification.json').read_text())
+                verification_name, _ = risk_control_verification_binding(receipt)
+                for name in ('dataset.json', 'manifest.json', 'execution.json', verification_name):
                     shutil.copy2(contained_path(source, name), staging / name)
         reliability=assess_reliability(dataset,records)
         (staging/'reliability.json').write_text(json.dumps(reliability,ensure_ascii=False,indent=2)+'\n')
@@ -557,10 +608,48 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if local_audit:
             if (source/'local-evidence').is_dir():
                 shutil.copytree(source/'local-evidence', staging/'local-evidence')
+        content_binding = dataset.get('comparison', {}).get('report_interpretation')
+        if content_binding is not None:
+            copy_bound_assets(source, staging, {content_binding['path']: content_binding['sha256']})
+            authored_content = json.loads(contained_path(staging, content_binding['path']).read_text())
+            nested_assets = {item['path']: item['sha256'] for item in authored_content.get('figures', [])}
+            failure_binding = authored_content.get('failure_review')
+            if failure_binding:
+                copy_bound_assets(source, staging, {failure_binding['path']: failure_binding['sha256']})
+                failure_review = json.loads(contained_path(staging, failure_binding['path']).read_text())
+                for item in failure_review.get('failures', []):
+                    for evidence in item.get('evidence_paths', []):
+                        if not isinstance(evidence, dict):
+                            raise ValueError('Failure review evidence requires path and sha256')
+                        previous = nested_assets.setdefault(evidence['path'], evidence['sha256'])
+                        if previous != evidence['sha256']:
+                            raise ValueError('Conflicting interpretation asset binding')
+            missing_assets = {}
+            for relative, expected_hash in nested_assets.items():
+                existing = contained_path(staging, relative, reject_symlinks=True)
+                if existing.exists():
+                    if not existing.is_file() or hashlib.sha256(existing.read_bytes()).hexdigest() != expected_hash:
+                        raise ValueError('Conflicting interpretation evidence: ' + relative)
+                else:
+                    missing_assets[relative] = expected_hash
+            if missing_assets:
+                copy_bound_assets(source, staging, missing_assets)
         copy_methodology_assets(staging)
-        provenance=Path(__file__).resolve().parents[2]/'research/headless-implementation-provenance.json'
-        if provenance.is_file():
-            shutil.copy2(provenance,staging/'implementation-provenance.json')
+        implementation_binding = dataset.get('comparison', {}).get('implementation_provenance')
+        if implementation_binding is not None:
+            if implementation_binding['path'] != 'implementation-provenance.json':
+                raise ValueError('Implementation provenance uses implementation-provenance.json')
+            copy_bound_assets(source, staging, {
+                implementation_binding['path']: implementation_binding['sha256']})
+        else:
+            provenance=Path(__file__).resolve().parents[2]/'research/headless-implementation-provenance.json'
+            if provenance.is_file():
+                payload=json.loads(provenance.read_text())
+                hashes={r.get('provider_metadata',{}).get('binary_sha256') for r in records}
+                matched=[item for item in payload.get('implementations',[]) if item.get('binary_sha256') in hashes]
+                if matched:
+                    (staging/'implementation-provenance.json').write_text(json.dumps(
+                        {**payload,'implementations':matched},ensure_ascii=False,indent=2)+'\n')
         if (source/'scoring-revisions.json').is_file():
             scoring_path = source/'scoring-revisions.json'
             scoring_revisions = json.loads(scoring_path.read_text())
@@ -581,6 +670,28 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 shutil.copy2(archived, target)
         if (source/'reference-revisions.json').is_file():
             shutil.copy2(source/'reference-revisions.json', staging/'reference-revisions.json')
+        replacement_scopes = source/'provider-replacement-scopes.json'
+        if replacement_scopes.is_file():
+            scopes = json.loads(replacement_scopes.read_text())
+            if not isinstance(scopes, list):
+                raise ValueError('Provider replacement scope index is invalid')
+            for item in scopes:
+                if (not isinstance(item, dict) or set(item) != {'path', 'sha256', 'replacements'}):
+                    raise ValueError('Provider replacement scope entry is invalid')
+                bound = contained_path(source, item['path'], reject_symlinks=True)
+                if (not bound.is_file()
+                        or hashlib.sha256(bound.read_bytes()).hexdigest() != item['sha256']):
+                    raise ValueError('Provider replacement scope receipt changed')
+                target = contained_path(staging, item['path'], reject_symlinks=True)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(bound, target)
+            shutil.copy2(replacement_scopes, staging/'provider-replacement-scopes.json')
+        if (source/'report-binding-revisions.json').is_file():
+            receipts = json.loads((source/'report-binding-revisions.json').read_text())
+            bindings = {row[f'{side}_dataset_path']: row[f'{side}_dataset_sha256']
+                        for row in receipts for side in ('input', 'output')}
+            copy_bound_assets(source, staging, bindings)
+            shutil.copy2(source/'report-binding-revisions.json', staging/'report-binding-revisions.json')
         if (source/'latency-corrections.json').is_file():
             shutil.copy2(source/'latency-corrections.json', staging/'latency-corrections.json')
         if (source/'request-status-corrections.json').is_file():
@@ -613,6 +724,17 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                  show_local_status_banners=show_local_status_banners)
         if language is not None:
             select_report_language(staging, language)
+        from harness.reporting.templates import resolve_template
+        from harness.report_languages import generated_languages
+        nonpublication = diagnostic_preview or dataset.get('comparison', {}).get('kind') == 'uniform_native_local_measurement'
+        template_manifest = {'schema_version': 1, 'template': None if nonpublication else resolve_template('webfetch'),
+            'dataset_sha256': hashlib.sha256((staging/'dataset.json').read_bytes()).hexdigest(),
+            'results_sha256': hashlib.sha256((staging/'results.jsonl').read_bytes()).hexdigest(),
+            'generated_languages': generated_languages(staging)}
+        if dataset.get('comparison', {}).get('kind') == 'uniform_native_local_measurement':
+            template_manifest.update(evidence_state='local_measurement', certified=False,
+                languages=template_manifest['generated_languages'], provider_calls_added=0)
+        (staging/'report-manifest.json').write_text(json.dumps(template_manifest, ensure_ascii=False, indent=2)+'\n')
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.
         _install_report_tree(staging, output)
@@ -1361,20 +1483,21 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     output = unlinked_path(output)
     before_tree = evidence_tree_identity(output)
     binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
-    if manifest['languages'] != ['zh']:
-        raise ValueError('Presentation refresh supports Chinese snapshots only; rebuild both editions for bilingual changes')
     manifest_path = output / "report-manifest.json"
     # The existing owner renders from saved metrics. Only these explanatory
     # routes may be installed; result pages, logs and every measured byte stay.
     routes = ['index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html', 'changes/index.html']
     routes += ['providers/' + provider + '.html' for provider in binding['providers']]
     routes += ['adoption/interfaces/' + provider + '.json' for provider in binding['providers']]
+    include_english = 'en' in manifest['languages']
+    if include_english:
+        routes += ['en/' + relative for relative in routes if relative.endswith('.html')]
     with tempfile.TemporaryDirectory(prefix='.presentation-', dir=output.parent) as scratch:
         staging = Path(scratch) / 'report'
         shutil.copytree(output, staging)
         shutil.rmtree(staging / 'en', ignore_errors=True)
         batches = json.loads((output / 'execution.json').read_text())['batches']
-        generate(staging, dataset, records, batches, presentation_only=True)
+        generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True)
         changed = []
         for relative in routes:
             before, after = contained_path(output, relative), contained_path(staging, relative)

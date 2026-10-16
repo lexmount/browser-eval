@@ -10,9 +10,29 @@ from urllib.parse import urlsplit
 
 from .models import EvalCase, validate_case
 from .reference_inputs import read_dataset_bytes
-from .retrieval_hints import parse_retrieval_hints, native_default_case
+from .retrieval_hints import (
+    native_default_case,
+    parse_retrieval_hints,
+    task_definition_sha256,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_FAILURE_RETRIES = 1
+
+
+def nonnegative_int(value: str) -> int:
+    """Parse a nonnegative command-line count."""
+    number = int(value)
+    if number < 0:
+        raise ValueError('must be a nonnegative integer')
+    return number
+
+
+def add_failure_retry_argument(parser) -> None:
+    parser.add_argument(
+        '--max-failure-retries', type=nonnegative_int, default=DEFAULT_FAILURE_RETRIES,
+        help=f'Retry a failed task up to N times (default: {DEFAULT_FAILURE_RETRIES}; 0 disables retries); use the final call',
+    )
 
 
 def _validate_retrieval_hints(item: dict[str, Any]) -> None:
@@ -22,6 +42,7 @@ def _validate_retrieval_hints(item: dict[str, Any]) -> None:
         str(item.get("track", "web")),
         item.get("retrieval_hints") if "retrieval_hints" in item else None,
         identifier=str(item.get("id", "<unknown>")),
+        current_task_definition_sha256=task_definition_sha256(item),
     )
 
 

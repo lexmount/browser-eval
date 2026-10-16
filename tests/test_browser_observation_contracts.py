@@ -206,6 +206,10 @@ def rendered_page():
         def do_GET(self):
             body = b"""<html><body><nav>Navigation only</nav><main>
             <div style="display:none">Hidden panel</div>
+            <div style="opacity:0"><span>Transparent menu</span></div>
+            <span>Visible duplicate</span><div style="opacity:0">Visible duplicate</div>
+            <p style="opacity:0.5">Translucent text</p>
+            <p>Inline <strong>formatting</strong> preserved</p>
             <div aria-hidden="true" style="display:none">Excluded panel</div>
             </main><footer>Footer only</footer>
             <script>setTimeout(()=>{for(let i=0;i<10;i++){
@@ -245,6 +249,13 @@ def test_live_multielement_completion_preserves_declared_content_scope(rendered_
     assert all(f"Card {i}" in row["content_text"] for i in range(10))
     assert "Navigation only" not in row["content_text"]
     assert "Footer only" not in row["content_text"]
+    assert ("Transparent menu" in row["content_text"]) == (mode != "visible")
+    assert "Visible duplicate" in row["content_text"]
+    assert "Translucent text" in row["content_text"]
+    assert "Inline formatting preserved" in " ".join(row["content_text"].split())
+    if mode == "visible":
+        assert "Inline formatting preserved" in row["content_text"]
+        assert row["content_text"].count("Visible duplicate") == 1
     assert ("Hidden panel" in row["content_text"]) == (mode != "visible")
     assert ("Excluded panel" in row["content_text"]) == (mode == "dom")
 

@@ -44,7 +44,7 @@ Initially loaded iframe/subdocument content can qualify with declared ownership.
 
 Do not use OCR, text within images/posters/icons/image buttons, alt text, hidden templates, scripts or still-collapsed content. Exclude content requiring clicks, expansion, typing, pagination or scroll-triggered loading. Challenges, access-denied pages, login notices and loading placeholders are not target body text. A browser-tab title absent from visible page content is not visible stable text.
 
-Ordinary text buttons can qualify without being clicked when visible, stable and relevant. Once selected they are mandatory, but cannot replace body or list completeness.
+Ordinary text buttons can qualify without being clicked when visible, stable and relevant. Their acceptance role follows the content contract: diagnostic when body or composite requirements exist, mandatory otherwise. They cannot replace body or list completeness.
 
 ### No interaction during supplementary capture
 
@@ -95,7 +95,7 @@ Do not freeze current leaderboard members, news headlines, prices, ranks, stock,
 
 There is no universal minimum or maximum group count. Do not stop at three or add unsuitable phrases to reach three. Overlapping fragments of one sentence are not independent identity items. Each group needs a meaningful phrase, original text, position, purpose and stability evidence; avoid large spans containing volatile dates or prices.
 
-All registered groups are mandatory. A selected footer or button missing from otherwise complete body text still fails. Select peripheral text carefully; stability alone does not require freezing every peripheral string. Navigation/footer matches do not prove body or list completeness.
+Stable text is `required` by default. A body or list-contract owner may explicitly set `stable_text_role` to `diagnostic` only after its mandatory body regions, structured records and any `page_patterns` together cover the complete qualified target scope. Missing diagnostic groups remain visible in coverage and per-group results but do not reject complete target content. Select peripheral text carefully; navigation and footer matches cannot establish body, identity or list completeness.
 
 ### Formatting and variants
 
@@ -202,13 +202,13 @@ These are design examples, not frozen answers for actual cases.
 | Short post | Post/author identity, suitable phrases and short-body check | Arbitrary phrase quotas or replies used as post text |
 | iframe page | Parent identity and actual subdocument target | Parent title or embed tag only |
 
-All selected requirements apply. Complete stable footers do not replace body; sufficient links do not replace another declared body region. Alternative wording inside one group does not make whole-page rule types alternatives.
+Every declared body region and composite group applies. Stable-text groups are diagnostics when either contract exists; cases with neither retain mandatory stable text. Complete footers cannot replace body content, and sufficient links cannot replace a declared body region.
 
 ## 12. Validate both error directions
 
 Exercise the shared scoring entry point, not only visual inspection of configuration. The guide itself does not execute these checks. Complete independent references should pass, including reasonable spaces, line breaks, case, Markdown tables/lists, real relative-link resolution and verified irrelevant tracking differences.
 
-Construct applicable negative controls for missing any stable phrase, including footers/buttons; site/navigation/footer-only outputs; wrong target/language; challenge-only or loading-shell responses; empty names; ownership mismatch; wrong hosts/paths; incomplete or invented links; IDs without links; missing or borrowed fields; duplicate records; wrong-region records; counts one below threshold; missing middle/end; repeated openings; and capture duplicates creating false coverage.
+Include positive controls for complete body or records without peripheral phrases. Construct applicable negative controls for missing mandatory stable phrases in anchor-only cases; site/navigation/footer-only outputs; wrong target/language; challenge-only or loading-shell responses; empty names; ownership mismatch; wrong hosts/paths; incomplete or invented links; IDs without links; missing or borrowed fields; duplicate records; wrong-region records; counts one below threshold; missing middle/end; repeated openings; and capture duplicates creating false coverage.
 
 Normal articles discussing login or CAPTCHA must not fail solely for those words. Exact threshold boundaries use unrounded values; display rounding cannot change verdicts. URL syntax alone cannot establish every new member's authenticity: require the declared provenance and ownership checks.
 
@@ -224,4 +224,4 @@ Keep original pages and observations in external evidence storage. Do not copy p
 
 The final cohort inventory, original evidence, per-case scope and mappings to historical material are bound by paths and hashes. Unused reserves stay outside Git. Dynamic-task methodology supplies independent evidence, rule combinations, link/field/count/body techniques and bidirectional checks, but not its dataset-specific counts or qualification criteria.
 
-Consult the [shared body implementation](../../harness/web_fetch/body_coverage.py) and [format handling](../../harness/web_fetch/metrics.py) for actual metric semantics. This cohort does not inherit an older three-phrase minimum, a mandatory extra visit per case or old candidate counts. It uses only the formal 100 cases, predeclared random reserve selection when needed, page-specific stable text without quotas, necessary evidenced variants, all-selected-item acceptance, evidence reuse, real links and at least 80% valid name-link count.
+Consult the [shared body implementation](../../harness/web_fetch/body_coverage.py) and [format handling](../../harness/web_fetch/metrics.py) for actual metric semantics. This cohort does not inherit an older three-phrase minimum, a mandatory extra visit per case or old candidate counts. It uses only the formal 100 cases, predeclared random reserve selection when needed, page-specific stable text without quotas, necessary evidenced variants, explicit body/record acceptance with stable-text diagnostics, anchor-only fallback, evidence reuse, real links and at least 80% valid name-link count.

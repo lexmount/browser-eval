@@ -157,6 +157,9 @@ def experiment(tmp_path, monkeypatch):
     SyntheticBrowser.calls = []
     monkeypatch.setattr(runner, "build_provider", SyntheticBrowser)
     monkeypatch.setattr(runner, "load_runtime_env", lambda *args: None)
+    # These providers never access a network; DNS is a controlled public fixture.
+    monkeypatch.setattr('socket.getaddrinfo', lambda *args, **kwargs:
+        [(2, 1, 6, '', ('93.184.216.34', 443))])
 
     def run(payload, *extra):
         config.write_text(json.dumps(payload))
@@ -194,6 +197,14 @@ def test_custom_registry_defaults_to_its_methods_and_retains_true_input_identity
     assert "五种" not in selected["name"]
     assert manifest["dataset"]["source"] == dataset.name
     assert manifest["provider_config_source"] == config.name
+
+
+def test_headless_runner_rejects_native_web_fetch_provider_before_execution(experiment):
+    run, _, _, output = experiment
+    with pytest.raises(SystemExit):
+        run({"providers": {"moli": {"type": "moli_webfetch"}}})
+    assert SyntheticBrowser.calls == []
+    assert not output.exists()
 
 
 def test_headless_run_copies_references_only_for_selected_tasks(experiment):
@@ -409,7 +420,10 @@ def test_native_command_runs_a_custom_binary_and_preserves_its_identity(tmp_path
     completed = subprocess.run(
         [
             sys.executable,
-            str(runner.ROOT / "scripts/run_headless_benchmark.py"),
+            '-c',
+            "import runpy; from unittest.mock import patch; "
+            "dns = patch('socket.getaddrinfo', return_value=[(2,1,6,'',('93.184.216.34',443))]); "
+            "dns.start(); runpy.run_path(" + repr(str(runner.ROOT / "scripts/run_headless_benchmark.py")) + ", run_name='__main__')",
             "--dataset",
             str(dataset),
             "--config",
@@ -518,7 +532,9 @@ def test_synthetic_inputs_remain_non_release_after_selection_and_native_calls(tm
     env.write_text('')
     output = tmp_path / 'measured'
     result = subprocess.run([sys.executable, '-c',
-        'from harness.web_fetch.headless_runner import main; main()', '--dataset', str(tasks),
+        "from unittest.mock import patch; "
+        "dns = patch('socket.getaddrinfo', return_value=[(2,1,6,'',('93.184.216.34',443))]); "
+        "dns.start(); from harness.web_fetch.headless_runner import main; main()", '--dataset', str(tasks),
         '--config', str(methods), '--env-file', str(env), '--output', str(output)],
         text=True, capture_output=True)
     assert result.returncode == 0, result.stdout + result.stderr
@@ -530,3 +546,24 @@ def test_synthetic_inputs_remain_non_release_after_selection_and_native_calls(tm
     with pytest.raises(ValueError, match='Diagnostic'):
         build(output, tmp_path / 'published.zip')
     assert not (tmp_path / 'published.zip').exists()
+
+
+def test_shipped_cohorts_keep_portable_dns_through_public_boundaries():
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock, patch
+    from harness.web_fetch.config import load_provider_settings
+    from harness.web_fetch.providers import build_provider
+    from harness.web_fetch.network_preflight import preflight_guarded_providers
+    settings = load_provider_settings(runner.ROOT/'configs/providers.headless.json')
+    for resource in (False, True):
+        _, cohort, configs = runner.select_cohort(settings, resource=resource)
+        providers = [build_provider(name, config) for name, config in configs.items()]
+        with patch('harness.web_fetch.network_preflight.inspect_system_dns', return_value={'hosts': []}):
+            assert preflight_guarded_providers(providers, [SimpleNamespace(url='https://example.com/')])['dns_mode'] == 'system'
+        if resource:
+            for name, config in configs.items():
+                provider = build_provider(name, {**config, 'resource_sample_interval_ms':100,
+                    'resource_container_image':cohort['resource_container_image']})
+                with patch.object(provider, '_resource_runner', return_value=MagicMock()), patch.object(
+                    provider, 'implementation_identity', return_value={'reported_version':'moli 1.1.1'}):
+                    assert provider.validate() == []

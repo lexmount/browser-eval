@@ -34,6 +34,24 @@ class FailureDiagnosisTests(unittest.TestCase):
   self.assertEqual(diagnose(self.record(),{},raw)['category'],'浏览器执行上下文中断')
   self.assertEqual(diagnose(self.record(),{},'Check waitForTimeout options.')['category'],'服务取页失败')
   self.assertEqual(diagnose(self.record(error_type='request_timeout'),{},'')['category'],'加载 / 提取超时')
+ def test_explicit_output_rejection_precedes_incidental_timeout_configuration(self):
+  for debug in ['timeout_ms=40500','request_timeout_ms=45000','timeout=45000','"timeout": 45000']:
+   message='DEBUG waiting '+debug+' stage=Load\nError: failed to fetch\nReason: raw download output only supports automatic output or --dump json'
+   row=self.record(error_type='tool_error',error_message=message)
+   before=deepcopy(row)
+   result=diagnose(row,{'task_kind':'body'},'')
+   self.assertEqual(result['category'],'不支持所需输出格式')
+   self.assertEqual(result['stage'],'内容交付')
+   self.assertIn('raw download output only supports',result['evidence'])
+   self.assertNotIn(debug,result['evidence'])
+   self.assertEqual(row,before)
+ def test_debug_timeout_fields_do_not_establish_a_timeout(self):
+  for debug in ['timeout_ms=40500','request_timeout_ms=45000','timeout=45000','"timeout": 45000']:
+   self.assertEqual(diagnose(self.record(error_type='tool_error',error_message=debug),{},'')['category'],'服务取页失败')
+  for message in ['request timed out','Timeout 45000ms exceeded','deadline exceeded']:
+   self.assertEqual(diagnose(self.record(error_type='tool_error',error_message=message),{},'')['category'],'加载 / 提取超时')
+  self.assertEqual(diagnose(self.record(error_type='request_timeout'),{},'')['category'],'加载 / 提取超时')
+
  def test_capability_and_security_separated(self):
   for code,expected in [('WEB_REDIRECT_BLOCKED','方法禁止跨站跳转'),('WEB_UNSUPPORTED_CONTENT_TYPE','不支持输入类型'),('WEB_BLOCKED_URL','方法安全限制')]:
    self.assertEqual(diagnose(self.record(error_type=code),{},'')['category'],expected)

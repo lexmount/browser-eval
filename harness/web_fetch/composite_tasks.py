@@ -13,7 +13,8 @@ import re
 import unicodedata
 from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
 
-from .dynamic_lists import _canonical_entry_path, extract_named_entries
+from .structured_tables import _pipe_cells, table_text_surface
+from .dynamic_lists import _canonical_entry_path, _named_candidate, extract_named_entries
 from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links
 
 
@@ -78,7 +79,7 @@ def _scope(content: str, group: dict) -> str:
 
     def boundary(pattern: str, value: str):
         matches = list(re.finditer(pattern, value, re.I | re.M))
-        return next(
+        match = next(
             (
                 match
                 for match in matches
@@ -86,18 +87,32 @@ def _scope(content: str, group: dict) -> str:
             ),
             matches[0] if matches else None,
         )
+        if match is not None:
+            return match.start()
+        # Native Markdown can serialize adjacent reference-style controls
+        # without a space. Restore only that layout boundary, requiring the
+        # complete heading to match so prose cannot create a new section.
+        for line in re.finditer(r'(?m)^.*$', value):
+            spaced = re.sub(r'(?<=\])(?=(?:\\)?\[)', ' ', line[0])
+            if spaced != line[0] and re.fullmatch(pattern, spaced, re.I | re.M):
+                return line.start()
+            if group['kind'] == 'field_report' and line[0].strip().startswith('|'):
+                cells = _pipe_cells(line[0])
+                if len(cells) == 1 and re.fullmatch(pattern, cells[0].strip(), re.I | re.M):
+                    return line.start()
+        return None
 
     if start:
         match = boundary(start, content)
-        if not match:
+        if match is None:
             return ""
-        begin = match.start()
+        begin = match
     finish = len(content)
     if end:
         match = boundary(end, content[begin:])
-        if not match:
+        if match is None:
             return ""
-        finish = begin + match.start()
+        finish = begin + match
     return content[begin:finish]
 
 
@@ -396,7 +411,107 @@ def _card_section_context(content: str, begin: int, end: int, title_start: int,
     return context
 
 
-def _named_link_group(content: str, group: dict, base_url: str, links: list | None, *, native_html: str | None = None) -> dict:
+def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, str]:
+    """Keep real DOM ownership while projecting visible links and field text."""
+    from bs4 import Comment, NavigableString, Tag
+    from .dynamic_lists import _scoped_html, visible_html_text
+
+    soup = _scoped_html(content)
+    identity_cache = {}
+    def target_identities(node):
+        if id(node) not in identity_cache:
+            identity_cache[id(node)] = {
+                _link_identity(urljoin(group.get('link_base_url', base_url), anchor['href']), group)
+                for anchor in node.find_all('a', href=True)} - {None}
+        return identity_cache[id(node)]
+
+    owners = {id(node): node for node in soup.select(
+        'article,li,aside,nav,[role="article"],[role="listitem"]')}
+    # Generic div cards have no semantic tag. Repeated sibling containers with
+    # their own content and distinct target links supply the same DOM boundary.
+    for parent in soup.find_all(True):
+        siblings = parent.find_all('div', recursive=False)
+        if len(siblings) < 2:
+            continue
+        cards = []
+        for node in siblings:
+            identities = target_identities(node)
+            if identities:
+                cards.append((node, identities))
+        if len(cards) > 1 and len(set().union(*(ids for _, ids in cards))) > 1:
+            owners.update((id(node), node) for node, _ in cards)
+    # Lists may represent fields or merely wrap a record title.  A nested list
+    # item is a separate record only when it identifies a narrower target set
+    # than its enclosing record; otherwise the enclosing card owns its fields.
+    nested_layout_items = []
+    for key, node in owners.items():
+        if node.name != 'li' and node.get('role') != 'listitem':
+            continue
+        identities = target_identities(node)
+        enclosing = [
+            parent
+            for parent in node.parents
+            if id(parent) in owners
+            and parent.name not in {'aside', 'nav'}
+            and target_identities(parent)
+        ]
+        if enclosing and (not identities or identities == target_identities(enclosing[0])):
+            nested_layout_items.append(key)
+    for key in nested_layout_items:
+        del owners[key]
+    # A section/header/footer inside an identified record still belongs to
+    # that record. Outside records, these delimit unrelated page regions.
+    for node in soup.select('section,header,footer'):
+        if not any(id(parent) in owners and parent.name not in {'aside','nav'}
+                   for parent in node.parents):
+            owners[id(node)] = node
+    # Remove layout-only wrappers only after effective record owners are known.
+    # This keeps a one-child sibling card as a boundary while making deeper
+    # presentation wrappers irrelevant to ownership.
+    for node in reversed(soup.find_all('div')):
+        elements = [child for child in node.children if isinstance(child, Tag)]
+        direct_text = any(isinstance(child, NavigableString) and not isinstance(child, Comment)
+                          and str(child).strip() for child in node.children)
+        if (id(node) not in owners and len(elements) == 1 and not direct_text
+                and node.get('role') not in {'article','listitem'}):
+            node.unwrap()
+    marker = '\ufdd1record-owner-'
+    while marker in content:
+        marker += '_'
+    for index, node in enumerate(owners.values()):
+        node.insert_before(NavigableString('\n'+marker+'S'+str(index)+'\n'))
+        node.insert_after(NavigableString('\n'+marker+'E'+str(index)+'\n'))
+    for node in soup.find_all(['img','br']):
+        # HTML void elements cannot own following text. Some retained native
+        # HTML includes closing img/br tags; preserve text the parser nested
+        # under them while still omitting image alt text from record titles.
+        node.insert_before(NavigableString('\ufdd0'))
+        node.unwrap()
+    for anchor in soup.find_all('a', href=True):
+        if not anchor.get_text().replace('\ufdd0', '').strip():
+            anchor.unwrap()
+    return visible_html_text(str(soup), preserve_links=True).replace('\ufdd0', '\n\n'), marker
+
+
+def _record_owner_ranges(content: str, marker: str | None):
+    if marker is None:
+        return content, []
+    parts, starts, ranges, offset, cursor = [], {}, [], 0, 0
+    for match in re.finditer(re.escape(marker)+r'([SE])(\d+)', content):
+        segment = content[cursor:match.start()]
+        parts.append(segment); offset += len(segment); cursor = match.end()
+        if match[1] == 'S':
+            starts[match[2]] = offset
+        else:
+            ranges.append((starts.pop(match[2], 0), offset))
+    parts.append(content[cursor:])
+    clean = ''.join(parts)
+    ranges.extend((start, len(clean)) for start in starts.values())
+    return clean, ranges
+
+
+def _named_link_group(content: str, group: dict, base_url: str, links: list | None, *, ownership_marker: str | None = None, native_html: str | None = None) -> dict:
+    content, owner_ranges = _record_owner_ranges(content, ownership_marker)
     standard = {
         "version": 1,
         "schema": "named_link",
@@ -430,7 +545,14 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         def is_record_start(link) -> bool:
             pattern = group.get("record_line_pattern")
             if not pattern:
-                return True
+                line_start = content.rfind("\n", 0, link.start) + 1
+                prefix = content[line_start:link.start].strip()
+                prior = previous_targets[link.start]
+                if prior and prior[1] > line_start:
+                    return True
+                same_target = bool(prior and prior[0] == _link_identity(urljoin(base_url, link.destination), group))
+                return (same_target or serialized_link_card_fields(link) is not None or not prefix or _DATE_OR_TIME.fullmatch(prefix) is not None
+                        or re.fullmatch(r"[\s#>*+\-\d.)|/:•·●▪◦,，、;；]*", prefix) is not None)
             line_start = content.rfind("\n", 0, link.start) + 1
             line_end = content.find("\n", link.end)
             line_end = len(content) if line_end < 0 else line_end
@@ -450,39 +572,127 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         # link for one identity up to the first qualifying link for another
         # identity.  Repeated title/date links to the same article stay inside
         # that record and cannot inflate the count.
-        allowed_rows = {_link_identity(entry["url"], group): entry for entry in entries}
+        source_links = markdown_links(content)
+        previous_targets = {}
+        previous_target = None
+        for source_link in source_links:
+            previous_targets[source_link.start] = previous_target
+            source_destination = urljoin(group.get("link_base_url", base_url), source_link.destination)
+            source_identity = _link_identity(source_destination, group)
+            if source_identity is not None and not source_link.is_image:
+                previous_target = (source_identity, source_link.end)
+
+        def previous_scalar(link):
+            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            if link.label.strip() not in {link.destination, destination}:
+                return None
+            start = content.rfind("\n", 0, link.start) + 1
+            end = content.find("\n", link.end)
+            end = len(content) if end < 0 else end
+            if content[start:link.start].strip() or content[link.end:end].strip() or start == 0:
+                return None
+            previous_start = content.rfind("\n", 0, start - 1) + 1
+            scalar = content[previous_start:start - 1].strip()
+            if (not scalar or markdown_links(scalar) or re.search(r"<[^>]*>", scalar)
+                    or re.match(r"(?:[#>*]|[-+]\s|\d+[.)]\s|https?://|//)", scalar)):
+                return None
+            prior = previous_targets[link.start]
+            paragraph = content.rfind("\n\n", 0, previous_start) + 2
+            if (prior and prior[1] > paragraph and prior[0] != _link_identity(destination, group)
+                    and not (_PRICE.fullmatch(scalar) or _DATE_OR_TIME.fullmatch(scalar)
+                             or _AREA.fullmatch(scalar))):
+                return None
+            return previous_start, scalar
+
+        def visible_label(link):
+            card_fields = serialized_link_card_fields(link)
+            label = card_fields[0] if card_fields else link.label
+            for image in reversed([item for item in markdown_links(label) if item.is_image]):
+                label = label[:image.start] + label[image.end:]
+            label = visible_markdown_links(label).strip()
+            if previous := previous_scalar(link):
+                scalar = previous[1]
+                field_like = (_AREA.fullmatch(scalar) or _VERSION.fullmatch(scalar)
+                              or _line_starts_declared_label(scalar, _declared_aliases(fields))
+                              or any(pattern.fullmatch(scalar) for spec in fields
+                                     if (pattern := _field_token_pattern(spec)) is not None))
+                if not field_like:
+                    label = scalar
+            return label
+
+        def name_only(label):
+            return not (_PRICE.fullmatch(label) or _DATE_OR_TIME.fullmatch(label)
+                        or re.fullmatch(r"(?i)(?:today|tomorrow|\d[\d,.]*|more|details?)", label))
+
+        allowed_rows = {_link_identity(entry["url"], group): entry for entry in entries
+                        if name_only(entry["title"])} if "*" not in group["hosts"] else {}
+        # Field cards prove their own ownership through the target identity and
+        # typed fields. Adjacent status text need not satisfy ordinary list
+        # prefix rules, but the title must still be real visible link text.
+        for link in markdown_links(content):
+            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            identity = _link_identity(destination, group)
+            if identity is None or link.is_image or not is_record_start(link):
+                continue
+            label = visible_label(link)
+            candidate_contract = (standard if "*" not in group["hosts"] else
+                                  {**standard, "hosts": [urlsplit(destination).hostname]})
+            candidate = _named_candidate(destination, label, candidate_contract, base_url, [])
+            if candidate and name_only(candidate[1]["title"]) and _key(candidate[1]["title"]) not in exclusions:
+                allowed_rows.setdefault(identity, candidate[1])
+        def owner_for(position):
+            containing = [(begin, end) for begin, end in owner_ranges
+                          if begin <= position < end]
+            return min(containing, key=lambda item: item[1] - item[0]) if containing else None
+
         preferred_titles = {}
         for link in markdown_links(content):
             destination = urljoin(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
             if identity not in allowed_rows or link.is_image or not is_record_start(link):
                 continue
-            visible_label = link.label
-            for media in reversed(markdown_links(visible_label)):
-                if media.is_image:
-                    visible_label = visible_label[:media.start] + " " + visible_label[media.end:]
-            label = visible_markdown_links(visible_label).strip()
+            label = visible_label(link)
             field_like = bool(
                 _PRICE.search(label)
                 or _DATE_OR_TIME.search(label)
                 or re.fullmatch(r"(?i)(?:today|tomorrow|\d[\d,.]*|more|details?)", label)
                 or re.search(r"[A-Za-z][A-Za-z .'-]+,\s*[A-Z]{2}\b$", label)
             )
-            if label and not field_like and _key(label) not in exclusions:
-                preferred_titles.setdefault(identity, label)
+            if (label and not field_like and label not in {link.destination, destination}
+                    and _key(label) not in exclusions):
+                preferred_titles.setdefault((identity, owner_for(link.start)), label)
         candidates = []
         for link in markdown_links(content):
             destination = urljoin(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
-            if identity is None or link.is_image or (identity not in preferred_titles and not is_record_start(link)):
+            if (identity is None or link.is_image
+                    or (group.get('record_line_pattern') and not is_record_start(link))):
                 continue
             entry = allowed_rows.get(identity)
-            if entry is None:
-                continue
-            title = preferred_titles.get(identity, entry["title"])
-            if not title or _key(title) in exclusions:
-                continue
-            candidates.append((identity, entry["url"], title, link.start, link.end))
+            owner = owner_for(link.start)
+            title = preferred_titles.get(
+                (identity, owner),
+                entry["title"] if entry and owner is None and is_record_start(link) else "",
+            )
+            # Even an unnamed target starts a different card. Its fields must
+            # never complete the preceding named record.
+            previous = previous_scalar(link)
+            start = previous[0] if previous else link.start
+            preceding = content.rfind("\n", 0, start) + 1
+            if preceding > 0:
+                prior_start = content.rfind("\n", 0, preceding - 1) + 1
+                prior = previous_targets[link.start]
+                if (prior is None or prior[0] == identity) and _DATE_OR_TIME.fullmatch(content[prior_start:preceding].strip()):
+                    start = prior_start
+            if preceding > 0:
+                prior_start = content.rfind("\n", 0, preceding - 1) + 1
+                prior_line = content[prior_start:preceding].strip()
+                if markdown_links(prior_line) and _DATE_OR_TIME.fullmatch(visible_markdown_links(prior_line).strip()) and all(
+                        _link_identity(urljoin(base_url, prior.destination), group) == identity
+                        and not visible_markdown_links(prior.label).strip()
+                        for prior in markdown_links(prior_line)):
+                    start = prior_start
+            candidates.append((identity, destination, title, start, link.start, owner, link.end))
         owned = {}
         # Consecutive links to the same identity belong to one card (for
         # example, a title link followed by a linked date).  A later duplicate
@@ -490,17 +700,40 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         # intervening record's field context.
         ordered = []
         for candidate in sorted(candidates, key=lambda row: row[3]):
-            if not ordered or ordered[-1][0] != candidate[0]:
+            if (not ordered or ordered[-1][0] != candidate[0]
+                    or ordered[-1][5] != candidate[5]):
                 ordered.append(candidate)
-            else:
-                ordered[-1] = (*ordered[-1][:4], max(ordered[-1][4], candidate[4]))
-        for index, (identity, destination, label, start, owned_end) in enumerate(ordered):
+        for index, (identity, destination, label, start, link_start, owner, link_end) in enumerate(ordered):
             line_start = content.rfind("\n", 0, start) + 1
             finish = ordered[index + 1][3] if index + 1 < len(ordered) else len(content)
             next_line = content.rfind("\n", 0, finish) + 1 if finish < len(content) else finish
-            begin = start if index and ordered[index - 1][4] > line_start else line_start
-            context = _card_section_context(content, begin, max(next_line, owned_end), start, identity, group, base_url)
-            if _required_fields(context, label, field_specs=fields):
+            if index and ordered[index - 1][6] > line_start:
+                line_start = start
+            next_line = max(next_line, link_end)
+            if owner:
+                begin, end = owner
+                # The first link can have fields before it in the same card.
+                first = not any(
+                    begin <= previous[4] < link_start and previous[5] == owner
+                    for previous in ordered[:index]
+                )
+                line_start = begin if first else max(line_start, begin)
+                next_line = min(next_line, end)
+            # Exclude unrelated owners rather than discarding the parent's
+            # own fields on either side of an embedded aside/section.
+            excluded = sorted((max(begin, line_start), min(end, next_line))
+                              for begin, end in owner_ranges
+                              if not begin <= link_start < end
+                              and begin < next_line and end > line_start)
+            pieces, cursor = [], line_start
+            for begin, end in excluded:
+                if begin > cursor:
+                    pieces.append(content[cursor:begin])
+                cursor = max(cursor, end)
+            pieces.append(content[cursor:next_line])
+            context = "\n\n".join(pieces)
+            context = _card_section_context(context, 0, len(context), max(0, link_start-line_start), identity, group, base_url)
+            if label and _required_fields(context, label, field_specs=fields):
                 owned[identity] = {"url": destination, "title": label, "context": context}
         if native_html:
             table_ids, table_contexts = _html_table_record_contexts(
@@ -508,7 +741,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             )
             for identity in table_ids:
                 entry = allowed_rows[identity]
-                label = preferred_titles.get(identity, entry["title"])
+                label = entry["title"]
                 context = next((value for value in table_contexts.get(identity, [])
                                 if _required_fields(value, label, field_specs=fields)), None)
                 if context is None:
@@ -516,8 +749,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                 else:
                     owned[identity] = {"url": entry["url"], "title": label,
                                        "context": context, "context_basis": "native_table_owner"}
-        allowed = {_link_identity(entry["url"], group) for entry in entries}
-        records = [row for identity, row in owned.items() if identity in allowed]
+        records = [row for identity, row in owned.items() if identity in allowed_rows]
     else:
         records = entries
     return {
@@ -672,7 +904,8 @@ def _context_lines(context: str, title: str) -> list[str]:
     lines = []
     for raw in clean_reference_text(context).splitlines():
         for link in reversed(markdown_links(raw)):
-            label = link.label
+            card_fields = serialized_link_card_fields(link)
+            label = card_fields[0] if card_fields else link.label
             for image in reversed(markdown_links(label)):
                 if image.is_image:
                     label = label[:image.start] + " " + label[image.end:]
@@ -739,43 +972,101 @@ def _text_role_value(value: str, spec: dict) -> str | None:
                     *(_key(alias) for alias in spec.get("aliases", []))}
         return payload if role in accepted and payload else None
     return value
+def _declared_aliases(field_specs: list[dict]) -> list[str]:
+    return sorted(
+        {alias for spec in field_specs for alias in spec.get("aliases", [])},
+        key=len,
+        reverse=True,
+    )
+
+
+def _trimmed_value_span(line: str, start: int, end: int) -> tuple[str, int, int]:
+    while start < end and line[start] in "| ":
+        start += 1
+    while end > start and line[end - 1] in "| ":
+        end -= 1
+    return line[start:end], start, end
+
+
+def _owned_labeled_values(
+    line: str, aliases: list[str]
+) -> list[tuple[str, str, int, int]]:
+    """Split one visible line into values owned by its longest declared labels."""
+    if not aliases:
+        return []
+    names = "|".join(re.escape(alias) for alias in aliases)
+    label = rf"(?P<label>{names})(?:\s*\([^)]*\))?"
+    explicit = re.compile(
+        rf"(?i)(?<!\S){label}\s*(?:[:：|]|[-–—])\s*"
+    )
+    matches = list(explicit.finditer(line))
+    # A field line starts with a declared label. Once that owner is known,
+    # later explicit labels may share the same physical line.
+    if matches and not line[: matches[0].start()].strip():
+        values = []
+        for position, match in enumerate(matches):
+            finish = matches[position + 1].start() if position + 1 < len(matches) else len(line)
+            value, start, end = _trimmed_value_span(line, match.end(), finish)
+            if value:
+                values.append((match.group("label"), value, start, end))
+        return values
+    unpunctuated = re.match(
+        rf"(?i)^\s*(?P<label>{names})(?:\s*\([^)]*\)\s*(?P<qualified>\S.*)"
+        rf"|\s+(?!\s*\()(?P<plain>\S.*))$", line)
+    if unpunctuated:
+        group = 'qualified' if unpunctuated['qualified'] is not None else 'plain'
+        value, start, end = _trimmed_value_span(line, *unpunctuated.span(group))
+        return [(unpunctuated.group("label"), value, start, end)] if value else []
+    return []
+
+
+def _line_starts_declared_label(line: str, aliases: list[str]) -> bool:
+    return _key(line) in {_key(alias) for alias in aliases} or bool(
+        _owned_labeled_values(line, aliases)
+    )
 
 
 def _field_value(
-    lines: list[str], spec: dict, used: set[int] | None = None
-) -> tuple[int, str] | None:
+    lines: list[str],
+    spec: dict,
+    used: set[int] | None = None,
+    *,
+    declared_aliases: list[str] | None = None,
+) -> tuple[int, str, int, int] | None:
+    """Return one value owned by its declared label or typed line."""
     aliases = spec.get("aliases", [])
-    candidates = []
-    if aliases:
-        for index, line in enumerate(lines):
-            if used and index in used:
-                continue
-            for alias in aliases:
-                match = re.match(rf"(?i)^\s*{re.escape(alias)}\s*[:：-]?\s*(.+)$", line)
-                if match and match[1].strip():
-                    candidates.append((index, match[1].strip()))
-                elif (
-                    _key(line) == _key(alias)
-                    and index + 1 < len(lines)
-                    and (not used or index + 1 not in used)
-                ):
-                    candidates.append((index + 1, lines[index + 1].strip()))
-    else:
-        candidates = [
-            (index, line) for index, line in enumerate(lines) if not used or index not in used
-        ]
-    for index, value in candidates:
-        if spec["kind"] == "text":
+    candidates: list[tuple[int, str, int, int]] = []
+    declared = declared_aliases or list(aliases)
+    spec_alias_keys = {_key(alias) for alias in aliases}
+    for index, line in enumerate(lines):
+        if used and index in used:
+            continue
+        if aliases:
+            candidates.extend(
+                (index, value, start, end)
+                for alias, value, start, end in _owned_labeled_values(line, declared)
+                if _key(alias) in spec_alias_keys
+            )
+            if _key(line) in spec_alias_keys:
+                if index + 1 < len(lines) and (not used or index + 1 not in used):
+                    next_line = lines[index + 1].strip()
+                    if next_line and not _line_starts_declared_label(next_line, declared):
+                        candidates.append((index + 1, next_line, 0, len(next_line)))
+            continue
+        candidates.append((index, line, 0, len(line)))
+    for index, value, start, end in candidates:
+        if spec["kind"] == "text" and not aliases:
             value = _text_role_value(value, spec)
             if value is None:
                 continue
         if token_pattern := _field_token_pattern(spec):
             for match in token_pattern.finditer(value):
                 if _value_matches_spec(match[0], spec):
-                    return index, match[0]
+                    return index, match[0], start + match.start(), start + match.end()
             continue
-        if _value_matches_spec(value, spec):
-            return index, value
+        checked_spec = {**spec, "minimum_chars": 1} if aliases and spec["kind"] == "text" and "minimum_chars" not in spec else spec
+        if _value_matches_spec(value, checked_spec):
+            return index, value, start, end
     return None
 
 
@@ -798,21 +1089,37 @@ def _labeled_field_lines(lines, field_specs):
         else:
             result.append(line)
     return result
+def _canonical_field_report_value(value: str, spec: dict) -> str:
+    """Keep the typed scalar from an owned field cell for diagnostics/fixed values."""
+    visible = visible_markdown_links(value).strip().strip("| ")
+    if spec["kind"] == "integer":
+        match = re.search(_AMOUNT, visible)
+        return match[0] if match else visible
+    if pattern := spec.get("pattern"):
+        match = re.search(pattern, visible, re.I)
+        return match[0] if match else visible
+    if spec["kind"] == "date_or_time":
+        match = _DATE_OR_TIME.search(visible)
+        return match[0] if match else visible
+    return visible
+
+
+def _fixed_field_value_key(value: str, spec: dict) -> str:
+    if spec["kind"] == "integer":
+        value = re.sub(r"(?<=\d)[,\s](?=\d{3}\b)", "", value)
+    return _key(value)
 
 
 def _required_fields(context: str, title: str, *, field_specs: list[dict]) -> bool:
     """Require every declared field inside the record block which owns the link."""
     lines = _labeled_field_lines(_context_lines(context, title), field_specs)
-    # A declared text label at the beginning of a native line has its own
-    # exact span. An adjacent visible value remains a separate field.
     separated = []
     patterns = [re.compile(spec["pattern"], re.I) for spec in field_specs
                 if spec["kind"] == "text" and spec.get("pattern") and not spec.get("aliases")]
     for line in lines:
         for pattern in patterns:
             match = pattern.match(line)
-            if match and match.end() and (match.end() == len(line)
-                    or not line[match.end()].isalnum()):
+            if match and match.end() and (match.end() == len(line) or not line[match.end()].isalnum()):
                 rest = line[match.end():].strip(" |\t")
                 if rest:
                     separated.extend((match[0], rest))
@@ -820,20 +1127,26 @@ def _required_fields(context: str, title: str, *, field_specs: list[dict]) -> bo
         else:
             separated.append(line)
     lines = separated
-    used = set()
-    typed_lines = set()
-    for spec in sorted(field_specs, key=lambda field: not (field.get("aliases")
-                       or field["kind"] == "text" and field.get("pattern"))):
+    used: set[int] = set()
+    typed_lines: set[int] = set()
+    declared = _declared_aliases(field_specs)
+    for spec in sorted(field_specs, key=lambda field: not (field.get("aliases") or field["kind"] == "text" and field.get("pattern"))):
         typed = _field_token_pattern(spec) is not None
-        result = _field_value(lines, spec, used if typed else used | typed_lines)
+        result = _field_value(
+            lines,
+            spec,
+            used if typed else used | typed_lines,
+            declared_aliases=declared,
+        )
         if result is None:
             return False
-        index, value = result
+        index, value, start, end = result
+        # Consume the exact owned value. Multiple declared labels may share a
+        # physical line, but one value cannot satisfy two required fields.
+        lines[index] = lines[index][:start] + " " * (end - start) + lines[index][end:]
         if typed:
-            # Consume this exact span so fields may share a line, never a value.
-            lines[index] = lines[index].replace(value, ' ' * len(value), 1)
             typed_lines.add(index)
-        else:
+        elif not spec.get("aliases"):
             used.add(index)
     return True
 
@@ -849,6 +1162,9 @@ def _name_description_group(content: str, group: dict, base_url: str) -> dict:
             "minimum_records": group["minimum_records"],
         },
         base_url,
+        allow_closed_title_cards=bool(
+            group.get("start_pattern") and group.get("end_pattern")
+        ),
     )
     return {
         "count": result["stable_unique_record_count"],
@@ -859,15 +1175,15 @@ def _name_description_group(content: str, group: dict, base_url: str) -> dict:
 
 
 def _table_group(content: str, group: dict) -> dict:
-    lines = [line.strip() for line in clean_reference_text(content).splitlines() if line.strip()]
+    lines = [line.strip() for line in clean_reference_text(table_text_surface(content)).splitlines() if line.strip()]
     required = group["required_columns"]
     records = []
     for index in range(len(lines) - 1):
         delimiter = "|" if "|" in lines[index] else "\t" if "\t" in lines[index] else None
         if not delimiter:
             continue
-        headers = [_key(visible_markdown_links(value)) for value in lines[index].strip("|").split(delimiter)]
-        separator = lines[index + 1].strip("|").split(delimiter)
+        headers = [_key(visible_markdown_links(value)) for value in (_pipe_cells(lines[index]) if delimiter == "|" else lines[index].split(delimiter))]
+        separator = (_pipe_cells(lines[index + 1]) if delimiter == "|" else lines[index + 1].split(delimiter))
         if delimiter == "|" and not all(
             re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator
         ):
@@ -895,11 +1211,11 @@ def _table_group(content: str, group: dict) -> dict:
                 continue
             row_index = index + 2 if delimiter == "|" else index + 1
             while row_index < len(lines) and delimiter in lines[row_index]:
-                values = [value.strip() for value in lines[row_index].strip("|").split(delimiter)]
+                values = [value.strip() for value in (_pipe_cells(lines[row_index]) if delimiter == "|" else lines[row_index].split(delimiter))]
                 if len(values) == len(headers):
                     row = {}
                     for field, (column, pattern) in mapping.items():
-                        match = pattern.fullmatch(visible_markdown_links(values[column])) if pattern else None
+                        match = pattern.fullmatch(visible_markdown_links(values[column]).replace("**", "").strip()) if pattern else None
                         row[field] = (match[field] if match else '') if pattern else values[column]
                     if all(
                         _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
@@ -919,15 +1235,15 @@ def _table_group(content: str, group: dict) -> dict:
 
 
 def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
-    """Read named links and all required fields from the same Markdown row."""
-    lines = [line.strip() for line in clean_reference_text(content).splitlines() if line.strip()]
+    """Read named links and required fields from the same owned table row."""
+    lines = [line.strip() for line in clean_reference_text(table_text_surface(content)).splitlines() if line.strip()]
     required = group["required_columns"]
     records = {}
     for index in range(len(lines) - 1):
         if "|" not in lines[index]:
             continue
-        headers = [_key(visible_markdown_links(value)) for value in lines[index].strip("|").split("|")]
-        separator = lines[index + 1].strip("|").split("|")
+        headers = [_key(visible_markdown_links(value)) for value in _pipe_cells(lines[index])]
+        separator = _pipe_cells(lines[index + 1])
         if not all(re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator):
             continue
         mapping = {}
@@ -943,7 +1259,7 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
         else:
             row_index = index + 2
             while row_index < len(lines) and "|" in lines[row_index]:
-                values = [value.strip() for value in lines[row_index].strip("|").split("|")]
+                values = [value.strip() for value in _pipe_cells(lines[row_index])]
                 if len(values) == len(headers):
                     row = {field: values[column] for field, column in mapping.items()}
                     cell = row[group["link_column"]]
@@ -962,6 +1278,67 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                             records[identity] = {"url": destination, "title": label, "fields": row}
                 row_index += 1
             break
+    if not records:
+        links = [link for link in markdown_links(content) if not link.is_image]
+        entry_links = []
+        for link in links:
+            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            identity = _link_identity(destination, group)
+            if identity is not None:
+                entry_links.append((identity, destination, link))
+        ordered = []
+        for candidate in entry_links:
+            if not ordered or ordered[-1][0] != candidate[0]:
+                ordered.append(candidate)
+        if ordered:
+            prefix = content[: ordered[0][2].start]
+            header_positions = []
+            for spec in required:
+                hits = [
+                    match.start()
+                    for alias in spec["aliases"]
+                    for match in re.finditer(
+                        rf"(?im)^\s*(?:\[[^]]*{re.escape(alias)}[^]]*\]\([^)]*\)|"
+                        rf"{re.escape(alias)})\s*$",
+                        prefix,
+                    )
+                ]
+                if hits:
+                    header_positions.append(min(hits))
+            if len(header_positions) == len(required) and header_positions == sorted(header_positions):
+                for index, (identity, destination, link) in enumerate(ordered):
+                    finish = ordered[index + 1][2].start if index + 1 < len(ordered) else len(content)
+                    block = content[link.start:finish]
+                    raw_lines = [line.strip() for line in block.splitlines() if line.strip()]
+                    cell_links = []
+                    for line in raw_lines[: len(required)]:
+                        candidates = [item for item in markdown_links(line) if not item.is_image]
+                        if len(candidates) != 1:
+                            break
+                        cell_links.append(candidates[0])
+                    # Once table delimiters are gone, one owned link per required
+                    # cell is the remaining unambiguous column boundary. Plain
+                    # trailing values (for example Idle or action text) cannot
+                    # slide left to repair an absent Description or Owner cell.
+                    if len(cell_links) < len(required):
+                        continue
+                    row = {
+                        spec["id"]: visible_markdown_links(cell_links[position].label).strip()
+                        for position, spec in enumerate(required)
+                    }
+                    link_label = visible_markdown_links(link.label).strip()
+                    if (
+                        row.get(group["link_column"]) == link_label
+                        and all(
+                            _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
+                            for spec in required
+                        )
+                    ):
+                        records[identity] = {
+                            "url": destination,
+                            "title": link_label,
+                            "fields": row,
+                        }
     values = list(records.values())
     return {
         "count": len(values),
@@ -972,32 +1349,36 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
 
 
 def _field_report_group(content: str, group: dict) -> dict:
+    # A visible linked value still belongs to its preceding declared label.
+    # Preserve that explicit markup boundary without splitting plain words.
+    aliases = _declared_aliases(group["required_fields"])
+    if aliases:
+        names = "|".join(re.escape(alias) for alias in aliases)
+        content = re.sub(rf"(?im)^(\s*(?:{names}))(?=\[)", r"\1 ", content)
     lines = [re.sub(r"\s*\|\s*", " ", line).strip()
              for line in _context_lines(content, "")]
     lines = _labeled_field_lines(lines, group["required_fields"])
     fields = {}
     used = set()
+    declared = _declared_aliases(group["required_fields"])
     for spec in group["required_fields"]:
-        field_spec = dict(spec)
-        if spec["kind"] == "text" and "minimum_chars" not in spec:
-            field_spec["minimum_chars"] = 1
-        value = _field_value(lines, field_spec, used)
+        value = _field_value(lines, spec, used, declared_aliases=declared)
         if value is not None:
-            fields[spec["id"]] = value[1]
-            used.add(value[0])
-    fixed = {}
+            index, raw, start, end = value
+            fields[spec["id"]] = _canonical_field_report_value(raw, spec)
+            lines[index] = lines[index][:start] + " " * (end - start) + lines[index][end:]
+            if not spec.get("aliases"):
+                used.add(index)
     specs = {spec["id"]: spec for spec in group["required_fields"]}
-    for key, expected in group.get("fixed_values", {}).items():
-        value = fields.get(key, "")
-        spec = specs[key]
-        pattern = spec.get("pattern")
-        if spec["kind"] == "integer":
-            match = re.match(r"\d[\d,.]*(?!\w)", value)
-            value = match[0] if match else ""
-        elif pattern:
-            match = re.match(rf"(?:{pattern})(?!\w)", value, re.I)
-            value = match[0] if match else ""
-        fixed[key] = {"value": expected, "pass": key in fields and _key(value) == _key(expected)}
+    fixed = {
+        key: {
+            "value": value,
+            "pass": key in fields
+            and _fixed_field_value_key(fields[key], specs[key])
+            == _fixed_field_value_key(value, specs[key]),
+        }
+        for key, value in group.get("fixed_values", {}).items()
+    }
     passed = len(fields) == len(group["required_fields"]) and all(
         result["pass"] for result in fixed.values()
     )
@@ -1006,17 +1387,25 @@ def _field_report_group(content: str, group: dict) -> dict:
 
 
 def evaluate_composite_acceptance(
-    content: str, contract: dict, *, base_url: str, links: list | None = None, eligible: bool = True,
-    native_html: str | None = None
+    content: str, contract: dict, *, base_url: str, links: list | None = None, eligible: bool = True, table_content: str | None = None, native_html: str | None = None
 ) -> dict:
     validate_composite_acceptance(contract)
     results = []
     for group in contract["groups"]:
-        scoped = _scope(content, group)
+        source = table_content if table_content is not None and group["kind"] in {"table", "linked_table"} else content
+        if group["kind"] in {"table", "linked_table"}:
+            source = table_text_surface(source)
+        ownership_marker = None
+        if group["kind"] == "named_link" and group.get("required_fields") and table_content:
+            from .dynamic_lists import _document_html
+            if _document_html(table_content):
+                source, ownership_marker = _html_field_surface(table_content, group, base_url)
+        scoped = _scope(source, group)
         if group["kind"] == "named_link":
             result = _named_link_group(
                 scoped, group, base_url, links if scoped == content else None,
                 native_html=native_html,
+                ownership_marker=ownership_marker,
             )
         elif group["kind"] == "linked_table":
             result = _linked_table_group(scoped, group, base_url)
