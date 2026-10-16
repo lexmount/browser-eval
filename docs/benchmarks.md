@@ -41,7 +41,7 @@ uv run --frozen browser-harness-eval run \
   --provider-config configs/providers.quickstart.json --providers http
 ```
 
-This uses the existing dataset interface. `uv sync --frozen` installs the pinned LexBench package automatically. No sibling checkout or copied task generator is required. The input checker verifies frozen bytes; a formal live-site comparison still requires the [certified runner](../harness/web_fetch/README.md), independent reference validation before and after calls, and the selected track's release gates. Ordinary CLI runs are diagnostic.
+This uses the existing dataset interface. `uv sync --frozen` installs LexBench from the exact Git commit pinned in `pyproject.toml` and `uv.lock`. The pinned commit is merged into LexBench’s main branch. uv retrieves the Git source, builds a wheel and installs the Python package; Git must be available, but no sibling checkout is required. The input checker verifies frozen bytes; a formal live-site comparison still requires the [certified runner](../harness/web_fetch/README.md), independent reference validation before and after calls, and the selected track's release gates. Ordinary CLI runs are diagnostic.
 
 ## Historical bindings and new revisions
 

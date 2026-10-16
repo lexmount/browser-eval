@@ -132,7 +132,16 @@ def require_mutable_inputs(dataset: Path) -> None:
 
 def check_reference_input_boundary(directory: Path) -> None:
     """Reject source-tree copies of inputs explicitly assigned to external storage."""
-    for path in directory.rglob(MANIFEST_NAME):
+    manifests = set(directory.rglob(MANIFEST_NAME))
+    for binding in directory.rglob("lexbench-webfetch.json"):
+        if binding.is_symlink():
+            raise ValueError("Benchmark checkout binding must not be symlinked")
+        definitions = json.loads(binding.read_text(encoding="utf-8"))["definition_files"]
+        for relative in definitions:
+            if Path(relative).name == MANIFEST_NAME:
+                manifests.add(contained_path(binding.parent.parent.resolve(), relative,
+                                             reject_symlinks=True))
+    for path in sorted(manifests):
         manifest = load_manifest(path)
         for relative in manifest.get("files", {}):
             if contained_path(path.parent, relative, reject_symlinks=True).exists():
