@@ -747,3 +747,28 @@ def test_article_date_requires_a_day_or_time_not_just_month_or_year(date):
     }
     body = f"# News\n[Article](https://example.test/item/1)\n{date}\n# End"
     assert not task_passed(True, score_attempt(case, body.encode(), ok=True))
+
+
+@pytest.mark.parametrize('content,minimum,expected', [
+    ('<article><header><a href="/item/1">First House</a><p>$100,000</p></header><section><p>900 sqft</p></section></article>',1,True),
+    ('<article><a href="/item/1">First House</a><p>$100,000</p><aside><p>Unrelated notice</p></aside><p>900 sqft</p></article>',1,True),
+    ('<article><a href="/item/1">First House</a><p>$100,000</p><p>900 sqft</p></article>',1,True),
+    ('<article><p>$100,000</p><a href="/item/1">First House</a><p>900 sqft</p></article>',1,True),
+    ('<article><a href="/item/1">First House</a><p>$100,000</p></article><article><p>900 sqft</p><a href="/item/2">Second House</a></article>',1,False),
+    ('<ul><li><a href="/item/1">First House</a><p>$100,000</p></li><li><p>900 sqft</p><a href="/item/2">Second House</a></li></ul>',1,False),
+    ('<div><div><a href="/item/1">First House</a><p>$100,000</p></div><div><p>900 sqft</p><a href="/item/2">Second House</a></div></div>',1,False),
+    ('<article><a href="/item/1">First House</a><p>$100,000</p></article><aside><p>900 sqft</p></aside>',1,False),
+    ('<article><a href="/item/1">First House</a><p>$100,000</p><aside><p>900 sqft</p></aside></article>',1,False),
+    ('<article><a href="/item/1">First House</a><p>$100,000</p></article><article><p>900 sqft</p><a href="/item/2"><img src="/cover.png" alt="Second House"></a></article>',1,False),
+    ('<article><p>$100,000</p><a href="/item/1">First House</a><p>900 sqft</p></article><article><p>$200,000</p><a href="/item/2">Second House</a><p>1000 sqft</p></article>',2,True),
+])
+def test_public_scorer_keeps_html_fields_with_their_record_owner(content, minimum, expected):
+    from harness.web_fetch.scoring import score_attempt
+    from harness.web_fetch.metrics import task_passed
+    rules=contract(named('houses',None,None,minimum,required_fields=[
+        {'id':'price','kind':'price'},{'id':'area','kind':'area'}]))
+    rules['groups'][0].pop('start_pattern');rules['groups'][0].pop('end_pattern')
+    case={'url':'https://example.test/catalog','task_kind':'body','min_content_chars':1,'composite_acceptance':rules}
+    metrics=score_attempt(case,content.encode(),ok=True)
+    assert metrics['composite_acceptance_pass'] is expected
+    assert task_passed(True,metrics,'body') is expected

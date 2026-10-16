@@ -9,7 +9,8 @@ import pytest
 from harness.web_fetch import local_audit
 from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report import local_audit_banner, provider_configuration
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+from harness.web_fetch.scoring import score_attempt
+from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.scoring_regressions import load_scoring_regressions
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
@@ -251,15 +252,28 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
             invalid = {**metadata}
             invalid.pop("subdocuments")
         else:
-            invalid = {**metadata, "subdocuments": {
+            optional = {**metadata, "subdocuments": {
                 "requested": True,
                 "support": "native_markdown_omits_child_document",
                 "interface": "--load-resources iframe + --with-frames",
                 "harness_content_assembly": False,
+                "scope": "dynamic_task_family",
             }}
+            # Family-wide native frames are permitted, not required. They must
+            # still disclose native support and cannot assemble child content.
+            require_native_task_routes([raw_by_id[case.id]], [{**row, "provider_metadata": optional}])
+            invalid = {**optional, "subdocuments": {
+                **optional["subdocuments"], "harness_content_assembly": True}}
         with pytest.raises(ValueError, match="Native task route contract violated"):
             require_native_task_routes([raw_by_id[case.id]], [{**row,
                 "provider_metadata": invalid}])
+
+        declared = metadata if contract.include_subdocuments else optional
+        for field, value in (("requested", False), ("support", "invented_support"),
+                             ("interface", "external_frame_parser"), ("scope", "case_specific")):
+            invalid = {**declared, "subdocuments": {**declared["subdocuments"], field: value}}
+            with pytest.raises(ValueError, match="Native task route contract violated"):
+                require_native_task_routes([raw_by_id[case.id]], [{**row, "provider_metadata": invalid}])
 
         # Exercise the disposable worker process itself.  A mocked worker used
         # to hide that the serialized request had lost the case identity.
@@ -402,13 +416,25 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
         for row in current_corrections["cases"]
         if row.get("evidence", {}).get("scoring_source_sha256")
     }
-    assert current_scorer_bindings == {SCORING_SOURCE_SHA256}
+    # These reference-correction receipts record their original scorer, not
+    # whatever unrelated scoring fixes are present in the current checkout.
+    assert current_scorer_bindings == {
+        "db507a6f0a90c8346aaa0fc7613505c8050c20427547cfccd94754548f1c8e9f"}
     current_regression_ids = {
         identifier
         for row in current_corrections["cases"]
         for identifier in row.get("evidence", {}).get("regression_ids", [])
     }
     assert current_regression_ids <= set(controls)
+    for identifier in current_regression_ids:
+        control = controls[identifier]
+        metrics = score_attempt(control['case'], control['artifact'].encode(), ok=control['ok'],
+                                metadata=control.get('metadata'), title=control.get('title'),
+                                final_url=control.get('final_url'))
+        assert task_passed(control['ok'], metrics, control['case'].get('task_kind','body')) is control['expected_task_pass']
+        for key, expected in control.get('expected_metrics', {}).items():
+            assert metrics.get(key) == expected
+
     historical_regressions = archive["historical_artifacts"][
         "evaluation/scoring-regressions.json"
     ]

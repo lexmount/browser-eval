@@ -280,7 +280,66 @@ def _link_identity(url: str, group: dict) -> str | None:
     return identity
 
 
-def _named_link_group(content: str, group: dict, base_url: str, links: list | None) -> dict:
+def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, str]:
+    """Keep real DOM ownership while projecting visible links and field text."""
+    from bs4 import NavigableString, Tag
+    from .dynamic_lists import _scoped_html, visible_html_text
+
+    soup = _scoped_html(content)
+    owners = {id(node): node for node in soup.select(
+        'article,li,aside,nav,[role="article"],[role="listitem"]')}
+    # Generic div cards have no semantic tag. Repeated sibling containers with
+    # their own content and distinct target links supply the same DOM boundary.
+    for parent in soup.find_all(True):
+        siblings = parent.find_all('div', recursive=False)
+        if len(siblings) < 2:
+            continue
+        cards = []
+        for node in siblings:
+            if sum(isinstance(child, Tag) for child in node.children) < 2:
+                continue
+            identities = {_link_identity(urljoin(group.get('link_base_url', base_url), anchor['href']), group)
+                          for anchor in node.find_all('a', href=True)} - {None}
+            if identities:
+                cards.append((node, identities))
+        if len(cards) > 1 and len(set().union(*(ids for _, ids in cards))) > 1:
+            owners.update((id(node), node) for node, _ in cards)
+    # A section/header/footer inside an identified record still belongs to
+    # that record. Outside records, these delimit unrelated page regions.
+    for node in soup.select('section,header,footer'):
+        if not any(id(parent) in owners and parent.name not in {'aside','nav'}
+                   for parent in node.parents):
+            owners[id(node)] = node
+    marker = '\ufdd1record-owner-'
+    while marker in content:
+        marker += '_'
+    for index, node in enumerate(owners.values()):
+        node.insert_before(NavigableString('\n'+marker+'S'+str(index)+'\n'))
+        node.insert_after(NavigableString('\n'+marker+'E'+str(index)+'\n'))
+    for node in soup.find_all(['img','br']):
+        node.replace_with(NavigableString('\ufdd0'))
+    return visible_html_text(str(soup), preserve_links=True).replace('\ufdd0', '\n\n'), marker
+
+
+def _record_owner_ranges(content: str, marker: str | None):
+    if marker is None:
+        return content, []
+    parts, starts, ranges, offset, cursor = [], {}, [], 0, 0
+    for match in re.finditer(re.escape(marker)+r'([SE])(\d+)', content):
+        segment = content[cursor:match.start()]
+        parts.append(segment); offset += len(segment); cursor = match.end()
+        if match[1] == 'S':
+            starts[match[2]] = offset
+        else:
+            ranges.append((starts.pop(match[2], 0), offset))
+    parts.append(content[cursor:])
+    clean = ''.join(parts)
+    ranges.extend((start, len(clean)) for start in starts.values())
+    return clean, ranges
+
+
+def _named_link_group(content: str, group: dict, base_url: str, links: list | None, *, ownership_marker: str | None = None) -> dict:
+    content, owner_ranges = _record_owner_ranges(content, ownership_marker)
     standard = {
         "version": 1,
         "schema": "named_link",
@@ -420,7 +479,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             # never complete the preceding named record.
             previous = previous_scalar(link)
             start = previous[0] if previous else link.start
-            candidates.append((identity, destination, title, start))
+            candidates.append((identity, destination, title, start, link.start))
         owned = {}
         # Consecutive links to the same identity belong to one card (for
         # example, a title link followed by a linked date).  A later duplicate
@@ -430,11 +489,30 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         for candidate in sorted(candidates, key=lambda row: row[3]):
             if not ordered or ordered[-1][0] != candidate[0]:
                 ordered.append(candidate)
-        for index, (identity, destination, label, start) in enumerate(ordered):
+        for index, (identity, destination, label, start, link_start) in enumerate(ordered):
             line_start = content.rfind("\n", 0, start) + 1
             finish = ordered[index + 1][3] if index + 1 < len(ordered) else len(content)
             next_line = content.rfind("\n", 0, finish) + 1 if finish < len(content) else finish
-            context = content[line_start:next_line]
+            containing = [(begin, end) for begin, end in owner_ranges if begin <= link_start < end]
+            if containing:
+                begin, end = min(containing, key=lambda item: item[1]-item[0])
+                # The first link can have fields before it in the same card.
+                first = not any(begin <= previous[4] < link_start for previous in ordered[:index])
+                line_start = begin if first else max(line_start, begin)
+                next_line = min(next_line, end)
+            # Exclude unrelated owners rather than discarding the parent's
+            # own fields on either side of an embedded aside/section.
+            excluded = sorted((max(begin, line_start), min(end, next_line))
+                              for begin, end in owner_ranges
+                              if not begin <= link_start < end
+                              and begin < next_line and end > line_start)
+            pieces, cursor = [], line_start
+            for begin, end in excluded:
+                if begin > cursor:
+                    pieces.append(content[cursor:begin])
+                cursor = max(cursor, end)
+            pieces.append(content[cursor:next_line])
+            context = "\n\n".join(pieces)
             if label and _required_fields(context, label, field_specs=fields):
                 owned[identity] = {"url": destination, "title": label, "context": context}
         records = [row for identity, row in owned.items() if identity in allowed_rows]
@@ -912,18 +990,16 @@ def evaluate_composite_acceptance(
         source = table_content if table_content is not None and group["kind"] in {"table", "linked_table"} else content
         if group["kind"] in {"table", "linked_table"}:
             source = table_text_surface(source)
+        ownership_marker = None
         if group["kind"] == "named_link" and group.get("required_fields") and table_content:
-            from .dynamic_lists import _document_html, visible_html_text
+            from .dynamic_lists import _document_html
             if _document_html(table_content):
-                # The ordinary HTML text surface removes blank lines and images.
-                # Keep explicit breaks for this adjacency-sensitive card route.
-                boundary = "\ufdd0"
-                marked = re.sub(r"<(?:img|br)\b[^>]*>", boundary, table_content, flags=re.I)
-                source = visible_html_text(marked, preserve_links=True).replace(boundary, "\n\n")
+                source, ownership_marker = _html_field_surface(table_content, group, base_url)
         scoped = _scope(source, group)
         if group["kind"] == "named_link":
             result = _named_link_group(
-                scoped, group, base_url, links if scoped == content else None
+                scoped, group, base_url, links if scoped == content else None,
+                ownership_marker=ownership_marker,
             )
         elif group["kind"] == "linked_table":
             result = _linked_table_group(scoped, group, base_url)
