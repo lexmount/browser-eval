@@ -28,7 +28,7 @@
     },
     {
       "path": "result-review.json",
-      "sha256": "c5cabe370ac2df9c1c6f2b647b4936d9c927de1ae2825f8e9ec937f40c1735c5"
+      "sha256": "427b1532a875fb0d196d6f2b529d67a2551e48d84355eaaef1e36bc91081eb49"
     },
     {
       "path": "archived-reading.json",
@@ -243,18 +243,18 @@
   "original_measured_results_sha256": "ece94c0911a769c84ce9d896b00d97706fd4435d6d194f03cff77391710934a4",
   "original_implementation_commit": "4ef472ff151274e9c526be58bf0e056a1591f420",
   "native_context_correction": {
-    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-native-context-correction-20261016.tar.xz",
-    "sha256": "93525909c4effac75d3d4a3cece7e9e9cb3bfb2b2b091d25d103cbab570a07e4",
-    "bytes": 43947764,
-    "implementation_commit": "c6c004f7840f3ed10ed370d2abc2ce621eec429c",
+    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-native-context-correction-20261016-v2.tar.xz",
+    "sha256": "f33f5e2f2a8d643ed80bab5ecec57bc7f353924fe4a7ea958b8f0caab6ee3c39",
+    "bytes": 43947732,
+    "implementation_commit": "31a00bad2bbbdd33d50f47ef17fd8beb6dd4900d",
     "baseline_archive_sha256": "6ceb6a8bb35bc0e1d4ba40ff183dbb66e975d37426d7277ec6fca27ef58ad1ea",
     "input_public_results_sha256": "2d2a35f6b51cd1023ee940f9a310c05610806f36d9c6363410200ffb26556dbe",
     "output_public_results_sha256": "314a5adb2225fde74cfe0672d25d972c2c99e65b40e337d93c0a1d7418e4fe00",
     "presentation_binding": {
       "path": "presentation-binding.json",
-      "sha256": "6f15dd47fef163a361589e1e8e3f54abbd66863e40f3d1c1e0c1650b7935bf38"
+      "sha256": "b2dc50c1ae3f75638dc10faea09a39ad5fd451611cf8cc04385abcbbd6d879f2"
     },
-    "manifest_sha256": "4d260d82f287728fe07236ae1968445f05d5090156af2576d811bf74b595487f",
+    "manifest_sha256": "5186f43a41c66cbbab3c9c49c896e2d6862482039c8e203e6ea4e90520f04d0d",
     "restore_verified": true,
     "restored_input_files": 33352,
     "native_revision_chain_verified": true,
@@ -276,6 +276,7 @@
     ],
     "page_layout_checks": 136,
     "page_layout_issues": 0,
-    "historical_limits_unchanged": true
+    "historical_limits_unchanged": true,
+    "presentation_revision": "Aligned English numeric copy in the new review round; original opinions and scoring inputs unchanged."
   }
 }
