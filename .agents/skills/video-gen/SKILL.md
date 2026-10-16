@@ -45,6 +45,8 @@ Before production, use [references/editorial-review.md](references/editorial-rev
 
 ## Production choices
 
+Keep each film's narration, customer examples, scene layouts and production project with its external deliverable sources. This skill owns reusable guidance and the optional timeline guard described in [attention and continuity](references/attention-and-continuity.md). A film-specific renderer is a production asset; moving it into a skill does not make it reusable. The guard's synthetic behavior tests live in the repository's `tests/` and run through the existing Python test suite.
+
 Use the user's chosen tools when suitable. Otherwise select the simplest sufficient pipeline for the material. Exact diagrams and data benefit from editable SVG or code-based animation; raster generation and video models suit other kinds of visual material. Do not require image generation, music, multiple variants, a particular renderer, or a full orchestration framework just because it is available.
 
 When using a framework, distinguish inspecting its documentation, borrowing its workflow, and actually executing through it. Describe only the integration that exists.
