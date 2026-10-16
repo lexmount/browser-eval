@@ -452,8 +452,8 @@ def test_http_native_answers_survive_persistence_and_reject_tampering(tmp_path, 
     altered = deepcopy(result)
     altered.metadata['images'] = ['https://example.test/forged.png']
     with pytest.raises(ValueError, match='native|projection'):
-        persist_result_artifacts(tmp_path, Path('artifacts/forged.txt'), altered)
-    persist_result_artifacts(tmp_path, Path('artifacts/answer.txt'), result)
+        persist_result_artifacts(tmp_path, Path('artifacts/forged.txt'), altered, request_url=case.url)
+    persist_result_artifacts(tmp_path, Path('artifacts/answer.txt'), result, request_url=case.url)
 
 
 def test_projection_cannot_read_request_echo_outside_declared_answer_fields():
@@ -466,3 +466,127 @@ def test_projection_cannot_read_request_echo_outside_declared_answer_fields():
             'answer_fields': {'images': {'pointer': ['request', 'images'], 'format': 'identity'}}}}
     with pytest.raises(ValueError, match='frozen answer fields'):
         require_native_answer_projection('answer', metadata, raw)
+
+
+@pytest.mark.parametrize('field,forged', [('title', 'forged title'), ('final_url', 'https://forged.example.test/')])
+def test_native_title_and_address_are_checked_at_live_and_saved_boundaries(tmp_path, field, forged):
+    import base64
+    import hashlib
+    import json
+    from copy import deepcopy
+    from pathlib import Path
+    from harness.web_fetch.models import ProviderResult
+    from harness.web_fetch.runner import persist_result_artifacts
+    from harness.web_fetch.response_input import verify_saved_native_answer
+    raw = json.dumps({'content': 'answer', 'title': 'native title',
+                      'final_url': 'https://returned.example.test/'}).encode()
+    result = ProviderResult(True, 'answer', title='native title', final_url='https://returned.example.test/',
+        metadata={'_raw_response_b64': base64.b64encode(raw).decode(),
+            'raw_response_sha256': hashlib.sha256(raw).hexdigest(), 'raw_response_bytes': len(raw),
+            'native_answer_projection': {'schema_version': 2, 'content_pointer': ['content'],
+                'content_format': 'text', 'result_fields': {name: {'pointer': [name]} for name in ('title', 'final_url')}}})
+    altered = deepcopy(result)
+    setattr(altered, field, forged)
+    with pytest.raises(ValueError, match='title or final URL'):
+        persist_result_artifacts(tmp_path, Path('artifacts/forged.txt'), altered, request_url='https://requested.example.test/')
+    persist_result_artifacts(tmp_path, Path('artifacts/answer.txt'), result, request_url='https://requested.example.test/')
+    record = {'ok': True, 'artifact_path': 'artifacts/answer.txt', 'title': result.title,
+        'url': 'https://requested.example.test/', 'final_url': result.final_url,
+        'provider_metadata': result.metadata, 'metrics': {'content_sha256': hashlib.sha256(b'answer').hexdigest()}}
+    verify_saved_native_answer(tmp_path, record)
+    record[field] = forged
+    with pytest.raises(ValueError, match='title or final URL'):
+        verify_saved_native_answer(tmp_path, record)
+
+
+def test_native_url_fallback_cannot_override_a_returned_redirect():
+    import json
+    from harness.web_fetch.response_input import require_native_answer_projection
+    request = 'https://requested.example.test/'
+    returned = 'https://returned.example.test/'
+    metadata = {'native_answer_projection': {'schema_version': 2, 'content_format': 'empty',
+        'result_fields': {'final_url': {'pointer': ['url'], 'fallback': 'request_url'}}}}
+    require_native_answer_projection('', metadata, b'{}', request_url=request, final_url=request)
+    require_native_answer_projection('', metadata, json.dumps({'url': returned}).encode(), request_url=request, final_url=returned)
+    with pytest.raises(ValueError, match='title or final URL'):
+        require_native_answer_projection('', metadata, json.dumps({'url': returned}).encode(), request_url=request, final_url=request)
+
+
+def test_cli_final_url_replays_only_same_call_main_document_log():
+    from harness.web_fetch.response_input import require_native_answer_projection
+    request = 'https://requested.example.test/'
+    returned = 'https://returned.example.test/'
+    log = f'fetch request complete method=GET url={request} final_url={returned} status=200'.encode()
+    metadata = {'native_answer_projection': {'schema_version': 2, 'source_format': 'bytes',
+        'content_format': 'utf8', 'result_fields': {'final_url': {'format': 'fetch_log_final_url'}}}}
+    require_native_answer_projection('answer', metadata, b'answer', request_url=request, final_url=returned, diagnostic=log)
+    with pytest.raises(ValueError, match='title or final URL'):
+        require_native_answer_projection('answer', metadata, b'answer', request_url=request, final_url=request, diagnostic=log)
+    with pytest.raises(ValueError, match='diagnostic evidence'):
+        require_native_answer_projection('answer', metadata, b'answer', request_url=request, final_url=returned)
+
+
+@pytest.mark.parametrize('method,module,payload', [
+    ('cloudflare_markdown', 'cloudflare', {'success': False, 'meta': {'title': 'Origin unavailable', 'finalUrl': 'https://returned.example.test/'}}),
+    ('cloudflare_content', 'cloudflare', {'success': False, 'meta': {'finalUrl': 'https://returned.example.test/'}}),
+    ('firecrawl', 'firecrawl', {'success': False, 'data': {'metadata': {'url': 'https://returned.example.test/'}}}),
+])
+def test_failed_native_envelope_retains_provable_result_context(tmp_path, method, module, payload):
+    import json
+    from pathlib import Path
+    from unittest.mock import patch
+    from harness.web_fetch.models import EvalCase
+    from harness.web_fetch.providers.base import build_provider
+    from harness.web_fetch.providers.http_client import HttpResponse
+    from harness.web_fetch.runner import persist_result_artifacts
+    provider = build_provider('method', {'type': method, 'api_key': 'fixture', 'api_token': 'fixture',
+        'account_id': 'fixture', 'uniform_native_parameters': True})
+    case = EvalCase('case', 'Case', 'https://requested.example.test/', 'control', [])
+    with patch('harness.web_fetch.providers.'+module+'.request',
+               return_value=HttpResponse(502, 'https://api.example.test/', {}, json.dumps(payload).encode())):
+        result = provider.fetch(case, 45)
+    assert not result.ok
+    assert result.final_url == 'https://returned.example.test/'
+    persist_result_artifacts(tmp_path, Path('artifacts/answer.txt'), result, request_url=case.url)
+
+
+def test_resource_adapter_uses_returned_address_before_resolving_relative_attributes(tmp_path):
+    import json
+    from pathlib import Path
+    from unittest.mock import patch
+    from harness.web_fetch.models import EvalCase
+    from harness.web_fetch.providers.base import build_provider
+    from harness.web_fetch.providers.http_client import HttpResponse
+    from harness.web_fetch.runner import persist_result_artifacts
+    provider = build_provider('method', {'type': 'cloudflare_markdown', 'api_token': 'fixture',
+        'account_id': 'fixture', 'uniform_native_parameters': True})
+    case = EvalCase('case', 'Case', 'https://requested.example.test/', 'control', [], track='image', task_kind='resource')
+    payload = {'success': True, 'meta': {'finalUrl': 'https://returned.example.test/page'},
+        'result': [{'results': [{'attributes': [{'name': 'src', 'value': '/asset.png'}]}]}]}
+    with patch('harness.web_fetch.providers.cloudflare.request',
+               return_value=HttpResponse(200, 'https://api.example.test/', {}, json.dumps(payload).encode())):
+        result = provider.fetch(case, 45)
+    assert result.final_url == 'https://returned.example.test/page'
+    assert result.metadata['images'] == ['https://returned.example.test/asset.png']
+    persist_result_artifacts(tmp_path, Path('artifacts/answer.txt'), result, request_url=case.url)
+
+
+
+def test_empty_same_call_diagnostic_is_retained_without_inventing_final_url(tmp_path):
+    import base64
+    import hashlib
+    from pathlib import Path
+    from harness.web_fetch.models import ProviderResult
+    from harness.web_fetch.runner import persist_result_artifacts
+    from harness.web_fetch.response_input import verify_saved_native_answer
+    result = ProviderResult(True, 'answer', metadata={
+        '_raw_stdout_b64': base64.b64encode(b'answer').decode(), 'raw_stdout_sha256': hashlib.sha256(b'answer').hexdigest(),
+        '_diagnostic_log_b64': '', 'diagnostic_log_sha256': hashlib.sha256(b'').hexdigest(), 'diagnostic_log_bytes': 0,
+        'native_answer_projection': {'schema_version': 2, 'source_format': 'bytes', 'content_format': 'utf8',
+            'result_fields': {'final_url': {'format': 'fetch_log_final_url'}}}})
+    persist_result_artifacts(tmp_path, Path('artifacts/answer.txt'), result, request_url='https://example.test/')
+    record = {'ok': True, 'url': 'https://example.test/', 'title': None, 'final_url': None,
+        'artifact_path': 'artifacts/answer.txt', 'provider_metadata': result.metadata,
+        'metrics': {'content_sha256': hashlib.sha256(b'answer').hexdigest()}}
+    verify_saved_native_answer(tmp_path, record)
+    assert (tmp_path/result.metadata['diagnostic_log_path']).read_bytes() == b''

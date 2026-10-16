@@ -16,7 +16,9 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from urllib.parse import parse_qsl, quote, urlsplit
+from urllib.parse import urlsplit
+
+from ..response_input import main_document_url_from_fetch_log as _diagnostic_main_document_url
 
 from ..document_text import extract_document_text
 from ..markdown import CONVERTER, converter_command, require_converter
@@ -50,76 +52,6 @@ def _markdown_http_error_status(content: str) -> int | None:
         return None
     match = _MARKDOWN_HTTP_ERROR_PAGE.fullmatch(content)
     return int(match.group("status")) if match else None
-
-
-def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> str | None:
-    """Read Moli's effective main-document URL from the same call's debug log."""
-    pattern = re.compile(
-        rb"fetch request complete method=(?:GET|POST) url=(?P<url>\S+) "
-        rb"final_url=(?P<final_url>\S+) status=(?P<status>\d{3})\b"
-    )
-
-    diagnostic = stderr.encode("utf-8") if isinstance(stderr, str) else stderr
-    navigation_pattern = re.compile(
-        rb"following pending location navigation asynchronously[^\n]* url=(?P<url>\S+)"
-    )
-
-    def field(row: re.Match[bytes], name: str) -> str:
-        return row.group(name).decode("utf-8", "replace")
-
-    def identity(value: str) -> tuple | None:
-        try:
-            validate_http_url(value)
-            parts = urlsplit(value)
-            return (
-                parts.scheme.casefold(),
-                (parts.hostname or "").casefold(),
-                parts.port if parts.port is not None else (443 if parts.scheme.casefold() == "https" else 80),
-                re.sub(r"%[0-9a-fA-F]{2}", lambda match: match[0].upper(),
-                       quote(parts.path, safe="/%:@!$&'()*+,;=")).rstrip("/") or "/",
-                sorted(parse_qsl(parts.query, keep_blank_values=True)),
-            )
-        except ValueError:
-            return None
-
-    requested_identity = identity(requested_url)
-    if requested_identity is None:
-        return None
-    rows = list(pattern.finditer(diagnostic))
-
-    # Legacy completion records do not identify redirect hops or request owners.
-    # Never infer the document from GET ordering or challenge query parameters.
-    row = next((candidate for candidate in rows
-                if identity(field(candidate, "url")) == requested_identity), None)
-    if row is None or 300 <= int(field(row, "status")) < 400:
-        return None
-    navigations = list(navigation_pattern.finditer(diagnostic))
-    for index, navigation in enumerate(navigations):
-        boundary = navigations[index + 1].start() if index + 1 < len(navigations) else len(diagnostic)
-        committed = diagnostic.find(
-            b"committed main navigation before replacement realm bootstrap",
-            navigation.end(), boundary,
-        )
-        if committed < 0:
-            continue
-        navigation_identity = identity(field(navigation, "url"))
-        if navigation_identity is None:
-            return None
-        matches = [candidate for candidate in rows
-                   if navigation.end() <= candidate.start() < boundary
-                   and identity(field(candidate, "url")) == navigation_identity]
-        if len(matches) != 1 or 300 <= int(field(matches[0], "status")) < 400:
-            return None
-        row = matches[0]
-    candidate = field(row, "final_url")
-    if identity(candidate) is None:
-        return None
-    try:
-        validate_http_url(candidate)
-    except ValueError:
-        return None
-    return candidate
-
 
 
 _RESOURCE_PAGE_EXPRESSION = r"""
@@ -758,7 +690,8 @@ class MoliWebFetchProvider(Provider):
                 raise ValueError('Native CLI arguments differ from its canonical request builder')
             command = [command[0], *canonical[1:]]
         limit = int(self.config.get("max_bytes", 20_000_000))
-        retain_diagnostic = bool(self.config.get("retain_complete_diagnostic_log", False))
+        retain_diagnostic = bool(self.config.get("retain_complete_diagnostic_log", False)
+                                 or self.config.get("uniform_native_parameters"))
         diagnostic_limit = int(self.config.get("max_diagnostic_bytes", 100_000_000))
         diagnostic_read_limit = diagnostic_limit if retain_diagnostic else limit
         metadata = {
@@ -948,7 +881,7 @@ class MoliWebFetchProvider(Provider):
             if self.config.get('uniform_native_parameters'):
                 metadata.update(_raw_stdout_b64=base64.b64encode(raw).decode('ascii'),
                     raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
-                    native_answer_projection={'schema_version': 1, 'source_format': 'bytes',
+                    native_answer_projection={'schema_version': 2, 'source_format': 'bytes',
                         'content_format': 'empty', 'files': {'format': 'raw_bytes'}})
             if native_document_download:
                 metadata["native_output_contract"] = "original_document_bytes_without_extracted_text"
@@ -1300,7 +1233,8 @@ class MoliWebFetchProvider(Provider):
         if self.config.get('uniform_native_parameters'):
             metadata.update(_raw_stdout_b64=base64.b64encode(raw).decode('ascii'),
                 raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
-                native_answer_projection={'schema_version': 1, 'source_format': 'bytes', 'content_format': 'utf8'})
+                native_answer_projection={'schema_version': 2, 'source_format': 'bytes', 'content_format': 'utf8',
+                    'result_fields': {'final_url': {'format': 'fetch_log_final_url'}}})
         parsed_error_status = _markdown_http_error_status(content)
         ok = process.returncode == 0 and parsed_error_status is None
         final_url = _diagnostic_main_document_url(diagnostic_raw, case.url)

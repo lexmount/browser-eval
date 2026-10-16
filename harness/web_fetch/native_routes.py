@@ -48,31 +48,33 @@ def native_route_cell(provider, case):
                      if kind == 'resource' else 'native_document_bytes'
                      if track == 'document' and media in {'direct_pdf', 'direct_docx'}
                      else 'dynamic_native_markdown' if track == 'dynamic' else 'ordinary_markdown')
-        fields = ['original_bytes'] if interface in {'raw_file', 'native_document_bytes'} else ['stdout']
+        fields = (['original_bytes'] if interface in {'raw_file', 'native_document_bytes'}
+                  else ['stdout', 'diagnostic.main_document_url'])
     elif method in {'firecrawl', 'tavily_extract', 'exa_contents', 'cloudflare_markdown', 'cloudflare_content'}:
         transport = 'http'
         if method == 'firecrawl':
             interface = '/v2/scrape'
             endpoint = str(config.get('base_url', 'https://api.firecrawl.dev')).rstrip('/') + interface
             fields = ['data.rawBase64'] if kind == 'file' else ['data.markdown', 'data.links', 'data.images', 'data.videos', 'data.video']
+            fields += ['data.metadata.title', 'data.metadata.url']
         elif method == 'tavily_extract':
             interface = '/extract'
             endpoint = str(config.get('base_url', 'https://api.tavily.com')).rstrip('/') + interface
-            fields = ['results[].raw_content', 'results[].images', 'images']
+            fields = ['results[].raw_content', 'results[].images', 'images', 'results[].url']
         elif method == 'exa_contents':
             interface = '/contents'
             endpoint = str(config.get('base_url', 'https://api.exa.ai')).rstrip('/') + interface
-            fields = ['results[].text', 'results[].extras']
+            fields = ['results[].text', 'results[].extras', 'results[].title', 'results[].url']
         else:
             interface = provider.native_http_interface(case)
             endpoint = 'https://api.cloudflare.com/client/v4/accounts/' + str(config.get('account_id', '')) + '/browser-rendering' + interface
             if method=='cloudflare_markdown' and interface=='/markdown' and config.get('browser'):
                 from urllib.parse import urlencode
                 endpoint += '?'+urlencode({'browser': config['browser']})
-            fields = ['result']
+            fields = ['result', 'meta.title', 'meta.finalUrl']
     elif method in {'subprocess_jsonl', 'cowagent_builtin'}:
         transport, interface = 'jsonl', 'native_worker_command'
-        fields = ['content', 'metadata.links', 'metadata.images', 'metadata.videos', 'metadata.media', 'metadata.extras', 'files']
+        fields = ['content', 'metadata.links', 'metadata.images', 'metadata.videos', 'metadata.media', 'metadata.extras', 'files', 'title', 'final_url']
     elif method == 'fixture':
         transport, interface, fields = 'fixture', 'synthetic_fixture', ['content']
     else:

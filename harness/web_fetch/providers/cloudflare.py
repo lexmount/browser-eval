@@ -408,9 +408,11 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
-                **({'native_answer_projection': {'schema_version': 1,
-                    'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True}}
-                   if envelope_success and isinstance(payload.get('result', ''), str) else {}),
+                **({'native_answer_projection': {'schema_version': 2,
+                    'content_pointer': ['result'], 'content_format': 'text' if envelope_success and isinstance(payload.get('result', ''), str) else 'empty', 'optional_content': True,
+                    'result_fields': {'title': {'pointer': ['meta', 'title']},
+                        'final_url': {'pointer': ['meta', 'finalUrl'], 'fallback': 'request_url'}}}}
+                   if (envelope_success and isinstance(payload.get('result', ''), str)) or meta else {}),
                 "route": route,
                 "wait": wait_metadata,
                 "browser": self.config.get("browser"),
@@ -475,10 +477,14 @@ class CloudflareMarkdownProvider(Provider):
         envelope_success = payload.get("success") is True
         from ..response_input import project_native_answer
         answer_key = 'images' if case.track == 'image' else 'videos'
-        projection = {'schema_version': 1, 'content_pointer': ['result'],
-                      'content_format': 'json', 'answer_fields': {answer_key: {
+        meta = payload.get('meta') if isinstance(payload.get('meta'), dict) else {}
+        effective_url = meta.get('finalUrl') or case.url
+        projection = {'schema_version': 2, 'content_pointer': ['result'],
+                      'content_format': 'json', 'result_fields': {'final_url': {
+                          'pointer': ['meta', 'finalUrl'], 'fallback': 'request_url'}},
+                      'answer_fields': {answer_key: {
                           'pointer': ['result'], 'format': 'html_attribute_urls',
-                          'base_url': case.url}}}
+                          'base_url': effective_url}}}
         answer, fields = ('', {})
         if envelope_success:
             answer, fields = project_native_answer(payload, projection)
@@ -495,18 +501,17 @@ class CloudflareMarkdownProvider(Provider):
             ok=error_type is None,
             content=answer,
             status_code=response.status,
-            final_url=case.url,
+            final_url=effective_url,
             error_type=error_type,
             error_message=error_message,
             metadata={
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
-                **({'native_answer_projection': {'schema_version': 1,
-                    'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True}}
-                   if envelope_success and isinstance(payload.get('result', ''), str) else {}),
                 "route": "browser_rendering_scrape_resources",
-                **({'native_answer_projection': projection} if envelope_success else {}),
+                **({'native_answer_projection': (projection if envelope_success else {
+                    **projection, 'content_format': 'empty', 'answer_fields': {}})}
+                   if envelope_success or meta else {}),
                 "request_method": "POST",
                 "request_summary": {
                     "selectors": selectors,
@@ -679,8 +684,9 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
-                **({'native_answer_projection': {'schema_version': 1,
-                    'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True}}
+                **({'native_answer_projection': {'schema_version': 2,
+                    'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True,
+                    'result_fields': {'final_url': {'format': 'transport_response_url'}}}}
                    if envelope_success and isinstance(payload.get('result', ''), str) else {}),
                 "route": "workers_ai_tomarkdown",
                 "source_status": source.status,
@@ -688,6 +694,8 @@ class CloudflareMarkdownProvider(Provider):
                 "source_bytes": len(source.body),
                 "source_content_type": content_type,
                 "source_final_url": source.url,
+                "source_transport_receipt": {"response_url": source.url,
+                    "body_sha256": hashlib.sha256(source.body).hexdigest()},
                 "source_elapsed_ms": source_elapsed_ms,
                 "conversion_elapsed_ms": conversion_elapsed_ms,
                 "conversion_attempted": True,
@@ -752,16 +760,17 @@ class CloudflareContentProvider(Provider):
             ok=ok,
             content=content if envelope_success else "",
             status_code=response.status,
-            final_url=case.url,
+            final_url=meta.get("finalUrl") or case.url,
             error_type=error_type,
             error_message=error_message,
             metadata={
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
-                **({'native_answer_projection': {'schema_version': 1,
-                    'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True}}
-                   if envelope_success and isinstance(payload.get('result', ''), str) else {}),
+                **({'native_answer_projection': {'schema_version': 2,
+                    'content_pointer': ['result'], 'content_format': 'text' if envelope_success and isinstance(payload.get('result', ''), str) else 'empty', 'optional_content': True,
+                    'result_fields': {'final_url': {'pointer': ['meta', 'finalUrl'], 'fallback': 'request_url'}}}}
+                   if (envelope_success and isinstance(payload.get('result', ''), str)) or meta else {}),
                 "output_contract": "rendered_html",
                 "upstream_status": upstream_status,
                 "empty_content": envelope_success and not content,

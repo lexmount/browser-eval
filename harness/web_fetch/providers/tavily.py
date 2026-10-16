@@ -89,7 +89,7 @@ class TavilyExtractProvider(Provider):
             ok=ok,
             content=content,
             status_code=response.status,
-            final_url=(result.get("url") or case.url) if ok else case.url,
+            final_url=result.get("url") or case.url,
             error_type=error_type,
             error_message=error_message,
             metadata={
@@ -116,10 +116,11 @@ class TavilyExtractProvider(Provider):
                 ),
                 "images": (result.get("images") or payload.get("images") or []) if ok else [],
                 **({'native_answer_projection': {
-                    'schema_version': 1, 'content_pointer': ['results', 0, 'raw_content'],
+                    'schema_version': 2, 'content_pointer': ['results', 0, 'raw_content'],
                     'content_format': 'text', 'optional_content': True,
-                    'answer_fields': {'images': {
+                    'result_fields': {'final_url': {'pointer': ['results', 0, 'url'], 'fallback': 'request_url'}},
+                    'answer_fields': ({'images': {
                         'pointer': ['results', 0, 'images'] if result.get('images') else ['images'],
-                        'format': 'identity', 'default': []}}}} if ok or content else {}),
+                        'format': 'identity', 'default': []}} if ok else {})}} if ok or content or result.get('url') else {}),
             },
         )

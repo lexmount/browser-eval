@@ -452,17 +452,20 @@ class FirecrawlProvider(Provider):
                 "images": data.get("images") if ok and isinstance(data.get("images"), list) else [],
                 "videos": videos if ok else [],
                 **({'native_answer_projection': {
-                    'schema_version': 1,
+                    'schema_version': 2,
+                    'result_fields': {
+                        'final_url': {'pointer': ['data', 'metadata', 'url'], 'format': 'text_or_none', 'nonempty': True},
+                        **({'title': {'pointer': ['data', 'metadata', 'title'], 'format': 'text_or_none'}} if ok else {})},
                     'content_pointer': ['data', 'markdown'],
-                    'content_format': 'empty' if file_route else 'text', 'optional_content': True,
-                    'answer_fields': ({} if file_route else {
+                    'content_format': 'empty' if file_route or not ok else 'text', 'optional_content': True,
+                    'answer_fields': ({} if file_route or not ok else {
                         'links': {'pointer': ['data', 'links'], 'format': 'identity', 'default': []},
                         'images': {'pointer': ['data', 'images'], 'format': 'identity', 'default': []},
                         **({'videos': {'pointer': ['data', 'videos'], 'format': 'video_values', 'default': [],
                             'legacy': {'pointer': ['data', 'video'], 'default': ''}}}
                             if native_video_route else {})}),
                     **({'files': {'pointer': ['data', 'rawBase64'], 'format': 'base64_file'}}
-                       if file_bytes else {})}} if ok else {}),
+                       if file_bytes else {})}} if ok or final_url is not None else {}),
                 **(
                     {
                         "raw_file": {

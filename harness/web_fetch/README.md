@@ -939,3 +939,21 @@ Local uncertified reports retain a disclosure on every page and omit ordinal
 rankings. The CLI cannot hide the disclosure. Historical article HTML is limited
 to inert allowlisted markup and safe links/raster images; its translations apply
 only inside the article. A diagnostic snapshot cannot certify a formal release.
+
+
+### Native scored result context
+
+Native projection schema 2 includes `result_fields.title` and `result_fields.final_url`
+alongside text, resource metadata and delivered files. Validate these fields before
+persisting a call, before native-response scoring, and when aggregating saved calls.
+JSON fields use declared structural pointers. A final address may also be replayed
+from a retained same-call main-document log or a source HTTP response receipt;
+request-URL fallback applies only when the selected native address is absent.
+Resolve relative resource attributes against that verified address. A title absent
+from the native response cannot supply required facts.
+
+Immutable schema-1 acquisitions retain their original text/resource/file scope;
+they do not retroactively prove title/address provenance. Bind a separate offline
+context audit to historical results, replay the complete affected route when a
+context difference is found, and retain the original records and exact score effects.
+These checks add no provider calls.

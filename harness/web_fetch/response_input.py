@@ -1,6 +1,9 @@
 """Provider-neutral answer envelope. Never infer answers from logs or requests."""
 import json
-from urllib.parse import urljoin, urlsplit
+import re
+from urllib.parse import parse_qsl, quote, urljoin, urlsplit
+
+from .safety import validate_http_url
 
 
 def answer_input(artifact, metadata=None, *, ok=True, status_code=None):
@@ -137,7 +140,7 @@ def _project_field(payload, spec):
 
 def project_native_answer(payload, declaration):
     """Select declared native fields; never inspect references or URL meaning."""
-    if declaration.get('schema_version') != 1:
+    if declaration.get('schema_version') not in {1, 2}:
         raise ValueError('Unsupported native answer projection')
     kind = declaration.get('content_format')
     if declaration.get('source_format') == 'bytes':
@@ -185,12 +188,121 @@ def project_native_files(payload, declaration):
     raise ValueError('Unknown native file projection')
 
 
-def require_native_answer_projection(content, metadata, raw_response, *, files=()):
+def main_document_url_from_fetch_log(stderr: str | bytes, requested_url: str) -> str | None:
+    """Replay the effective main-document URL from the same call's debug log."""
+    pattern = re.compile(
+        rb"fetch request complete method=(?:GET|POST) url=(?P<url>\S+) "
+        rb"final_url=(?P<final_url>\S+) status=(?P<status>\d{3})\b"
+    )
+
+    diagnostic = stderr.encode("utf-8") if isinstance(stderr, str) else stderr
+    navigation_pattern = re.compile(
+        rb"following pending location navigation asynchronously[^\n]* url=(?P<url>\S+)"
+    )
+
+    def field(row: re.Match[bytes], name: str) -> str:
+        return row.group(name).decode("utf-8", "replace")
+
+    def identity(value: str) -> tuple | None:
+        try:
+            validate_http_url(value)
+            parts = urlsplit(value)
+            return (
+                parts.scheme.casefold(),
+                (parts.hostname or "").casefold(),
+                parts.port if parts.port is not None else (443 if parts.scheme.casefold() == "https" else 80),
+                re.sub(r"%[0-9a-fA-F]{2}", lambda match: match[0].upper(),
+                       quote(parts.path, safe="/%:@!$&'()*+,;=")).rstrip("/") or "/",
+                sorted(parse_qsl(parts.query, keep_blank_values=True)),
+            )
+        except ValueError:
+            return None
+
+    requested_identity = identity(requested_url)
+    if requested_identity is None:
+        return None
+    rows = list(pattern.finditer(diagnostic))
+
+    # Legacy completion records do not identify redirect hops or request owners.
+    # Never infer the document from GET ordering or challenge query parameters.
+    row = next((candidate for candidate in rows
+                if identity(field(candidate, "url")) == requested_identity), None)
+    if row is None or 300 <= int(field(row, "status")) < 400:
+        return None
+    navigations = list(navigation_pattern.finditer(diagnostic))
+    for index, navigation in enumerate(navigations):
+        boundary = navigations[index + 1].start() if index + 1 < len(navigations) else len(diagnostic)
+        committed = diagnostic.find(
+            b"committed main navigation before replacement realm bootstrap",
+            navigation.end(), boundary,
+        )
+        if committed < 0:
+            continue
+        navigation_identity = identity(field(navigation, "url"))
+        if navigation_identity is None:
+            return None
+        matches = [candidate for candidate in rows
+                   if navigation.end() <= candidate.start() < boundary
+                   and identity(field(candidate, "url")) == navigation_identity]
+        if len(matches) != 1 or 300 <= int(field(matches[0], "status")) < 400:
+            return None
+        row = matches[0]
+    candidate = field(row, "final_url")
+    if identity(candidate) is None:
+        return None
+    try:
+        validate_http_url(candidate)
+    except ValueError:
+        return None
+    return candidate
+
+
+
+def project_native_result_fields(payload, declaration, *, request_url=None,
+                                 diagnostic=None, transport_receipt=None):
+    """Replay scored title/address from native fields or same-call evidence."""
+    fields = {'title': None, 'final_url': None}
+    for name, spec in declaration.get('result_fields', {}).items():
+        if name not in fields:
+            raise ValueError('Unknown native result field')
+        kind = spec.get('format', 'identity')
+        if kind == 'request_url':
+            if name != 'final_url' or request_url is None:
+                raise ValueError('Native URL fallback requires its declared request URL')
+            value = request_url
+        elif kind == 'fetch_log_final_url':
+            if name != 'final_url' or diagnostic is None or request_url is None:
+                raise ValueError('Native final URL lacks its same-call diagnostic evidence')
+            value = main_document_url_from_fetch_log(diagnostic, request_url)
+        elif kind == 'transport_response_url':
+            if name != 'final_url' or not transport_receipt:
+                raise ValueError('Native final URL lacks its source transport receipt')
+            value = transport_receipt['response_url']
+        else:
+            value = _selected(payload, {**spec, 'default': None})
+            if kind == 'text_or_none':
+                value = value if isinstance(value, str) else None
+            elif kind != 'identity':
+                raise ValueError('Unknown native result field projection')
+            if spec.get('nonempty') and not value:
+                value = None
+            if not value and spec.get('fallback') == 'request_url':
+                if name != 'final_url' or request_url is None:
+                    raise ValueError('Native URL fallback requires its declared request URL')
+                value = request_url
+        fields[name] = value
+    return fields
+
+
+def require_native_answer_projection(content, metadata, raw_response, *, files=(), title=None, final_url=None,
+                                     request_url=None, diagnostic=None, transport_receipt=None):
     """Reject every undeclared score-bearing input, then check exact provenance."""
     declaration = metadata.get('native_answer_projection')
     present = {key for key in SCORE_ANSWER_FIELDS if metadata.get(key)}
     if declaration is None:
-        if present or files or (raw_response is not None and content):
+        if (present or files or title is not None
+                or (final_url is not None and final_url != request_url)
+                or (raw_response is not None and content)):
             raise ValueError('Scored native answer has undeclared answer fields')
         return
     if raw_response is None:
@@ -219,7 +331,19 @@ def require_native_answer_projection(content, metadata, raw_response, *, files=(
                 check_source(spec)
             if declaration.get('files'):
                 check_source(declaration['files'])
+        for spec in declaration.get('result_fields', {}).values():
+            check_source(spec)
+            if spec.get('format') == 'fetch_log_final_url' and 'diagnostic.main_document_url' not in allowed:
+                raise ValueError('Native final URL conversion is outside its frozen sources')
     payload = raw_response if declaration.get('source_format') == 'bytes' else json.loads(raw_response)
+    projected_result = project_native_result_fields(payload, declaration, request_url=request_url,
+        diagnostic=diagnostic, transport_receipt=transport_receipt)
+    if projected_result != {'title': title, 'final_url': final_url}:
+        raise ValueError('Scored title or final URL differs from its declared native projection')
+    if declaration.get('schema_version') == 2:
+        for spec in declaration.get('answer_fields', {}).values():
+            if spec.get('format') == 'html_attribute_urls' and spec.get('base_url') != (final_url or request_url):
+                raise ValueError('Native resource base URL differs from its verified result URL')
     expected, fields = project_native_answer(payload, declaration)
     if content != expected or any(metadata.get(key) != value for key, value in fields.items()):
         raise ValueError('Scored answer differs from its declared native field projection')
@@ -255,7 +379,16 @@ def verify_saved_native_answer(root, record):
     raw = read_evidence_binding(root, {'path': raw_path, 'sha256': raw_hash}).read_bytes()
     files = [{'data': contained_path(root, item['artifact_path'], reject_symlinks=True).read_bytes()}
              for item in metadata.get('file_evaluation', {}).get('files', [])]
-    require_native_answer_projection(answer.decode('utf-8'), metadata, raw, files=files)
+    diagnostic = None
+    if any(spec.get('format') == 'fetch_log_final_url'
+           for spec in declaration.get('result_fields', {}).values()):
+        diagnostic = read_evidence_binding(root, {'path': metadata['diagnostic_log_path'],
+            'sha256': metadata['diagnostic_log_sha256']}).read_bytes()
+    require_native_answer_projection(answer.decode('utf-8'), metadata, raw, files=files,
+        title=record.get('title') if declaration.get('schema_version') == 2 or 'result_fields' in declaration else None,
+        final_url=record.get('final_url') if declaration.get('schema_version') == 2 or 'result_fields' in declaration else None,
+        request_url=record.get('url'),
+        diagnostic=diagnostic, transport_receipt=metadata.get('source_transport_receipt'))
     if files or 'file_evaluation' in metadata:
         from .call_boundary import evaluate_returned_files
         source_verification = {}

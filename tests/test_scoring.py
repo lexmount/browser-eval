@@ -705,7 +705,8 @@ class ScoringPipelineTests(unittest.TestCase):
         self.provider.validate.return_value = []
         def response(c, timeout):
             fields = {'images': [{'src': '/image.png'}], 'request_id': 'original-'+c.id}
-            raw = json.dumps({'content': texts[c.id], 'metadata': fields}).encode()
+            native_url = 'https://new.example.test/news/' if c.id == 'redirected' else c.url
+            raw = json.dumps({'content': texts[c.id], 'metadata': fields, 'final_url': native_url}).encode()
             return ProviderResult(ok=c.id != 'failed', content=texts[c.id],
                 status_code=200 if c.id != 'failed' else 502,
                 final_url='https://new.example.test/news/' if c.id == 'redirected' else c.url,
@@ -713,7 +714,8 @@ class ScoringPipelineTests(unittest.TestCase):
                 metadata={**fields, '_raw_response_b64': base64.b64encode(raw).decode(),
                     'raw_response_sha256': hashlib.sha256(raw).hexdigest(), 'raw_response_bytes': len(raw),
                     'native_answer_projection': {'schema_version': 1, 'content_pointer': ['content'],
-                        'content_format': 'text', 'answer_fields': {'images': {
+                        'content_format': 'text', 'result_fields': {'final_url': {'pointer': ['final_url']}},
+                        'answer_fields': {'images': {
                             'pointer': ['metadata', 'images'], 'format': 'identity'}}}})
         self.provider.fetch.side_effect = response
 

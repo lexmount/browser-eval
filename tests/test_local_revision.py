@@ -265,3 +265,41 @@ def test_native_correction_rejects_self_consistent_but_false_projection(tmp_path
     binding['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match=message):
         require_local_revision(tmp_path, binding, json.loads((tmp_path/'dataset.json').read_text()), [current])
+
+
+@pytest.mark.parametrize('field,changed', [('title', 'forged title'), ('final_url', 'https://forged.example.test/')])
+def test_native_context_revision_replays_native_fields_and_rejects_tampering(tmp_path, field, changed):
+    original, _, _, _, _ = _native_answer_revision_fixture(tmp_path)
+    current = json.loads((tmp_path/'results.jsonl').read_text())
+    native_path = tmp_path/current['provider_metadata']['raw_response_path']
+    # Prepare a new immutable native acquisition fixture for this transition.
+    payload = json.loads(native_path.read_bytes())
+    payload.update(title='native title', final_url='https://returned.example.test/')
+    native = json.dumps(payload).encode()
+    second_native = tmp_path/'private_artifacts/context.response.bin'
+    second_native.write_bytes(native)
+    current['provider_metadata'].update(raw_response_path='private_artifacts/context.response.bin',
+        raw_response_sha256=hashlib.sha256(native).hexdigest(), raw_response_bytes=len(native))
+    current.update(title=None, final_url=current['url'])
+    (tmp_path/'results.jsonl').write_text(json.dumps(current)+'\n')
+    config = {'cases': [], 'authority': {'description': 'Recover native title and redirect without new calls.'},
+        'regression_ids': ['native-title-must-match-original', 'native-returned-title-remains-answer',
+                           'native-final-url-must-match-original', 'native-returned-redirect-resolves-relative-image'],
+        'native_answer_corrections': [{'attempt_id': current['attempt_id'],
+            'native_response': {'path': 'private_artifacts/context.response.bin', 'sha256': hashlib.sha256(native).hexdigest()},
+            'projection': {'schema_version': 2, 'content_format': 'text', 'content_pointer': ['content'],
+                'result_fields': {key: {'pointer': [key]} for key in ('title', 'final_url')}}}]}
+    config_path = tmp_path/'context-correction.json'
+    config_path.write_text(json.dumps(config))
+    receipt = revise_local_snapshot(tmp_path, config_path)
+    fixed = json.loads((tmp_path/'results.jsonl').read_text())
+    assert fixed['title'] == 'native title'
+    assert fixed['final_url'] == 'https://returned.example.test/'
+    assert fixed['elapsed_ms'] == original['elapsed_ms']
+    assert receipt['provider_calls_added'] == 0
+    from harness.web_fetch.local_revision import _require_native_answer_correction
+    proof = receipt['native_answer_corrections'][0]
+    _require_native_answer_correction(tmp_path, current, fixed, proof)
+    fixed[field] = changed
+    with pytest.raises(ValueError, match='context correction'):
+        _require_native_answer_correction(tmp_path, current, fixed, proof)

@@ -94,7 +94,7 @@ def require_local_revision(source, binding, dataset, records):
 
 def _require_native_answer_correction(source, original, corrected, proof):
     """Verify a derived answer against the same immutable native response."""
-    from .response_input import project_native_answer
+    from .response_input import project_native_answer, project_native_result_fields
     from .publication_privacy import original_evidence_size
     if proof.get('attempt_id') != original['attempt_id']:
         raise ValueError('Native answer correction lost its attempt identity')
@@ -112,17 +112,22 @@ def _require_native_answer_correction(source, original, corrected, proof):
             or before['path'] == after['path']):
         raise ValueError('Native answer correction must preserve its old artifact')
     read_bound(source, before)
-    text, fields = project_native_answer(json.loads(native.read_bytes()), proof['projection'])
+    payload = json.loads(native.read_bytes())
+    text, fields = project_native_answer(payload, proof['projection'])
+    result_fields = (project_native_result_fields(payload, proof['projection'], request_url=original.get('url'))
+                     if 'result_fields' in proof['projection'] else {})
+    if any(corrected.get(key) != value for key, value in result_fields.items()):
+        raise ValueError('Native result context correction differs from original fields')
     if read_bound(source, after).read_bytes() != text.encode('utf-8', errors='replace'):
         raise ValueError('Native answer correction differs from declared original fields')
     for field in proof['projection'].get('answer_fields', {}).values():
-        if field.get('format') == 'html_attribute_urls' and field.get('base_url') != original['url']:
-            raise ValueError('Native URL projection must use the original request URL')
+        if field.get('format') == 'html_attribute_urls' and field.get('base_url') != (result_fields.get('final_url') or original['url']):
+            raise ValueError('Native URL projection must use the verified result or request URL')
     expected_metadata = {**metadata, **fields, 'native_answer_projection': proof['projection']}
     if corrected.get('provider_metadata') != expected_metadata:
         raise ValueError('Native answer correction changed unrelated response metadata')
     derived = {'metrics', 'scoring', 'diagnosis', 'failure_category',
-               'artifact_path', 'provider_metadata'}
+               'artifact_path', 'provider_metadata'} | set(result_fields)
     if ({k: v for k, v in original.items() if k not in derived}
             != {k: v for k, v in corrected.items() if k not in derived}):
         raise ValueError('Native answer correction changed physical call facts')
@@ -296,14 +301,17 @@ def revise_local_snapshot(source, configuration):
                   else task_passed(row['ok'], row['metrics']))
         before_verdicts[row['attempt_id']] = before
         if row['attempt_id'] in native_requests:
-            from .response_input import project_native_answer
+            from .response_input import project_native_answer, project_native_result_fields
             request = native_requests[row['attempt_id']]
             native_path = read_bound(source, request['native_response'])
             metadata = row.get('provider_metadata', {})
             if (request['native_response']['sha256'] != metadata.get('raw_response_sha256')
                     or native_path.stat().st_size != metadata.get('raw_response_bytes')):
                 raise ValueError('Native correction source differs from its original response')
-            answer, fields = project_native_answer(json.loads(native_path.read_bytes()), request['projection'])
+            payload = json.loads(native_path.read_bytes())
+            answer, fields = project_native_answer(payload, request['projection'])
+            if 'result_fields' in request['projection']:
+                row.update(project_native_result_fields(payload, request['projection'], request_url=row.get('url')))
             raw = answer.encode('utf-8', errors='replace')
             original_artifact = {'path': row['artifact_path'], 'sha256': row['metrics']['content_sha256']}
             digest = hashlib.sha256(raw).hexdigest()

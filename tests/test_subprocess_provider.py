@@ -121,7 +121,7 @@ class SubprocessProviderTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             from harness.web_fetch.runner import persist_result_artifacts
             target=Path(directory)
-            persist_result_artifacts(target, Path('artifacts/worker/control.txt'), result)
+            persist_result_artifacts(target, Path('artifacts/worker/control.txt'), result, request_url='https://example.com')
             self.assertEqual(json.loads((target/result.metadata['raw_response_path']).read_bytes()),payload)
 
     def test_persistence_rejects_answer_edit_or_candidate_filtering(self):

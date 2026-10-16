@@ -376,7 +376,7 @@ def persist_public_call_log(
 
 
 def persist_result_artifacts(
-    output_dir: Path, artifact_rel: Path, result: ProviderResult
+    output_dir: Path, artifact_rel: Path, result: ProviderResult, *, request_url: str | None = None
 ) -> Path:
     """Persist one physical call without changing its scored answer bytes."""
     discarded_late_answer = (not result.ok and result.error_type == 'timeout'
@@ -388,13 +388,17 @@ def persist_result_artifacts(
     needs_projection = (result.metadata.get('native_answer_required')
                         or result.metadata.get('native_answer_projection')
                         or any(result.metadata.get(key) for key in ('links', 'images', 'videos', 'media', 'extras'))
-                        or (raw is not None and result.files))
+                        or (raw is not None and (result.files or result.title is not None or result.final_url is not None)))
     if not discarded_late_answer and needs_projection:
         if result.metadata.get('native_answer_required') and not result.metadata.get('native_answer_projection'):
             raise ValueError('Scored native answer has no projection declaration')
         require_native_answer_projection(result.content, result.metadata,
             base64.b64decode(raw, validate=True) if isinstance(raw, str) else None,
-            files=result.files if raw is not None or result.metadata.get('native_answer_projection') else ())
+            files=result.files if raw is not None or result.metadata.get('native_answer_projection') else (),
+            title=result.title, final_url=result.final_url, request_url=request_url,
+            diagnostic=base64.b64decode(result.metadata['_diagnostic_log_b64'], validate=True)
+                if isinstance(result.metadata.get('_diagnostic_log_b64'), str) else None,
+            transport_receipt=result.metadata.get('source_transport_receipt'))
     elif discarded_late_answer and (result.files or any(result.metadata.get(key) for key in ('images', 'links', 'videos', 'media', 'extras'))):
         raise ValueError('Discarded late native answer retains score-bearing fields')
     if result.metadata.get('native_answer_projection'):
@@ -718,9 +722,9 @@ def run_evaluation(
                             artifact_rel = Path('artifacts') / provider.name / case.id / suffix
                             if native_routes is not None and provider.name in native_routes.providers:
                                 result.metadata['native_route_receipt'] = native_routes.receipt(provider, case, ok=result.ok)
-                            if provider.config.get('uniform_native_parameters') and (result.content or result.files):
+                            if provider.config.get('uniform_native_parameters') and (result.content or result.files or result.title is not None):
                                 result.metadata['native_answer_required'] = True
-                            artifact = persist_result_artifacts(output_dir, artifact_rel, result)
+                            artifact = persist_result_artifacts(output_dir, artifact_rel, result, request_url=case.url)
                             artifact_bytes = result.content.encode('utf-8', errors='replace')
                             measured = score_attempt(
                                 case, artifact_bytes, ok=result.ok, metadata=result.metadata,

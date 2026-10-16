@@ -143,7 +143,7 @@ class ExaContentsProvider(Provider):
             ok=ok,
             content=content,
             status_code=response.status,
-            final_url=(result.get("url") or case.url) if ok else case.url,
+            final_url=result.get("url") or case.url,
             title=result.get("title") if ok else None,
             error_type=error_type,
             error_message=error_message,
@@ -168,12 +168,14 @@ class ExaContentsProvider(Provider):
                 "extras": result_extras,
                 "links": _rich_answer_links(result_extras),
                 **({'native_answer_projection': {
-                    'schema_version': 1, 'content_pointer': ['results', 0, 'text'],
+                    'schema_version': 2, 'content_pointer': ['results', 0, 'text'],
                     'content_format': 'text', 'optional_content': True,
+                    'result_fields': {'final_url': {'pointer': ['results', 0, 'url'], 'fallback': 'request_url'},
+                        **({'title': {'pointer': ['results', 0, 'title']}} if ok else {})},
                     'answer_fields': ({
                         'extras': {'pointer': ['results', 0, 'extras'], 'format': 'identity', 'default': {}},
                         'links': {'pointer': ['results', 0, 'extras', 'richLinks'],
                                   'format': 'named_links', 'default': []}} if ok else {})}}
-                   if ok or content else {}),
+                   if ok or content or result.get('url') else {}),
             },
         )

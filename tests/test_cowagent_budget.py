@@ -37,7 +37,8 @@ class WebFetch:
                 continue
             assert answer.ok and answer.content == 'native answer'
             assert answer.metadata['effective_timeout_seconds'] == 30
-            persist_result_artifacts(tmp_path, Path('artifacts/cow/' + suffix + '.txt'), answer)
+            persist_result_artifacts(tmp_path, Path('artifacts/cow/' + suffix + '.txt'), answer,
+                                     request_url='https://example.com/' + suffix)
             envelope = json.loads((tmp_path / answer.metadata['raw_response_path']).read_bytes())
             assert envelope['raw_tool_response'] == {
                 'status': 'success', 'result': 'native answer',

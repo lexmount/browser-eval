@@ -87,6 +87,7 @@ def score_attempt(
     prepared_answer: tuple | None = None,
     native_response: bytes | None = None,
     native_files: list | None = None,
+    native_diagnostic: bytes | None = None,
     title: str | None = None,
     final_url: str | None = None,
 ) -> dict[str, Any]:
@@ -99,13 +100,15 @@ def score_attempt(
     Previous non-text
     evidence is preserved; the caller must have validated its artifact binding.
     """
+    case = _case_dict(case)
     if native_files is not None and native_response is None:
         raise ValueError('Native file scoring requires its retained response bytes')
     if native_response is not None:
         from .response_input import require_native_answer_projection
         require_native_answer_projection(artifact.decode('utf-8'), metadata or {},
-                                         native_response, files=native_files or ())
-    case = _case_dict(case)
+                                         native_response, files=native_files or (), title=title, final_url=final_url,
+            request_url=case.get('url'), diagnostic=native_diagnostic,
+            transport_receipt=(metadata or {}).get('source_transport_receipt'))
     if native_files is not None:
         from .call_boundary import evaluate_returned_files
         metadata = dict(metadata or {})

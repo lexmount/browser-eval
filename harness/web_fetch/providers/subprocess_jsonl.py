@@ -346,8 +346,10 @@ class SubprocessJsonlProvider(Provider):
             error_message=None if ok else str(payload.get("error_message") or "worker failed"),
             metadata={
                 **dict(payload.get("metadata") or {}),
-                **({'native_answer_projection': {'schema_version': 1,
+                **({'native_answer_projection': {'schema_version': 2,
                     'content_pointer': ['content'],
+                    'result_fields': {'title': {'pointer': ['title']},
+                        'final_url': {'pointer': ['final_url'], 'fallback': 'request_url'}},
                     'content_format': 'text' if isinstance(payload.get('content'), str) else 'empty',
                     'answer_fields': {key: {'pointer': ['metadata', key], 'format': 'identity'}
                         for key in ('links', 'images', 'videos', 'media', 'extras')
