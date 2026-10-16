@@ -669,8 +669,9 @@ upgraded to the new protocol.
 Before any case call, the runner writes `native-route-contract.json`, binding
 every method/track/task-kind/input-type cell to its interface, answer fields,
 configuration and normalized transport parameters. Actual arguments are checked
-before transport; changing the task URL, endpoint, parameters or invocation count
-fails the run. Each result binds its request receipt to that pre-call contract.
+before transport; changing the task URL, endpoint or parameters fails the run.
+Each physical call permits one adapter invocation and retains its own request
+receipt, including every caller retry. Each receipt binds to the pre-call contract.
 Aggregation retains the exact contract bytes; report and release checks verify
 its hash, complete declared scope and per-result receipts. A retrospective audit
 of old logs cannot substitute for this pre-call proof.

@@ -425,6 +425,11 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
 
     def test_native_wait_override_applies_to_every_page_in_a_family(self):
+        for fixed_native in (False, True):
+            with self.subTest(fixed_native=fixed_native):
+                self._assert_family_wait_override(fixed_native)
+
+    def _assert_family_wait_override(self, fixed_native):
         provider = self.provider(
             "import sys\n"
             "url = sys.argv[-1]\n"
@@ -434,6 +439,7 @@ class MoliTests(unittest.TestCase):
             "assert '--eval' not in sys.argv and '--delay-ms' not in sys.argv\n"
             "print('native page body')\n",
             wait_until_by_track={"risk_control": "domstable"},
+            uniform_native_parameters=fixed_native,
         )
         for index in range(2):
             with self.subTest(index=index):

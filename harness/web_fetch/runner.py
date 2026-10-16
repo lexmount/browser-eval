@@ -700,6 +700,8 @@ def run_evaluation(
                                 diagnostics = CallDiagnostics(output_dir / "private_artifacts" / "live-logs" / provider.name / case.id / f"run-{run_number:03d}-physical-{physical_attempt:03d}.jsonl", attempt_id)
                                 diagnostics.emit("caller", "call_started", provider=provider.name, case_id=case.id, url=case.url, timeout_seconds=timeout)
                             provider._call_diagnostics = diagnostics
+                            if native_routes is not None and provider.name in native_routes.providers:
+                                native_routes.begin_attempt(provider, case, physical_attempt)
                             try:
                                 result, pending = fetch_with_deadline(provider, case, timeout)
                             except Exception as error:  # each physical failure remains inspectable
@@ -794,6 +796,8 @@ def run_evaluation(
                                 private_artifacts.append(diagnostic_binding)
                             physical_attempts.append({
                                 'physical_attempt': physical_attempt,
+                                **({'native_route_receipt': result.metadata['native_route_receipt']}
+                                   if 'native_route_receipt' in result.metadata else {}),
                                 'started_at': physical_started,
                                 'completed_at': physical_completed,
                                 'elapsed_ms': physical_elapsed_ms,

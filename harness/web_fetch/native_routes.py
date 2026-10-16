@@ -142,6 +142,7 @@ class NativeRouteLedger:
         from datetime import datetime, timezone
         import threading
         self.cells, self.observed, self.calls, self.errors = {}, {}, {}, []
+        self.physical_attempts = {}
         self.lock = threading.Lock()
         self.providers = {p.name: p for p in providers if p.config.get('uniform_native_parameters')}
         self.inventory = []
@@ -187,6 +188,15 @@ class NativeRouteLedger:
             self.errors.append({'method': provider.name, 'case_id': case.id, 'reason': reason})
         raise ValueError(reason)
 
+    def begin_attempt(self, provider, case, physical_attempt):
+        """Give each caller-controlled physical call its own invocation receipt."""
+        identity = (provider.name, case.id)
+        with self.lock:
+            previous = self.physical_attempts.get(identity, 0)
+            if type(physical_attempt) is not int or physical_attempt != previous + 1:
+                raise ValueError('Native physical attempts must be consecutive')
+            self.physical_attempts[identity] = physical_attempt
+
     def observe(self, provider, case, *, transport, parameters, endpoint=None, interface=None):
         key, current = native_route_cell(provider, case)
         cell = self.cells.get(key, {})
@@ -207,9 +217,9 @@ class NativeRouteLedger:
                 message = 'Native request parameters differ from the pre-call contract'
             if not message and key in self.observed and self.observed[key] != digest:
                 message = 'Native request signature changed within the same declared class'
-            identity = (provider.name, case.id)
+            identity = (provider.name, case.id, self.physical_attempts.get((provider.name, case.id), 1))
             if not message and self.calls.get(identity):
-                message = 'Fixed-native calls permit only one adapter invocation per task'
+                message = 'Fixed-native calls permit only one adapter invocation per physical attempt'
             if message:
                 self.errors.append({'method': provider.name, 'case_id': case.id, 'reason': message})
                 raise ValueError(message)
@@ -221,13 +231,17 @@ class NativeRouteLedger:
         from copy import deepcopy
         key, _ = native_route_cell(provider, case)
         with self.lock:
+            ordinal = self.physical_attempts.get((provider.name, case.id), 1)
+            calls = self.calls.get((provider.name, case.id, ordinal), [])
             return {'contract_sha256': self.binding['sha256'], 'cell': list(key),
+                    'physical_attempt': ordinal,
                     'answer_fields': list(self.cells[key]['answer_fields']),
-                    'requests': deepcopy(self.calls.get((provider.name, case.id), [])),
-                    'transport_state': 'started' if self.calls.get((provider.name, case.id)) else 'not_started',
-                    **({'failure_stage': 'after_transport' if self.calls.get((provider.name, case.id))
+                    'requests': deepcopy(calls),
+                    'transport_state': 'started' if calls else 'not_started',
+                    **({'failure_stage': 'after_transport' if calls
                         else 'before_transport'} if ok is False else {}),
                     'protocol_errors': [dict(e) for e in self.errors if e['method']==provider.name and e['case_id']==case.id]}
+
 
 
 def verify_native_route_contract(source, manifest, dataset, records):
@@ -287,35 +301,43 @@ def verify_native_route_contract(source, manifest, dataset, records):
                 or datetime.fromisoformat(doc['frozen_at']) > datetime.fromisoformat(row['started_at'])):
             raise ValueError('Native input type or pre-call freeze differs')
         key = row['provider'], case.get('track', 'web'), case.get('task_kind', 'body'), media
-        receipt = row.get('provider_metadata', {}).get('native_route_receipt', {})
-        if receipt.get('protocol_errors'):
-            raise ValueError('Native request violated its route contract')
-        if receipt.get('contract_sha256') != binding['sha256'] or receipt.get('cell') != list(key) or key not in cells:
-            raise ValueError('Native result lacks its bound route receipt')
-        if receipt.get('answer_fields') != cells[key]['answer_fields']:
-            raise ValueError('Native answer fields differ from the frozen route')
-        requests = receipt.get('requests', [])
-        state = receipt.get('transport_state')
-        if state not in {'started', 'not_started'}:
-            raise ValueError('Native result lacks its transport stage')
-        if bool(requests) != (state == 'started'):
-            raise ValueError('Native transport stage lacks its invocation signature')
-        if not row['ok'] and receipt.get('failure_stage') != (
-                'after_transport' if requests else 'before_transport'):
-            raise ValueError('Native failed result lacks an explicit failure stage')
-        if len(requests) > 1 or (row['ok'] and not requests and cells[key]['transport'] != 'fixture'):
-            raise ValueError('Native result lacks one complete invocation signature')
-        for item in requests:
-            signature = item['signature']
-            if (_digest(signature) != item.get('sha256')
-                    or signature['transport'] != cells[key]['transport']
-                    or signature['interface'] != cells[key]['interface']
-                    or signature['endpoint_sha256'] != cells[key]['endpoint_sha256']
-                    or signature.get('parameters') != cells[key]['request_parameters']):
-                raise ValueError('Native invocation differs from its frozen interface')
-            if key in signatures and signatures[key] != item['sha256']:
-                raise ValueError('Native request signature differs within its declared class')
-            signatures[key] = item['sha256']
+        metadata = row.get('provider_metadata', {})
+        final_receipt = metadata.get('native_route_receipt', {})
+        attempts = metadata.get('retry', {}).get('attempts', [])
+        if attempts and attempts[-1].get('native_route_receipt') != final_receipt:
+            raise ValueError('Native final route receipt differs from its last physical call')
+        for ordinal, physical in enumerate(attempts or [row], 1):
+            receipt = (physical.get('native_route_receipt', {}) if attempts else final_receipt)
+            if attempts and receipt.get('physical_attempt') != ordinal:
+                raise ValueError('Native retry lacks its consecutive physical route receipt')
+            if receipt.get('protocol_errors'):
+                raise ValueError('Native request violated its route contract')
+            if receipt.get('contract_sha256') != binding['sha256'] or receipt.get('cell') != list(key) or key not in cells:
+                raise ValueError('Native result lacks its bound route receipt')
+            if receipt.get('answer_fields') != cells[key]['answer_fields']:
+                raise ValueError('Native answer fields differ from the frozen route')
+            requests = receipt.get('requests', [])
+            state = receipt.get('transport_state')
+            if state not in {'started', 'not_started'}:
+                raise ValueError('Native result lacks its transport stage')
+            if bool(requests) != (state == 'started'):
+                raise ValueError('Native transport stage lacks its invocation signature')
+            if not physical['ok'] and receipt.get('failure_stage') != (
+                    'after_transport' if requests else 'before_transport'):
+                raise ValueError('Native failed result lacks an explicit failure stage')
+            if len(requests) > 1 or (physical['ok'] and not requests and cells[key]['transport'] != 'fixture'):
+                raise ValueError('Native result lacks one complete invocation signature')
+            for item in requests:
+                signature = item['signature']
+                if (_digest(signature) != item.get('sha256')
+                        or signature['transport'] != cells[key]['transport']
+                        or signature['interface'] != cells[key]['interface']
+                        or signature['endpoint_sha256'] != cells[key]['endpoint_sha256']
+                        or signature.get('parameters') != cells[key]['request_parameters']):
+                    raise ValueError('Native invocation differs from its frozen interface')
+                if key in signatures and signatures[key] != item['sha256']:
+                    raise ValueError('Native request signature differs within its declared class')
+                signatures[key] = item['sha256']
     if actual != expected:
         raise ValueError('Native route contract has an incomplete result scope')
     return doc
