@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import tempfile
 from pathlib import Path
@@ -13,99 +14,66 @@ from urllib.request import urlopen
 
 from harness.reporting.assets import copy_bound_assets
 from harness.reporting.packs import read_packed_file
-from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.storage import data_home
 
+from lexbench_webfetch.inputs import (
+    digest, load_manifest as _load_manifest, verify_catalog, verify_tree, definition_path,
+    require_mutable_inputs as validate_mutable_candidate,
+)
+
 MANIFEST_NAME = "source-inputs.json"
-_PACKED_INPUT_PREFIXES = ("sources/", "list-references/")
-_MAX_REMOTE_FILE_BYTES = 64_000_000
+ROOT = Path(__file__).resolve().parents[2]
 
 
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def benchmark_input_path(path: Path) -> Path:
+    """Resolve historical inputs through the caller's hash-bound checkout authority."""
+    # Resolve directory links before interpreting '..', leaving the input leaf
+    # unresolved so a symlinked file is still rejected. Keep the lexical route
+    # too: linked input directories must not hide a declared checkout binding.
+    candidates = dict.fromkeys((path.parent.resolve() / path.name, Path(os.path.abspath(path))))
+    for absolute in candidates:
+        for checkout in absolute.parents:
+            authority = checkout / "evaluation/lexbench-webfetch.json"
+            if not authority.is_file():
+                continue
+            if authority.is_symlink():
+                raise ValueError("Benchmark checkout binding must not be symlinked")
+            binding = json.loads(authority.read_text(encoding="utf-8"))
+            if (binding.get("kind") != "external_benchmark_binding"
+                    or binding.get("repository") != "https://github.com/lexmount/lexbench-webfetch"):
+                raise ValueError("Invalid benchmark checkout binding")
+            relative = absolute.relative_to(checkout)
+            selected = (relative.parent / MANIFEST_NAME
+                        if relative.name == 'dataset.json' else relative)
+            expected = binding.get("definition_files", {}).get(selected.as_posix())
+            if expected is None:
+                continue
+            if path.is_symlink():
+                raise ValueError("Benchmark inputs must not be symlinked")
+            target = definition_path(selected.as_posix())
+            if digest(target) != expected:
+                raise ValueError("Installed benchmark definition differs from checkout binding")
+            return target.parent / relative.name if relative.name == 'dataset.json' else target
+    return path
 
 
 def load_manifest(path: Path, dataset: Path | None = None) -> dict:
-    if path.is_symlink():
-        raise ValueError("Reference input manifest must not be symlinked")
-    manifest = json.loads(path.read_text(encoding="utf-8"))
-    if (
-        manifest.get("schema_version") not in {1, 2}
-        or manifest.get("kind") != "frozen_reference_inputs"
-    ):
-        raise ValueError("Unsupported reference input manifest")
-    safe_identifier(manifest["id"])
-    declared_dataset = contained_path(path.parent, manifest["dataset"], reject_symlinks=True)
-    selected_dataset = dataset or declared_dataset
-    if selected_dataset.resolve() != declared_dataset:
-        raise ValueError("Reference inputs are bound to a different dataset")
-    if manifest["schema_version"] == 1:
-        if digest(selected_dataset) != manifest["dataset_sha256"]:
-            raise ValueError("Reference inputs are bound to a different dataset")
-    else:
-        catalog = contained_path(path.parent, manifest["catalog"], reject_symlinks=True)
-        if digest(catalog) != manifest["catalog_sha256"]:
-            raise ValueError("Frozen dataset catalog changed")
-        definition = json.loads(catalog.read_text(encoding="utf-8"))
-        if (
-            definition.get("kind") != "frozen_dataset_catalog"
-            or definition.get("dataset_sha256") != manifest["dataset_sha256"]
-            or manifest.get("files", {}).get(manifest["dataset"]) != manifest["dataset_sha256"]
-        ):
-            raise ValueError("Frozen dataset binding differs from its catalog")
-        for relative, expected in manifest["files"].items():
-            contained_path(path.parent, relative, reject_symlinks=True)
-            if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
-                raise ValueError("Reference input SHA-256 is invalid")
-    if not isinstance(manifest.get("trees"), dict) or (
-        not manifest["trees"] and manifest["schema_version"] == 1
-    ):
-        raise ValueError("Reference input trees are missing")
-    for tree, files in manifest["trees"].items():
-        safe_identifier(tree)
-        if not files:
-            raise ValueError("Reference input inventory must not be empty")
-        for relative, expected in files.items():
-            contained_path(path.parent, relative, reject_symlinks=True)
-            if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
-                raise ValueError("Reference input SHA-256 is invalid")
-    return manifest
+    return _load_manifest(benchmark_input_path(path),
+                          benchmark_input_path(dataset) if dataset is not None else None)
+
+_PACKED_INPUT_PREFIXES = ("sources/", "list-references/")
+_MAX_REMOTE_FILE_BYTES = 64_000_000
 
 
 def input_root(manifest: dict) -> Path:
     return data_home() / "reference-inputs" / manifest["id"]
 
 
-def verify_catalog(path: Path, manifest: dict, raw: bytes) -> None:
-    """Bind the public task directory to the exact frozen task definitions."""
-    catalog = json.loads((path.parent / manifest["catalog"]).read_bytes())
-    dataset = json.loads(raw)
-    cases = dataset.get("cases", [])
-    if (
-        catalog.get("case_count") != len(cases)
-        or len(catalog.get("cases", [])) != len(cases)
-        or any(catalog.get(key) != dataset.get(key) for key in ("id", "name", "coverage_plan"))
-    ):
-        raise ValueError("Frozen dataset catalog inventory differs from its dataset")
-    for declared, case in zip(catalog["cases"], cases):
-        definition = hashlib.sha256(
-            json.dumps(case, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
-        if declared.get("definition_sha256") != definition:
-            raise ValueError("Frozen task definition differs from its catalog")
-        for key, value in declared.items():
-            if key == "definition_sha256":
-                continue
-            actual = case.get(key)
-            if key == "reference_sha256":
-                text = case.get("ground_truth_main_content", "")
-                actual = hashlib.sha256(text.encode()).hexdigest() if text else None
-            if value != actual:
-                raise ValueError("Frozen task catalog metadata differs from its dataset")
-
-
 def read_dataset_bytes(dataset: Path) -> bytes:
     """Read a dataset from its explicit binding without changing its frozen bytes."""
+    dataset = benchmark_input_path(dataset)
     path = dataset.parent / MANIFEST_NAME
     if path.is_symlink():
         raise ValueError("Reference input manifest must not be symlinked")
@@ -127,36 +95,14 @@ def read_dataset_bytes(dataset: Path) -> bytes:
                 raw = selected.read_bytes()
                 if hashlib.sha256(raw).hexdigest() != manifest["dataset_sha256"]:
                     raise ValueError("Frozen dataset changed")
-                verify_catalog(path, manifest, raw)
+                verify_catalog(benchmark_input_path(path), manifest, raw)
                 return raw
     return dataset.read_bytes()
 
 
-def verify_tree(root: Path, files: dict[str, str]) -> None:
-    if root.is_symlink():
-        raise ValueError("Reference input tree must not be symlinked")
-    if not root.is_dir():
-        if root.exists() or root.parent.exists():
-            raise ValueError("Installed reference input tree is missing or is not a directory")
-        raise FileNotFoundError(
-            "Reference inputs are not installed; import the approved source copy with scripts/import_reference_inputs.py"
-        )
-    actual = set()
-    for path in root.rglob("*"):
-        if path.is_symlink():
-            raise ValueError("Reference inputs must not contain symlinks")
-        if path.is_file():
-            actual.add(path.relative_to(root).as_posix())
-    if actual != set(files):
-        raise ValueError("Reference input inventory differs from its manifest")
-    for relative, expected in files.items():
-        path = contained_path(root, relative, reject_symlinks=True)
-        if digest(path) != expected:
-            raise ValueError("Reference input changed: " + relative)
-
-
 def input_tree(dataset: Path, tree: str) -> Path:
     """Use the bound external tree, or the supplied dataset's own adjacent tree."""
+    dataset = benchmark_input_path(dataset)
     safe_identifier(tree)
     manifest_path = dataset.parent / MANIFEST_NAME
     if manifest_path.is_file() or manifest_path.is_symlink():
@@ -180,20 +126,22 @@ def input_tree(dataset: Path, tree: str) -> Path:
 
 def require_mutable_inputs(dataset: Path) -> None:
     """Frozen external references can only be replaced by a new declared revision."""
-    path = dataset.parent / MANIFEST_NAME
-    if (
-        path.exists()
-        or path.is_symlink()
-        or dataset.resolve().is_relative_to(data_home() / "reference-inputs")
-    ):
-        raise ValueError(
-            "Pinned reference inputs are immutable; create a separate candidate dataset and sources"
-        )
+    validate_mutable_candidate(benchmark_input_path(dataset),
+                               input_home=data_home() / "reference-inputs")
 
 
 def check_reference_input_boundary(directory: Path) -> None:
     """Reject source-tree copies of inputs explicitly assigned to external storage."""
-    for path in directory.rglob(MANIFEST_NAME):
+    manifests = set(directory.rglob(MANIFEST_NAME))
+    for binding in directory.rglob("lexbench-webfetch.json"):
+        if binding.is_symlink():
+            raise ValueError("Benchmark checkout binding must not be symlinked")
+        definitions = json.loads(binding.read_text(encoding="utf-8"))["definition_files"]
+        for relative in definitions:
+            if Path(relative).name == MANIFEST_NAME:
+                manifests.add(contained_path(binding.parent.parent.resolve(), relative,
+                                             reject_symlinks=True))
+    for path in sorted(manifests):
         manifest = load_manifest(path)
         for relative in manifest.get("files", {}):
             if contained_path(path.parent, relative, reject_symlinks=True).exists():
@@ -230,7 +178,7 @@ def import_inputs(manifest_path: Path, source: Path) -> Path:
         for tree, files in manifest["trees"].items():
             verify_tree(staging / tree, files)
         if manifest["schema_version"] == 2:
-            verify_catalog(manifest_path, manifest, (staging / manifest["dataset"]).read_bytes())
+            verify_catalog(benchmark_input_path(manifest_path), manifest, (staging / manifest["dataset"]).read_bytes())
         staging.rename(output)
     return output
 

@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from harness.web_fetch.body_coverage import body_requirements
+from lexbench_webfetch.body_coverage import body_requirements
 from harness.web_fetch.reference_freeze import (
     _digest_json,
     _change_for_case,
@@ -13,7 +13,7 @@ from harness.web_fetch.reference_freeze import (
     compute_reference_update,
     main,
 )
-from harness.web_fetch.scoring_regressions import build_correction_provenance
+from lexbench_webfetch.scoring_regressions import build_correction_provenance
 from harness.web_fetch.reference_freeze import prepare_promotion, promote
 
 from tests.reference_freeze_fixture import ROOT_CAUSE, REGRESSIONS, create_promotion_inputs

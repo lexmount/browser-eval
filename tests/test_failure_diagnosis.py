@@ -1,10 +1,10 @@
 import json,unittest
 from copy import deepcopy
 from harness.web_fetch.failure_diagnosis import diagnose
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.response_input import apply_request_status
-from harness.web_fetch.metrics import evaluate_content
-from harness.web_fetch.stable_tasks import evaluate_stable_task
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.response_input import apply_request_status
+from lexbench_webfetch.metrics import evaluate_content
+from lexbench_webfetch.stable_tasks import evaluate_stable_task
 
 class FailureDiagnosisTests(unittest.TestCase):
  def record(self,**fields):return {'provider':'test','ok':False,'status_code':502,'metrics':{},'provider_metadata':{},**fields}
@@ -182,7 +182,7 @@ class UnifiedTextFailureTests(unittest.TestCase):
         body = evaluate_content('entry-1', [], required_patterns=[
             {'id': 'entries', 'pattern': r'entry-\d+', 'minimum': 3}])
         self.assert_category(body, '有效条目不足')
-        from harness.web_fetch.dynamic_lists import evaluate_dynamic_list
+        from lexbench_webfetch.dynamic_lists import evaluate_dynamic_list
         for track in self.tracks:
             legacy = evaluate_dynamic_list('[Alpha](/item/1)',
                 {'hosts': ['example.test'], 'entry_path': r'/item/\d+', 'minimum_entries': 5}, self.base_url)

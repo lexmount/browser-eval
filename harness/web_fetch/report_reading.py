@@ -7,7 +7,7 @@ import base64
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from .safety import contained_path
+from lexbench_webfetch.paths import contained_path
 
 
 def sanitize_article_html(fragment):

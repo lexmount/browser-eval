@@ -201,7 +201,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     from harness.web_fetch.config import load_dataset
     from harness.web_fetch.providers import build_provider
     from harness.web_fetch.runner import run_evaluation
-    from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+    from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
     from harness.web_fetch.report_build import build_report
     canonical = tmp_path / "repo/evaluation/dataset.json"
     # Exercise the production acceptance boundary without historical downloads.
@@ -530,7 +530,7 @@ def test_report_real_diagnostics_do_not_claim_missing_debug(tmp_path):
 
 def test_local_score_correction_preserves_call_facts_and_original_contract(tmp_path):
     import copy
-    from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+    from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
     contract = {'scoring_source_sha256': 'old', 'provider_config_sha256': 'config'}
     record = {'attempt_id': 'a', 'ok': True, 'latency_ms': 1200,
               'metrics': {'content_sha256': 'body', 'scoring_source_sha256': SCORING_SOURCE_SHA256},
@@ -541,7 +541,7 @@ def test_local_score_correction_preserves_call_facts_and_original_contract(tmp_p
                'corrected_scoring_source_sha256': SCORING_SOURCE_SHA256,
                'original_call_config_sha256': 'config', 'original_results_sha256': 'original',
                'call_identities': {'a': local_audit.local_measurement_call_sha256(record)}}
-    from harness.web_fetch.scoring_regressions import build_correction_provenance
+    from lexbench_webfetch.scoring_regressions import build_correction_provenance
     receipt["provenance"] = build_correction_provenance(
         "structured-extraction", "Equivalent Markdown bullets must retain their named records.",
         ["markdown-plus-list-keeps-named-records", "markdown-plus-prose-is-not-a-record-list"])
@@ -729,8 +729,8 @@ def test_local_review_banner_distinguishes_reviewed_and_original_measurements():
 
 def test_retrospective_page_review_preserves_call_and_checks_other_requirements(tmp_path):
     import copy
-    from harness.web_fetch.scoring import score_attempt
-    from harness.web_fetch.metrics import task_passed
+    from lexbench_webfetch.scoring import score_attempt
+    from lexbench_webfetch.metrics import task_passed
     body = 'Expected complete body. A second distinctive sentence describing this page.'
     case = {'id': 'synthetic', 'url': 'https://example.test/start', 'track': 'risk_control',
             'task_kind': 'body', 'page_identity_required': True, 'source_benchmark': {'risk_control': {'navigation_contract': {
@@ -802,7 +802,7 @@ def test_retrospective_page_review_requires_bound_receipt(tmp_path):
 @pytest.mark.parametrize('implicit_identity', [False, True])
 def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defect, implicit_identity):
     import copy
-    from harness.web_fetch.scoring import score_attempt
+    from lexbench_webfetch.scoring import score_attempt
     body = 'Expected complete body. A second distinctive sentence describing this page.'
     old = {'id': 'synthetic', 'url': 'https://example.test/start', 'track': 'risk_control',
         'task_kind': 'body', 'forbidden_any': ['CAPTCHA'],

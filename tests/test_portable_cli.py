@@ -64,7 +64,7 @@ def test_offline_example_runs_without_a_repository(tmp_path, unbound_diagnostics
     env = {**os.environ, "PYTHONPATH": str(installation)}
     imported = subprocess.run([
         sys.executable, "-c",
-        "from harness.web_fetch import scoring_regressions, webmainbench_correction",
+        "from lexbench_webfetch import scoring_regressions; from harness.web_fetch import webmainbench_correction",
     ], cwd=tmp_path, env=env, capture_output=True, text=True)
     assert imported.returncode == 0, imported.stderr
     for arguments, expected_code in [

@@ -35,8 +35,8 @@ def test_converter_rejects_absent_or_wrong_dependency_without_using_another_copy
 @pytest.mark.parametrize('markup', ['<script setup>', '<span data-value="literal">'])
 def test_converter_keeps_literal_markup_in_link_labels_and_prose(tmp_path, markup):
     from html import escape
-    from harness.web_fetch.scoring import score_attempt
-    from harness.web_fetch.metrics import task_passed
+    from lexbench_webfetch.scoring import score_attempt
+    from lexbench_webfetch.metrics import task_passed
 
     package = require_converter(str(DEFAULT_PACKAGE))
     literal = escape(markup)

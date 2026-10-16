@@ -2,8 +2,8 @@ import re
 
 import pytest
 
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.metrics import task_passed
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.metrics import task_passed
 
 
 def code_case():

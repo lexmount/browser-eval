@@ -1,3 +1,7 @@
+# Benchmark ownership
+
+Browser Eval owns execution adapters, evidence handling and report tooling. `lexmount/lexbench-webfetch` owns Web Fetch task populations, task models, deterministic acceptance scoring, compilation and frozen definition files. Import its pinned package directly; do not duplicate or re-export retired evaluator modules here. Resolve frozen historical catalogs/manifests through `lexbench_webfetch.inputs.definition_path`; keep experiment profiles and compact hash bindings in `evaluation/`. WebMainBench, WCXB and WebArena retain their own upstream task authorities.
+
 # Report maintenance
 
 Repository documentation and contribution guidance use English. Keep the root README and `docs/README.zh-CN.md` aligned; additional README translations are welcome, but other guides need no parallel translation. Preserve original-language source quotations and hash-bound acceptance/evidence artifacts. Report-generation languages follow the track contracts below.
@@ -78,3 +82,5 @@ These requirements apply to **all** report tracks; browser-specific rules below 
 - English routes may preserve measured task names, IDs and evidence verbatim, but all report-authored interface and explanatory prose must be localized. Release checks must reject known untranslated interface markers and untranslated accessibility attributes.
 - Before release, inspect every core route class in each explicitly generated language at desktop and narrow widths in both themes, plus the English not-generated notice when applicable. Prevent vertical table labels, clipped controls and unreadable evidence; use ImageGen raster assets or Mermaid rather than SVG for Browser Use diagrams.
 - Keep routine report checks fast and deterministic; they cover structure, evidence, links, terminology, and static readability guards without launching a browser. Run the separate full release check before packaging or publishing; it adds the complete cross-language, cross-theme, desktop and narrow-width visual gate.
+
+All code changes go through a feature branch and pull request. Never push directly to main or merge a pull request.

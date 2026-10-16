@@ -6,9 +6,9 @@ from html import escape
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 
-from .metrics import task_passed
+from lexbench_webfetch.metrics import task_passed
 from .publication_target import public_report_url
-from .safety import contained_path, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 
 CASE_TABS = (

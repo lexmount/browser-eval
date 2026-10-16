@@ -6,8 +6,8 @@ from pathlib import Path
 from harness.record_io import load_jsonl
 
 from .cohort_exclusions import require_cohort_exclusions
-from .safety import contained_path
-from .scoring_regressions import require_scoring_regressions
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.scoring_regressions import require_scoring_regressions
 from .scoring_revision import ALLOWED_FIELDS
 
 
@@ -94,7 +94,7 @@ def require_local_revision(source, binding, dataset, records):
 
 def _require_native_answer_correction(source, original, corrected, proof):
     """Verify a derived answer against the same immutable native response."""
-    from .response_input import project_native_answer, project_native_result_fields
+    from lexbench_webfetch.answer_projection import project_native_answer, project_native_result_fields
     from .publication_privacy import original_evidence_size
     if proof.get('attempt_id') != original['attempt_id']:
         raise ValueError('Native answer correction lost its attempt identity')
@@ -208,7 +208,7 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
     if any(new_rows[key]['metrics'].get('scoring_source_sha256') != value
            for key, value in expected_scoring.items()):
         raise ValueError('Local revision scoring source binding changed')
-    from .metrics import task_passed
+    from lexbench_webfetch.metrics import task_passed
     if receipt.get('input_verdicts'):
         proof = json.loads(read_bound(source, receipt['input_verdicts']).read_text())
         verdicts = proof.get('verdicts', {})
@@ -237,9 +237,9 @@ def revise_local_snapshot(source, configuration):
     """Apply declared score-only changes in a separate snapshot, retaining predecessors."""
     import copy
     from datetime import datetime, timezone
-    from .scoring import score_attempt, load_list_reference, SCORING_SOURCE_SHA256
+    from lexbench_webfetch.scoring import score_attempt, load_list_reference, SCORING_SOURCE_SHA256
     from .cohort_exclusions import apply_cohort_exclusions
-    from .metrics import task_passed
+    from lexbench_webfetch.metrics import task_passed
 
     config = json.loads(configuration.read_text())
     regressions = config.get('regression_ids', [])
@@ -301,7 +301,7 @@ def revise_local_snapshot(source, configuration):
                   else task_passed(row['ok'], row['metrics']))
         before_verdicts[row['attempt_id']] = before
         if row['attempt_id'] in native_requests:
-            from .response_input import project_native_answer, project_native_result_fields
+            from lexbench_webfetch.answer_projection import project_native_answer, project_native_result_fields
             request = native_requests[row['attempt_id']]
             native_path = read_bound(source, request['native_response'])
             metadata = row.get('provider_metadata', {})

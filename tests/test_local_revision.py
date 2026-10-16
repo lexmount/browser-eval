@@ -4,8 +4,8 @@ import json
 import pytest
 
 from harness.web_fetch.local_revision import require_local_revision, revise_local_snapshot
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.metrics import task_passed
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.metrics import task_passed
 
 
 def test_offline_revision_preserves_calls_and_rejects_tampering(tmp_path):

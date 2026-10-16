@@ -7,7 +7,7 @@ import threading
 import unittest
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.headless import output_mode_for_case
 from harness.web_fetch.providers.headless_worker import fetch
 

@@ -4,7 +4,7 @@ import hashlib
 import pytest
 
 from harness.web_fetch.cohort_exclusions import apply_cohort_exclusions, require_cohort_exclusions
-from harness.web_fetch.metrics import task_measured, task_passed
+from lexbench_webfetch.metrics import task_measured, task_passed
 
 
 def test_environment_exclusion_is_symmetric_and_preserves_calls(tmp_path):

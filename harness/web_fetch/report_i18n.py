@@ -4326,7 +4326,7 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
     if source_routes is None:
         sources = sorted(path for path in out.rglob("*.html") if "en" not in path.relative_to(out).parts)
     else:
-        from .safety import contained_path
+        from lexbench_webfetch.paths import contained_path
         sources = []
         for name in sorted(set(source_routes)):
             route = PurePosixPath(name)

@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 from harness.web_fetch.config import load_provider_config, load_runtime_env
-from harness.web_fetch.safety import contained_path, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
 from harness.web_fetch.webmainbench_evidence import digest, read_jsonl, require_unique_attempt_ids
 from harness.web_fetch.webmainbench_runner import PROVIDERS, load_source
 

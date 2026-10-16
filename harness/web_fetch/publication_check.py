@@ -19,7 +19,8 @@ from harness.web_fetch.publication_privacy import (
     project_redundant_result_streams,
     publication_risk,
 )
-from harness.web_fetch.safety import contained_path, evidence_tree_identity
+from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import evidence_tree_identity
 from harness.web_fetch.webmainbench_diagnostics import (
     require_valid_teds_for_release,
     validate_teds_revision_if_present,

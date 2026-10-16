@@ -141,7 +141,7 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     records = load_jsonl(evidence / "results.jsonl")
     evidence_binding = profile.get("evidence_binding")
     if evidence_binding is not None:
-        from .safety import contained_path
+        from lexbench_webfetch.paths import contained_path
 
         files = evidence_binding.get("files") if isinstance(evidence_binding, dict) else None
         required = {"dataset.json", "results.jsonl", "execution.json"}

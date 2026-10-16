@@ -14,7 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from harness.record_io import parse_jsonl
-from harness.web_fetch.safety import contained_path, reject_evidence_symlinks
+from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import reject_evidence_symlinks
 
 
 def load_full_paired_latency(root: Path, profile: dict, valid_cases: set[str]) -> tuple[dict, dict]:

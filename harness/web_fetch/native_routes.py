@@ -1,4 +1,9 @@
 """Declared native input and route contracts, independent of URLs and answers."""
+import json
+
+from lexbench_webfetch.answer_projection import (
+    SCORE_ANSWER_FIELDS, require_native_projection_schema, require_native_answer_projection,
+)
 
 INPUT_MEDIA_KINDS = frozenset({
     'html_page', 'direct_pdf', 'direct_docx', 'direct_text',
@@ -249,7 +254,7 @@ def verify_native_route_contract(source, manifest, dataset, records):
     import hashlib
     import json
     from datetime import datetime
-    from .safety import contained_path
+    from lexbench_webfetch.paths import contained_path
     if manifest.get('native_route_errors'):
         raise ValueError('Native route protocol was violated')
     binding = manifest.get('native_route_contract')
@@ -367,7 +372,7 @@ def materialize_native_route_contracts(output, source, manifests):
     import hashlib
     import re
     import shutil
-    from .safety import contained_path
+    from lexbench_webfetch.paths import contained_path
     for manifest in manifests:
         binding = manifest.get('native_route_contract')
         if not binding:
@@ -394,3 +399,60 @@ def materialize_native_route_contracts(output, source, manifests):
         if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
             raise ValueError('Copied native route contract bytes changed')
         manifest['native_route_contract'] = {'path': target_relative, 'sha256': digest}
+
+
+def verify_saved_native_answer(root, record):
+    """Validate newly declared saved answers at aggregation/release boundaries.
+
+    Older calls with no declaration need a separately recorded historical audit;
+    their missing acquisition declarations must never be invented in place.
+    """
+    from .publication_privacy import read_evidence_binding
+    from lexbench_webfetch.paths import contained_path
+    metadata = record.get('provider_metadata', {})
+    declaration = metadata.get('native_answer_projection')
+    if not declaration:
+        if metadata.get('native_answer_required'):
+            raise ValueError('Scored native answer has no projection declaration')
+        return
+    require_native_projection_schema(declaration)
+    answer = read_evidence_binding(root, {'path': record['artifact_path'],
+        'sha256': record['metrics']['content_sha256']}).read_bytes()
+    # Deadlines discard answers while preserving late raw evidence.
+    if not record['ok'] and record.get('error_type') == 'timeout' and not answer:
+        if any(metadata.get(key) for key in SCORE_ANSWER_FIELDS) or metadata.get('file_evaluation', {}).get('files'):
+            raise ValueError('Discarded late native answer retains score-bearing fields')
+        return
+    raw_path = metadata.get('raw_stdout_path') if declaration.get('source_format') == 'bytes' else metadata.get('raw_response_path')
+    raw_hash = metadata.get('raw_stdout_sha256') if declaration.get('source_format') == 'bytes' else metadata.get('raw_response_sha256')
+    if not raw_path or not raw_hash:
+        raise ValueError('Declared native answer lacks its retained raw response')
+    raw = read_evidence_binding(root, {'path': raw_path, 'sha256': raw_hash}).read_bytes()
+    files = [{'data': contained_path(root, item['artifact_path'], reject_symlinks=True).read_bytes()}
+             for item in metadata.get('file_evaluation', {}).get('files', [])]
+    diagnostic = None
+    if any(spec.get('format') == 'fetch_log_final_url'
+           for spec in declaration.get('result_fields', {}).values()):
+        diagnostic = read_evidence_binding(root, {'path': metadata['diagnostic_log_path'],
+            'sha256': metadata['diagnostic_log_sha256']}).read_bytes()
+    require_native_answer_projection(answer.decode('utf-8'), metadata, raw, files=files,
+        title=record.get('title') if declaration.get('schema_version') == 2 else None,
+        final_url=record.get('final_url') if declaration.get('schema_version') == 2 else None,
+        request_url=record.get('url'),
+        diagnostic=diagnostic, transport_receipt=metadata.get('source_transport_receipt'))
+    if files or 'file_evaluation' in metadata:
+        from lexbench_webfetch.file_acceptance import evaluate_files
+        source_verification = {}
+        dataset_path = root/'dataset.json'
+        if dataset_path.is_file():
+            cases = json.loads(dataset_path.read_bytes()).get('cases', [])
+            case = next((case for case in cases if case.get('id') == record.get('case_id')), None)
+            if case is None:
+                raise ValueError('Native file result lacks its frozen case')
+            source_verification = case.get('source_verification') or {}
+        expected = evaluate_files({'source_verification': source_verification}, [item['data'] for item in files])
+        saved = metadata.get('file_evaluation', {})
+        compared = {**saved, 'files': [{k: v for k, v in item.items() if k != 'artifact_path'}
+                                     for item in saved.get('files', [])]}
+        if compared != expected:
+            raise ValueError('Native file evaluation differs from its retained bytes')

@@ -36,10 +36,11 @@ def pytest_addoption(parser):
 def pytest_sessionstart(session):
     if session.config.getoption("--require-reference-inputs"):
         from harness.web_fetch.reference_inputs import main
+        from lexbench_webfetch.inputs import definition_path
 
         try:
             for manifest in sorted(
-                (Path(__file__).resolve().parents[1] / "evaluation").rglob("source-inputs.json")
+                definition_path("evaluation").rglob("source-inputs.json")
             ):
                 main(["--manifest", str(manifest), "--check"])
         except (FileNotFoundError, ValueError) as error:

@@ -7,7 +7,8 @@ import unittest
 import urllib.error
 from pathlib import Path
 
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import (
     IncompleteEvaluationError, preflight_declared_capacity, run_evaluation,
@@ -66,8 +67,8 @@ class RunnerConcurrencyTest(unittest.TestCase):
 
     def test_discarded_late_file_remains_a_measured_failure(self):
         from harness.web_fetch.call_boundary import fetch_with_deadline
-        from harness.web_fetch.scoring import score_attempt
-        from harness.web_fetch.metrics import task_measured, task_passed
+        from lexbench_webfetch.scoring import score_attempt
+        from lexbench_webfetch.metrics import task_measured, task_passed
         class LateFile(Provider):
             def __init__(self):
                 super().__init__('late', {})

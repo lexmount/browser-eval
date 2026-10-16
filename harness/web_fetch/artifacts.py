@@ -12,7 +12,8 @@ import shutil
 from pathlib import Path
 from typing import Any, Iterable
 
-from .safety import contained_path, reject_evidence_symlinks, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.safety import reject_evidence_symlinks
 
 PRIVATE_ARTIFACT_ROOT = "private_artifacts"
 PUBLIC_CALL_LOG_ROOT = "call-logs"
@@ -338,7 +339,7 @@ def verify_record_artifacts(root: Path, record: dict[str, Any]) -> None:
         if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != digest:
             raise ValueError('Artifact differs from its result binding: ' + relative)
     verify_record_public_call_logs(root, record)
-    from .response_input import verify_saved_native_answer
+    from harness.web_fetch.native_routes import verify_saved_native_answer
     verify_saved_native_answer(root, record)
 
 

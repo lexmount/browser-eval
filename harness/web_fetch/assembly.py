@@ -15,7 +15,7 @@ from harness.web_fetch.artifacts import (
     materialize_reference_checks,
     materialize_task_references,
 )
-from harness.web_fetch.metrics import task_passed
+from lexbench_webfetch.metrics import task_passed
 from harness.web_fetch.publication_privacy import project_execution_manifest
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
@@ -28,16 +28,9 @@ from harness.web_fetch.reference_lifecycle import (
     valid_scoring_revision,
 )
 from harness.web_fetch.result_review import require_result_review
-from harness.web_fetch.safety import (
-    contained_path,
-    reject_evidence_symlinks,
-    unlinked_path,
-    validate_report_ids,
-)
-from harness.web_fetch.scoring_regressions import (
-    build_correction_provenance,
-    valid_correction_provenance,
-)
+from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import reject_evidence_symlinks, unlinked_path, validate_report_ids
+from lexbench_webfetch.scoring_regressions import build_correction_provenance, valid_correction_provenance
 from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -419,7 +412,7 @@ def bind_assembled_scoring_revision(output, *, source=None):
         inherited=path.read_bytes()
         if inherited != (source/'scoring-revisions.json').read_bytes():
             raise ValueError('Inherited scoring authority differs from declared source')
-        from .scoring_regressions import active_scoring_regressions
+        from lexbench_webfetch.scoring_regressions import active_scoring_regressions
         from .scoring_revision import revise
         controls=active_scoring_regressions()
         history=json.loads(inherited)

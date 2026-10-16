@@ -11,7 +11,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.headless import HeadlessProvider
 from harness.web_fetch.runner import run_evaluation
 

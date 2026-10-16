@@ -16,8 +16,8 @@ from pathlib import Path
 
 from harness.record_io import load_jsonl, parse_jsonl
 
-from .metrics import percentile
-from .safety import contained_path
+from lexbench_webfetch.metrics import percentile
+from lexbench_webfetch.paths import contained_path
 from .webmainbench_diagnostics import ERROR_PAGE
 from .webmainbench_evidence import retry_chain_matches
 from .webmainbench_latency_correction import prior_results_path
@@ -369,7 +369,8 @@ def prior_call_rows(path: Path) -> dict[str, dict]:
 
 def paired_tail_main(argv=None) -> None:
     from .providers.headless import LOOPBACK_SANDBOX_PROFILE
-    from .safety import safe_identifier, unlinked_path
+    from lexbench_webfetch.paths import safe_identifier
+    from harness.web_fetch.safety import unlinked_path
     from .webmainbench_runner import (
         fixture_server,
         load_selected_ids,

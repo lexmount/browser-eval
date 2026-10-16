@@ -14,11 +14,12 @@ from unittest.mock import Mock, patch
 
 from harness.web_fetch import rescoring as rescore_content
 from harness.web_fetch import runner
-from harness.web_fetch.metrics import summarize, task_measured, task_passed
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.metrics import summarize, task_measured, task_passed
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.http_client import HttpResponse
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 
 
 def case(**changes):
@@ -912,16 +913,11 @@ class ScoringTests(unittest.TestCase):
         # Explicit case context remains authoritative over stored summary hints.
         self.assertFalse(task_passed(True, rows[1]["metrics"], "body"))
 
-    def test_source_hash_includes_shared_helper(self):
-        from harness.web_fetch import scoring
-        root = Path(scoring.__file__).parent
-        expected = hashlib.sha256(b"\0".join((root / name).read_bytes() for name in (
-            "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
-            "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
-            "response_input.py", "body_coverage.py", "structured_tables.py",
-            "ordered_tree.py", "composite_tasks.py", "call_boundary.py"))).hexdigest()
-        self.assertEqual(SCORING_SOURCE_SHA256, expected)
-        self.assertEqual(score_attempt(case(), b"Text", ok=True)["scoring_source_sha256"], expected)
+    def test_scoring_binds_the_installed_benchmark_source(self):
+        from lexbench_webfetch import scoring
+        self.assertEqual(SCORING_SOURCE_SHA256, scoring.SCORING_SOURCE_SHA256)
+        self.assertEqual(score_attempt(case(), b"Text", ok=True)["scoring_source_sha256"],
+                         scoring.SCORING_SOURCE_SHA256)
 
 
 class ScoringPipelineTests(unittest.TestCase):
@@ -1182,7 +1178,7 @@ class ScoringPipelineTests(unittest.TestCase):
         for kind, declaration in declarations.items():
             record["provider_metadata"] = {**baseline, **declaration}
             if kind == 'downloaded_file':
-                from harness.web_fetch.call_boundary import evaluate_returned_files
+                from lexbench_webfetch.file_acceptance import evaluate_files
                 native = json.loads((self.run/baseline['raw_response_path']).read_bytes())
                 native['files'] = [{'base64': base64.b64encode(original).decode()}]
                 raw = json.dumps(native).encode()
@@ -1193,7 +1189,7 @@ class ScoringPipelineTests(unittest.TestCase):
                               raw_response_sha256=hashlib.sha256(raw).hexdigest(), raw_response_bytes=len(raw))
                 fields['native_answer_projection'] = {**baseline['native_answer_projection'],
                     'files': {'pointer': ['files'], 'format': 'worker_files'}}
-                fields['file_evaluation'] = evaluate_returned_files([{'data': original}], {})
+                fields['file_evaluation'] = evaluate_files({}, [original])
                 fields['file_evaluation']['files'][0]['artifact_path'] = relative
             artifact.unlink(missing_ok=True)
             artifact.write_bytes(original)

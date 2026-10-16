@@ -6,7 +6,8 @@ import hashlib
 import math
 from urllib.parse import urlsplit
 
-from ..models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import plan_for_case, native_default_case
 from .base import Provider
 from .http_client import inner_timeout_budget, request

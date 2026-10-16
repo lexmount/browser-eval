@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.web_fetch import webmainbench_diagnostics as diagnostics
-from harness.web_fetch.scoring_regressions import build_correction_provenance
+from lexbench_webfetch.scoring_regressions import build_correction_provenance
 from harness.web_fetch.webmainbench_scoring import aggregate
 
 METRICS = ("text_edit", "code_edit", "formula_edit", "table_edit", "table_TEDS")

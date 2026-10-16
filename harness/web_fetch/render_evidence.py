@@ -10,8 +10,8 @@ from collections.abc import Mapping
 from html.parser import HTMLParser
 from typing import Any
 
-from .metrics import fact_in_text, normalize_for_match
-from .models import EvalCase
+from lexbench_webfetch.metrics import fact_in_text, normalize_for_match
+from lexbench_webfetch.models import EvalCase
 
 
 class _InitialText(HTMLParser):

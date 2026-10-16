@@ -24,10 +24,10 @@ from urllib.parse import urljoin, urlsplit
 from bs4 import BeautifulSoup
 
 from harness.web_fetch.document_text import extract_document_text
-from harness.web_fetch.metrics import normalize_for_match
+from lexbench_webfetch.metrics import normalize_for_match
 from harness.web_fetch.reference_lifecycle import scope_identity
-from harness.web_fetch.reference_quality import audit_reference, clean_reference_text
-from harness.web_fetch.safety import contained_path, safe_identifier, validate_http_url
+from lexbench_webfetch.reference_quality import audit_reference, clean_reference_text
+from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
 
 
 def extract_html(raw: bytes, url: str):

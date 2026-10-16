@@ -783,7 +783,7 @@ def bound_public_view(source, binding):
     it does not claim that omitted original bytes have been reconstructed.
     """
     from pathlib import Path
-    from .safety import contained_path
+    from lexbench_webfetch.paths import contained_path
     source = Path(source)
     profile_path = contained_path(source, 'presentation-binding.json', reject_symlinks=True)
     if not profile_path.is_file():
@@ -812,7 +812,7 @@ def bound_public_view(source, binding):
 
 def read_evidence_binding(source, binding):
     """Verify original bytes, or return the explicitly disclosed public view."""
-    from .safety import contained_path
+    from lexbench_webfetch.paths import contained_path
     path = contained_path(source, binding['path'], reject_symlinks=True)
     if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == binding.get('sha256'):
         return path
@@ -854,7 +854,7 @@ def evidence_excerpt_matches(source, binding, sample, text):
 def require_public_evidence_view_inventory(source, binding, records):
     """Require complete current-answer/native-response view coverage at release."""
     from .local_revision import read_bound
-    from .safety import contained_path
+    from lexbench_webfetch.paths import contained_path
     if (source/'private_artifacts').exists():
         raise ValueError('Public evidence snapshot must not contain private artifact trees')
     index = json.loads(read_bound(source, binding).read_text())

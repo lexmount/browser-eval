@@ -4,7 +4,8 @@ import base64
 import hashlib
 import json
 
-from ..models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from .base import Provider
 
 

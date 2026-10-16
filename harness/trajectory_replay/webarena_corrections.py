@@ -854,7 +854,9 @@ def _revision_file_sha256(path: Path) -> str:
 
 
 def _load_dataset_revision_bindings(path: Path | None = None) -> dict[int, dict[str, Any]]:
-    from harness.web_fetch.safety import contained_path, unlinked_path
+    from lexbench_webfetch.paths import contained_path
+
+    from harness.web_fetch.safety import unlinked_path
 
     root = Path(__file__).resolve().parents[2]
     path = unlinked_path(

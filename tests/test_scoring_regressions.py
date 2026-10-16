@@ -4,23 +4,21 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.metrics import task_measured, task_passed
+from lexbench_webfetch.metrics import task_measured, task_passed
 from harness.web_fetch.reference_lifecycle import (
     reference_revision_cases,
     scoring_revision_history_sha256,
     valid_scoring_revision,
 )
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.scoring_regressions import (
-    active_scoring_regressions, require_scoring_regressions,
-    valid_correction_provenance,
-)
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.scoring_regressions import active_scoring_regressions, require_scoring_regressions, valid_correction_provenance
 from harness.web_fetch.scoring_revision import ALLOWED_FIELDS, correction_provenance
 
 
 class ScoringRegressionTests(unittest.TestCase):
     def test_policy_supersession_preserves_inputs_and_rejects_changed_body(self):
-        document=json.loads((Path(__file__).resolve().parents[1]/'evaluation/scoring-regressions.json').read_text())
+        from lexbench_webfetch.scoring_regressions import default_registry_path
+        document=json.loads(default_registry_path().read_text())
         self.assertTrue(document['superseded_cases'])
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'controls.json'

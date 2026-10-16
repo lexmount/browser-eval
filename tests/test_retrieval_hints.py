@@ -1,3 +1,4 @@
+from lexbench_webfetch.inputs import definition_path
 import json
 import tempfile
 from copy import deepcopy
@@ -16,7 +17,7 @@ from harness.web_fetch.retrieval_hints import (
 def test_native_execution_keeps_dynamic_scenario_and_acceptance_without_injected_hints():
     from copy import deepcopy
 
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.retrieval_hints import native_fetch_dataset, plan_for_case
     dataset={'tool':'web_fetch','coverage_plan':{'dynamic':['browser']},'cases':[
         {'id':'native-page','name':'Dynamic site','url':'https://example.com/',
@@ -391,7 +392,7 @@ def test_registry_rejects_answer_derived_selectors(tmp_path, monkeypatch, select
 
 def test_registry_source_hash_must_match_bound_external_bytes(tmp_path, monkeypatch):
     import harness.web_fetch.retrieval_hints as owner
-    registry = json.loads(Path("evaluation/native-retrieval-contracts.json").read_text())
+    registry = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text())
     registry["contracts"]["delayed-ten-records"]["source_authority"]["sha256"] = "0" * 64
     path = tmp_path / "registry.json"
     path.write_text(json.dumps(registry))
@@ -426,3 +427,54 @@ def test_worker_accepts_explicit_native_dynamic_contract_without_injected_plan()
     with pytest.raises(ValueError, match="native completion cannot carry"):
         require_normalized_retrieval_plan({"track": "dynamic", "retrieval_plan": {"selector": "body"},
             "retrieval_hints": {"version": 3, "mode": "native"}})
+
+
+@pytest.mark.parametrize("corrupt_source", [False, True])
+def test_registered_contract_from_an_installed_module(tmp_path, monkeypatch, corrupt_source):
+    """A relocated harness must resolve its benchmark owner and check source bytes."""
+    import hashlib
+    import importlib.util
+    import sys
+    import harness.web_fetch.retrieval_hints as original
+
+    installed = tmp_path / "site-packages/harness/web_fetch/retrieval_hints.py"
+    installed.parent.mkdir(parents=True)
+    installed.write_bytes(Path(original.__file__).read_bytes())
+    name = "harness.web_fetch.installed_contract_test"
+    spec = importlib.util.spec_from_file_location(name, installed)
+    owner = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, name, owner)
+    spec.loader.exec_module(owner)
+    monkeypatch.chdir(tmp_path)
+
+    definitions = tmp_path / "benchmark-definitions"
+    definitions.mkdir()
+    dataset = definitions / "dataset.json"
+    dataset.write_text('{"cases": []}')
+    expected = hashlib.sha256(b"independent source observation").hexdigest()
+    manifest = {
+        "schema_version": 1, "kind": "frozen_reference_inputs", "id": "installed-contract",
+        "dataset": "dataset.json", "dataset_sha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
+        "trees": {"sources": {"dynamic-delayed/render-audit.json": expected}},
+    }
+    manifest_path = definitions / "source-inputs.json"
+    manifest_path.write_text(json.dumps(manifest))
+    source = tmp_path / "data/reference-inputs/installed-contract/sources/dynamic-delayed/render-audit.json"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"changed source" if corrupt_source else b"independent source observation")
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data"))
+    registry = json.loads(owner._CONTRACT_REGISTRY_PATH.read_text())
+    registry["contracts"]["delayed-ten-records"]["source_authority"]["sha256"] = expected
+    registry_path = definitions / "contracts.json"
+    registry_path.write_text(json.dumps(registry))
+    monkeypatch.setattr(owner, "_CONTRACT_REGISTRY_PATH", registry_path)
+    monkeypatch.setattr(owner, "definition_path", lambda relative: manifest_path
+                        if relative == "evaluation/source-inputs.json" else definition_path(relative))
+    case = {"id": "dynamic-delayed", "track": "dynamic", "retrieval_hints": {
+        "version": 3, "mode": "native", "contract": "delayed-ten-records"}}
+    if corrupt_source:
+        with pytest.raises(ValueError, match="Reference input changed"):
+            owner.native_contract_for_case(case)
+    else:
+        contract = owner.native_contract_for_case(case)
+        assert contract.selector == ".quote" and contract.minimum_count == 10

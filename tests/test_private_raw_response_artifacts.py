@@ -9,7 +9,8 @@ from harness.web_fetch.artifacts import (
     materialize_private_artifacts, verify_record_private_artifacts,
     verify_record_public_call_logs,
 )
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import run_evaluation
 from harness.web_fetch.artifacts import artifact_bindings, materialize_bound_artifacts

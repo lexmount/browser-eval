@@ -9,7 +9,8 @@ import pytest
 from harness.web_fetch.artifacts import materialize_bound_artifacts
 from harness.web_fetch.comparison_audit import audit_fixed_native_comparison
 from harness.web_fetch.evidence import finalize_aggregate
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import run_evaluation
 
@@ -148,8 +149,8 @@ def comparison_cohort(tmp_path: Path, *, call_order="case-alternating") -> dict[
         runs=1,
         timeout=1,
         delay=0,
-        call_order=call_order,
         max_failure_retries=0,
+        call_order=call_order,
     )
     materialize_bound_artifacts(evidence, worker, records)
     manifest = json.loads((worker / "manifest.json").read_text())

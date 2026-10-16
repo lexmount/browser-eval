@@ -4,7 +4,7 @@ import json
 import pytest
 
 from harness.web_fetch.publication_privacy import project_evidence_view
-from harness.web_fetch.response_input import project_native_answer
+from lexbench_webfetch.answer_projection import project_native_answer
 
 
 def test_native_envelope_view_redacts_decoded_paths_without_changing_other_fields():
@@ -293,7 +293,7 @@ def test_query_redaction_preserves_markdown_link_boundary(url):
 
 def test_redacting_one_url_cannot_remove_adjacent_markdown_records():
     from harness.web_fetch.publication_privacy import redact_url_queries
-    from harness.web_fetch.reference_quality import markdown_links
+    from lexbench_webfetch.reference_quality import markdown_links
     original = ('[Photo](https://cdn.test/image?auth_key=private-value)'
                 '[Item](https://example.test/pins/123)'
                 '[Other](https://example.test/pins/456)')

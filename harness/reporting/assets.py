@@ -8,7 +8,8 @@ import zipfile
 from contextlib import ExitStack
 from pathlib import Path
 
-from harness.web_fetch.safety import contained_path, unlinked_path
+from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import unlinked_path
 
 
 def authored_main(raw: bytes) -> str:

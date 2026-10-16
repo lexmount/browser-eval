@@ -10,9 +10,10 @@ from pathlib import Path
 from pathlib import PurePosixPath
 from urllib.parse import urlencode, urlsplit
 
-from ..models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import native_contract_for_case, native_default_case, plan_for_case
-from ..safety import validate_http_url
+from lexbench_webfetch.paths import validate_http_url
 from .base import Provider
 from .http_client import HttpOnlyRedirectHandler, HttpResponse, inner_timeout_budget, request
 
@@ -499,7 +500,7 @@ class CloudflareMarkdownProvider(Provider):
         if not isinstance(payload, dict):
             payload = {}
         envelope_success = payload.get("success") is True
-        from ..response_input import project_native_answer
+        from lexbench_webfetch.answer_projection import project_native_answer
         answer_key = 'images' if case.track == 'image' else 'videos'
         meta = payload.get('meta') if isinstance(payload.get('meta'), dict) else {}
         effective_url = meta.get('finalUrl') or case.url

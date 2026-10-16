@@ -21,7 +21,7 @@ def requires_adjudication(row):
 
 def current_rule_outcomes(case, record):
     """Expose only declared, computed rules as structured adjudication facts."""
-    from .metrics import task_passed
+    from lexbench_webfetch.metrics import task_passed
     m = record['metrics']
     outcomes = {'task_result': {'passed': task_passed(record['ok'], m)},
                 'request_status': {'passed': bool(m.get('request_ok', record['ok']))}}
@@ -148,7 +148,7 @@ def require_adjudication_evidence(source, dataset, records, review):
 
 
 def require_current_review_state(records, review):
-    from .metrics import task_measured, task_passed
+    from lexbench_webfetch.metrics import task_measured, task_passed
     indexed={record['attempt_id']:record for record in records}
     rows=review.get('attempts',[])
     unreviewed=review.get('unreviewed_attempt_ids',[])

@@ -5,12 +5,12 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from urllib.request import Request
 
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.fixture import FixtureProvider
 from harness.web_fetch.providers.http_client import HttpOnlyRedirectHandler, HttpResponse, request
 from harness.web_fetch.report import case_attrs, dataset_attrs, generate, link, write
 from harness.web_fetch.runner import load_records, rescore_evaluation, run_evaluation
-from harness.web_fetch.safety import contained_path, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
 from harness.web_fetch.webmainbench_correction import copy_contained_artifact
 
 

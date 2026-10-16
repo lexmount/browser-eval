@@ -17,11 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.error import HTTPError
 
-from harness.web_fetch.safety import (
-    contained_path,
-    evidence_tree_identity,
-    reject_evidence_symlinks,
-)
+from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
 
 
 @dataclass(frozen=True)

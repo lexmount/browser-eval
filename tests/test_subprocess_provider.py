@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.runtime_identity import _command_executable
 from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
 
@@ -128,7 +128,7 @@ class SubprocessProviderTest(unittest.TestCase):
         import hashlib
         from harness.web_fetch.models import ProviderResult
         from harness.web_fetch.runner import persist_result_artifacts
-        from harness.web_fetch.response_input import project_native_answer
+        from lexbench_webfetch.answer_projection import project_native_answer
         cases = [
             ({'content': 'Body | Saved to: /Users/person/work/page.txt'},
              {'schema_version': 1, 'content_pointer': ['content'], 'content_format': 'text'}),
@@ -388,8 +388,8 @@ def test_native_worker_fields_and_files_are_exactly_bound(tmp_path, defect):
 
 
 def test_file_scoring_recomputes_acceptance_from_native_bytes():
-    from harness.web_fetch.scoring import score_attempt
-    from harness.web_fetch.metrics import task_passed
+    from lexbench_webfetch.scoring import score_attempt
+    from lexbench_webfetch.metrics import task_passed
     raw = json.dumps({'content': '', 'files': [{'base64': base64.b64encode(b'not a PNG').decode()}]}).encode()
     metadata = {'file_evaluation': {'pass': True}, 'native_answer_projection': {'schema_version': 1,
         'content_pointer': ['content'], 'content_format': 'text',
@@ -402,7 +402,7 @@ def test_file_scoring_recomputes_acceptance_from_native_bytes():
 
 
 def test_byte_projection_cannot_claim_unverified_structured_metadata():
-    from harness.web_fetch.response_input import require_native_answer_projection
+    from lexbench_webfetch.answer_projection import require_native_answer_projection
     metadata = {'images': ['https://example.test/forged.png'], 'native_answer_projection': {
         'schema_version': 1, 'source_format': 'bytes', 'content_format': 'utf8',
         'answer_fields': {'images': {'pointer': ['images'], 'format': 'identity'}}}}

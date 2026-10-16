@@ -17,9 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
-from harness.web_fetch.reference_quality import clean_reference_text
-from harness.web_fetch.safety import contained_path, safe_identifier
-from harness.web_fetch.scoring import score_attempt
+from lexbench_webfetch.reference_quality import clean_reference_text
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from lexbench_webfetch.scoring import score_attempt, SCORING_SOURCE_FILES
 from harness.web_fetch.source_capture import extract_html
 
 
@@ -179,10 +179,11 @@ def audit_dataset(dataset: Path) -> dict:
         "dataset_sha256": sha256(raw),
         "method": "extract_html(saved initial bytes, case URL), then clean_reference_text; exact Unicode comparison to current dataset reference",
         "js_executed": False, "network_used": False, "provider_outputs_used": False,
-        "implementation_sha256": {name: sha256((ROOT / name).read_bytes()) for name in (
+        "implementation_sha256": {**{name: sha256((ROOT / name).read_bytes()) for name in (
             "scripts/audit_initial_references.py", "harness/web_fetch/source_capture.py",
-            "harness/web_fetch/reference_quality.py", "harness/web_fetch/metrics.py",
-        )},
+
+        )}, **{"lexbench_webfetch/"+path.name: sha256(path.read_bytes())
+                for path in SCORING_SOURCE_FILES}},
         "runtime": {"python": sys.version.split()[0], "beautifulsoup4": version("beautifulsoup4")},
         "summary": summarize(rows),
         "by_track": {track: summarize([row for row in rows if row["track"] == track])

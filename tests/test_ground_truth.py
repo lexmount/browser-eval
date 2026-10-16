@@ -6,9 +6,9 @@ from collections import Counter
 from pathlib import Path
 
 from harness.web_fetch.config import load_dataset
-from harness.web_fetch.metrics import normalize_for_match
+from lexbench_webfetch.metrics import normalize_for_match
 from harness.web_fetch.reference_inputs import input_tree
-from harness.web_fetch.reference_quality import audit_reference
+from lexbench_webfetch.reference_quality import audit_reference
 
 
 class GroundTruthTest(unittest.TestCase):

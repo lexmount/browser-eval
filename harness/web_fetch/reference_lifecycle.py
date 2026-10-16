@@ -16,7 +16,7 @@ from typing import Any
 
 from harness.record_io import load_jsonl, parse_jsonl
 
-from .metrics import normalize_for_match, normalize_resource_url
+from lexbench_webfetch.metrics import normalize_for_match, normalize_resource_url
 from .reference_inputs import input_tree, read_dataset_bytes
 from .render_evidence import validate_render_reference
 
@@ -34,7 +34,7 @@ HOMEPAGE_READER_SCOPE_PROMPTS = frozenset({
     "不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、按钮控件文字、隐藏名称、"
     "网页标题和脚本文字不能代替正文。",
 })
-from .safety import contained_path, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 
 def _same_homepage_reader_constraints(old: dict, new: dict) -> bool:
@@ -141,7 +141,7 @@ def requires_fresh_reference(case) -> bool:
     """Existing answers stay frozen unless the task explicitly selects live checks."""
     contract = _get(case, "acceptance_contract", {})
     if contract:
-        from .stable_tasks import validate_acceptance_contract
+        from lexbench_webfetch.stable_tasks import validate_acceptance_contract
         validate_acceptance_contract(contract)
         return False
     verification = _get(case, "source_verification", {}) or {}
@@ -303,7 +303,7 @@ def _resource_observation_scope(case, root, evidence):
                     or any(not set(old.get(key, [])) <= set(new.get(key, []))
                            for key in ('aliases', 'url_patterns'))):
                 raise ReferenceLifecycleError('Resource equivalence revision replaced a primary target')
-        from .scoring_regressions import require_scoring_regressions
+        from lexbench_webfetch.scoring_regressions import require_scoring_regressions
         controls = receipt.get('regression_ids')
         if not isinstance(controls, list) or not controls:
             raise ReferenceLifecycleError('Resource equivalence revision lacks executable controls')
@@ -989,7 +989,7 @@ def valid_scoring_revision(source) -> bool:
         except (OSError, ValueError, TypeError, KeyError, StopIteration):
             assembled_review_valid = False
 
-    from .scoring_regressions import valid_correction_provenance
+    from lexbench_webfetch.scoring_regressions import valid_correction_provenance
 
     def revision_edge(value):
         if not isinstance(value, dict):
@@ -1255,7 +1255,7 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
         return {}
     current_dataset = sha256((root / "dataset.json").read_bytes())
     current_results = sha256((root / "results.jsonl").read_bytes())
-    from .scoring_regressions import valid_correction_provenance
+    from lexbench_webfetch.scoring_regressions import valid_correction_provenance
     if not isinstance(receipts, list):
         return {}
 

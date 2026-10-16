@@ -19,8 +19,8 @@ from harness.web_fetch.report_components import (
     task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status,
     stable_contract_details, task_instruction,
 )
-from harness.web_fetch.stable_tasks import evaluate_stable_task
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+from lexbench_webfetch.stable_tasks import evaluate_stable_task
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.report_i18n import translate_text
 
 
@@ -115,7 +115,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             overview_all_call_latency(rows,{c['id']:c,'missing':case('missing',kind='body')})
 
     def test_body_display_uses_visible_body_without_title_or_scripts(self):
-        from harness.web_fetch.scoring import score_attempt
+        from lexbench_webfetch.scoring import score_attempt
         contract={'version':3,'unit':'region_compact_hexagram_recall',
                   'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
                   'regions':[{'id':'body','text':'abcdefghijkl'}]}
@@ -131,14 +131,14 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertNotIn('ghijkl</pre>',cards)
 
     def test_bound_body_evidence_is_displayed_without_rescoring(self):
-        from harness.web_fetch.scoring import score_attempt
+        from lexbench_webfetch.scoring import score_attempt
         contract={'version':3,'unit':'region_compact_hexagram_recall',
                   'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
                   'regions':[{'id':'body','text':'abcdefghijkl'}]}
         c=case('body',kind='body');c['body_requirements']=contract
         metrics=score_attempt(c,b'abcdefghijkl',ok=True)
         saved=copy.deepcopy(metrics)
-        with patch('harness.web_fetch.body_coverage.evaluate_body_requirements',
+        with patch('lexbench_webfetch.body_coverage.evaluate_body_requirements',
                    side_effect=AssertionError('presentation must not rescore saved passages')):
             rows,cards=body_region_rows(c,metrics,'abcdefghijkl')
         self.assertEqual(metrics,saved)
@@ -153,7 +153,7 @@ class ReportBodyScopeTests(unittest.TestCase):
                              {'id':'ending','text':shared+'CCCCCCCCDDDDDDDD'}]}
         content=shared+'\n'+shared[:30]+'AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD'
         evidence,counts=_body_region_evidence(content,contract)
-        from harness.web_fetch.body_coverage import evaluate_body_requirements
+        from lexbench_webfetch.body_coverage import evaluate_body_requirements
         scored={row['id']:row['matched_units'] for row in
                 evaluate_body_requirements(content,contract)['body_region_results']}
         self.assertEqual(counts,scored)
@@ -984,7 +984,7 @@ class ReportBodyScopeTests(unittest.TestCase):
 
     def test_schema_fields_are_explained_without_internal_version_or_empty_sections(self):
         from harness.web_fetch.report_components import stable_contract_details, FIELD_REQUIREMENTS
-        from harness.web_fetch.stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
+        from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
         for schema,fields in SCHEMA_FIELDS.items():
             c=case();c['acceptance_contract']={'version':1,'schema':schema,'minimum_records':3}
             if schema=='named_link':c['acceptance_contract'].update(hosts=['example.com'],entry_path='/items/.*')
@@ -1106,7 +1106,7 @@ if __name__=='__main__':
 
 
 def test_body_display_shares_native_markup_and_entity_handling_with_scorer():
-    from harness.web_fetch.scoring import score_attempt
+    from lexbench_webfetch.scoring import score_attempt
     contract = {"version": 3, "unit": "region_compact_hexagram_recall",
                 "minimum_coverage": .8, "minimum_floor": .6, "minimum_region_passes": 1,
                 "regions": [{"id": "body", "text": "abcdefghijkl"}]}
@@ -1126,7 +1126,7 @@ def test_body_display_shares_native_markup_and_entity_handling_with_scorer():
 
 
 def test_frozen_body_details_preserve_saved_allocation_and_redact_excerpts():
-    from harness.web_fetch.body_coverage import evaluate_body_requirements
+    from lexbench_webfetch.body_coverage import evaluate_body_requirements
     contract = {"version": 3, "unit": "region_compact_hexagram_recall", "minimum_coverage": .8, "minimum_floor": .6,
                 "minimum_region_passes": 1, "regions": [{"id": "body", "text": "abcdefghijkl"}]}
     definition = {"body_requirements": contract}
@@ -1141,6 +1141,6 @@ def test_frozen_body_details_preserve_saved_allocation_and_redact_excerpts():
     assert metrics == original
     for region in metrics['body_region_results']:
         region.pop('matched_output_passages')
-    with patch('harness.web_fetch.body_coverage.evaluate_body_requirements', side_effect=AssertionError('Must not rescore')):
+    with patch('lexbench_webfetch.body_coverage.evaluate_body_requirements', side_effect=AssertionError('Must not rescore')):
         _, cards = body_region_rows(definition, metrics, 'different output', frozen_scores=True)
     assert '历史评分未保存' in ''.join(cards)

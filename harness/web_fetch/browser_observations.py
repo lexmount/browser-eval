@@ -19,7 +19,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from harness.reporting.publication import atomic_create, json_bytes
-from harness.web_fetch.metrics import normalize_for_match
+from lexbench_webfetch.metrics import normalize_for_match
 from harness.web_fetch.network_dns import (
     configure_chromium_dns_profile,
     validate_dns_mode,
@@ -30,7 +30,7 @@ from harness.web_fetch.reference_lifecycle import (
     resource_source_scope_identity,
     scope_identity,
 )
-from harness.web_fetch.safety import safe_identifier
+from lexbench_webfetch.paths import safe_identifier
 from harness.web_fetch.source_capture import extract_html
 
 # innerText includes opacity-zero content. Descend only through ancestors of
@@ -589,12 +589,14 @@ def capture_source_identity() -> dict:
         "network_dns.py",
         "source_capture.py",
         "reference_lifecycle.py",
-        "metrics.py",
         "safety.py",
         "data/browser-observation-contracts.json",
     )
     root = Path(__file__).parent
-    return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}
+    from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+
+    return {**{name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names},
+            "lexbench_webfetch/scoring": SCORING_SOURCE_SHA256}
 
 
 def capture_batch(

@@ -2,7 +2,7 @@
 import hashlib
 import json
 
-from harness.web_fetch.body_coverage import body_requirements
+from lexbench_webfetch.body_coverage import body_requirements
 from harness.web_fetch.reference_lifecycle import scope_identity
 
 ROOT_CAUSE=('The independent reference selector included mutable site chrome, so '

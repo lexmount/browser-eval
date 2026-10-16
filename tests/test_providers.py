@@ -7,8 +7,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from harness.web_fetch.metrics import evaluate_resources, task_passed, task_measured
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.metrics import evaluate_resources, task_passed, task_measured
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.cloudflare import (
     CloudflareContentProvider,
     CloudflareMarkdownProvider,
@@ -23,7 +24,7 @@ from harness.web_fetch.providers.lexmount import LexmountProvider
 from harness.web_fetch.providers.tavily import TavilyExtractProvider
 from harness.web_fetch.publication_privacy import project_file
 from harness.web_fetch.runner import run_evaluation
-from harness.web_fetch.scoring import score_attempt
+from lexbench_webfetch.scoring import score_attempt
 
 
 class ProviderTest(unittest.TestCase):

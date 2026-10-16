@@ -45,7 +45,7 @@ def test_moli_document_selection_cannot_read_url_or_reference(media, expected):
 
 
 def test_fixed_native_cohort_rejects_undeclared_media_before_preflight(tmp_path):
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.providers.base import build_provider
     from harness.web_fetch.runner import run_evaluation
     provider = build_provider('fixture', {'type': 'fixture', 'uniform_native_parameters': True})
@@ -63,7 +63,7 @@ def test_plain_provider_use_does_not_infer_optional_media():
 
 def _route_http_fixture(tmp_path):
     from dataclasses import asdict
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.native_routes import NativeRouteLedger
     from harness.web_fetch.providers.base import build_provider
     provider = build_provider('tavily', {'type': 'tavily_extract', 'api_key': 'fixture',
@@ -156,7 +156,7 @@ def test_runner_freezes_route_matrix_before_mocked_provider_calls(tmp_path):
     import json
     from dataclasses import asdict
     from unittest.mock import patch
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.providers.base import build_provider
     from harness.web_fetch.providers.http_client import HttpResponse
     from harness.web_fetch.runner import run_evaluation
@@ -187,7 +187,7 @@ def test_runner_freezes_route_matrix_before_mocked_provider_calls(tmp_path):
 
 def test_jsonl_worker_receives_declared_media_and_records_actual_packet(tmp_path):
     import sys
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.native_routes import NativeRouteLedger
     from harness.web_fetch.providers.base import build_provider
     script = ('import sys,json\nfor line in sys.stdin:\n'
@@ -221,7 +221,7 @@ def test_jsonl_worker_receives_declared_media_and_records_actual_packet(tmp_path
 ])
 def test_each_http_adapter_matches_its_pre_call_contract(tmp_path, method, module, track, kind, media):
     from unittest.mock import patch
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.native_routes import NativeRouteLedger
     from harness.web_fetch.providers.base import build_provider
     from harness.web_fetch.providers.http_client import HttpResponse
@@ -249,7 +249,7 @@ def test_each_http_adapter_matches_its_pre_call_contract(tmp_path, method, modul
 
 def test_custom_firecrawl_without_auth_still_matches_actual_request(tmp_path):
     from unittest.mock import patch
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.native_routes import NativeRouteLedger
     from harness.web_fetch.providers.base import build_provider
     from harness.web_fetch.providers.http_client import HttpResponse
@@ -320,7 +320,7 @@ def test_contract_survives_aggregation_and_complete_declared_subset(tmp_path):
 def test_moli_actual_cli_obeys_declared_route_without_network(tmp_path, media, kind):
     import hashlib
     import sys
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.native_routes import NativeRouteLedger
     from harness.web_fetch.providers.base import build_provider
     binary = tmp_path/'fake-moli'
@@ -394,7 +394,8 @@ def test_runner_persists_pre_transport_failure_without_inventing_request(tmp_pat
     import json
     from dataclasses import asdict
     from unittest.mock import patch
-    from harness.web_fetch.models import EvalCase, ProviderResult
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.models import ProviderResult
     from harness.web_fetch.providers.base import build_provider
     from harness.web_fetch.runner import run_evaluation
     case = EvalCase('case', 'Case', 'https://example.test/', 'control', [],
@@ -431,7 +432,7 @@ def test_http_native_answers_survive_persistence_and_reject_tampering(tmp_path, 
     import json
     from copy import deepcopy
     from unittest.mock import patch
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.providers.base import build_provider
     from harness.web_fetch.providers.http_client import HttpResponse
     from harness.web_fetch.native_routes import NativeRouteLedger
@@ -458,7 +459,7 @@ def test_http_native_answers_survive_persistence_and_reject_tampering(tmp_path, 
 
 def test_projection_cannot_read_request_echo_outside_declared_answer_fields():
     import json
-    from harness.web_fetch.response_input import require_native_answer_projection
+    from lexbench_webfetch.answer_projection import require_native_answer_projection
     raw = json.dumps({'result': 'answer', 'request': {'images': ['https://example.test/forged.png']}}).encode()
     metadata = {'images': ['https://example.test/forged.png'],
         'native_route_receipt': {'answer_fields': ['result']},
@@ -477,7 +478,7 @@ def test_native_title_and_address_are_checked_at_live_and_saved_boundaries(tmp_p
     from pathlib import Path
     from harness.web_fetch.models import ProviderResult
     from harness.web_fetch.runner import persist_result_artifacts
-    from harness.web_fetch.response_input import verify_saved_native_answer
+    from harness.web_fetch.native_routes import verify_saved_native_answer
     raw = json.dumps({'content': 'answer', 'title': 'native title',
                       'final_url': 'https://returned.example.test/'}).encode()
     result = ProviderResult(True, 'answer', title='native title', final_url='https://returned.example.test/',
@@ -501,7 +502,7 @@ def test_native_title_and_address_are_checked_at_live_and_saved_boundaries(tmp_p
 
 def test_native_url_fallback_cannot_override_a_returned_redirect():
     import json
-    from harness.web_fetch.response_input import require_native_answer_projection
+    from lexbench_webfetch.answer_projection import require_native_answer_projection
     request = 'https://requested.example.test/'
     returned = 'https://returned.example.test/'
     metadata = {'native_answer_projection': {'schema_version': 2, 'content_format': 'empty',
@@ -513,7 +514,7 @@ def test_native_url_fallback_cannot_override_a_returned_redirect():
 
 
 def test_cli_final_url_replays_only_same_call_main_document_log():
-    from harness.web_fetch.response_input import require_native_answer_projection
+    from lexbench_webfetch.answer_projection import require_native_answer_projection
     request = 'https://requested.example.test/'
     returned = 'https://returned.example.test/'
     log = f'fetch request complete method=GET url={request} final_url={returned} status=200'.encode()
@@ -535,7 +536,7 @@ def test_failed_native_envelope_retains_provable_result_context(tmp_path, method
     import json
     from pathlib import Path
     from unittest.mock import patch
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.providers.base import build_provider
     from harness.web_fetch.providers.http_client import HttpResponse
     from harness.web_fetch.runner import persist_result_artifacts
@@ -554,7 +555,7 @@ def test_resource_adapter_uses_returned_address_before_resolving_relative_attrib
     import json
     from pathlib import Path
     from unittest.mock import patch
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.providers.base import build_provider
     from harness.web_fetch.providers.http_client import HttpResponse
     from harness.web_fetch.runner import persist_result_artifacts
@@ -578,7 +579,7 @@ def test_empty_same_call_diagnostic_is_retained_without_inventing_final_url(tmp_
     from pathlib import Path
     from harness.web_fetch.models import ProviderResult
     from harness.web_fetch.runner import persist_result_artifacts
-    from harness.web_fetch.response_input import verify_saved_native_answer
+    from harness.web_fetch.native_routes import verify_saved_native_answer
     result = ProviderResult(True, 'answer', metadata={
         '_raw_stdout_b64': base64.b64encode(b'answer').decode(), 'raw_stdout_sha256': hashlib.sha256(b'answer').hexdigest(),
         '_diagnostic_log_b64': '', 'diagnostic_log_sha256': hashlib.sha256(b'').hexdigest(), 'diagnostic_log_bytes': 0,
@@ -600,7 +601,7 @@ def test_current_writer_rejects_schema_one_result_context(tmp_path, result_field
     from pathlib import Path
     from harness.web_fetch.models import ProviderResult
     from harness.web_fetch.runner import persist_result_artifacts
-    from harness.web_fetch.scoring import score_attempt
+    from lexbench_webfetch.scoring import score_attempt
     content = '' if discarded_timeout else 'answer'
     raw = json.dumps({'content': content}).encode()
     declaration = {'schema_version': 1, 'content_pointer': ['content'],
@@ -625,7 +626,7 @@ def test_saved_schema_one_keeps_original_answer_scope(tmp_path):
     from pathlib import Path
     from harness.web_fetch.models import ProviderResult
     from harness.web_fetch.runner import persist_result_artifacts
-    from harness.web_fetch.response_input import verify_saved_native_answer
+    from harness.web_fetch.native_routes import verify_saved_native_answer
     images = [{'src': 'https://example.test/image.png'}]
     raw = json.dumps({'content': 'answer', 'images': images}).encode()
     declaration = {'schema_version': 1, 'content_pointer': ['content'], 'content_format': 'text',
@@ -654,7 +655,7 @@ def test_native_http_retries_keep_each_physical_route_receipt(tmp_path, retries)
     from copy import deepcopy
     from dataclasses import asdict
     from unittest.mock import patch
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.native_routes import verify_native_route_contract
     from harness.web_fetch.providers.base import build_provider
     from harness.web_fetch.providers.http_client import HttpResponse

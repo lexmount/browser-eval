@@ -7,7 +7,7 @@ from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
 
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.moli import MoliWebFetchProvider
 from harness.web_fetch.providers.headless_worker import fetch
 
@@ -58,7 +58,7 @@ class NativeTaskOutputTests(unittest.TestCase):
                         self.assertTrue(result['ok'], result)
                         content = result['content']
                     if engine == 'moli':
-                        from harness.web_fetch.metrics import evaluate_resources
+                        from lexbench_webfetch.metrics import evaluate_resources
                         scored = evaluate_resources(
                             content, {}, [{"urls": [origin + '/visible.png']}],
                             base_url=origin + '/',
@@ -139,9 +139,13 @@ class NativeRoutePublicationTests(unittest.TestCase):
 
     def test_dynamic_native_markdown_accepts_registered_builds_but_not_conversion(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
+        from harness.web_fetch.methods import browser_method_registry
         case={'id':'dynamic-page','url':'https://example.com/app','track':'dynamic','task_kind':'body'}
         native={'route':'dynamic_native_markdown','output':'markdown','dump':'markdown'}
-        for provider in ('moli','moli-release'):
+        providers = [name for name, profile in browser_method_registry().items()
+                     if profile.get('engine') == 'moli']
+        self.assertIn('moli', providers)
+        for provider in providers:
             row={'provider':provider,'case_id':case['id'],'provider_metadata':native}
             with self.subTest(provider=provider):
                 require_native_task_routes([case],[row])

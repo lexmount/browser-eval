@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup
 from harness.record_io import load_jsonl
 from harness.report_languages import localized_report_routes, visible_numbers
 from harness.reporting.presentation import check_presentation
-from harness.web_fetch.safety import contained_path
+from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.storage import data_home
 
 ROOT = Path(__file__).resolve().parents[2]

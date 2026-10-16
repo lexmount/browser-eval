@@ -16,8 +16,9 @@ from harness.record_io import load_jsonl
 from .accounts import report_access_registry
 from .failure_diagnosis import diagnose
 from .methods import ROUTE_LABELS, method_page_model, is_browser_comparison, browser_method_label
-from .metrics import percentile, task_measured, task_passed
-from .models import REPORT_FAMILIES, TRACKS, execution_id, report_family
+from lexbench_webfetch.metrics import percentile, task_measured, task_passed
+from harness.web_fetch.models import REPORT_FAMILIES, execution_id, report_family
+from lexbench_webfetch.models import TRACKS
 from .report_components import (
  basis_label,
  examples,
@@ -35,7 +36,8 @@ from .report_interfaces import HEADLESS_ACCESS, method_access, method_version, m
 from .report_methods import PROFILES, adoption_counts
 from .report_resources import render_resource_comparison
 from .report_style import STYLE
-from .safety import contained_path, safe_href, validate_report_ids
+from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import safe_href, validate_report_ids
 from .webmainbench_diagnostics import ERROR_PAGE
 
 PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-pr643':'Moli 1.1.7 · PR #643','moli-1.1.11':'Moli 1.1.11'}
@@ -1175,7 +1177,7 @@ def _evidence_chunks(text, width=620):
  return chunks
 
 def _best_evidence_excerpt(expected, output):
- from .body_coverage import tokens
+ from lexbench_webfetch.body_coverage import tokens
  wanted=Counter(tokens(expected))
  if not wanted:return ''
  best='';best_score=0
@@ -1185,12 +1187,12 @@ def _best_evidence_excerpt(expected, output):
  return best if best_score>=min(.25,3/max(1,sum(wanted.values()))) else ''
 
 def _normalized_evidence_lines(output):
- from .metrics import normalize_for_match
+ from lexbench_webfetch.metrics import normalize_for_match
  return [(line,normalize_for_match(line)) for raw in output.splitlines() if (line:=raw.strip())]
 
 def _exact_evidence_lines(expected, output, *, normalized_lines=None):
  """Return complete output lines containing the normalized expected text."""
- from .metrics import normalize_for_match
+ from lexbench_webfetch.metrics import normalize_for_match
  normalized_expected=normalize_for_match(expected)
  selected=[]
  lines=_normalized_evidence_lines(output) if normalized_lines is None else normalized_lines
@@ -1232,7 +1234,7 @@ def _body_region_evidence(content,contract):
  """Map canonical scorer allocations to complete lines without changing scoring output."""
  from math import ceil
 
- from .body_coverage import _global_region_allocation, compact_ngrams, tokens
+ from lexbench_webfetch.body_coverage import _global_region_allocation, compact_ngrams, tokens
  version=contract['version'];size=6 if version==3 else 3
  units=tokens(content) if version==1 else compact_ngrams(content,size)
  predicted=Counter(units);expected={}
@@ -1288,21 +1290,21 @@ def _position_label(index,total):
 
 def _body_scoring_text(record, output):
  """Use the scorer's body input; titles belong only to answer diagnostics."""
- from .response_input import answer_input
+ from lexbench_webfetch.response_input import answer_input
  content=answer_input(output.encode('utf-8'),record.get('provider_metadata'),
                       ok=record.get('ok',False),status_code=record.get('status_code'))[0]
- from .reference_quality import is_html_document_or_fragment
+ from lexbench_webfetch.reference_quality import is_html_document_or_fragment
  if is_html_document_or_fragment(content):
-  from .dynamic_lists import visible_html_text
+  from lexbench_webfetch.dynamic_lists import visible_html_text
   content=visible_html_text(content)
  else:
-  from .body_coverage import native_markup_body_text
+  from lexbench_webfetch.body_coverage import native_markup_body_text
   fallback=html.unescape(re.sub(r"<(script|style|template)\b[^>]*>.*?</\1\s*>","",content,flags=re.I|re.S))
   content=native_markup_body_text(content,fallback)
  return content
 
 def body_region_rows(case, metrics, output, *, frozen_scores=False):
- from .body_coverage import evaluate_body_requirements
+ from lexbench_webfetch.body_coverage import evaluate_body_requirements
  contract=case.get('body_requirements') or {}
  if not contract:return [],''
  saved_regions=metrics.get('body_region_results',[])
@@ -1323,7 +1325,7 @@ def body_region_rows(case, metrics, output, *, frozen_scores=False):
   evidence_counts={item['id']:item.get('matched_units',item.get('matched_tokens',0)) for item in saved_regions}
   recalculated={item['id']:item for item in saved_regions}
  elif saved_regions and all('matched_output_passages' in item for item in saved_regions):
-  from .body_coverage import _compact_with_positions
+  from lexbench_webfetch.body_coverage import _compact_with_positions
   matching_text=_compact_with_positions(output)[0]
   digest=hashlib.sha256(matching_text.encode()).hexdigest()
   if any(item.get('matching_text_sha256')!=digest for item in saved_regions):
@@ -1435,8 +1437,8 @@ def _stable_field_comparison(metrics,item):
  """Find the closest parsed record for a structured anchor, for display only."""
  schema=metrics.get('stable_task_schema')
  if schema!='quote':return None
- from .metrics import normalize_for_match
- from .stable_tasks import SCHEMA_FIELDS, _parse_records, _visible
+ from lexbench_webfetch.metrics import normalize_for_match
+ from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS, _parse_records, _visible
  candidates=[]
  for alternative in item.get('alternatives',[]):
   expected=_parse_records(_visible(alternative,schema),schema)
@@ -1460,7 +1462,7 @@ def _quote_field_issue(metrics):
   if comparison and comparison[2].get('quote') and comparison[2].get('author'):
    comparisons.append(comparison)
  if not comparisons:return ''
- from .metrics import normalize_for_match
+ from lexbench_webfetch.metrics import normalize_for_match
  compact=0
  for expected,returned,_ in comparisons:
   left=normalize_for_match(expected.get('tags','')).replace(' ','')
@@ -1492,7 +1494,7 @@ def stable_anchor_evidence(metrics,output):
   if comparison:
    expected_fields,returned_fields,exact=comparison
    labels={'quote':'引文','author':'作者','tags':'标签'};rows=[]
-   from .metrics import normalize_for_match
+   from lexbench_webfetch.metrics import normalize_for_match
    for field in ('quote','author','tags'):
     wanted=expected_fields.get(field,'');got=returned_fields.get(field,'')
     compact=(normalize_for_match(wanted).replace(' ','')==normalize_for_match(got).replace(' ',''))

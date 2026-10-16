@@ -5,7 +5,7 @@ import pytest
 from harness.web_fetch.adjudication_evidence import (
     adjudication_reason, case_hash, current_rule_outcomes, require_adjudication_evidence,
 )
-from harness.web_fetch.scoring import score_attempt
+from lexbench_webfetch.scoring import score_attempt
 
 
 def fixture(tmp_path):

@@ -2,7 +2,7 @@
 import json
 import re
 from html import escape
-from .safety import contained_path
+from lexbench_webfetch.paths import contained_path
 from .methods import native_browser_engine, browser_method_registry, browser_method_label
 
 URL='https://example.com/'

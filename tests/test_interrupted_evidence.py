@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.fixture import FixtureProvider
 from harness.web_fetch.runner import run_evaluation
 from harness.web_fetch.evidence import project_provider_run

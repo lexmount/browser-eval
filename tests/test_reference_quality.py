@@ -1,17 +1,15 @@
 import subprocess
 import sys
 import unittest
-from harness.web_fetch.reference_quality import (audit_reference, clean_reference_text,
-    blocked_page_hits, markdown_link_destinations, markdown_links, reference_anchor_in_text,
-    script_payload_shell, visible_markdown_links)
-from harness.web_fetch.metrics import normalize_for_match
+from lexbench_webfetch.reference_quality import audit_reference, clean_reference_text, blocked_page_hits, markdown_link_destinations, markdown_links, reference_anchor_in_text, script_payload_shell, visible_markdown_links
+from lexbench_webfetch.metrics import normalize_for_match
 from harness.web_fetch.models import execution_id
 
 
 class ReferenceQualityTests(unittest.TestCase):
     def test_unmatched_markdown_brackets_preserve_body_scoring_within_budget(self):
         code = """
-from harness.web_fetch.scoring import score_attempt
+from lexbench_webfetch.scoring import score_attempt
 case = {'id': 'body', 'url': 'https://example.test/', 'track': 'web',
         'acceptance_contract': {'version': 1, 'schema': 'body_text',
             'minimum_records': 0, 'stable_text_anchors': [

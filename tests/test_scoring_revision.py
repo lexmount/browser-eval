@@ -10,7 +10,7 @@ from harness.web_fetch.reference_lifecycle import (
     HOMEPAGE_READER_SCOPE_PROMPTS,
     valid_scoring_revision,
 )
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, score_attempt
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, score_attempt
 from harness.web_fetch.scoring_revision import revise
 
 

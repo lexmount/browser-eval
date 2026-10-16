@@ -16,7 +16,8 @@ from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import validate_matrix
 from harness.lexbench.resource_summary import validate_summary
 from harness.report_languages import check_language_contract, generated_languages
-from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.safety import reject_evidence_symlinks
 
 
 def digest(p):

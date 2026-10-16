@@ -14,7 +14,7 @@ from pathlib import Path
 
 from harness.record_io import parse_jsonl
 
-from .safety import contained_path
+from lexbench_webfetch.paths import contained_path
 
 
 def prior_results_path(root: Path) -> Path:

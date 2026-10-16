@@ -106,7 +106,7 @@ def validate_ledger(ledger, records=None, *, source=None):
                     or set(event['added_attempt_ids']) != added):
                 raise ValueError('Task replacement inventory differs from its physical calls')
     if records is not None:
-        from .metrics import task_measured, task_passed
+        from lexbench_webfetch.metrics import task_measured, task_passed
         actual = {record['attempt_id']: (
             'excluded' if record['metrics'].get('evaluation_excluded') else
             'unavailable' if not task_measured(record['metrics']) else

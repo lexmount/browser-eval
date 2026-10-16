@@ -11,7 +11,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from ..models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import plan_for_case, native_default_case
 from .base import Provider
 from .runtime_identity import validate_runtime_identity

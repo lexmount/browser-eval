@@ -8,7 +8,8 @@ from pathlib import Path
 from harness.web_fetch.artifacts import (
     record_public_call_log_bindings, verify_record_public_call_logs,
 )
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import run_evaluation
 

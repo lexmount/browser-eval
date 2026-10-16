@@ -1,7 +1,7 @@
 """Exclude a proven evaluation defect symmetrically without discarding calls."""
 import hashlib
 
-from .safety import contained_path
+from lexbench_webfetch.paths import contained_path
 
 
 def require_cohort_exclusions(source, dataset, records):
