@@ -289,7 +289,7 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
                     metadata["public_" + kind + "_sha256"] = before[relative]
         generate(staging, dataset, records, batches, include_english=include_english,
                  authored_interpretation=authored_interpretation,
-                 show_local_status_banners=show_local_status_banners)
+                 show_local_status_banners=show_local_status_banners, frozen_scores=True)
         # Scores remain frozen, but cached inventory/summary files must describe
         # those exact current scores after an explicitly bound offline revision.
         write_frozen_result_summary(staging, dataset, records)
@@ -1497,7 +1497,7 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
         shutil.copytree(output, staging)
         shutil.rmtree(staging / 'en', ignore_errors=True)
         batches = json.loads((output / 'execution.json').read_text())['batches']
-        generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True)
+        generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True, frozen_scores=True)
         changed = []
         for relative in routes:
             before, after = contained_path(output, relative), contained_path(staging, relative)

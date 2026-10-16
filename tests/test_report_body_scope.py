@@ -1112,7 +1112,9 @@ def test_body_display_shares_native_markup_and_entity_handling_with_scorer():
                 "regions": [{"id": "body", "text": "abcdefghijkl"}]}
     definition = {"id": "markup", "url": "https://example.test", "body_requirements": contract}
     for output in ("abcdef<br>ghijkl", "abcdef&#103;hijkl", "`<br>` abcdefghijkl",
-                   "\\<br> abcdefghijkl", "<main>abcdef<script>ghijkl</script></main>"):
+                   "\\<br> abcdefghijkl", "<main>abcdef<script>ghijkl</script></main>",
+                   'abcdef <a href="https://example.test/ghijkl">source</a>',
+                   'abcdef <img src="https://example.test/ghijkl" alt="photo">'):
         record = {"ok": True, "title": "abcdefghijkl"}
         metrics = score_attempt(definition, output.encode(), ok=True, title=record["title"])
         display = _body_scoring_text(record, output)
@@ -1121,3 +1123,24 @@ def test_body_display_shares_native_markup_and_entity_handling_with_scorer():
         assert "<script>" not in display
         if output.startswith(("`", "\\")):
             assert "<br>" in display
+
+
+def test_frozen_body_details_preserve_saved_allocation_and_redact_excerpts():
+    from harness.web_fetch.body_coverage import evaluate_body_requirements
+    contract = {"version": 3, "unit": "region_compact_hexagram_recall", "minimum_coverage": .8, "minimum_floor": .6,
+                "minimum_region_passes": 1, "regions": [{"id": "body", "text": "abcdefghijkl"}]}
+    definition = {"body_requirements": contract}
+    metrics = evaluate_body_requirements("abcdefghijkl https://example.test/?access_token=secret123456", contract)
+    original = copy.deepcopy(metrics)
+    with unittest.TestCase().assertRaisesRegex(ValueError, 'Saved body evidence differs'):
+        body_region_rows(definition, metrics, 'changed public output')
+    rows, cards = body_region_rows(definition, metrics, 'changed public output', frozen_scores=True)
+    assert len(rows) == 1
+    assert 'abcdefghijkl' in ''.join(cards)
+    assert 'secret123456' not in ''.join(cards)
+    assert metrics == original
+    for region in metrics['body_region_results']:
+        region.pop('matched_output_passages')
+    with patch('harness.web_fetch.body_coverage.evaluate_body_requirements', side_effect=AssertionError('Must not rescore')):
+        _, cards = body_region_rows(definition, metrics, 'different output', frozen_scores=True)
+    assert '历史评分未保存' in ''.join(cards)

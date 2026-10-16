@@ -1291,21 +1291,38 @@ def _body_scoring_text(record, output):
  from .response_input import answer_input
  content=answer_input(output.encode('utf-8'),record.get('provider_metadata'),
                       ok=record.get('ok',False),status_code=record.get('status_code'))[0]
- from .reference_quality import is_html_document_or_fragment,visible_mixed_html_text
+ from .reference_quality import is_html_document_or_fragment
  if is_html_document_or_fragment(content):
   from .dynamic_lists import visible_html_text
   content=visible_html_text(content)
  else:
-  content=visible_mixed_html_text(content)
+  from .body_coverage import native_markup_body_text
+  fallback=html.unescape(re.sub(r"<(script|style|template)\b[^>]*>.*?</\1\s*>","",content,flags=re.I|re.S))
+  content=native_markup_body_text(content,fallback)
  return content
 
-def body_region_rows(case, metrics, output):
+def body_region_rows(case, metrics, output, *, frozen_scores=False):
  from .body_coverage import evaluate_body_requirements
  contract=case.get('body_requirements') or {}
  if not contract:return [],''
  saved_regions=metrics.get('body_region_results',[])
  recalculated={}
- if saved_regions and all('matched_output_passages' in item for item in saved_regions):
+ if frozen_scores:
+  # The frozen-build boundary validates the saved metric and answer hashes.
+  # A newer normalizer or a redacted public answer cannot reproduce the old
+  # matching-text identity. Render the saved allocation without rescoring it.
+  from .publication_privacy import project_evidence_view
+  evidence={}
+  for item in saved_regions:
+   passages=[]
+   for passage in item.get('matched_output_passages',[]):
+    if passage.get('text'):
+     public,_=project_evidence_view('public-evidence/excerpt.txt',passage['text'].encode(),role='scored_answer',content_format='text')
+     passages.append(public.decode())
+   evidence[item['id']]=passages
+  evidence_counts={item['id']:item.get('matched_units',item.get('matched_tokens',0)) for item in saved_regions}
+  recalculated={item['id']:item for item in saved_regions}
+ elif saved_regions and all('matched_output_passages' in item for item in saved_regions):
   from .body_coverage import _compact_with_positions
   matching_text=_compact_with_positions(output)[0]
   digest=hashlib.sha256(matching_text.encode()).hexdigest()
@@ -1334,8 +1351,10 @@ def body_region_rows(case, metrics, output):
   rows.append(('',cell(esc(label))+cell(f'{expected_count:,}')+cell(f'{matched:,}')+
                cell(pct(actual['coverage']))+cell(esc(judgement))))
   passage='\n\n'.join(evidence.get(item['id'],[]))
+  missing=(model_text('历史评分未保存本段命中文字；请对照完整输出核对。','The historical score has no saved matching passage for this region; inspect the complete output.')
+           if frozen_scores and 'matched_output_passages' not in item else '评分器没有向这一段分配可展示的实际返回文字。')
   actual_html=(f'<pre data-kind="region-output">{esc(passage)}</pre>' if passage else
-               '<p class="empty">评分器没有向这一段分配可展示的实际返回文字。</p>')
+               '<p class="empty">'+missing+'</p>')
   cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>本段覆盖率为 {pct(actual["coverage"])}。每段至少达到 {pct(actual.get("floor",actual["minimum"]))}；达到 {pct(actual["minimum"])} 时算作主要完整段落。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的完整标准正文</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>参与本段计分的完整实际返回行</b>{actual_html}</div></div></article>')
  return rows,cards
 
@@ -1951,7 +1970,7 @@ def local_audit_banner(dataset):
 from .methods import with_measured_method_labels
 
 @with_measured_method_labels
-def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None):
+def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None,frozen_scores:bool=False):
  from .publication_privacy import public_render_views
  _public_views=public_render_views(out,records)
  for _record in records:
@@ -2361,13 +2380,15 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   body+=section('为什么这样判',caveat+checks_html,'decision')
   if m.get('body_region_results'):
    scoring_text=_body_scoring_text(r,output)
-   region_rows,region_cards=body_region_rows(c,m,scoring_text);rules=c.get('body_requirements',{})
+   region_rows,region_cards=body_region_rows(c,m,scoring_text,frozen_scores=frozen_scores);rules=c.get('body_requirements',{})
    required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
    region_count=len(rules.get('regions',[]))
    region_intro=(f'<div class="decision-lead"><b>正文判定：</b>本例分为 {region_count} 段。'
                  f'每段至少达到 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，'
                  f'其中至少 {required} 段达到 {pct(rules.get("minimum_coverage"))}。'
                  '先看下表；需要核对原文时，再展开下面的左右对照。</div>')
+   if frozen_scores:
+    region_intro+='<p class="source-note">'+model_text('本节沿用该次评分保存的数值和片段；公开片段已隐藏敏感值。未保存的历史片段不使用当前规则补算，公开副本也不用于重算原件指标。','This section retains the values and passages saved with the score. Sensitive values are hidden in public passages. Missing historical passages are not reconstructed with current rules, and public copies are not used to recalculate original metrics.')+'</p>'
    body+=section('正文是否抓全',region_intro+table(['标准答案位置','标准片段数','命中片段数','覆盖率','判定'],region_rows,metrics=[])+
                  '<details class="technical-details"><summary>查看各段完整标准正文和计分行</summary>'+''.join(region_cards)+'</details>','body-coverage')
   if title_details:body+=section('标题文字质量',title_details)
