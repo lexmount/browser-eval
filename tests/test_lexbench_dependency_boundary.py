@@ -72,3 +72,46 @@ def test_historical_read_uses_the_original_frozen_bytes(historical_dataset):
 
     manifest = json.loads(definition_path("evaluation/source-inputs.json").read_text())
     assert hashlib.sha256(read_dataset_bytes(ROOT / "evaluation/dataset.json")).hexdigest() == manifest["dataset_sha256"]
+
+
+@pytest.mark.parametrize("spelling", ["evaluation/dataset.json",
+    "evaluation/risk-control/../dataset.json", "evaluation/../evaluation/dataset.json"])
+@pytest.mark.parametrize("linked_checkout", [False, True])
+def test_equivalent_historical_paths_cannot_read_or_modify_shadow_inputs(
+        tmp_path, monkeypatch, spelling, linked_checkout):
+    import json
+    from harness.web_fetch.reference_inputs import load_manifest
+
+    checkout = tmp_path / "checkout"
+    (checkout / "evaluation/risk-control").mkdir(parents=True)
+    (checkout / "evaluation/lexbench-webfetch.json").write_bytes(
+        (ROOT / "evaluation/lexbench-webfetch.json").read_bytes())
+    (checkout / "evaluation/dataset.json").write_text('{"id":"shadow","cases":[]}')
+    if linked_checkout:
+        alias = tmp_path / "linked-checkout"
+        alias.symlink_to(checkout, target_is_directory=True)
+        checkout = alias
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "missing-inputs"))
+    logical = checkout / spelling
+    installed = definition_path("evaluation/source-inputs.json")
+    assert benchmark_input_path(logical) == installed.parent / "dataset.json"
+    assert load_manifest(logical.parent / "source-inputs.json") == json.loads(installed.read_text())
+    with pytest.raises(ValueError, match="immutable"):
+        require_mutable_inputs(logical)
+    with pytest.raises(FileNotFoundError, match="Reference inputs are not installed"):
+        read_dataset_bytes(logical)
+
+
+@pytest.mark.parametrize("spelling", ["evaluation/dataset.json",
+    "evaluation/risk-control/../dataset.json"])
+def test_equivalent_historical_paths_still_reject_a_symlinked_input(tmp_path, spelling):
+    checkout = tmp_path / "checkout"
+    (checkout / "evaluation/risk-control").mkdir(parents=True)
+    (checkout / "evaluation/lexbench-webfetch.json").write_bytes(
+        (ROOT / "evaluation/lexbench-webfetch.json").read_bytes())
+    source = tmp_path / "candidate.json"
+    source.write_text('{"cases":[]}')
+    (checkout / "evaluation/dataset.json").symlink_to(source)
+    with pytest.raises(ValueError, match="symlinked"):
+        benchmark_input_path(checkout / spelling)

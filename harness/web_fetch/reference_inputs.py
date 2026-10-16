@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import tempfile
 from pathlib import Path
@@ -28,7 +29,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def benchmark_input_path(path: Path) -> Path:
     """Resolve historical inputs through the caller's hash-bound checkout authority."""
-    absolute = path.absolute()
+    absolute = Path(os.path.abspath(path))
     for checkout in absolute.parents:
         authority = checkout / "evaluation/lexbench-webfetch.json"
         if not authority.is_file():
