@@ -27,7 +27,7 @@ def silence_cut(wave, sample_rate, previous_end, next_start):
     start, end = runs[0]
     return (start + end) * step / (2 * sample_rate)
 
-_ARABIC_NUMBER = r'(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?'
+_ARABIC_NUMBER = r'(?:(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?|\.[0-9]+)'
 _NUMBER_PART = rf'(?:{_ARABIC_NUMBER}|[零〇一二两三四五六七八九十百千万亿]+)(?:点[零〇一二三四五六七八九]+)?'
 _NUMBER = re.compile(rf'{_NUMBER_PART}(?:\s*[十百千万亿](?:{_NUMBER_PART})?)*')
 _DIGITS = dict(zip('零〇一二两三四五六七八九', '001223456789'))
@@ -58,8 +58,9 @@ def _normalized_stream(text, spans):
         # Unsupported numeric operators remain significant rather than silently
         # converting a signed value, percentage or ratio into another number.
         neighbors = text[:i].rstrip()[-1:] + text[i+1:].lstrip()[:1]
-        numeric_operator = text[i] in '+-−/%:‰' and any(
+        numeric_operator = text[i] in '+-−/%:‰' and (any(
             c.isdigit() or c in '零〇一二两三四五六七八九十百千万亿' for c in neighbors)
+            or re.match(r'\.[0-9]', text[i+1:].lstrip()) is not None)
         if unicodedata.category(text[i])[0] in 'LN' or numeric_operator:
             chars.append(text[i].lower()); times.append(spans[i])
     position = 0

@@ -20,11 +20,21 @@ async function sample(frame,scene,target,kind){
   await page.evaluate(()=>document.fonts.ready);
   const state=await page.evaluate(()=>{
     const scenes=[...document.querySelectorAll('[data-scene]')];
-    const clipped=[...document.querySelectorAll('[data-scene] div')].filter(e=>{
+    const clipped=[...document.querySelectorAll('[data-scene] div, [data-review-caption]')].filter(e=>{
       const r=e.getBoundingClientRect();
-      return r.width>0&&r.height>0&&e.childElementCount<3&&e.textContent.trim()&&
-        (e.scrollHeight>e.clientHeight+2||e.scrollWidth>e.clientWidth+2);
-    }).map(e=>({text:e.textContent,sh:e.scrollHeight,ch:e.clientHeight,sw:e.scrollWidth,cw:e.clientWidth}));
+      if(!(r.width>0&&r.height>0&&e.childElementCount<3&&e.textContent.trim()))return false;
+      // A wide label box can extend off canvas while its text still fits.
+      // Measure rendered text runs so unused container space is not a failure.
+      const walker=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);
+      for(let node=walker.nextNode();node;node=walker.nextNode()){
+        if(!node.textContent.trim())continue;
+        const range=document.createRange();range.selectNodeContents(node);
+        if([...range.getClientRects()].some(b=>b.width>0&&b.height>0&&
+          (b.left < -2||b.top < -2||b.right > innerWidth+2||b.bottom > innerHeight+2)))return true;
+      }
+      return e.scrollHeight>e.clientHeight+2||e.scrollWidth>e.clientWidth+2;
+    }).map(e=>({text:e.textContent,sh:e.scrollHeight,ch:e.clientHeight,sw:e.scrollWidth,cw:e.clientWidth,
+      bounds:e.getBoundingClientRect().toJSON()}));
     return {scenes:scenes.map(e=>e.getAttribute('data-scene')),
       active:[...document.querySelectorAll('[data-scene] [data-active="true"]')].map(e=>e.getAttribute('data-target')),
       clipped,text:scenes[0]?.textContent,recapVisible:document.body.innerText.includes('回看要点')};

@@ -1487,6 +1487,7 @@ export function Film({ withAudio = true }: { withAudio?: boolean }) {
         </Sequence>
       ))}
       <div
+        data-review-caption
         style={{
           position: "absolute",
           left: 80,
