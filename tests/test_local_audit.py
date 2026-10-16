@@ -295,6 +295,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     (output / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in frozen_rows))
     manifest = json.loads((output / "report-manifest.json").read_text())
     manifest["results_sha256"] = _digest(output / "results.jsonl")
+    manifest["template"] = {"renderer": "historical-template"}
     _write(output / "report-manifest.json", manifest)
     binding = {"comparison_kind": "uniform_native_local_measurement",
         "result_count": 1, "case_count": 1, "providers": ["fixture"],
@@ -362,6 +363,9 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     assert (rebuilt / "logs" / debug.name).read_bytes() == debug.read_bytes()
     assert (rebuilt / "logs" / response.name).read_bytes() == response.read_bytes()
     assert json.loads((rebuilt / "report-manifest.json").read_text())["presentation"]["frozen_scores"]
+    rebuilt_manifest = json.loads((rebuilt / "report-manifest.json").read_text())
+    assert rebuilt_manifest["template"] is None
+    assert rebuilt_manifest["generated_languages"] == ["zh", "en"]
     reproduce = (rebuilt / "reproduce/index.html").read_text()
     assert "--language zh --include-english" in reproduce
     assert "--language bilingual" not in reproduce

@@ -293,17 +293,25 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
         # Scores remain frozen, but cached inventory/summary files must describe
         # those exact current scores after an explicitly bound offline revision.
         write_frozen_result_summary(staging, dataset, records)
-        manifest["languages"] = ["zh", "en"] if include_english else ["zh"]
-        manifest["presentation"] = {"show_local_status_banners": show_local_status_banners,
-                                    "frozen_scores": True}
-        (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
         if language is not None:
             select_report_language(staging, language)
+        write_frozen_presentation_manifest(staging, manifest, show_local_status_banners=show_local_status_banners)
         validate_local_presentation(staging, presentation_binding)
         if evidence_tree_identity(source) != before:
             raise ValueError("Presentation source changed during rendering")
         _install_report_tree(staging, output)
     return output / "index.html"
+
+
+def write_frozen_presentation_manifest(output, manifest, *, show_local_status_banners=True):
+    """Refresh renderer metadata while retaining the frozen measurement bindings."""
+    from harness.report_languages import generated_languages
+    current = dict(manifest)
+    languages = list(generated_languages(output))
+    current.update(template=None, languages=languages, generated_languages=languages,
+                   presentation={"show_local_status_banners": show_local_status_banners,
+                                 "frozen_scores": True})
+    (output / "report-manifest.json").write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n")
 
 
 def write_frozen_result_summary(output, dataset, records):
@@ -1483,7 +1491,6 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     output = unlinked_path(output)
     before_tree = evidence_tree_identity(output)
     binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
-    manifest_path = output / "report-manifest.json"
     # The existing owner renders from saved metrics. Only these explanatory
     # routes may be installed; result pages, logs and every measured byte stay.
     routes = ['index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html', 'changes/index.html']
@@ -1518,7 +1525,8 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
         shutil.copytree(output, selected)
         for relative in changed:
             shutil.copy2(staging / relative, selected / relative)
-        (selected / manifest_path.name).write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
+        write_frozen_presentation_manifest(selected, manifest,
+            show_local_status_banners=manifest.get('presentation', {}).get('show_local_status_banners', True))
         if evidence_tree_identity(output) != before_tree:
             raise ValueError('Presentation snapshot changed during rendering')
         _install_report_tree(selected, output)
