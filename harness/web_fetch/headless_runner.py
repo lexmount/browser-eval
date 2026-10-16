@@ -21,7 +21,7 @@ from harness.web_fetch.providers.runtime_identity import (
 )
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.runner import run_evaluation
-from harness.web_fetch.safety import safe_identifier
+from lexbench_webfetch.paths import safe_identifier
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -307,8 +307,9 @@ def check_evidence(
     from harness.record_io import load_jsonl
     from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
     from harness.web_fetch.runner import load_list_reference
-    from harness.web_fetch.safety import contained_path, unlinked_path, validate_report_ids
-    from harness.web_fetch.scoring import score_attempt
+    from lexbench_webfetch.paths import contained_path
+    from harness.web_fetch.safety import unlinked_path, validate_report_ids
+    from lexbench_webfetch.scoring import score_attempt
     from harness.web_fetch.storage import require_current_report_profile
 
     root = unlinked_path(root)

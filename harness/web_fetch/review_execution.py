@@ -13,10 +13,11 @@ from bs4 import BeautifulSoup
 
 from harness.record_io import load_jsonl, parse_jsonl
 
-from . import anomaly_review, metrics, result_review
+from harness.web_fetch import anomaly_review, result_review
+from lexbench_webfetch import metrics
 from .anomaly_review import LAYERS, TRIGGER_VERSION, detect_anomalies
 from .artifacts import artifact_bindings, record_private_bindings, verify_record_artifacts
-from .metrics import task_passed
+from lexbench_webfetch.metrics import task_passed
 from .result_review import (
     install_result_review,
     require_blind_result_review,
@@ -25,7 +26,8 @@ from .result_review import (
     review_raw_artifacts,
     write_review_document,
 )
-from .safety import contained_path, reject_evidence_symlinks, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.safety import reject_evidence_symlinks
 
 SCHEMA = {
     "type": "object",

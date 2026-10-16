@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.runtime_identity import _command_executable
 from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
 

@@ -9,7 +9,8 @@ from pathlib import Path
 
 from harness.record_io import load_jsonl
 
-from .safety import contained_path, evidence_tree_identity, safe_identifier, stage_evidence_revision
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.safety import evidence_tree_identity, stage_evidence_revision
 from .webmainbench_evidence import copy_alias_artifacts, copy_bound, require_unique_attempt_ids, retry_chain_matches
 from .webmainbench_scoring import CORE_METRICS, DATASET_SHA256, SCORER_COMMIT, aggregate
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from .models import EvalCase, validate_case
+from lexbench_webfetch.models import EvalCase, validate_case
 from .reference_inputs import read_dataset_bytes
 from .retrieval_hints import (
     native_default_case,

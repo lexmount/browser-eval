@@ -7,7 +7,8 @@ from dataclasses import asdict
 import pytest
 
 from harness.web_fetch.assembly import assemble
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.resource_cohort import METRICS, build_summary, package

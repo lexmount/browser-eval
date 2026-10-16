@@ -131,7 +131,7 @@ def test_dataset_only_inputs_reject_undeclared_source_trees(inputs, location):
 
 @pytest.mark.parametrize("destination", ["checkout", "installed"])
 def test_dataset_rebuild_refuses_a_frozen_output_before_reading_source_material(inputs, destination):
-    from harness.web_fetch.risk_control_dataset import build
+    from lexbench_webfetch.risk_control_dataset import build
 
     dataset, manifest_path, source, _ = inputs
     original = external_dataset(inputs)
@@ -681,3 +681,54 @@ def test_headless_runner_rejects_missing_inputs_before_provider_or_output(
     with pytest.raises(FileNotFoundError, match="not installed"):
         run_headless_benchmark.main()
     assert not output.exists()
+
+
+_BOUND_INPUT_AUTHORITY = (Path(__file__).resolve().parents[1] /
+                          "evaluation/lexbench-webfetch.json")
+_BOUND_INPUT_DIRECTORIES = [Path(relative).parent for relative in
+    json.loads(_BOUND_INPUT_AUTHORITY.read_text())["definition_files"]
+    if Path(relative).name == "source-inputs.json"]
+
+
+@pytest.fixture
+def bound_checkout(tmp_path):
+    checkout = tmp_path / "historical-checkout"
+    (checkout / "evaluation").mkdir(parents=True)
+    (checkout / "evaluation/lexbench-webfetch.json").write_bytes(_BOUND_INPUT_AUTHORITY.read_bytes())
+    return checkout
+
+
+@pytest.mark.parametrize("relative", _BOUND_INPUT_DIRECTORIES)
+@pytest.mark.parametrize("artifact", ["dataset.json", "sources/private.txt", "list-references/private.json"])
+def test_binding_only_checkout_rejects_copied_reference_inputs(bound_checkout, relative, artifact):
+    copied = bound_checkout / relative / artifact
+    copied.parent.mkdir(parents=True, exist_ok=True)
+    copied.write_text("synthetic private input")
+    with pytest.raises(ValueError, match="duplicated in checkout"):
+        check_reference_input_boundary(bound_checkout / "evaluation")
+
+
+def test_binding_only_checkout_accepts_clean_historical_directories(bound_checkout):
+    for relative in _BOUND_INPUT_DIRECTORIES:
+        (bound_checkout / relative).mkdir(parents=True, exist_ok=True)
+    check_reference_input_boundary(bound_checkout / "evaluation")
+    check_reference_input_boundary(bound_checkout)
+
+
+def test_binding_only_checkout_checks_installed_manifest_hash(bound_checkout):
+    authority = bound_checkout / "evaluation/lexbench-webfetch.json"
+    document = json.loads(authority.read_text())
+    document["definition_files"]["evaluation/source-inputs.json"] = "0" * 64
+    authority.write_text(json.dumps(document))
+    with pytest.raises(ValueError, match="differs from checkout binding"):
+        check_reference_input_boundary(bound_checkout / "evaluation")
+
+
+def test_bound_history_keeps_local_candidate_manifest_checks(inputs):
+    dataset, _, _, _ = inputs
+    (dataset.parent / "evaluation").mkdir()
+    (dataset.parent / "evaluation/lexbench-webfetch.json").write_bytes(_BOUND_INPUT_AUTHORITY.read_bytes())
+    check_reference_input_boundary(dataset.parent)
+    (dataset.parent / "sources").mkdir()
+    with pytest.raises(ValueError, match="duplicated in checkout"):
+        check_reference_input_boundary(dataset.parent)

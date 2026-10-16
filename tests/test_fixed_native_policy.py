@@ -2,7 +2,7 @@ import json
 from dataclasses import replace
 from unittest.mock import patch
 import pytest
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.base import build_provider
 from harness.web_fetch.providers.http_client import HttpResponse
 

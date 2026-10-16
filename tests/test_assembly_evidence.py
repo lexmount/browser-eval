@@ -16,7 +16,8 @@ from harness.web_fetch.assembly import (
     assemble,
     bind_assembled_scoring_revision,
 )
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.reference_inputs import import_inputs
 from harness.web_fetch.reference_lifecycle import finalize_reference_checks

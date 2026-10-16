@@ -2,8 +2,8 @@ import copy
 import json
 import unittest
 from pathlib import Path
-from harness.web_fetch.dynamic_reference import entry_facts
-from harness.web_fetch.metrics import evaluate_content
+from lexbench_webfetch.dynamic_reference import entry_facts
+from lexbench_webfetch.metrics import evaluate_content
 
 ROOT=Path(__file__).resolve().parents[1]
 

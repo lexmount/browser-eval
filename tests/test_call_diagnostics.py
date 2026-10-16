@@ -61,7 +61,7 @@ def test_runner_keeps_real_observations_for_every_outcome(tmp_path, outcome):
     import hashlib
     import threading
     from dataclasses import asdict
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.providers.base import Provider
     from harness.web_fetch.runner import run_evaluation
 

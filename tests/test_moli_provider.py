@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.moli import _diagnostic_main_document_url
 from harness.web_fetch.report_interfaces import SPECS
@@ -126,8 +126,8 @@ class MoliTests(unittest.TestCase):
                          "https://example.com/start")
 
     def test_committed_nonredirect_post_and_get_preserve_same_document_identity(self):
-        from harness.web_fetch.scoring import score_attempt
-        from harness.web_fetch.metrics import task_passed
+        from lexbench_webfetch.scoring import score_attempt
+        from lexbench_webfetch.metrics import task_passed
         case={'url':'https://example.com/start','track':'risk_control','task_kind':'body',
               'source_benchmark':{'risk_control':{'navigation_contract':{
                   'requested_url':'https://example.com/start','observed_final_url':'https://example.com/document'}}},
@@ -508,8 +508,8 @@ class MoliTests(unittest.TestCase):
         self.assertFalse(result.metadata["network_trace_requested"])
 
     def test_required_final_url_never_switches_native_markdown_to_json(self):
-        from harness.web_fetch.scoring import score_attempt
-        from harness.web_fetch.metrics import task_passed
+        from lexbench_webfetch.scoring import score_attempt
+        from lexbench_webfetch.metrics import task_passed
         for supplied_url in (None, 'https://example.com/document'):
             with self.subTest(final_url=supplied_url):
                 final='https://example.com/document'
@@ -616,8 +616,8 @@ class MoliTests(unittest.TestCase):
                 self.assertEqual(result.error_type, expected_error)
                 self.assertEqual(result.ok, expected_ok)
                 if body:
-                    from harness.web_fetch.scoring import score_attempt
-                    from harness.web_fetch.metrics import task_passed
+                    from lexbench_webfetch.scoring import score_attempt
+                    from lexbench_webfetch.metrics import task_passed
                     case = self.case_with(min_content_chars=1000)
                     metrics = score_attempt(vars(case), body.encode(), ok=result.ok,
                                             metadata=result.metadata)
@@ -1053,7 +1053,7 @@ class MoliTests(unittest.TestCase):
             "resource_task_family",
         )
         self.assertIn("movie.mp4", result.content)
-        from harness.web_fetch.metrics import evaluate_resources
+        from lexbench_webfetch.metrics import evaluate_resources
         scored = evaluate_resources(
             result.content,
             {},
@@ -1077,7 +1077,7 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["output"], "native_markdown_resource_urls")
         self.assertEqual(result.metadata["output_contract"], "native_markdown_resource_urls")
         self.assertFalse(result.metadata["network_trace_requested"])
-        from harness.web_fetch.metrics import evaluate_resources
+        from lexbench_webfetch.metrics import evaluate_resources
         scored = evaluate_resources(
             result.content,
             {},

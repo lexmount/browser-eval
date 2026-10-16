@@ -11,8 +11,10 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from lexbench_webfetch.paths import contained_path, safe_identifier
+
 from harness.record_io import load_jsonl, same_json_record
-from harness.web_fetch.safety import contained_path, safe_identifier, unlinked_path
+from harness.web_fetch.safety import unlinked_path
 
 from .diagnostics import diagnose_summary
 from .metrics import summarize_attempts

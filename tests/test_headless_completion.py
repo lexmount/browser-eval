@@ -126,7 +126,7 @@ class FamilySubdocumentPolicyTests(unittest.TestCase):
     def test_native_frame_flags_follow_family_policy_for_unrelated_urls(self):
         import json
         from unittest.mock import patch
-        from harness.web_fetch.models import EvalCase
+        from lexbench_webfetch.models import EvalCase
         from harness.web_fetch.providers.headless import HeadlessProvider
         provider = HeadlessProvider('lightpanda', {
             'type':'headless_markdown', 'engine':'lightpanda', 'binary':'/lightpanda',

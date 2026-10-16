@@ -37,7 +37,7 @@ from harness.web_fetch.report_explainer import (
 )
 from harness.web_fetch.report_i18n import localize_html
 from harness.web_fetch.report_resources import GROUPS, render_resource_comparison
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
 

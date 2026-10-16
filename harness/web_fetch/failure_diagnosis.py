@@ -53,7 +53,7 @@ def _stable_failure(metrics):
 
 
 def diagnose(r,c,raw):
-    from .metrics import task_measured
+    from lexbench_webfetch.metrics import task_measured
     if not task_measured(r['metrics'], c.get('task_kind')):
         return None
     try:payload=json.loads(raw)

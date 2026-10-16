@@ -9,7 +9,7 @@ from pathlib import Path
 
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.retrieval_hints import historical_native_fetch_dataset, native_fetch_dataset
-from harness.web_fetch.safety import contained_path
+from lexbench_webfetch.paths import contained_path
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -55,7 +55,7 @@ def _apply_case_corrections(
     definition: dict, selected: dict[str, dict], repository: Path
 ) -> list[str]:
     """Apply compact, hash-locked reference and scoring corrections to imported cases."""
-    from harness.web_fetch.scoring_regressions import require_scoring_regressions
+    from lexbench_webfetch.scoring_regressions import require_scoring_regressions
     from harness.web_fetch.reference_lifecycle import homepage_prompt_anchor_correction
 
     declaration = definition.get("case_corrections")

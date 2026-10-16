@@ -3,7 +3,8 @@ from __future__ import annotations
 import base64
 import hashlib
 
-from ..models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from .base import Provider
 from .http_client import inner_timeout_budget, request
 

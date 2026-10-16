@@ -1,12 +1,12 @@
 """One end-to-end answer deadline for every adapter, including local processing."""
-import hashlib
 import queue
 import threading
 import time
 
 from .models import ProviderResult
 from .diagnostics import diagnostic_context, emit
-from .response_input import answer_input
+from lexbench_webfetch.response_input import answer_input
+from lexbench_webfetch.file_acceptance import evaluate_files
 
 
 def prepare_answer(result, case):
@@ -17,22 +17,8 @@ def prepare_answer(result, case):
     # downloads produced while a body task is being fetched.  Only ``file``
     # tasks use this evidence for acceptance; body tasks still require text.
     if case.task_kind == 'file' or result.files:
-        files = []
-        for item in result.files:
-            raw = item.get('data')
-            if not isinstance(raw, bytes):
-                raise ValueError('Provider file data must be bytes')
-            mime = ('image/png' if raw.startswith(b'\x89PNG\r\n\x1a\n') else
-                    'video/webm' if raw.startswith(b'\x1aE\xdf\xa3') else
-                    'video/mp4' if len(raw) >= 12 and raw[4:8] == b'ftyp' else None)
-            expected = case.source_verification.get('mime', '').split(';')[0]
-            digest = hashlib.sha256(raw).hexdigest()
-            expected_hash = case.source_verification.get('file_sha256')
-            files.append({'bytes': len(raw), 'sha256': digest,
-                          'mime': mime, 'pass': bool(len(raw) >= 32 and mime and (not expected or mime == expected)
-                                                   and (not expected_hash or digest == expected_hash))})
-        result.metadata['file_evaluation'] = {'files': files, 'pass': any(f['pass'] for f in files),
-            'scope': 'returned_bytes_signature_length_sha256; not semantic media validation'}
+        result.metadata['file_evaluation'] = evaluate_files(
+            vars(case), [item.get('data') for item in result.files])
     return result
 
 

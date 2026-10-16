@@ -552,7 +552,7 @@ class NativeFileWorkerTests(unittest.TestCase):
         payload = json.loads(output.getvalue())
         self.assertEqual(payload["final_url"], "https://example.com/final")
         self.assertEqual(payload["status_code"], 200)
-        from harness.web_fetch.response_input import answer_input
+        from lexbench_webfetch.response_input import answer_input
         _, native_links, _, _ = answer_input(payload["content"].encode(), payload["metadata"])
         self.assertEqual(native_links, [{"title": "Native record", "url": "https://example.com/record"}])
         self.assertEqual(payload["raw_tool_response"]["html"], "<main>ready</main>")

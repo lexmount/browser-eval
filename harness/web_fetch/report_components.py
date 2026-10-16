@@ -323,7 +323,7 @@ def task_instruction(c):
         if c.get('track') == 'document' and 0 < len(reference) < 100:
             return '读取这个最小文档的全部可见正文。该样本只检查能否取得短文档文字，不代表多页、表格或附录能力。'
         return c.get('task_prompt', '')
-    from .stable_tasks import SCHEMA_FIELDS
+    from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS
     if contract['schema'] == 'page_identity':
         return '核对声明的页面、栏目或查询身份；不以变化中的条目名单作为固定答案。'
     if contract['schema'] == 'body_text':
@@ -360,7 +360,7 @@ def stable_rule_description(c):
 
 
 def stable_contract_details(c, *, evidence_root=None):
-    from .stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
+    from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
     contract = c['acceptance_contract']
     schema = contract['schema']
     fields = ''.join('<li><strong>'+escape(FIELD_REQUIREMENTS[f][0])+'</strong>：'+escape(FIELD_REQUIREMENTS[f][1])+'</li>' for f in SCHEMA_FIELDS[schema])

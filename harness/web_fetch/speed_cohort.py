@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 from harness.record_io import load_jsonl
 from harness.web_fetch.artifacts import materialize_task_references
-from harness.web_fetch.metrics import percentile, task_passed
+from lexbench_webfetch.metrics import percentile, task_passed
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 

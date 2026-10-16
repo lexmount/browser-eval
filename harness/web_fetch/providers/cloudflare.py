@@ -10,9 +10,10 @@ from pathlib import Path
 from pathlib import PurePosixPath
 from urllib.parse import urlencode, urljoin, urlsplit
 
-from ..models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import native_contract_for_case, native_default_case, plan_for_case
-from ..safety import validate_http_url
+from lexbench_webfetch.paths import validate_http_url
 from .base import Provider
 from .http_client import HttpOnlyRedirectHandler, HttpResponse, inner_timeout_budget, request
 

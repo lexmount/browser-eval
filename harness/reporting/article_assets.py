@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from harness.web_fetch.safety import contained_path, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 
 class ArticleAssetParity:

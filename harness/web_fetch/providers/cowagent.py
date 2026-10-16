@@ -8,7 +8,8 @@ import re
 import sys
 from pathlib import Path
 
-from ..models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from .subprocess_jsonl import SubprocessJsonlProvider
 
 

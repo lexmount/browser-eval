@@ -19,9 +19,10 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from ..markdown import converter_package, require_converter
-from ..models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import native_contract_for_case, plan_for_case
-from ..safety import validate_http_url
+from lexbench_webfetch.paths import validate_http_url
 from .base import Provider, terminate_owned_process_tree
 from .runtime_identity import require_expected_provider_versions
 

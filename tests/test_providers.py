@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from harness.web_fetch.metrics import evaluate_resources
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.metrics import evaluate_resources
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.cloudflare import (
     CloudflareContentProvider,
     CloudflareMarkdownProvider,

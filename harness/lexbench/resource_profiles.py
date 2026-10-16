@@ -20,7 +20,7 @@ from pathlib import Path
 
 from harness.lexbench.resource_summary import validate_population
 from harness.record_io import load_jsonl
-from harness.web_fetch.safety import contained_path, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 
 def sha256(path: Path) -> str:

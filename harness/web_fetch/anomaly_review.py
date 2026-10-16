@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 from statistics import median
 
-from .safety import contained_path
+from lexbench_webfetch.paths import contained_path
 
 
 LAYERS = ('input', 'reference', 'request', 'raw', 'adapter', 'scorer', 'final_verdict')

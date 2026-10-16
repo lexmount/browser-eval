@@ -26,17 +26,9 @@ from harness.web_fetch.reference_lifecycle import (
 )
 from harness.web_fetch.rescoring import rescore
 from harness.web_fetch.result_review import archive_superseded_result_review
-from harness.web_fetch.safety import (
-    commit_staged_evidence,
-    contained_path,
-    evidence_tree_identity,
-    reject_evidence_symlinks,
-    validate_report_ids,
-)
-from harness.web_fetch.scoring_regressions import (
-    ROOT_CAUSE_CATEGORIES,
-    build_correction_provenance,
-)
+from harness.web_fetch.safety import commit_staged_evidence, evidence_tree_identity, reject_evidence_symlinks, validate_report_ids
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.scoring_regressions import ROOT_CAUSE_CATEGORIES, build_correction_provenance
 
 ROOT = Path(__file__).resolve().parents[2]
 

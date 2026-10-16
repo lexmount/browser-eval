@@ -10,7 +10,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from harness.web_fetch.safety import contained_path, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
 from harness.web_fetch.webmainbench_certification import verify_shard
 from harness.web_fetch.webmainbench_evidence import (
     alias_row,

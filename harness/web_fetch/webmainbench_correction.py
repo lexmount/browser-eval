@@ -25,7 +25,8 @@ from harness.web_fetch.webmainbench_scoring import (
     revised_metrics,
 )
 
-from .safety import contained_path, safe_identifier, stage_evidence_revision
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.safety import stage_evidence_revision
 from harness.distribution import installed_data_path
 
 

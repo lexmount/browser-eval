@@ -12,15 +12,15 @@ from typing import Any
 
 from harness.web_fetch.artifacts import diagnostic_log_binding
 from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
-from harness.web_fetch.reference_inputs import read_dataset_bytes
+from harness.web_fetch.reference_inputs import read_dataset_bytes, benchmark_input_path
 from harness.web_fetch.retrieval_hints import plan_for_case
 from harness.web_fetch.storage import data_home
 
-from .safety import contained_path
+from lexbench_webfetch.paths import contained_path
 
 
 def _digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(benchmark_input_path(path).read_bytes()).hexdigest()
 
 
 def _case_ids_digest(case_ids: list[str]) -> str:
@@ -57,7 +57,7 @@ def frozen_risk_control_input_snapshot(profile_path: Path) -> dict:
         path = contained_path(root, binding["path"])
         if path.is_symlink():
             raise ValueError("Missing frozen input: " + binding["path"])
-        raw = read_dataset_bytes(path) if role == 'dataset' else path.read_bytes()
+        raw = read_dataset_bytes(path) if role == 'dataset' else benchmark_input_path(path).read_bytes()
         digest = hashlib.sha256(raw).hexdigest()
         if digest != binding["sha256"]:
             raise ValueError("Changed frozen input: " + binding["path"])

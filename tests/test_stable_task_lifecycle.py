@@ -9,10 +9,11 @@ import tempfile
 import unittest
 from unittest.mock import Mock
 
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.reference_lifecycle import preflight_reference_checks
 from harness.web_fetch.runner import run_evaluation, rescore_evaluation
-from harness.web_fetch.metrics import task_passed
+from lexbench_webfetch.metrics import task_passed
 
 
 class StableLifecycleTests(unittest.TestCase):

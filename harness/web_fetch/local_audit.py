@@ -3,9 +3,9 @@ import hashlib
 import json
 from pathlib import Path
 
-from .metrics import task_passed
+from lexbench_webfetch.metrics import task_passed
 from .reference_inputs import input_tree, read_dataset_bytes
-from .safety import contained_path
+from lexbench_webfetch.paths import contained_path
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_NAME = "local-audit-manifest.json"
@@ -25,7 +25,8 @@ def _canonical_sha256(value) -> str:
 def _repository_file(relative: str) -> Path:
     if not isinstance(relative, str) or not relative:
         raise ValueError("Repository evidence path is missing")
-    path = contained_path(ROOT, relative)
+    from .reference_inputs import benchmark_input_path
+    path = benchmark_input_path(contained_path(ROOT, relative))
     cursor = ROOT
     has_symlink = False
     for part in Path(relative).parts:
@@ -395,7 +396,7 @@ def local_measurement_call_sha256(record):
 
 
 def _require_local_scoring_revision(source, contract, records):
-    from .scoring import SCORING_SOURCE_SHA256
+    from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
     if any(r.get("metrics", {}).get("scoring_source_sha256") != SCORING_SOURCE_SHA256
            for r in records):
         raise ValueError("Local measurement has a stale scoring implementation")
@@ -410,7 +411,7 @@ def _require_local_scoring_revision(source, contract, records):
             or receipt.get("call_identities") != {
                 r["attempt_id"]: local_measurement_call_sha256(r) for r in records}):
         raise ValueError("Invalid local scoring correction binding")
-    from .scoring_regressions import build_correction_provenance
+    from lexbench_webfetch.scoring_regressions import build_correction_provenance
     provenance = receipt.get("provenance") or {}
     expected_provenance = build_correction_provenance(
         provenance.get("category"), provenance.get("root_cause"),

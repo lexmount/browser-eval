@@ -5,7 +5,7 @@ import json
 from html import escape
 from pathlib import Path
 
-from .safety import contained_path
+from lexbench_webfetch.paths import contained_path
 from .storage import data_home
 
 MANIFEST = Path(__file__).resolve().parents[2] / 'research/editorial-figures.json'

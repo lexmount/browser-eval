@@ -32,10 +32,12 @@ from .artifacts import (
 )
 from .call_boundary import fetch_with_deadline
 from .config import DEFAULT_FAILURE_RETRIES
-from .metrics import summarize, task_passed
-from .models import AttemptRecord, EvalCase, ProviderResult, validate_case
+from lexbench_webfetch.metrics import summarize, task_passed
+from harness.web_fetch.models import AttemptRecord, ProviderResult
+from lexbench_webfetch.models import EvalCase, validate_case
 from .providers import Provider
-from .reference_inputs import read_dataset_bytes
+from .reference_inputs import read_dataset_bytes, benchmark_input_path
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 from .reference_lifecycle import (
     ReferenceLifecycleError,
     check_case_reference_binding,
@@ -44,9 +46,9 @@ from .reference_lifecycle import (
     preflight_reference_checks,
 )
 from .diagnostics import CallDiagnostics
-from .response_input import apply_request_status
-from .safety import contained_path, safe_identifier
-from .scoring import load_list_reference, score_attempt
+from lexbench_webfetch.response_input import apply_request_status
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from lexbench_webfetch.scoring import load_list_reference, score_attempt
 
 
 class IncompleteEvaluationError(RuntimeError):
@@ -525,11 +527,11 @@ def run_evaluation(
 
     manifest = {
         "schema_version": 1,
-        "runtime_source_sha256": hashlib.sha256(b'\0'.join(
+        "runtime_source_sha256": hashlib.sha256(SCORING_SOURCE_SHA256.encode()+b'\0'+b'\0'.join(
             p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
             for p in sorted(Path(__file__).parent.rglob('*.py')))).hexdigest(),
         "provider_config_sha256": hashlib.sha256(provider_config_path.read_bytes()).hexdigest() if provider_config_path.is_file() else None,
-        "dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() if dataset_path.is_file() or (dataset_path.parent / 'source-inputs.json').is_file() else None,
+        "dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() if dataset_path.is_file() or (benchmark_input_path(dataset_path).parent / 'source-inputs.json').is_file() else None,
         "network_preflight": ({"dns_mode": network_audit["dns_mode"],
                                "sha256": hashlib.sha256((output_dir / 'network-preflight.json').read_bytes()).hexdigest()}
                               if network_audit is not None else None),

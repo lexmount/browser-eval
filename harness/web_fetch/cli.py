@@ -6,8 +6,8 @@ from pathlib import Path
 
 from .accounts import print_account_checklist
 from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope, add_failure_retry_argument
-from .metrics import task_passed
-from .models import TASK_KINDS
+from lexbench_webfetch.metrics import task_passed
+from lexbench_webfetch.models import TASK_KINDS
 from .providers import build_provider
 from .report_build import build_report
 from .runner import rescore_evaluation, run_evaluation

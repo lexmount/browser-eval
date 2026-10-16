@@ -38,7 +38,7 @@ class NetworkPreflightTests(unittest.TestCase):
         from pathlib import Path
         from tempfile import TemporaryDirectory
         from unittest.mock import patch
-        from harness.web_fetch.models import EvalCase
+        from lexbench_webfetch.models import EvalCase
         from harness.web_fetch.providers.base import Provider
         from harness.web_fetch.runner import run_evaluation
         calls = []
@@ -131,7 +131,8 @@ class NetworkPreflightTests(unittest.TestCase):
         from pathlib import Path
         from tempfile import TemporaryDirectory
         from unittest.mock import patch
-        from harness.web_fetch.models import EvalCase, ProviderResult
+        from lexbench_webfetch.models import EvalCase
+        from harness.web_fetch.models import ProviderResult
         from harness.web_fetch.providers.base import Provider
         from harness.web_fetch.runner import run_evaluation
         for mode in ('system','public_doh'):
@@ -205,7 +206,8 @@ class NetworkPreflightTests(unittest.TestCase):
 
 def test_explicit_isolated_fixtures_reach_the_runner(tmp_path):
     from unittest.mock import patch
-    from harness.web_fetch.models import EvalCase, ProviderResult
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.models import ProviderResult
     from harness.web_fetch.providers.base import Provider
     from harness.web_fetch.runner import run_evaluation
     class Fixture(Provider):

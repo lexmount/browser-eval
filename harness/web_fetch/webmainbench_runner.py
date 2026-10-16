@@ -27,7 +27,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 from harness.record_io import parse_jsonl
 from harness.web_fetch.config import load_provider_config, load_runtime_env, add_failure_retry_argument
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.headless import LOOPBACK_SANDBOX_PROFILE

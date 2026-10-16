@@ -15,11 +15,11 @@ from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 
 from .report_resources import render_resource_comparison
-from .metrics import task_passed, percentile
+from lexbench_webfetch.metrics import task_passed, percentile
 from .methods import is_browser_comparison, with_measured_method_labels
-from .scoring import score_attempt
+from lexbench_webfetch.scoring import score_attempt
 from .report_style import STYLE
-from .safety import contained_path, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
 HEADLESS_TITLE = '五类浏览器、六种配置、七类任务：正文、媒体与交付边界'
@@ -186,7 +186,7 @@ def collect_evidence(cases, records):
         return task_passed(r['ok'], r['metrics'], cases[r['case_id']].get('task_kind', 'body'))
 
     def summary(rows):
-        from .metrics import task_measured
+        from lexbench_webfetch.metrics import task_measured
         evaluated = [r for r in rows if task_measured(r['metrics'], cases[r['case_id']].get('task_kind'))]
         from .report_components import comparable_body_reference
         full = [r for r in rows if comparable_body_reference(cases[r['case_id']]) and r['metrics'].get('word_f1') is not None]

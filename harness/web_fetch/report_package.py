@@ -490,7 +490,7 @@ def _build_incremental(source: Path, baseline: Path, destination: Path):
                 manifest["files"][name]["source_sha256"] = source_sha256
             changes[name] = manifest["files"][name]["sha256"]
 
-        from harness.web_fetch.safety import contained_path
+        from lexbench_webfetch.paths import contained_path
 
         for name in routes:
             allowed = explanatory_route(name)

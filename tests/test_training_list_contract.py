@@ -1,12 +1,13 @@
+from lexbench_webfetch.inputs import definition_path
 """Full public task acceptance for equivalent training-list representations."""
 import json
 from pathlib import Path
 
 import pytest
 
-from harness.web_fetch.metrics import task_passed
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.scoring_regressions import load_scoring_regressions
+from lexbench_webfetch.metrics import task_passed
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.scoring_regressions import load_scoring_regressions
 from tests.conftest import read_frozen_dataset_bytes
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -71,7 +72,7 @@ def test_training_revision_binds_predecessor_hashes_and_current_contract():
     assert [s['id'] for s in group['required_columns']]==receipt['independent_browser_observation']['required_fields_unchanged']
     controls=load_scoring_regressions()
     assert {controls[i]['failure_mode'] for i in receipt['regression_ids']}=={'false-positive','false-negative'}
-    contracts=json.loads((ROOT/'evaluation/risk-control/list-contracts.json').read_text())
+    contracts=json.loads((definition_path('evaluation/risk-control/list-contracts.json')).read_text())
     assert contracts['contracts'][receipt['case_id']]['groups']==training_case()['composite_acceptance']['groups']
 
 

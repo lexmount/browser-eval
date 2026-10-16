@@ -15,7 +15,8 @@ from harness.reporting.article_assets import ArticleAssetParity
 from harness.reporting.presentation import check_presentation
 from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
 from harness.web_fetch.reliability import require_reliable
-from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.storage import require_canonical_inputs, require_current_report_profile
 
 
@@ -307,7 +308,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                 or c.get("acceptance_contract")
             )
             if local_measurement:
-                from .stable_tasks import validate_acceptance_contract
+                from lexbench_webfetch.stable_tasks import validate_acceptance_contract
                 validate_acceptance_contract(c["acceptance_contract"])
             elif not stable_checks:
                 raise ValueError(c["id"])

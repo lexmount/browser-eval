@@ -1,3 +1,4 @@
+from lexbench_webfetch.inputs import definition_path
 import hashlib
 import json
 import re
@@ -7,27 +8,19 @@ from pathlib import Path
 
 import pytest
 
-from harness.web_fetch.composite_tasks import validate_composite_acceptance
-from harness.web_fetch.metrics import evaluate_content, normalize_for_match, task_passed
+from lexbench_webfetch.composite_tasks import validate_composite_acceptance
+from lexbench_webfetch.metrics import evaluate_content, normalize_for_match, task_passed
 from harness.web_fetch.report_build import require_risk_control_certification
 from harness.web_fetch.risk_control import main as run_risk_control
 from harness.web_fetch.risk_control import (
     measured_risk_control_dataset,
     require_complete_diagnostic_logs,
 )
-from harness.web_fetch.risk_control_dataset import (
-    BODY_CONTRACTS,
-    EXPECTED_COHORT_HASH,
-    EXPECTED_RULE_HASHES,
-    LIST_CONTRACTS,
-    MANIFEST,
-    RULE_FILES,
-    evidence_roots,
-    parse_sections,
-)
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
+from lexbench_webfetch.risk_control_dataset import BODY_CONTRACTS, EXPECTED_COHORT_HASH, EXPECTED_RULE_HASHES, LIST_CONTRACTS, MANIFEST, RULE_FILES, evidence_roots, parse_sections
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
+from harness.web_fetch.reference_inputs import benchmark_input_path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -49,7 +42,7 @@ assert callable(validate_risk_control_certification)
 
 
 def test_risk_control_history_contains_no_executable_input_versions():
-    history = ROOT / "evaluation/risk-control/history"
+    history = definition_path("evaluation/risk-control/history")
     files = sorted(path.relative_to(history).as_posix() for path in history.rglob("*") if path.is_file())
     assert files == ["v5/dataset-catalog.json"]
     assert not list(history.rglob("source-inputs.json"))
@@ -57,8 +50,8 @@ def test_risk_control_history_contains_no_executable_input_versions():
 
 
 DATASET = ROOT / "evaluation/risk-control/current/dataset.json"
-COHORT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-manifest.json"
-COHORT_RECEIPT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-receipt.json"
+COHORT = definition_path('evaluation/risk-control/qualification/cohort/cohort-manifest.json')
+COHORT_RECEIPT = definition_path('evaluation/risk-control/qualification/cohort/cohort-receipt.json')
 RUN_PROFILE = ROOT / "evaluation/risk-control/run-profile.json"
 LANGUAGE_REVISION = ROOT / "research/risk-control-language-rule-revision.json"
 ZILLOW_REVISION = ROOT / "research/risk-control-zillow-sample-revision.json"
@@ -200,7 +193,7 @@ def test_builder_hash_guards_match_the_current_audited_sources():
 
 
 def test_compiler_reads_explicit_definitions_without_checkout_defaults(tmp_path, monkeypatch):
-    from harness.web_fetch import risk_control_dataset as compiler
+    from lexbench_webfetch import risk_control_dataset as compiler
 
     rule = tmp_path / "rules.md"
     rule.write_text(RULE_FILES[0].read_text())
@@ -302,7 +295,7 @@ def test_zillow_case_binds_location_and_only_requires_visible_card_fields(datase
     ('3 beds · 1,200 sqft', False),
 ])
 def test_zillow_full_score_requires_distinct_numeric_card_fields(dataset, fields, expected):
-    from harness.web_fetch.scoring import score_attempt
+    from lexbench_webfetch.scoring import score_attempt
     case=next(c for c in dataset['cases'] if c['id']=='risk-diverse-134')
     anchors='\n'.join(a['alternatives'][0] for a in case['acceptance_contract']['stable_text_anchors'])
     cards=[f'[10{i} Example Avenue](https://www.zillow.com/homedetails/Example/{10000000+i}_zpid/)\n$900,000\n{fields}' for i in range(8)]
@@ -378,7 +371,7 @@ def test_run_profile_binds_every_rule_and_qualification_authority():
     }
     assert set(profile["source_bindings"]) == expected
     for binding in profile["source_bindings"].values():
-        path = ROOT / binding["path"]
+        path = benchmark_input_path(ROOT / binding["path"])
         assert hashlib.sha256(path.read_bytes()).hexdigest() == binding["sha256"]
 
 
@@ -398,7 +391,7 @@ def test_frozen_execution_inputs_do_not_require_historical_source_files(tmp_path
     for binding in bindings:
         target = tmp_path / binding["path"]
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(read_frozen_dataset_bytes(ROOT / binding["path"]) if binding == profile['dataset'] else (ROOT / binding["path"]).read_bytes())
+        target.write_bytes(read_frozen_dataset_bytes(ROOT / binding["path"]) if binding == profile['dataset'] else benchmark_input_path(ROOT / binding["path"]).read_bytes())
     # There is no qualification data home or browser.txt tree in this fixture.
     snapshot = frozen_risk_control_input_snapshot(profile_path)
     assert snapshot["case_count"] == 100

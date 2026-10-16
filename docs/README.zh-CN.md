@@ -1,16 +1,45 @@
+<div align="center">
+
+<img src="assets/overview.svg" alt="Browser Eval evaluation workflow" width="100%">
+
 # Browser Eval
 
-[English](../README.md) | **简体中文**
+### 执行同一组任务，留下可核查的证据。
 
-可复现的浏览器评测，涵盖网页抓取、轨迹重放和 AI Agent 自动化：检查网页内容能否完整获取、记录好的操作能否完成、Agent 能否自主完成任务，并比较耗时和资源消耗。Browser Eval 是 [Moli](https://github.com/lexmount/moli) 的配套评测项目，也支持其他浏览器；各方法使用统一的任务规则，结果保留原始证据。
+用于网页抓取、固定浏览器操作和自主 Agent 的评测脚手架。
+
+[English](../README.md) · **简体中文**
+
+[![CI](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/code-MIT-51735b)](../LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](../pyproject.toml)
+
+[快速开始](#快速开始) · [Benchmark 接入](benchmarks.md) · [报告](#查看与分享报告) · [参与贡献](../CONTRIBUTING.md)
+
+</div>
+
+---
+
+Browser Eval 把 benchmark 任务接到浏览器或服务适配器上，执行预先声明的比较，调用 benchmark 评分器检查保存的输出，并生成可查看证据的报告。它支持 Web Fetch、轨迹重放和 Browser Use；任务范围和验收要求由所选 benchmark 决定。
+
+自建的 Web Fetch 任务集由 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) 维护。WebMainBench、WCXB 和 WebArena 提供其他评测输入。Browser Eval 负责执行与报告，各 benchmark 分别维护范围、版本和来源说明。详见[仓库分工与接入](benchmarks.md)。
 
 运行后得到 HTML 报告，里面有比较表、任务详情、响应和日志。可以在本地查看，也可以通过 [Artifact Site](https://github.com/lexmount/artifact-site) 发布，让其他人在线查看结果。
 
 [评测内容](#评测内容) · [快速开始](#快速开始) · [查看与分享报告](#查看与分享报告) · [相关项目](#相关仓库导航) · [参与贡献](#参与贡献)
 
+```mermaid
+flowchart LR
+    A[Benchmark 任务与验收规则] --> B[Browser Eval]
+    B --> C[浏览器或服务适配器]
+    C --> D[保存的响应与耗时]
+    D --> E[评分与证据检查]
+    E --> F[可查看证据的 HTML 报告]
+```
+
 ## 评测内容
 
-目前支持以下评测方式：
+支持以下执行方式：
 
 | 轨道 | 回答什么问题 | 从这里开始 |
 | --- | --- | --- |
@@ -41,7 +70,7 @@
 | 任务集 | 评测内容 | 可用条件与入口 |
 | --- | --- | --- |
 | 离线 fixture / 本地文章 | 检查运行、任务选择、评分和证据，不提供性能排名 | 随仓库提供，命令见下文 |
-| 实时 Web Fetch 任务集 | 普通网页、动态内容、文档、图片/视频、热门网站、访问限制 | [轨道说明](../harness/web_fetch/README.md)；完整历史参考需要获准使用的[外部输入](../docs/reference-inputs.md) |
+| LexBench Web Fetch | 普通网页、动态内容、文档、图片/视频、热门网站、访问限制 | [Benchmark 仓库](https://github.com/lexmount/lexbench-webfetch) · [接入说明](benchmarks.md)；完整历史参考需要获准使用的外部输入 |
 | WebMainBench / WCXB | 独立绑定的冻结 HTML 与参考内容上的提取质量 | [冻结 HTML 说明](../harness/web_fetch/WEBMAINBENCH.md)；按原数据许可获取输入，并使用对应认证流程 |
 | 项目维护的轨迹任务集 | 在指定公开网页上执行相同固定操作 | [轨迹运行说明](../examples/trajectory_replay/README.md)；需要 Docker 和网站访问 |
 | WebArena 人工轨迹重放 | 自建网站上的已通过资格检查的固定轨迹与官方任务评估 | [复现说明](../docs/webarena-fixed-trajectory-reproduction.md)；需要外部数据和较多部署资源 |
@@ -122,6 +151,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
 
 | 仓库 | 在这项工作中的用途 |
 | --- | --- |
+| [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | 自建 Web Fetch 评测使用的独立任务集和验收规则 |
 | [Moli](https://github.com/lexmount/moli) | 与其他实现一起接受评测的浏览器 |
 | [Artifact Site](https://github.com/lexmount/artifact-site) | 报告托管、版本管理和分享，支持自行部署 |
 | [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 独立评测浏览器协议、自动化驱动和 Web 平台语义 |
@@ -135,7 +165,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
 
 ## 参与贡献
 
-欢迎为适配器、任务、测试、评分修正、文档和翻译提交 PR。先看[贡献指南](../CONTRIBUTING.md)，或提交带有复现示例的 [issue](https://github.com/lexmount/browser-eval/issues)。
+欢迎为适配器、执行修复、测试、文档和翻译提交 PR。LexBench 任务要求的修改请提交到 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)。先看[贡献指南](../CONTRIBUTING.md)，或提交带有复现示例的 [issue](https://github.com/lexmount/browser-eval/issues)。
 
 ```bash
 make setup-test
@@ -148,7 +178,7 @@ make ci
 
 ## 引用 Browser Eval
 
-在公开作品中使用本仓库的工具、任务定义或评测方法时，请引用仓库，并记录实际使用的 tag 或提交。GitHub 的引用入口读取 [CITATION.cff](../CITATION.cff)。首个版本可这样引用：
+在公开作品中使用本脚手架时，请引用仓库，并记录实际使用的 tag 或提交。任务定义与评测方法请另行引用 LexBench Web Fetch 或对应 benchmark。GitHub 的引用入口读取 [CITATION.cff](../CITATION.cff)。首个版本可这样引用：
 
 ```bibtex
 @software{browser_eval_2026,

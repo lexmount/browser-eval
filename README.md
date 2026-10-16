@@ -1,16 +1,45 @@
+<div align="center">
+
+<img src="docs/assets/overview.svg" alt="Browser Eval evaluation workflow" width="100%">
+
 # Browser Eval
 
-**English** | [简体中文](docs/README.zh-CN.md)
+### Run the same tasks. Keep the evidence.
 
-Reproducible browser benchmarks for web fetching, trajectory replay and AI agent automation. Compare task completion, latency and resource use across browsers, using shared task rules and saved evidence. Browser Eval is maintained as a companion to [Moli](https://github.com/lexmount/moli) and supports other browsers.
+An evaluation harness for web fetching, recorded browser actions and autonomous agents.
+
+**English** · [简体中文](docs/README.zh-CN.md)
+
+[![CI](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/code-MIT-51735b)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
+
+[Quickstart](#quickstart) · [Benchmarks](docs/benchmarks.md) · [Reports](#read-and-share-a-report) · [Contributing](CONTRIBUTING.md)
+
+</div>
+
+---
+
+Browser Eval connects benchmark tasks to browser and service adapters, executes declared comparisons, calls the benchmark scorer on saved outputs and builds inspectable reports. It supports Web Fetch, Browser Trajectory Replay and Browser Use. Task populations and acceptance requirements come from the selected benchmark.
+
+[LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch task suites. WebMainBench, WCXB and WebArena supply other benchmark inputs. Browser Eval provides the execution and reporting machinery; each benchmark retains its own scope, versions and attribution. See [repository boundaries and integration](docs/benchmarks.md).
 
 You get an HTML report with comparison tables, task details, responses and logs. Read it locally or publish it through [Artifact Site](https://github.com/lexmount/artifact-site) so others can explore the results online.
 
 [What it tests](#what-it-tests) · [Quickstart](#quickstart) · [Reports](#read-and-share-a-report) · [Related projects](#related-repositories) · [Contribute](#contribute)
 
+```mermaid
+flowchart LR
+    A[Benchmark tasks and contracts] --> B[Browser Eval]
+    B --> C[Browser or provider adapters]
+    C --> D[Saved outputs and timings]
+    D --> E[Scoring and evidence checks]
+    E --> F[Inspectable HTML report]
+```
+
 ## What it tests
 
-Current evaluation tracks:
+Supported execution tracks:
 
 | Track | Question | Start here |
 | --- | --- | --- |
@@ -41,7 +70,7 @@ Support varies by task type. Check [adapter requirements](docs/provider-contract
 | Suite | What it measures | Availability and entry |
 | --- | --- | --- |
 | Offline fixture / local article | Harness operation, selection, scoring and evidence; no performance ranking | Included; commands below |
-| Live Web Fetch suites | Ordinary pages, dynamic content, documents, images/video, popular sites and access restrictions | [Track guide](harness/web_fetch/README.md); complete historical references require an approved [external input set](docs/reference-inputs.md) |
+| LexBench Web Fetch | Ordinary pages, dynamic content, documents, images/video, popular sites and access restrictions | [Benchmark repository](https://github.com/lexmount/lexbench-webfetch) · [Integration](docs/benchmarks.md); complete historical references require approved external inputs |
 | WebMainBench / WCXB | Extraction fidelity on independently bound frozen HTML and reference content | [Frozen-HTML guide](harness/web_fetch/WEBMAINBENCH.md); obtain source data under its terms and use the suite's certification pipeline |
 | Curated trajectory suite | Identical fixed actions on selected public pages | [Trajectory run guide](examples/trajectory_replay/README.md); uses Docker and live sites |
 | WebArena human-recording replay | Qualified fixed trajectories and official task evaluation on self-hosted sites | [Reproduction guide](docs/webarena-fixed-trajectory-reproduction.md); external datasets and substantial deployment resources |
@@ -122,6 +151,7 @@ Example runs are diagnostic. For a formal benchmark release, follow the selected
 
 | Repository | Role in this work |
 | --- | --- |
+| [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Independent task suites and acceptance contracts for self-authored Web Fetch evaluations |
 | [Moli](https://github.com/lexmount/moli) | Browser evaluated alongside the other implementations |
 | [Artifact Site](https://github.com/lexmount/artifact-site) | Report hosting, versions and sharing; self-hosting supported |
 | [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | Separate benchmark for protocols, automation drivers and web-platform semantics |
@@ -135,7 +165,7 @@ See [dependency sources and pins](docs/dependencies.md) for exact versions. Inst
 
 ## Contribute
 
-PRs are welcome for adapters, tasks, tests, scoring fixes, documentation and translations. Start with [CONTRIBUTING](CONTRIBUTING.md), or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
+PRs are welcome for adapters, execution fixes, tests, documentation and translations. Changes to LexBench task requirements belong in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch). Start with [CONTRIBUTING](CONTRIBUTING.md), or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
 
 ```bash
 make setup-test
@@ -148,7 +178,7 @@ Project code is [MIT licensed](LICENSE). [THIRD_PARTY](THIRD_PARTY.md) covers da
 
 ## Cite Browser Eval
 
-If you use the harness, task definitions or evaluation methodology in published work, cite the repository and record the tag or commit used. GitHub's citation menu reads [CITATION.cff](CITATION.cff). For the initial release:
+If you use the harness in published work, cite this repository and record the tag or commit used. Cite LexBench Web Fetch or other benchmark owners separately for their task definitions and methodology. GitHub's citation menu reads [CITATION.cff](CITATION.cff). For the initial release:
 
 ```bibtex
 @software{browser_eval_2026,

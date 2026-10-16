@@ -2,7 +2,7 @@ import hashlib
 import tempfile
 import unittest
 from pathlib import Path
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.fixture import FixtureProvider
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.runner import run_evaluation

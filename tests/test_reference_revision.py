@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from harness.web_fetch.reference_revision import revise
-from harness.web_fetch.scoring import score_attempt
+from lexbench_webfetch.scoring import score_attempt
 
 AUTHORITY = {
     "root_cause_category": "reference-evidence",

@@ -1,11 +1,12 @@
 [project]
 name = "browser-harness-eval"
 version = "0.1.0"
-description = "Reproducible browser benchmarks for web fetching, trajectory replay and AI agent automation"
+description = "Evaluation harness for web fetching, browser trajectory replay and autonomous agents"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = [
+  "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@6d8d72637bb96f4938b9a2f7c46d0c7dffd74945",
   "beautifulsoup4>=4.12,<5",
 ]
 
@@ -105,6 +106,6 @@ include = ["harness*"]
 "harness.environments.webarena" = ["runtime/*.ini"]
 
 [tool.setuptools.data-files]
-"share/browser-harness-eval" = ["evaluation/scoring-regressions.json", "configs/providers.headless.json"]
+"share/browser-harness-eval" = ["configs/providers.headless.json"]
 "share/browser-harness-eval/webmainbench" = ["evaluation/webmainbench-full/scoring-regressions.json"]
 "share/browser-harness-eval/public-webarena" = ["evaluation/browser-use-public/adoption-evidence.json", "evaluation/browser-use-public/benchmark-catalog.json", "evaluation/browser-use-public/report-changes.json"]

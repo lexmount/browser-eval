@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from .metrics import task_measured
+from lexbench_webfetch.metrics import task_measured
 
 
 def assess_reliability(dataset: dict, records: list[dict]) -> dict:

@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.fixture import FixtureProvider
 from harness.web_fetch.runner import run_evaluation
 from harness.web_fetch.evidence import project_provider_run
@@ -27,7 +27,8 @@ class InterruptedEvidenceTests(unittest.TestCase):
         config.write_text(json.dumps({"providers": {"fixture": {"type": "fixture"}}}))
         run_evaluation(output_dir=self.source, dataset_meta=dataset, dataset_path=path,
                        cases=cases, providers=[FixtureProvider("fixture", {"type": "fixture", "fail_cases": ["fail"]})],
-                       provider_config_path=config, runs=1, timeout=1, delay=0)
+                       provider_config_path=config, runs=1, timeout=1, delay=0,
+                       max_failure_retries=0)
         self.rows = [json.loads(line) for line in (self.source / "results.jsonl").read_text().split("\n") if line]
         self.rows = self.rows[:2]
         (self.source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in self.rows))
