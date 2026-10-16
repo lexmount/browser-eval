@@ -16,6 +16,38 @@ from harness.web_fetch.reference_lifecycle import expected_providers
 
 
 class HeadlessReviewTests(unittest.TestCase):
+    def test_navigation_transport_failures_share_retry_classification(self):
+        from types import SimpleNamespace
+        from harness.web_fetch.models import ProviderResult
+        from harness.web_fetch.runner import transient_retry_reason
+
+        cases = [
+            ('Page.goto: net::ERR_CONNECTION_CLOSED at https://example.com/', 'network', 'transient_network'),
+            ('Page.goto: net::ERR_NAME_NOT_RESOLVED at https://example.com/', 'dns', 'transient_dns'),
+            ('Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://example.com/', 'timeout', 'transient_timeout'),
+            ('Page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://example.com/', 'browser_error', None),
+            ('Page.goto: net::ERR_BLOCKED_BY_CLIENT at https://example.com/', 'browser_error', None),
+            ('Page.evaluate: net::ERR_CONNECTION_CLOSED', 'browser_error', None),
+        ]
+        for message, expected, retry in cases:
+            with self.subTest(message=message):
+                page = SimpleNamespace(goto=lambda *a, **kw: (_ for _ in ()).throw(RuntimeError(message)))
+                context = SimpleNamespace(new_page=lambda: page)
+                browser = SimpleNamespace(version='fixture', new_context=lambda **kw: context, close=lambda: None)
+                class Driver:
+                    def __enter__(self):
+                        return SimpleNamespace(chromium=SimpleNamespace(launch=lambda **kw: browser))
+                    def __exit__(self, *args):
+                        return False
+                with patch.dict(sys.modules, {'playwright.sync_api': SimpleNamespace(sync_playwright=Driver)}):
+                    result = fetch({'engine': 'chromium', 'binary': '/fixture',
+                                    'url': 'https://example.com/', 'timeout': 1})
+                self.assertFalse(result['ok'])
+                self.assertEqual(result['error_type'], expected)
+                self.assertEqual(transient_retry_reason(ProviderResult(
+                    False, '', error_type=result['error_type'])), retry)
+                self.assertIn(message, result['error_message'])
+
     def test_postcheck_uses_case_track_coverage(self):
         dataset = {'coverage_plan': {'web': ['web-p'], 'resources': ['resource-p']}}
         self.assertEqual(expected_providers(dataset, {'track': 'resources'}), {'resource-p'})

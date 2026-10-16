@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -22,6 +23,26 @@ from harness.web_fetch.markdown import CONVERTER, converter_command, require_con
 from harness.web_fetch.document_text import extract_document_text
 from harness.web_fetch.providers.headless import cli_command, completion_metadata, native_cdp_browser
 from harness.web_fetch.safety import validate_http_url
+
+
+def browser_error_type(error):
+    """Normalize known main-navigation failures without retrying security errors."""
+    if 'Timeout' in type(error).__name__:
+        return 'timeout'
+    match = re.match(r'^(?:Page|Frame)\.goto: net::(ERR_[A-Z_]+)\b', str(error))
+    if match:
+        code = match.group(1)
+        if code in {'ERR_NAME_NOT_RESOLVED', 'ERR_NAME_RESOLUTION_FAILED', 'ERR_DNS_TIMED_OUT'}:
+            return 'dns'
+        if code in {'ERR_TIMED_OUT', 'ERR_CONNECTION_TIMED_OUT'}:
+            return 'timeout'
+        if code in {
+            'ERR_CONNECTION_CLOSED', 'ERR_CONNECTION_RESET', 'ERR_CONNECTION_REFUSED',
+            'ERR_CONNECTION_ABORTED', 'ERR_ADDRESS_UNREACHABLE', 'ERR_INTERNET_DISCONNECTED',
+            'ERR_NETWORK_CHANGED', 'ERR_EMPTY_RESPONSE',
+        }:
+            return 'network'
+    return 'browser_error'
 
 
 def require_normalized_retrieval_plan(request):
@@ -470,7 +491,7 @@ def fetch(request):
     except Exception as error:
         return dict(ok=False, content='', html=html, metadata=meta,
                     status_code=meta.get('file_response_status'), final_url=meta.get('file_response_url'),
-                    error_type='timeout' if 'Timeout' in type(error).__name__ else 'browser_error',
+                    error_type=browser_error_type(error),
                     error_message=str(error)[:4000])
 
 
