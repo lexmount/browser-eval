@@ -1,6 +1,6 @@
 # Skill sources and updates
 
-`benchmark-report` and `benchmark-editorial` are maintained by this project. `humanizer` and `humanizer-chinese` are vendored dependencies:
+`benchmark-report`, `benchmark-editorial` and `video-gen` are maintained by this project. `video-gen` provides guidance for scripts, storyboards and video production, with an optional timeline consistency guard; individual films and their production projects live outside the repository. `humanizer` and `humanizer-chinese` are vendored dependencies:
 
 | Skill | Upstream | Installed source |
 | --- | --- | --- |
