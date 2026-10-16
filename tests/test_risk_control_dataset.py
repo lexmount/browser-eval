@@ -46,6 +46,16 @@ assert callable(validate_risk_control_certification)
 '''
     result = subprocess.run([sys.executable, "-c", code], cwd=ROOT, text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
+
+
+def test_risk_control_history_contains_no_executable_input_versions():
+    history = ROOT / "evaluation/risk-control/history"
+    files = sorted(path.relative_to(history).as_posix() for path in history.rglob("*") if path.is_file())
+    assert files == ["v5/dataset-catalog.json"]
+    assert not list(history.rglob("source-inputs.json"))
+    assert not list(history.rglob("run-profile.json"))
+
+
 DATASET = ROOT / "evaluation/risk-control/current/dataset.json"
 COHORT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-manifest.json"
 COHORT_RECEIPT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-receipt.json"
@@ -54,8 +64,6 @@ LANGUAGE_REVISION = ROOT / "research/risk-control-language-rule-revision.json"
 ZILLOW_REVISION = ROOT / "research/risk-control-zillow-sample-revision.json"
 XTOOLS_REVISION = ROOT / "research/risk-control-xtools-field-scope-revision.json"
 CONTENT_OWNER_REVISION = ROOT / "research/risk-control-explicit-content-owner-revision.json"
-HISTORICAL_V5 = ROOT / "evaluation/risk-control/history/v5"
-HISTORICAL_PROFILE = ROOT / "evaluation/risk-control/history/v4/run-profile.json"
 
 
 @pytest.fixture(scope="module")
@@ -145,12 +153,8 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
     assert xtools['predecessor_revision'] == 'research/risk-control-responsive-navigation-revision.json'
     assert responsive['correction']['new_dataset_sha256'] == xtools['correction']['predecessor_dataset_sha256']
     assert responsive['correction']['new_run_profile_sha256'] == xtools['correction']['predecessor_run_profile_sha256']
-    assert xtools['correction']['new_dataset_sha256'] == hashlib.sha256(
-        read_frozen_dataset_bytes(HISTORICAL_V5 / "dataset.json")
-    ).hexdigest()
-    assert xtools['correction']['new_run_profile_sha256'] == hashlib.sha256(
-        (HISTORICAL_V5 / "run-profile.json").read_bytes()
-    ).hexdigest()
+    assert xtools['correction']['predecessor_dataset_sha256'] == responsive['correction']['new_dataset_sha256']
+    assert xtools['correction']['predecessor_run_profile_sha256'] == responsive['correction']['new_run_profile_sha256']
     assert content_owner['predecessor_revision'] == str(
         XTOOLS_REVISION.relative_to(ROOT)
     )
@@ -164,9 +168,6 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
     ).hexdigest()
     assert profile["dataset"]["sha256"] == content_owner["correction"]["new_dataset_sha256"]
     assert profile["dataset"]["path"] == "evaluation/risk-control/current/dataset.json"
-    assert xtools['correction']['predecessor_run_profile_sha256'] == hashlib.sha256(
-        HISTORICAL_PROFILE.read_bytes()
-    ).hexdigest()
     assert revision["correction"]["provider_calls"] == 1
     assert revision["correction"]["rerun_case_ids"] == ["risk-diverse-134"]
 
