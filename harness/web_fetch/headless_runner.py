@@ -11,7 +11,7 @@ from harness.web_fetch.config import (
     load_dataset,
     load_provider_settings,
     load_runtime_env,
-    nonnegative_int,
+    add_failure_retry_argument,
 )
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
@@ -88,12 +88,7 @@ def main(argv=None):
     parser.add_argument("--tracks", help="Comma-separated task families; default all")
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--timeout", type=float, default=45)
-    parser.add_argument(
-        "--max-failure-retries",
-        type=nonnegative_int,
-        default=1,
-        help="Retry a failed task up to N times (0 disables retries); use the final call",
-    )
+    add_failure_retry_argument(parser)
     parser.add_argument(
         "--resource-sample-interval-ms",
         type=int,

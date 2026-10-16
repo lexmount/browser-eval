@@ -3579,17 +3579,20 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
     interface_rows = ['<tr><td>' + esc(labels[provider]) + '</td><td><code>' + esc(content['interfaces'][provider]) + '</code></td></tr>'
                       for provider in providers]
     retry_count = sum(row["physical_attempt_count"] - 1 for row in records)
-    recovered_count = sum(row["ok"] and row["physical_attempt_count"] == 2 for row in records)
+    recovered_count = sum(row["ok"] and row["physical_attempt_count"] > 1 for row in records)
     final_request_failures = sum(not row["ok"] for row in records)
+    failed_call_counts = Counter(row['physical_attempt_count'] for row in records if not row['ok'])
+    failure_calls_note = ('（' + '，'.join(f'{count} 条调用 {calls} 次'
+                          for calls, count in sorted(failed_call_counts.items())) + '）') if failed_call_counts else ''
     page("methodology/index.html", "评测方法",
          '<section class="hero"><h1>测量与评分方法</h1><p>' + prose('method_lead') + '</p></section>' +
          '<section class="panel"><h2>输入</h2><p>' + prose('method_input') + '</p><p>数据 SHA-256：<code>' +
          esc(profile["source_dataset_sha256"]) + '</code>。原始评分器提交：<code>' + esc(profile["official_scorer_commit"]) +
          '</code>' + (('；lex-main 修正评分器提交：<code>' + esc(scoring_correction['scorer_commit']) + '</code>') if scoring_correction else '') +
          '。</p></section><section class="panel"><h2>失败重试</h2><p>本轮共 ' + str(len(records) + retry_count) +
-         ' 次物理调用，包含 ' + str(retry_count) + ' 次失败后的重试；其中 ' + str(recovered_count) +
-         ' 条重试后返回成功，' + str(final_request_failures) +
-         ' 条最终请求失败均调用两次。返回成功但正文为空或为错误页的结果不触发请求失败重试。</p></section>' +
+         ' 次调用，其中 ' + str(retry_count) + ' 次为失败后的重试。' + str(recovered_count) +
+         ' 条请求在重试后成功，' + str(final_request_failures) +
+         ' 条请求最终失败' + failure_calls_note + '。返回成功但正文为空或为错误页的结果不触发请求失败重试。</p></section>' +
          '<section class="panel"><h2>评分</h2><p>' + prose('method_scoring') + '</p><p>' + prose('method_correction') + '</p>' +
          ((anchor("teds-correction.json", "历史 TEDS 修正收据") + " · " + anchor("teds-correction-review.json", "历史修正复核")) if (out / "teds-correction.json").is_file() else anchor("scoring-correction.json", "lex-main 统一评分修正收据")) + "</section>" +
          '<section><h2>调用接口</h2>' + table(['方法', '本轮调用方式'], interface_rows) + '</section>' +

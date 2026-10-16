@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .accounts import print_account_checklist
-from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope, nonnegative_int
+from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope, add_failure_retry_argument
 from .metrics import task_passed
 from .models import TASK_KINDS
 from .providers import build_provider
@@ -130,10 +130,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--env-file", type=Path)
     run.add_argument("--output", type=Path, default=None)
     run.add_argument("--fail-on-failure", action="store_true")
-    run.add_argument(
-        "--max-failure-retries", type=nonnegative_int, default=1,
-        help="Retry a failed task up to N times (0 disables retries); use the final call",
-    )
+    add_failure_retry_argument(run)
     run.set_defaults(handler=command_run)
 
     report = sub.add_parser("report", help="Rebuild HTML from an existing run directory")

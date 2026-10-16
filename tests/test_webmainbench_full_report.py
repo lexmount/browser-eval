@@ -31,9 +31,8 @@ def test_public_report_omits_private_predecessor_scores_but_keeps_certified_repl
     assert 'pre_scoring_correction_metrics' in rows[0]
 
 
-@pytest.mark.parametrize("binding_name", ["seven-method-binding.json", "method-binding.json"])
-@pytest.mark.parametrize("extra_methods", [0, 1])
-def test_full_report_renders_registered_details_and_failure_evidence(tmp_path: Path, binding_name: str, extra_methods: int) -> None:
+def render_full_report(tmp_path, binding_name, extra_methods=0, *, call_counts=None):
+    call_counts = call_counts or {}
     providers = ["moli", "lightpanda", "obscura", "chromium", "kitesurf",
                  "moli-pr785-fixed", "moli-content-fixed"]
     providers.extend(f"browser-{index}" for index in range(extra_methods))
@@ -49,12 +48,17 @@ def test_full_report_renders_registered_details_and_failure_evidence(tmp_path: P
                 f"response {provider}")
         artifact = f"artifacts/{provider}.md"
         (tmp_path / artifact).write_text(text, encoding="utf-8")
-        physical_path = f"artifacts/{provider}-p01.txt"
-        (tmp_path / physical_path).write_text(text, encoding="utf-8")
         output_sha = hashlib.sha256(text.encode()).hexdigest()
-        physical.append({"provider": provider, "track_id": case_id,
-                         "physical_artifact_path": physical_path, "output_sha256": output_sha,
-                         "elapsed_ms": 100 + index})
+        calls = call_counts.get(provider, 1)
+        for number in range(1, calls + 1):
+            body = text if number == calls else 'Previous request failed'
+            physical_path = f"artifacts/{provider}-p{number:02d}.txt"
+            (tmp_path / physical_path).write_text(body, encoding="utf-8")
+            physical.append({"provider": provider, "track_id": case_id,
+                             "physical_artifact_path": physical_path,
+                             "output_sha256": hashlib.sha256(body.encode()).hexdigest(),
+                             "physical_attempt": number, "ok": number == calls and provider != 'moli',
+                             "elapsed_ms": 100 + index})
         value = (index + 1) / 10
         scores = {metric: value for metric in metrics}
         scores["overall"] = value
@@ -66,8 +70,8 @@ def test_full_report_renders_registered_details_and_failure_evidence(tmp_path: P
             "attempt_id": provider + "__case-1__r001", "case_id": case_id, "provider": provider,
             "original_url": "https://example.test/page", "ok": provider != "moli",
             "output_chars": len(text), "artifact_path": artifact, "output_sha256": output_sha,
-            "elapsed_ms": 100 + index, "total_elapsed_ms": 100 + index,
-            "physical_attempt_count": 1, "provider_metadata": {"stderr": "fixture error"},
+            "elapsed_ms": 100 + index, "total_elapsed_ms": (100 + index) * calls,
+            "physical_attempt_count": calls, "provider_metadata": {"stderr": "fixture error"},
             "error_type": "fixture_error" if provider == "moli" else None,
             "error_message": "fixture error" if provider == "moli" else None,
             "metrics": {metric: {"score": value, "success": True} for metric in metrics},
@@ -135,6 +139,27 @@ def test_full_report_renders_registered_details_and_failure_evidence(tmp_path: P
     (tmp_path / "physical-attempts.jsonl").write_text("".join(json.dumps(row) + "\n" for row in physical), encoding="utf-8")
     (tmp_path / "moli-content-fixed-report.json").write_text(json.dumps({"source_commit": "683b297e1b99b5bbe27284dc8b5e657eaacf8996"}), encoding="utf-8")
     generate_webmainbench_full(tmp_path, dataset, rows, summaries, profile)
+    return providers, rows
+
+
+@pytest.mark.parametrize('calls,recovered,failure_calls', [
+    ({}, 0, 1), ({'lightpanda': 2, 'moli': 2}, 1, 2),
+    ({'lightpanda': 3, 'moli': 4}, 1, 4), ({'moli': 4}, 0, 4),
+])
+def test_retry_summary_uses_recorded_call_counts(tmp_path, calls, recovered, failure_calls):
+    providers, _ = render_full_report(tmp_path, 'method-binding.json', call_counts=calls)
+    page = BeautifulSoup((tmp_path/'methodology/index.html').read_text(), 'html.parser')
+    text = page.find('h2', string='失败重试').find_parent('section').get_text()
+    assert f'共 {sum(calls.get(name, 1) for name in providers)} 次调用' in text
+    assert f'{recovered} 条请求在重试后成功' in text
+    assert f'1 条调用 {failure_calls} 次' in text
+    assert '均调用两次' not in text
+
+
+@pytest.mark.parametrize("binding_name", ["seven-method-binding.json", "method-binding.json"])
+@pytest.mark.parametrize("extra_methods", [0, 1])
+def test_full_report_renders_registered_details_and_failure_evidence(tmp_path: Path, binding_name: str, extra_methods: int) -> None:
+    providers, rows = render_full_report(tmp_path, binding_name, extra_methods)
     subprocess.run(["node", "--check", str(tmp_path / "assets/report.js")], check=True)
     report_js = (tmp_path / "assets/report.js").read_text(encoding="utf-8")
     check_interaction_script(report_js)

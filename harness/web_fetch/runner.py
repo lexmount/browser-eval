@@ -30,6 +30,7 @@ from .artifacts import (
     verify_record_public_call_logs,
 )
 from .call_boundary import fetch_with_deadline
+from .config import DEFAULT_FAILURE_RETRIES
 from .metrics import summarize, task_passed
 from .models import AttemptRecord, EvalCase, ProviderResult, validate_case
 from .providers import Provider
@@ -54,7 +55,7 @@ class IncompleteEvaluationError(RuntimeError):
 def preflight_declared_capacity(
     providers: list[Provider], *, declared_calls: int, timeout: float = 10,
     cases: list[EvalCase] | None = None, runs: int = 1,
-    max_failure_retries: int = 1,
+    max_failure_retries: int = DEFAULT_FAILURE_RETRIES,
 ) -> None:
     """Check optional account capacity once per logical provider.
 
@@ -458,7 +459,7 @@ def run_evaluation(
     timeout: float,
     delay: float,
     provider_concurrency: int = 1,
-    max_failure_retries: int = 1,
+    max_failure_retries: int = DEFAULT_FAILURE_RETRIES,
     resource_sample_interval_ms: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()

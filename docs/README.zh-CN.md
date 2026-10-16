@@ -63,10 +63,6 @@ uv run --frozen browser-harness-eval run --delay 0
 
 打开终端打印的报告路径。这个离线示例无需浏览器、Docker 或 API Key，预设一个通过结果和一个失败结果，方便查看两种情况。安装依赖时需要联网。
 
-Web Fetch 默认对失败任务重试一次，所有方法使用同一规则。通过
-`--max-failure-retries N` 设置重试次数，`0` 表示不重试。每道题只保留一个结果，
-正文、判定和耗时都取最后一次调用。
-
 接下来，可以[用 HTTP、Moli 或 Chromium 抓取本地文章](../examples/web_fetch/README.md)。说明中包含浏览器安装、多方法比较和自选任务。远程服务和 Agent 运行需要相应账户，调用可能产生费用。
 
 <details>

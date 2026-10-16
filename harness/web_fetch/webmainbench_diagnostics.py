@@ -910,7 +910,7 @@ def sample_review_main(argv=None, *, root=None) -> None:
                 failures.append(f"{provider}/{track_id}: reference hash")
             attempts = by_id.get(track_id, [])
             expected_attempts = list(range(1, len(attempts) + 1))
-            if (not attempts or len(attempts) > 2
+            if (not attempts or len(attempts) > profile['max_failure_retries'] + 1
                     or len(attempts) != row.get("physical_attempt_count")
                     or [item.get("physical_attempt") for item in attempts] != expected_attempts
                     or any(item.get("ok") for item in attempts[:-1])
