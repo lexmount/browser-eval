@@ -713,7 +713,7 @@ class ScoringPipelineTests(unittest.TestCase):
                 error_type='synthetic_failure' if c.id == 'failed' else None,
                 metadata={**fields, '_raw_response_b64': base64.b64encode(raw).decode(),
                     'raw_response_sha256': hashlib.sha256(raw).hexdigest(), 'raw_response_bytes': len(raw),
-                    'native_answer_projection': {'schema_version': 1, 'content_pointer': ['content'],
+                    'native_answer_projection': {'schema_version': 2, 'content_pointer': ['content'],
                         'content_format': 'text', 'result_fields': {'final_url': {'pointer': ['final_url']}},
                         'answer_fields': {'images': {
                             'pointer': ['metadata', 'images'], 'format': 'identity'}}}})

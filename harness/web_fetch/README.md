@@ -952,6 +952,8 @@ request-URL fallback applies only when the selected native address is absent.
 Resolve relative resource attributes against that verified address. A title absent
 from the native response cannot supply required facts.
 
+Schema-1 declarations must not contain `result_fields`, even an empty object.
+Current persistence rejects mixed declarations, including discarded timeout answers.
 Immutable schema-1 acquisitions retain their original text/resource/file scope;
 they do not retroactively prove title/address provenance. Bind a separate offline
 context audit to historical results, replay the complete affected route when a

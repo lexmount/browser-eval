@@ -381,7 +381,9 @@ def persist_result_artifacts(
     """Persist one physical call without changing its scored answer bytes."""
     discarded_late_answer = (not result.ok and result.error_type == 'timeout'
                              and result.content == '')
-    from .response_input import require_native_answer_projection
+    from .response_input import require_native_answer_projection, require_native_projection_schema
+    if result.metadata.get('native_answer_projection'):
+        require_native_projection_schema(result.metadata['native_answer_projection'])
     raw = result.metadata.get('_raw_response_b64')
     if result.metadata.get('native_answer_projection', {}).get('source_format') == 'bytes':
         raw = result.metadata.get('_raw_stdout_b64')

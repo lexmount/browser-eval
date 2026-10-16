@@ -138,10 +138,17 @@ def _project_field(payload, spec):
     raise ValueError('Unknown native answer field projection')
 
 
-def project_native_answer(payload, declaration):
-    """Select declared native fields; never inspect references or URL meaning."""
+def require_native_projection_schema(declaration):
+    """Keep historical answer scope separate from schema-2 result context."""
     if declaration.get('schema_version') not in {1, 2}:
         raise ValueError('Unsupported native answer projection')
+    if declaration['schema_version'] == 1 and 'result_fields' in declaration:
+        raise ValueError('Native result_fields require projection schema 2')
+
+
+def project_native_answer(payload, declaration):
+    """Select declared native fields; never inspect references or URL meaning."""
+    require_native_projection_schema(declaration)
     kind = declaration.get('content_format')
     if declaration.get('source_format') == 'bytes':
         if declaration.get('answer_fields'):
@@ -261,6 +268,7 @@ def main_document_url_from_fetch_log(stderr: str | bytes, requested_url: str) ->
 def project_native_result_fields(payload, declaration, *, request_url=None,
                                  diagnostic=None, transport_receipt=None):
     """Replay scored title/address from native fields or same-call evidence."""
+    require_native_projection_schema(declaration)
     fields = {'title': None, 'final_url': None}
     for name, spec in declaration.get('result_fields', {}).items():
         if name not in fields:
@@ -305,6 +313,7 @@ def require_native_answer_projection(content, metadata, raw_response, *, files=(
                 or (raw_response is not None and content)):
             raise ValueError('Scored native answer has undeclared answer fields')
         return
+    require_native_projection_schema(declaration)
     if raw_response is None:
         raise ValueError('Declared native answer lacks its retained raw response')
     if present - set(declaration.get('answer_fields', {})):
@@ -365,6 +374,7 @@ def verify_saved_native_answer(root, record):
         if metadata.get('native_answer_required'):
             raise ValueError('Scored native answer has no projection declaration')
         return
+    require_native_projection_schema(declaration)
     answer = read_evidence_binding(root, {'path': record['artifact_path'],
         'sha256': record['metrics']['content_sha256']}).read_bytes()
     # Deadlines discard answers while preserving late raw evidence.
@@ -385,8 +395,8 @@ def verify_saved_native_answer(root, record):
         diagnostic = read_evidence_binding(root, {'path': metadata['diagnostic_log_path'],
             'sha256': metadata['diagnostic_log_sha256']}).read_bytes()
     require_native_answer_projection(answer.decode('utf-8'), metadata, raw, files=files,
-        title=record.get('title') if declaration.get('schema_version') == 2 or 'result_fields' in declaration else None,
-        final_url=record.get('final_url') if declaration.get('schema_version') == 2 or 'result_fields' in declaration else None,
+        title=record.get('title') if declaration.get('schema_version') == 2 else None,
+        final_url=record.get('final_url') if declaration.get('schema_version') == 2 else None,
         request_url=record.get('url'),
         diagnostic=diagnostic, transport_receipt=metadata.get('source_transport_receipt'))
     if files or 'file_evaluation' in metadata:

@@ -590,3 +590,59 @@ def test_empty_same_call_diagnostic_is_retained_without_inventing_final_url(tmp_
         'metrics': {'content_sha256': hashlib.sha256(b'answer').hexdigest()}}
     verify_saved_native_answer(tmp_path, record)
     assert (tmp_path/result.metadata['diagnostic_log_path']).read_bytes() == b''
+
+
+@pytest.mark.parametrize('result_fields', [{}, {'final_url': {'pointer': ['final_url']}}])
+@pytest.mark.parametrize('discarded_timeout', [False, True])
+def test_current_writer_rejects_schema_one_result_context(tmp_path, result_fields, discarded_timeout):
+    import base64
+    import json
+    from pathlib import Path
+    from harness.web_fetch.models import ProviderResult
+    from harness.web_fetch.runner import persist_result_artifacts
+    from harness.web_fetch.scoring import score_attempt
+    content = '' if discarded_timeout else 'answer'
+    raw = json.dumps({'content': content}).encode()
+    declaration = {'schema_version': 1, 'content_pointer': ['content'],
+                   'content_format': 'text', 'result_fields': result_fields}
+    metadata = {'native_answer_projection': declaration,
+                '_raw_response_b64': base64.b64encode(raw).decode()}
+    result = ProviderResult(not discarded_timeout, content,
+                            error_type='timeout' if discarded_timeout else None, metadata=metadata)
+    artifact = Path('artifacts/answer.txt')
+    with pytest.raises(ValueError, match='result_fields require projection schema 2'):
+        persist_result_artifacts(tmp_path, artifact, result, request_url='https://example.test/')
+    assert not (tmp_path/artifact).exists()
+    with pytest.raises(ValueError, match='result_fields require projection schema 2'):
+        score_attempt({'url': 'https://example.test/'}, content.encode(), ok=result.ok,
+                      metadata=metadata, native_response=raw)
+
+
+def test_saved_schema_one_keeps_original_answer_scope(tmp_path):
+    import base64
+    import hashlib
+    import json
+    from pathlib import Path
+    from harness.web_fetch.models import ProviderResult
+    from harness.web_fetch.runner import persist_result_artifacts
+    from harness.web_fetch.response_input import verify_saved_native_answer
+    images = [{'src': 'https://example.test/image.png'}]
+    raw = json.dumps({'content': 'answer', 'images': images}).encode()
+    declaration = {'schema_version': 1, 'content_pointer': ['content'], 'content_format': 'text',
+                   'answer_fields': {'images': {'pointer': ['images']}}}
+    result = ProviderResult(True, 'answer', metadata={'images': images,
+        'native_answer_projection': declaration, '_raw_response_b64': base64.b64encode(raw).decode(),
+        'raw_response_sha256': hashlib.sha256(raw).hexdigest(), 'raw_response_bytes': len(raw)})
+    persist_result_artifacts(tmp_path, Path('artifacts/answer.txt'), result)
+    record = {'ok': True, 'artifact_path': 'artifacts/answer.txt',
+              'url': 'https://requested.example.test/', 'title': 'historical unaudited title',
+              'final_url': 'https://historical.example.test/', 'provider_metadata': result.metadata,
+              'metrics': {'content_sha256': hashlib.sha256(b'answer').hexdigest()}}
+    verify_saved_native_answer(tmp_path, record)
+    result.metadata['images'] = [{'src': 'https://forged.example.test/image.png'}]
+    with pytest.raises(ValueError, match='declared native field projection'):
+        verify_saved_native_answer(tmp_path, record)
+    result.metadata['images'] = images
+    declaration['result_fields'] = {}
+    with pytest.raises(ValueError, match='result_fields require projection schema 2'):
+        verify_saved_native_answer(tmp_path, record)
