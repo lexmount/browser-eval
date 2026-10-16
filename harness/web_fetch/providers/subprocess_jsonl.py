@@ -193,6 +193,18 @@ class SubprocessJsonlProvider(Provider):
             "stderr_truncated": retained_bytes < actual_bytes,
         }
 
+    def native_worker_request(self, case, timeout, diagnostic_path=None):
+        from ..native_routes import declared_input_media_kind
+        media = declared_input_media_kind(case, required=False)
+        return {'url': case.url, 'log_level': self.config.get('log_level'),
+                'diagnostic_path': diagnostic_path, 'timeout_seconds': timeout,
+                'uniform_native_parameters': True,
+                'max_bytes': int(self.config.get('max_bytes', 20_000_000)),
+                'dns_mode': self.config.get('dns_mode', 'system'),
+                'task_kind': case.task_kind, 'track': case.track,
+                **({'input_media_kind': media} if media is not None else {}), 'retrieval_plan': None,
+                'retrieval_mode': 'native_default' if case.track == 'dynamic' else 'declared_plan'}
+
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         self.check_native_call(case)
         from ..native_routes import declared_input_media_kind
@@ -232,6 +244,8 @@ class SubprocessJsonlProvider(Provider):
             "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
             "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
         }
+        if self.config.get('uniform_native_parameters'):
+            request = self.native_worker_request(case, timeout, request['diagnostic_path'])
         if getattr(self, '_native_route_ledger', None) is not None:
             from ..native_routes import _digest
             projected = {**request, 'url': '<input-url>',
@@ -312,6 +326,8 @@ class SubprocessJsonlProvider(Provider):
                     worker_logs_truncated = True
                 continue
             payload = candidate
+        if payload.get("content") is not None and not isinstance(payload["content"], str):
+            raise ValueError("worker content must be text or absent")
         ok = bool(payload.get("ok"))
         files = []
         for item in payload.get("files") or []:
@@ -331,8 +347,14 @@ class SubprocessJsonlProvider(Provider):
             metadata={
                 **dict(payload.get("metadata") or {}),
                 **({'native_answer_projection': {'schema_version': 1,
-                    'content_pointer': ['content'], 'content_format': 'text'}}
-                   if isinstance(payload.get('content'), str) else {}),
+                    'content_pointer': ['content'],
+                    'content_format': 'text' if isinstance(payload.get('content'), str) else 'empty',
+                    'answer_fields': {key: {'pointer': ['metadata', key], 'format': 'identity'}
+                        for key in ('links', 'images', 'videos', 'media', 'extras')
+                        if key in (payload.get('metadata') or {})},
+                    **({'files': {'pointer': ['files'], 'format': 'worker_files'}}
+                       if payload.get('files') else {})}}
+                   ),
                 "_raw_response_b64": base64.b64encode(line.encode("utf-8")).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(line.encode("utf-8")).hexdigest(),
                 "raw_response_bytes": len(line.encode("utf-8")),

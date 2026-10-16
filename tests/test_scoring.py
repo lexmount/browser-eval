@@ -1,4 +1,5 @@
 """Shared scoring uses saved bytes only; all calls and references are synthetic."""
+import base64
 import hashlib
 import io
 import json
@@ -657,7 +658,7 @@ class ScoringTests(unittest.TestCase):
             "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
             "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
             "response_input.py", "body_coverage.py", "structured_tables.py",
-            "ordered_tree.py", "composite_tasks.py"))).hexdigest()
+            "ordered_tree.py", "composite_tasks.py", "call_boundary.py"))).hexdigest()
         self.assertEqual(SCORING_SOURCE_SHA256, expected)
         self.assertEqual(score_attempt(case(), b"Text", ok=True)["scoring_source_sha256"], expected)
 
@@ -702,11 +703,19 @@ class ScoringPipelineTests(unittest.TestCase):
         self.provider.config = {}
         self.provider.name, self.provider.type, self.provider.min_interval_seconds = "p", "fixture", 0
         self.provider.validate.return_value = []
-        self.provider.fetch.side_effect = lambda c, timeout: ProviderResult(
-            ok=c.id != "failed", content=texts[c.id], status_code=200 if c.id != "failed" else 502,
-            final_url=("https://new.example.test/news/" if c.id == "redirected" else c.url),
-            error_type="synthetic_failure" if c.id == "failed" else None,
-            metadata={"images": [{"src": "/image.png"}], "request_id": "original-" + c.id})
+        def response(c, timeout):
+            fields = {'images': [{'src': '/image.png'}], 'request_id': 'original-'+c.id}
+            raw = json.dumps({'content': texts[c.id], 'metadata': fields}).encode()
+            return ProviderResult(ok=c.id != 'failed', content=texts[c.id],
+                status_code=200 if c.id != 'failed' else 502,
+                final_url='https://new.example.test/news/' if c.id == 'redirected' else c.url,
+                error_type='synthetic_failure' if c.id == 'failed' else None,
+                metadata={**fields, '_raw_response_b64': base64.b64encode(raw).decode(),
+                    'raw_response_sha256': hashlib.sha256(raw).hexdigest(), 'raw_response_bytes': len(raw),
+                    'native_answer_projection': {'schema_version': 1, 'content_pointer': ['content'],
+                        'content_format': 'text', 'answer_fields': {'images': {
+                            'pointer': ['metadata', 'images'], 'format': 'identity'}}}})
+        self.provider.fetch.side_effect = response
 
     def live(self):
         with redirect_stdout(io.StringIO()):
@@ -909,6 +918,20 @@ class ScoringPipelineTests(unittest.TestCase):
         snapshots = ("results.jsonl", "summary.json", "dataset.json", "manifest.json")
         for kind, declaration in declarations.items():
             record["provider_metadata"] = {**baseline, **declaration}
+            if kind == 'downloaded_file':
+                from harness.web_fetch.call_boundary import evaluate_returned_files
+                native = json.loads((self.run/baseline['raw_response_path']).read_bytes())
+                native['files'] = [{'base64': base64.b64encode(original).decode()}]
+                raw = json.dumps(native).encode()
+                raw_path = self.run/'private_artifacts/auxiliary-native.response.bin'
+                raw_path.write_bytes(raw)
+                fields = record['provider_metadata']
+                fields.update(raw_response_path=raw_path.relative_to(self.run).as_posix(),
+                              raw_response_sha256=hashlib.sha256(raw).hexdigest(), raw_response_bytes=len(raw))
+                fields['native_answer_projection'] = {**baseline['native_answer_projection'],
+                    'files': {'pointer': ['files'], 'format': 'worker_files'}}
+                fields['file_evaluation'] = evaluate_returned_files([{'data': original}], {})
+                fields['file_evaluation']['files'][0]['artifact_path'] = relative
             artifact.unlink(missing_ok=True)
             artifact.write_bytes(original)
             (self.run / "results.jsonl").write_text(

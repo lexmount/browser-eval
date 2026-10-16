@@ -16,6 +16,20 @@ class FirecrawlProvider(Provider):
     _PROXY_MAX_CREDITS = {"basic": 1, "enhanced": 1, "auto": 1}
     _VIDEO_FORMAT_CREDITS = 5
 
+    def native_http_arguments(self, case, timeout):
+        formats = ['rawBase64'] if case.task_kind == 'file' else list(self.config.get('formats', ['markdown']))
+        if case.track == 'video' and case.task_kind == 'resource' and 'video' not in formats:
+            formats.append('video')
+        body = {'url': case.url, 'formats': formats, 'maxAge': int(self.config.get('max_age', 0)),
+                'proxy': str(self.config.get('proxy', 'auto'))}
+        if 'only_main_content' in self.config:
+            body['onlyMainContent'] = self.config['only_main_content']
+        if case.task_kind == 'file':
+            body['parsers'] = []
+        headers = {'Authorization': 'Bearer '+str(self.config['api_key'])} if self.config.get('api_key') else {}
+        return (str(self.config.get('base_url', 'https://api.firecrawl.dev')).rstrip('/') + '/v2/scrape',
+                self.native_http_options(body, headers, timeout))
+
     def validate(self) -> list[str]:
         if "only_main_content" in self.config and not isinstance(self.config["only_main_content"], bool):
             return ["only_main_content must be boolean"]
@@ -437,6 +451,18 @@ class FirecrawlProvider(Provider):
                 "links": data.get("links") if ok and isinstance(data.get("links"), list) else [],
                 "images": data.get("images") if ok and isinstance(data.get("images"), list) else [],
                 "videos": videos if ok else [],
+                **({'native_answer_projection': {
+                    'schema_version': 1,
+                    'content_pointer': ['data', 'markdown'],
+                    'content_format': 'empty' if file_route else 'text', 'optional_content': True,
+                    'answer_fields': ({} if file_route else {
+                        'links': {'pointer': ['data', 'links'], 'format': 'identity', 'default': []},
+                        'images': {'pointer': ['data', 'images'], 'format': 'identity', 'default': []},
+                        **({'videos': {'pointer': ['data', 'videos'], 'format': 'video_values', 'default': [],
+                            'legacy': {'pointer': ['data', 'video'], 'default': ''}}}
+                            if native_video_route else {})}),
+                    **({'files': {'pointer': ['data', 'rawBase64'], 'format': 'base64_file'}}
+                       if file_bytes else {})}} if ok else {}),
                 **(
                     {
                         "raw_file": {

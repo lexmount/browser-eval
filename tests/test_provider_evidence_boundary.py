@@ -164,9 +164,12 @@ def make_run(root, provider, dataset, *, certify=True):
 
         def fetch(self, case, timeout):
             self.calls[case.id] = self.calls.get(case.id, 0) + 1
-            private = b'{"synthetic_private_response":true}'
+            answer = 'Expected fixture' if self.calls[case.id] == 2 else 'Wrong'
+            private = json.dumps({'synthetic_private_response': True, 'content': answer}).encode()
             return ProviderResult(True, 'Expected fixture' if self.calls[case.id] == 2 else 'Wrong',
-                metadata={'_rendered_html': '<main>fixture</main>',
+                metadata={'native_answer_projection': {'schema_version': 1,
+                              'content_pointer': ['content'], 'content_format': 'text'},
+                          '_rendered_html': '<main>fixture</main>',
                           'rendered_html_sha256': hashlib.sha256(b'<main>fixture</main>').hexdigest(),
                           '_raw_stdout_b64': base64.b64encode(b'fixture stdout').decode(),
                           'raw_stdout_sha256': hashlib.sha256(b'fixture stdout').hexdigest(),

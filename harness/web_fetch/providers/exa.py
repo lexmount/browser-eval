@@ -55,6 +55,17 @@ def _public_url_error(value: object) -> dict[str, object]:
 
 
 class ExaContentsProvider(Provider):
+    def native_http_arguments(self, case, timeout):
+        body = {'urls': [case.url], 'text': {'verbosity': self.config.get('text_verbosity', 'full')},
+                'maxAgeHours': int(self.config.get('max_age_hours', 0))}
+        extras = {'links': 20, 'imageLinks': 20} if self.config.get('include_resource_links') else {}
+        if self.config.get('rich_links_limit'):
+            extras['richLinks'] = int(self.config.get('rich_links_limit', 100))
+        if extras:
+            body['extras'] = extras
+        return (str(self.config.get('base_url', 'https://api.exa.ai')).rstrip('/') + '/contents',
+                self.native_http_options(body, {'x-api-key': str(self.config.get('api_key', ''))}, timeout))
+
     def validate(self) -> list[str]:
         return [] if self.config.get("api_key") else ["api_key"]
 
@@ -156,5 +167,13 @@ class ExaContentsProvider(Provider):
                 ),
                 "extras": result_extras,
                 "links": _rich_answer_links(result_extras),
+                **({'native_answer_projection': {
+                    'schema_version': 1, 'content_pointer': ['results', 0, 'text'],
+                    'content_format': 'text', 'optional_content': True,
+                    'answer_fields': ({
+                        'extras': {'pointer': ['results', 0, 'extras'], 'format': 'identity', 'default': {}},
+                        'links': {'pointer': ['results', 0, 'extras', 'richLinks'],
+                                  'format': 'named_links', 'default': []}} if ok else {})}}
+                   if ok or content else {}),
             },
         )

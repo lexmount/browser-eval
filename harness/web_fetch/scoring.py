@@ -21,7 +21,7 @@ SCORING_SOURCE_SHA256 = hashlib.sha256(b"\0".join(
         "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
         "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
         "response_input.py", "body_coverage.py", "structured_tables.py",
-        "ordered_tree.py", "composite_tasks.py",
+        "ordered_tree.py", "composite_tasks.py", "call_boundary.py",
     )
 )).hexdigest()
 
@@ -85,6 +85,8 @@ def score_attempt(
     list_reference: dict | None = None,
     status_code: int | None = None,
     prepared_answer: tuple | None = None,
+    native_response: bytes | None = None,
+    native_files: list | None = None,
     title: str | None = None,
     final_url: str | None = None,
 ) -> dict[str, Any]:
@@ -97,7 +99,17 @@ def score_attempt(
     Previous non-text
     evidence is preserved; the caller must have validated its artifact binding.
     """
+    if native_files is not None and native_response is None:
+        raise ValueError('Native file scoring requires its retained response bytes')
+    if native_response is not None:
+        from .response_input import require_native_answer_projection
+        require_native_answer_projection(artifact.decode('utf-8'), metadata or {},
+                                         native_response, files=native_files or ())
     case = _case_dict(case)
+    if native_files is not None:
+        from .call_boundary import evaluate_returned_files
+        metadata = dict(metadata or {})
+        metadata['file_evaluation'] = evaluate_returned_files(native_files, case.get('source_verification') or {})
     if 'acceptance_policy_version' in case:
         raise ValueError('Historical policy selectors require their frozen scorer; current scoring has one contract')
     contract = case.get('acceptance_contract') or {}
@@ -249,7 +261,7 @@ def score_attempt(
             if "declared_truncation" not in result["stable_task_errors"]:
                 result["stable_task_errors"].append("declared_truncation")
     file_evaluation = (metadata or {}).get('file_evaluation')
-    if result['task_kind'] == 'file' and isinstance(file_evaluation, dict) and 'raw_file_pass' not in result:
+    if result['task_kind'] == 'file' and isinstance(file_evaluation, dict) and ('raw_file_pass' not in result or native_files is not None):
         result['raw_file_pass'] = bool(file_evaluation.get('pass'))
     result["content_score_applicable"] = case.get("content_score_applicable", True)
     contract = scoring_values.get("acceptance_contract")

@@ -9,6 +9,25 @@ from .diagnostics import diagnostic_context, emit
 from .response_input import answer_input
 
 
+def evaluate_returned_files(returned_files, source_verification):
+    files = []
+    for item in returned_files:
+        raw = item.get('data')
+        if not isinstance(raw, bytes):
+            raise ValueError('Provider file data must be bytes')
+        mime = ('image/png' if raw.startswith(b'\x89PNG\r\n\x1a\n') else
+                'video/webm' if raw.startswith(b'\x1aE\xdf\xa3') else
+                'video/mp4' if len(raw) >= 12 and raw[4:8] == b'ftyp' else None)
+        expected = source_verification.get('mime', '').split(';')[0]
+        digest = hashlib.sha256(raw).hexdigest()
+        expected_hash = source_verification.get('file_sha256')
+        files.append({'bytes': len(raw), 'sha256': digest,
+                      'mime': mime, 'pass': bool(len(raw) >= 32 and mime and (not expected or mime == expected)
+                                               and (not expected_hash or digest == expected_hash))})
+    return {'files': files, 'pass': any(f['pass'] for f in files),
+            'scope': 'returned_bytes_signature_length_sha256; not semantic media validation'}
+
+
 def prepare_answer(result, case):
     # This required representation conversion is inside the measured call.
     result.prepared_answer = answer_input(result.content.encode('utf-8', errors='replace'), result.metadata,
@@ -17,22 +36,7 @@ def prepare_answer(result, case):
     # downloads produced while a body task is being fetched.  Only ``file``
     # tasks use this evidence for acceptance; body tasks still require text.
     if case.task_kind == 'file' or result.files:
-        files = []
-        for item in result.files:
-            raw = item.get('data')
-            if not isinstance(raw, bytes):
-                raise ValueError('Provider file data must be bytes')
-            mime = ('image/png' if raw.startswith(b'\x89PNG\r\n\x1a\n') else
-                    'video/webm' if raw.startswith(b'\x1aE\xdf\xa3') else
-                    'video/mp4' if len(raw) >= 12 and raw[4:8] == b'ftyp' else None)
-            expected = case.source_verification.get('mime', '').split(';')[0]
-            digest = hashlib.sha256(raw).hexdigest()
-            expected_hash = case.source_verification.get('file_sha256')
-            files.append({'bytes': len(raw), 'sha256': digest,
-                          'mime': mime, 'pass': bool(len(raw) >= 32 and mime and (not expected or mime == expected)
-                                                   and (not expected_hash or digest == expected_hash))})
-        result.metadata['file_evaluation'] = {'files': files, 'pass': any(f['pass'] for f in files),
-            'scope': 'returned_bytes_signature_length_sha256; not semantic media validation'}
+        result.metadata['file_evaluation'] = evaluate_returned_files(result.files, case.source_verification)
     return result
 
 
@@ -84,6 +88,8 @@ def fetch_with_deadline(provider, case, timeout):
                 late=None
             if isinstance(late,ProviderResult):
                 metadata.update(late.metadata)
+        for key in ('links', 'images', 'videos', 'media', 'extras', 'file_evaluation'):
+            metadata.pop(key, None)
         metadata['_answer_elapsed_ms']=answer_elapsed_ms
         return ProviderResult(
             False,

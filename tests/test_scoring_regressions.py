@@ -62,11 +62,17 @@ class ScoringRegressionTests(unittest.TestCase):
         root_modes = {}
         for identifier, row in rows.items():
             with self.subTest(regression=identifier):
-                metrics = score_attempt(
-                    row["case"], row["artifact"].encode(), ok=row["ok"],
-                    metadata=row.get("metadata"), title=row.get("title"),
-                    final_url=row.get("final_url"),
-                )
+                arguments = dict(ok=row['ok'], metadata=row.get('metadata'), title=row.get('title'),
+                                 final_url=row.get('final_url'))
+                if 'native_response' in row:
+                    arguments['native_response'] = row['native_response'].encode()
+                if row.get('expected_validation_error'):
+                    with self.assertRaisesRegex(ValueError, row['expected_validation_error']):
+                        score_attempt(row['case'], row['artifact'].encode(), **arguments)
+                    self.assertFalse(row['expected_task_pass'])
+                    root_modes.setdefault(row['root_cause'], set()).add(row['failure_mode'])
+                    continue
+                metrics = score_attempt(row['case'], row['artifact'].encode(), **arguments)
                 verdict = task_passed(
                     row["ok"], metrics, row["case"].get("task_kind", "body")
                 )

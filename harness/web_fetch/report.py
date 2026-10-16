@@ -702,6 +702,10 @@ def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
 def link(url,label,english=None):return f'<a href="{esc(safe_href(url))}">{model_text(label,english)}</a>'
 def cell(value,sort=None):return '<td'+(f' data-sort="{sort}"' if sort is not None else '')+f'>{value}</td>'
+EXTRA+='''
+table.ranking:not([data-row-index="false"]) tbody td:nth-child(4),
+table.ranking[data-row-index="false"] tbody td:nth-child(3){color:var(--good);font-weight:800}
+'''
 def model_text(value,english=None):
  return esc(value) if english is None else '<span data-report-en="'+esc(english)+'">'+esc(value)+'</span>'
 def rate(a,b):return pct(a/b) if b else '—'

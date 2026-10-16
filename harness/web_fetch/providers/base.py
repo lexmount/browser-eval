@@ -30,25 +30,25 @@ class Provider(ABC):
     def native_http_request(self, case, callback, endpoint, **kwargs):
         """Observe exact transport arguments before a fixed-native HTTP call."""
         ledger = getattr(self, '_native_route_ledger', None)
+        if self.config.get('uniform_native_parameters'):
+            native_endpoint, native_arguments = self.native_http_arguments(case, kwargs.get('timeout'))
+            if endpoint != native_endpoint or kwargs != native_arguments:
+                if ledger is not None:
+                    ledger.reject(self, case, 'Native adapter arguments differ from its canonical request builder')
+                raise ValueError('Native adapter arguments differ from its canonical request builder')
+            endpoint, kwargs = native_endpoint, native_arguments
         if ledger is not None:
-            from copy import deepcopy
-            from ..native_routes import _digest
-            body = deepcopy(kwargs.get('json_body'))
-            if not isinstance(body, dict):
-                ledger.reject(self, case, 'Native HTTP request lacks its declared input field')
-            slots = [key for key in ('url', 'urls') if key in body]
-            if slots == ['url'] and body['url'] == case.url:
-                body['url'] = '<input-url>'
-            elif slots == ['urls'] and body['urls'] == [case.url]:
-                body['urls'] = ['<input-url>']
-            else:
-                ledger.reject(self, case, 'Native HTTP input differs from the frozen task URL')
+            from ..native_routes import normalized_http_parameters
             self.capture_native_request(case, transport='http', endpoint=endpoint,
-                parameters={'method': kwargs.get('method', 'GET'), 'body': body,
-                            'headers_sha256': _digest(kwargs.get('headers', {})),
-                            'timeout_seconds': kwargs.get('timeout'),
-                            'max_bytes': kwargs.get('max_bytes')})
+                                        parameters=normalized_http_parameters(case, kwargs))
         return callback(endpoint, **kwargs)
+
+    def native_http_arguments(self, case, timeout):
+        raise ValueError('Provider has no fixed-native HTTP request builder')
+
+    def native_http_options(self, body, headers, timeout):
+        return {'method': 'POST', 'json_body': body, 'headers': headers,
+                'timeout': timeout, 'max_bytes': int(self.config.get('max_bytes', 20_000_000))}
 
     @property
     def min_interval_seconds(self) -> float:

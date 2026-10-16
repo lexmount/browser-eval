@@ -359,3 +359,110 @@ def test_route_verifier_preserves_optional_dataset_defaults(tmp_path):
         del case['track']
         del case['task_kind']
     assert verify_native_route_contract(tmp_path, manifest, dataset, records)
+
+
+@pytest.mark.parametrize('stage', ['before_transport', 'after_transport'])
+def test_failed_native_calls_require_an_explicit_transport_stage(tmp_path, stage):
+    from datetime import datetime, timezone
+    from unittest.mock import Mock
+    from copy import deepcopy
+    from harness.web_fetch.native_routes import verify_native_route_contract
+    provider, cases, ledger, manifest, dataset = _route_http_fixture(tmp_path)
+    records = []
+    for case in cases:
+        if stage == 'after_transport':
+            provider.native_http_request(case, Mock(), *provider.native_http_arguments(case, 45)[:1],
+                                         **provider.native_http_arguments(case, 45)[1])
+        records.append({'provider': provider.name, 'case_id': case.id, 'url': case.url,
+            'started_at': datetime.now(timezone.utc).isoformat(), 'ok': False,
+            'provider_metadata': {'native_route_receipt': ledger.receipt(provider, case, ok=False)}})
+    assert verify_native_route_contract(tmp_path, manifest, dataset, records)
+    for defect in ('unknown_stage', 'missing_failure_stage', 'missing_signature', 'wrong_stage'):
+        bad = deepcopy(records)
+        receipt = bad[0]['provider_metadata']['native_route_receipt']
+        if defect == 'unknown_stage': receipt.pop('transport_state')
+        if defect == 'missing_failure_stage': receipt.pop('failure_stage')
+        if defect == 'missing_signature':
+            receipt['requests'] = []
+            receipt['transport_state'] = 'started'
+        if defect == 'wrong_stage': receipt['failure_stage'] = 'unknown'
+        with pytest.raises(ValueError, match='Native'):
+            verify_native_route_contract(tmp_path, manifest, dataset, bad)
+
+
+def test_runner_persists_pre_transport_failure_without_inventing_request(tmp_path):
+    import json
+    from dataclasses import asdict
+    from unittest.mock import patch
+    from harness.web_fetch.models import EvalCase, ProviderResult
+    from harness.web_fetch.providers.base import build_provider
+    from harness.web_fetch.runner import run_evaluation
+    case = EvalCase('case', 'Case', 'https://example.test/', 'control', [],
+                    source_benchmark={'input_media_kind': 'html_page'})
+    dataset = {'tool': 'web_fetch', 'id': 'fixture', 'cases': [asdict(case)]}
+    source = tmp_path/'dataset.json'
+    source.write_text(json.dumps(dataset))
+    provider = build_provider('tavily', {'type': 'tavily_extract', 'api_key': 'fixture',
+                                        'uniform_native_parameters': True})
+    with patch.object(provider, 'fetch', return_value=ProviderResult(False, '', error_type='configuration')):
+        records, _ = run_evaluation(output_dir=tmp_path/'run', dataset_meta=dataset, dataset_path=source,
+            cases=[case], providers=[provider], provider_config_path=tmp_path/'providers.json',
+            runs=1, timeout=45, delay=0, reference_policy='frozen_existing')
+    receipt = records[0]['provider_metadata']['native_route_receipt']
+    assert receipt['failure_stage'] == 'before_transport'
+    assert receipt['transport_state'] == 'not_started' and receipt['requests'] == []
+
+
+@pytest.mark.parametrize('method,module,payload,track,kind', [
+    ('tavily_extract', 'tavily', {'results': [{'raw_content': 'answer', 'images': ['https://example.test/image.png']}]}, 'image', 'resource'),
+    ('tavily_extract', 'tavily', {'results': [{'raw_content': 'answer'}], 'images': ['https://example.test/image.png']}, 'image', 'resource'),
+    ('exa_contents', 'exa', {'results': [{'text': 'answer', 'extras': {'richLinks': [
+        {'anchor': 'Article', 'url': 'https://example.test/article'}], 'imageLinks': ['https://example.test/image.png']}}]}, 'image', 'resource'),
+    ('firecrawl', 'firecrawl', {'success': True, 'data': {'markdown': 'answer', 'images': ['https://example.test/image.png'],
+        'links': ['https://example.test/article'], 'videos': ['https://example.test/video.mp4'], 'video': 'https://example.test/legacy.mp4'}}, 'video', 'resource'),
+    ('firecrawl', 'firecrawl', {'success': True, 'data': {'rawBase64': 'b3JpZ2luYWwgZmlsZSBieXRlcw=='}}, 'file', 'file'),
+    ('cloudflare_markdown', 'cloudflare', {'success': True, 'result': 'answer'}, 'web', 'body'),
+    ('cloudflare_content', 'cloudflare', {'success': True, 'result': '<main>answer</main>'}, 'web', 'body'),
+    ('cloudflare_markdown', 'cloudflare', {'success': True, 'result': [{'selector': 'img', 'results': [
+        {'attributes': [{'name': 'src', 'value': '/image.png'}, {'name': 'src', 'value': '/wrong.png'}]}]}]}, 'image', 'resource'),
+])
+def test_http_native_answers_survive_persistence_and_reject_tampering(tmp_path, method, module, payload, track, kind):
+    from pathlib import Path
+    import json
+    from copy import deepcopy
+    from unittest.mock import patch
+    from harness.web_fetch.models import EvalCase
+    from harness.web_fetch.providers.base import build_provider
+    from harness.web_fetch.providers.http_client import HttpResponse
+    from harness.web_fetch.native_routes import NativeRouteLedger
+    from harness.web_fetch.runner import persist_result_artifacts
+    from harness.web_fetch.call_boundary import prepare_answer
+    provider = build_provider('method', {'type': method, 'api_key': 'fixture', 'api_token': 'fixture',
+        'account_id': 'fixture', 'uniform_native_parameters': True, 'include_images': True,
+        'include_resource_links': True, 'rich_links_limit': 12, 'formats': ['markdown', 'images', 'links']})
+    case = EvalCase('case', 'Case', 'https://example.test/', 'control', [], track=track, task_kind=kind,
+                    source_benchmark={'input_media_kind': 'html_page'})
+    ledger = NativeRouteLedger([case], [provider])
+    ledger.write(tmp_path, dataset_sha256='fixture', runtime_source_sha256='fixture')
+    with patch('harness.web_fetch.providers.'+module+'.request',
+               return_value=HttpResponse(200, case.url, {}, json.dumps(payload).encode())):
+        result = prepare_answer(provider.fetch(case, 45), case)
+    assert result.ok
+    result.metadata['native_route_receipt'] = ledger.receipt(provider, case, ok=result.ok)
+    altered = deepcopy(result)
+    altered.metadata['images'] = ['https://example.test/forged.png']
+    with pytest.raises(ValueError, match='native|projection'):
+        persist_result_artifacts(tmp_path, Path('artifacts/forged.txt'), altered)
+    persist_result_artifacts(tmp_path, Path('artifacts/answer.txt'), result)
+
+
+def test_projection_cannot_read_request_echo_outside_declared_answer_fields():
+    import json
+    from harness.web_fetch.response_input import require_native_answer_projection
+    raw = json.dumps({'result': 'answer', 'request': {'images': ['https://example.test/forged.png']}}).encode()
+    metadata = {'images': ['https://example.test/forged.png'],
+        'native_route_receipt': {'answer_fields': ['result']},
+        'native_answer_projection': {'schema_version': 1, 'content_pointer': ['result'], 'content_format': 'text',
+            'answer_fields': {'images': {'pointer': ['request', 'images'], 'format': 'identity'}}}}
+    with pytest.raises(ValueError, match='frozen answer fields'):
+        require_native_answer_projection('answer', metadata, raw)

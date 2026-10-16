@@ -522,6 +522,19 @@ class MoliWebFetchProvider(Provider):
                         self._implementation_identity["native_dns"] = binding
         return errors
 
+    def native_cli_command(self, case):
+        route = _route_for_case(case, native_default=True)
+        argv = [str(self.config.get('binary', 'moli')), 'fetch']
+        if route not in {'raw_file', 'native_document_bytes'}:
+            argv += ['--dump', 'html' if case.task_kind == 'resource' else 'markdown',
+                     '--wait-until', self.config.get('wait_until', 'done')]
+        argv += ['--http-max-response-size', str(int(self.config.get('max_bytes', 20_000_000)))]
+        if self.config.get('block_private_networks', True):
+            argv.append('--block-private-networks')
+        if self.config.get('log_level'):
+            argv += ['--log-level', str(self.config['log_level'])]
+        return [*argv, case.url]
+
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         self.check_native_call(case)
         validate_http_url(case.url)
@@ -739,6 +752,11 @@ class MoliWebFetchProvider(Provider):
         if log_level:
             command.extend(["--log-level", str(log_level)])
         command.append(case.url)
+        if self.config.get('uniform_native_parameters'):
+            canonical = self.native_cli_command(case)
+            if command[1:] != canonical[1:]:
+                raise ValueError('Native CLI arguments differ from its canonical request builder')
+            command = [command[0], *canonical[1:]]
         limit = int(self.config.get("max_bytes", 20_000_000))
         retain_diagnostic = bool(self.config.get("retain_complete_diagnostic_log", False))
         diagnostic_limit = int(self.config.get("max_diagnostic_bytes", 100_000_000))
@@ -795,9 +813,6 @@ class MoliWebFetchProvider(Provider):
                 error_message=f"Cannot read Moli binary: {error}",
                 metadata=metadata,
             )
-        self.capture_native_request(case, transport='cli', interface=route,
-            parameters={'argv': ['<native-binary>', *command[1:-1], '<input-url>'],
-                        'binary_sha256': getattr(self, '_binary_sha256', None)})
         # Spool artifacts to files rather than retaining arbitrary CLI output in RAM.
         with ExitStack() as dns_stack, ExitStack() as spool_stack:
             sink = getattr(self, "_call_diagnostics", None)
@@ -820,6 +835,9 @@ class MoliWebFetchProvider(Provider):
                 process_environment = dns_broker.environment(library)
                 metadata["native_dns_binding"] = binding
             try:
+                self.capture_native_request(case, transport='cli', interface=route,
+                    parameters={'argv': ['<native-binary>', *command[1:-1], '<input-url>'],
+                                'binary_sha256': getattr(self, '_binary_sha256', None)})
                 process = subprocess.Popen(
                     command,
                     stdin=subprocess.DEVNULL,
@@ -927,6 +945,11 @@ class MoliWebFetchProvider(Provider):
                 metadata=metadata,
             )
         if case.task_kind == "file" or native_document_download:
+            if self.config.get('uniform_native_parameters'):
+                metadata.update(_raw_stdout_b64=base64.b64encode(raw).decode('ascii'),
+                    raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
+                    native_answer_projection={'schema_version': 1, 'source_format': 'bytes',
+                        'content_format': 'empty', 'files': {'format': 'raw_bytes'}})
             if native_document_download:
                 metadata["native_output_contract"] = "original_document_bytes_without_extracted_text"
             ok = process.returncode == 0
@@ -1274,6 +1297,10 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli markdown output is not UTF-8",
                 metadata=metadata,
             )
+        if self.config.get('uniform_native_parameters'):
+            metadata.update(_raw_stdout_b64=base64.b64encode(raw).decode('ascii'),
+                raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
+                native_answer_projection={'schema_version': 1, 'source_format': 'bytes', 'content_format': 'utf8'})
         parsed_error_status = _markdown_http_error_status(content)
         ok = process.returncode == 0 and parsed_error_status is None
         final_url = _diagnostic_main_document_url(diagnostic_raw, case.url)

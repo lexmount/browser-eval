@@ -203,5 +203,19 @@
     "observed_signature_drift": 0,
     "timeouts_without_route_confirmation": 19,
     "pre_call_frozen": false
+  },
+  "native_answer_field_audit": {
+    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-native-answer-field-audit-20261016.json",
+    "sha256": "4bd896daebca2b479c8e1b84fc41a58465385f063962edba55b3dc0629c156f8",
+    "bytes": 1468237,
+    "results_sha256": "ece94c0911a769c84ce9d896b00d97706fd4435d6d194f03cff77391710934a4",
+    "provider_calls_added": 0
+  },
+  "historical_timeout_stage_audit": {
+    "url": "https://github.com/lexmount/browser-eval/releases/download/pr-51-public-evidence-20261016/PR-51-timeout-stage-audit-20261016.json",
+    "sha256": "369441bf256f753791ead3f08ead503cf91bc20577ab8cb4e00e88c7bfa202eb",
+    "bytes": 27272,
+    "results_sha256": "ece94c0911a769c84ce9d896b00d97706fd4435d6d194f03cff77391710934a4",
+    "provider_calls_added": 0
   }
 }

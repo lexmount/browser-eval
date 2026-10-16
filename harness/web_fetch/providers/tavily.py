@@ -27,6 +27,12 @@ def _public_failure_errors(values: list[object]) -> list[str]:
 
 
 class TavilyExtractProvider(Provider):
+    def native_http_arguments(self, case, timeout):
+        body = {'urls': [case.url], 'extract_depth': self.config.get('extract_depth', 'advanced'),
+                'format': 'markdown', 'include_images': bool(self.config.get('include_images', False))}
+        return (str(self.config.get('base_url', 'https://api.tavily.com')).rstrip('/') + '/extract',
+                self.native_http_options(body, {'Authorization': 'Bearer '+str(self.config.get('api_key', ''))}, timeout))
+
     def validate(self) -> list[str]:
         return [] if self.config.get("api_key") else ["api_key"]
 
@@ -109,5 +115,11 @@ class TavilyExtractProvider(Provider):
                     request_body.get("timeout")
                 ),
                 "images": (result.get("images") or payload.get("images") or []) if ok else [],
+                **({'native_answer_projection': {
+                    'schema_version': 1, 'content_pointer': ['results', 0, 'raw_content'],
+                    'content_format': 'text', 'optional_content': True,
+                    'answer_fields': {'images': {
+                        'pointer': ['results', 0, 'images'] if result.get('images') else ['images'],
+                        'format': 'identity', 'default': []}}}} if ok or content else {}),
             },
         )

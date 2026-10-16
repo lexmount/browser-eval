@@ -381,13 +381,24 @@ def persist_result_artifacts(
     """Persist one physical call without changing its scored answer bytes."""
     discarded_late_answer = (not result.ok and result.error_type == 'timeout'
                              and result.content == '')
-    if result.metadata.get('native_answer_projection') and not discarded_late_answer:
-        from .response_input import require_native_answer_projection
-        raw = result.metadata.get('_raw_response_b64')
-        if not isinstance(raw, str):
-            raise ValueError('Declared native answer lacks its retained raw response')
+    from .response_input import require_native_answer_projection
+    raw = result.metadata.get('_raw_response_b64')
+    if result.metadata.get('native_answer_projection', {}).get('source_format') == 'bytes':
+        raw = result.metadata.get('_raw_stdout_b64')
+    needs_projection = (result.metadata.get('native_answer_required')
+                        or result.metadata.get('native_answer_projection')
+                        or any(result.metadata.get(key) for key in ('links', 'images', 'videos', 'media', 'extras'))
+                        or (raw is not None and result.files))
+    if not discarded_late_answer and needs_projection:
+        if result.metadata.get('native_answer_required') and not result.metadata.get('native_answer_projection'):
+            raise ValueError('Scored native answer has no projection declaration')
         require_native_answer_projection(result.content, result.metadata,
-                                         base64.b64decode(raw, validate=True))
+            base64.b64decode(raw, validate=True) if isinstance(raw, str) else None,
+            files=result.files if raw is not None or result.metadata.get('native_answer_projection') else ())
+    elif discarded_late_answer and (result.files or any(result.metadata.get(key) for key in ('images', 'links', 'videos', 'media', 'extras'))):
+        raise ValueError('Discarded late native answer retains score-bearing fields')
+    if result.metadata.get('native_answer_projection'):
+        result.metadata['native_answer_required'] = True
     artifact = contained_path(output_dir, artifact_rel)
     artifact.parent.mkdir(parents=True, exist_ok=True)
     artifact.write_text(result.content, encoding='utf-8', errors='replace')
@@ -706,7 +717,9 @@ def run_evaluation(
                                       f'run-{run_number:03d}-physical-{physical_attempt:03d}.txt')
                             artifact_rel = Path('artifacts') / provider.name / case.id / suffix
                             if native_routes is not None and provider.name in native_routes.providers:
-                                result.metadata['native_route_receipt'] = native_routes.receipt(provider, case)
+                                result.metadata['native_route_receipt'] = native_routes.receipt(provider, case, ok=result.ok)
+                            if provider.config.get('uniform_native_parameters') and (result.content or result.files):
+                                result.metadata['native_answer_required'] = True
                             artifact = persist_result_artifacts(output_dir, artifact_rel, result)
                             artifact_bytes = result.content.encode('utf-8', errors='replace')
                             measured = score_attempt(

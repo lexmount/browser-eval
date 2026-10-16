@@ -322,3 +322,89 @@ class SubprocessProviderTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# These controls operate only on synthetic saved responses; no provider calls.
+import pytest
+
+
+@pytest.mark.parametrize('field', ['images', 'links', 'videos', 'media', 'extras'])
+@pytest.mark.parametrize('declare_content', [False, True])
+def test_undeclared_score_fields_cannot_enter_persistence(tmp_path, field, declare_content):
+    import hashlib
+    from harness.web_fetch.models import ProviderResult
+    from harness.web_fetch.runner import persist_result_artifacts
+    raw = b'{"content":"answer","metadata":{"images":["https://example.test/native.png"]}}'
+    metadata = {field: ['https://example.test/forged.png'],
+                '_raw_response_b64': base64.b64encode(raw).decode(),
+                'raw_response_sha256': hashlib.sha256(raw).hexdigest(), 'raw_response_bytes': len(raw)}
+    if declare_content:
+        metadata['native_answer_projection'] = {'schema_version': 1,
+            'content_pointer': ['content'], 'content_format': 'text'}
+    with pytest.raises(ValueError, match='undeclared'):
+        persist_result_artifacts(tmp_path, Path('artifacts/test.txt'), ProviderResult(True, 'answer', metadata=metadata))
+    assert not (tmp_path/'artifacts/test.txt').exists()
+
+
+@pytest.mark.parametrize('defect', [None, 'replace_image', 'drop_wrong_image', 'forge_file'])
+def test_native_worker_fields_and_files_are_exactly_bound(tmp_path, defect):
+    import hashlib
+    from harness.web_fetch.models import ProviderResult
+    from harness.web_fetch.runner import persist_result_artifacts
+    from harness.web_fetch.call_boundary import prepare_answer
+    payload = {'content': 'answer', 'metadata': {'images': ['https://example.test/good.png',
+                                                         'https://example.test/wrong.png']},
+               'files': [{'base64': base64.b64encode(b'original file bytes').decode()}]}
+    raw = json.dumps(payload).encode()
+    metadata = {**payload['metadata'], 'native_answer_projection': {'schema_version': 1,
+        'content_pointer': ['content'], 'content_format': 'text',
+        'answer_fields': {'images': {'pointer': ['metadata', 'images'], 'format': 'identity'}},
+        'files': {'pointer': ['files'], 'format': 'worker_files'}},
+        '_raw_response_b64': base64.b64encode(raw).decode(),
+        'raw_response_sha256': hashlib.sha256(raw).hexdigest(), 'raw_response_bytes': len(raw)}
+    files = [{'data': b'original file bytes'}]
+    if defect == 'replace_image': metadata['images'] = ['https://example.test/forged.png']
+    if defect == 'drop_wrong_image': metadata['images'] = metadata['images'][:1]
+    if defect == 'forge_file': files = [{'data': b'forged file bytes'}]
+    result = prepare_answer(ProviderResult(True, 'answer', metadata=metadata, files=files),
+                           EvalCase('case', 'Case', 'https://example.test/', 'control', []))
+    if defect:
+        with pytest.raises(ValueError, match='projection'):
+            persist_result_artifacts(tmp_path, Path('artifacts/test.txt'), result)
+    else:
+        persist_result_artifacts(tmp_path, Path('artifacts/test.txt'), result)
+        from harness.web_fetch.artifacts import verify_record_artifacts
+        record = {'attempt_id': 'test', 'ok': True, 'artifact_path': 'artifacts/test.txt',
+                  'metrics': {'content_sha256': hashlib.sha256(b'answer').hexdigest()},
+                  'provider_metadata': result.metadata}
+        verify_record_artifacts(tmp_path, record)
+        result.metadata['file_evaluation']['pass'] = True
+        with pytest.raises(ValueError, match='file evaluation'):
+            verify_record_artifacts(tmp_path, record)
+        result.metadata['file_evaluation']['pass'] = False
+        result.metadata['images'] = ['https://example.test/forged.png']
+        with pytest.raises(ValueError, match='projection'):
+            verify_record_artifacts(tmp_path, record)
+
+
+def test_file_scoring_recomputes_acceptance_from_native_bytes():
+    from harness.web_fetch.scoring import score_attempt
+    from harness.web_fetch.metrics import task_passed
+    raw = json.dumps({'content': '', 'files': [{'base64': base64.b64encode(b'not a PNG').decode()}]}).encode()
+    metadata = {'file_evaluation': {'pass': True}, 'native_answer_projection': {'schema_version': 1,
+        'content_pointer': ['content'], 'content_format': 'text',
+        'files': {'pointer': ['files'], 'format': 'worker_files'}}}
+    metrics = score_attempt({'url': 'https://example.test/', 'task_kind': 'file'}, b'', ok=True,
+        metadata=metadata, previous_metrics={'raw_file_pass': True}, native_response=raw,
+        native_files=[{'data': b'not a PNG'}])
+    assert metrics['raw_file_pass'] is False
+    assert not task_passed(True, metrics, 'file')
+
+
+def test_byte_projection_cannot_claim_unverified_structured_metadata():
+    from harness.web_fetch.response_input import require_native_answer_projection
+    metadata = {'images': ['https://example.test/forged.png'], 'native_answer_projection': {
+        'schema_version': 1, 'source_format': 'bytes', 'content_format': 'utf8',
+        'answer_fields': {'images': {'pointer': ['images'], 'format': 'identity'}}}}
+    with pytest.raises(ValueError, match='cannot declare'):
+        require_native_answer_projection('native stdout', metadata, b'native stdout')

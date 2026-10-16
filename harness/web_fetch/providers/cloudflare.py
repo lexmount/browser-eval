@@ -215,6 +215,22 @@ def _interface_error(*, response_status: int,
 
 
 class CloudflareMarkdownProvider(Provider):
+    def native_http_interface(self, case):
+        return ('/content' if self.type == 'cloudflare_content' else '/scrape'
+                if case.task_kind == 'resource' and case.track in {'image', 'video'} else '/markdown')
+
+    def native_http_arguments(self, case, timeout):
+        interface = self.native_http_interface(case)
+        body = {'url': case.url, 'gotoOptions': {'waitUntil': self.config.get('wait_until', 'networkidle2')}}
+        if interface == '/scrape':
+            selectors = (['img', 'picture source'] if case.track == 'image' else
+                         ['video', 'video source', 'audio', 'audio source', 'iframe', 'a[href]'])
+            body['elements'] = [{'selector': value} for value in selectors]
+        endpoint = 'https://api.cloudflare.com/client/v4/accounts/'+str(self.config.get('account_id', ''))+'/browser-rendering'+interface
+        if interface == '/markdown' and self.config.get('browser'):
+            endpoint += '?' + urlencode({'browser': self.config['browser']})
+        return endpoint, self.native_http_options(body, {'Authorization': 'Bearer '+str(self.config.get('api_token', ''))}, timeout)
+
     def validate(self) -> list[str]:
         return [name for name in ("api_token", "account_id") if not self.config.get(name)]
 
@@ -392,6 +408,9 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                **({'native_answer_projection': {'schema_version': 1,
+                    'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True}}
+                   if envelope_success and isinstance(payload.get('result', ''), str) else {}),
                 "route": route,
                 "wait": wait_metadata,
                 "browser": self.config.get("browser"),
@@ -483,6 +502,9 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                **({'native_answer_projection': {'schema_version': 1,
+                    'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True}}
+                   if envelope_success and isinstance(payload.get('result', ''), str) else {}),
                 "route": "browser_rendering_scrape_resources",
                 **({'native_answer_projection': projection} if envelope_success else {}),
                 "request_method": "POST",
@@ -657,6 +679,9 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                **({'native_answer_projection': {'schema_version': 1,
+                    'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True}}
+                   if envelope_success and isinstance(payload.get('result', ''), str) else {}),
                 "route": "workers_ai_tomarkdown",
                 "source_status": source.status,
                 "source_sha256": hashlib.sha256(source.body).hexdigest(),
@@ -676,6 +701,9 @@ class CloudflareMarkdownProvider(Provider):
 
 
 class CloudflareContentProvider(Provider):
+    native_http_interface = CloudflareMarkdownProvider.native_http_interface
+    native_http_arguments = CloudflareMarkdownProvider.native_http_arguments
+
     """Rendered HTML diagnostic. It is deliberately excluded from the readable-text leaderboard."""
 
     def validate(self) -> list[str]:
@@ -731,6 +759,9 @@ class CloudflareContentProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                **({'native_answer_projection': {'schema_version': 1,
+                    'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True}}
+                   if envelope_success and isinstance(payload.get('result', ''), str) else {}),
                 "output_contract": "rendered_html",
                 "upstream_status": upstream_status,
                 "empty_content": envelope_success and not content,

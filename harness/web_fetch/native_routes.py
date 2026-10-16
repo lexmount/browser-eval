@@ -54,19 +54,17 @@ def native_route_cell(provider, case):
         if method == 'firecrawl':
             interface = '/v2/scrape'
             endpoint = str(config.get('base_url', 'https://api.firecrawl.dev')).rstrip('/') + interface
-            fields = ['data.rawBase64'] if kind == 'file' else ['data.markdown', 'data.links', 'data.images', 'data.video']
+            fields = ['data.rawBase64'] if kind == 'file' else ['data.markdown', 'data.links', 'data.images', 'data.videos', 'data.video']
         elif method == 'tavily_extract':
             interface = '/extract'
             endpoint = str(config.get('base_url', 'https://api.tavily.com')).rstrip('/') + interface
-            fields = ['results[].raw_content', 'results[].images']
+            fields = ['results[].raw_content', 'results[].images', 'images']
         elif method == 'exa_contents':
             interface = '/contents'
             endpoint = str(config.get('base_url', 'https://api.exa.ai')).rstrip('/') + interface
             fields = ['results[].text', 'results[].extras']
         else:
-            interface = ('/scrape' if method == 'cloudflare_markdown' and kind == 'resource'
-                         and track in {'image', 'video'} else '/content' if method == 'cloudflare_content'
-                         else '/markdown')
+            interface = provider.native_http_interface(case)
             endpoint = 'https://api.cloudflare.com/client/v4/accounts/' + str(config.get('account_id', '')) + '/browser-rendering' + interface
             if method=='cloudflare_markdown' and interface=='/markdown' and config.get('browser'):
                 from urllib.parse import urlencode
@@ -74,7 +72,7 @@ def native_route_cell(provider, case):
             fields = ['result']
     elif method in {'subprocess_jsonl', 'cowagent_builtin'}:
         transport, interface = 'jsonl', 'native_worker_command'
-        fields = ['content', 'metadata.links', 'metadata.images', 'metadata.videos', 'files']
+        fields = ['content', 'metadata.links', 'metadata.images', 'metadata.videos', 'metadata.media', 'metadata.extras', 'files']
     elif method == 'fixture':
         transport, interface, fields = 'fixture', 'synthetic_fixture', ['content']
     else:
@@ -94,66 +92,40 @@ def native_route_cell(provider, case):
 
 def _request_parameters(provider, case, cell, timeout_seconds):
     """Explicit pre-call transport contract, separately checked against adapters."""
-    config, method = provider.config, provider.type
     if cell['transport'] == 'http':
-        if method == 'tavily_extract':
-            body = {'urls': ['<input-url>'], 'extract_depth': config.get('extract_depth', 'advanced'),
-                    'format': 'markdown', 'include_images': bool(config.get('include_images', False))}
-            headers = {'Authorization': 'Bearer '+str(config.get('api_key', ''))}
-        elif method == 'exa_contents':
-            body = {'urls': ['<input-url>'], 'text': {'verbosity': config.get('text_verbosity', 'full')},
-                    'maxAgeHours': int(config.get('max_age_hours', 0))}
-            extras = {'links': 20, 'imageLinks': 20} if config.get('include_resource_links') else {}
-            if config.get('rich_links_limit'):
-                extras['richLinks'] = int(config.get('rich_links_limit', 100))
-            if extras:
-                body['extras'] = extras
-            headers = {'x-api-key': str(config.get('api_key', ''))}
-        elif method == 'firecrawl':
-            formats = ['rawBase64'] if case.task_kind == 'file' else list(config.get('formats', ['markdown']))
-            if case.track == 'video' and case.task_kind == 'resource' and 'video' not in formats:
-                formats.append('video')
-            body = {'url': '<input-url>', 'formats': formats, 'maxAge': int(config.get('max_age', 0)),
-                    'proxy': str(config.get('proxy', 'auto'))}
-            if 'only_main_content' in config:
-                body['onlyMainContent'] = config['only_main_content']
-            if case.task_kind == 'file':
-                body['parsers'] = []
-            headers = ({'Authorization': 'Bearer '+str(config['api_key'])}
-                       if config.get('api_key') else {})
-        else:
-            body = {'url': '<input-url>', 'gotoOptions': {'waitUntil': config.get('wait_until', 'networkidle2')}}
-            if cell['interface'] == '/scrape':
-                selectors = (['img', 'picture source'] if case.track == 'image' else
-                             ['video', 'video source', 'audio', 'audio source', 'iframe', 'a[href]'])
-                body['elements'] = [{'selector': v} for v in selectors]
-            headers = {'Authorization': 'Bearer '+str(config.get('api_token', ''))}
-        return {'method': 'POST', 'body': body, 'headers_sha256': _digest(headers),
-                'timeout_seconds': timeout_seconds, 'max_bytes': int(config.get('max_bytes', 20_000_000))}
+        endpoint, arguments = provider.native_http_arguments(case, timeout_seconds)
+        if _digest(endpoint) != cell['endpoint_sha256']:
+            raise ValueError('Native request builder differs from its declared endpoint')
+        return normalized_http_parameters(case, arguments)
     if cell['transport'] == 'cli':
-        argv = ['<native-binary>', 'fetch']
-        if cell['interface'] not in {'raw_file', 'native_document_bytes'}:
-            argv += ['--dump', 'html' if case.task_kind == 'resource' else 'markdown',
-                     '--wait-until', config.get('wait_until', 'done')]
-        argv += ['--http-max-response-size', str(int(config.get('max_bytes', 20_000_000)))]
-        if config.get('block_private_networks', True):
-            argv.append('--block-private-networks')
-        if config.get('log_level'):
-            argv += ['--log-level', str(config['log_level'])]
-        argv.append('<input-url>')
-        return {'argv': argv, 'binary_sha256': config.get('expected_binary_sha256')}
+        command = provider.native_cli_command(case)
+        return {'argv': ['<native-binary>', *command[1:-1], '<input-url>'],
+                'binary_sha256': provider.config.get('expected_binary_sha256')}
     if cell['transport'] == 'jsonl':
-        request = {'url': '<input-url>', 'log_level': config.get('log_level'),
-                   'diagnostic_path': '<diagnostic-output>' if config.get('log_level')=='debug' else None,
-                   'timeout_seconds': timeout_seconds, 'uniform_native_parameters': True,
-                   'max_bytes': int(config.get('max_bytes', 20_000_000)),
-                   'dns_mode': config.get('dns_mode', 'system'), 'task_kind': case.task_kind,
-                   'track': case.track, 'input_media_kind': declared_input_media_kind(case),
-                   'retrieval_plan': None,
-                   'retrieval_mode': 'native_default' if case.track == 'dynamic' else 'declared_plan'}
-        command = [provider._resolve_token(part) for part in config.get('command', [])]
+        request = provider.native_worker_request(case, timeout_seconds,
+            '<diagnostic-output>' if provider.config.get('log_level') == 'debug' else None)
+        request['url'] = '<input-url>'
+        command = [provider._resolve_token(part) for part in provider.config.get('command', [])]
         return {'request': request, 'command_sha256': _digest(command)}
     return {}
+
+
+def normalized_http_parameters(case, arguments):
+    from copy import deepcopy
+    body = deepcopy(arguments.get('json_body'))
+    if not isinstance(body, dict):
+        raise ValueError('Native HTTP request lacks its declared input field')
+    slots = [key for key in ('url', 'urls') if key in body]
+    if slots == ['url'] and body['url'] == case.url:
+        body['url'] = '<input-url>'
+    elif slots == ['urls'] and body['urls'] == [case.url]:
+        body['urls'] = ['<input-url>']
+    else:
+        raise ValueError('Native HTTP input differs from the frozen task URL')
+    return {'method': arguments.get('method', 'GET'), 'body': body,
+            'headers_sha256': _digest(arguments.get('headers', {})),
+            'timeout_seconds': arguments.get('timeout'), 'max_bytes': arguments.get('max_bytes')}
+
 
 
 class NativeRouteLedger:
@@ -242,12 +214,17 @@ class NativeRouteLedger:
             self.observed[key] = digest
             self.calls.setdefault(identity, []).append({'signature': signature, 'sha256': digest})
 
-    def receipt(self, provider, case):
+    def receipt(self, provider, case, *, ok=None):
+        """Transport started means entry to the outbound call, not server receipt."""
         from copy import deepcopy
         key, _ = native_route_cell(provider, case)
         with self.lock:
             return {'contract_sha256': self.binding['sha256'], 'cell': list(key),
+                    'answer_fields': list(self.cells[key]['answer_fields']),
                     'requests': deepcopy(self.calls.get((provider.name, case.id), [])),
+                    'transport_state': 'started' if self.calls.get((provider.name, case.id)) else 'not_started',
+                    **({'failure_stage': 'after_transport' if self.calls.get((provider.name, case.id))
+                        else 'before_transport'} if ok is False else {}),
                     'protocol_errors': [dict(e) for e in self.errors if e['method']==provider.name and e['case_id']==case.id]}
 
 
@@ -313,7 +290,17 @@ def verify_native_route_contract(source, manifest, dataset, records):
             raise ValueError('Native request violated its route contract')
         if receipt.get('contract_sha256') != binding['sha256'] or receipt.get('cell') != list(key) or key not in cells:
             raise ValueError('Native result lacks its bound route receipt')
+        if receipt.get('answer_fields') != cells[key]['answer_fields']:
+            raise ValueError('Native answer fields differ from the frozen route')
         requests = receipt.get('requests', [])
+        state = receipt.get('transport_state')
+        if state not in {'started', 'not_started'}:
+            raise ValueError('Native result lacks its transport stage')
+        if bool(requests) != (state == 'started'):
+            raise ValueError('Native transport stage lacks its invocation signature')
+        if not row['ok'] and receipt.get('failure_stage') != (
+                'after_transport' if requests else 'before_transport'):
+            raise ValueError('Native failed result lacks an explicit failure stage')
         if len(requests) > 1 or (row['ok'] and not requests and cells[key]['transport'] != 'fixture'):
             raise ValueError('Native result lacks one complete invocation signature')
         for item in requests:
