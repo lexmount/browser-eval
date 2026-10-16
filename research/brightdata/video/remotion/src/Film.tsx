@@ -31,6 +31,8 @@ const Label = ({
   color = C.ink,
   bold = false,
   align = "left",
+  target,
+  active,
 }: {
   x: number;
   y: number;
@@ -40,8 +42,12 @@ const Label = ({
   color?: string;
   bold?: boolean;
   align?: "left" | "center";
+  target?: string;
+  active?: boolean;
 }) => (
   <div
+    data-target={target}
+    data-active={active}
     style={{
       position: "absolute",
       left: x,
@@ -363,6 +369,8 @@ function History({ focus }: { focus: string }) {
         x={90}
         y={200}
         text="Bright Data  /  原名 Luminati"
+        target="identity"
+        active={focus === "identity"}
         size={48}
         bold
       />

@@ -34,6 +34,8 @@ Count a scene's closing hold, the following lead and the natural recording gap t
 
 Technical checks can reject missing assets, invalid timestamps, nonexistent target IDs, frame overflow, truncated speech or cuts inside utterances. They cannot certify clarity. Test these general failure modes with deliberately broken fixtures, not exact wording snapshots.
 
+A review command must stop production when it detects a defect. Save diagnostics, release browser resources, and return a failing exit status for runtime errors, overflow, the wrong scene or missing emphasis. Compare requested semantic targets with rendered objects; declare neutral views and grouped-target aliases explicitly. Exercise each failure separately through the command itself so one detected defect cannot conceal a missing check for another.
+
 Inspect moving sequences around every reframe and changed focus, with captions and narration together. During the first pass, ask at each beat: what am I being told, where do I look, and has the previous idea had time to land? During the second pass, check the whole argument and the ending. Record time-coded defects and fixes privately. Replay corrected intervals plus adjacent context; then compare the final content contract to avoid losing an earlier improvement.
 
 Playback/seek tests must actually operate the controls and observe resulting media state. A failed interaction or console error must be investigated; reading the handler source is not an executed test. A metadata or contact-sheet check must not be described as a full viewing review.
@@ -61,6 +63,8 @@ A strategic ending should apply the explanation to the audience's real situation
 ## Timing sources and attention load
 
 Provider timestamps can be internally consistent yet lag the audible words, especially across languages. Validate actual speech onset, not merely cue ordering. If a timestamp source drifts, repair the common alignment used by captions, focus and cuts; fixing cuts alone leaves the viewer looking at the wrong object. Independent recognition may supply timing, with normalization for script variants and equivalent number forms, but must never rewrite reviewed wording or silently accept missing clauses. Keep audio hashes with timing results so regenerated speech cannot use stale cues.
+
+Preserve quantities before removing punctuation: decimal points, signs and units can change the claim. Check omitted and inserted words in every language, including abbreviations inside product names. Similarity percentages cannot establish word completeness. Keep accepted recognition equivalences explicit and test changed quantities and missing words in both directions alongside equivalent written and spoken forms.
 
 Review referents within sentences. A sentence moving from a left branch to a right branch needs two corresponding focus events. A rapid list of indicators is not six useful animation beats: group related questions or accumulate emphasis while preserving context. During a comprehension pause, keep one summary view and a subtle progress cue. Do not turn the pause into a fast tour of every object. An unselected relationship should remain legible where removing it would make nodes appear disconnected.
 

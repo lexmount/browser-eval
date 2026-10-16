@@ -4,6 +4,28 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'video'))
 from timing import align_recognized_clauses, silence_cut
 class SpeechTimingTests(unittest.TestCase):
+ def test_numeric_operators_and_separators_cannot_disappear(self):
+  for left,right in [('-1.5','1.5'),('- 1.5','1.5'),('1%','1'),('1 %','1'),('1/5','15'),('1:5','15'),('1。5','15'),('１．５','１５'),('1/5','1+5')]:
+   for authored,spoken in [(left,right),(right,left)]:
+    with self.subTest(authored=authored,spoken=spoken),self.assertRaises(ValueError):
+     align_recognized_clauses([{'text':authored}],self.recognized(spoken))
+ def test_fullwidth_number_is_equivalent_to_ascii(self):
+  align_recognized_clauses([{'text':'１．５'}],self.recognized('1.5'))
+ def test_decimal_point_changes_quantity_in_both_directions(self):
+  for left,right in [('1.5','15'),('15','1.5'),('一点五','十五'),('十五','一点五')]:
+   with self.subTest(left=left,right=right),self.assertRaises(ValueError):
+    align_recognized_clauses([{'text':'每天处理'+left+'亿次请求'}],self.recognized('每天处理'+right+'亿次请求'))
+ def test_equivalent_number_notation_keeps_value_and_timing(self):
+  for left,right in [('1.5','一点五'),('一点五','1.50'),('七十二','72'),('72','七十二'),('十万','100000'),('三亿','3 亿'),('1.5亿','一点五亿')]:
+   with self.subTest(left=left,right=right):
+    text='处理'+right+'条记录'
+    rows=align_recognized_clauses([{'text':'处理'+left+'条记录'}],self.recognized(text))
+    self.assertAlmostEqual(rows[0]['end'],len(text)*.2)
+ def test_english_omissions_and_insertions_cannot_hide_in_long_clause(self):
+  prefix='这些客户需要持续访问不同网站并检查每次任务的运行结果然后使用'
+  for left,right in [('Browser API','Browser'),('Browser','Browser API'),('Web Scraper API','Web API'),('Web API','Web Scraper API')]:
+   with self.subTest(left=left,right=right),self.assertRaises(ValueError):
+    align_recognized_clauses([{'text':prefix+left+'完成后续工作','anchors':[{'phrase':left,'target':'product'}]}],self.recognized(prefix+right+'完成后续工作'))
  def test_gap_after_next_syllable_is_not_a_safe_scene_cut(self):
   wave=[.2]*1000+[0.0]*100+[.2]*40+[0.0]*200+[.2]*500
   with self.assertRaises(ValueError):silence_cut(wave,1000,1,1.1)

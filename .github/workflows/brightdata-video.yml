@@ -34,3 +34,6 @@ jobs:
           uv run --frozen python -m unittest discover -s research/brightdata/tests -p test_tts_request.py
       - run: npm ci && node check_fixture.mjs && npm run check
         working-directory: research/brightdata/video/remotion
+      - name: Fail-closed visual review (real Chrome fixtures)
+        run: node review.test.mjs
+        working-directory: research/brightdata/video/remotion

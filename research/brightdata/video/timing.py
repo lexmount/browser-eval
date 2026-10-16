@@ -27,8 +27,65 @@ def silence_cut(wave, sample_rate, previous_end, next_start):
     start, end = runs[0]
     return (start + end) * step / (2 * sample_rate)
 
+_NUMBER = re.compile(r'[0-9]+(?:\.[0-9]+)?(?:\s*[万亿])?|[零〇一二两三四五六七八九十百千万亿]+(?:点[零〇一二三四五六七八九]+[万亿]?)?')
+_DIGITS = dict(zip('零〇一二两三四五六七八九', '001223456789'))
+
+def _number_value(text):
+    from decimal import Decimal
+    text = ''.join(text.split())
+    # Resolve large units before decimal notation, including 1.5亿 / 一点五亿.
+    for unit, scale in [('亿', 100000000), ('万', 10000)]:
+        if unit in text:
+            left, right = text.split(unit, 1)
+            return _number_value(left or '一') * scale + (_number_value(right) if right else 0)
+    if '点' in text:
+        left, right = text.split('点')
+        return _number_value(left) + Decimal('0.' + ''.join(_DIGITS[c] for c in right))
+    if text.isascii():
+        return Decimal(text)
+    if all(c in _DIGITS for c in text):
+        return Decimal(''.join(_DIGITS[c] for c in text))
+    total = digit = 0
+    for c in text:
+        if c in _DIGITS: digit = int(_DIGITS[c])
+        else:
+            total += (digit or 1) * {'十': 10, '百': 100, '千': 1000}[c]
+            digit = 0
+    return Decimal(total + digit)
+
+def _normalized_stream(text, spans):
+    """Canonicalize quantities before dropping punctuation, retaining source times."""
+    expanded = [(c, span) for raw, span in zip(text, spans)
+                for c in unicodedata.normalize('NFKC', raw)]
+    text = ''.join(c for c, _ in expanded)
+    spans = [span for _, span in expanded]
+    chars, times = [], []
+    def append_literal(i):
+        # Unsupported numeric operators remain significant rather than silently
+        # converting a signed value, percentage or ratio into another number.
+        neighbors = text[:i].rstrip()[-1:] + text[i+1:].lstrip()[:1]
+        numeric_operator = text[i] in '+-−/%:‰' and any(
+            c.isdigit() or c in '零〇一二两三四五六七八九十百千万亿' for c in neighbors)
+        if unicodedata.category(text[i])[0] in 'LN' or numeric_operator:
+            chars.append(text[i].lower()); times.append(spans[i])
+    position = 0
+    for match in _NUMBER.finditer(text):
+        for i in range(position, match.start()):
+            append_literal(i)
+        value = format(_number_value(match.group()), 'f')
+        if '.' in value: value = value.rstrip('0').rstrip('.')
+        span = (spans[match.start()][0], spans[match.end()-1][1])
+        # Boundaries distinguish two quantities separated by punctuation from
+        # one larger quantity, even when ASR splits a number into timed words.
+        value = '[' + value + ']'
+        chars.extend(value); times.extend([span] * len(value))
+        position = match.end()
+    for i in range(position, len(text)):
+        append_literal(i)
+    return ''.join(chars), times
+
 def normalize(text):
-    return ''.join(c.lower() for c in text if unicodedata.category(c)[0] in 'LN')
+    return _normalized_stream(text, [(0, 0)] * len(text))[0]
 
 def align_recognized_clauses(clauses, recognition, wave=None, sample_rate=24000):
     """Use independently heard words for captions and referents, not TTS labels.
@@ -49,30 +106,15 @@ def align_recognized_clauses(clauses, recognition, wave=None, sample_rate=24000)
             if start < previous - .04 or end < start:
                 raise ValueError('Independent speech timestamps are reversed')
             previous = end
-            for char in norm(word['word']):
+            for char in convert(word['word']):
                 chars.append(char); spans.append((start, end))
     texts = [norm(c['text']) for c in clauses]
     wanted = ''.join(texts)
-    heard = ''.join(chars)
+    heard, spans = _normalized_stream(''.join(chars), spans)
     matcher = SequenceMatcher(None,wanted,heard,autojunk=False)
     mapping = {a+i:b+i for a,b,n in matcher.get_matching_blocks() for i in range(n)}
     explained_heard = set(mapping.values())
     for tag,a,b,c,d in matcher.get_opcodes():
-        def number(value):
-            digits = dict(zip('零〇一二三四五六七八九', [0,0,1,2,3,4,5,6,7,8,9]))
-            units = {'十':10,'百':100,'千':1000,'万':10000,'亿':100000000}
-            if value.isascii() and value.isdigit(): return int(value)
-            if not value or any(x not in digits and x not in units for x in value): return None
-            if all(x in digits for x in value): return int(''.join(str(digits[x]) for x in value))
-            total = part = digit = 0
-            for x in value:
-                if x in digits: digit = digits[x]
-                elif units[x] < 10000: part += (digit or 1)*units[x]; digit=0
-                else: total += (part+digit)*units[x]; part=digit=0
-            return total+part+digit
-        if tag == 'replace' and number(wanted[a:b]) is not None and number(wanted[a:b]) == number(heard[c:d]):
-            for i in range(b-a): mapping[a+i] = c+min(d-c-1,i*(d-c)//(b-a))
-            explained_heard.update(range(c,d))
         if tag == 'replace' and b-a == d-c and b-a <= 3:
             for left,right in zip(range(a,b),range(c,d)):
                 x,y = wanted[left],heard[right]
@@ -80,9 +122,9 @@ def align_recognized_clauses(clauses, recognition, wave=None, sample_rate=24000)
                     and set(pinyin(x,style=Style.TONE3,heteronym=True)[0]) & set(pinyin(y,style=Style.TONE3,heteronym=True)[0])):
                     mapping[left] = right
                     explained_heard.add(right)
-    if any(('\u4e00' <= char <= '\u9fff' or char.isdigit()) and i not in explained_heard for i,char in enumerate(heard)):
+    if len(explained_heard) != len(heard):
         raise ValueError('Independent recognition contains unexplained spoken words')
-    if len(mapping)/max(1,len(wanted)) < .88:
+    if len(mapping) != len(wanted):
         raise ValueError('Independent recognition does not cover the reviewed narration')
 
     def onset(index):
