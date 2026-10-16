@@ -47,6 +47,34 @@ class RunnerConcurrencyTest(unittest.TestCase):
         self.assertIn('connection pending',result.metadata['stderr'])
         self.assertLess(result.metadata['_answer_elapsed_ms'],100)
 
+    def test_discarded_late_file_remains_a_measured_failure(self):
+        from harness.web_fetch.call_boundary import fetch_with_deadline
+        from harness.web_fetch.scoring import score_attempt
+        from harness.web_fetch.metrics import task_measured, task_passed
+        class LateFile(Provider):
+            def __init__(self):
+                super().__init__('late', {})
+                self.release = threading.Event()
+            @property
+            def cancellation_cleanup_seconds(self):
+                return .2
+            def cancel(self):
+                self.release.set()
+            def fetch(self, case, timeout):
+                self.release.wait(1)
+                return ProviderResult(True, '', files=[{'data': b'\x89PNG\r\n\x1a\n'+b'x'*40}],
+                    metadata={'images': ['https://example.test/late.png']})
+        case = EvalCase('case', 'Case', 'https://example.test/file', 'static', [], task_kind='file')
+        result, worker = fetch_with_deadline(LateFile(), case, .02)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(result.error_type, 'timeout')
+        self.assertEqual(result.files, [])
+        self.assertNotIn('images', result.metadata)
+        metrics = score_attempt(case, b'', ok=result.ok, metadata=result.metadata)
+        self.assertFalse(metrics['raw_file_pass'])
+        self.assertTrue(task_measured(metrics))
+        self.assertFalse(task_passed(result.ok, metrics))
+
     def test_capacity_hook_is_optional_and_runs_once_per_logical_provider(self):
         calls = []
 

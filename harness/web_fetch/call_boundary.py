@@ -90,6 +90,8 @@ def fetch_with_deadline(provider, case, timeout):
                 metadata.update(late.metadata)
         for key in ('links', 'images', 'videos', 'media', 'extras', 'file_evaluation'):
             metadata.pop(key, None)
+        if case.task_kind == 'file':
+            metadata['file_evaluation'] = evaluate_returned_files([], case.source_verification)
         metadata['_answer_elapsed_ms']=answer_elapsed_ms
         return ProviderResult(
             False,
