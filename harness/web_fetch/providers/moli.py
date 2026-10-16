@@ -156,6 +156,12 @@ def _route_for_case(case: EvalCase, *, native_default: bool = False) -> str:
     return "resource_native_markdown" if case.task_kind == "resource" else "dynamic_native_markdown" if case.track == "dynamic" else "ordinary_markdown"
 
 
+def _family_wait_until(config, track):
+    default = (config.get('dynamic_wait_until', 'domstable')
+               if track == 'dynamic' else config.get('wait_until', 'done'))
+    return config.get('wait_until_by_track', {}).get(track, default)
+
+
 class MoliWebFetchProvider(Provider):
     def __init__(self, name, config):
         super().__init__(name, config)
@@ -307,7 +313,7 @@ class MoliWebFetchProvider(Provider):
         argv = [str(self.config.get('binary', 'moli')), 'fetch']
         native_dynamic = case.track == 'dynamic' and case.retrieval_hints == {'version': 3, 'mode': 'native'}
         if route not in {'raw_file', 'native_document_bytes'}:
-            wait = self.config.get('dynamic_wait_until', 'domstable') if native_dynamic else self.config.get('wait_until', 'done')
+            wait = _family_wait_until(self.config, case.track)
             argv += ['--dump', 'html' if case.task_kind == 'resource' else 'markdown', '--wait-until', wait]
             if native_dynamic:
                 argv += ['--layout', '--with-frames']
@@ -381,14 +387,8 @@ class MoliWebFetchProvider(Provider):
                 return result
             finally:
                 with self._process_lock: self._active_native_provider = None
-        wait = self.config.get("wait_until", "done")
-        family_wait = (
-            self.config.get("dynamic_wait_until", "domstable")
-            if case.track == "dynamic"
-            else wait
-        )
+        family_wait = _family_wait_until(self.config, case.track)
         track_waits = self.config.get("wait_until_by_track", {})
-        family_wait = track_waits.get(case.track, family_wait)
         native_dynamic_task = (
             case.track == "dynamic"
             and case.retrieval_hints == {"version": 3, "mode": "native"}
@@ -516,8 +516,11 @@ class MoliWebFetchProvider(Provider):
             dump = None if raw_task else 'html' if case.task_kind == 'resource' else 'markdown'
             if not native_dynamic_task:
                 layout = include_subdocuments = False
-                wait_metadata = {'wait_until': self.config.get('wait_until', 'done'),
+                wait_metadata = {'wait_until': family_wait,
                                  'strategy': 'native_default_completion'}
+                if case.track in track_waits:
+                    wait_metadata.update(scope=f'{case.track}_task_family',
+                                         strategy='native_task_family_completion')
         limit = int(self.config.get("max_bytes", 20_000_000))
         retain_diagnostic = bool(self.config.get("retain_complete_diagnostic_log", False) or fixed_native)
         diagnostic_limit = int(self.config.get("max_diagnostic_bytes", 100_000_000))

@@ -326,7 +326,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     if manifest_path.is_file():
         from harness.reporting.templates import resolve_template
         manifest = json.loads(manifest_path.read_text())
-        expected_template = None if d.get('comparison', {}).get('kind') == 'uniform_native_local_measurement' else resolve_template('webfetch', root=repository)
+        expected_template = resolve_template('webfetch', root=repository)
         if manifest.get('template') != expected_template:
             raise ValueError('Report manifest differs from the maintained template')
         for name in ('dataset', 'results'):

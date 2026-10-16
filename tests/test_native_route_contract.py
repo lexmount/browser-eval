@@ -646,3 +646,72 @@ def test_saved_schema_one_keeps_original_answer_scope(tmp_path):
     declaration['result_fields'] = {}
     with pytest.raises(ValueError, match='result_fields require projection schema 2'):
         verify_saved_native_answer(tmp_path, record)
+
+
+@pytest.mark.parametrize('retries', [0, 1, 3])
+def test_native_http_retries_keep_each_physical_route_receipt(tmp_path, retries):
+    import json
+    from copy import deepcopy
+    from dataclasses import asdict
+    from unittest.mock import patch
+    from harness.web_fetch.models import EvalCase
+    from harness.web_fetch.native_routes import verify_native_route_contract
+    from harness.web_fetch.providers.base import build_provider
+    from harness.web_fetch.providers.http_client import HttpResponse
+    from harness.web_fetch.runner import run_evaluation
+
+    case = EvalCase('one', 'One', 'https://example.test/one', 'control', ['Expected'],
+                    source_benchmark={'input_media_kind': 'html_page'})
+    dataset = {'id': 'retry', 'cases': [asdict(case)]}
+    source = tmp_path/'dataset.json'
+    source.write_text(json.dumps(dataset))
+    provider = build_provider('tavily', {'type': 'tavily_extract', 'api_key': 'fixture',
+                                        'uniform_native_parameters': True})
+    calls = []
+
+    def transport(endpoint, **kwargs):
+        calls.append(kwargs)
+        content = 'Expected' if len(calls) == retries + 1 else 'incomplete'
+        return HttpResponse(200, endpoint, {}, json.dumps({'results': [
+            {'url': case.url, 'raw_content': content}]}).encode())
+
+    output = tmp_path/'run'
+    with patch('harness.web_fetch.providers.tavily.request', side_effect=transport):
+        rows, _ = run_evaluation(output_dir=output, dataset_meta=dataset, dataset_path=source,
+            cases=[case], providers=[provider], provider_config_path=tmp_path/'providers.json',
+            runs=1, timeout=45, delay=0, reference_policy='frozen_existing',
+            max_failure_retries=retries)
+    assert len(calls) == retries + 1
+    assert len(rows) == 1 and rows[0]['metrics']['content_pass']
+    manifest = json.loads((output/'manifest.json').read_text())
+    assert verify_native_route_contract(output, manifest, dataset, rows)
+    if not retries:
+        return
+    attempts = rows[0]['provider_metadata']['retry']['attempts']
+    assert [a['native_route_receipt']['physical_attempt'] for a in attempts] == list(range(1, retries + 2))
+    for defect in ('missing', 'signature', 'ordinal', 'final'):
+        broken = deepcopy(rows)
+        physical = broken[0]['provider_metadata']['retry']['attempts'][0]
+        if defect == 'missing':
+            physical.pop('native_route_receipt')
+        elif defect == 'signature':
+            physical['native_route_receipt']['requests'][0]['sha256'] = '0'*64
+        elif defect == 'ordinal':
+            physical['native_route_receipt']['physical_attempt'] = 2
+        else:
+            broken[0]['provider_metadata']['native_route_receipt']['physical_attempt'] = 99
+        with pytest.raises(ValueError, match='Native'):
+            verify_native_route_contract(output, manifest, dataset, broken)
+
+
+def test_native_retry_does_not_allow_two_requests_in_one_physical_call(tmp_path):
+    from unittest.mock import Mock
+    provider, cases, ledger, _, _ = _route_http_fixture(tmp_path)
+    case = cases[0]
+    ledger.begin_attempt(provider, case, 1)
+    endpoint, arguments = provider.native_http_arguments(case, 45)
+    transport = Mock()
+    provider.native_http_request(case, transport, endpoint, **arguments)
+    with pytest.raises(ValueError, match='one adapter invocation per physical attempt'):
+        provider.native_http_request(case, transport, endpoint, **arguments)
+    assert transport.call_count == 1
