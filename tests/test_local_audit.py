@@ -381,6 +381,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
         build_report(output, tmp_path / "invalid-rebuild", local_audit=True,
                      presentation_binding=binding_path)
     _write(binding_path, binding)
+    binding.pop("measured_scoring_git_revision", None)
+    _write(binding_path, binding)
     (output / "changes/index.html").write_text("<html><body>Old release history</body></html>")
     before = {path.relative_to(output).as_posix(): _digest(path)
               for path in output.rglob("*") if path.is_file()}
@@ -408,6 +410,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     refreshed = json.loads((output / "report-manifest.json").read_text())
     assert refreshed["certified"] is False
     assert refreshed["presentation_refresh"]["scores_changed"] is False
+    assert refreshed["presentation_refresh"]["scoring_git_revision"] is None
     assert "Old release history" not in (output / "changes/index.html").read_text()
     assert "2026-10-09-dynamic-1000-native-presentation" not in (output / "changes/index.html").read_text()
     assert "changes/index.html" in refreshed["presentation_refresh"]["changed_routes"]

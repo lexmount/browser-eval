@@ -13,6 +13,24 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_media_family_guides_preserve_numbers_and_translate_every_explanation():
+    from collections import Counter
+    from pathlib import PurePosixPath
+    from harness.web_fetch.report_components import examples, task_contract_guide, task_pass_guide
+    from harness.web_fetch.report_i18n import localize_html
+    from harness.web_fetch.report_check import EnglishNarrative, PageShape
+
+    source = task_pass_guide('web_media') + task_pass_guide('media_file') + task_contract_guide() + examples()
+    english = localize_html(source, PurePosixPath('methodology/index.html'))
+    zh_shape, en_shape = PageShape(), PageShape()
+    zh_shape.feed(source)
+    en_shape.feed(english)
+    assert Counter(zh_shape.numbers) == Counter(en_shape.numbers)
+    narrative = EnglishNarrative({'中文'})
+    narrative.feed(english)
+    assert not narrative.untranslated
+
+
 @pytest.mark.parametrize("mode", ["--diagnostic-cohorts", "--webmainbench-full"])
 @pytest.mark.parametrize("language", [None, "zh", "en"])
 @pytest.mark.parametrize("saved", [False, True])

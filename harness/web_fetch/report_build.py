@@ -1487,7 +1487,7 @@ def validate_local_presentation(output: Path, binding_path: Path):
 
 def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     """Install explanatory routes from the single report owner."""
-    from .safety import unlinked_path, evidence_tree_identity
+    from .safety import unlinked_path, evidence_tree_identity, copy_evidence_file
     output = unlinked_path(output)
     before_tree = evidence_tree_identity(output)
     binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
@@ -1501,7 +1501,7 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
         routes += ['en/' + relative for relative in routes if relative.endswith('.html')]
     with tempfile.TemporaryDirectory(prefix='.presentation-', dir=output.parent) as scratch:
         staging = Path(scratch) / 'report'
-        shutil.copytree(output, staging)
+        shutil.copytree(output, staging, copy_function=copy_evidence_file)
         shutil.rmtree(staging / 'en', ignore_errors=True)
         batches = json.loads((output / 'execution.json').read_text())['batches']
         generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True, frozen_scores=True)
@@ -1514,7 +1514,7 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
                 changed.append(relative)
         manifest['presentation_refresh'] = {
             'provider_calls_added': 0, 'scores_changed': False,
-            'scoring_git_revision': binding['measured_scoring_git_revision'],
+            'scoring_git_revision': binding.get('measured_scoring_git_revision'),
             'scoring_source_sha256': binding['measured_scoring_source_sha256'],
             'renderer_sha256': hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest(),
             'changed_routes': sorted(set(changed) | set(manifest.get('presentation_refresh', {}).get('changed_routes', []))),
@@ -1522,7 +1522,7 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
         # Stage the permitted pages into a copy of the original snapshot so no
         # renderer side effects can change evidence or unrelated routes.
         selected = Path(scratch) / 'selected'
-        shutil.copytree(output, selected)
+        shutil.copytree(output, selected, copy_function=copy_evidence_file)
         for relative in changed:
             shutil.copy2(staging / relative, selected / relative)
         write_frozen_presentation_manifest(selected, manifest,
