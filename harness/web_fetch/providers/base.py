@@ -7,7 +7,8 @@ import subprocess
 import time
 from typing import Any
 
-from ..models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 
 
 def terminate_owned_process_tree(process):

@@ -27,6 +27,19 @@ def verify_dependency_metadata(source_root: Path) -> None:
         raise ValueError('Installed WebArena dependency differs from declared fork')
 
 
+def verify_lexbench_input_ownership(source_root: Path) -> None:
+    from harness.web_fetch.reference_inputs import benchmark_input_path, require_mutable_inputs
+    from lexbench_webfetch.inputs import definition_path
+    logical = source_root / 'evaluation/dataset.json'
+    assert benchmark_input_path(logical).parent == definition_path('evaluation/source-inputs.json').parent
+    try:
+        require_mutable_inputs(logical)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('Installed harness allowed writes to frozen benchmark inputs')
+
+
 def verify_package_tree(source_root: Path, package_root: Path) -> None:
     """Require the installed library's exact current source and declared assets."""
     from harness.distribution import installed_data_path
@@ -291,13 +304,13 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
 
 def verify_dynamic_cohort(root: Path, source_root: Path) -> None:
     from harness.web_fetch.dynamic_cohort import merge
-    from harness.web_fetch.risk_control_dataset import load_cohort, parse_sections
+    from lexbench_webfetch.risk_control_dataset import load_cohort, parse_sections
 
-    for script in ('append_dynamic_content.py', 'merge_dynamic_supplement.py',
-                   'build_risk_control_dataset.py'):
+    for script in ('append_dynamic_content.py', 'merge_dynamic_supplement.py'):
         subprocess.run([sys.executable, str(source_root / 'scripts' / script), '--help'],
                        cwd=root, check=True, capture_output=True, text=True)
-    definitions = source_root / 'evaluation/risk-control'
+    from lexbench_webfetch.inputs import definition_path
+    definitions = definition_path('evaluation/risk-control')
     sections = parse_sections(tuple(definitions / name for name in
                                    ('first-30-rule-review.md', 'remaining-70-rule-review.md')))
     _, cases = load_cohort(definitions / 'qualification/cohort/cohort-manifest.json')
@@ -346,7 +359,7 @@ def verify_dynamic_cohort(root: Path, source_root: Path) -> None:
 
 def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = False) -> None:
     from harness.web_fetch import webmainbench_diagnostics as diagnostics
-    from harness.web_fetch.scoring_regressions import build_correction_provenance
+    from lexbench_webfetch.scoring_regressions import build_correction_provenance
     from harness.web_fetch.webmainbench_scoring import aggregate
 
     source, corrected = root / 'teds-source', root / 'teds-corrected'
@@ -1212,7 +1225,7 @@ def verify_report_acceptance(root, source_root):
 
 
 def verify_cowagent_isolation(root):
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
 
     providers = []
@@ -1289,7 +1302,7 @@ def verify_public_trajectory_publication(root, source_root):
 
 
 def verify_oss_workers(root, source_root, *, with_libraries):
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
 
     resolver = SubprocessJsonlProvider('resolver', {'repo_path': str(root)})
@@ -1592,6 +1605,7 @@ def main():
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
     verify_dependency_metadata(args.source_root)
+    verify_lexbench_input_ownership(args.source_root)
     from harness.web_fetch.webmainbench_correction import CONTROL_IDS, regression_registry_path
 
     REGISTRY = regression_registry_path()
@@ -1679,10 +1693,7 @@ def main():
         assert len(cohort) == 1 and cohort[0]['metrics']['content_pass']
         assert (root / 'cohort' / cohort[0]['artifact_path']).is_file()
         from harness.web_fetch.rescoring import rescore
-        from harness.web_fetch.scoring_regressions import (
-            default_registry_path,
-            load_scoring_regressions,
-        )
+        from lexbench_webfetch.scoring_regressions import default_registry_path, load_scoring_regressions
         from harness.web_fetch.scoring_revision import revise
         assert not default_registry_path().resolve().is_relative_to(args.source_root.resolve())
         assert load_scoring_regressions()

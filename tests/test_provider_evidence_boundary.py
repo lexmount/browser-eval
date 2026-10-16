@@ -15,7 +15,8 @@ from harness.web_fetch.evidence import (
     project_provider_run,
     projection_main,
 )
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.reference_lifecycle import (
     finalize_reference_checks,

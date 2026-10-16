@@ -3,9 +3,9 @@ import json
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.dynamic_entry_matching import matching_entry_facts
-from harness.web_fetch.dynamic_reference import entry_facts
-from harness.web_fetch.metrics import fact_in_text, normalize_for_match
+from lexbench_webfetch.dynamic_entry_matching import matching_entry_facts
+from lexbench_webfetch.dynamic_reference import entry_facts
+from lexbench_webfetch.metrics import fact_in_text, normalize_for_match
 
 
 ROOT = Path(__file__).resolve().parents[1]

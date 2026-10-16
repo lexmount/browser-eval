@@ -4,7 +4,7 @@ Use this page to find the code responsible for a change. For running evaluations
 
 [Data flow](#data-flow) · [Code owners](#code-boundaries) · [Stored inputs](#repository-and-external-inputs) · [Report releases](#reports-and-publication) · [Review tools](#verification)
 
-Browser Eval supplies execution, generic scoring, evidence handling and reporting for web fetching, trajectory replay and AI agent automation. Benchmarks supply task populations and acceptance requirements. [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch suites; see [benchmark boundaries](benchmarks.md). Each experiment has its own evaluator binding and publication target. The supported tracks are listed below.
+Browser Eval supplies execution, evidence handling and reporting for web fetching, trajectory replay and AI agent automation. Benchmarks supply task populations and acceptance requirements. [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch suites; see [benchmark boundaries](benchmarks.md). Each experiment has its own evaluator binding and publication target. The supported tracks are listed below.
 
 | Track | Implementation | Running and reproduction |
 | --- | --- | --- |
@@ -56,7 +56,7 @@ through configuration, registries or explicit parameters.
 | JSONL framing and finalized/live readers | `harness/record_io.py` |
 | Web Fetch task execution and certification | `benchmark_runner.py`, `certification.py`, `reference_lifecycle.py` |
 | Browser adapters and results | [Provider contract](provider-contract.md), `harness/web_fetch/providers/` |
-| Web Fetch scoring and task acceptance | `scoring.py`, `metrics.py`, task configuration |
+| Web Fetch scoring and task acceptance | Pinned `lexbench_webfetch.scoring`, `lexbench_webfetch.metrics`, task configuration |
 | Bound artifact copying and aggregation | `artifacts.py`, `evidence.py`, `assembly.py` |
 | Reference and scoring corrections | `reference_revision.py`, `scoring_revision.py`, `rescoring.py` |
 | WebMainBench certification, scoring and aggregation | `webmainbench_certification.py`, `webmainbench_scoring.py`, `webmainbench_assembly.py` |

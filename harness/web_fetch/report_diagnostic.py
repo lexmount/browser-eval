@@ -10,7 +10,7 @@ from urllib.parse import unquote, urljoin, urlsplit
 
 from harness.record_io import load_jsonl
 
-from .safety import contained_path, safe_identifier, validate_http_url
+from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
 
 
 def require_diagnostic_scope(model, profile):
@@ -64,7 +64,7 @@ def _saved_implementation_identity(record, batches):
 def prepare_diagnostic_evidence(spec_path, output):
     """Adapt complete saved cohorts and bound reviews, never make provider calls."""
     from .artifacts import verify_record_private_artifacts, verify_record_public_call_logs
-    from .metrics import task_passed
+    from lexbench_webfetch.metrics import task_passed
     from .publication_privacy import project_file
     from .reference_lifecycle import require_verified_reference_checks
 

@@ -8,7 +8,7 @@ import shutil
 import tempfile
 import unittest
 
-from harness.web_fetch.scoring import score_attempt
+from lexbench_webfetch.scoring import score_attempt
 from harness.web_fetch.report import cell, link, table, succeeded, measured
 from harness.web_fetch.report_components import comparable_body_reference
 from harness.web_fetch.report_explainer import (public_report_url, _bound_initial_audit, _dynamic_section,

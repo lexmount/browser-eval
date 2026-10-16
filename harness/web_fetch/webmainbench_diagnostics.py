@@ -15,13 +15,10 @@ from collections import defaultdict
 from pathlib import Path
 
 from harness.record_io import load_jsonl
-from harness.web_fetch.metrics import task_passed
+from lexbench_webfetch.metrics import task_passed
 from harness.web_fetch.result_review import write_review_document
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.scoring_regressions import (
-    build_correction_provenance,
-    load_scoring_regressions,
-)
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.scoring_regressions import build_correction_provenance, load_scoring_regressions
 from harness.web_fetch.webmainbench_evidence import require_matrix
 from harness.web_fetch.webmainbench_scoring import (
     SCORER_COMMIT,
@@ -30,13 +27,9 @@ from harness.web_fetch.webmainbench_scoring import (
     official_calculator,
 )
 
-from .safety import (
-    contained_path,
-    evidence_tree_identity,
-    reject_evidence_symlinks,
-    stage_evidence_revision,
-)
-from .scoring_regressions import valid_correction_provenance
+from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks, stage_evidence_revision
+from lexbench_webfetch.scoring_regressions import valid_correction_provenance
 from .webmainbench_latency_correction import prior_results_path
 
 ERROR_PAGE = re.compile(
@@ -538,16 +531,21 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
         (output / "score-summaries.json").write_text(
             json.dumps(summaries, ensure_ascii=False, indent=2) + "\n"
         )
+        from lexbench_webfetch import ordered_tree as ordered_tree_module, scoring as scoring_module
+
+        def source_name(path):
+            return path.relative_to(ROOT) if path.is_relative_to(ROOT) else Path("lexbench_webfetch") / path.name
+
         source_files = [
             Path(__file__).resolve(),
-            ROOT / "harness/web_fetch/ordered_tree.py",
-            ROOT / "harness/web_fetch/scoring.py",
+            Path(ordered_tree_module.__file__),
+            Path(scoring_module.__file__),
             ROOT / "harness/web_fetch/safety.py",
             ROOT / "harness/web_fetch/webmainbench_scoring.py",
             ROOT / "harness/web_fetch/webmainbench_evidence.py",
         ]
         for path in source_files:
-            target = output / "correction-source" / path.relative_to(ROOT)
+            target = output / "correction-source" / source_name(path)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)
         unavailable = [
@@ -569,7 +567,7 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
             "inherited_correction_receipt_sha256": inherited_receipt_sha256,
             "inherited_logical_results": len(inherited),
             "source_code_sha256": {
-                str(path.relative_to(ROOT)): digest(path) for path in source_files
+                str(source_name(path)): digest(path) for path in source_files
             },
             "scope": {"logical_results": len(records), "providers": sorted(summaries)},
             "changed_scores": changed,

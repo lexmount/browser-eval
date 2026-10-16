@@ -7,7 +7,8 @@ import unittest
 import urllib.error
 from pathlib import Path
 
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import (
     IncompleteEvaluationError, preflight_declared_capacity, run_evaluation,

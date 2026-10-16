@@ -1,5 +1,5 @@
 import unittest
-from harness.web_fetch.metrics import task_passed
+from lexbench_webfetch.metrics import task_passed
 from harness.web_fetch.report import succeeded
 
 

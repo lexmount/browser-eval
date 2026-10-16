@@ -8,7 +8,7 @@ from pathlib import Path
 
 from harness.web_fetch.reference_lifecycle import reference_revision_cases, valid_scoring_revision
 from harness.web_fetch.refresh_assembly import assemble, expected_refresh_pairs
-from harness.web_fetch.scoring_regressions import build_correction_provenance
+from lexbench_webfetch.scoring_regressions import build_correction_provenance
 from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
 PROVIDERS = [

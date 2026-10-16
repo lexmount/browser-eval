@@ -18,7 +18,7 @@ BENCH_ROOT = pathlib.Path(
 from harness.record_io import load_jsonl
 from harness.report_languages import english_notice, generated_languages, write_language_contract
 from harness.resource_calibration import duration_calibration
-from harness.web_fetch.safety import contained_path, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 from . import charts, reproduction
 from .charts import combine_comparisons, render_chart

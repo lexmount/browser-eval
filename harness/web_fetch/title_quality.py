@@ -11,10 +11,11 @@ import json
 import re
 import statistics
 from pathlib import Path
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
-from .list_verification import identity
-from .metrics import word_overlap
-from .safety import contained_path
+from lexbench_webfetch.list_verification import identity
+from lexbench_webfetch.metrics import word_overlap
+from lexbench_webfetch.paths import contained_path
 
 
 def reference_title(value):
@@ -87,7 +88,5 @@ def add_title_quality(record, case, source):
                    'reference_sha256': hashlib.sha256(raw).hexdigest(),
                    'output_sha256': record['metrics']['content_sha256'],
                    'scorer_sha256': hashlib.sha256(Path(__file__).read_bytes() +
-                       Path(__file__).with_name('metrics.py').read_bytes() +
-                       Path(__file__).with_name('reference_quality.py').read_bytes() +
-                       Path(__file__).with_name('list_verification.py').read_bytes()).hexdigest()})
+                       SCORING_SOURCE_SHA256.encode()).hexdigest()})
     record['title_quality'] = result

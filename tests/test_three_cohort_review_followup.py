@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.stable_tasks import evaluate_stable_task
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.stable_tasks import evaluate_stable_task
 from tests.conftest import read_frozen_dataset_bytes
 
 
@@ -40,12 +40,12 @@ def test_metadata_title_length_cannot_expose_hidden_html(length):
 
 
 def test_html_body_text_is_normalized_once_without_losing_title():
-    from harness.web_fetch.dynamic_lists import _scoped_html
+    from lexbench_webfetch.dynamic_lists import _scoped_html
     rules={'version':1,'schema':'body_text','minimum_records':0,
            'stable_text_anchors':[{'id':'body','alternatives':['Required body']}]}
     html='<html><body><p>Required <b>body</b></p><script>Access denied</script></body></html>'
     case={'id':'article','url':'https://example.com/article','track':'web','task_kind':'body','acceptance_contract':rules}
-    with patch('harness.web_fetch.dynamic_lists._scoped_html',wraps=_scoped_html) as parser:
+    with patch('lexbench_webfetch.dynamic_lists._scoped_html',wraps=_scoped_html) as parser:
         scored=score_attempt(case,html.encode(),ok=True,title='Page heading')
     assert scored['stable_task_pass'] is True
     assert scored['blocked_page'] is False
@@ -88,7 +88,7 @@ def test_document_head_cannot_supply_body_evidence(visible, title_parent):
 
 
 def test_numeric_card_pattern_can_describe_the_value_not_only_a_unit():
-    from harness.web_fetch.composite_tasks import evaluate_composite_acceptance
+    from lexbench_webfetch.composite_tasks import evaluate_composite_acceptance
     rules={'version':1,'groups':[{'id':'stock','kind':'named_link','minimum_records':1,
            'hosts':['example.test'],'entry_path':r'/item/[0-9]+',
            'start_pattern':r'^# Stock$','end_pattern':r'^# End$',
@@ -102,7 +102,7 @@ def test_metadata_title_cannot_supply_declared_page_text(html):
     import json
     from pathlib import Path
 
-    from harness.web_fetch.metrics import task_passed
+    from lexbench_webfetch.metrics import task_passed
     case=next(c for c in json.loads(read_frozen_dataset_bytes(Path(__file__).resolve().parents[1]/'evaluation/popular-sites/dataset.json'))['cases'] if c['id']=='global-homepage-001-google-com')
     anchors='; '.join(a['alternatives'][0] for a in case['acceptance_contract']['stable_text_anchors'])
     for body,title,expected in [('Unrelated content',anchors,False),(anchors,'Unrelated title',True)]:
@@ -120,8 +120,8 @@ def test_legacy_title_prefix_cannot_supply_html_body_anchor():
 
 
 def test_metadata_title_cannot_supply_declared_body_coverage():
-    from harness.web_fetch.body_coverage import body_requirements
-    from harness.web_fetch.metrics import evaluate_content
+    from lexbench_webfetch.body_coverage import body_requirements
+    from lexbench_webfetch.metrics import evaluate_content
     text='Required body paragraph explains independent visible source content and complete record ownership.'
     rules=body_requirements(text)
     assert not evaluate_content('Other text',[],title=text,body_requirements=rules)['body_coverage_pass']
@@ -146,7 +146,7 @@ def test_legacy_page_text_rules_cannot_take_evidence_from_metadata(rule):
 
 
 def test_explicit_title_fact_and_body_scope_are_independent_requirements():
-    from harness.web_fetch.body_coverage import body_requirements
+    from lexbench_webfetch.body_coverage import body_requirements
     text='Required body paragraph explains independent visible source content and complete record ownership.'
     case={'url':'https://example.test/article','task_kind':'body',
           'required_facts':[{'id':'title','alternatives':['Exact page title']}],

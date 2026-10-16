@@ -20,7 +20,7 @@
 
 ---
 
-Browser Eval 把 benchmark 任务接到浏览器或服务适配器上，执行预先声明的比较，对保存的输出评分，并生成可查看证据的报告。它支持 Web Fetch、轨迹重放和 Browser Use；任务范围和验收要求由所选 benchmark 决定。
+Browser Eval 把 benchmark 任务接到浏览器或服务适配器上，执行预先声明的比较，调用 benchmark 评分器检查保存的输出，并生成可查看证据的报告。它支持 Web Fetch、轨迹重放和 Browser Use；任务范围和验收要求由所选 benchmark 决定。
 
 自建的 Web Fetch 任务集由 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) 维护。WebMainBench、WCXB 和 WebArena 提供其他评测输入。Browser Eval 负责执行与报告，各 benchmark 分别维护范围、版本和来源说明。详见[仓库分工与接入](benchmarks.md)。
 
@@ -165,7 +165,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
 
 ## 参与贡献
 
-欢迎为适配器、执行与评分修复、测试、文档和翻译提交 PR。LexBench 任务要求的修改请提交到 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)。先看[贡献指南](../CONTRIBUTING.md)，或提交带有复现示例的 [issue](https://github.com/lexmount/browser-eval/issues)。
+欢迎为适配器、执行修复、测试、文档和翻译提交 PR。LexBench 任务要求的修改请提交到 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)。先看[贡献指南](../CONTRIBUTING.md)，或提交带有复现示例的 [issue](https://github.com/lexmount/browser-eval/issues)。
 
 ```bash
 make setup-test

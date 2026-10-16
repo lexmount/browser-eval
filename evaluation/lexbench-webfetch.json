@@ -2,10 +2,10 @@
   "schema_version": 1,
   "kind": "external_benchmark_binding",
   "repository": "https://github.com/lexmount/lexbench-webfetch",
-  "revision": "d4e5df35c3d91a2113813b775edcb463f95464dd",
+  "revision": "4df9b0ec80a1b9c46a5aeda96b0bbb9a019440fc",
   "ownership": {
-    "benchmark": "Task populations, prompts, acceptance requirements and frozen input bindings",
-    "harness": "Execution, generic scoring, evidence and reports"
+    "benchmark": "Task populations, task model, acceptance scoring, file checks, compiler and frozen definitions",
+    "harness": "Execution, reference lifecycle, evidence and reports"
   },
   "suites": [
     {
@@ -13,11 +13,11 @@
       "dataset_id": "webfetch",
       "case_count": 150,
       "files": {
-        "dataset-catalog.json": "ccb06789463ba0720d5e342b9ef384c241675a791ada8b0ea318ea99a474b2e1",
-        "tasks.json": "6ec54750e68ff2e87745ead9c80e672d05185cbc49e5c96c260376845bceec9f",
-        "source-inputs.json": "4ff0c2f1a9eff95be7ff02ca0d00e0930978ed7e0f0121f6bc4af3fa628185d1"
+        "tasks.json": "ae3aec6eab8d2d470cdeb18c4f80d238e5dd79e1108a729589b77a80fe869405",
+        "dataset-catalog.json": "994fa53f7fc7c3170692a7bb493ebc5af9ad8ffb5b576c022fa123e6e6fb3838",
+        "source-inputs.json": "c202abc4624811b938a837402bbaf0ecbe716e375fbca70567346d2edb3b1708"
       },
-      "benchmark_directory": "src/lexbench_webfetch/suites/webfetch",
+      "benchmark_directory": "src/lexbench_webfetch/definitions/evaluation",
       "historical_directory": "evaluation"
     },
     {
@@ -25,11 +25,11 @@
       "dataset_id": "popular-sites",
       "case_count": 100,
       "files": {
-        "dataset-catalog.json": "cf9b31ffe8486c158579cd543ae3f0ccf969ee4a3df8817b98b679192d087406",
-        "tasks.json": "a05dd4a4bce6a2fba7f4c69a22c9c18d856875fade36e37bf4bbd5c25c61c826",
-        "source-inputs.json": "58f0de5e107f05161004df0a87216b69c4cf9a30c705bdd1304415ab02fd97f3"
+        "tasks.json": "82859ffb301740bcf38fee4fe87a675e8fb21af8dd660f92f74e4cbaede35b33",
+        "dataset-catalog.json": "f2b9dfb550230cdf8dbbba544d58158ac957620c1d064173790ead70754c178d",
+        "source-inputs.json": "32c31cfd5458a1dfe06d370fc2411a1eea5d1a05da8ef88e0dcd4fd3b0f3c810"
       },
-      "benchmark_directory": "src/lexbench_webfetch/suites/popular-sites",
+      "benchmark_directory": "src/lexbench_webfetch/definitions/evaluation/popular-sites",
       "historical_directory": "evaluation/popular-sites"
     },
     {
@@ -37,11 +37,11 @@
       "dataset_id": "dynamic-qualified-100-moli-native-local-audit-20260924",
       "case_count": 100,
       "files": {
-        "dataset-catalog.json": "81703f392b586931624692cb42a006843a9cbf02250fd9ea36d4ecb65ee1cb6e",
-        "tasks.json": "6386fa8412438c1b61395fa059d1dc7caf73d3514011a7a23b04b0ec34fab5b9",
-        "source-inputs.json": "eabe4b3b9b6a1b2ef4ac4784be1254148c319f367eec55c6dd72684287a95f97"
+        "tasks.json": "139c62a141183d305d8fa9c3658c546927731461d86aeba5ad3091649bd4ecd7",
+        "dataset-catalog.json": "ca1572aa80fc2324b2f00800a79b053cfd584d1831ffb16e6906ae0981522c6c",
+        "source-inputs.json": "710f9c91705b29bb9e4aa15af97dcc856e64e406baa4b9966446408d7e3d26a8"
       },
-      "benchmark_directory": "src/lexbench_webfetch/suites/dynamic-content",
+      "benchmark_directory": "src/lexbench_webfetch/definitions/evaluation/dynamic-content-100-moli-webfetch",
       "historical_directory": "evaluation/dynamic-content-100-moli-webfetch"
     },
     {
@@ -49,12 +49,36 @@
       "dataset_id": "risk-control-audited-100",
       "case_count": 100,
       "files": {
-        "dataset-catalog.json": "43e79ab63c12f56ed025d78fa6e417cfc91b812faa6a69b9016b99979a498a98",
-        "tasks.json": "9d766c1701ea24c84babe871f96a50d3e4bca25fa3d4731695231f9c79a08de4",
-        "source-inputs.json": "230c3a88585c7ebb838bc2d7d956fbbfbb4a2c23d2ff1f0a84eb103909c6ee14"
+        "tasks.json": "c67b60ccf5ee0b14e4e23b3efc282e625005f8e096f0bfc978772d312e8f50c2",
+        "dataset-catalog.json": "52ec968b2ada26e5e061ccb25cbe4a73747539e556fa88f31bece6d7fb79b3cb",
+        "source-inputs.json": "c61d6825abbff2a92098592f83055347cd0b0101374794023046c0fd0323dd5f"
       },
-      "benchmark_directory": "src/lexbench_webfetch/suites/access-restrictions",
-      "historical_directory": "evaluation/risk-control"
+      "benchmark_directory": "src/lexbench_webfetch/definitions/evaluation/risk-control/current",
+      "historical_directory": "evaluation/risk-control/current"
     }
-  ]
+  ],
+  "definition_files": {
+    "evaluation/dataset-catalog.json": "994fa53f7fc7c3170692a7bb493ebc5af9ad8ffb5b576c022fa123e6e6fb3838",
+    "evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json": "ca1572aa80fc2324b2f00800a79b053cfd584d1831ffb16e6906ae0981522c6c",
+    "evaluation/dynamic-content-100-moli-webfetch/source-inputs.json": "710f9c91705b29bb9e4aa15af97dcc856e64e406baa4b9966446408d7e3d26a8",
+    "evaluation/native-retrieval-contracts.json": "210281ea49c61aa9c1ae4976be0f8b97adf1ef0eed6e08a74d77f54bab80b71b",
+    "evaluation/popular-sites/dataset-catalog.json": "f2b9dfb550230cdf8dbbba544d58158ac957620c1d064173790ead70754c178d",
+    "evaluation/popular-sites/source-inputs.json": "32c31cfd5458a1dfe06d370fc2411a1eea5d1a05da8ef88e0dcd4fd3b0f3c810",
+    "evaluation/risk-control/body-contracts.json": "de5a1ff1b4333e980dd824848e79f2e7717175b53ffade512491afeb4f6c13f9",
+    "evaluation/risk-control/current/dataset-catalog.json": "52ec968b2ada26e5e061ccb25cbe4a73747539e556fa88f31bece6d7fb79b3cb",
+    "evaluation/risk-control/current/source-inputs.json": "c61d6825abbff2a92098592f83055347cd0b0101374794023046c0fd0323dd5f",
+    "evaluation/risk-control/dataset-catalog.json": "02e30a5c408de3b5113e28f27359cf5e454814de612f860e6b7d7536c892efb0",
+    "evaluation/risk-control/first-30-rule-review.md": "6945a6aa7b0d8d5990d8abf5d24fc41b5a42a22c70940a7c996d8698c6e9bf81",
+    "evaluation/risk-control/history/v5/dataset-catalog.json": "73b1a3cd945c535d5043f0ba01316b98a26af25ed5156d900cdff79f2cbad4ef",
+    "evaluation/risk-control/list-contracts.json": "a566fb13328bd1a88b189b5a49fb7b3565a8d037c22aaa19c2b86087cbbe0881",
+    "evaluation/risk-control/qualification/cohort-policy.json": "4835abe67852adf1609cb3033b19cbef839650d14879c0e24dd76116af2acd2e",
+    "evaluation/risk-control/qualification/cohort/cohort-manifest.json": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26",
+    "evaluation/risk-control/qualification/cohort/cohort-receipt.json": "a5929b62ffb8b64da1ac902c5c5be61a75fa01ed171a497f115de14442a9a872",
+    "evaluation/risk-control/qualification/cohort/input-manifest.json": "8a61be8ffdf09a4f5ba84ebd2a621243a6b59d726825b1884f9c71295ecffd27",
+    "evaluation/risk-control/remaining-70-rule-review.md": "301574dddcfddf6d30ed4d882cdd40b1ae859fdc95a0a02cf9868f55e3fd1079",
+    "evaluation/risk-control/rule-authoring-guide.md": "74363ab502978179e5438a0b992bac7563090e41c91784e492636832dc1cd088",
+    "evaluation/risk-control/source-inputs.json": "77c5a4b62c07d59ed57154a833e85f9e7a97bc739730f51cd4ca3a698edb9258",
+    "evaluation/scoring-regressions.json": "d519f86e327d9e2fd1c884670642eb31714435864e834592e2c7b65ef21ee655",
+    "evaluation/source-inputs.json": "c202abc4624811b938a837402bbaf0ecbe716e375fbca70567346d2edb3b1708"
+  }
 }

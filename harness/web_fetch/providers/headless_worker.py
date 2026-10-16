@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from harness.web_fetch.markdown import CONVERTER, converter_command, require_converter
 from harness.web_fetch.document_text import extract_document_text
 from harness.web_fetch.providers.headless import cli_command, completion_metadata, native_cdp_browser
-from harness.web_fetch.safety import validate_http_url
+from lexbench_webfetch.paths import validate_http_url
 
 
 def browser_error_type(error):

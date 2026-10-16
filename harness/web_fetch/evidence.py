@@ -27,13 +27,8 @@ from .reference_lifecycle import (
     reference_cases,
     require_verified_reference_checks,
 )
-from .safety import (
-    commit_staged_evidence,
-    contained_path,
-    reject_evidence_symlinks,
-    safe_identifier,
-    validate_report_ids,
-)
+from harness.web_fetch.safety import commit_staged_evidence, reject_evidence_symlinks, validate_report_ids
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 def recover_completed_batch(source: Path, manifest: dict, records: list[dict]) -> dict:
     """Bind all flushed calls from an interrupted fixed-answer physical batch.

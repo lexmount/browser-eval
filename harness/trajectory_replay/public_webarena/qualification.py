@@ -20,8 +20,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from lexbench_webfetch.paths import contained_path, safe_identifier
+
 from harness.record_io import load_jsonl, same_json_record
-from harness.web_fetch.safety import contained_path, safe_identifier, unlinked_path, write_new_file
+from harness.web_fetch.safety import unlinked_path, write_new_file
 
 from .har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from .suite import TRAJECTORY_SCHEMA, TaskSuite, load_suite, validate_selector

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
-from harness.web_fetch.safety import contained_path
+from lexbench_webfetch.paths import contained_path
 
 REPORT_STEM = "webarena-trajectory-replay-latest"
 

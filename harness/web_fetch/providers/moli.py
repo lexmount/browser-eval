@@ -16,9 +16,10 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qsl, quote, urlsplit
 
-from ..models import EvalCase, ProviderResult, TRACKS
+from lexbench_webfetch.models import EvalCase, TRACKS
+from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import native_contract_for_case, plan_for_case
-from ..safety import validate_http_url
+from lexbench_webfetch.paths import validate_http_url
 from .base import Provider, terminate_owned_process_tree
 from .http_client import inner_timeout_budget
 

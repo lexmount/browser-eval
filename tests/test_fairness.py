@@ -6,20 +6,17 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from harness.web_fetch.body_coverage import (
-    body_requirements,
-    compact_ngrams,
-    evaluate_body_requirements,
-)
+from lexbench_webfetch.body_coverage import body_requirements, compact_ngrams, evaluate_body_requirements
 from harness.web_fetch.call_boundary import fetch_with_deadline, prepare_answer
-from harness.web_fetch.metrics import evaluate_content, task_measured, task_passed
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.metrics import evaluate_content, task_measured, task_passed
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.report import case_attrs, ranking, result_label
-from harness.web_fetch.response_input import apply_request_status
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.stable_tasks import evaluate_stable_task
+from lexbench_webfetch.response_input import apply_request_status
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.stable_tasks import evaluate_stable_task
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -164,13 +161,13 @@ class FairnessTests(unittest.TestCase):
         self.assertFalse(evaluate_content('A\nB\nC\n1\n2\n3', [], required_patterns=[rule])['content_pass'])
 
     def test_live_conversion_is_consumed_once_and_equals_offline(self):
-        from harness.web_fetch.response_input import answer_input
+        from lexbench_webfetch.response_input import answer_input
         case={'url':'https://example.com','expected_any':['Answer']}
         c=EvalCase('x','x',case['url'],'test',['Answer'])
         with patch('harness.web_fetch.call_boundary.answer_input', wraps=answer_input) as convert:
             result=prepare_answer(ProviderResult(True,'Answer'),c)
         self.assertEqual(convert.call_count,1)
-        with patch('harness.web_fetch.response_input.answer_input',side_effect=AssertionError('duplicate conversion')):
+        with patch('lexbench_webfetch.response_input.answer_input',side_effect=AssertionError('duplicate conversion')):
             live=score_attempt(case,b'Answer',ok=True,prepared_answer=result.prepared_answer)
         self.assertEqual(live,score_attempt(case,b'Answer',ok=True))
 

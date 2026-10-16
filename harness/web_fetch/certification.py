@@ -36,7 +36,7 @@ def browser_observation_cases(
     cannot supply the facts/reference file that the freezer consumes.
     Malformed or missing audit rows fail closed instead of being guessed at.
     """
-    from harness.web_fetch.metrics import normalize_for_match
+    from lexbench_webfetch.metrics import normalize_for_match
     from harness.web_fetch.reference_lifecycle import (
         requires_browser_observation,
         requires_fresh_reference,

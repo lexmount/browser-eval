@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 from harness.record_io import parse_jsonl
 from harness.web_fetch.artifacts import verify_record_artifacts
 from harness.web_fetch.failure_diagnosis import diagnose
-from harness.web_fetch.metrics import summarize
+from lexbench_webfetch.metrics import summarize
 from harness.web_fetch.models import execution_id
 from harness.web_fetch.reference_lifecycle import (
     ReferenceLifecycleError,
@@ -21,9 +21,10 @@ from harness.web_fetch.reference_lifecycle import (
     requires_fresh_reference,
 )
 from harness.web_fetch.report import failure_category, succeeded
-from harness.web_fetch.response_input import apply_request_status
-from harness.web_fetch.safety import contained_path, validate_report_ids
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
+from lexbench_webfetch.response_input import apply_request_status
+from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import validate_report_ids
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 
 
 def _rescore_one(arguments):

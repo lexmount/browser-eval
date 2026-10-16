@@ -2,7 +2,7 @@ import copy
 import hashlib
 import unittest
 
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.render_evidence import validate_render_reference
 
 

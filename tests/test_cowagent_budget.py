@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
 from harness.web_fetch.runner import persist_result_artifacts
 

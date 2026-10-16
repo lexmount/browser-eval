@@ -1,5 +1,5 @@
 import unittest
-from harness.web_fetch.metrics import evaluate_content,evaluate_resources,word_overlap,summarize
+from lexbench_webfetch.metrics import evaluate_content, evaluate_resources, word_overlap, summarize
 from harness.web_fetch.report import succeeded,ranking,case_attrs,table,rate,filter_controls
 from harness.web_fetch.report_components import basis_label,reference_label,tabs
 

@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from harness.reporting.links import check
-from harness.web_fetch.metrics import task_passed
+from lexbench_webfetch.metrics import task_passed
 
 ROOT = Path(__file__).resolve().parents[1]
 

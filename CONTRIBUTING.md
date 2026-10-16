@@ -1,6 +1,6 @@
 # Contributing
 
-PRs are welcome for adapters, execution and scoring fixes, tests, documentation and translations. Self-authored Web Fetch task requirements are maintained in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch); see [benchmark boundaries](docs/benchmarks.md). Run the [offline example](README.md#quickstart), then open the guide for the track you want to change.
+PRs are welcome for adapters, execution fixes, tests, documentation and translations. Self-authored Web Fetch task requirements are maintained in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch); see [benchmark boundaries](docs/benchmarks.md). Run the [offline example](README.md#quickstart), then open the guide for the track you want to change.
 
 ## Report a bug
 

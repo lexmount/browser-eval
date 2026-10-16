@@ -20,7 +20,7 @@ An evaluation harness for web fetching, recorded browser actions and autonomous 
 
 ---
 
-Browser Eval connects benchmark tasks to browser and service adapters, executes declared comparisons, scores saved outputs and builds inspectable reports. It supports Web Fetch, Browser Trajectory Replay and Browser Use. Task populations and acceptance requirements come from the selected benchmark.
+Browser Eval connects benchmark tasks to browser and service adapters, executes declared comparisons, calls the benchmark scorer on saved outputs and builds inspectable reports. It supports Web Fetch, Browser Trajectory Replay and Browser Use. Task populations and acceptance requirements come from the selected benchmark.
 
 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch task suites. WebMainBench, WCXB and WebArena supply other benchmark inputs. Browser Eval provides the execution and reporting machinery; each benchmark retains its own scope, versions and attribution. See [repository boundaries and integration](docs/benchmarks.md).
 
@@ -165,7 +165,7 @@ See [dependency sources and pins](docs/dependencies.md) for exact versions. Inst
 
 ## Contribute
 
-PRs are welcome for adapters, execution and scoring fixes, tests, documentation and translations. Changes to LexBench task requirements belong in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch). Start with [CONTRIBUTING](CONTRIBUTING.md), or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
+PRs are welcome for adapters, execution fixes, tests, documentation and translations. Changes to LexBench task requirements belong in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch). Start with [CONTRIBUTING](CONTRIBUTING.md), or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
 
 ```bash
 make setup-test

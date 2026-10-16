@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from email.message import Message
 from typing import Any
 
-from ..safety import validate_http_url
+from lexbench_webfetch.paths import validate_http_url
 from ..diagnostics import emit
 
 

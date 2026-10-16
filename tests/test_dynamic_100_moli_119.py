@@ -1,3 +1,4 @@
+from lexbench_webfetch.inputs import definition_path
 import hashlib
 import json
 from pathlib import Path
@@ -7,10 +8,10 @@ import pytest
 from harness.web_fetch import local_audit
 from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report import local_audit_banner, provider_configuration
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.metrics import task_passed
-from harness.web_fetch.scoring_regressions import load_scoring_regressions
-from harness.web_fetch.stable_tasks import validate_acceptance_contract
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.metrics import task_passed
+from lexbench_webfetch.scoring_regressions import load_scoring_regressions
+from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,7 +32,8 @@ def _authority_binding(path):
         owner = ROOT / "evaluation"
         tree = path.parts[1]
         relative = Path(*path.parts[2:])
-    manifest = json.loads((owner / "source-inputs.json").read_text())
+    from harness.web_fetch.reference_inputs import benchmark_input_path
+    manifest = json.loads(benchmark_input_path(owner / "source-inputs.json").read_text())
     return owner, tree, relative, manifest["trees"][tree][relative.as_posix()]
 
 
@@ -48,7 +50,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     assert len(cases) == receipt["scope"]["cases"] == 100
     assert len({case["id"] for case in cases}) == 100
     assert len({case["url"] for case in cases}) == 100
-    from harness.web_fetch.models import EvalCase
+    from lexbench_webfetch.models import EvalCase
     from harness.web_fetch.providers.headless import (
         HeadlessProvider,
         cli_command,
@@ -77,7 +79,8 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     assert pre_call["provider_calls"] == 0
     for binding in ("dataset_manifest", "dataset_catalog", "contract_registry"):
         item = pre_call[binding]
-        assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
+        from harness.web_fetch.reference_inputs import benchmark_input_path
+        assert hashlib.sha256(benchmark_input_path(ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
     authoritative = pre_call["compiled_dataset_input"]
     assembly_binding = authoritative["assembly"]
     assert hashlib.sha256((ROOT / assembly_binding["path"]).read_bytes()).hexdigest() == (
@@ -450,7 +453,7 @@ def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monke
     require_historical_inputs()
     dataset = _dataset()
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
-    registry = json.loads((ROOT / "evaluation/scoring-regressions.json").read_text())
+    registry = json.loads((definition_path('evaluation/scoring-regressions.json')).read_text())
     original_file = local_audit._repository_file
     replacement = tmp_path / "scoring-regressions.json"
 
@@ -483,7 +486,7 @@ def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monke
 
 
 def test_dynamic_100_contracts_are_valid_and_do_not_configure_provider_waits():
-    registered = json.loads((ROOT / "evaluation/native-retrieval-contracts.json").read_text())["contracts"]
+    registered = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text())["contracts"]
     for case in _dataset()["cases"]:
         validate_acceptance_contract(case["acceptance_contract"])
         serialized = json.dumps(case, ensure_ascii=False).lower()

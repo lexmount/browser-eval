@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.container_resources import ContainerCall
-from harness.web_fetch.models import EvalCase
+from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.headless import (
     HeadlessProvider,
@@ -562,7 +562,7 @@ class HeadlessTests(unittest.TestCase):
         import itertools
         import re
 
-        from harness.web_fetch.metrics import normalize_for_match
+        from lexbench_webfetch.metrics import normalize_for_match
         old = r'(?<=[\u3400-\u9fff])\s+|\s+(?=[\u3400-\u9fff])'
         new = r'(?<=[\u3400-\u9fff])\s+|(?<!\s)\s+(?=[\u3400-\u9fff])'
         for parts in itertools.product(('a','中','\n',' ','\t','1',''), repeat=5):
@@ -572,7 +572,7 @@ class HeadlessTests(unittest.TestCase):
         self.assertEqual(normalize_for_match('中'+' '*100_000+'文'), '中文')
 
     def test_visible_link_titles_and_markdown_escapes_do_not_change_facts(self):
-        from harness.web_fetch.metrics import fact_in_text, normalize_for_match
+        from lexbench_webfetch.metrics import fact_in_text, normalize_for_match
         actual = '请[联系客服](zh-CN\n"en-US")或前往后台；deep\\-thoughts'
         expected = '请联系客服或前往后台；deep-thoughts'
         self.assertEqual(normalize_for_match(actual), normalize_for_match(expected))

@@ -18,10 +18,10 @@ from harness.report_languages import (
     localized_report_routes,
 )
 from harness.reporting.presentation import check_presentation
-from harness.web_fetch.metrics import percentile
+from lexbench_webfetch.metrics import percentile
 from harness.web_fetch.report import ERROR_PAGE, EXTRA, JS, STYLE
 from harness.web_fetch.report_changes import webmainbench_history
-from harness.web_fetch.safety import contained_path
+from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision_if_present
 from harness.web_fetch.webmainbench_evidence import retry_chain_matches
 from harness.web_fetch.webmainbench_latency_correction import (

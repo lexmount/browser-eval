@@ -96,7 +96,8 @@ def test_symlinked_evidence_roots_are_rejected(worker, boundary):
 
 
 def test_collected_retries_bind_all_auxiliary_bytes_before_aggregation(tmp_path):
-    from harness.web_fetch.models import EvalCase, ProviderResult
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.models import ProviderResult
     from harness.web_fetch.providers.base import Provider
     from harness.web_fetch.runner import run_evaluation
 

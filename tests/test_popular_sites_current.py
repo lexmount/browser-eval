@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from harness.web_fetch.reference_inputs import input_tree
-from harness.web_fetch.stable_tasks import validate_acceptance_contract
+from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]

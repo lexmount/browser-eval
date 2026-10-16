@@ -131,7 +131,7 @@ def test_dataset_only_inputs_reject_undeclared_source_trees(inputs, location):
 
 @pytest.mark.parametrize("destination", ["checkout", "installed"])
 def test_dataset_rebuild_refuses_a_frozen_output_before_reading_source_material(inputs, destination):
-    from harness.web_fetch.risk_control_dataset import build
+    from lexbench_webfetch.risk_control_dataset import build
 
     dataset, manifest_path, source, _ = inputs
     original = external_dataset(inputs)

@@ -3,7 +3,8 @@ import json
 import pytest
 
 from harness.web_fetch.cli import build_parser
-from harness.web_fetch.models import EvalCase, ProviderResult
+from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import run_evaluation
 

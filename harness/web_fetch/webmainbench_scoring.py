@@ -266,7 +266,7 @@ def main() -> None:
 
 
 def verify_score(shard: Path, provider: str, case_ids: set[str], scorer: Path, profile: dict) -> dict:
-    from .safety import contained_path
+    from lexbench_webfetch.paths import contained_path
     from .webmainbench_evidence import digest, read_jsonl
 
     scored = read_jsonl(shard / "scored-results.jsonl")

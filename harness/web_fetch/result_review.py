@@ -8,8 +8,8 @@ from pathlib import Path
 from harness.record_io import parse_jsonl
 
 from .anomaly_review import require_anomaly_review
-from .metrics import task_passed
-from .safety import contained_path
+from lexbench_webfetch.metrics import task_passed
+from lexbench_webfetch.paths import contained_path
 
 ANSWER_METADATA_FIELDS = ('links', 'images', 'videos', 'media', 'extras')
 

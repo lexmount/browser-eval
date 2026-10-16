@@ -27,6 +27,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
+from lexbench_webfetch.paths import contained_path, safe_identifier
+
 from harness.environments.webarena.config import SITE_TOKENS
 from harness.record_io import parse_jsonl
 from harness.trajectory_replay.diagnostics import (
@@ -35,7 +37,7 @@ from harness.trajectory_replay.diagnostics import (
     diagnostic_output_path,
     write_diagnostic,
 )
-from harness.web_fetch.safety import contained_path, safe_identifier, unlinked_path
+from harness.web_fetch.safety import unlinked_path
 
 from .qualification import build_probe, task_contract_sha256
 from .suite import SUPPORTED_ACTIONS, load_suite

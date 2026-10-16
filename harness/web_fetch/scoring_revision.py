@@ -22,12 +22,10 @@ from harness.web_fetch.result_review import (
     archive_superseded_result_review,
     rebind_unchanged_result_review,
 )
-from harness.web_fetch.safety import contained_path, validate_report_ids
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
-from harness.web_fetch.scoring_regressions import (
-    ROOT_CAUSE_CATEGORIES,
-    build_correction_provenance,
-)
+from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import validate_report_ids
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+from lexbench_webfetch.scoring_regressions import ROOT_CAUSE_CATEGORIES, build_correction_provenance
 
 ALLOWED_FIELDS = {
     "body_requirements",

@@ -1,6 +1,7 @@
 """One parser for the public, answer-free dynamic retrieval contract."""
 
 from __future__ import annotations
+from lexbench_webfetch.inputs import definition_path
 
 import hashlib
 import json
@@ -23,11 +24,7 @@ _SAFE_SELECTOR = re.compile(
     r"(?:\s*>\s*|\s+)(?:[A-Za-z][A-Za-z0-9_-]*|[.#][A-Za-z_][A-Za-z0-9_-]*))*$"
 )
 _CONTRACT_NAME = re.compile(r"^[a-z][a-z0-9-]{2,80}$")
-_CONTRACT_REGISTRY_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "evaluation/native-retrieval-contracts.json"
-)
-_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+_CONTRACT_REGISTRY_PATH = definition_path("evaluation/native-retrieval-contracts.json")
 _ANSWER_SELECTOR = re.compile(r"(?:^|[.#_-])(answer|correct-answer)(?:$|[.#_-])", re.I)
 
 
@@ -47,7 +44,7 @@ def _verify_contract_source(path: str, expected_sha256: str) -> None:
         relative = authority.relative_to(prefix)
     except ValueError as error:
         raise ValueError("Native retrieval contract source must belong to evaluation/sources") from error
-    manifest = json.loads((_REPOSITORY_ROOT / "evaluation/source-inputs.json").read_text())
+    manifest = json.loads((definition_path('evaluation/source-inputs.json')).read_text())
     if manifest.get("trees", {}).get("sources", {}).get(relative.as_posix()) != expected_sha256:
         raise ValueError("Native retrieval contract source hash is not in the source manifest")
     source = _verified_source_tree() / relative
@@ -57,8 +54,7 @@ def _verify_contract_source(path: str, expected_sha256: str) -> None:
 
 @lru_cache(maxsize=None)
 def _verify_task_definition(identifier: str, expected_sha256: str) -> None:
-    catalog = json.loads((_REPOSITORY_ROOT /
-        "evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json").read_text())
+    catalog = json.loads((definition_path('evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json')).read_text())
     declared = next((case for case in catalog.get("cases", [])
                      if case.get("id") == identifier), None)
     if declared is None or declared.get("definition_sha256") != expected_sha256:
@@ -77,7 +73,9 @@ def task_definition_sha256(case: Mapping[str, Any]) -> str:
 @lru_cache(maxsize=1)
 def _verified_source_tree() -> Path:
     from .reference_inputs import input_tree
-    return input_tree(_REPOSITORY_ROOT / "evaluation/dataset.json", "sources")
+    return input_tree(
+        definition_path("evaluation/source-inputs.json").parent / "dataset.json", "sources"
+    )
 
 
 def native_fetch_dataset(dataset: dict) -> dict:
@@ -553,7 +551,7 @@ def native_default_case(case: Any) -> bool:
     contract = get("acceptance_contract")
     if not contract:
         return False
-    from .stable_tasks import validate_acceptance_contract
+    from lexbench_webfetch.stable_tasks import validate_acceptance_contract
     validate_acceptance_contract(contract)
     return True
 

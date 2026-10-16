@@ -6,7 +6,7 @@ from pathlib import Path
 from harness.web_fetch.reference_lifecycle import ReferenceLifecycleError
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.rescoring import rescore
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
 
 class ReferenceReportGuardTests(unittest.TestCase):

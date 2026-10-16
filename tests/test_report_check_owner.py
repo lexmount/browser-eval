@@ -1,6 +1,7 @@
 """Release checks exercise real reports under ordinary and optimized Python."""
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -302,20 +303,28 @@ def test_presentation_inventories_require_unique_registered_entries(tmp_path, de
 def test_registered_browser_build_has_its_own_interface_panel(tmp_path, defect):
     from harness.web_fetch.report_check import check_revision
     from tests.report_check_fixture import create_revision_report
+    from harness.web_fetch.methods import browser_method_registry
+    from harness.web_fetch.report_interfaces import SPECS
+    provider = next(name for name, spec in browser_method_registry().items()
+                    if spec.get('engine') == 'moli' and name not in SPECS)
     root, authority = create_revision_report(tmp_path)
     row=json.loads((root/'results.jsonl').read_text())
-    row['provider']='moli-fixed'
+    row['provider']=provider
     (root/'results.jsonl').write_text(json.dumps(row)+'\n')
     counts=json.loads((root/'adoption/counts.json').read_text())
-    for item in counts['methods']:
-        if item['provider']=='alpha':item['provider']='moli-fixed'
+    control = next(item for item in counts['methods'] if item['provider'] == 'alpha')
+    counts['methods'] = [item for item in counts['methods'] if item['provider'] != 'alpha']
+    if not any(item['provider'] == provider for item in counts['methods']):
+        counts['methods'].append({**control, 'provider': provider})
     write_json(root/'adoption/counts.json',counts)
-    panel='<details class="interface-panel" id="interface-moli-fixed"><pre>Request</pre><pre>Response</pre></details>'
+    panel=f'<details class="interface-panel" id="interface-{provider}"><pre>Request</pre><pre>Response</pre></details>'
     path=root/'adoption/index.html'
     additions='' if defect=='missing' else panel
     if defect=='duplicate':additions+=panel
-    if defect=='unregistered':additions+=panel.replace('moli-fixed','unknown-build')
-    path.write_text(path.read_text().replace('</body>',additions+'</body>'))
+    if defect=='unregistered':additions+=panel.replace(provider,'unknown-build')
+    content = re.sub(r'<details\b[^>]*id="interface-' + re.escape(provider) + r'"[^>]*>.*?</details>',
+                     '', path.read_text(), flags=re.S)
+    path.write_text(content.replace('</body>',additions+'</body>'))
     if defect:
         with pytest.raises(ValueError):check_revision(root,authority_root=authority)
     else:

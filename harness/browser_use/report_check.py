@@ -8,6 +8,8 @@ import json
 import re
 from pathlib import Path
 
+from lexbench_webfetch.paths import contained_path
+
 from harness.browser_use.failure_cause_review import (
     load_failure_cause_review,
     validate_failure_cause_review,
@@ -30,7 +32,7 @@ from harness.browser_use.selection import load_pilot
 from harness.record_io import load_jsonl
 from harness.report_languages import check_language_contract, generated_languages
 from harness.reporting.presentation import visible_text as _visible_text
-from harness.web_fetch.safety import contained_path, reject_evidence_symlinks
+from harness.web_fetch.safety import reject_evidence_symlinks
 
 FORBIDDEN_READER_TERMS = (
     "模型内完整配对",

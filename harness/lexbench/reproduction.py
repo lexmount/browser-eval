@@ -8,7 +8,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from harness.web_fetch.safety import contained_path, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 
 def sha(path: Path) -> str:

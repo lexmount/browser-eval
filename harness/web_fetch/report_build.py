@@ -34,8 +34,9 @@ from .report import (
     webmainbench_full_machine_issue,
 )
 from .report_changes import webmainbench_history
-from .safety import contained_path, reject_evidence_symlinks, safe_identifier, validate_report_ids
-from .scoring import SCORING_SOURCE_SHA256
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.safety import reject_evidence_symlinks, validate_report_ids
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 from .storage import data_home, require_selection_history
 from .wcxb_latency import load_full_paired_latency
 from .webmainbench_diagnostics import validate_teds_revision_if_present
@@ -50,7 +51,7 @@ def _validate_stable_annotation_evidence(case, source, dataset):
     from copy import deepcopy
 
     from .reference_inputs import input_tree, read_dataset_bytes
-    from .stable_annotations import bind_annotation_evidence
+    from lexbench_webfetch.reference_quality import bind_annotation_evidence
 
     checked = deepcopy(case)
     try:
@@ -328,14 +329,14 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 f'Stale scoring implementation; rescore before reporting: {r["attempt_id"]}')
         contract = cases[r['case_id']].get('acceptance_contract')
         if contract:
-            from .stable_tasks import validate_acceptance_contract
+            from lexbench_webfetch.stable_tasks import validate_acceptance_contract
             validate_acceptance_contract(contract)
             expected = hashlib.sha256(json.dumps(contract, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
             if r['metrics'].get('acceptance_contract_sha256') != expected:
                 raise ValueError(f'Acceptance contract hash missing or mismatched: {r["attempt_id"]}')
         composite = cases[r['case_id']].get('composite_acceptance')
         if composite:
-            from .composite_tasks import validate_composite_acceptance
+            from lexbench_webfetch.composite_tasks import validate_composite_acceptance
             validate_composite_acceptance(composite)
             expected = hashlib.sha256(json.dumps(
                 composite, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
@@ -1285,7 +1286,7 @@ def validate_local_presentation(output: Path, binding_path: Path):
     This is a presentation update of an existing hash-bound diagnostic snapshot,
     not a fresh build or certification. All measured files remain untouched.
     """
-    from .safety import contained_path
+    from lexbench_webfetch.paths import contained_path
     output = output.resolve()
     binding = json.loads(binding_path.read_text())
     manifest_path = contained_path(output, 'report-manifest.json')

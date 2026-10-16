@@ -12,7 +12,8 @@ import shutil
 from pathlib import Path
 from typing import Any, Iterable
 
-from .safety import contained_path, reject_evidence_symlinks, safe_identifier
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.safety import reject_evidence_symlinks
 
 PRIVATE_ARTIFACT_ROOT = "private_artifacts"
 PUBLIC_CALL_LOG_ROOT = "call-logs"

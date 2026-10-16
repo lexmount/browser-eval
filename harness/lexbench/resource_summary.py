@@ -11,7 +11,7 @@ from pathlib import Path
 
 from harness.record_io import load_jsonl
 from harness.resource_calibration import duration_calibration
-from harness.web_fetch.safety import contained_path
+from lexbench_webfetch.paths import contained_path
 
 from .resource_evidence import digest as sha256
 

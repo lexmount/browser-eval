@@ -14,6 +14,8 @@ Each `source-inputs.json` lists the required files and hashes. Import verifies t
 
 The catalog cannot substitute for the executable dataset.
 
+The paths below are historical logical paths. Their manifests and catalogs are packaged in LexBench, not duplicated in this checkout; the import tool resolves them through the hash-bound benchmark binding.
+
 | Dataset | Manifest |
 | --- | --- |
 | Web Fetch | `evaluation/source-inputs.json` |
