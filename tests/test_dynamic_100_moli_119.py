@@ -78,7 +78,11 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     for binding in ("dataset_manifest", "dataset_catalog", "contract_registry"):
         item = pre_call[binding]
         assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
-    authoritative = pre_call["authoritative_430_input"]
+    authoritative = pre_call["compiled_dataset_input"]
+    assembly_binding = authoritative["assembly"]
+    assert hashlib.sha256((ROOT / assembly_binding["path"]).read_bytes()).hexdigest() == (
+        assembly_binding["sha256"]
+    )
     assert (
         authoritative["superseded_pre_call_dataset_sha256"]
         != authoritative["revised_pre_call_dataset_sha256"]
@@ -347,7 +351,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
         "8bc386c7c081b70701d635e4fc2ead8c22a7f9a6004ec42adcaf391f9d470f1b"
     )
     assembly_definition = json.loads(
-        (ROOT / "evaluation/browser-native-430/dataset-assembly.json").read_text())
+        (ROOT / "evaluation/webfetch-seven-family-430/dataset-assembly.json").read_text())
     correction_binding = assembly_definition["case_corrections"]
     correction_path = ROOT / correction_binding["path"]
     assert hashlib.sha256(correction_path.read_bytes()).hexdigest() == correction_binding["sha256"]

@@ -7,6 +7,33 @@ from harness.web_fetch.report_changes import render_changes, render_webmainbench
 from harness.web_fetch.report import overview_card, ranking
 
 class ReportChangesTests(unittest.TestCase):
+    def test_report_bound_history_overrides_legacy_registry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out = Path(directory)
+            source = out / 'report-assets/report-changes.json'
+            source.parent.mkdir()
+            data = {
+                'schema_version': 2,
+                'history_scope': 'Bound history.',
+                'review_rounds': [{
+                    'date': '2026-10-16', 'title': 'Review', 'scope': 'Two results',
+                    'finding': 'No defect', 'fix': 'No change', 'pending': 'None',
+                }],
+                'releases': [{
+                    'id': 'bound-release', 'date': '2026-10-16',
+                    'comparison_kinds': ['headless_markdown'],
+                    'title': 'Bound release', 'summary': 'Evidence-bound summary.',
+                    'changes': [['Scope', 'Old', 'New', 'No score change']],
+                }],
+            }
+            source.write_text(json.dumps(data))
+            render_changes(
+                out, {}, [{'provider': 'p', 'provider_type': 'headless_markdown'}],
+                {'comparison': {'kind': 'headless_markdown'}},
+            )
+            public = json.loads((out / 'report-changes.json').read_text())
+            self.assertEqual([row['id'] for row in public['releases']], ['bound-release'])
+
     def test_unpublished_corrections_are_not_public_history_or_revision_bindings(self):
         from harness.web_fetch.report_changes import select_cohort_history, require_revision_release_bindings
         public={'id':'public','publication_state':'published','comparison_kinds':['headless_markdown'],'scoring_revision_input_sha256':'published'}

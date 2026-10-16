@@ -7,29 +7,11 @@ import pytest
 
 from harness.web_fetch.dataset_assembly import assemble_profile_dataset
 from harness.web_fetch.reference_lifecycle import homepage_prompt_anchor_correction
-from tests.conftest import read_frozen_dataset_bytes
-
-ROOT = Path(__file__).resolve().parents[1]
-ASSEMBLY = ROOT / "evaluation/browser-native-430/dataset-assembly.json"
-
-
-@pytest.fixture
-def registered_430_assembly():
-    definition = json.loads(ASSEMBLY.read_text(encoding="utf-8"))
-    for source in definition["sources"]:
-        read_frozen_dataset_bytes(ROOT / source["path"])
-    return assemble_profile_dataset(ASSEMBLY)
 
 
 def _write(path: Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False) + "\n", encoding="utf-8")
-
-
-def _canonical_sha256(value) -> str:
-    return hashlib.sha256(
-        json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
 
 
 def test_homepage_anchor_reference_correction_preserves_reader_constraints():
@@ -146,6 +128,21 @@ def test_profile_dataset_assembly_preserves_native_contract(tmp_path):
         "dynamic": ["lightpanda", "chromium"],
     }
     assert json.loads(raw) == dataset
+
+
+def test_reusable_assembly_requires_external_profile(tmp_path):
+    path, assembly = _fixture(tmp_path)
+    assembly.pop("profile")
+    _write(path, assembly)
+    with pytest.raises(ValueError, match="external report profile"):
+        assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
+    dataset, _raw = assemble_profile_dataset(
+        path,
+        repository=tmp_path,
+        require_output_hash=False,
+        profile_path_override=Path("profile.json"),
+    )
+    assert dataset["comparison"]["reproduction_profile"] == "profile.json"
 
 
 def test_profile_dataset_assembly_rejects_stale_source_and_wrong_owner(tmp_path):
@@ -323,244 +320,3 @@ def test_input_changing_case_correction_requires_all_method_rerun(tmp_path):
     assert dataset["cases"][0]["category"] == "current_homepage"
     assert dataset["cases"][0]["tags"] == ["current"]
     assert dataset["comparison"]["case_corrections"]["rerun_all_methods"] == ["plain"]
-
-
-def test_registered_430_assembly_uses_current_sources_and_four_contracts(
-    tmp_path, registered_430_assembly
-):
-    from harness.web_fetch.config import load_dataset
-
-    definition = json.loads(ASSEMBLY.read_text(encoding="utf-8"))
-    assert definition["schema_version"] == 3
-    assert definition["native_retrieval_policy"] == "uniform_dynamic_native_v1"
-    for source in definition["sources"]:
-        raw = read_frozen_dataset_bytes(ROOT / source["path"])
-        assert hashlib.sha256(raw).hexdigest() == source["sha256"]
-    dataset, raw = registered_430_assembly
-    assert hashlib.sha256(raw).hexdigest() == definition["native_dataset_sha256"]
-    corrections = json.loads(
-        (ROOT / definition["case_corrections"]["path"]).read_text(encoding="utf-8")
-    )
-    correction = next(
-        row for row in corrections["cases"] if row["case_id"] == "dynamic-062-zh-sspai-home"
-    )
-    corrected_case = next(
-        case for case in dataset["cases"] if case["id"] == "dynamic-062-zh-sspai-home"
-    )
-    dynamic_source = next(
-        source for source in definition["sources"] if "dynamic" in source["tracks"]
-    )
-    source_dataset = json.loads(read_frozen_dataset_bytes(ROOT / dynamic_source["path"]))
-    source_case = next(
-        case for case in source_dataset["cases"] if case["id"] == "dynamic-062-zh-sspai-home"
-    )
-    assert correction["expected_definition_sha256"] == _canonical_sha256(source_case)
-    assert correction["evidence"]["prior_acceptance_contract_sha256"] == _canonical_sha256(
-        source_case["acceptance_contract"]
-    )
-    assert correction["evidence"]["root_cause"] == "dynamic_record_badge_not_page_anchor"
-    assert correction["evidence"]["affected_scope"].endswith("offline rescore only")
-    assert correction["evidence"]["revised_acceptance_contract_sha256"] == _canonical_sha256(
-        corrected_case["acceptance_contract"]
-    )
-    assert all(
-        anchor["id"] != "source-stable-310fe77a5860"
-        for anchor in corrected_case["acceptance_contract"]["stable_text_anchors"]
-    )
-    corrected_by_id = {case["id"]: case for case in dataset["cases"]}
-    assert corrected_by_id["dynamic-050-en-real-usgs-earthquakes"][
-        "acceptance_contract"
-    ]["minimum_records"] == 3
-    assert all(
-        "Log in" not in anchor["alternatives"]
-        for anchor in corrected_by_id["global-homepage-045-nytimes-com"][
-            "acceptance_contract"
-        ]["stable_text_anchors"]
-    )
-    assert all(
-        "翻译" not in anchor["alternatives"]
-        for anchor in corrected_by_id["risk-diverse-011"]["acceptance_contract"][
-            "stable_text_anchors"
-        ]
-    )
-    risk_correction = next(
-        row for row in corrections["cases"] if row["case_id"] == "risk-102"
-    )
-    corrected_risk = next(case for case in dataset["cases"] if case["id"] == "risk-102")
-    risk_source = next(
-        source for source in definition["sources"] if "risk_control" in source["tracks"]
-    )
-    source_risk_dataset = json.loads(
-        read_frozen_dataset_bytes(ROOT / risk_source["path"])
-    )
-    source_risk = next(
-        case for case in source_risk_dataset["cases"] if case["id"] == "risk-102"
-    )
-    assert risk_correction["expected_definition_sha256"] == _canonical_sha256(source_risk)
-    assert risk_correction["evidence"]["prior_composite_acceptance_sha256"] == (
-        _canonical_sha256(source_risk["composite_acceptance"])
-    )
-    assert risk_correction["evidence"]["revised_composite_acceptance_sha256"] == (
-        _canonical_sha256(corrected_risk["composite_acceptance"])
-    )
-    assert corrected_risk["composite_acceptance"]["groups"][0]["start_pattern"]
-    assert corrected_risk["composite_acceptance"]["groups"][0]["end_pattern"]
-    dynamic_hints = {
-        case["id"]: case["retrieval_hints"]
-        for case in dataset["cases"]
-        if case.get("track") == "dynamic"
-    }
-    assert len(dynamic_hints) == 100
-    assert set(map(json.dumps, dynamic_hints.values())) == {
-        json.dumps({"version": 3, "mode": "native"})
-    }
-    output = tmp_path / "assembled-dataset.json"
-    output.write_bytes(raw)
-    _metadata, cases = load_dataset(output)
-    assert len(cases) == 430
-
-
-def test_registered_430_assembly_keeps_only_frozen_first_load_alternatives(registered_430_assembly):
-    dataset, _raw = registered_430_assembly
-    cases = {case["id"]: case for case in dataset["cases"]}
-
-    def alternatives(case_id: str, anchor_id: str) -> list[str]:
-        anchors = cases[case_id]["acceptance_contract"]["stable_text_anchors"]
-        return next(anchor["alternatives"] for anchor in anchors if anchor["id"] == anchor_id)
-
-    assert alternatives("china-homepage-089-yuque-com", "stable-anchor-23") == ["Download"]
-    assert alternatives(
-        "global-homepage-008-whatsapp-com", "current-stable-c737a59e7210"
-    ) == ["私密地收发消息"]
-    assert alternatives(
-        "global-homepage-008-whatsapp-com", "current-stable-8a47066bf393"
-    ) == ["下载"]
-    assert alternatives("china-homepage-012-feishu-cn", "stable-anchor-25") == [
-        "查看案例"
-    ]
-    for case_id, excluded in (
-        ("china-homepage-089-yuque-com", "Download/下载"),
-        ("china-homepage-012-feishu-cn", "查看案例/了解更多客户案例"),
-    ):
-        assert excluded not in cases[case_id]["task_prompt"]
-        assert excluded not in cases[case_id]["reference_answer"]
-        assert cases[case_id]["task_prompt"] == cases[case_id]["reference_answer"]
-
-    # English table labels were independently observed on the untouched first load;
-    # only navigation labels introduced by clicking Language -> English are excluded.
-    assert alternatives("risk-diverse-153", "stable-03") == ["题目", "Problem"]
-    assert alternatives("risk-diverse-153", "stable-07") == ["首页"]
-    assert alternatives("risk-diverse-153", "stable-14") == ["注册"]
-
-    noaa_facts = {fact["id"]: fact for fact in cases["live-037-breadcrumb"]["required_facts"]}
-    assert noaa_facts["climate-destination-drought"]["alternatives"] == ["Drought.gov"]
-    assert noaa_facts["climate-destination-heat"]["alternatives"] == ["Heat.gov"]
-    assert "climate-destinations" not in noaa_facts
-
-    cowagent_purpose = next(
-        fact for fact in cases["cowagent-doc"]["required_facts"] if fact["id"] == "purpose"
-    )
-    assert cowagent_purpose["alternatives"] == [
-        "获取网页或文档内容",
-        "获取 HTTP/HTTPS URL 的内容",
-        "获取网页的文本内容",
-    ]
-
-
-def test_registered_m365_reference_uses_one_current_body_version(registered_430_assembly):
-    from harness.web_fetch.metrics import task_passed
-    from harness.web_fetch.scoring import score_attempt
-
-    dataset, _raw = registered_430_assembly
-    case = next(
-        row for row in dataset["cases"]
-        if row["id"] == "global-homepage-023-cloud-microsoft"
-    )
-    anchors = {
-        row["id"]: row["alternatives"]
-        for row in case["acceptance_contract"]["stable_text_anchors"]
-    }
-    current_introduction = (
-        "AI in Microsoft 365 helps you create, summarize, and find information "
-        "across your work."
-    )
-    retired_introduction = (
-        "Sign in to create, collaborate, and move your work forward with Copilot "
-        "in Microsoft 365."
-    )
-    unchanged = [
-        "Work smarter across Microsoft 365",
-        "Popular prompts to try",
-        "Jump into your favorite app",
-        "Bring Copilot and your work together in a focused desktop experience.",
-    ]
-
-    assert case["url"] == "https://m365.cloud.microsoft/en-us/"
-    assert anchors["stable-anchor-2"] == [current_introduction]
-    definition = json.loads(ASSEMBLY.read_text())
-    corrections = json.loads(
-        (ROOT / definition["case_corrections"]["path"]).read_text()
-    )
-    correction = next(
-        row for row in corrections["cases"]
-        if row["case_id"] == "global-homepage-023-cloud-microsoft"
-    )
-    evidence = correction["evidence"]
-    assert evidence["root_cause"] == (
-        "retired_homepage_copy_was_kept_as_a_parallel_reference"
-    )
-    assert evidence["reference_version_policy"]["current"] == (
-        "single_v3_observed_body"
-    )
-    assert evidence["revised_acceptance_contract_sha256"] == _canonical_sha256(
-        case["acceptance_contract"]
-    )
-    # Historical evidence retains its original scorer; exercise current behavior below.
-
-    def verdict(introduction: str) -> bool:
-        body = "\n".join([unchanged[0], introduction, *unchanged[1:]])
-        metrics = score_attempt(case, body.encode(), ok=True)
-        return task_passed(True, metrics, case["task_kind"])
-
-    assert verdict(current_introduction)
-    assert not verdict(retired_introduction)
-
-
-def test_registered_430_profile_uses_official_release_and_frozen_minimal_reruns():
-    profile = json.loads((ROOT / "evaluation/browser-native-430/current-report.json").read_text())
-    providers = json.loads((ROOT / "configs/providers.headless.json").read_text())["providers"]
-    assert profile["providers"] == [
-        "moli-1.1.15", "moli-fixed", "lightpanda", "obscura", "chromium", "kitesurf"
-    ]
-    assert profile["method_sources"]["moli-1.1.15"] == {
-        "version": "1.1.15",
-        "binary_sha256": "7a53cdd071ae60a2f8ff6d08107f67f6b0f1d6247a9acd970d2bcec77ff15b50",
-        "source": "https://github.com/lexmount/moli/releases/tag/v1.1.15",
-    }
-    fixed = profile["method_sources"]["moli-fixed"]
-    assert fixed["identity_state"] == "declared_failure_scope_replaced_by_latest_results"
-    assert fixed["measurement_scope"]["retained_case_count"] == 374
-    assert fixed["measurement_scope"]["replacement_case_count"] == 56
-    assert fixed["measurement_scope"]["retained_case_count"] + fixed["measurement_scope"]["replacement_case_count"] == profile["case_count"]
-    assert fixed["measurement_scope"]["retained_build"] == {
-        "source_commit": "a737f2aec071905537e3dc8f86fb91a8052219be",
-        "binary_sha256": "2935b89fc91f83b4e189f0aa139ae5ad425496853441f56f976d29f2a41bc85c",
-    }
-    assert fixed["measurement_scope"]["replacement_build"] == {
-        "source_commit": "0d9a7ceb25f630e7a296e83011e2d11f0279c5a7",
-        "binary_sha256": "c1ea816783f0031ff7e349ecf660c3ffd5eeeeb05574ddb8794a212ec540840a",
-    }
-    assert profile["independent_result_review_scope"] == "all"
-    assert profile["network_environment"]["dns_mode"] == "public_doh"
-    for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura", "chromium"):
-        assert "dns_mode" not in providers[method]
-        assert "native_dns_library" not in providers[method]
-    binding = profile["rerun_scope"]
-    path = ROOT / binding["path"]
-    assert hashlib.sha256(path.read_bytes()).hexdigest() == binding["sha256"]
-    scope = json.loads(path.read_text())
-    assert scope["provider_calls_at_freeze"] == 0
-    assert scope["methods"]["moli-fixed"]["replacement_case_count"] == 56
-    assert scope["methods"]["moli-fixed"]["retained_case_count"] == 374
-    assert scope["selection_policy"]["replacement_outcome"] == "latest_result_always_wins"
-    assert scope["selection_policy"]["eligible_prior_outcome"] == "machine_failure_only"

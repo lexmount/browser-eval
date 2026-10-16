@@ -17,20 +17,6 @@
     "path": "evaluation/native-retrieval-contracts.json",
     "sha256": "210281ea49c61aa9c1ae4976be0f8b97adf1ef0eed6e08a74d77f54bab80b71b"
   },
-  "authoritative_430_input": {
-    "assembly": {
-      "path": "evaluation/browser-native-430/dataset-assembly.json",
-      "sha256": "0f03d61c42550020a39e8ca76f8879bf152fcdd7c1beca3753f728a9438709bc"
-    },
-    "profile": {
-      "path": "evaluation/browser-native-430/current-report.json",
-      "sha256": "ca114f8856ca495df9c82c28f4c0f1b8a65b2c004b49b26f571cb744d6c62343"
-    },
-    "superseded_pre_call_dataset_sha256": "e708980fb9bfcbb003fda7e2219a6739f637b769359e7d150c6bb3b312661a90",
-    "revised_pre_call_dataset_sha256": "de540d36c49ae49caf6189769627966f8975d87b82a1f355a91bbc20a70be8e7",
-    "case_count": 430,
-    "provider_calls": 0
-  },
   "assembly_correction": {
     "predecessor_native_dataset_sha256": "def61624252afce7e21c36ec6970c387476fa65e2c31efe6ea19ef0087db94e9",
     "revised_native_dataset_sha256": "de540d36c49ae49caf6189769627966f8975d87b82a1f355a91bbc20a70be8e7",
@@ -113,5 +99,15 @@
     "answers_changed": false,
     "scoring_changed": false,
     "task_scope_changed": false
+  },
+  "compiled_dataset_input": {
+    "assembly": {
+      "path": "evaluation/webfetch-seven-family-430/dataset-assembly.json",
+      "sha256": "63d6ead0b832b6020d02a74fa5270ed79549df76d9c138af6149d72361a77914"
+    },
+    "superseded_pre_call_dataset_sha256": "e708980fb9bfcbb003fda7e2219a6739f637b769359e7d150c6bb3b312661a90",
+    "revised_pre_call_dataset_sha256": "de540d36c49ae49caf6189769627966f8975d87b82a1f355a91bbc20a70be8e7",
+    "case_count": 430,
+    "provider_calls": 0
   }
 }

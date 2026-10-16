@@ -2,10 +2,9 @@
   "schema_version": 3,
   "kind": "profile_dataset_assembly",
   "native_retrieval_policy": "uniform_dynamic_native_v1",
-  "profile": "evaluation/browser-native-430/current-report.json",
   "dataset": {
-    "id": "webfetch-five-browsers-seven-families-430",
-    "name": "六种方法 Web Fetch 对比 · 430 例",
+    "id": "webfetch-seven-families-430",
+    "name": "Web Fetch · seven families · 430 cases",
     "tool": "web_fetch",
     "dynamic_scoring": "动态内容按稳定文字和结构验收，不固定易变数值或条目。"
   },
@@ -43,7 +42,7 @@
     }
   ],
   "case_corrections": {
-    "path": "evaluation/browser-native-430/case-corrections.json",
+    "path": "evaluation/webfetch-seven-family-430/case-corrections.json",
     "sha256": "7e6dae8e188e56d4cf3b9917f5d3b293d9b06da67ea5e58264b806d56fdda2b7"
   },
   "native_dataset_sha256": "f4fd17f0785db2848919ecf7055029d781ca03e8290531d0bba855aca0b22009"

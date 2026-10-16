@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 2,
   "history_scope": "本页从有完整审计依据的修订开始记录。更早的站点版本仍保留在 Artifact Hub，但没有逐项变更说明，故不补编历史。",
   "history_scope_i18n": {
     "en": "This history begins with revisions supported by a complete audit trail. Earlier Artifact Hub versions remain available, but no itemized history is reconstructed where the supporting record is incomplete."
@@ -1178,14 +1178,6 @@
   ],
   "review_rounds": [
     {
-      "date": "2026-10-15",
-      "title": "全部失败专题审查与五条接口纠正",
-      "scope": "950 条最新失败；五条定向纠正结果另做独立原文盲审，原有完整核验按相同题目和证据复用。",
-      "finding": "区分原生文档能力、真实访问验证、页面依赖超时、内容遗漏、进程异常和托管接口问题；发现跳转提取竞争、iframe 加载遗漏和日期漏识别。",
-      "fix": "两条 Chromium 和三条 Lightpanda 使用冻结版本完成定向纠正；日期解析在共享评分器修复，未改浏览器或题目。",
-      "pending": "0 个未分类失败；保留产品与源站限制导致的正式失败。"
-    },
-    {
       "date": "2026-09-14",
       "title": "请求语义、公开产物与异常门禁复核",
       "scope": "十种方法的 1,500 条最终结果；逐条盲审完成后，对 309 条由空输出、集中失败、状态冲突、接口错误或产物泄漏等信号触发的结果执行七层异常核验。",
@@ -1284,672 +1276,7 @@
   ],
   "releases": [
     {
-      "id": "2026-10-15-browser-native-430-reference-reading",
-      "date": "2026-10-15",
-      "publication_state": "published",
-      "comparison_kinds": [
-        "headless_markdown"
-      ],
-      "title": "重写报告解读的图表、实例与阅读结构",
-      "summary": "六种配置、每种430题的结果不变。解读以总体结果开篇，拆解静态与复杂网页的差距、等待与重试耗时，并用七类真实输入输出解释验收。",
-      "changes": [
-        [
-          "结果解读",
-          "总体结果、耗时和接口记录分散在长表中。",
-          "用统一总表、分组图和均值/P50/P95图解释结果，保留精确数值。",
-          "不改变通过数、调用记录或耗时。"
-        ],
-        [
-          "正文质量",
-          "通过率没有说明返回正文的完整程度。",
-          "补充有完整参考的17道静态网页的Recall、Precision、F1，包含这些题的全部结果。",
-          "明确17题范围，不外推到430题。"
-        ],
-        [
-          "实例与失败",
-          "案例和失败审查信息缺少清晰的阅读层次。",
-          "七类任务可切换对照参考、原始返回和实际判定；六种配置分别展示完整失败原因及代表证据。",
-          "完整错误与逐条记录继续链接到结果详情。"
-        ],
-        [
-          "版本比较",
-          "净增通过数掩盖了两个方向的变化。",
-          "展示430题中两版均通过364题、新增通过21题、退回失败3题、均失败42题。",
-          "结论同时保留改善与退回，不用净增数代替完整对比。"
-        ]
-      ],
-      "i18n": {
-        "en": {
-          "title": "Rebuild the interpretation around results, examples and failure mechanisms",
-          "summary": "Results remain unchanged for six configurations with 430 tasks each. The interpretation explains grouped task outcomes, waiting and retry costs, seven real input/output examples, and reviewed failures.",
-          "changes": [
-            [
-              "Interpreting results",
-              "Results, timings and interface records were dispersed across long tables.",
-              "Add a combined summary, grouped comparisons and mean/P50/P95 charts with exact values retained.",
-              "Scores, calls and measured times are unchanged."
-            ],
-            [
-              "Body quality",
-              "Pass rate alone did not describe body completeness.",
-              "Show Recall, Precision and F1 for all outcomes of 17 static tasks with complete references.",
-              "The population is 17 tasks, not 430."
-            ],
-            [
-              "Examples and failures",
-              "Examples and review material lacked a clear reading sequence.",
-              "Seven selectable examples compare references, raw outputs and checks; each configuration has a complete failure distribution and representative evidence.",
-              "Detailed errors and inventories remain linked to result pages."
-            ],
-            [
-              "Version comparison",
-              "The net pass increase hid changes in both directions.",
-              "Show 364 shared passes, 21 new passes, 3 regressions and 42 shared failures across 430 tasks.",
-              "Retain improvements and regressions together."
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "id": "2026-10-15-browser-native-430-visible-names-latency",
-      "date": "2026-10-15",
-      "publication_state": "published",
-      "comparison_kinds": [
-        "headless_markdown"
-      ],
-      "scoring_revision_input_sha256": [
-        "f48fa481d5467694b1f42184af0fbbd068686ef91f292d8d25780667897f8754",
-        "b72b6fe3125bf44e973ff9240511fd665d170bc9317e8aa55dfdce362b308ee5",
-        "703d47576bbf63dc72c60f428413444f5aa1155d152f1460976b6ca2c9cad559"
-      ],
-      "title": "纠正可见名称评分，说明耗时差异并精简报告解读",
-      "summary": "六种方法各 430 题。修复版 Moli 为 385/430，Lightpanda 为 229/430，其它方法不变。统一评分修正规则作用于全部保存输出，没有新增浏览器调用。报告说明重试与等待条件带来的耗时差异，并精简接口矩阵和失败解读。",
-      "changes": [
-        [
-          "可见条目名称",
-          "图片替代文字被误计为可见商品名；部分原生输出中的可见地址又被漏计。",
-          "统一评分规则区分图片替代文字与可见文本，识别相邻名称及其所属字段，并防止跨条目借用。",
-          "Moli 修复版 386→385，Lightpanda 228→229；其它方法不变。"
-        ],
-        [
-          "耗时口径",
-          "表头没有说清重试成本和不同等待条件。",
-          "标明总耗时包含重试，补充最后一次调用耗时、额外成本和各方法等待方式。",
-          "原始耗时不变；这些数据不能单独证明浏览器内核或两个版本的速度差异。"
-        ],
-        [
-          "报告解读",
-          "长表格重复接口说明和逐条失败记录，阅读主线不清。",
-          "压缩七类任务与六种方法的接口矩阵，逐方法解释失败分布，保留可检查的参考与输出实例。",
-          "完整逐条诊断仍在结果分析和详情页；统一使用“网页内嵌媒体”。"
-        ],
-        [
-          "失败原因",
-          "部分子资源、内嵌文档和空正文问题归类不准确。",
-          "纠正 13 条原因分类，并展示运行时错误的准确节选。",
-          "共 950 条失败、2,580 条结果均有审查结论；浏览器输出和调用次数不变。"
-        ]
-      ],
-      "i18n": {
-        "en": {
-          "title": "Correct visible-name scoring, explain timing and simplify interpretation",
-          "summary": "Each of six methods retains 430 tasks. Fixed Moli scores 385/430 and Lightpanda 229/430; other scores are unchanged. Shared scoring corrections apply to retained outputs without new provider calls. The report explains retry and readiness costs and simplifies interface and failure interpretation.",
-          "changes": [
-            [
-              "Visible names",
-              "Image alternative text was accepted as a visible product name, while some visible addresses in native output were omitted.",
-              "Separate image alternatives from visible text, associate adjacent names and fields, and reject cross-record borrowing.",
-              "Fixed Moli changes from 386 to 385; Lightpanda from 228 to 229. Other scores stay unchanged."
-            ],
-            [
-              "Timing population",
-              "Headers did not explain retry costs or different readiness conditions.",
-              "Label cumulative task time and show final-call time, additional costs and readiness policies.",
-              "Raw timings stay unchanged. They do not isolate engine speed or a causal version-to-version speed difference."
-            ],
-            [
-              "Report interpretation",
-              "Long cells repeated interface descriptions and per-result diagnoses.",
-              "Condense the seven-family, six-method matrix, explain each method’s failure distribution and retain inspectable examples.",
-              "Complete diagnoses remain in result analysis and details. Rename the family to embedded webpage media."
-            ],
-            [
-              "Failure causes",
-              "Some subresource, embedded-document and empty-body failures had incorrect categories.",
-              "Correct 13 cause categories and expose precise runtime-error excerpts.",
-              "All 950 failures and 2,580 results retain reviewed conclusions. Output bytes and provider call counts are unchanged."
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "id": "2026-10-15-browser-native-430-failure-topic",
-      "date": "2026-10-15",
-      "publication_state": "published",
-      "comparison_kinds": [
-        "headless_markdown"
-      ],
-      "scoring_revision_input_sha256": [
-        "ad92f548180df2d498f4a49b4e7643b17df332a634888794d3d42d362e3f3a81"
-      ],
-      "title": "补齐全部失败原因，纠正原生接口调用与新闻日期识别",
-      "summary": "六种方法各 430 题，共 2,580 个结果。Chromium 两条跳转提取问题纠正后通过数从 232 改为 234；其余方法通过数不变。最新 950 条失败全部有专题分类、原因和证据。报告解读按范围、结果、实例、配置、失败和结论重写。",
-      "changes": [
-        [
-          "全部失败原因",
-          "程序错误分类不能解释具体失败机制。",
-          "为 950 条最新失败补齐互斥原因类别、逐例解释、处理结论和证据；解读页逐方法展示完整分布。",
-          "结果详情可直接查看专题原因；明确区分访问验证、网络、原生功能缺口和评测适配问题。"
-        ],
-        [
-          "跳转提取",
-          "Chromium 在页面跳转时读取已销毁的执行环境。",
-          "同一页面在剩余预算内等新文档并重读一次；只补跑两条受影响失败。",
-          "两条均通过；Chromium 从 232/430 改为 234/430，不增加导航次数，旧调用保留。"
-        ],
-        [
-          "原生子文档能力",
-          "Lightpanda 三条 iframe 题没有开启原生加载开关。",
-          "按统一动态类配置启用两个官方开关，补跑这三条失败。",
-          "三条仍未交付子文档正文，总分 228/430 不变；最新结果覆盖旧结果。"
-        ],
-        [
-          "新闻日期",
-          "公共评分器漏识别 Oct. 14, 2026 这类标准日期。",
-          "修正通用月份缩写的点号，增加有效日期和无日期的成对测试，重新计算保存输出。",
-          "AGP Wire 四条记录不再漏计；最终通过数不变，另一组分类字段仍未满足要求。"
-        ],
-        [
-          "报告解读",
-          "旧版解读缺少完整失败分布和可对照的实测实例。",
-          "采用六章结构，加入交付物示意图、七类实测参考与输出对照、接口矩阵、失败证据。",
-          "文档内容、内嵌媒体地址和直接媒体字节分别验收；不追加外部文档解析。"
-        ]
-      ],
-      "i18n": {
-        "en": {
-          "title": "Explain all failures and correct native calls and news-date recognition",
-          "summary": "Six methods retain 430 tasks each and 2,580 results. Two corrected Chromium navigation-extraction calls raise its pass count from 232 to 234; other pass counts are unchanged. All 950 current failures have evidence-bound diagnoses. The interpretation covers scope, results, examples, configuration, failures and conclusions.",
-          "changes": [
-            [
-              "Failure diagnosis",
-              "Program error types did not explain individual mechanisms.",
-              "Bind an exclusive cause, explanation, treatment and evidence to every one of the 950 current failures, with complete per-method distributions.",
-              "Result details expose the reviewed cause and distinguish access controls, network failures, native capability gaps and adapter defects."
-            ],
-            [
-              "Navigation extraction",
-              "Chromium could read an execution context destroyed by a redirect.",
-              "Wait for the replacement document and repeat the DOM read once within the same page and remaining budget; rerun only two affected failures.",
-              "Both pass. Chromium changes from 232/430 to 234/430, with no extra navigation; prior calls remain retained."
-            ],
-            [
-              "Native subdocuments",
-              "Three Lightpanda iframe calls omitted native loading flags.",
-              "Enable both official flags through one dynamic-family policy and rerun only the three affected failures.",
-              "All three still omit the required child-document text. The score stays 228/430 and latest results replace prior results."
-            ],
-            [
-              "News dates",
-              "The shared scorer omitted standard punctuated month dates such as Oct. 14, 2026.",
-              "Recognize punctuated month abbreviations, add valid/missing-date controls, and recompute saved outputs.",
-              "Four AGP Wire records are no longer omitted. Final pass counts remain unchanged because a separate category-field requirement still fails."
-            ],
-            [
-              "Report interpretation",
-              "The prior interpretation lacked complete failure distributions and inspectable examples.",
-              "Use six chapters with a deliverable diagram, reference/output comparisons for all seven families, native-interface matrix and failure evidence.",
-              "Document content, embedded-media addresses and original media bytes remain distinct acceptance contracts; no external document parser is added."
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "id": "2026-10-15-browser-native-430-six-methods",
-      "publication_state": "published",
-      "comparison_kinds": [
-        "headless_markdown"
-      ],
-      "scoring_revision_input_sha256": [
-        "dc87042e9a15ba15a237ce7f0b571b7d652d0777b42210c182a0178710e551dd",
-        "8b6f4945936d915626295485d5223ac278442bada1591d358098e079c4ab5fd0",
-        "a2bc7c2de0af860088366324e8a7761819d5a3a303b8a148379cd67a2fd0e825",
-        "9cc784bbead85c891f19b53a9f38a9b0857c240b6f250d08e1318ffd7eec9727",
-        "7a4745e6fed32c91d2e31b1849bc06fb73dd8b209247e93e4beb298d16cf8264"
-      ],
-      "date": "2026-10-15",
-      "title": "六种方法完成 430 题 Web Fetch 对比",
-      "summary": "六种方法各完成 430 题，共 2,580 条正式结果。Moli 修复版通过 386 题，Moli 1.1.15 通过 367 题，Chromium、Lightpanda、Obscura、Kitesurf 分别通过 232、228、223、192 题；全部结果均已复核。",
-      "changes": [
-        [
-          "评测范围",
-          "旧报告只有五种方法和较小的动态、热门网站样本，无法回答扩充后的完整问题。",
-          "统一为六种方法、七类任务和每种方法 430 题；动态、热门网站及访问受限网页正文各 100 题。",
-          "总分母固定为每种方法 430 题。七类结果分别展示，类别之间不互相换算。"
-        ],
-        [
-          "接口公平性",
-          "把所有浏览器强制套进同一提取链会遮蔽产品原生能力，也可能额外引入转换误差。",
-          "Moli、Lightpanda、Obscura 和 Kitesurf 按任务类型使用自身正式接口；Chromium 获取渲染后 HTML，再统一转换为 Markdown。报告逐类列出实际接口和交付物。",
-          "不为某道题切换接口，也不按预期答案补内容。最终网址仅作诊断，不参与判分。"
-        ],
-        [
-          "Moli 修复版",
-          "修复版最后一轮改动只影响此前已经失败的 56 题；重跑全部 430 题会重复消耗并混入新的网页波动。",
-          "保留未受影响的 374 条结果，用最终构建重测预先声明的 56 条旧失败；新结果无论成功还是失败都直接替换旧结果。",
-          "修复版最终为 386/430。该规则禁止用新旧结果择优，也禁止替换原本通过的题。"
-        ],
-        [
-          "复核与失败",
-          "单看总分无法区分接口缺陷、网页限制、网络故障和题目问题。",
-          "逐条复核 2,580 个逻辑结果，并保留程序错误、失败阶段、原因和处理状态。",
-          "复核覆盖 2,580/2,580，分歧 0，未决 0；失败保留为正式结果，不以调题或兼容答案换取通过。"
-        ],
-        [
-          "性能与资源",
-          "不同日期、远程与本地环境的耗时和资源数据不能组成公平排名。",
-          "本版只比较任务通过情况；没有为当前六方法同窗采集资源数据，因此不发布速度、内存或网络排名。",
-          "此前的 Linux 资源样本仍是历史诊断，不能代表本轮六方法。"
-        ]
-      ],
-      "i18n": {
-        "en": {
-          "title": "Complete the 430-task Web Fetch comparison across six methods",
-          "summary": "Each of six methods completed 430 tasks, producing 2,580 formal results. The fixed Moli build passes 386, Moli 1.1.15 passes 367, and Chromium, Lightpanda, Obscura, and Kitesurf pass 232, 228, 223, and 192. Every result has been reviewed.",
-          "changes": [
-            [
-              "Scope",
-              "The previous report covered five methods and smaller dynamic and popular-site samples.",
-              "Use six methods, seven task families, and 430 tasks per method, including 100 dynamic pages, 100 popular sites, and 100 access-restricted body pages.",
-              "The denominator is 430 for every method. Family results remain separate."
-            ],
-            [
-              "Interface fairness",
-              "Forcing every browser through one extraction chain can hide native capability and add conversion errors.",
-              "Moli, Lightpanda, Obscura, and Kitesurf use their official task-appropriate interfaces. Chromium returns rendered HTML, which is converted to Markdown. The report lists the actual interface and deliverable for every family.",
-              "No interface changes are made for individual tasks, expected answers never enter extraction, and final URLs are diagnostic only."
-            ],
-            [
-              "Fixed Moli build",
-              "The final implementation changes affected only 56 tasks that had already failed. Repeating all 430 calls would add cost and new page drift.",
-              "Retain 374 unaffected results and rerun the predeclared 56 failures with the final build. Every new result replaces the old result, whether it passes or fails.",
-              "The fixed build finishes at 386/430. The policy forbids best-of selection and replacement of prior passes."
-            ],
-            [
-              "Review and failures",
-              "A total score alone cannot separate interface limitations, site controls, network failures, and benchmark defects.",
-              "Review all 2,580 logical results and retain the program error, failure stage, cause, and treatment status.",
-              "Coverage is 2,580/2,580 with no disagreement or unresolved item. Failures remain formal results."
-            ],
-            [
-              "Performance and resources",
-              "Timing and resource samples from different dates and local or hosted environments cannot support a fair ranking.",
-              "This release compares task outcomes only. No current same-window six-method resource cohort was collected, so it publishes no speed, memory, or network ranking.",
-              "Earlier Linux resource samples remain historical diagnostics and do not represent this cohort."
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "id": "2026-10-14-six-method-native-route-correction",
-      "publication_state": "published",
-      "scoring_revision_input_sha256": "c99eddea915d5c873b464ed66d69f51915df2993059b60ffb0e88ea9a485c77d",
-      "date": "2026-10-14",
-      "comparison_kinds": [
-        "headless_markdown"
-      ],
-      "title": "按原生接口重测 Moli 文档与媒体任务",
-      "summary": "六种方法各保留 430 个结果，共 2,580 条。整体通过数为：Moli 1.1.17 282、Lightpanda 254、Moli 1.1.15 216、Chromium 206、Obscura 202、Kitesurf 183。两种 Moli 构建的文档与网页媒体任务统一改由原生 Markdown 交付；无法取得正文或资源地址的任务按失败计。",
-      "changes": [
-        [
-          "Moli 文档与媒体接口",
-          "两种 Moli 构建各有 18 条旧结果经过评测器侧的文档提取或 HTML/JSON 后处理，不符合本报告的原生接口口径。",
-          "使用同一批受测二进制补跑完整声明范围，并只替换 36 条不合规结果；直接图片文件原本已按原始字节验收，继续沿用旧调用。",
-          "两种构建各执行 19 条校正调用、零重试；旧调用和两轮替换收据均保留。"
-        ],
-        [
-          "统一评分器",
-          "图片卡片的标题与说明可能被相邻卡片截断，已返回的文字因此漏计。",
-          "按图片拥有关系确定卡片边界，并用正反样例重算全部保存输出。",
-          "只有 Moli 1.1.17 的 risk-102 由失败改为通过；其余 2,579 条判定不变。"
-        ],
-        [
-          "方法身份",
-          "历史内部名称仍带有 PR 编号，容易把方法名称与后来重构的开发分支混在一起。",
-          "报告按受测二进制显示 Moli 1.1.15 与 Moli 1.1.17；复现页另列源码提交和二进制 SHA-256。",
-          "1.1.15 对应 98be1f10，1.1.17 对应 60773df3；没有把后来提交的聚合分支成绩套到这两次测量上。"
-        ]
-      ],
-      "i18n": {
-        "en": {
-          "title": "Rerun Moli document and media tasks through native interfaces",
-          "summary": "The report retains 430 results for each of six methods, or 2,580 results in total. Overall passes are Moli 1.1.17 282, Lightpanda 254, Moli 1.1.15 216, Chromium 206, Obscura 202, and Kitesurf 183. Both measured Moli builds now deliver document and webpage-media tasks through native Markdown; tasks that do not return the required text or resource URL remain failures.",
-          "changes": [
-            [
-              "Moli document and media interfaces",
-              "Eighteen earlier results from each Moli build used evaluator-side document extraction or HTML/JSON postprocessing, which did not meet this report's native-interface contract.",
-              "Rerun the complete declared correction scope with the same measured binaries and replace only the 36 noncompliant results. The direct-image task already used original bytes and keeps its earlier call.",
-              "Each build made 19 correction calls with no retries. Earlier calls and both replacement receipts remain available."
-            ],
-            [
-              "Shared scorer",
-              "Adjacent cards could cut off an image card's title or description even when the method returned that text.",
-              "Bind card boundaries to image ownership and rescore every saved output with paired positive and negative controls.",
-              "Only Moli 1.1.17 on risk-102 changes from fail to pass; the other 2,579 verdicts are unchanged."
-            ],
-            [
-              "Method identity",
-              "A historical internal identifier still contained a PR number and could be confused with later development branches.",
-              "Name the measured methods Moli 1.1.15 and Moli 1.1.17 in the report, while the reproduction page records their source commits and executable SHA-256 values.",
-              "The measured revisions are 98be1f10 and 60773df3. No later aggregate-branch result is attributed to these runs."
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "id": "2026-10-12-moli-measured-method-versions",
-      "publication_state": "published",
-      "date": "2026-10-12",
-      "comparison_kinds": [
-        "headless_markdown"
-      ],
-      "title": "区分两个 Moli 方法并标明受测版本",
-      "summary": "总榜、专项、筛选、详情和接口说明分别标注 Moli 1.1.15 与 Moli 1.1.15 · PR #919 源码构建（98be1f10）。版本与受测二进制的校验值对应，2,580 条成绩及耗时不变。",
-      "changes": [
-        [
-          "方法名称",
-          "此前仅显示 Moli 与 Moli · PR #919",
-          "按实际受测二进制标注版本和源码构建提交",
-          "未新增调用；旧成绩不会改挂到后来 rebase 的新提交上。"
-        ]
-      ],
-      "i18n": {
-        "en": {
-          "title": "Identify both measured Moli methods by version",
-          "summary": "Overall and family tables, filters, result details and interface descriptions distinguish Moli 1.1.15 from the Moli 1.1.15 PR #919 source build at 98be1f10. Labels match the measured binary hashes. All 2,580 scores and timings are unchanged.",
-          "changes": [
-            [
-              "Method labels",
-              "Previously shown as Moli and Moli · PR #919",
-              "Use the measured binary version and source-build commit",
-              "No new calls. Earlier results are not attributed to a later rebased commit."
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "id": "2026-10-10-moli-pr919-native-430-and-complete-resource-scope",
-      "publication_state": "published",
-      "date": "2026-10-10",
-      "comparison_kinds": [
-        "headless_markdown"
-      ],
-      "scoring_revision_input_sha256": [
-        "0bbbe0264c9715da5438d05cbd5d140fe0e1a5abc4c80625e078e7b4548c3774"
-      ],
-      "title": "增加 Moli PR #919 的完整评测，修正资源统计范围",
-      "summary": "五种浏览器、六种配置各有 430 个结果，共 2,580 条。整体通过数：Lightpanda 238/430，Moli 稳定版 228/430，Chromium 191/430，Obscura 189/430，Moli PR #919 187/430，Kitesurf 171/430。接口说明覆盖七类任务与六种配置；资源主比较保留全部预定调用。",
-      "changes": [
-        [
-          "新增配置",
-          "此前只包含五种配置",
-          "Moli PR #919 在 rebase 后的提交 98be1f10 上构建，使用原生接口完成全部 430 题",
-          "新增 430 次调用；程序版本号为 1.1.15，报告明确标为源码分支构建。"
-        ],
-        [
-          "资源地址",
-          "包含逗号的单个地址可能被误拆成多个候选",
-          "五种原配置补跑完整受影响范围：16 题，共 80 次调用",
-          "Moli 视频增加一例通过；Lightpanda 图片一例由通过变失败、另一例由失败变通过，总通过数不变。原题、答案和规则不变，旧调用保留。"
-        ],
-        [
-          "评分依据",
-          "合并新增配置和补跑结果后，旧评分记录不能直接代表新矩阵",
-          "逐条核对完整结果与评分依据，并保留旧评分记录",
-          "核对本身未新增浏览器调用，没有修改保存的输出、调用身份、成绩和耗时。"
-        ],
-        [
-          "资源统计",
-          "主表此前只采用四种方法共同通过的 10/20 个网页",
-          "主表统计全部 20 个预定网页的 80 次调用，包括失败；成功调用另作条件统计，共同通过项仅作诊断",
-          "不重复资源测量；公开各方法通过数，并列指标保持中性。资源消耗与任务通过率分别判断。"
-        ],
-        [
-          "接口与证据",
-          "原方法表只有 35 个类型与配置组合",
-          "扩展为 42 个组合，列出官方接口、浏览器内读取脚本、字段提取和 Chromium HTML 转换",
-          "文档正文不使用外部 PDF/DOCX 解析器；最终网址仍只作诊断。结果详情保留输出、验收规则和程序错误。"
-        ],
-        [
-          "耗时比较",
-          "稳定版与源码分支的调用发生在不同日期",
-          "分别展示完整调用与各方法成功调用的耗时及样本数",
-          "这些批次的差值不作为 PR 导致提速的证据；分支未加入独立的资源测量。"
-        ],
-        [
-          "正文专项指标",
-          "风控网站正文表误用了资源和文件指标列",
-          "按正文任务展示完整度、纯净度、F1 和文字核对覆盖；缺少全文参考时显示不可用",
-          "只修正展示，成绩、耗时、任务数和浏览器输出不变。"
-        ]
-      ],
-      "i18n": {
-        "en": {
-          "title": "Add the complete Moli PR #919 cohort and correct the resource population",
-          "summary": "Five browsers and six configurations each have 430 results, totaling 2,580. Overall passes: Lightpanda 238/430, Moli stable 228/430, Chromium 191/430, Obscura 189/430, Moli PR #919 187/430, Kitesurf 171/430. The interface matrix covers seven families and six configurations; resource comparisons retain every predeclared call.",
-          "changes": [
-            [
-              "New configuration",
-              "The report previously included five configurations",
-              "Build rebased Moli PR #919 at commit 98be1f10 and execute all 430 tasks through native interfaces",
-              "430 new calls. The reported version is 1.1.15, explicitly labeled as a source-branch build."
-            ],
-            [
-              "Resource URLs",
-              "A single URL containing commas could be split into multiple candidates",
-              "Rerun the full affected scope for the five existing configurations: 16 tasks and 80 calls",
-              "Moli gains one video pass. Lightpanda loses one image pass and gains another, leaving its total unchanged. Tasks, answers and rules are unchanged; earlier calls are retained."
-            ],
-            [
-              "Scoring authority",
-              "Earlier scoring records do not directly identify a matrix with added and replacement results",
-              "Verify the complete results against scoring authority and retain earlier records",
-              "This verification adds no browser calls and changes no saved output, call identity, score or latency."
-            ],
-            [
-              "Resource population",
-              "The primary comparison previously selected the 10/20 pages passed by all four methods",
-              "Include all 80 calls across the 20 predeclared pages, including failures. Successful-call distributions are conditional; shared passes are diagnostic only",
-              "No resource calls are repeated. Show each pass count and keep tied values neutral. Resource consumption and task pass rate remain separate."
-            ],
-            [
-              "Interfaces and evidence",
-              "The interface matrix had 35 family–configuration combinations",
-              "Expand to 42 combinations with official interfaces, in-browser reading scripts, field extraction and Chromium HTML conversion",
-              "External PDF/DOCX parsers do not supply document text. Final URLs remain diagnostic. Result details retain outputs, acceptance rules and exact errors."
-            ],
-            [
-              "Latency comparison",
-              "Stable and source-branch calls were collected on different dates",
-              "Show all-call and each method’s successful-call latency with population counts",
-              "Batch differences are not evidence of PR-induced speed improvements. The branch is not part of the independent resource cohort."
-            ],
-            [
-              "Body metrics",
-              "The risk-controlled website table used resource and file columns",
-              "Show completeness, purity, F1 and registered-text coverage for body tasks; full-text metrics remain unavailable without a complete reference",
-              "Presentation only. Scores, latency, task counts and browser outputs are unchanged."
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "id": "2026-10-10-native-content-acceptance-correction",
-      "publication_state": "published",
-      "date": "2026-10-10",
-      "comparison_kinds": [
-        "headless_markdown"
-      ],
-      "scoring_revision_input_sha256": [
-        "47a1494ee2c6d55aeb33ce726f68fac5829ab16d6c6a077103834a06131ee4bf"
-      ],
-      "title": "统一原生内容接口与正文验收",
-      "summary": "五种浏览器仍各有 430 个结果：Lightpanda 238、Moli 227、Chromium 191、Obscura 189、Kitesurf 171。文档正文不再借助外部解析器，最终网址缺失不单独扣分。",
-      "changes": [
-        [
-          "正文接口",
-          "Moli 风控任务含 JSON DOM 转换",
-          "100 个风控任务改用原生 Markdown",
-          "保留旧调用，不用其他接口补正文。"
-        ],
-        [
-          "文档正文",
-          "此前部分任务含外部 PDF/DOCX 解析",
-          "五种浏览器各补跑完整 10 题文档专项",
-          "直接文档使用原生输出；嵌入文档只读取浏览器内已加载文字，无法取得内容时保留失败。"
-        ],
-        [
-          "正文验收",
-          "最终网址或 HTML 语言标签可能影响通过",
-          "仅作为诊断信息，按目标正文统一重算 2,150 个结果",
-          "登录、验证、错误页、空正文和缺少必需内容仍失败；原题与答案不变。"
-        ],
-        [
-          "类型与方法表",
-          "风控类型名称不清晰，接口处理说明不完整",
-          "风控网站正文紧接热门网站正文；公开 7×5 接口表",
-          "获取接口、原生脚本与 Chromium HTML 转换均明示，实际路线不合规时拒绝发布。"
-        ]
-      ],
-      "i18n": {
-        "en": {
-          "title": "Native content interfaces and body acceptance",
-          "summary": "Each browser retains 430 results: Lightpanda 238, Moli 227, Chromium 191, Obscura 189 and Kitesurf 171. External document parsers are excluded; missing final URLs do not independently fail body tasks.",
-          "changes": [
-            [
-              "Body interfaces",
-              "Moli risk tasks included JSON DOM conversion",
-              "Rerun all 100 risk tasks with native Markdown",
-              "Preserve prior calls. Do not repair missing body text through another interface."
-            ],
-            [
-              "Document text",
-              "Some tasks used external PDF/DOCX parsing",
-              "Rerun all ten document tasks for each browser",
-              "Use native output or text already loaded in a browser viewer; unsupported content remains a failure."
-            ],
-            [
-              "Body acceptance",
-              "URL and HTML-language metadata could affect acceptance",
-              "Rescore all 2,150 results using target-content requirements",
-              "Login, challenge, error and empty pages still fail. Tasks and answers remain unchanged."
-            ],
-            [
-              "Categories and interfaces",
-              "Risk labels and processing details were unclear",
-              "Place risk-control content after popular sites and show the 7×5 interface matrix",
-              "Disclose native scripts and Chromium HTML conversion; reject noncompliant measured routes."
-            ]
-          ]
-        }
-      }
-    },
-
-{
-  "id": "2026-10-10-five-browsers-seven-families-430",
-  "publication_state": "published",
-  "scoring_revision_input_sha256": [
-    "7a79357747f8a0a9bdf9d216667edfeaf3bedf0ff25a3685ad29f17abfa1d712",
-    "884edf8ca3f9111aea956f9635688f9c7af6492ac32a1966f4275c4d9f19dd21"
-  ],
-  "date": "2026-10-10",
-  "comparison_kinds": [
-    "headless_markdown",
-    "headless_html"
-  ],
-  "title": "发布五种浏览器、七类任务的 430 题报告",
-  "summary": "每种浏览器完成 430 题，共 2,150 个结果。Lightpanda 通过 243 题，Moli 233 题，Chromium 199 题，Obscura 192 题，Kitesurf 171 题。新增风控网页正文专项；动态内容与热门站点各覆盖 100 题。",
-  "changes": [
-    [
-      "评测范围",
-      "此前未覆盖当前七类完整题集",
-      "普通网页、动态内容、热门站点、风控网页正文各 100 题，文档、图片、视频各 10 题",
-      "总分母为每种浏览器 430 题；旧报告保留。"
-    ],
-    [
-      "文档和资源接口",
-      "部分调用将文档当网页、借用外部转换或未明确选择参评引擎",
-      "文档通过参评浏览器读取原始字节并共用正文解析；资源使用已加载页面与明确指定的引擎",
-      "替换全部受影响的调用，保留此前证据；题目、固定答案及评分规则不变。"
-    ],
-    [
-      "耗时与资源",
-      "任务通过率无法说明获取耗时和资源开销",
-      "分别列出全部调用、通过任务的均值、P50、P95；保留 20 题四种本地浏览器的 80 次资源测量",
-      "提取与解析计入时限；托管 Kitesurf 的后端资源未公开。"
-    ],
-    [
-      "原生接口与共同处理",
-      "正文格式和资源接口未完整区分，部分 CDP 调用混用了托管 API 的等待参数",
-      "展示七类任务与五种浏览器的 35 个接口组合；Kitesurf 资源使用官方 CDP 与共同 DOM 范围",
-      "Moli 全部 100 个热门站点和 Kitesurf 全部 19 个受影响任务重新执行，旧调用保留。后一次纠正使 Kitesurf 视频通过数从 5/10 改为 6/10，整体从 168/430 改为 169/430；分母不变，耗时采用修正后的完整调用。"
-    ],
-    [
-      "共享评分器",
-      "Markdown 加号列表、相邻卡片和表头可能漏计已返回的内容",
-      "采用最新共享评分器重算全部保留输出，并用成对测试防止漏判和误判",
-      "四个动态任务结果由失败变为通过：Kitesurf 增加两例，Lightpanda 与 Obscura 各增加一例。未新增浏览器调用，题目、答案、输出和耗时均未改变。"
-    ]
-  ],
-  "i18n": {
-    "en": {
-      "title": "Five browsers across 430 tasks in seven families",
-      "summary": "All five browsers completed 430 tasks, yielding 2,150 results. Lightpanda passed 243, Moli 233, Chromium 199, Obscura 192, and Kitesurf 171. Risk-controlled webpage text is a new family; dynamic and popular-site tasks each cover 100 cases.",
-      "changes": [
-        [
-          "Scope",
-          "The previous cohort did not cover the current seven-family matrix",
-          "100 cases each for ordinary, dynamic, popular and risk-controlled webpage text; 10 each for documents, images and video",
-          "430 cases per browser; the earlier report is preserved."
-        ],
-        [
-          "Document and resource routes",
-          "Some calls treated documents as pages, used external conversion or omitted explicit engine selection",
-          "Browser-native original document bytes with shared text extraction; resources from loaded pages with explicit engine binding",
-          "All affected calls are replaced with prior evidence retained; tasks, fixed answers and scoring remain unchanged."
-        ],
-        [
-          "Latency and resources",
-          "Task acceptance alone does not describe retrieval cost",
-          "All-call and successful-call mean, P50 and P95 latency; 80 retained resource calls across 20 cases and four local browsers",
-          "Extraction and parsing share the deadline; hosted Kitesurf backend resources are unavailable."
-        ],
-        [
-          "Native interfaces and shared processing",
-          "Output modes and resource scope were conflated; some CDP calls received a hosted API completion value",
-          "Expose all 35 browser-family interface combinations; Kitesurf resources use official CDP with the same DOM scope",
-          "Rerun all 100 Moli popular-site tasks and all 19 affected Kitesurf tasks, preserving prior calls. The latter correction changes Kitesurf video passes from 5/10 to 6/10 and overall passes from 168/430 to 169/430. Denominators stay fixed; latency uses the corrected complete calls."
-        ],
-        [
-          "Shared scoring",
-          "Markdown plus lists, adjacent cards and table headers could omit returned content",
-          "Rescore all retained outputs with the current shared scorer and paired controls against false positives and false negatives",
-          "Four dynamic results change from fail to pass: two for Kitesurf and one each for Lightpanda and Obscura. No browser calls are added; tasks, answers, outputs and latency remain unchanged."
-        ]
-      ]
-    }
-  }
-},
-    {
       "id": "2026-10-09-dynamic-1000-native-presentation",
-      "publication_state": "published",
       "date": "2026-10-09",
       "comparison_kinds": [
         "uniform_native_local_measurement"
@@ -2005,7 +1332,6 @@
     },
     {
       "id": "webmainbench-545-pr919-721bd2e-authority-20261008",
-      "publication_state": "published",
       "date": "2026-10-08",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
@@ -2061,7 +1387,6 @@
     },
     {
       "id": "2026-10-07-risk-control-historical-presentation",
-      "publication_state": "published",
       "comparison_kinds": [
         "risk_control_100_moli"
       ],
@@ -2117,7 +1442,6 @@
     },
     {
       "id": "2026-09-29-risk-control-review-corrections",
-      "publication_state": "published",
       "scoring_revision_input_sha256": "4dbcdbcc9232697b0420869c2dc46939e033999ec60ed0edcc4b9278a98209fb",
       "comparison_kinds": [
         "risk_control_100_moli"
@@ -2174,7 +1498,6 @@
     },
     {
       "id": "webmainbench-545-pr919-e944d066-lexmain-f7cb97d-20260929",
-      "publication_state": "published",
       "date": "2026-09-29",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "title": "补齐渐显正文并按最新 lexmain 重算七方法结果",
@@ -2196,7 +1519,6 @@
     },
     {
       "id": "webmainbench-545-lexmain-reference-and-final-pr919-20260928",
-      "publication_state": "published",
       "date": "2026-09-28",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "title": "修正 WebMainBench 参考、专项计分范围与 TEDS",
@@ -2220,7 +1542,6 @@
     },
     {
       "id": "webmainbench-545-moli-pr919-final-20260928",
-      "publication_state": "published",
       "date": "2026-09-28",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
@@ -2276,7 +1597,6 @@
     },
     {
       "id": "2026-09-24-dynamic-100-moli-119-local-audit",
-      "publication_state": "published",
       "comparison_kinds": ["single_provider_dynamic_native_fetch"],
       "date": "2026-09-24",
       "title": "完成100例动态网站 Moli 1.1.9 本地审核版",
@@ -2298,7 +1618,6 @@
     },
     {
       "id": "webmainbench-545-table-controls-and-moli-provenance-20260928",
-      "publication_state": "published",
       "date": "2026-09-28",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
@@ -2342,7 +1661,6 @@
     },
     {
       "id": "webmainbench-545-seven-method-moli-lineage-20260925",
-      "publication_state": "published",
       "date": "2026-09-25",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
@@ -2386,7 +1704,6 @@
     },
     {
       "id": "webmainbench-545-moli-110-content-audit-20260924",
-      "publication_state": "published",
       "date": "2026-09-24",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
@@ -2442,7 +1759,6 @@
     },
     {
       "id": "webmainbench-545-six-method-origin-correction-20260924",
-      "publication_state": "published",
       "date": "2026-09-24",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
@@ -2486,7 +1802,6 @@
     },
     {
       "id": "2026-09-24-webmainbench-target-body-population",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-24",
       "title": "区分请求成功与目标正文",
@@ -2496,7 +1811,6 @@
     },
     {
       "id": "2026-09-24-webmainbench-six-versions-certified",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-24",
       "title": "将修复版 Moli 纳入完整六方法比较",
@@ -2506,7 +1820,6 @@
     },
     {
       "id": "2026-09-24-webmainbench-moli-repair-545-followup",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-24",
       "title": "补充 Moli 修复后的 545 页复测",
@@ -2516,7 +1829,6 @@
     },
     {
       "id": "2026-09-23-webmainbench-error-attribution-and-case-comparison",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-23",
       "title": "按方法定位机器问题并展示同页完整输出",
@@ -2526,7 +1838,6 @@
     },
     {
       "id": "2026-09-23-webmainbench-complete-545-five-methods",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-23",
       "title": "发布 WebMainBench 完整 545 题五方法对照",
@@ -2536,7 +1847,6 @@
     },
     {
       "id": "2026-09-20-wcxb-measured-mode-labels",
-      "publication_state": "published",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-20",
       "title": "明确可选清理模式与实测版本",
@@ -2548,7 +1858,6 @@
     },
     {
       "id": "2026-09-18-wcxb-adjacent-code-scope-correction",
-      "publication_state": "published",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",
       "title": "纠正相邻代码修复的含义与评分解释",
@@ -2560,7 +1869,6 @@
     },
     {
       "id": "2026-09-18-wcxb-moli-118-current-pr-comparison",
-      "publication_state": "published",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",
       "title": "更新 Moli 稳定版与当前修复版对照",
@@ -2572,7 +1880,6 @@
     },
     {
       "id": "2026-09-18-wcxb-moli-repair-figure-provenance",
-      "publication_state": "published",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",
       "title": "标清 Moli 修复图的版本与证据范围",
@@ -2586,7 +1893,6 @@
     },
     {
       "id": "2026-09-18-wcxb-moli-repair-visual-guide",
-      "publication_state": "published",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",
       "title": "用图和源码样本说明 Moli 的内容修复",
@@ -2600,7 +1906,6 @@
     },
     {
       "id": "2026-09-18-wcxb-moli-repair-explanation",
-      "publication_state": "published",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",
       "title": "补充 Moli 修复的输入与输出对照",
@@ -2614,7 +1919,6 @@
     },
     {
       "id": "2026-09-21-moli-seven-linux-release-resources",
-      "publication_state": "published",
       "date": "2026-09-21",
       "date_timezone": "Asia/Shanghai",
       "comparison_kinds": [
@@ -2666,7 +1970,6 @@
     },
     {
       "id": "2026-09-21-moli-seven-method-release-resource-calibration",
-      "publication_state": "published",
       "date": "2026-09-21",
       "date_timezone": "Asia/Shanghai",
       "comparison_kinds": [
@@ -2730,7 +2033,6 @@
     },
     {
       "id": "2026-09-21-moli-six-configuration-report",
-      "publication_state": "published",
       "date": "2026-09-21",
       "date_timezone": "Asia/Shanghai",
       "comparison_kinds": [
@@ -2782,7 +2084,6 @@
     },
     {
       "id": "2026-09-21-moli-119-fixed-layout-comparison",
-      "publication_state": "published",
       "date_timezone": "Asia/Shanghai",
       "comparison_kinds": [
         "moli_historical_failure_retest",
@@ -2846,7 +2147,6 @@
     },
     {
       "id": "2026-09-20-moli-version-layout-resource-summary",
-      "publication_state": "published",
       "date_timezone": "Asia/Shanghai",
       "publication": {
         "service": "Artifact Site",
@@ -2910,7 +2210,6 @@
     },
     {
       "id": "2026-09-18-wcxb-frozen-html-reader-clarification",
-      "publication_state": "published",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",
       "title": "澄清冻结 HTML 阅读视图",
@@ -2921,7 +2220,6 @@
     },
     {
       "id": "2026-09-18-wcxb-moli-complete-crossover-latency-correction",
-      "publication_state": "published",
       "comparison_kinds": [
         "wcxb_frozen_html_to_markdown"
       ],
@@ -2951,7 +2249,6 @@
     },
     {
       "id": "2026-09-18-wcxb-standalone-interpretation",
-      "publication_state": "published",
       "comparison_kinds": [
         "wcxb_frozen_html_to_markdown"
       ],
@@ -2981,7 +2278,6 @@
     },
     {
       "id": "2026-09-18-wcxb-obscura-and-paired-latency",
-      "publication_state": "published",
       "comparison_kinds": [
         "wcxb_frozen_html_to_markdown"
       ],
@@ -3011,7 +2307,6 @@
     },
     {
       "id": "2026-09-17-wcxb-expanded-representative-review",
-      "publication_state": "published",
       "comparison_kinds": [
         "wcxb_frozen_html_to_markdown"
       ],
@@ -3041,7 +2336,6 @@
     },
     {
       "id": "2026-09-17-wcxb-representative-audit-and-dataset-contract",
-      "publication_state": "published",
       "comparison_kinds": [
         "wcxb_frozen_html_to_markdown"
       ],
@@ -3071,7 +2365,6 @@
     },
     {
       "id": "2026-09-17-wcxb-qualified-test-results-and-preview",
-      "publication_state": "published",
       "comparison_kinds": [
         "wcxb_frozen_html_to_markdown"
       ],
@@ -3101,7 +2394,6 @@
     },
     {
       "id": "2026-09-18-wcxb-moli-repaired-separate-method",
-      "publication_state": "published",
       "comparison_kinds": [
         "wcxb_frozen_html_to_markdown"
       ],
@@ -3137,7 +2429,6 @@
     },
     {
       "id": "2026-09-14-public-benchmark-research",
-      "publication_state": "published",
       "comparison_kinds": ["public_benchmark_research"],
       "date": "2026-09-14",
       "title": "完成公开评测集调研与选型",
@@ -3159,7 +2450,6 @@
     },
     {
       "id": "2026-09-17-public-webmainbench-moli-balanced-latency-correction",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-17",
       "title": "纠正 Moli 两版的正式耗时",
@@ -3183,7 +2473,6 @@
     },
     {
       "id": "2026-09-17-public-webmainbench-moli-latency-rerun",
-      "publication_state": "published",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
       ],
@@ -3218,7 +2507,6 @@
     },
     {
       "id": "2026-09-17-public-webmainbench-detail-drilldown",
-      "publication_state": "published",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
       ],
@@ -3247,7 +2535,6 @@
     },
     {
       "id": "2026-09-17-public-webmainbench-final-success-latency",
-      "publication_state": "published",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
       ],
@@ -3276,7 +2563,6 @@
     },
     {
       "id": "2026-09-17-public-webmainbench-whole-report-interpretation",
-      "publication_state": "published",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
       ],
@@ -3299,7 +2585,6 @@
     },
     {
       "id": "2026-09-17-public-webmainbench-denominators-and-version-examples",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-17",
       "title": "用公式分实例解释计分页，并核对 Moli 版本差异",
@@ -3316,7 +2601,6 @@
     },
     {
       "id": "2026-09-17-public-webmainbench-moli-1-1-7",
-      "publication_state": "published",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"
       ],
@@ -3351,7 +2635,6 @@
     },
     {
       "id": "2026-09-16-public-webmainbench-reading-view",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-16",
       "title": "明确主内容评测范围并提供网页阅读视图",
@@ -3370,7 +2653,6 @@
     },
     {
       "id": "2026-09-16-public-webmainbench-decision-guide",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-16",
       "title": "用真实案例重写评测解读",
@@ -3390,7 +2672,6 @@
     },
     {
       "id": "2026-09-16-public-webmainbench-score-reading-and-layout",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-16",
       "title": "澄清计分分支、复算身份与核心表排序",
@@ -3410,7 +2691,6 @@
     },
     {
       "id": "2026-09-16-public-webmainbench-causal-interpretation",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-16",
       "title": "用全局证据重写公开基准解读",
@@ -3430,7 +2710,6 @@
     },
     {
       "id": "2026-09-16-public-webmainbench-anomaly-root-causes",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-16",
       "title": "补齐异常结果根因与对照证据",
@@ -3449,7 +2728,6 @@
     },
     {
       "id": "2026-09-16-public-webmainbench-report-information-architecture",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-16",
       "title": "重整公开基准报告的信息架构与逐页诊断",
@@ -3469,7 +2747,6 @@
     },
     {
       "id": "2026-09-15-public-webmainbench-dataset-and-result-clarity",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-15",
       "title": "公开基准页面与方法结果分开展示",
@@ -3488,7 +2765,6 @@
     },
     {
       "id": "2026-09-15-public-webmainbench-reading-and-inspection",
-      "publication_state": "published",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-15",
       "title": "公开网页基准的逐页对照与分类筛选",
@@ -3506,7 +2782,6 @@
     },
     {
       "id": "2026-09-15-resource-winner-presentation",
-      "publication_state": "published",
       "comparison_kinds": ["headless_html", "headless_markdown"],
       "date": "2026-09-15",
       "title": "资源对比按指标分组并明确领先者",
@@ -3531,7 +2806,6 @@
     },
     {
       "id": "2026-09-14-five-method-resource-profile",
-      "publication_state": "published",
       "comparison_kinds": ["headless_html", "headless_markdown"],
       "date": "2026-09-14",
       "scoring_revision_input_sha256": "8e8edd5c6e327010b480d98df95e949589491e5b5d91963641d58303bc735f98",
@@ -3559,7 +2833,6 @@
     },
     {
       "id": "2026-09-15-official-route-and-call-drilldown",
-      "publication_state": "published",
       "date": "2026-09-15",
       "comparison_kinds": ["web_fetch_methods"],
       "scoring_revision_input_sha256": [
@@ -3594,7 +2867,6 @@
     },
     {
       "id": "2026-09-11-full-matrix-root-cause-audit",
-      "publication_state": "published",
       "date": "2026-09-14",
       "comparison_kinds": ["web_fetch_methods"],
       "scoring_revision_input_sha256": [
@@ -3658,7 +2930,6 @@
     },
     {
       "id": "2026-09-10-twelve-method-refresh-contract",
-      "publication_state": "published",
       "date": "2026-09-10",
       "comparison_kinds": ["web_fetch_methods"],
       "scoring_revision_input_sha256": [
@@ -3698,7 +2969,6 @@
     },
     {
       "id": "2026-09-10-editorial-illustrations",
-      "publication_state": "published",
       "date": "2026-09-10",
       "title": "解读突出耗时减少比例并增加三张信息图",
       "summary": "首屏以 Chromium 为基准展示均值、P50、P95 的耗时减少比例；以结果总览和两张流程图替代重复总结与部分流程文字，标题改为直接的内容名称。",
@@ -3720,7 +2990,6 @@
     },
     {
       "id": "2026-09-10-editorial-reading-order",
-      "publication_state": "published",
       "date": "2026-09-10",
       "title": "解读开篇增加综合通过率与六类结果",
       "summary": "五浏览器解读先展示综合通过率与六类任务成绩，正文解释差异，结尾归纳结论。浏览器配置改为对照表，章节统一编号。",
@@ -3744,7 +3013,6 @@
     },
     {
       "id": "2026-09-10-five-browser-editorial",
-      "publication_state": "published",
       "date": "2026-09-10",
       "title": "增加五浏览器 Web Fetch 图文解读",
       "summary": "文章对比 Moli 1.1.1 与另外四款浏览器，明确 150 题中通过 135 题，完整展示均值、P50、P95，并用六个评测集的可切换案例并列标准答案与真实输出。原始调用、评分及榜单分母不变。",
@@ -3792,7 +3060,6 @@
     },
     {
       "id": "2026-09-09-publication-architecture-and-privacy",
-      "publication_state": "published",
       "date": "2026-09-09",
       "title": "说明按需发布架构，补全安装清单与公开安全门禁",
       "summary": "报告明确区分逻辑路由与线上物理文件，补齐双语入口、七种方法的安装清单和公开安全门禁；同时按固定最终轮纠正四题、三个 Moli 版本的 12 个异常耗时。任务输出、判定和分数不变，延迟汇总已重算。",
@@ -3852,7 +3119,6 @@
     },
     {
       "id": "2026-09-09-unified-method-comparison",
-      "publication_state": "published",
       "date": "2026-09-09",
       "title": "统一方法组合对比，补充 Moli 时延诊断",
       "summary": "结果分析页改为一个可同时处理双方法和多方法的对比器，并重新排版任务与结果；issue #66 的回退线索经公网顺序轮换与本地固定页对照后，保留为未能单因归因的长尾现象。正式任务、分数和耗时不变。",
@@ -3898,7 +3164,6 @@
     },
     {
       "id": "2026-09-09-method-comparison-and-large-evidence",
-      "publication_state": "published",
       "date": "2026-09-09",
       "title": "增加同题方法组合对比，修复大输出卡顿",
       "summary": "结果分析页新增两方法差异和多方法交集；超过 256 KiB 的完整证据不再自动插入页面，改为按需加载或直接下载。正式任务、调用、判定、分数和耗时均未改变。",
@@ -3937,7 +3202,6 @@
     },
     {
       "id": "2026-09-09-sites-and-report-skill",
-      "publication_state": "published",
       "date": "2026-09-09",
       "title": "迁移到 Sites，并固化评测报告工作流",
       "summary": "报告迁移到新的 Sites 域名并保留原站点；仓库新增跨评测类型的报告 Skill，覆盖评测设计、证据、独立核验、影响范围重跑和发布门禁。任务、输出、分数和耗时不变。",
@@ -3976,7 +3240,6 @@
     },
     {
       "id": "2026-09-08-cross-session-rebuild-hardening",
-      "publication_state": "published",
       "date": "2026-09-08",
       "title": "固定默认报告证据与实测路线",
       "scoring_revision_input_sha256": "ea7b9d530566874af1b8e6b13796a29975d752564d6b143a9e540902d4ef8406",
@@ -4016,7 +3279,6 @@
     },
     {
       "id": "2026-09-08-seven-method-final-audit",
-      "publication_state": "published",
       "date": "2026-09-08",
       "scoring_revision_input_sha256": [
         "7ae9fbf06965f3fdddb8c2a6fef36ee6dc44f6f92ac2e592780bc5bca8f6d4bc",
@@ -4090,7 +3352,6 @@
     },
     {
       "id": "2026-09-07-quote-field-boundary-explanation",
-      "publication_state": "published",
       "date": "2026-09-07",
       "title": "区分文字存在与字段边界完整",
       "summary": "复核 Quotes 异步列表的两版 Moli 输出：10 条引文和作者均已取得，但相邻字段及多标签之间没有可读分隔。任务结果保持未通过，详情页改为按引文、作者、标签逐字段呈现，避免把边界损失笼统写成文字缺失。",
@@ -4129,7 +3390,6 @@
     },
     {
       "id": "2026-09-07-document-reference-and-coverage-explanation",
-      "publication_state": "published",
       "scoring_revision_input_sha256": "7c6fa386ec26720b5395bc790fa50fbffd607f38da383f2d45f03a3b35f2da7a",
       "date": "2026-09-07",
       "title": "核对文档参考，纠正等价表格误判",
@@ -4183,7 +3443,6 @@
     },
     {
       "id": "2026-09-07-six-method-audited-correction",
-      "publication_state": "published",
       "scoring_revision_input_sha256": [
         "42ab6a774b647a4999a13e2ec13907b2d71830b77d529be0f2814af8b0731d43",
         "9d5469dc7070fc70866646f8a460e63b56cef332038df743de0ac67ffab84df2",
@@ -4263,7 +3522,6 @@
     },
     {
       "id": "2026-09-04-five-browser-fastest-markdown",
-      "publication_state": "published",
       "date": "2026-09-04",
       "title": "完成五种浏览器最快 Markdown 路线的 750 次实测",
       "summary": "Kitesurf、Lightpanda、Obscura、Moli 使用原生 Markdown，Chromium 使用渲染 DOM 加 node-html-markdown 2.0.0；150 题 × 5 种方法全部执行、独立参考生命周期与离线复评分全部通过。",
@@ -4330,7 +3588,6 @@
     },
     {
       "id": "2026-09-04-complete-file-evaluation",
-      "publication_state": "published",
       "date": "2026-09-04",
       "title": "完成文件任务评测，建立报告完整性发布门槛",
       "summary": "36 次文件任务全部实际调用并判定：Moli 与 Crawl4AI 各通过 3 次，共 6 次通过、30 次未通过、0 次未测。整份报告的 1,800 个计划调用均有唯一结果和明确判定。",
@@ -4390,7 +3647,6 @@
     },
     {
       "id": "2026-09-03-fairness-correction",
-      "publication_state": "published",
       "scoring_revision_input_sha256": "f3381fca684f6d453ef0ce2d10b0ccabfff45f64b64609901bd75b7f98fca28a",
       "date": "2026-09-03",
       "title": "统一验收口径，纠正参考、成绩与报告结论",

@@ -136,27 +136,27 @@ def test_report_labels_distinguish_release_and_source_build_with_same_version(tm
     from harness.web_fetch.report_explainer import provider_name
 
     identities={'implementations':[
-        {'provider':'moli-1.1.15','binary_sha256':'stable','version':'1.1.15'},
-        {'provider':'moli-fixed','binary_sha256':'branch',
-         'version':'1.1.17 · 聚合 PR #1501 源码构建（99a22382）'}]}
+        {'provider':'moli-release','binary_sha256':'stable','version':'1.1.15'},
+        {'provider':'moli-candidate','binary_sha256':'branch',
+         'version':'1.1.17 · candidate build (99a22382)'}]}
     (tmp_path/'implementation-provenance.json').write_text(json.dumps(identities))
     records=[{'provider':x['provider'],'provider_metadata':{'binary_sha256':x['binary_sha256']}}
              for x in identities['implementations']]
-    original=provider_label('moli-1.1.15')
+    original=provider_label('moli-release')
 
     @with_measured_method_labels
     def render(out,dataset,rows):
         for label in (provider_label,display_name,lambda n:provider_name(n,n)):
-            assert label('moli-1.1.15')=='Moli 1.1.15'
-            assert label('moli-fixed')=='Moli 1.1.17 · 聚合 PR #1501 源码构建（99a22382）'
+            assert label('moli-release')=='Moli 1.1.15'
+            assert label('moli-candidate')=='Moli 1.1.17 · candidate build (99a22382)'
 
     render(tmp_path,{},records)
-    assert provider_label('moli-1.1.15')==original
+    assert provider_label('moli-release')==original
     records[0]['provider_metadata']['binary_sha256']='different-build'
 
     @with_measured_method_labels
     def unrelated(out,dataset,rows):
-        assert provider_label('moli-1.1.15')==original
+        assert provider_label('moli-release')==original
 
     unrelated(tmp_path,{},records)
-    assert provider_label('moli-1.1.15')==original
+    assert provider_label('moli-release')==original

@@ -155,10 +155,13 @@ def assemble_profile_dataset(
     elif "native_retrieval_policy" in definition:
         raise ValueError("Native retrieval policy requires profile dataset assembly schema 3")
     repository = repository.resolve()
-    profile_path = (
-        contained_path(repository, profile_path_override, reject_symlinks=True)
-        if profile_path_override is not None
-        else contained_path(repository, definition["profile"], reject_symlinks=True)
+    declared_profile = definition.get("profile")
+    if profile_path_override is None and not declared_profile:
+        raise ValueError("Dataset assembly requires an external report profile")
+    profile_path = contained_path(
+        repository,
+        profile_path_override if profile_path_override is not None else declared_profile,
+        reject_symlinks=True,
     )
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
     inventory = profile.get("case_inventory")
@@ -235,7 +238,7 @@ def assemble_profile_dataset(
         "publication_state": "pre_call_frozen",
         "input_sources": input_sources,
         "reference_binding_mode": profile["reference_binding_mode"],
-        "reproduction_profile": definition["profile"],
+        "reproduction_profile": str(profile_path_override or declared_profile),
         "report_output": profile["report_output"],
     }
     review_scope = profile.get("independent_result_review_scope")

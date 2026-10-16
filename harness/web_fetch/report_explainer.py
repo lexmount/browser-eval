@@ -37,9 +37,7 @@ PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
                   'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区',
                   'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.5',
-                  'moli-pr919': 'Moli 1.1.15（历史方法标识）',
-                  'moli-1.1.15': 'Moli 1.1.15（正式版）',
-                  'moli-fixed': 'Moli 修复版（聚合 PR #1501）',
+                  'moli-pr919': 'Moli 历史方法标识',
                   'moli-1.1.3': 'Moli 1.1.3', 'moli-1.1.11': 'Moli 1.1.11'}
 
 def provider_name(name, fallback):

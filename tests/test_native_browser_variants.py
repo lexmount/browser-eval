@@ -9,7 +9,7 @@ from harness.web_fetch.report_interfaces import SPECS, browser_task_interface_ma
 
 
 class NativeBrowserVariantTests(unittest.TestCase):
-    candidate = "moli-1.1.15"
+    candidate = "moli-release"
     cases = [{"id": "body", "url": "https://example.com/", "track": "web", "task_kind": "body"}]
 
     def row(self, metadata, **fields):
@@ -26,52 +26,44 @@ class NativeBrowserVariantTests(unittest.TestCase):
             require_native_task_routes(self.cases, [self.row({"route": "ordinary_markdown", "output": "markdown"},
                                                          ok=False, error_type="configuration")])
 
-    def test_current_stacked_candidate_is_registered_as_moli(self):
+    def test_candidate_slot_is_registered_as_moli(self):
         from harness.web_fetch.methods import browser_method_label, native_browser_engine
-        self.assertEqual(native_browser_engine("moli-stack-1432"), "moli")
-        self.assertIn("1432", browser_method_label("moli-stack-1432"))
+        self.assertEqual(native_browser_engine("moli-candidate"), "moli")
+        self.assertEqual(browser_method_label("moli-candidate"), "Moli candidate build")
 
-    def test_fixed_candidate_is_distinct_from_release_and_binds_its_lineage(self):
+    def test_candidate_slot_is_distinct_from_release_without_report_lineage(self):
         from harness.web_fetch.methods import browser_method_label, browser_method_registry, native_browser_engine
-        self.assertEqual(native_browser_engine("moli-fixed"), "moli")
-        self.assertEqual(
-            browser_method_label("moli-fixed"),
-            "Moli 修复版（聚合 PR #1501）",
-        )
-        self.assertEqual(
-            browser_method_label("moli-1.1.15"),
-            "Moli 1.1.15（正式版）",
-        )
-        self.assertEqual(
-            browser_method_registry()["moli-fixed"]["source_url"],
-            "https://github.com/lexmount/moli/pull/1501",
-        )
-        self.assertNotEqual(browser_method_label("moli-fixed"), browser_method_label("moli-1.1.15"))
+        self.assertEqual(native_browser_engine("moli-candidate"), "moli")
+        self.assertEqual(browser_method_label("moli-release"), "Moli release build")
+        self.assertEqual(browser_method_registry()["moli-candidate"]["source_url"],
+                         "https://github.com/lexmount/moli")
+        self.assertNotEqual(browser_method_label("moli-candidate"),
+                            browser_method_label("moli-release"))
 
     def test_report_labels_mixed_fixed_evidence_by_measured_versions_and_counts(self):
         from harness.web_fetch.methods import browser_method_label, with_measured_method_labels
 
         @with_measured_method_labels
         def render(out, dataset, records):
-            return browser_method_label("moli-fixed")
+            return browser_method_label("moli-candidate")
 
         records = [
-            {"provider": "moli-fixed", "provider_metadata": {"binary_sha256": "a" * 64}},
-            {"provider": "moli-fixed", "provider_metadata": {"binary_sha256": "a" * 64}},
-            {"provider": "moli-fixed", "provider_metadata": {"binary_sha256": "b" * 64}},
+            {"provider": "moli-candidate", "provider_metadata": {"binary_sha256": "a" * 64}},
+            {"provider": "moli-candidate", "provider_metadata": {"binary_sha256": "a" * 64}},
+            {"provider": "moli-candidate", "provider_metadata": {"binary_sha256": "b" * 64}},
         ]
         with tempfile.TemporaryDirectory() as folder:
             out = Path(folder)
             (out / "implementation-provenance.json").write_text(json.dumps({
                 "implementations": [
                     {"provider": "moli", "binary_sha256": "a" * 64, "version": "1.1.15"},
-                    {"provider": "moli-fixed", "binary_sha256": "b" * 64,
+                    {"provider": "moli-candidate", "binary_sha256": "b" * 64,
                      "version": "1.1.17（60773df3）"},
                 ]
             }))
             self.assertEqual(
                 render(out, {}, records),
-                "Moli 修复结果（2 例 1.1.15；1 例 1.1.17（60773df3））",
+                "Moli 多构建结果（2 例 1.1.15；1 例 1.1.17（60773df3））",
             )
 
     def test_report_uses_one_short_label_for_multiple_builds_of_same_fixed_release(self):
@@ -79,23 +71,23 @@ class NativeBrowserVariantTests(unittest.TestCase):
 
         @with_measured_method_labels
         def render(out, dataset, records):
-            return browser_method_label("moli-fixed")
+            return browser_method_label("moli-candidate")
 
         records = [
-            {"provider": "moli-fixed", "provider_metadata": {"binary_sha256": "a" * 64}},
-            {"provider": "moli-fixed", "provider_metadata": {"binary_sha256": "b" * 64}},
+            {"provider": "moli-candidate", "provider_metadata": {"binary_sha256": "a" * 64}},
+            {"provider": "moli-candidate", "provider_metadata": {"binary_sha256": "b" * 64}},
         ]
         with tempfile.TemporaryDirectory() as folder:
             out = Path(folder)
             (out / "implementation-provenance.json").write_text(json.dumps({
                 "implementations": [
-                    {"provider": "moli-fixed", "binary_sha256": "a" * 64,
+                    {"provider": "moli-candidate", "binary_sha256": "a" * 64,
                      "version": "1.1.17（a737f2ae，保留结果）"},
-                    {"provider": "moli-fixed", "binary_sha256": "b" * 64,
+                    {"provider": "moli-candidate", "binary_sha256": "b" * 64,
                      "version": "1.1.17（0d9a7ceb，修正结果）"},
                 ]
             }))
-            self.assertEqual(render(out, {}, records), "Moli 1.1.17（修复版）")
+            self.assertEqual(render(out, {}, records), "Moli 1.1.17（候选版）")
 
     def test_unknown_native_participant_cannot_bypass_route_validation(self):
         with self.assertRaises(ValueError):
@@ -174,7 +166,7 @@ class NativeBrowserVariantTests(unittest.TestCase):
         self.assertIn("不按题目设置 selector", description["notes"])
 
     def test_versioned_moli_entry_does_not_invent_an_html_route(self):
-        for provider in (self.candidate, "moli-fixed"):
+        for provider in (self.candidate, "moli-candidate"):
             description = method_spec(provider, self.row({
                 "reported_version": "moli 1.1.15", "route": "ordinary_markdown",
                 "dump": "markdown", "extractor": "moli_native_markdown",
@@ -285,6 +277,6 @@ class NativeBrowserVariantTests(unittest.TestCase):
                 {"path": "article.json", "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
             self.assertIn("5 种浏览器", body)
             self.assertIn("6 种配置", body)
-            self.assertIn("Moli 1.1.15（正式版）", body)
+            self.assertIn("Moli release build", body)
             self.assertNotRegex(body, r"6\s*[种个]\s*浏览器")
             self.assertEqual(body.count('data-browser-interface='), 42)
