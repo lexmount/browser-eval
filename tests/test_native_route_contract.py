@@ -457,6 +457,41 @@ def test_http_native_answers_survive_persistence_and_reject_tampering(tmp_path, 
     persist_result_artifacts(tmp_path, Path('artifacts/answer.txt'), result, request_url=case.url)
 
 
+def test_missing_native_fields_cannot_be_filled_by_declaration_defaults(tmp_path):
+    import base64
+    import hashlib
+    from copy import deepcopy
+    from pathlib import Path
+    from harness.web_fetch.models import ProviderResult
+    from harness.web_fetch.native_routes import verify_saved_native_answer
+    from harness.web_fetch.runner import persist_result_artifacts
+
+    raw = b'{"content":"answer"}'
+    result = ProviderResult(True, 'answer', metadata={
+        '_raw_response_b64': base64.b64encode(raw).decode(),
+        'raw_response_sha256': hashlib.sha256(raw).hexdigest(),
+        'raw_response_bytes': len(raw), 'images': [],
+        'native_answer_projection': {'schema_version': 2, 'content_pointer': ['content'],
+            'content_format': 'text', 'answer_fields': {
+                'images': {'pointer': ['images'], 'default': []}}}})
+    forged = deepcopy(result)
+    forged.metadata['images'] = ['https://example.test/forged.png']
+    forged.metadata['native_answer_projection']['answer_fields']['images']['default'] = forged.metadata['images']
+    with pytest.raises(ValueError, match='defaults must be empty'):
+        persist_result_artifacts(tmp_path, Path('artifacts/forged.txt'), forged)
+    assert not (tmp_path/'artifacts/forged.txt').exists()
+
+    persist_result_artifacts(tmp_path, Path('artifacts/answer.txt'), result)
+    record = {'ok': True, 'artifact_path': 'artifacts/answer.txt',
+              'provider_metadata': result.metadata,
+              'metrics': {'content_sha256': hashlib.sha256(b'answer').hexdigest()}}
+    verify_saved_native_answer(tmp_path, record)
+    record['provider_metadata']['images'] = forged.metadata['images']
+    record['provider_metadata']['native_answer_projection'] = forged.metadata['native_answer_projection']
+    with pytest.raises(ValueError, match='defaults must be empty'):
+        verify_saved_native_answer(tmp_path, record)
+
+
 def test_projection_cannot_read_request_echo_outside_declared_answer_fields():
     import json
     from lexbench_webfetch.answer_projection import require_native_answer_projection
