@@ -1600,7 +1600,7 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
     # The existing owner renders from saved metrics. Only these explanatory
     # routes may be installed; review mode also selects fresh result details.
     # Logs and every measured byte remain outside the install allowlist.
-    routes = ['index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html', 'changes/index.html']
+    routes = ['assets/report.js', 'assets/style.css', 'index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html', 'changes/index.html']
     routes += ['providers/' + provider + '.html' for provider in binding['providers']]
     routes += ['adoption/interfaces/' + provider + '.json' for provider in binding['providers']]
     if review_only:

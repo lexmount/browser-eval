@@ -440,6 +440,9 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     binding.pop("measured_scoring_git_revision", None)
     _write(binding_path, binding)
     (output / "changes/index.html").write_text("<html><body>Old release history</body></html>")
+    # Refresh must install the shared behavior/style required by new detail HTML.
+    for relative in ("assets/report.js", "assets/style.css"):
+        (output / relative).write_text("stale-presentation-asset")
     before = {path.relative_to(output).as_posix(): _digest(path)
               for path in output.rglob("*") if path.is_file()}
     from unittest.mock import patch
@@ -457,9 +460,12 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     with patch('harness.web_fetch.report_build.generate', wraps=current_renderer) as rendered:
         refresh_local_presentation(output, binding_path)
     assert rendered.call_args.kwargs['authored_interpretation'] is False
+    for relative in ("assets/report.js", "assets/style.css"):
+        assert "stale-presentation-asset" not in (output / relative).read_text()
     allowed = {"index.html", "methodology/index.html", "adoption/index.html",
                "reproduce/index.html", "changes/index.html", "providers/fixture.html",
-               "adoption/interfaces/fixture.json", "report-manifest.json"}
+               "adoption/interfaces/fixture.json", "report-manifest.json",
+               "assets/report.js", "assets/style.css"}
     if include_english:
         allowed.update('en/' + path for path in list(allowed) if path.endswith('.html'))
     for relative, digest in before.items():
