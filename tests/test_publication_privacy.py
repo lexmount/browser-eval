@@ -843,3 +843,38 @@ def test_nested_sensitive_objects_and_documented_auth_placeholders_agree_at_expo
     placeholder = b'{"Authorization":"Bearer <YOUR_API_KEY>"}'
     assert project_file('native.txt',placeholder) == (placeholder,None)
     assert publication_risk(placeholder) is None
+
+
+def test_review_layer_excerpts_project_public_examples_and_rebind_wrappers():
+    from harness.web_fetch.publication_privacy import project_host_metadata_files, publication_risk
+    example = '{"clientSecret":"private-example-canary","count":5}'
+    nested = {'frozen_reference_files': [{'probes': [{'text': example}]}]}
+    original = {'attempts': [{'agent_evidence': example, 'effective_agent_evidence': example,
+        'anomaly_review': {'layers': {'reference': {**nested,
+            'evidence': json.dumps(nested)}}}}]}
+    raw = json.dumps(original).encode()
+    files = {'local-evidence/review/supplement.json': raw,
+             'result-review.json': json.dumps({'supplemental_reviews': [{'path':
+                 'local-evidence/review/supplement.json', 'sha256': hashlib.sha256(raw).hexdigest()}]}).encode()}
+    unchanged, _ = project_host_metadata_files(files, ['/Users/fixture'])
+    assert unchanged == files and publication_risk(raw)
+    public, receipt = project_host_metadata_files(files, ['/Users/fixture'], public_excerpt_views=True)
+    projected = public['local-evidence/review/supplement.json']
+    assert not publication_risk(projected) and b'private-example-canary' not in projected
+    row = json.loads(projected)['attempts'][0]
+    assert json.loads(row['agent_evidence'])['count'] == 5
+    assert json.loads(row['anomaly_review']['layers']['reference']['evidence'])['frozen_reference_files'][0]['probes'][0]['text']
+    binding = json.loads(public['result-review.json'])['supplemental_reviews'][0]
+    assert binding['sha256'] == hashlib.sha256(projected).hexdigest()
+    assert files['local-evidence/review/supplement.json'] == raw
+    record = next(r for r in receipt['files'] if r['path'].endswith('supplement.json'))
+    assert record['original_sha256'] == hashlib.sha256(raw).hexdigest()
+    assert record['published_sha256'] == binding['sha256']
+
+
+def test_review_projection_does_not_hide_risks_in_unrelated_metadata():
+    from harness.web_fetch.publication_privacy import project_host_metadata_files, publication_risk
+    raw = json.dumps({'unrelated': '{"clientSecret":"private-example-canary"}'}).encode()
+    files = {'local-evidence/review/supplement.json': raw}
+    public, _ = project_host_metadata_files(files, ['/Users/fixture'], public_excerpt_views=True)
+    assert public == files and publication_risk(public['local-evidence/review/supplement.json'])

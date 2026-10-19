@@ -623,12 +623,15 @@ def project_host_metadata_files(files, host_prefixes, *, host_names=(), public_e
                 if not host:
                     raise ValueError('Host names must be explicit nonempty identities')
                 result = result.replace(host, '[HOSTNAME_OMITTED]')
-            if public_excerpt_views and (path.endswith('.samples[].text')
+            review_excerpt = (path.endswith(('.agent_evidence', '.effective_agent_evidence'))
+                    or ('.layers.' in path
+                        and path.endswith(('.evidence', '.probes[].text'))))
+            if public_excerpt_views and (review_excerpt or path.endswith('.samples[].text')
                     or path.endswith('.agent_evidence_quotes[]') or path.endswith('.evidence_quotes[]')
                     or ('.metrics.' in path and path.endswith('.context'))):
                 public, _ = project_evidence_view('public-evidence/excerpt.txt', result.encode('utf-8'),
                     role='scored_answer', host_prefixes=host_prefixes, host_names=host_names,
-                    content_format='text')
+                    content_format='auto' if review_excerpt else 'text')
                 result = public.decode('utf-8')
             if result != node:
                 fields.append(path)

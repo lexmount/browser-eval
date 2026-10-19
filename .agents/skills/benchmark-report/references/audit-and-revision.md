@@ -51,6 +51,8 @@ Never overwrite old evidence or select a later response because it scores better
 
 Before a cohort-wide offline recomputation, finish the paired controls and compare the known affected output family with its independent judgments. Cover equivalent serializers and adjacent invalid forms together, including visible text outside a link, image alternatives, and record ownership. Batch the shared corrections before the expensive sweep; do not rerun unchanged browser calls. Bound both worker count and queued payloads when saved outputs or logs are large.
 
+A partial impact cache must retain each inherited record's actual scoring-source identity. Never stamp unchanged cached metrics with the new source hash. Select candidates through the same normalized fields as the changed parser; raw substring searches can miss labels formed by nested markup. Before accepting a partial sweep, check the normalized full-population candidates against the selected scope and rescore any uncovered candidates through the public scorer.
+
 A subresource network error does not establish a main-navigation failure. Failure categories must agree with the reviewed cause and its actual stage; keep missing embedded content, unsupported direct-file conversion, empty output, and process crashes distinct. Interpretation pages show complete distributions and representative evidence. Full per-result diagnoses belong in the existing result inventory and details.
 
 ## Revision receipts
