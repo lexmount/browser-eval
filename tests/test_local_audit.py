@@ -1042,3 +1042,27 @@ def test_full_current_refresh_requires_explicit_authority_and_changed_template(t
     bad=binding();path.write_text('changed')
     with pytest.raises(ValueError):
         _current_template_refresh(tmp_path,bad,changed)
+
+
+@pytest.mark.parametrize("current", [False, True])
+def test_frozen_manifest_uses_only_the_selected_task_replacement_authority(tmp_path, current):
+    from harness.web_fetch.report_build import write_frozen_presentation_manifest
+    scope = {'added_case_id': 'current-task', 'removed_case_id': 'retired-task'}
+    authority = {'kind': 'current_local_snapshot_authority' if current else 'local_offline_score_revision',
+                 'schema_version': 1, 'task_replacement_current_scope': scope}
+    path = tmp_path/'authority.json'
+    _write(path, authority)
+    _write(tmp_path/'presentation-binding.json', {'offline_revision': {
+        'path': path.name, 'sha256': _digest(path)}})
+    _write(tmp_path/'report-languages.json', {'languages': ['zh'], 'primary_language': 'zh'})
+    original = {'task_replacement': {'path': 'deleted-history/receipt.json', 'sha256': 'old'},
+                'results_sha256': 'unchanged-results'}
+    write_frozen_presentation_manifest(tmp_path, original)
+    saved = json.loads((tmp_path/'report-manifest.json').read_text())
+    assert saved['results_sha256'] == original['results_sha256']
+    if current:
+        assert 'task_replacement' not in saved
+        assert saved['task_replacement_current_scope'] == scope
+    else:
+        assert saved['task_replacement'] == original['task_replacement']
+        assert 'task_replacement_current_scope' not in saved

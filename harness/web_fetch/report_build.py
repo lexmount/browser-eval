@@ -313,6 +313,19 @@ def write_frozen_presentation_manifest(output, manifest, *, show_local_status_ba
     from harness.report_languages import generated_languages
     from harness.reporting.templates import resolve_template
     current = dict(manifest)
+    binding_path = output / 'presentation-binding.json'
+    if binding_path.is_file():
+        binding = json.loads(binding_path.read_text())
+        if binding.get('offline_revision'):
+            from .local_revision import read_bound
+            authority = json.loads(read_bound(output, binding['offline_revision']).read_text())
+            if authority.get('kind') == 'current_local_snapshot_authority':
+                if authority.get('schema_version') != 1:
+                    raise ValueError('Unsupported current presentation authority')
+                current.pop('task_replacement', None)
+                current.pop('task_replacement_current_scope', None)
+                if authority.get('task_replacement_current_scope') is not None:
+                    current['task_replacement_current_scope'] = authority['task_replacement_current_scope']
     languages = list(generated_languages(output))
     current.update(template=resolve_template('webfetch'), languages=languages, generated_languages=languages,
                    presentation={"show_local_status_banners": show_local_status_banners,
