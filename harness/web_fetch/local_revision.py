@@ -118,7 +118,21 @@ def _require_native_answer_correction(source, original, corrected, proof):
                      if 'result_fields' in proof['projection'] else {})
     if any(corrected.get(key) != value for key, value in result_fields.items()):
         raise ValueError('Native result context correction differs from original fields')
-    if read_bound(source, after).read_bytes() != text.encode('utf-8', errors='replace'):
+    after_path = read_bound(source, after)
+    if hashlib.sha256(native.read_bytes()).hexdigest() != proof['native_response']['sha256']:
+        # A disclosed native public view projects public answer bytes. Compare
+        # its explicitly paired answer view even while private scoring bytes
+        # are temporarily restored; neither view reconstructs the original.
+        from .publication_privacy import bound_public_view
+        native_view = bound_public_view(source, proof['native_response'])
+        answer_view = bound_public_view(source, after)
+        if (native_view is None or answer_view is None
+                or native_view[0] != native
+                or native_view[1]['original_sha256'] != proof['native_response']['sha256']
+                or answer_view[1]['original_sha256'] != after['sha256']):
+            raise ValueError('Native public projection requires its bound public answer pair')
+        after_path = answer_view[0]
+    if after_path.read_bytes() != text.encode('utf-8', errors='replace'):
         raise ValueError('Native answer correction differs from declared original fields')
     for field in proof['projection'].get('answer_fields', {}).values():
         if field.get('format') == 'html_attribute_urls' and field.get('base_url') != (result_fields.get('final_url') or original['url']):
@@ -131,6 +145,80 @@ def _require_native_answer_correction(source, original, corrected, proof):
     if ({k: v for k, v in original.items() if k not in derived}
             != {k: v for k, v in corrected.items() if k not in derived}):
         raise ValueError('Native answer correction changed physical call facts')
+
+
+def _native_context_proof(source, original, request):
+    """Replay context from one bound physical call, preserving its answer bytes."""
+    from .providers.moli import replay_native_http_error_context
+    from .publication_privacy import original_evidence_size
+    if (set(request) != {'attempt_id', 'stdout', 'diagnostic', 'call_log', 'projection'}
+            or request['attempt_id'] != original['attempt_id']
+            or original.get('provider_type') != 'moli_webfetch'):
+        raise ValueError('Native context correction has an invalid call scope')
+    stdout = request['stdout']
+    metadata = original.get('provider_metadata', {})
+    if (stdout['path'] != original['artifact_path']
+            or stdout['sha256'] != original['metrics']['content_sha256']
+            or any(request['call_log'].get(k) != metadata.get('call_log', {}).get(k)
+                   for k in ('path', 'sha256'))):
+        raise ValueError('Native context correction changed original output or call binding')
+    raw = read_bound(source, stdout).read_bytes()
+    call = json.loads(read_bound(source, request['call_log']).read_bytes())
+    identity, process = call.get('identity', {}), call.get('process', {})
+    output, capture = call.get('output', {}), call.get('capture', {})
+    if (identity.get('attempt_id') != original['attempt_id']
+            or identity.get('case_id') != original['case_id']
+            or identity.get('provider') != original['provider']
+            or call.get('request', {}).get('url') != original.get('url')
+            or call.get('request', {}).get('route') != 'ordinary_markdown'
+            or output.get('path') != stdout['path']
+            or output.get('sha256') != stdout['sha256']
+            or output.get('bytes') != original_evidence_size(source, stdout)
+            or process.get('stdout_truncated') is not False
+            or process.get('stderr_truncated') is not False
+            or capture.get('process_stdout') != 'bound_as_output'
+            or capture.get('process_stderr') != 'captured_complete'
+            or not isinstance(process.get('stderr'), str)):
+        raise ValueError('Native context correction lacks complete same-call ownership')
+    diagnostic = read_bound(source, request['diagnostic']).read_bytes()
+    if diagnostic != process['stderr'].encode('utf-8'):
+        raise ValueError('Native context diagnostic differs from bound physical call')
+    fields = replay_native_http_error_context(raw, diagnostic, original['url'],
+        process.get('exit_code'), request['projection'])
+    before = {key: original.get(key) for key in fields}
+    if before == fields:
+        raise ValueError('Native context correction does not change request context')
+    return {**request, 'original_context': before, 'corrected_context': fields,
+            'diagnostic_source': 'bound_physical_call_process_stderr',
+            'historical_diagnostic': {key: metadata.get(key) for key in
+                ('diagnostic_log_path', 'diagnostic_log_sha256')}}, fields
+
+
+def _require_native_context_correction(source, original, corrected, proof):
+    request = {key: proof[key] for key in
+        ('attempt_id', 'stdout', 'diagnostic', 'call_log', 'projection')}
+    expected, fields = _native_context_proof(source, original, request)
+    if proof != expected or any(corrected.get(key) != value for key, value in fields.items()):
+        raise ValueError('Native context correction differs from replayed same-call context')
+    derived = {'metrics', 'scoring', 'diagnosis', 'failure_category'} | set(fields)
+    if ({key: value for key, value in original.items() if key not in derived}
+            != {key: value for key, value in corrected.items() if key not in derived}
+            or original['metrics']['content_sha256'] != corrected['metrics']['content_sha256']):
+        raise ValueError('Native context correction changed physical call facts or answer')
+
+
+def _read_input_verdicts(source, binding, input_results_sha256, identifiers):
+    """Validate frozen input provenance before rescoring or installing history."""
+    proof = json.loads(read_bound(source, binding).read_text())
+    verdicts = proof.get('verdicts', {})
+    if (proof.get('input_results_sha256') != input_results_sha256
+            or set(verdicts) != set(identifiers)
+            or any(type(value) is not bool for value in verdicts.values())
+            or not proof.get('frozen_predicate') or not proof.get('snapshot_manifest')):
+        raise ValueError('Frozen input verdict proof is incomplete')
+    read_bound(source, proof['frozen_predicate'])
+    read_bound(source, proof['snapshot_manifest'])
+    return verdicts
 
 
 def _require_revision_step(source, receipt, dataset, records, outputs):
@@ -183,11 +271,19 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
     if (len(corrected_answers) != len(native_proofs)
             or not set(corrected_answers) <= scored):
         raise ValueError('Native answer correction scope differs from rescoring scope')
+    context_proofs = receipt.get('native_context_corrections', [])
+    corrected_contexts = {item['attempt_id']: item for item in context_proofs}
+    if (len(corrected_contexts) != len(context_proofs)
+            or not set(corrected_contexts) <= scored
+            or set(corrected_contexts) & set(corrected_answers)):
+        raise ValueError('Native context correction scope differs from rescoring scope')
     expected_scoring = {}
     for identifier, old in old_rows.items():
         new = new_rows[identifier]
         if identifier in corrected_answers:
             _require_native_answer_correction(source, old, new, corrected_answers[identifier])
+        elif identifier in corrected_contexts:
+            _require_native_context_correction(source, old, new, corrected_contexts[identifier])
         elif ({k: v for k, v in old.items() if k not in {'metrics', 'scoring', 'diagnosis', 'failure_category'}}
                 != {k: v for k, v in new.items() if k not in {'metrics', 'scoring', 'diagnosis', 'failure_category'}}
                 or old['metrics']['content_sha256'] != new['metrics']['content_sha256']):
@@ -210,15 +306,8 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
         raise ValueError('Local revision scoring source binding changed')
     from lexbench_webfetch.metrics import task_passed
     if receipt.get('input_verdicts'):
-        proof = json.loads(read_bound(source, receipt['input_verdicts']).read_text())
-        verdicts = proof.get('verdicts', {})
-        if (proof.get('input_results_sha256') != receipt['input_results']['sha256']
-                or set(verdicts) != set(old_rows)
-                or any(type(value) is not bool for value in verdicts.values())
-                or not proof.get('frozen_predicate') or not proof.get('snapshot_manifest')):
-            raise ValueError('Frozen input verdict proof is incomplete')
-        read_bound(source, proof['frozen_predicate'])
-        read_bound(source, proof['snapshot_manifest'])
+        verdicts = _read_input_verdicts(source, receipt['input_verdicts'],
+            receipt['input_results']['sha256'], old_rows)
     else:
         verdicts = {key: task_passed(row['ok'], row['metrics']) for key, row in old_rows.items()}
     transitions = [{'attempt_id': row['attempt_id'], 'before': verdicts[row['attempt_id']],
@@ -243,7 +332,6 @@ def revise_local_snapshot(source, configuration):
 
     config = json.loads(configuration.read_text())
     regressions = config.get('regression_ids', [])
-    require_scoring_regressions(regressions)
     if not regressions or not config.get('authority', {}).get('description'):
         raise ValueError('Local revision requires authority and regression provenance')
     dataset_bytes = (source / 'dataset.json').read_bytes()
@@ -252,6 +340,12 @@ def revise_local_snapshot(source, configuration):
     original_dataset = json.loads(dataset_bytes)
     dataset = copy.deepcopy(original_dataset)
     records = load_jsonl(source / 'results.jsonl')
+    if config.get('predecessor_revision'):
+        validate_revision_chain(source, config['predecessor_revision'], original_dataset, records)
+    input_verdicts = (_read_input_verdicts(source, config['input_verdicts'],
+        input_results_sha256, {row['attempt_id'] for row in records})
+        if config.get('input_verdicts') else None)
+    require_scoring_regressions(regressions)
     replacements = {case['id']: case for case in config['cases']}
     if len(replacements) != len(config['cases']) or not replacements.keys() <= {c['id'] for c in dataset['cases']}:
         raise ValueError('Local revision has an invalid case scope')
@@ -277,18 +371,18 @@ def revise_local_snapshot(source, configuration):
     if (len(native_requests) != len(native_inputs)
             or not set(native_requests) <= {row['attempt_id'] for row in records}):
         raise ValueError('Native answer correction has an invalid input scope')
+    context_inputs = config.get('native_context_corrections', [])
+    context_requests = {item['attempt_id']: item for item in context_inputs}
+    if (len(context_requests) != len(context_inputs)
+            or not set(context_requests) <= {row['attempt_id'] for row in records}
+            or set(context_requests) & set(native_requests)):
+        raise ValueError('Native context correction has an invalid input scope')
     additional.update(native_requests)
+    additional.update(context_requests)
     indexed = {case['id']: case for case in dataset['cases']}
-    input_verdicts = None
-    if config.get('input_verdicts'):
-        proof = json.loads(read_bound(source, config['input_verdicts']).read_text())
-        input_verdicts = proof.get('verdicts', {})
-        if (proof.get('input_results_sha256') != input_results_sha256
-                or set(input_verdicts) != {row['attempt_id'] for row in records}
-                or any(type(value) is not bool for value in input_verdicts.values())):
-            raise ValueError('Frozen input verdicts do not match the complete input results')
     selected = []
     native_proofs = []
+    context_proofs = []
     before_verdicts = {}
     for row in records:
         if row['case_id'] not in replacements and row['attempt_id'] not in additional:
@@ -328,6 +422,10 @@ def revise_local_snapshot(source, configuration):
                 'native_response': request['native_response'], 'projection': request['projection'],
                 'original_artifact': original_artifact,
                 'corrected_artifact': {'path': row['artifact_path'], 'sha256': digest}})
+        if row['attempt_id'] in context_requests:
+            proof, fields = _native_context_proof(source, row, context_requests[row['attempt_id']])
+            row.update(fields)
+            context_proofs.append(proof)
         row['metrics'] = score_attempt(case, raw, ok=row['ok'], status_code=row.get('status_code'),
             title=row.get('title'), final_url=row.get('final_url'), metadata=row.get('provider_metadata'),
             previous_metrics=row['metrics'], list_reference=load_list_reference(case, source))
@@ -363,6 +461,7 @@ def revise_local_snapshot(source, configuration):
             if case != next(c for c in original_dataset['cases'] if c['id'] == case['id'])),
         'rescored_attempt_ids': selected, 'rule_revision': bool(config.get('rule_revision')),
         **({'native_answer_corrections': native_proofs} if native_proofs else {}),
+        **({'native_context_corrections': context_proofs} if context_proofs else {}),
         'input_verdicts': config.get('input_verdicts'),
         **({'predecessor_revision': config['predecessor_revision']} if config.get('predecessor_revision') else {}),
         'superseded_controls': config.get('superseded_controls', []),

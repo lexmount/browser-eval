@@ -303,3 +303,184 @@ def test_native_context_revision_replays_native_fields_and_rejects_tampering(tmp
     fixed[field] = changed
     with pytest.raises(ValueError, match='context correction'):
         _require_native_answer_correction(tmp_path, current, fixed, proof)
+
+
+def _context_fixture(tmp_path):
+    raw = b'Page body retained exactly'
+    url = 'https://example.test/'
+    diagnostic = f'DEBUG fetch request complete method=GET url={url} final_url={url} status=418\n'
+    def put(name, content):
+        data = content if isinstance(content, bytes) else content.encode()
+        (tmp_path / name).write_bytes(data)
+        return {'path': name, 'sha256': hashlib.sha256(data).hexdigest()}
+    stdout = put('answer.txt', raw)
+    diag = put('diagnostic.txt', diagnostic)
+    case = {'id': 'a', 'url': url, 'required_facts': [
+        {'id': 'body', 'alternatives': ['Page body retained exactly']}]}
+    call = {'identity': {'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a'},
+        'request': {'url': url, 'route': 'ordinary_markdown'},
+        'output': {**stdout, 'bytes': len(raw)},
+        'process': {'exit_code': 0, 'stderr': diagnostic,
+            'stdout_truncated': False, 'stderr_truncated': False},
+        'capture': {'process_stdout': 'bound_as_output', 'process_stderr': 'captured_complete'}}
+    binding = put('call.json', json.dumps(call))
+    row = {'attempt_id': 'p__a', 'provider': 'p', 'provider_type': 'moli_webfetch',
+        'case_id': 'a', 'url': url, 'ok': True, 'status_code': None,
+        'artifact_path': 'answer.txt', 'elapsed_ms': 17, 'started_at': 'preserved',
+        'provider_metadata': {'call_log': binding}, 'metrics': score_attempt(case, raw, ok=True)}
+    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}))
+    (tmp_path / 'results.jsonl').write_text(json.dumps(row) + '\n')
+    request = {'attempt_id': 'p__a', 'stdout': stdout, 'diagnostic': diag,
+        'call_log': binding, 'projection': {'schema_version': 1, 'format': 'fetch_log_http_error'}}
+    config = {'cases': [], 'authority': {'description': 'Same physical call context correction'},
+        'regression_ids': ['explicit-body-request-failure-stays-failed'],
+        'native_context_corrections': [request]}
+    return raw, row, request, config, put
+
+
+def test_context_only_revision_replays_same_call_and_preserves_answer(tmp_path):
+    raw, old, request, config, put = _context_fixture(tmp_path)
+    configuration = tmp_path / 'config.json'
+    configuration.write_text(json.dumps(config))
+    receipt = revise_local_snapshot(tmp_path, configuration)
+    new = json.loads((tmp_path / 'results.jsonl').read_text())
+    assert (new['ok'], new['status_code'], new['error_type'], new['error_message']) == (
+        False, 418, 'api_error', 'Moli returned HTTP 418')
+    assert (tmp_path / 'answer.txt').read_bytes() == raw
+    assert new['artifact_path'] == old['artifact_path']
+    assert new['provider_metadata'] == old['provider_metadata']
+    assert new['started_at'] == old['started_at'] and new['elapsed_ms'] == 17
+    assert new['metrics']['content_sha256'] == old['metrics']['content_sha256']
+    assert receipt['native_context_corrections'][0]['original_context']['ok'] is True
+    assert receipt['native_context_corrections'][0]['diagnostic_source'] == 'bound_physical_call_process_stderr'
+    assert receipt['provider_calls_added'] == 0
+
+
+@pytest.mark.parametrize('mutation', ['diagnostic', 'identity', 'output', 'incomplete', 'nonzero', 'ambiguity', 'fields'])
+def test_context_replay_rejects_unbound_or_ambiguous_context(tmp_path, mutation):
+    from harness.web_fetch.local_revision import _native_context_proof
+    raw, row, request, config, put = _context_fixture(tmp_path)
+    call = json.loads((tmp_path / 'call.json').read_text())
+    if mutation == 'diagnostic':
+        request['diagnostic'] = put('other.txt', 'invented diagnostic')
+    elif mutation == 'identity':
+        call['identity']['attempt_id'] = 'other'
+    elif mutation == 'output':
+        call['output']['sha256'] = '0' * 64
+    elif mutation == 'incomplete':
+        call['process']['stderr_truncated'] = True
+    elif mutation == 'nonzero':
+        call['process']['exit_code'] = 1
+    elif mutation == 'ambiguity':
+        call['process']['stderr'] += 'DEBUG detached committed main WindowProxy for replacement context page_id=1\n'
+        request['diagnostic'] = put('diagnostic.txt', call['process']['stderr'])
+    elif mutation == 'fields':
+        request['projection']['ok'] = False
+    binding = put('call.json', json.dumps(call))
+    row['provider_metadata']['call_log'] = binding
+    request['call_log'] = binding
+    with pytest.raises(ValueError):
+        _native_context_proof(tmp_path, row, request)
+
+
+def test_context_revision_validator_rejects_answer_and_time_changes(tmp_path):
+    from harness.web_fetch.local_revision import _native_context_proof, _require_native_context_correction
+    raw, row, request, config, put = _context_fixture(tmp_path)
+    proof, fields = _native_context_proof(tmp_path, row, request)
+    corrected = {**row, **fields}
+    _require_native_context_correction(tmp_path, row, corrected, proof)
+    for changes in ({'elapsed_ms': 18}, {'artifact_path': 'different.txt'}, {'provider_metadata': {}}):
+        with pytest.raises(ValueError, match='physical call facts or answer'):
+            _require_native_context_correction(tmp_path, row, {**corrected, **changes}, proof)
+
+
+@pytest.mark.parametrize('status', [200, 302, 600])
+def test_context_projection_only_accepts_captured_http_errors(status):
+    from harness.web_fetch.providers.moli import replay_native_http_error_context
+    url = 'https://example.test/'
+    diagnostic = f'DEBUG fetch request complete method=GET url={url} final_url={url} status={status}\n'.encode()
+    with pytest.raises(ValueError, match='no unambiguous captured HTTP error'):
+        replay_native_http_error_context(b'unchanged answer', diagnostic, url, 0,
+            {'schema_version': 1, 'format': 'fetch_log_http_error'})
+
+
+@pytest.mark.parametrize('defect', [None, 'wrong_public_pair', 'missing_public_pair'])
+def test_native_public_projection_uses_bound_answer_view_while_private_bytes_restored(tmp_path, defect):
+    from harness.web_fetch.local_revision import _require_native_answer_correction
+    from harness.web_fetch.publication_privacy import project_evidence_view
+    original, receipt, _, _, _ = _native_answer_revision_fixture(tmp_path)
+    corrected = json.loads((tmp_path/'results.jsonl').read_text())
+    proof = receipt['native_answer_corrections'][0]
+    (tmp_path/'artifacts').mkdir()
+    # Public views may only stand for answer/native evidence roots.
+    for row, key in [(original, 'original_artifact'), (corrected, 'corrected_artifact')]:
+        old = tmp_path/row['artifact_path']
+        new = tmp_path/'artifacts'/old.name
+        old.rename(new)
+        row['artifact_path'] = str(new.relative_to(tmp_path))
+        proof[key]['path'] = row['artifact_path']
+    private_after = (tmp_path/corrected['artifact_path']).read_bytes()
+    entries = []
+    def write_binding(name, data):
+        path=tmp_path/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
+        return {'path':name,'sha256':hashlib.sha256(data).hexdigest()}
+    for binding, role in [(proof['native_response'], 'native_response'), (proof['corrected_artifact'], 'scored_answer')]:
+        raw=(tmp_path/binding['path']).read_bytes()
+        name='public-evidence/'+role+('.json' if role=='native_response' else '.txt')
+        public, view=project_evidence_view(name,raw,role=role,host_prefixes=['/Users/person'])
+        if role=='scored_answer' and defect=='missing_public_pair':
+            continue
+        if role=='scored_answer' and defect=='wrong_public_pair':
+            public=b'Different public content';view.update(published_sha256=hashlib.sha256(public).hexdigest(),published_bytes=len(public))
+        write_binding(name,public)
+        view_binding=write_binding(name+'.receipt.json',json.dumps(view).encode())
+        entries.append({'original_path':binding['path'],'original_sha256':binding['sha256'],'view_receipt':view_binding})
+    index=write_binding('public-evidence/index.json',json.dumps({'kind':'post_score_public_evidence_view_inventory','provider_calls_added':0,'files':entries}).encode())
+    (tmp_path/'presentation-binding.json').write_text(json.dumps({'publication_evidence_views':index}))
+    (tmp_path/proof['native_response']['path']).unlink()
+    if defect:
+        with pytest.raises(ValueError,match='bound public answer pair|declared original fields'):
+            _require_native_answer_correction(tmp_path,original,corrected,proof)
+    else:
+        _require_native_answer_correction(tmp_path,original,corrected,proof)
+    assert (tmp_path/corrected['artifact_path']).read_bytes()==private_after
+    assert hashlib.sha256(private_after).hexdigest()==proof['corrected_artifact']['sha256']
+
+
+@pytest.mark.parametrize('defect', ['missing_predicate', 'missing_manifest', 'wrong_predicate_hash'])
+def test_bad_frozen_input_proof_rejects_before_scoring_or_writes(tmp_path, monkeypatch, defect):
+    _, _, _, _, _ = _native_answer_revision_fixture(tmp_path)
+    config = json.loads((tmp_path/'correction.json').read_text())
+    results = (tmp_path/'results.jsonl').read_bytes()
+    def put(name, data):
+        (tmp_path/name).write_bytes(data)
+        return {'path':name,'sha256':hashlib.sha256(data).hexdigest()}
+    proof = {'input_results_sha256':hashlib.sha256(results).hexdigest(),
+        'verdicts':{'p__a':True},'frozen_predicate':put('predicate.py',b'def task_passed(ok, metrics): return ok\n'),
+        'snapshot_manifest':put('snapshot.json',b'{}')}
+    if defect=='missing_predicate':proof.pop('frozen_predicate')
+    elif defect=='missing_manifest':proof.pop('snapshot_manifest')
+    else:proof['frozen_predicate']['sha256']='0'*64
+    config['input_verdicts']=put('input-verdicts.json',json.dumps(proof).encode())
+    configuration=tmp_path/'next.json';configuration.write_text(json.dumps(config))
+    before={p.relative_to(tmp_path):p.read_bytes()for p in tmp_path.rglob('*')if p.is_file()}
+    def forbidden_score(*args,**kwargs):raise AssertionError('Attempt scoring started before proof preflight')
+    monkeypatch.setattr('lexbench_webfetch.scoring.score_attempt',forbidden_score)
+    with pytest.raises(ValueError,match='Frozen input verdict proof|binding changed'):
+        revise_local_snapshot(tmp_path,configuration)
+    assert before=={p.relative_to(tmp_path):p.read_bytes()for p in tmp_path.rglob('*')if p.is_file()}
+
+
+def test_bad_predecessor_rejects_before_scoring_or_writes(tmp_path, monkeypatch):
+    _, (latest_binding, _) = _two_revision_chain(tmp_path)
+    config={'cases':[],'rescore_attempt_ids':['p__a'],
+        'authority':{'description':'Declared next revision'},
+        'regression_ids':['ordinary-text-player-control-only','ordinary-text-with-player-control'],
+        'predecessor_revision':{**latest_binding,'sha256':'0'*64}}
+    configuration=tmp_path/'next.json';configuration.write_text(json.dumps(config))
+    before={p.relative_to(tmp_path):p.read_bytes()for p in tmp_path.rglob('*')if p.is_file()}
+    def forbidden_score(*args,**kwargs):raise AssertionError('Attempt scoring started before predecessor preflight')
+    monkeypatch.setattr('lexbench_webfetch.scoring.score_attempt',forbidden_score)
+    with pytest.raises(ValueError,match='binding changed'):
+        revise_local_snapshot(tmp_path,configuration)
+    assert before=={p.relative_to(tmp_path):p.read_bytes()for p in tmp_path.rglob('*')if p.is_file()}

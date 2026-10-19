@@ -85,3 +85,19 @@ class ReportLinkCheckTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_virtual_capture_links_follow_same_frozen_evidence_boundary():
+    import pytest
+    from harness.reporting.links import validate_virtual_links
+    capture = 'en/local-evidence/capture/source.html'
+    files = {'index.html':{'mime':'text/html'},capture:{'mime':'text/html'}}
+    content = {'index.html':f'<a href="{capture}">Evidence</a>',capture:'<link href="missing.css"><a href="remote-site-page.html">Original</a>'}
+    validate_virtual_links(files,content.__getitem__)
+    content['index.html'] = '<a href="local-evidence/missing.html">Missing evidence</a>'
+    with pytest.raises(ValueError,match='Invalid internal link'):
+        validate_virtual_links(files,content.__getitem__)
+    content['index.html'] = f'<a href="{capture}">Evidence</a>'
+    content[capture] = '<meta name="browser-eval-report" content="1">'+content[capture]
+    with pytest.raises(ValueError,match='Invalid internal link'):
+        validate_virtual_links(files,content.__getitem__)

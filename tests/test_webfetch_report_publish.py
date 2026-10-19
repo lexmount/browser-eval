@@ -375,3 +375,40 @@ def test_diagnostic_source_never_contacts_publication_service(tmp_path, state, m
         report_publish.publish(config, transport=service, package_check=lambda *args: None)
     assert service.requests == []
     assert not config.journal.exists()
+
+
+@pytest.mark.parametrize("initial_visibility", ["private", "unlisted"])
+def test_explicit_main_visibility_reuses_same_address_without_independent_share(tmp_path, initial_visibility):
+    config = replace(fixture(tmp_path), visibility="unlisted")
+
+    class MainSharingService(Service):
+        visibility = initial_visibility
+        changes = 0
+
+        def __call__(self, path, data=None, content_type=None, *, method=None, extra_headers=None):
+            if path.endswith("/sharing"):
+                if method == "PUT":
+                    self.visibility = json.loads(data)["visibility"]
+                    self.changes += 1
+                return 200, json.dumps({"visibility": self.visibility, "moderation": []}).encode()
+            return super().__call__(path, data, content_type, method=method, extra_headers=extra_headers)
+
+    service = MainSharingService()
+    result = report_publish.publish(config, transport=service)
+    assert result["url"] == "https://reports.example/s/site-one"
+    assert result["visibility"] == "unlisted"
+    assert service.changes == (initial_visibility != "unlisted")
+    assert not any(path.endswith("/shares") for path in service.requests)
+    assert json.loads(config.receipt.read_text())["versionId"] == "ver_new"
+
+
+def test_bound_diagnostic_publish_rejects_invalid_binding_before_network(tmp_path):
+    config = fixture(tmp_path)
+    binding = tmp_path / "unbound.json"
+    binding.write_text("{}")
+    (config.source / "report-manifest.json").write_text("{}")
+    config = replace(config, presentation_binding=binding, visibility="unlisted")
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Invalid evidence must fail before network access")
+    with pytest.raises(ValueError, match="bound diagnostic snapshot"):
+        report_publish.publish(config, transport=forbidden)

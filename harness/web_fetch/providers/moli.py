@@ -109,35 +109,24 @@ def _moli_native_error_type(stderr: str | bytes) -> str:
 
 
 def _native_fetch_diagnostics(stderr: bytes, requested_url: str) -> tuple[int | None, bool]:
-    """Read only same-call native events; ambiguous document ownership stays unknown."""
-    prefix = rb"(?:^|\n)(?:\d{4}-\d{2}-\d{2}T[^\s]+\s+)?"
-    rows = list(re.finditer(
-        prefix + rb"DEBUG fetch request complete method=(?:GET|POST) "
-        rb"url=(?P<url>\S+) final_url=\S+ status=(?P<status>\d{3})\b[^\r\n]*",
-        stderr,
-    ))
-    requested = requested_url.encode("utf-8")
-    matches = [row for row in rows if row.group("url") == requested]
-    status = None
-    if len(matches) == 1:
-        row = matches[0]
-        value = int(row.group("status"))
-        # Legacy logs cannot bind subsequent HTTP redirect hops to a Document.
-        # A committed script navigation also invalidates the initial response.
-        later = stderr[row.end():]
-        if not 300 <= value < 400 and not any(marker in later for marker in (
-            b"committed main navigation before replacement realm bootstrap",
-            b"detached committed main WindowProxy for replacement context",
-        )):
-            status = value
-    waits = re.finditer(
-        prefix + rb"WARN fetch readiness wait timed out; returning best-effort page "
-        rb"page_id=\d+ url=(?P<url>\S+) final_url=\S+ "
-        rb"wait_until=(?:DomStable|NetworkIdle) timeout_ms=[1-9]\d* "
-        rb"remaining_ms=\d+ error=[^\r\n]+",
-        stderr,
-    )
-    return status, any(row.group("url") == requested for row in waits)
+    """Use the same capture-bounded native parser as saved-call replay."""
+    from lexbench_webfetch.answer_projection import native_fetch_diagnostics
+    return native_fetch_diagnostics(stderr, requested_url)
+
+
+def replay_native_http_error_context(stdout: bytes, diagnostic: bytes, requested_url: str,
+                                     exit_code: int, projection: dict) -> dict:
+    """Replay only a proved HTTP error, never process failure or arbitrary fields."""
+    if projection != {'schema_version': 1, 'format': 'fetch_log_http_error'}:
+        raise ValueError('Unsupported native HTTP context projection')
+    stdout.decode('utf-8')
+    if type(exit_code) is not int or exit_code != 0:
+        raise ValueError('Native HTTP context requires a completed successful process')
+    status, _ = _native_fetch_diagnostics(diagnostic, requested_url)
+    if status is None or not 400 <= status < 600:
+        raise ValueError('Native HTTP context has no unambiguous captured HTTP error')
+    return {'ok': False, 'status_code': status, 'error_type': 'api_error',
+            'error_message': f'Moli returned HTTP {status}'}
 
 
 
@@ -763,6 +752,9 @@ class MoliWebFetchProvider(Provider):
                 native_answer_projection={'schema_version': 2, 'source_format': 'bytes', 'content_format': 'utf8',
                     'result_fields': {'final_url': {'format': 'fetch_log_final_url'}}})
         native_status, readiness_timed_out = _native_fetch_diagnostics(diagnostic_raw, case.url)
+        http_context = (replay_native_http_error_context(raw, diagnostic_raw, case.url,
+                        process.returncode, {'schema_version': 1, 'format': 'fetch_log_http_error'})
+                        if process.returncode == 0 and native_status is not None and 400 <= native_status < 600 else None)
         if native_status is not None:
             metadata["http_status_source"] = "same_call_native_document_event"
         if readiness_timed_out:
@@ -787,23 +779,23 @@ class MoliWebFetchProvider(Provider):
         # Nonempty best-effort output remains a valid answer for the shared scorer;
         # its content failures do not acquire a new retry policy.
         return ProviderResult(
-            ok,
+            http_context['ok'] if http_context else ok,
             content,
             status_code=native_status if native_status is not None else parsed_error_status,
             final_url=final_url,
             error_type=(
-                None
+                http_context['error_type'] if http_context else (None
                 if ok
                 else "api_error"
                 if parsed_error_status is not None
-                else native_error_type
+                else native_error_type)
             ),
             error_message=(
-                None
+                http_context['error_message'] if http_context else (None
                 if ok
                 else f"Moli returned HTTP {parsed_error_status}"
                 if parsed_error_status is not None
-                else stderr or "Moli request failed"
+                else stderr or "Moli request failed")
             ),
             metadata=metadata,
         )

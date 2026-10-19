@@ -1490,19 +1490,74 @@ def validate_local_presentation(output: Path, binding_path: Path):
     return binding, dataset, records, manifest
 
 
-def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
-    """Install explanatory routes from the single report owner."""
+def _review_refresh_changes(output, binding, dataset, records):
+    """Derive refresh scope from bound old inputs, never an unchecked ID list."""
+    baseline = binding.get('review_refresh_baseline')
+    if baseline is None:
+        return set(), set()
+    from .local_revision import read_bound
+    before_dataset = json.loads(read_bound(output, baseline['dataset']).read_text())
+    before_records = load_jsonl(read_bound(output, baseline['results']))
+    old_cases = {case['id']: case for case in before_dataset['cases']}
+    cases = {case['id']: case for case in dataset['cases']}
+    old_rows = {row['attempt_id']: row for row in before_records}
+    rows = {row['attempt_id']: row for row in records}
+    if (len(old_rows) != len(before_records) or len(rows) != len(records)
+            or old_rows.keys() != rows.keys() or old_cases.keys() != cases.keys()):
+        raise ValueError('Review refresh cannot change the case or attempt inventory')
+    changed_cases = {identifier for identifier in cases if old_cases[identifier] != cases[identifier]}
+    # Scoring timestamps/provenance alone do not change reader-facing results.
+    visible = lambda row: {key: value for key, value in row.items() if key != 'scoring'}
+    changed_rows = {identifier for identifier in rows
+                    if visible(old_rows[identifier]) != visible(rows[identifier])
+                    or rows[identifier]['case_id'] in changed_cases}
+    return changed_rows, changed_cases
+
+
+def refresh_local_presentation(output: Path, binding_path: Path, *, review_only: bool = False) -> Path:
+    """Install explanatory routes and, on request, bound fresh review details."""
     from .safety import unlinked_path, evidence_tree_identity, copy_evidence_file
     output = unlinked_path(output)
     before_tree = evidence_tree_identity(output)
     binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
+    detail_attempt_ids = None
+    dataset_case_ids = set()
+    revised_attempt_ids = set()
+    if review_only:
+        from .adjudication_evidence import require_adjudication_evidence, require_current_review_state
+        review_path = contained_path(output, 'result-review.json', reject_symlinks=True)
+        if not any(item.get('path') == 'result-review.json'
+                   and item.get('sha256') == hashlib.sha256(review_path.read_bytes()).hexdigest()
+                   for item in binding.get('evidence_bindings', [])):
+            raise ValueError('Review refresh requires a hash-bound result review')
+        review = json.loads(review_path.read_text())
+        require_current_review_state(records, review)
+        require_adjudication_evidence(output, dataset, records, review)
+        detail_attempt_ids = {row['attempt_id'] for row in review['attempts']
+                              if row.get('review_origin') == 'fresh'}
+        if not detail_attempt_ids:
+            raise ValueError('Review refresh requires supplemental fresh reviews')
+        revised_attempt_ids, dataset_case_ids = _review_refresh_changes(output, binding, dataset, records)
+        detail_attempt_ids |= revised_attempt_ids
     authored_interpretation = manifest.get('presentation', {}).get(
         'authored_interpretation', bool(dataset.get('comparison', {}).get('report_interpretation')))
     # The existing owner renders from saved metrics. Only these explanatory
-    # routes may be installed; result pages, logs and every measured byte stay.
+    # routes may be installed; review mode also selects fresh result details.
+    # Logs and every measured byte remain outside the install allowlist.
     routes = ['index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html', 'changes/index.html']
     routes += ['providers/' + provider + '.html' for provider in binding['providers']]
     routes += ['adoption/interfaces/' + provider + '.json' for provider in binding['providers']]
+    if review_only:
+        routes += ['review/index.html']
+        routes += ['attempts/' + identifier + '.html' for identifier in sorted(detail_attempt_ids)]
+        if revised_attempt_ids or dataset_case_ids:
+            routes += ['analysis/index.html', 'summary.json', 'reliability.json']
+        if dataset_case_ids:
+            routes += ['datasets/index.html']
+            for identifier in sorted(dataset_case_ids):
+                routes += ['datasets/' + identifier + '.html', 'references/' + identifier + '.txt']
+                if next(case for case in dataset['cases'] if case['id'] == identifier).get('acceptance_contract'):
+                    routes += ['contracts/' + identifier + '.json']
     include_english = 'en' in manifest['languages']
     if include_english:
         routes += ['en/' + relative for relative in routes if relative.endswith('.html')]
@@ -1512,13 +1567,17 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
         batches = json.loads((output / 'execution.json').read_text())['batches']
         generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True,
                  frozen_scores=True, authored_interpretation=authored_interpretation,
+                 detail_attempt_ids=detail_attempt_ids,
+                 dataset_case_ids=dataset_case_ids,
                  english_routes=[r for r in routes if r.endswith('.html') and not r.startswith('en/')])
+        if revised_attempt_ids or dataset_case_ids:
+            write_frozen_result_summary(staging, dataset, records)
         changed = []
         for relative in routes:
             before, after = contained_path(output, relative), contained_path(staging, relative)
-            if not before.is_file() or not after.is_file():
+            if not after.is_file() or (not review_only and not before.is_file()):
                 raise ValueError('Presentation route missing: ' + relative)
-            if before.read_bytes() != after.read_bytes():
+            if not before.is_file() or before.read_bytes() != after.read_bytes():
                 changed.append(relative)
         manifest['presentation_refresh'] = {
             'provider_calls_added': 0, 'scores_changed': False,
@@ -1526,6 +1585,10 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
             'scoring_source_sha256': binding['measured_scoring_source_sha256'],
             'renderer_sha256': hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest(),
             'changed_routes': sorted(set(changed) | set(manifest.get('presentation_refresh', {}).get('changed_routes', []))),
+            **({'revised_attempt_ids': sorted(revised_attempt_ids),
+                'revised_case_ids': sorted(dataset_case_ids),
+                'refresh_baseline': binding['review_refresh_baseline']}
+               if binding.get('review_refresh_baseline') else {}),
         }
         # Stage the permitted pages into a copy of the original snapshot so no
         # renderer side effects can change evidence or unrelated routes.
@@ -1533,6 +1596,8 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
         shutil.copytree(output, selected, copy_function=copy_evidence_file)
         for relative in changed:
             shutil.copy2(staging / relative, selected / relative)
+        if review_only:
+            shutil.copy2(binding_path, selected / 'presentation-binding.json')
         write_frozen_presentation_manifest(selected, manifest,
             show_local_status_banners=manifest.get('presentation', {}).get('show_local_status_banners', True),
             authored_interpretation=authored_interpretation)

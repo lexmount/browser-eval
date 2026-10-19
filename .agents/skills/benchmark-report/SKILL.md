@@ -43,3 +43,25 @@ Do not publish while the exact method matrix is incomplete, references required 
 When finished, give the report and code-review links, measured and reviewed coverage, unresolved count, rerun scope, material limitations, and verification status. Keep internal notes and agent transcripts out of the public report.
 
 For a new URL-only local matrix over committed stable contracts, reuse the local-audit renderer with comparison.kind=uniform_native_local_measurement and a pre-call local-run-contract.json. Require complete case-by-method coverage and one hash-bound public call log per result. This mode must state that results are machine judgments without independent review and must never inherit historical review receipts or certification.
+
+For an explicitly requested share of an existing frozen local snapshot, pass its
+`--presentation-binding` to the maintained package builder and package checker.
+This verifies the saved evidence without upgrading certification; the ordinary
+publication path keeps its certified-evidence gate.
+
+For an oversized saved report, use the maintained packer's content-defined
+compression and `--cached-content` support to reuse completed public projections.
+Preserve all source/file hashes and run its complete publication check; do not
+drop evidence or create a separate renderer to satisfy upload limits. Reuse must
+refresh derived result privacy/footprint projections from the same bound source;
+a cached representation passing a secret scan alone does not prove it matches
+the current export contract. Frozen public snapshots can retain
+original scoring hashes alongside separately bound public-view bytes. Reuse the
+existing public-view verifier and preserve both identities; a public view must
+never be described as the original scored bytes.
+
+When a complete compressed report exceeds one artifact's capacity, prepare
+capacity-bound data attachments through the existing packer. Check their combined
+evidence before uploading, bind immutable published versions, and include the
+attachment archives and target registry in the main publication snapshot. Keep
+one report entry and all evidence; reject unresolved or changed data attachments.

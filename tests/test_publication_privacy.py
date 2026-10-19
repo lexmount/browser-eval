@@ -10,6 +10,8 @@ import unittest
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from bs4 import BeautifulSoup
 
 from harness.web_fetch.publication_check import check as check_bundle
@@ -713,3 +715,131 @@ def test_large_and_small_string_tokenization_have_identical_public_redaction_sem
     for text in fragments:
         expected, count = redact_url_queries(text)
         assert redact_url_queries(prefix+text) == (prefix+expected, count)
+
+
+@pytest.mark.parametrize("delimiter", ["&quot;", "&apos;", "&gt;", "&#34;", "&Tab;"])
+def test_encoded_url_boundary_does_not_expand_unrelated_large_html(delimiter):
+    import tracemalloc
+    from harness.web_fetch.publication_privacy import _redact_plain_url_queries
+    suffix = "x" * 100000
+    source = "https://example.test/?token=private-value" + delimiter + suffix
+    tracemalloc.start()
+    try:
+        projected, count = _redact_plain_url_queries(source)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert projected == "https://example.test/?token=[REDACTED]" + delimiter + suffix
+    assert count == 1
+    # This is evidence after the URL, not a 100 KB URL character map.
+    assert peak < 2_000_000
+
+
+@pytest.mark.parametrize("boundary", [5000, 65535, 65536, 131071])
+def test_sparse_json_scanner_matches_string_grammar_across_windows(boundary):
+    import random
+    from harness.web_fetch.publication_privacy import _JSON_STRING, _json_string_spans
+    random_source = random.Random(90210)
+    for _ in range(20):
+        tail = ''.join(random_source.choice('abc"\\\n\r\t') for _ in range(150))
+        text = 'x' * boundary + tail
+        assert list(_json_string_spans(text)) == [m.span() for m in _JSON_STRING.finditer(text)]
+
+
+@pytest.mark.parametrize('depth',range(1,7))
+def test_nested_url_delimiters_keep_exact_projection_with_bounded_memory(depth):
+    import html
+    import tracemalloc
+    from harness.web_fetch.publication_privacy import _url_entity_surface,project_file
+    delimiter = '&quot;'
+    for _ in range(depth):
+        delimiter = html.escape(delimiter,quote=False)
+    raw = 'https://api.invalid/?token=example'+delimiter+'z'*100000
+    tracemalloc.start()
+    try:
+        _url_entity_surface(raw)
+        _,peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 100000
+    data = ('prefix '+raw+' suffix').encode()
+    assert project_file('view.html',data)[0] == data.replace(b'token=example',b'token=[REDACTED]')
+
+
+def test_incomplete_nested_entity_does_not_hide_late_url_credentials():
+    from harness.web_fetch.publication_privacy import project_file
+    raw = b'https://api.invalid/?first=1&amp;look=&quotx'+b'z'*10000+b'&token=example'
+    assert project_file('view.html',raw)[0] == raw.replace(b'token=example',b'token=[REDACTED]')
+
+
+@pytest.mark.parametrize('data',[
+    b'{"text":"safe"}\n{"text":"also safe"}\n',
+    b'{"authorization":"Bearer example-secret"}\n{"text":"safe"}\n',
+    b'{"text":"safe"}\n{"url":"https://api.invalid/?token=secret"}\n',
+    b'{"authorization":\n"Bearer example-secret"}\n',
+    b'{"text":"unterminated\n{"authorization":"Bearer example-secret"}\n',
+    b'{"authorization":"[REDACTED]"}\n{"text":"\\u4e2d\\u6587"}\n',
+])
+def test_jsonl_risk_keeps_record_boundaries_and_falls_back_for_malformed_data(data):
+    from harness.web_fetch.publication_privacy import publication_file_risk,publication_risk
+    assert bool(publication_file_risk('records.jsonl',data)) == bool(publication_risk(data))
+
+
+def test_short_plain_text_cache_preserves_sensitive_context_and_excludes_large_values():
+    from harness.web_fetch.publication_privacy import (
+        _cached_plain_publication_risk, _plain_publication_risk, publication_risk,
+    )
+    _cached_plain_publication_risk.cache_clear()
+    assert _plain_publication_risk(b'public text') is None
+    assert _plain_publication_risk(b'public text') is None
+    assert _cached_plain_publication_risk.cache_info().hits == 1
+    size = _cached_plain_publication_risk.cache_info().currsize
+    assert _plain_publication_risk(b'x'*2048) is None
+    assert _cached_plain_publication_risk.cache_info().currsize == size
+    assert publication_risk(b'{"text":"same-value"}') is None
+    assert publication_risk(b'{"password":"same-value"}') == 'sensitive field value'
+
+
+def test_large_plain_risk_cache_reuses_hashes_without_retaining_payload(monkeypatch):
+    import json
+    from harness.web_fetch import publication_privacy as privacy
+    privacy._large_plain_risks.clear()
+    original = privacy._scan_plain_publication_risk
+    calls = []
+    def scan(data):
+        calls.append(len(data))
+        return original(data)
+    monkeypatch.setattr(privacy,'_scan_plain_publication_risk',scan)
+    value = b'unique immutable public evidence '*200
+    assert privacy._plain_publication_risk(value) is None
+    assert privacy._plain_publication_risk(value) is None
+    assert calls == [len(value)]
+    assert privacy._plain_publication_risk(value+b'changed') is None
+    assert calls == [len(value),len(value)+7]
+    assert all(isinstance(key[1],bytes) and len(key[1])==32 for key in privacy._large_plain_risks)
+    assert privacy.publication_risk(json.dumps({'password':value.decode()}).encode()) == 'sensitive field value'
+
+
+@pytest.mark.parametrize('name',['response.txt','response.json','response.log'])
+def test_json_wrapped_text_is_projected_by_content_not_filename(name):
+    import json
+    from harness.web_fetch.publication_privacy import project_file,publication_risk
+    original = json.dumps({'success':True,'result':'API example: {"clientSecret": "string"}'}).encode()
+    public,receipt = project_file(name,original)
+    assert receipt and receipt['original_sha256'] != receipt['published_sha256']
+    assert '[REDACTED]' in json.loads(public)['result']
+    assert publication_risk(public) is None
+    safe = b'{ "success": true, "result": "public text" }\n'
+    assert project_file(name,safe) == (safe,None)
+
+
+def test_nested_sensitive_objects_and_documented_auth_placeholders_agree_at_export():
+    import json
+    from harness.web_fetch.publication_privacy import project_file,publication_risk
+    raw = b'{"credentials":{"user":"example-user","password":"example-pass"}}'
+    public,receipt = project_file('native.txt',raw)
+    assert receipt and json.loads(public)['credentials'] == {'user':'[REDACTED]','password':'[REDACTED]'}
+    assert publication_risk(public) is None
+    placeholder = b'{"Authorization":"Bearer <YOUR_API_KEY>"}'
+    assert project_file('native.txt',placeholder) == (placeholder,None)
+    assert publication_risk(placeholder) is None

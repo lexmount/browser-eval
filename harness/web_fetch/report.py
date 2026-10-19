@@ -1135,6 +1135,11 @@ def review_summary(out, prefix='', *, highlight=True):
  audit=json.loads(path.read_text())
  if audit.get('retained_reviews'):
   mode_note = (model_text(' 本次为已知程序结论的证据复核，不是独立盲审。', ' This round checked evidence with known machine outcomes; it was not an independent blind review.') if audit.get('review_protocol',{}).get('blind_initial_verdict') is False else '')
+  if audit.get('review_protocol',{}).get('fresh_blind_initial_verdict') is True:
+   mode_note=model_text(' 本次新增复核先隐藏程序结论独立判断，再核查分歧和异常；旧复核按原记录保留。',' Fresh reviews judged answers with machine outcomes hidden, then investigated disagreements and anomalies; retained reviews preserve their original protocol.')
+  if audit.get('renewed_context_reviewed_attempts',0):
+   blind_count=audit.get('fresh_blind_reviewed_attempts',0);renewed_count=audit['renewed_context_reviewed_attempts']
+   mode_note=model_text(f' 其中 {blind_count} 条先隐藏程序结论独立判断；另 {renewed_count} 条因规则或请求状态修正补充复裁，保留旧意见，并查看当前证据与程序结论。',f' Of these, {blind_count} received initial judgments with machine outcomes hidden; {renewed_count} received supplemental adjudication of corrected contracts or request context, preserving prior opinions and inspecting current evidence and machine outcomes.')
   return ('<p'+(' class="callout"' if highlight else '')+'>'+model_text(
       f'当前复核覆盖 {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}：本次重新检查 {audit.get("fresh_reviewed_attempts",0)} 条，{audit.get("retained_reviewed_attempts",0)} 条沿用检查依据未变的旧复核。',
       f'Current review coverage: {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}: {audit.get("fresh_reviewed_attempts",0)} freshly reviewed; {audit.get("retained_reviewed_attempts",0)} prior reviews retained after verifying unchanged decision inputs.')+mode_note+' '+link(prefix+'review/index.html','查看核验轮次 →')+'</p>')
@@ -1972,7 +1977,7 @@ def local_audit_banner(dataset):
 from .methods import with_measured_method_labels
 
 @with_measured_method_labels
-def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None,frozen_scores:bool=False,english_routes=None):
+def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None,dataset_case_ids:set[str]|None=None,frozen_scores:bool=False,english_routes=None):
  from .publication_privacy import public_render_views
  _public_views=public_render_views(out,records)
  if english_routes is not None and not presentation_only:
@@ -1986,6 +1991,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    raise ValueError('Scoped detail refresh requires presentation_only=True')
   unknown=set(detail_attempt_ids)-{row['attempt_id'] for row in records}
   if unknown:raise ValueError('Unknown detail refresh attempts: '+', '.join(sorted(unknown)))
+ if dataset_case_ids is not None:
+  if not presentation_only:raise ValueError('Scoped dataset refresh requires presentation_only=True')
+  unknown=set(dataset_case_ids)-{case['id'] for case in dataset['cases']}
+  if unknown:raise ValueError('Unknown dataset refresh cases: '+', '.join(sorted(unknown)))
  _ENGLISH_GENERATED=include_english
  local_snapshot=dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
  diagnostic=local_snapshot and not local_pass_rate_ranking(dataset)
@@ -2091,7 +2100,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  dataset_panels=[('cases','案例',anchors+controls+'<p class="source-note">核对依据可点击展开。访问受限不等于网站失效；稳定内容与条目结构按登记契约核验，不固定频繁变化的榜单。动态网站正文按各案例声明的完整范围核验。</p>'+table(['案例','类别','URL','核对依据','参考状态','原访问'],rows,'filtered-table')),('references','参考状态','<span id="references"></span>'+reference_status(list(cases.values()))),('sources','来源','<span id="sources"></span>'+sources_panel())]
  write(out,'datasets/index.html','评测集',hero('评测集',f'{len(cases)} 个案例，按任务类型查看。')+section('案例与依据',tabs('dataset-hub',dataset_panels)))
  headers=['案例','类型','结果','失败分类','耗时','运行 ID']
- for c in ([] if presentation_only else cases.values()):
+ for c in ([case for case in cases.values() if case['id'] in (dataset_case_ids or set())] if presentation_only else cases.values()):
   v=c.get('source_verification',{});ref=reference_text(c)
   (out/'references').mkdir(exist_ok=True);(out/'references'/f'{c["id"]}.txt').write_text(ref)
   if c.get('acceptance_contract'):
@@ -2536,6 +2545,11 @@ def write_review_page(out,records):
   method='<p>'+model_text('原独立判断和补充判断保留在逐条记录中。本次补充裁定查看了已有评分、契约和原始输出，不是新一轮全量盲审。每条裁定列出具体规则和原始证据片段；本地结果不因裁定完成而获得来源认证。','Original independent and supplemental opinions remain in the per-result records. This supplemental adjudication inspected saved scores, contracts and original answers; it is not a new full blind review. Each adjudication records specific rules and original excerpts. Completing adjudication does not certify source validity.')+'</p>'
  if audit.get('review_protocol',{}).get('blind_initial_verdict') is False and audit.get('retained_reviews'):
   method='<p>'+model_text('本次重新检查的记录采用已知程序结论的证据复核，逐条核对完整保存答案、任务要求和原生字段。其余记录经依赖检查沿用旧意见。两类范围分别统计；本次证据复核不算作新的独立盲审，也不补足历史来源认证。','The newly checked records received evidence review with known machine outcomes, checking complete saved answers, task requirements and native fields. Other records retain prior opinions after dependency checks. The two scopes are reported separately; this evidence review is not a new independent blind review and does not complete historical source certification.')+'</p>'
+ if audit.get('review_protocol',{}).get('fresh_blind_initial_verdict') is True and audit.get('retained_reviews'):
+  method='<p>'+model_text('本次新增复核只提供任务要求、冻结参考和保存答案，先隐藏程序结论作出独立判断，再对分歧和异常检查原始响应、字段选择、调用日志与评分规则。初始意见始终保留；检查依据未变的旧复核分别统计并沿用原协议。完成复核不补足历史来源认证。','Fresh reviews received task requirements, frozen references and saved answers, with machine outcomes hidden for the initial judgment. Disagreements and anomalies were then investigated through raw responses, field selection, call logs and scoring rules. Initial opinions remain immutable. Prior reviews with unchanged decision inputs are counted separately and retain their original protocol. Review completion does not provide historical source certification.')+'</p>'
+ if audit.get('renewed_context_reviewed_attempts',0):
+  blind_count=audit.get('fresh_blind_reviewed_attempts',0);renewed_count=audit['renewed_context_reviewed_attempts']
+  method='<p>'+model_text(f'{blind_count} 条保存答案先在隐藏程序结论的情况下独立判断，再核查分歧和异常。另 {renewed_count} 条因任务规则或同次调用请求状态修正，补充核对当前要求、原答案和最终判定；这部分是查看程序结论后的补充裁定，原始意见保留。其余检查依据未变的记录沿用旧复核。各范围分别统计，复核完成不补足历史来源认证。',f'{blind_count} saved answers received initial independent judgments with machine outcomes hidden, followed by disagreement and anomaly investigation. Another {renewed_count} received supplemental adjudication after task-contract or same-call request-context corrections, checking current requirements, original answers and final outcomes. This supplemental adjudication inspected machine outcomes and preserves original opinions. Remaining records retain prior reviews after dependency checks. The scopes are counted separately; review completion does not provide historical source certification.')+'</p>'
  page+=section('核验口径',method)
  dataset_path=out/'dataset.json'
  if dataset_path.is_file():

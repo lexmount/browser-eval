@@ -1144,3 +1144,42 @@ The same content may supply `background`, raster
 builder and its six-chapter interpretation. Assets stay outside Git and are copied
 only through their hash bindings. The independent HTML embeds figures and reviewed
 causes without copying every failure's complete output and logs.
+
+### Sharing a frozen diagnostic snapshot
+
+Pass the same `--presentation-binding /path/to/binding.json` to
+`scripts/package_artifact_hub.py` and `scripts/check_publication_bundle.py` when
+sharing a previously validated frozen local report. Both commands verify its
+saved matrix, scorer identity, evidence and revision bindings through the existing
+presentation validator. This does not certify the cohort or add result reviews;
+its visible evidence-state and review-scope disclosures remain intact. Without
+this explicit binding, publication retains the certified-evidence gate.
+
+The profile-bound publisher accepts the same binding. Use `--visibility unlisted`
+for ordinary link sharing at the existing `/s/<slug>` address; `private` and
+`public` must follow the requested access scope. The publisher verifies the
+actual access state without creating an independent share link.
+
+Large publication trees automatically use content-defined deduplication and a
+compressed catalog when fixed-block storage exceeds the upload budget. Both
+encodings retain complete virtual files, source bindings and file hashes.
+An acceptance contract stays inline when no standalone contract file exists.
+To reuse a completed public content cache, pass `--cached-content <directory>`
+to `scripts/package_artifact_hub.py` with the same source and, when applicable,
+`--presentation-binding`. The packer refreshes source-bound result privacy and
+footprint projections when the cache uses an earlier representation; it rejects
+a cache bound to another source. `--refresh-privacy` additionally applies the
+current privacy checks to other cached files. Complete publication checks run
+before the archive is installed. Source and input cache remain unchanged.
+Saved public snapshots may retain original scored hashes while storing separately
+bound public evidence views. Verify both identities through the existing public-view
+helpers; report retained views separately instead of calling them original bytes.
+
+If the complete compressed report still exceeds a deployment's artifact capacity,
+use `--parts-directory <new-directory>` to prepare a main archive and capacity-bound
+data attachments. The preparation gate checks their combined evidence, links and
+hashes. Publish the attachments, bind each exact committed version with
+`bind_data_parts`, and pass `--parts-manifest <directory>/parts.json` when publishing
+the main report. Ordinary publication rejects unresolved or mismatched attachments.
+Keep the main profile's `data_publications` registry aligned with that bound plan;
+main and data artifacts must use the same profile-bound service.

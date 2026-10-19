@@ -6,8 +6,9 @@ readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = [
-  "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@a0bb348789038a47bda65215940236b57a73a74d",
+  "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@9b015cff8356c6ea60b41826b4b9055fcce0a820",
   "beautifulsoup4>=4.12,<5",
+  "fastcdc==1.7.0",
 ]
 
 [project.scripts]

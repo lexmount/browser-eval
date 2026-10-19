@@ -54,6 +54,32 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_mixed_retained_review_summary_identifies_only_fresh_blind_scope(self):
+        from harness.web_fetch.report import review_summary
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory)
+            data={'retained_reviews':{'path':'retained.json'},'reviewed_attempts':3,
+                  'expected_attempts':3,'fresh_reviewed_attempts':1,'retained_reviewed_attempts':2,
+                  'review_protocol':{'blind_initial_verdict':False}}
+            (out/'result-review.json').write_text(json.dumps(data))
+            self.assertIn('已知程序结论',review_summary(out))
+            data['review_protocol']['fresh_blind_initial_verdict']=True
+            (out/'result-review.json').write_text(json.dumps(data))
+            rendered=review_summary(out)
+            self.assertIn('先隐藏程序结论独立判断',rendered)
+            self.assertNotIn('本次为已知程序结论',rendered)
+            self.assertIn('2 条沿用',rendered)
+            data.update(fresh_reviewed_attempts=1348,retained_reviewed_attempts=2952,
+                        reviewed_attempts=4300,expected_attempts=4300,
+                        fresh_blind_reviewed_attempts=1320,renewed_context_reviewed_attempts=28)
+            (out/'result-review.json').write_text(json.dumps(data))
+            rendered=review_summary(out)
+            self.assertIn('1320 条先隐藏程序结论',rendered)
+            self.assertIn('28 条因规则或请求状态修正补充复裁',rendered)
+            self.assertIn('查看当前证据与程序结论',rendered)
+            self.assertNotIn('1348 条先隐藏',rendered)
+
+
     def test_scoped_presentation_refresh_updates_only_explicit_result_details(self):
         cases=[case('first'),case('second')]
         rows=[record(c,passed=False,ok=False) for c in cases]
@@ -79,6 +105,14 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertNotEqual(detail_paths[0].read_bytes(),before[0])
                 self.assertEqual(detail_paths[1].read_bytes(),before[1])
                 self.assertEqual((out/'datasets/first.html').read_bytes(),dataset_before)
+                other_dataset=(out/'datasets/second.html').read_bytes()
+                cases[0]['name']='Updated frozen task name'
+                generate(out,{'cases':cases},rows,[],presentation_only=True,dataset_case_ids={'first'})
+                self.assertIn('Updated frozen task name',(out/'datasets/first.html').read_text())
+                self.assertEqual((out/'datasets/second.html').read_bytes(),other_dataset)
+                self.assertEqual(detail_paths[1].read_bytes(),before[1])
+                with self.assertRaisesRegex(ValueError,'Unknown dataset'):
+                    generate(out,{'cases':cases},rows,[],presentation_only=True,dataset_case_ids={'absent'})
                 with self.assertRaisesRegex(ValueError,'Unknown detail'):
                     generate(out,{'cases':cases},rows,[],presentation_only=True,detail_attempt_ids={'absent'})
 

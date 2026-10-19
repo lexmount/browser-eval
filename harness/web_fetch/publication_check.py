@@ -1,23 +1,26 @@
 """Verify reconstructed public files, scored bytes and explicit redaction hashes."""
 
 import argparse
-import base64
 import gzip
 import hashlib
 import json
 import zipfile
-from functools import lru_cache
+from contextlib import ExitStack
+from urllib.parse import urlsplit, parse_qs, quote
 from pathlib import Path
 
 from bs4 import BeautifulSoup
 
 from harness.record_io import parse_jsonl
 from harness.reporting.links import validate_virtual_links
+from harness.reporting.packs import DecompressedPackCache, read_packed_manifest, reconstruct_packed_file
 from harness.reporting.publication import archive_inventory
 from harness.web_fetch.publication_privacy import (
     project_file,
     project_redundant_result_streams,
     publication_risk,
+    publication_file_risk,
+    bound_public_view,
 )
 from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.safety import evidence_tree_identity
@@ -35,17 +38,23 @@ def scored_output_hash(row: dict) -> str:
     return expected
 
 
-def check(archive, source, overlay=None):
-    from .report_package import validate_release
-    validate_release(source)
+def check(archive, source, overlay=None, *, presentation_binding=None, external_archives=None, allow_pending_external=False):
+    from .report_package import validate_release, DATA_ATTACHMENT_HTML
+    validate_release(source, presentation_binding=presentation_binding)
     source_files = evidence_tree_identity(source)
     physical = archive_inventory(archive)
     if overlay:
         overlay_files = evidence_tree_identity(overlay)
         if not {"manifest.json"} <= set(overlay_files) or set(overlay_files) - {"manifest.json", "loader.js", "update-receipt.json"}:
             raise ValueError("Incremental overlay contains undeclared physical files")
-    with zipfile.ZipFile(archive) as bundle:
+    with ExitStack() as stack:
+        bundle = stack.enter_context(zipfile.ZipFile(archive))
+        attachments = {label:stack.enter_context(zipfile.ZipFile(path))
+                       for label,path in (external_archives or {}).items()}
+        external = {}
         def read(name):
+            if name in external:
+                return attachments[external[name]['part']].read(name)
             patched = overlay / name if overlay else None
             return patched.read_bytes() if patched and patched.is_file() else bundle.read(name)
         shell = BeautifulSoup(read("index.html"), "html.parser")
@@ -55,9 +64,39 @@ def check(archive, source, overlay=None):
         ]
         if shell_assets != ["style.css", "report.js", "loader.js"]:
             raise ValueError("Publication shell must use exact query-free physical asset paths")
-        manifest = json.loads(read("manifest.json"))
+        manifest = read_packed_manifest(read)
 
-        baseline = json.loads(bundle.read("manifest.json"))
+        external = manifest.get('external_packs',{})
+        if set(attachments) != {item['part'] for item in external.values()}:
+            raise ValueError('Publication data attachment inventory differs')
+        for name,item in external.items():
+            raw = read(name)
+            if len(raw) != item['bytes'] or hashlib.sha256(raw).hexdigest() != item['sha256']:
+                raise ValueError('Data attachment pack differs: '+name)
+            url = item.get('url')
+            if not url and allow_pending_external:
+                continue
+            if not isinstance(url,str):
+                raise ValueError('Data attachment is not bound to a published version')
+            parsed = urlsplit(url)
+            expected = '/api/preview/'+quote(item.get('site_slug',''),safe='')+'/'+name
+            if (parsed.scheme != 'https' or parsed.username or parsed.password or parsed.fragment
+                or parsed.path != expected
+                or parse_qs(parsed.query) != {'__artifact_version':[item.get('version_id')]}
+                or not str(item.get('version_id','')).startswith('ver_')):
+                raise ValueError('Data attachment lacks an exact immutable version URL')
+        for label,attachment in attachments.items():
+            wanted = {name for name,item in external.items() if item['part'] == label}
+            inventory = archive_inventory((external_archives or {})[label])
+            if set(inventory) != wanted|{'index.html'} or attachment.read('index.html') != DATA_ATTACHMENT_HTML:
+                raise ValueError('Data attachment contains an undeclared file')
+        for candidate in [bundle,*attachments.values()]:
+            entries = [entry for entry in candidate.infolist() if not entry.is_dir()]
+            if (sum(entry.file_size for entry in entries) > 300*1024*1024
+                or len(entries) > 2000 or any(entry.file_size > 250*1024*1024 for entry in entries)):
+                raise ValueError('One artifact exceeds the publication capacity')
+
+        baseline = read_packed_manifest(bundle.read) if overlay else manifest
         if overlay and (manifest["blocks"] != baseline["blocks"] or set(manifest["files"]) != set(baseline["files"])):
             raise ValueError("Incremental overlay changed the frozen pack or file inventory")
         if overlay:
@@ -66,17 +105,16 @@ def check(archive, source, overlay=None):
                 if entry != baseline["files"][name] and not (explanatory_route(name) or name == "publication-privacy.json"):
                     raise ValueError("Incremental overlay changed measured evidence: " + name)
 
-        @lru_cache(maxsize=8)
-        def pack(name):
-            return gzip.decompress(read(name))
+        pack = stack.enter_context(DecompressedPackCache(read))
 
         used = {key for row in manifest["files"].values() for key in row.get("parts", [])}
         if not overlay and used != set(manifest["blocks"]):
             raise ValueError("Publication contains unreferenced content blocks")
         packs = {block["pack"] for block in manifest["blocks"].values()}
+        catalog_files = ({"manifest.json.gz", "catalog.bin.gz"} if manifest['schema_version'] == 3 else set())
         if (
             set(physical)
-            != {"index.html", "style.css", "report.js", "loader.js", "manifest.json"} | packs
+            != {"index.html", "style.css", "report.js", "loader.js", "manifest.json"} | (packs-set(external)) | catalog_files
         ):
             raise ValueError("Publication contains an undeclared physical file")
         for name in set(physical) - packs:
@@ -85,13 +123,18 @@ def check(archive, source, overlay=None):
                 if read(name) != loader.read_bytes():
                     raise ValueError("Publication loader differs from the installed resource")
                 continue
-            if publication_risk(read(name)):
+            if name == 'catalog.bin.gz':
+                continue  # Typed integer catalog; its complete ranges are checked below.
+            raw = gzip.decompress(read(name)) if name == 'manifest.json.gz' else read(name)
+            if publication_risk(raw):
                 raise ValueError("Potential sensitive data remains in physical file: " + name)
+        grouped_blocks = {}
+        if manifest['schema_version'] == 2:
+            for block in manifest['blocks'].values():
+                grouped_blocks.setdefault(block['pack'], []).append(block)
         for name in packs:
-            entries = sorted(
-                (block for block in manifest["blocks"].values() if block["pack"] == name),
-                key=lambda block: block["offset"],
-            )
+            entries = (manifest['blocks'].for_pack(name) if manifest['schema_version'] == 3
+                       else sorted(grouped_blocks[name],key=lambda block:block['offset']))
             offset = 0
             for block in entries:
                 if (
@@ -109,24 +152,8 @@ def check(archive, source, overlay=None):
             raise ValueError("Publication virtual files differ from the source report")
 
         def data(name):
-            if "inline_base64" in manifest["files"][name]:
-                return base64.b64decode(manifest["files"][name]["inline_base64"], validate=True)
-            parts = []
-            for digest in manifest["files"][name]["parts"]:
-                block = manifest["blocks"][digest]
-                part = pack(block["pack"])[block["offset"] : block["offset"] + block["size"]]
-                if hashlib.sha256(part).hexdigest() != digest:
-                    raise ValueError("Invalid block hash")
-                parts.append(part)
-            return b"".join(parts)
+            return reconstruct_packed_file(manifest,name,pack)
 
-        for name, row in manifest["files"].items():
-            raw = data(name)
-            if len(raw) != row["size"] or hashlib.sha256(raw).hexdigest() != row["sha256"]:
-                raise ValueError("Published file hash differs: " + name)
-            risk = publication_risk(raw)
-            if risk:
-                raise ValueError("Potential " + risk + " remains: " + name)
         validate_virtual_links(manifest["files"], data)
         for name in sorted(expected_files):
             if manifest["files"][name].get("source_sha256") != source_files[name]:
@@ -213,21 +240,28 @@ def check(archive, source, overlay=None):
                 if data(name) != (source / name).read_bytes() and name not in privacy_by_path:
                     raise ValueError("Undisclosed shared-population correction projection: " + name)
         projected_scored = 0
+        retained_public_views = 0
         for row in rows:
             raw = data(row["artifact_path"])
             original = contained_path(
                 source, row["artifact_path"], reject_symlinks=True
             ).read_bytes()
             expected_hash = scored_output_hash(row)
+            retained_view = False
             if hashlib.sha256(original).hexdigest() != expected_hash:
-                raise ValueError("Original scored output hash differs")
+                public = bound_public_view(source,{'path':row['artifact_path'],'sha256':expected_hash})
+                if (public is None or public[1]['role'] != 'scored_answer'
+                    or public[1]['published_sha256'] != hashlib.sha256(original).hexdigest()):
+                    raise ValueError("Original scored output hash differs")
+                retained_view = True
+                retained_public_views += 1
             disclosure = privacy_by_path.get(row["artifact_path"])
             if disclosure:
                 if disclosure.get("scored_output") is not True:
                     raise ValueError("Scored projection is not disclosed")
-                projected_scored += 1
             elif raw != original:
                 raise ValueError("Undisclosed scored output projection")
+            projected_scored += bool(disclosure or retained_view)
         for row in privacy["files"]:
             if (
                 hashlib.sha256(
@@ -255,12 +289,23 @@ def check(archive, source, overlay=None):
                 if not anchor["href"].startswith(("https://", "http://", "#")):
                     raise ValueError("Standalone article has a local evidence link")
             standalone = "pass"
+        print('Source/result bindings checked; scanning all public files',flush=True)
+        for index,(name,row) in enumerate(manifest["files"].items(),1):
+            raw = data(name)
+            if len(raw) != row["size"] or hashlib.sha256(raw).hexdigest() != row["sha256"]:
+                raise ValueError("Published file hash differs: " + name)
+            risk = publication_file_risk(name,raw)
+            if risk:
+                raise ValueError("Potential " + risk + " remains: " + name)
+            if index % 1000 == 0:
+                print(f'Verified {index}/{len(manifest["files"])} public files',flush=True)
         print(
             json.dumps(
                 {
                     "files": len(manifest["files"]),
                     "scored_outputs_byte_identical": len(rows) - projected_scored,
                     "scored_outputs_privacy_projected": projected_scored,
+                    "scored_outputs_retained_public_views": retained_public_views,
                     "redacted_public_files": len(privacy["files"]),
                     "replacements": sum(r["replacements"] for r in privacy["files"]),
                     "public_sensitive_data_scan": "pass",
@@ -281,5 +326,6 @@ def main(*, root: Path | None = None):
     )
     parser.add_argument("source", nargs="?", type=Path, default=root / "reports/webfetch")
     parser.add_argument("overlay", nargs="?", type=Path)
+    parser.add_argument("--presentation-binding", type=Path)
     args = parser.parse_args()
-    check(args.archive, args.source, args.overlay)
+    check(args.archive, args.source, args.overlay, presentation_binding=args.presentation_binding)

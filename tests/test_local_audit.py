@@ -15,6 +15,31 @@ def _write(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def test_review_refresh_derives_changed_details_and_cases_from_bound_inputs(tmp_path):
+    from copy import deepcopy
+    from harness.web_fetch.report_build import _review_refresh_changes
+    dataset = {'cases': [{'id': 'a', 'name': 'Old task'}, {'id': 'b', 'name': 'Unchanged'}]}
+    rows = [{'attempt_id': 'a1', 'case_id': 'a', 'metrics': {'value': 1}},
+            {'attempt_id': 'b1', 'case_id': 'b', 'metrics': {'value': 1}},
+            {'attempt_id': 'b2', 'case_id': 'b', 'metrics': {'value': 1}}]
+    _write(tmp_path / 'before-dataset.json', dataset)
+    (tmp_path / 'before-results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    baseline = {key: {'path': path, 'sha256': _digest(tmp_path / path)}
+                for key, path in [('dataset', 'before-dataset.json'), ('results', 'before-results.jsonl')]}
+    binding = {'review_refresh_baseline': baseline}
+    current_dataset, current_rows = deepcopy(dataset), deepcopy(rows)
+    current_dataset['cases'][0]['name'] = 'Revised frozen task'
+    current_rows[1]['metrics']['value'] = 2
+    current_rows[2]['scoring'] = {'scored_at': 'new timestamp'}
+    assert _review_refresh_changes(tmp_path, binding, current_dataset, current_rows) == ({'a1', 'b1'}, {'a'})
+    assert _review_refresh_changes(tmp_path, {}, current_dataset, current_rows) == (set(), set())
+    with pytest.raises(ValueError, match='inventory'):
+        _review_refresh_changes(tmp_path, binding, current_dataset, current_rows[:-1])
+    (tmp_path / 'before-results.jsonl').write_text('changed bytes')
+    with pytest.raises(ValueError):
+        _review_refresh_changes(tmp_path, binding, current_dataset, current_rows)
+
+
 def test_frozen_scoring_controls_allow_additions_but_reject_edits(tmp_path, monkeypatch):
     original_root = local_audit.ROOT
     receipt = json.loads((original_root / 'research/dynamic-100-moli-119-local-audit.json').read_text())
@@ -368,6 +393,28 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     assert rebuilt_manifest["template"] == resolve_template("webfetch")
     assert rebuilt_manifest["generated_languages"] == ["zh", "en"]
     assert rebuilt_manifest["presentation"]["authored_interpretation"] is False
+    # Sharing a saved diagnostic must be explicit and retain strict defaults.
+    from harness.web_fetch.report_package import build as package_report
+    from harness.web_fetch.publication_check import check as check_package
+    archive = tmp_path / "frozen-presentation.zip"
+    with pytest.raises(ValueError, match="Diagnostic evidence"):
+        package_report(rebuilt, archive)
+    package_report(rebuilt, archive, presentation_binding=binding_path)
+    check_package(archive, rebuilt, presentation_binding=binding_path)
+    import zipfile
+    cached = tmp_path/'cached-public-content'
+    with zipfile.ZipFile(archive) as bundle:
+        bundle.extractall(cached)
+    package_report(rebuilt, archive, presentation_binding=binding_path, cached_content=cached)
+    check_package(archive, rebuilt, presentation_binding=binding_path)
+    with zipfile.ZipFile(archive) as bundle:
+        assert json.loads(bundle.read('manifest.json'))['schema_version'] == 3
+    verified_archive = archive.read_bytes()
+    _write(binding_path, {**binding, "results_sha256": "0" * 64})
+    with pytest.raises(ValueError, match="results.jsonl"):
+        package_report(rebuilt, archive, presentation_binding=binding_path)
+    assert archive.read_bytes() == verified_archive
+    _write(binding_path, binding)
     from harness.web_fetch.report_check import check
     for invalid_template in (None, {"renderer": "unregistered-renderer"}):
         _write(rebuilt/"report-manifest.json", {**rebuilt_manifest, "template": invalid_template})
@@ -436,6 +483,67 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     with pytest.raises(ValueError, match="Saved output changed"):
         refresh_local_presentation(output, binding_path)
     artifact.write_bytes(original_output)
+
+    # A review-only update installs both the new detail and current coverage,
+    # while keeping the authored guide, logs, references and measured inputs.
+    from harness.web_fetch.adjudication_evidence import case_hash
+    from lexbench_webfetch.metrics import task_passed
+    current_case = json.loads((output / "dataset.json").read_text())["cases"][0]
+    current_record = frozen_rows[0]
+    verdict = "pass" if task_passed(current_record["ok"], current_record["metrics"]) else "fail"
+    text = artifact.read_text()
+    opinion = {"attempt_id": attempt_id, "verdict": verdict,
+               "reason": "Observed fixture answer: " + text[:80], "anomalies": []}
+    initial_path = output / "local-evidence/fresh-initial.json"
+    _write(initial_path, {"machine_judgments_withheld": True, "attempts": [opinion]})
+    fresh = {"attempt_id": attempt_id, "agent_verdict": verdict,
+             "agent_evidence": opinion["reason"], "reviewer_anomalies": [],
+             "machine_verdict": verdict, "current_verdict": verdict,
+             "final_verdict": verdict, "review_origin": "fresh",
+             "content_sha256": current_record["metrics"]["content_sha256"],
+             "review_evidence": {"case_sha256": case_hash(current_case),
+                                 "samples": [{"start": 0, "end": len(text), "text": text}]}}
+    supplement_path = output / "local-evidence/fresh-review.json"
+    _write(supplement_path, {"kind": "supplemental_saved_output_review",
+        "results_sha256": binding["results_sha256"], "provider_calls_added": 0,
+        "reviewed_attempts": 1, "reviewer": {"model": "synthetic reviewer"},
+        "review_protocol": {"blind_initial_verdict": True},
+        "blind_initial_outputs": [{"path": "local-evidence/fresh-initial.json",
+                                    "sha256": _digest(initial_path)}], "attempts": [fresh]})
+    review_path = output / "result-review.json"
+    _write(review_path, {"kind": "local_independent_review", "review_rounds": [],
+        "results_sha256": binding["results_sha256"], "reviewer": {},
+        "review_protocol": {"scope": "all", "blind_initial_verdict": True},
+        "reviewed_attempts": 1, "fresh_reviewed_attempts": 1,
+        "expected_attempts": 1, "total_attempts": 1, "unresolved": 0,
+        "unreviewed_attempt_ids": [], "accepted_unreviewed_passes": 0,
+        "attempts": [fresh], "supplemental_reviews": [{
+            "path": "local-evidence/fresh-review.json", "sha256": _digest(supplement_path)}]})
+    binding["evidence_bindings"].append({"path": "result-review.json", "sha256": _digest(review_path)})
+    _write(binding_path, binding)
+    before_review = {path.relative_to(output).as_posix(): _digest(path)
+                     for path in output.rglob("*") if path.is_file()}
+    refresh_local_presentation(output, binding_path, review_only=True)
+    permitted = allowed | {"review/index.html", "attempts/" + attempt_id + ".html",
+                           "presentation-binding.json"}
+    if include_english:
+        permitted |= {"en/review/index.html", "en/attempts/" + attempt_id + ".html"}
+    for relative, digest in before_review.items():
+        if relative not in permitted:
+            assert _digest(output / relative) == digest
+    assert "1/1" in (output / "review/index.html").read_text()
+    for prefix in (["", "en/"] if include_english else [""]):
+        assert opinion["reason"] in (output / prefix / "attempts" / (attempt_id + ".html")).read_text()
+    assert json.loads((output / "presentation-binding.json").read_text()) == binding
+    assert (output / "results.jsonl").read_bytes() == before_results
+    # A changed initial opinion must fail before any page is installed.
+    _write(initial_path, {"machine_judgments_withheld": True, "attempts": []})
+    before_invalid = {path.relative_to(output).as_posix(): _digest(path)
+                      for path in output.rglob("*") if path.is_file()}
+    with pytest.raises(ValueError, match="Local revision evidence binding changed"):
+        refresh_local_presentation(output, binding_path, review_only=True)
+    assert before_invalid == {path.relative_to(output).as_posix(): _digest(path)
+                              for path in output.rglob("*") if path.is_file()}
 
     # Self-consistent totals must still identify the actual physical calls.
     import copy

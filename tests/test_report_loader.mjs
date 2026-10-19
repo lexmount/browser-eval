@@ -263,3 +263,33 @@ await assert.rejects(vm.runInContext("fileBytes('missing.html')",patchContext),/
 vm.runInContext('pack=async()=>new Uint8Array([0,65,66,67,0])',patchContext);
 assert.equal(await vm.runInContext("textFile('old.txt')",patchContext),'ABC');
 console.log('PASS: incremental Unicode routes coexist with unchanged packed evidence; malformed or missing routes fail');
+
+// Exercise the actual compact wire format, including negative block deltas,
+// empty files, Unicode bytes, multiple packs and exact reconstructed length.
+const {gzipSync}=await import('node:zlib');
+const compactParts=[Buffer.from('alpha'),Buffer.from('βbeta'),Buffer.from('!!!')];
+const compactCatalog=Buffer.alloc(6+5*4);
+compactParts.forEach((part,i)=>compactCatalog.writeUInt16LE(part.length,i*2));
+[0,2,1,4,1].forEach((delta,i)=>compactCatalog.writeUInt32LE(delta,6+i*4));
+const compactWire={schema_version:3,block_count:3,pack_starts:[0,2],packs:['data/000.gz','data/001.gz'],files:{
+ 'a.txt':{parts:[0,3],size:16},'b.txt':{parts:[3,2],size:9},'empty.txt':{parts:[5,0],size:0}}};
+const compactResponses={
+ 'manifest.json':JSON.stringify({schema_version:3,compressed_manifest:'manifest.json.gz'}),
+ 'manifest.json.gz':gzipSync(JSON.stringify(compactWire)),
+ 'catalog.bin.gz':gzipSync(compactCatalog),
+ 'data/000.gz':gzipSync(Buffer.concat(compactParts.slice(0,2))),
+ 'data/001.gz':gzipSync(compactParts[2])};
+const externalPackUrl='https://artifact.example/api/preview/data-part/data/001.gz?__artifact_version=ver_frozen';
+compactWire.external_packs={'data/001.gz':{url:externalPackUrl}};
+compactResponses['manifest.json.gz']=gzipSync(JSON.stringify(compactWire));
+compactResponses[externalPackUrl]=compactResponses['data/001.gz'];delete compactResponses['data/001.gz'];
+const compactContext=vm.createContext({TextDecoder,URL,Response,DecompressionStream,
+ fetch:async path=>new Response(compactResponses[path],{status:200}),
+ window:{addEventListener(){}},document:{addEventListener(){}}});
+vm.runInContext(js,compactContext);
+assert.equal(Buffer.from(await vm.runInContext("fileBytes('a.txt')",compactContext)).toString(),'alphaβbetaalpha');
+assert.equal(Buffer.from(await vm.runInContext("fileBytes('b.txt')",compactContext)).toString(),'!!!βbeta');
+assert.equal((await vm.runInContext("fileBytes('empty.txt')",compactContext)).length,0);
+await vm.runInContext("manifest().then(m=>{m.files['a.txt'].size++})",compactContext);
+await assert.rejects(vm.runInContext("fileBytes('a.txt')",compactContext),/文件长度错误|Invalid file length/);
+console.log('PASS: compact catalog reconstructs Unicode, repeated blocks, negative deltas and empty files; rejects wrong length');

@@ -4,6 +4,7 @@ import html
 import json
 import re
 from copy import deepcopy
+from collections import OrderedDict
 from functools import lru_cache
 from pathlib import PurePosixPath, PureWindowsPath
 from urllib.parse import unquote_plus
@@ -192,8 +193,24 @@ REDACTIONS = (
 _URL_ENTITY = re.compile(r'&(?:\#[xX][0-9A-Fa-f]+;?|\#[0-9]+;?|[A-Za-z][A-Za-z0-9]+;)')
 
 
-def _url_entity_surface(raw):
+def _url_entity_surface(raw, *, _bound=True):
     """Decode URL entities while retaining each character's original span."""
+    # Encoded HTML delimiters end the URL. Do not build a per-character map
+    # for unrelated minified HTML that the caller will discard from the URL.
+    if _bound:
+        for match in _URL_ENTITY.finditer(raw):
+            if any(char in '\"\'<>\\\x00' or char.isspace()
+                   for char in html.unescape(match.group())):
+                raw = raw[:match.end()]
+                break
+            if html.unescape(match.group()) == '&':
+                window = raw[match.start():match.end()+128]
+                decoded,spans = _url_entity_surface(window,_bound=False)
+                stop = next((i for i,char in enumerate(decoded)
+                             if char in '\"\'<>\\\x00' or char.isspace()),None)
+                if stop is not None:
+                    raw = raw[:match.start()+spans[stop][2]]
+                    break
     units = [(char, index, index+1) for index, char in enumerate(raw)]
     for _ in range(8):
         text = ''.join(unit[0] for unit in units)
@@ -290,7 +307,19 @@ def _json_string_spans(text):
         return
     candidates = []
     next_end = after_next_end = None
-    for index in range(len(text)-1, -1, -1):
+    # Ordinary runs leave the backward state unchanged. Let the regex engine
+    # skip them in bounded windows instead of visiting every byte in Python.
+    def positions():
+        special = re.compile(r'["\\\x00-\x1f]')
+        for end in range(len(text), 0, -65536):
+            for match in reversed(list(special.finditer(text, max(0, end-65536), end))):
+                yield match.start()
+
+    following = len(text)
+    for index in positions():
+        if following > index + 1:
+            after_next_end = next_end
+        following = index
         char = text[index]
         if char == '"':
             if next_end is not None:
@@ -356,7 +385,37 @@ def auth_matches(data):
     return distinct
 
 
+_large_plain_risks = OrderedDict()
+
+
 def _plain_publication_risk(data):
+    # Cache immutable bytes only. Long evidence retains only a SHA-256 decision,
+    # while short keys/values retain at most 8192 * 1024 bytes in the LRU.
+    data = bytes(data)
+    if len(data) <= 1024:
+        return _cached_plain_publication_risk(data)
+    key = (len(data),hashlib.sha256(data).digest())
+    try:
+        result = _large_plain_risks[key]
+    except KeyError:
+        result = _scan_plain_publication_risk(data)
+        _large_plain_risks[key] = result
+        while len(_large_plain_risks) > 32768:
+            _large_plain_risks.popitem(last=False)
+    else:
+        try:
+            _large_plain_risks.move_to_end(key)
+        except KeyError:
+            pass  # Concurrent eviction does not invalidate the computed result.
+    return result
+
+
+@lru_cache(maxsize=8192)
+def _cached_plain_publication_risk(data):
+    return _scan_plain_publication_risk(data)
+
+
+def _scan_plain_publication_risk(data):
     """Inspect actual text, excluding serialization delimiters."""
     decoded=html.unescape(data.decode('utf-8',errors='surrogateescape')).encode('utf-8',errors='surrogateescape')
     if GOOGLE_KEY.search(decoded) or OTHER_SECRET.search(decoded):
@@ -374,6 +433,13 @@ def _plain_publication_risk(data):
     if LOCAL_USER_PATH.search(decoded):
         return 'machine-local user path'
     return None
+
+
+
+def _secret_placeholder(value):
+    return bool((value.startswith('<') and value.endswith('>'))
+                or (value.startswith('[') and value.endswith(']'))
+                or PUBLIC_AUTH_PLACEHOLDER.fullmatch(('Authorization: '+value).encode()))
 
 
 def _scan_publication_risk(data):
@@ -404,8 +470,7 @@ def _scan_publication_risk(data):
                 if risk:
                     return risk
         elif isinstance(value, str):
-            if (secret and value and not ((value.startswith('<') and value.endswith('>'))
-                                         or (value.startswith('[') and value.endswith(']')))):
+            if secret and value and not _secret_placeholder(value):
                 return 'sensitive field value'
             return _plain_publication_risk(value.encode('utf-8'))
         return None
@@ -434,7 +499,7 @@ def project_file(name, data):
         raise ValueError('Private/hidden file is not publishable: ' + name)
     if OTHER_SECRET.search(data):
         raise ValueError('Potential credential-shaped value in publication file: ' + name)
-    if name.endswith(('.json', '.jsonl')):
+    if name.endswith(('.json', '.jsonl')) or data.lstrip().startswith((b'{',b'[',b'"')):
         structured = _project_json(name, data)
         if structured is not None:
             return structured
@@ -932,24 +997,18 @@ def _project_json(name, data):
     replacements = 0
     kinds = set()
 
-    def project(value):
+    def project(value, *, secret=False):
         nonlocal replacements
         if isinstance(value, dict):
-            result = {}
-            for key, child in value.items():
-                if (isinstance(child, str) and child
-                        and re.fullmatch(SENSITIVE_KEY, key.encode(), re.I)
-                        and not child.startswith(('<', '['))
-                        and not PUBLIC_AUTH_PLACEHOLDER.fullmatch((key+': '+child).encode())):
-                    result[key] = '[REDACTED]'
-                    replacements += 1
-                    kinds.add('credential')
-                else:
-                    result[key] = project(child)
-            return result
+            return {key:project(child,secret=secret or bool(re.fullmatch(SENSITIVE_KEY,key.encode(),re.I)))
+                    for key,child in value.items()}
         if isinstance(value, list):
-            return [project(child) for child in value]
+            return [project(child,secret=secret) for child in value]
         if isinstance(value, str):
+            if secret and value and not _secret_placeholder(value):
+                replacements += 1
+                kinds.add('credential')
+                return '[REDACTED]'
             raw, receipt = project_file(name+'.value.txt', value.encode())
             if receipt:
                 replacements += receipt['replacements']
@@ -974,3 +1033,25 @@ def _project_json(name, data):
         'original_sha256': hashlib.sha256(data).hexdigest(),
         'published_sha256': hashlib.sha256(projected).hexdigest(),
         'original_bytes': len(data), 'published_bytes': len(projected)}
+
+
+def publication_file_risk(name, data):
+    """Scan JSONL records independently; malformed records keep the full scan.
+
+    Valid JSON strings cannot cross a physical record newline. Keeping that
+    boundary avoids promoting a whole large matrix to one wide Unicode string.
+    """
+    if not name.endswith('.jsonl'):
+        return publication_risk(data)
+    import io
+    for line in io.BytesIO(data):
+        if not line.strip():
+            continue
+        try:
+            json.loads(line)
+        except (ValueError,UnicodeError,RecursionError):
+            return publication_risk(data)
+        risk = publication_risk(line)
+        if risk:
+            return risk
+    return None

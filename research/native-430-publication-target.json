@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "comparison_kind": "uniform_native_local_measurement",
+  "case_count": 430,
+  "result_count": 4300,
+  "certified": false,
+  "presentation_binding": {
+    "path": "research/native-430-local-report.json",
+    "sha256": "6bfbd8616be7d091ce9b7089a8699d82082fc6196ba6162d5f902cdc89fea379"
+  },
+  "frozen_dataset_sha256": "640e6dda990e79d8db4f8d9fb9551a9d5317b2f2669f74f121ddf8089c795f84",
+  "results_sha256": "6f43a3419940bfdb87b09c0652801817722ff38afcf48036da96ffb030903cb9",
+  "publication": {
+    "base_url": "https://artifact-site.lexmount.cn",
+    "site_slug": "EJ6c5jQO0C-z",
+    "version_id": "ver_7d504255c9dc40b5a77ed98730686fd8",
+    "share_url": "https://artifact-site.lexmount.cn/s/EJ6c5jQO0C-z",
+    "visibility": "unlisted"
+  },
+  "data_publications": {
+    "data-001": {
+      "base_url": "https://artifact-site.lexmount.cn",
+      "site_slug": "JMbPP9vXvEQD",
+      "version_id": "ver_0449613ad99c4c799cbbfb6a20850e1d",
+      "archive_sha256": "83c879b22f7cd4efbdc03f6a0b92ce0820728978ec8a064c41add4d99463dab8"
+    }
+  }
+}

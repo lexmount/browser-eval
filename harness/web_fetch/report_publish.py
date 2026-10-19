@@ -44,6 +44,9 @@ class PublishConfig:
     base_url: str | None = None
     expected_version: str | None = None
     operation_namespace: str = "webfetch"
+    presentation_binding: Path | None = None
+    visibility: str | None = None
+    parts_manifest: Path | None = None
 
 
 def response_json(status, raw, *, operation):
@@ -104,7 +107,20 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
         raise ValueError("Unknown publication mode")
     if config.operation_namespace == 'webfetch':
         from .report_package import validate_release
-        validate_release(config.source)
+        validate_release(config.source, presentation_binding=config.presentation_binding)
+    if config.visibility not in {None, "private", "unlisted", "public"}:
+        raise ValueError("Unknown publication visibility")
+    if config.presentation_binding is not None:
+        validation_inputs = (*validation_inputs, config.presentation_binding)
+    attachments, parts_plan = {}, None
+    if config.parts_manifest is not None:
+        from .report_package import part_archives
+        attachments = part_archives(config.parts_manifest)
+        parts_plan = json.loads(config.parts_manifest.read_text())
+        validation_inputs = (*validation_inputs,config.parts_manifest,*attachments.values())
+    if package_check is None and (config.presentation_binding is not None or config.parts_manifest is not None):
+        from functools import partial
+        package_check = partial(check,presentation_binding=config.presentation_binding,external_archives=attachments)
     protected = {config.profile.resolve(), config.archive.resolve(),
                  *(Path(path).resolve() for path in validation_inputs)}
     if config.receipt.resolve() in protected or config.journal.resolve() in protected:
@@ -113,6 +129,11 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
     profile_bytes = config.profile.read_bytes()
     profile = publication_document(json.loads(profile_bytes))
     base = publication_base(config.profile, config.base_url, document=profile)
+    if parts_plan is not None:
+        if parts_plan.get('publications') != profile.get('data_publications'):
+            raise ValueError('Data attachment targets differ from the publication authority')
+        if any(target.get('base_url') != base for target in parts_plan['publications'].values()):
+            raise ValueError('Data attachments must use the profile-bound publication service')
     previous_receipt = _receipt_identity(config.receipt)
     result = json.loads(previous_receipt) if previous_receipt is not None else {}
     if not isinstance(result, dict):
@@ -172,6 +193,22 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
 
     def finish(value):
         version = activated_version(value)
+        if config.visibility is not None:
+            slug = urllib.parse.quote(value["slug"], safe="")
+            path = "/api/sites/" + slug + "/sharing"
+            status, raw = send(path)
+            sharing = response_json(status, raw, operation="sharing inspection")
+            if sharing.get("visibility") != config.visibility:
+                status, raw = send(path, json_bytes({"visibility": config.visibility}),
+                                   "application/json", method="PUT")
+                sharing = response_json(status, raw, operation="sharing update")
+            if sharing.get("visibility") != config.visibility or sharing.get("moderation"):
+                raise ValueError("Requested sharing is not active; inspect the saved publication")
+            value.update(share_url=base + "/s/" + slug, visibility=config.visibility,
+                         publication_pending=False)
+            save(value)
+            return {"slug": value["slug"], "versionId": version,
+                    "url": value["share_url"], "visibility": config.visibility}
         had_share = bool(value.get("share_url"))
         if not value.get("share_url"):
             slug = urllib.parse.quote(value["slug"], safe="")
@@ -313,6 +350,9 @@ def main(*, root: Path | None = None):
         default=os.environ.get("ARTIFACT_SITE_BASE_URL", os.environ.get("ARTIFACT_HUB_BASE_URL")),
     )
     parser.add_argument("--title", default="Web Fetch 评测")
+    parser.add_argument("--presentation-binding", type=Path)
+    parser.add_argument("--parts-manifest", type=Path)
+    parser.add_argument("--visibility", choices=("private", "unlisted", "public"))
     args = parser.parse_args()
     result = publish(
         PublishConfig(
@@ -325,6 +365,7 @@ def main(*, root: Path | None = None):
             args.title,
             args.base_url,
             args.expected_version,
+            presentation_binding=args.presentation_binding, visibility=args.visibility, parts_manifest=args.parts_manifest,
         )
     )
     print(json.dumps(result, ensure_ascii=False), flush=True)
