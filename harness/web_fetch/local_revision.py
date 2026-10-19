@@ -68,6 +68,9 @@ def validate_revision_chain(source, binding, dataset=None, records=None):
         dataset = json.loads((source / 'dataset.json').read_text())
     if records is None:
         records = load_jsonl(source / 'results.jsonl')
+    receipt = json.loads(read_bound(source, binding).read_text())
+    if receipt.get('kind') == 'current_local_snapshot_authority':
+        return require_current_snapshot_authority(source, receipt, dataset, records), None, None
     outputs = {name: hashlib.sha256((source / name).read_bytes()).hexdigest()
                for name in ('dataset.json', 'results.jsonl')}
     seen, latest_scoring = set(), None
@@ -90,6 +93,530 @@ def validate_revision_chain(source, binding, dataset=None, records=None):
 
 def require_local_revision(source, binding, dataset, records):
     return validate_revision_chain(source, binding, dataset, records)[0]
+
+
+def _value_hash(value):
+    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+                                    separators=(',', ':')).encode()).hexdigest()
+
+
+def _current_row_identity(case, record):
+    from .result_review import review_input_identity
+    return {'attempt_id': record['attempt_id'], 'case_sha256': _value_hash(case),
+            'record_sha256': _value_hash(record),
+            'scoring_source_sha256': record['metrics']['scoring_source_sha256'],
+            'review_input': review_input_identity(record)}
+
+
+def _require_current_row_evidence(source, record, diagnostic_projection=None):
+    from .result_review import review_input_identity
+    identity = review_input_identity(record)
+    read_bound(source, {'path': record['artifact_path'],
+                        'sha256': record['metrics']['content_sha256']})
+    for item in identity['raw_artifacts']:
+        if item:
+            read_bound(source, item)
+    diagnostic = identity['diagnostic_log']
+    if diagnostic:
+        if diagnostic_projection is None:
+            read_bound(source, diagnostic)
+        else:
+            _require_diagnostic_projection(source, record, diagnostic_projection)
+
+
+def _require_diagnostic_projection(source, record, proof):
+    from .result_review import review_input_identity
+    diagnostic = review_input_identity(record)['diagnostic_log']
+    call = record.get('provider_metadata', {}).get('call_log')
+    if (proof.get('attempt_id') != record['attempt_id']
+            or proof.get('kind') != 'private_diagnostic_public_runtime_projection'
+            or proof.get('original') != diagnostic or proof.get('call_log') != call
+            or proof.get('original_verified_at_compaction') is not True
+            or proof.get('verification_scope') != 'public_view_and_disclosed_original_identity'
+            or proof.get('original_retained_privately') is not True or not call):
+        raise ValueError('Current diagnostic projection lost original or call identity')
+    public = proof.get('public', {})
+    equal_bytes = public.get('sha256') == diagnostic['sha256'] and public.get('bytes') == diagnostic['bytes']
+    if proof.get('public_bytes_equal_original') is not equal_bytes:
+        raise ValueError('Current diagnostic projection confuses public and original bytes')
+    if public.get('path') != 'logs/'+record['attempt_id']+'.debug.txt':
+        raise ValueError('Current diagnostic projection selects another attempt')
+    path = read_bound(source, public)
+    if path.stat().st_size != public.get('bytes'):
+        raise ValueError('Current public diagnostic size changed')
+    payload = json.loads(read_bound(source, call).read_text())
+    if any(payload.get('identity', {}).get(key) != record.get(key)
+           for key in ('attempt_id', 'provider', 'case_id', 'run')):
+        raise ValueError('Current diagnostic call belongs to another result')
+
+
+def _compact_diagnostic_projections(source, records, private_manifest, *, public_log_updates=None):
+    """Verify private originals once; emit honest public-view receipts only."""
+    from .result_review import review_input_identity
+    from .report import runtime_log_text
+    from .runner import _public_text
+    from .publication_privacy import project_file
+    private = None
+    bound_public_logs = set()
+    def collect_paths(value):
+        if isinstance(value, dict):
+            for item in value.values():
+                collect_paths(item)
+        elif isinstance(value, list):
+            for item in value:
+                collect_paths(item)
+        elif isinstance(value, str) and value.startswith('logs/') and value.endswith('.debug.txt'):
+            bound_public_logs.add(value)
+    collect_paths(records)
+    if private_manifest is not None:
+        manifest_path = Path(private_manifest)
+        if manifest_path.is_symlink():
+            raise ValueError('Private diagnostic manifest must not be a symlink')
+        document = json.loads(manifest_path.read_text())
+        if (document.get('kind') != 'current_private_originals'
+                or document.get('results_sha256') != hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()):
+            raise ValueError('Private originals do not bind current results')
+        private = {(item['relative_path'], item['sha256']): item for item in document['bindings']}
+    proofs = []
+    for record in records:
+        diagnostic = review_input_identity(record)['diagnostic_log']
+        if not diagnostic:
+            continue
+        original = contained_path(source, diagnostic['path'], reject_symlinks=True)
+        if not original.is_file():
+            item = (private or {}).get((diagnostic['path'], diagnostic['sha256']))
+            if (item is None or record['attempt_id'] not in item['attempt_ids']
+                    or 'diagnostic_log' not in item['roles'] or item['bytes'] != diagnostic['bytes']):
+                raise ValueError('Current private diagnostic lacks its actual original')
+            original = contained_path(manifest_path.parent, item['stored_path'], reject_symlinks=True)
+        raw = original.read_bytes()
+        if len(raw) != diagnostic['bytes'] or hashlib.sha256(raw).hexdigest() != diagnostic['sha256']:
+            raise ValueError('Current private diagnostic bytes changed')
+        relative = 'logs/'+record['attempt_id']+'.debug.txt'
+        path = contained_path(source, relative, reject_symlinks=True)
+        if not path.is_file():
+            # Non-public local snapshots can still verify their actual originals.
+            if public_log_updates is None:
+                if private_manifest is not None:
+                    raise ValueError('Current public diagnostic projection is missing: '+record['attempt_id'])
+                continue
+        text = runtime_log_text(raw.decode('utf-8', errors='replace'))
+        expected = (_public_text(text, limit=len(text)) or '').encode()
+        actual = path.read_bytes() if path.is_file() else None
+        projected = expected if actual == expected else project_file(relative, expected)[0]
+        if actual != expected and actual != projected:
+            if public_log_updates is None:
+                raise ValueError('Current public diagnostic differs from shared projection: '+record['attempt_id'])
+            # Only the derived debug view may change. A measured row or public
+            # call must not directly identify these old public bytes.
+            if (relative in bound_public_logs
+                    or relative in read_bound(source, record['provider_metadata']['call_log']).read_text()):
+                raise ValueError('Derived diagnostic is bound as measured evidence')
+            public_log_updates[path] = projected
+            actual = projected
+        proof = {'attempt_id': record['attempt_id'],
+            'kind': 'private_diagnostic_public_runtime_projection', 'original': diagnostic,
+            'public': {'path': relative, 'sha256': hashlib.sha256(actual).hexdigest(), 'bytes': len(actual)},
+            'call_log': record.get('provider_metadata', {}).get('call_log'),
+            'original_verified_at_compaction': True,
+            'verification_scope': 'public_view_and_disclosed_original_identity',
+            'public_bytes_equal_original': hashlib.sha256(actual).hexdigest() == diagnostic['sha256']
+                                           and len(actual) == diagnostic['bytes'],
+            'original_retained_privately': True}
+        if path not in (public_log_updates or {}):
+            _require_diagnostic_projection(source, record, proof)
+        proofs.append(proof)
+    return proofs
+
+
+def compact_revision_authority(source, binding, dataset=None, records=None, *,
+                               reference_authorities=(), task_replacement=None,
+                               private_original_manifest=None):
+    dataset = dataset if dataset is not None else json.loads((source/'dataset.json').read_text())
+    records = records if records is not None else load_jsonl(source/'results.jsonl')
+    validated = validate_revision_chain(source, binding, dataset, records)
+    return _compact_revision_authority(source, binding, dataset, records, validated,
+        reference_authorities=reference_authorities, task_replacement=task_replacement,
+        private_original_manifest=private_original_manifest)
+
+
+def _compact_revision_authority(source, binding, dataset, records, validated, *,
+                                reference_authorities=(), task_replacement=None,
+                                private_original_manifest=None, _diagnostics=None):
+    """Validate history once, then describe only the current state and its causes.
+
+    The returned authority deliberately cannot reconstruct or revalidate removed
+    transitions. It retains real current source identities, never relabels scores,
+    and contains neither before images nor reverse patches. The caller installs
+    and hash-binds this document before removing superseded files.
+    """
+    dataset = dataset if dataset is not None else json.loads((source/'dataset.json').read_text())
+    records = records if records is not None else load_jsonl(source/'results.jsonl')
+    sources, original_dataset, original_results = validated
+    replacement_scope = None
+    if task_replacement:
+        if original_dataset is None:
+            parent = json.loads(read_bound(source, binding).read_text())
+            require_current_task_replacement(source, parent, dataset, records)
+            replacement_scope = parent['task_replacement_current_scope']
+        else:
+            require_local_task_replacement(source, task_replacement,
+                json.loads(read_bound(source, original_dataset).read_text()),
+                load_jsonl(read_bound(source, original_results)))
+            replacement = json.loads(read_bound(source, task_replacement).read_text())
+            replacement_scope = {'added_case_id': replacement['added_case_id'],
+                'removed_case_id': replacement['removed_case_id'],
+                'current_attempt_ids': sorted(row['attempt_id'] for row in records
+                                             if row['case_id'] == replacement['added_case_id']),
+                'execution_contract': replacement['execution_contract'],
+                'execution': replacement['cohort_execution'],
+                'pre_captures': replacement['pre_captures'],
+                'post_captures': replacement['post_captures'],
+                'source_capture_counts': {phase: len(replacement[phase])
+                                          for phase in ('pre_captures', 'post_captures')},
+                'qualification_state': replacement.get('reference_scope_review', {}).get('result'),
+                'historical_transition_validated_before_compaction': True}
+    causes = {}
+    cursor = binding
+    current_source = None
+    while cursor:
+        receipt = json.loads(read_bound(source, cursor).read_text())
+        if receipt.get('kind') == 'current_local_snapshot_authority':
+            for cause in receipt['correction_authorities']:
+                causes[_value_hash(cause)] = cause
+            break
+        authority = receipt['authority']
+        if current_source is None:
+            current_source = receipt['scoring_source_sha256']
+        if receipt['scoring_source_sha256'] == current_source:
+            roots = authority.get('root_cause_bindings') or []
+            for root in roots or [None]:
+                cause = {'description': root['root_cause'] if root else authority['description'],
+                    'regression_ids': root['regression_ids'] if root else receipt['regression_ids'],
+                    'root_cause_bindings': [root] if root else []}
+                if authority.get('source_commit'):
+                    cause['source_commit'] = authority['source_commit']
+                causes[_value_hash(cause)] = cause
+        cursor = receipt.get('predecessor_revision')
+    cases = {case['id']: case for case in dataset['cases']}
+    result = {'kind': 'current_local_snapshot_authority', 'schema_version': 1,
+        'provider_calls_added': 0, 'validation_scope': 'current_state_only',
+        'history_validated_before_compaction': True,
+        'dataset_sha256': hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
+        'results_sha256': hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest(),
+        'correction_authorities': list(causes.values()),
+        'current_reference_authorities': list(reference_authorities),
+        'diagnostic_projections': (_diagnostics if _diagnostics is not None else
+            _compact_diagnostic_projections(source, records, private_original_manifest)),
+        'attempts': [_current_row_identity(cases[row['case_id']], row) for row in records]}
+    review = dataset.get('comparison', {}).get('independent_review')
+    if review is None and (source/'result-review.json').is_file():
+        review = {'path': 'result-review.json',
+                  'sha256': hashlib.sha256((source/'result-review.json').read_bytes()).hexdigest()}
+    if review is not None:
+        result['current_review'] = review
+    if (source/'execution.json').is_file():
+        result['current_execution'] = {'path': 'execution.json',
+            'sha256': hashlib.sha256((source/'execution.json').read_bytes()).hexdigest()}
+    expected = require_current_snapshot_authority(source, result, dataset, records)
+    if expected != sources:
+        raise ValueError('Compaction changed actual scoring source identities')
+    if replacement_scope is not None:
+        result['task_replacement_current_scope'] = replacement_scope
+        require_current_task_replacement(source, result, dataset, records)
+    return result
+
+
+def require_current_task_replacement(source, receipt, dataset, records):
+    """Validate the explicit current scope after its historical gate was checked."""
+    scope = receipt.get('task_replacement_current_scope', {})
+    cases = {case['id'] for case in dataset['cases']}
+    identifiers = sorted(row['attempt_id'] for row in records
+                         if row['case_id'] == scope.get('added_case_id'))
+    if (receipt.get('kind') != 'current_local_snapshot_authority'
+            or receipt.get('schema_version') != 1
+            or scope.get('historical_transition_validated_before_compaction') is not True
+            or scope.get('added_case_id') not in cases
+            or scope.get('removed_case_id') in cases
+            or not identifiers or scope.get('current_attempt_ids') != identifiers
+            or not scope.get('execution_contract') or not scope.get('execution')
+            or not scope.get('qualification_state')):
+        raise ValueError('Current task replacement scope is missing or differs')
+    for phase in ('pre_captures', 'post_captures'):
+        captures = scope.get(phase)
+        if (not isinstance(captures, list) or not captures
+                or len(captures) != scope.get('source_capture_counts', {}).get(phase)):
+            raise ValueError('Current task replacement lacks source qualification')
+        for capture in captures:
+            read_bound(source, capture)
+    contract = json.loads(read_bound(source, scope['execution_contract']).read_text())
+    execution = json.loads(read_bound(source, scope['execution']).read_text())
+    from .local_audit import local_measurement_cases, require_local_execution_contract
+    frozen = local_measurement_cases(contract, source)
+    current = {case['id']: case for case in dataset['cases']}
+    if {case['id'] for case in frozen} != {scope['added_case_id']}:
+        raise ValueError('Current replacement contract has a different task')
+    # Score-only corrections may change requirements; frozen acquisition inputs
+    # and all original physical-call constraints still apply to current calls.
+    scoring_fields = ALLOWED_FIELDS | {'diagnostic_any', 'acceptance_policy_version'}
+    for case in frozen:
+        if ({k: v for k, v in case.items() if k not in scoring_fields}
+                != {k: v for k, v in current[case['id']].items() if k not in scoring_fields}):
+            raise ValueError('Current replacement acquisition contract changed')
+    selected = [row for row in records if row['case_id'] == scope['added_case_id']]
+    require_local_execution_contract(source, {'cases': frozen}, selected, contract, execution)
+
+
+def require_current_snapshot_authority(source, receipt, dataset, records):
+    """Verify current bytes and live evidence, without reading deleted history."""
+    if (receipt.get('kind') != 'current_local_snapshot_authority'
+            or receipt.get('schema_version') != 1
+            or receipt.get('provider_calls_added') != 0
+            or receipt.get('validation_scope') != 'current_state_only'
+            or receipt.get('history_validated_before_compaction') is not True):
+        raise ValueError('Invalid compact current snapshot authority')
+    for name, key in [('dataset.json', 'dataset_sha256'), ('results.jsonl', 'results_sha256')]:
+        if hashlib.sha256((source/name).read_bytes()).hexdigest() != receipt.get(key):
+            raise ValueError('Current snapshot bytes changed: ' + name)
+    if (json.loads((source/'dataset.json').read_text()) != dataset
+            or load_jsonl(source/'results.jsonl') != records):
+        raise ValueError('Current snapshot arguments differ from bound bytes')
+    cases = {case['id']: case for case in dataset['cases']}
+    rows = {row['attempt_id']: row for row in records}
+    attempts = receipt.get('attempts', [])
+    identities = {row['attempt_id']: row for row in attempts}
+    if (len(cases) != len(dataset['cases']) or len(rows) != len(records)
+            or len(identities) != len(attempts) or set(identities) != set(rows)):
+        raise ValueError('Current snapshot inventory differs')
+    causes = receipt.get('correction_authorities', [])
+    if not causes:
+        raise ValueError('Current snapshot needs correction authority')
+    for cause in causes:
+        if not cause.get('description') or not cause.get('regression_ids'):
+            raise ValueError('Current correction lacks cause or executable controls')
+        require_scoring_regressions(cause['regression_ids'])
+    for authority in receipt.get('current_reference_authorities', []):
+        document = json.loads(read_bound(source, authority).read_text())
+        def require_material(value):
+            if isinstance(value, dict):
+                if 'path' in value and 'sha256' in value:
+                    read_bound(source, value)
+                for item in value.values():
+                    require_material(item)
+            elif isinstance(value, list):
+                for item in value:
+                    require_material(item)
+        require_material(document)
+    projections = receipt.get('diagnostic_projections', [])
+    indexed_projections = {item['attempt_id']: item for item in projections}
+    if len(indexed_projections) != len(projections) or not set(indexed_projections) <= set(rows):
+        raise ValueError('Current diagnostic projection scope differs')
+    for identifier, row in rows.items():
+        if (row['case_id'] not in cases
+                or identities[identifier] != _current_row_identity(cases[row['case_id']], row)):
+            raise ValueError('Current snapshot row, case or source changed: ' + identifier)
+        _require_current_row_evidence(source, row, indexed_projections.get(identifier))
+    if receipt.get('task_replacement_current_scope') is not None:
+        require_current_task_replacement(source, receipt, dataset, records)
+    execution = source/'execution.json'
+    if execution.is_file():
+        execution_binding = receipt.get('current_execution')
+        if not execution_binding or read_bound(source, execution_binding) != execution:
+            raise ValueError('Current execution inventory lacks its actual binding')
+        from collections import Counter
+        physical = Counter(identifier for batch in json.loads(execution.read_text())['batches']
+                           for identifier in batch['attempt_ids'])
+        if physical != Counter(row['attempt_id'] for row in records):
+            raise ValueError('Current execution physical/logical inventory differs')
+        from .native_routes import verify_native_execution_manifests
+        verify_native_execution_manifests(source, json.loads(execution.read_text())['batches'],
+                                         dataset, records)
+    from .local_audit import _require_local_review
+    review = receipt.get('current_review')
+    declared = dataset.get('comparison', {}).get('independent_review')
+    if declared is not None and declared != review:
+        raise ValueError('Current review binding differs from current authority')
+    if (source/'result-review.json').is_file() and review is None:
+        raise ValueError('Current authority omitted the saved review')
+    document = json.loads(read_bound(source, review).read_text()) if review else None
+    _require_local_review(source, dataset, records, review_document=document,
+        scoring_sources={key: value['scoring_source_sha256'] for key, value in identities.items()})
+    return {key: value['scoring_source_sha256'] for key, value in identities.items()}
+
+
+def _install_compact_local_snapshot(source, binding, *, reference_authorities=(), task_replacement=None,
+                           authority_path='local-evidence/offline-revisions/current/receipt.json',
+                           retained_path='local-evidence/retained-review-current.json',
+                           comparison_updates=None, private_original_manifest=None,
+                           _validated_history=None, _diagnostics=None):
+    """Install current authority after validating history; never delete user files.
+
+    Only review dependency bindings change. Calls, scores, contracts and review
+    opinions remain exact. The caller may delete obsolete states after this
+    succeeds and the ordinary presentation boundary accepts the returned binding.
+    """
+    from .adjudication_evidence import compact_retained_review_dependencies
+    source = Path(source)
+    dataset = json.loads((source/'dataset.json').read_text())
+    records = load_jsonl(source/'results.jsonl')
+    authority = _compact_revision_authority(source, binding, dataset, records, _validated_history,
+        reference_authorities=reference_authorities, task_replacement=task_replacement,
+        private_original_manifest=private_original_manifest, _diagnostics=_diagnostics)
+    review_binding = authority.get('current_review')
+    updates = {}
+    if review_binding:
+        read_bound(source, review_binding)
+        review_path = contained_path(source, review_binding['path'], reject_symlinks=True)
+        review = json.loads(review_path.read_text())
+        if review.get('retained_reviews'):
+            retained = compact_retained_review_dependencies(source, dataset, records, review)
+            retained_bytes = (json.dumps(retained, ensure_ascii=False, indent=2)+'\n').encode()
+            updates[contained_path(source, retained_path, reject_symlinks=True)] = retained_bytes
+            review['retained_reviews'] = {'path': retained_path,
+                'sha256': hashlib.sha256(retained_bytes).hexdigest()}
+        review.pop('retained_assertion_refresh', None)
+        review['review_rounds'] = [{
+            'title': '当前结果复核', 'title_en': 'Current result review',
+            'scope': f"已复核 {review['reviewed_attempts']}/{len(records)} 条；"
+                     f"其中 {review.get('fresh_blind_reviewed_attempts', 0)} 条独立盲核，"
+                     f"{review.get('renewed_context_reviewed_attempts', 0)} 条已知结论复核，"
+                     f"{review.get('retained_reviewed_attempts', 0)} 条沿用原意见。",
+            'scope_en': f"{review['reviewed_attempts']}/{len(records)} reviewed; "
+                        f"{review.get('fresh_blind_reviewed_attempts', 0)} blind judgments, "
+                        f"{review.get('renewed_context_reviewed_attempts', 0)} known-outcome reviews, "
+                        f"{review.get('retained_reviewed_attempts', 0)} original opinions retained.",
+            'reviewed_attempts': review['reviewed_attempts'], 'total_attempts': len(records),
+            'retained_attempts': review.get('retained_reviewed_attempts', 0),
+            'unresolved': review['unresolved'], 'provider_calls_added': 0}]
+        supplements = []
+        for supplement_binding in review.get('supplemental_reviews', []):
+            document = json.loads(read_bound(source, supplement_binding).read_text())
+            kept = {key: document[key] for key in ('kind', 'results_sha256', 'provider_calls_added',
+                'reviewed_attempts', 'reviewer', 'review_protocol', 'attempts')}
+            if document.get('blind_initial_outputs'):
+                kept['blind_initial_outputs'] = document['blind_initial_outputs']
+            content = (json.dumps(kept, ensure_ascii=False, indent=2)+'\n').encode()
+            path = contained_path(source, supplement_binding['path'], reject_symlinks=True)
+            updates[path] = content
+            supplements.append({**supplement_binding, 'sha256': hashlib.sha256(content).hexdigest()})
+        if supplements:
+            review['supplemental_reviews'] = supplements
+        review_bytes = (json.dumps(review, ensure_ascii=False, indent=2)+'\n').encode()
+        updates[review_path] = review_bytes
+        review_binding = {**review_binding, 'sha256': hashlib.sha256(review_bytes).hexdigest()}
+        authority['current_review'] = review_binding
+        dataset.setdefault('comparison', {})['independent_review'] = review_binding
+    comparison = dataset.setdefault('comparison', {})
+    for key in ('historical_independent_review', 'inline_card_resolution', 'prompt_policy',
+                'result_ledger', 'task_replacement'):
+        comparison.pop(key, None)
+    if authority.get('task_replacement_current_scope'):
+        comparison['task_replacement_current_scope'] = authority['task_replacement_current_scope']
+    page_binding = comparison.get('page_identity_review')
+    if page_binding:
+        old = json.loads(read_bound(source, page_binding).read_text())
+        page = {key: old[key] for key in ('kind', 'provider_calls_added', 'captures_path',
+                                          'captures_sha256', 'attempts')}
+        page_path = 'local-evidence/page-identity-review/current.json'
+        page_bytes = (json.dumps(page, ensure_ascii=False, indent=2)+'\n').encode()
+        updates[contained_path(source, page_path, reject_symlinks=True)] = page_bytes
+        comparison['page_identity_review'] = {'path': page_path,
+            'sha256': hashlib.sha256(page_bytes).hexdigest()}
+    if set(comparison_updates or {}) - {'call_chain_audit'}:
+        raise ValueError('Compaction comparison updates must be current explanatory audit text')
+    comparison.update(comparison_updates or {})
+    dataset_bytes = (json.dumps(dataset, ensure_ascii=False, indent=2)+'\n').encode()
+    updates[source/'dataset.json'] = dataset_bytes
+    authority['dataset_sha256'] = hashlib.sha256(dataset_bytes).hexdigest()
+    authority_bytes = (json.dumps(authority, ensure_ascii=False, indent=2)+'\n').encode()
+    destination = contained_path(source, authority_path, reject_symlinks=True)
+    updates[destination] = authority_bytes
+    originals = {path: path.read_bytes() if path.exists() else None for path in updates}
+    try:
+        for path, content in updates.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        require_current_snapshot_authority(source, authority, dataset, records)
+    except Exception:
+        for path, content in originals.items():
+            if content is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.write_bytes(content)
+        raise
+    return {'path': authority_path, 'sha256': hashlib.sha256(authority_bytes).hexdigest()}
+
+
+def compact_local_snapshot(source, binding, **options):
+    """Validate the old state, then install its current-only authority atomically."""
+    source = Path(source)
+    if any(key.startswith('_') for key in options):
+        raise ValueError('Internal validation state cannot be supplied by a caller')
+    dataset = json.loads((source/'dataset.json').read_text())
+    records = load_jsonl(source/'results.jsonl')
+    validated_history = validate_revision_chain(source, binding, dataset, records)
+    execution_path = source/'execution.json'
+    original_execution = execution_path.read_bytes() if execution_path.is_file() else None
+    if original_execution is not None:
+        from collections import Counter
+        execution = json.loads(original_execution)
+        current = {row['attempt_id'] for row in records}
+        physical = Counter(identifier for batch in execution['batches']
+                           for identifier in batch['attempt_ids'])
+        retired = set(physical) - current
+        if retired:
+            replacement = options.get('task_replacement')
+            if not replacement:
+                raise ValueError('Current execution has undeclared retired calls')
+            old = json.loads(read_bound(source, replacement).read_text())
+            removed = {row['attempt_id'] for row in load_jsonl(read_bound(source, old['baseline_results']))
+                       if row['case_id'] == old['removed_case_id']}
+            if retired != removed or any(physical[key] != 1 for key in retired):
+                raise ValueError('Current execution has unknown retired calls')
+            for batch in execution['batches']:
+                identifiers = batch['attempt_ids']
+                batch['attempt_ids'] = [key for key in identifiers if key in current]
+                if len(batch['attempt_ids']) != len(identifiers):
+                    batch['attempt_count'] = len(batch['attempt_ids'])
+                    batch['inventory_scope'] = 'current_snapshot_attempts'
+            execution['batches'] = [batch for batch in execution['batches'] if batch['attempt_ids']]
+            aggregate = execution.get('aggregate', {})
+            if 'case_ids' in aggregate:
+                aggregate['case_ids'] = [key for key in aggregate['case_ids']
+                                         if key != old['removed_case_id']]
+            aggregate['batch_count'] = len(execution['batches'])
+            execution['inventory_scope'] = 'current_snapshot_attempts'
+            execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2)+'\n')
+    import tempfile
+    import shutil
+    temporary = tempfile.TemporaryDirectory(prefix='current-diagnostic-projection-')
+    backups = {}
+    try:
+        changed_logs = {}
+        diagnostic_proofs = _compact_diagnostic_projections(source, records,
+            options.get('private_original_manifest'), public_log_updates=changed_logs)
+        for index, (path, content) in enumerate(changed_logs.items()):
+            backup = Path(temporary.name)/str(index)
+            if path.exists():
+                shutil.copyfile(path, backup)
+                backups[path] = backup
+            else:
+                backups[path] = None
+                path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        return _install_compact_local_snapshot(source, binding,
+            _validated_history=validated_history, _diagnostics=diagnostic_proofs, **options)
+    except Exception:
+        for path, backup in backups.items():
+            if backup is None:
+                path.unlink(missing_ok=True)
+            else:
+                shutil.copyfile(backup, path)
+        if original_execution is not None:
+            execution_path.write_bytes(original_execution)
+        raise
+    finally:
+        temporary.cleanup()
 
 
 def _require_native_answer_correction(source, original, corrected, proof):

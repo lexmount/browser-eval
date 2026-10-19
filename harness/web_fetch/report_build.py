@@ -1453,11 +1453,26 @@ def validate_local_presentation(output: Path, binding_path: Path):
         from .local_revision import validate_revision_chain, read_bound
         scoring_sources, input_dataset, input_results = validate_revision_chain(
             output, binding['offline_revision'], dataset, records)
-        if binding.get('task_replacement'):
-            from .local_revision import require_local_task_replacement
-            previous_dataset = json.loads(read_bound(output, input_dataset).read_text())
-            previous_records = load_jsonl(read_bound(output, input_results))
-            require_local_task_replacement(output, binding['task_replacement'], previous_dataset, previous_records)
+        revision_authority = json.loads(read_bound(output, binding['offline_revision']).read_text())
+        if revision_authority.get('kind') == 'current_local_snapshot_authority':
+            from .local_revision import require_current_task_replacement
+            if (revision_authority.get('schema_version') != 1
+                    or input_dataset is not None or input_results is not None
+                    or binding.get('task_replacement')):
+                raise ValueError('Current presentation authority must bind current task scope, not deleted history')
+            current_scope = revision_authority.get('task_replacement_current_scope')
+            if binding.get('task_replacement_current_scope') != current_scope:
+                raise ValueError('Presentation current task replacement scope differs')
+            if current_scope is not None:
+                require_current_task_replacement(output, revision_authority, dataset, records)
+        else:
+            if input_dataset is None or input_results is None:
+                raise ValueError('Historical presentation revision has no input snapshot')
+            if binding.get('task_replacement'):
+                from .local_revision import require_local_task_replacement
+                previous_dataset = json.loads(read_bound(output, input_dataset).read_text())
+                previous_records = load_jsonl(read_bound(output, input_results))
+                require_local_task_replacement(output, binding['task_replacement'], previous_dataset, previous_records)
     elif binding.get('task_replacement'):
         from .local_revision import require_local_task_replacement
         scoring_sources = require_local_task_replacement(output, binding['task_replacement'], dataset, records)
@@ -1514,6 +1529,27 @@ def _review_refresh_changes(output, binding, dataset, records):
     return changed_rows, changed_cases
 
 
+def _presentation_detail_scope(records, selected, manifest, renderer_sha256):
+    """A changed presentation template invalidates every saved result page."""
+    previous = manifest.get('presentation_refresh', {}).get('renderer_sha256')
+    return ({row['attempt_id'] for row in records}
+            if previous != renderer_sha256 else set(selected))
+
+
+def _current_template_refresh(output, binding, manifest):
+    """Select all current pages only after their authority has been validated."""
+    current = hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest()
+    if manifest.get('presentation_refresh', {}).get('renderer_sha256') == current:
+        return False
+    revision = binding.get('offline_revision')
+    if not revision:
+        return False
+    from .local_revision import read_bound
+    authority = json.loads(read_bound(output, revision).read_text())
+    return (authority.get('kind') == 'current_local_snapshot_authority'
+            and authority.get('schema_version') == 1)
+
+
 def refresh_local_presentation(output: Path, binding_path: Path, *, review_only: bool = False) -> Path:
     """Install explanatory routes and, on request, bound fresh review details."""
     from .safety import unlinked_path, evidence_tree_identity, copy_evidence_file
@@ -1523,6 +1559,7 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
     detail_attempt_ids = None
     dataset_case_ids = set()
     revised_attempt_ids = set()
+    refresh_all_current_pages = False
     if review_only:
         from .adjudication_evidence import require_adjudication_evidence, require_current_review_state
         review_path = contained_path(output, 'result-review.json', reject_symlinks=True)
@@ -1539,6 +1576,12 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
             raise ValueError('Review refresh requires supplemental fresh reviews')
         revised_attempt_ids, dataset_case_ids = _review_refresh_changes(output, binding, dataset, records)
         detail_attempt_ids |= revised_attempt_ids
+        detail_attempt_ids = _presentation_detail_scope(
+            records, detail_attempt_ids, manifest,
+            hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest())
+        refresh_all_current_pages = _current_template_refresh(output, binding, manifest)
+        if refresh_all_current_pages:
+            dataset_case_ids = {case['id'] for case in dataset['cases']}
     authored_interpretation = manifest.get('presentation', {}).get(
         'authored_interpretation', bool(dataset.get('comparison', {}).get('report_interpretation')))
     # The existing owner renders from saved metrics. Only these explanatory
@@ -1549,6 +1592,18 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
     routes += ['adoption/interfaces/' + provider + '.json' for provider in binding['providers']]
     if review_only:
         routes += ['review/index.html']
+        if refresh_all_current_pages:
+            routes += ['guide/index.html']
+            from .report_explainer import supports_authored_explainer
+            current_article = (authored_interpretation
+                and not dataset.get('comparison', {}).get('call_chain_audit')
+                and (dataset.get('comparison', {}).get('report_interpretation')
+                     or (supports_authored_explainer({case['id']: case for case in dataset['cases']})
+                         and not all(row.get('provider_type') == 'fixture' for row in records))))
+            if current_article:
+                routes += ['guide/article.html', 'guide/interpretation-evidence.json']
+                if (output/'guide/cowagent-text-probe.json').is_file():
+                    routes += ['guide/cowagent-text-probe.json']
         routes += ['attempts/' + identifier + '.html' for identifier in sorted(detail_attempt_ids)]
         if revised_attempt_ids or dataset_case_ids:
             routes += ['analysis/index.html', 'summary.json', 'reliability.json']
@@ -1558,6 +1613,10 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
                 routes += ['datasets/' + identifier + '.html', 'references/' + identifier + '.txt']
                 if next(case for case in dataset['cases'] if case['id'] == identifier).get('acceptance_contract'):
                     routes += ['contracts/' + identifier + '.json']
+    diagnostic_view_paths = sorted(path.relative_to(output).as_posix()
+        for path in (output/'logs').rglob('*.html')
+        if path.with_suffix('.txt').is_file()) if review_only else []
+    routes += diagnostic_view_paths
     include_english = 'en' in manifest['languages']
     if include_english:
         routes += ['en/' + relative for relative in routes if relative.endswith('.html')]
@@ -1568,6 +1627,7 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
         generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True,
                  frozen_scores=True, authored_interpretation=authored_interpretation,
                  detail_attempt_ids=detail_attempt_ids,
+                 diagnostic_view_paths=diagnostic_view_paths,
                  dataset_case_ids=dataset_case_ids,
                  english_routes=[r for r in routes if r.endswith('.html') and not r.startswith('en/')])
         if revised_attempt_ids or dataset_case_ids:

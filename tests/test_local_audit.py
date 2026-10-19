@@ -536,6 +536,25 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
         assert opinion["reason"] in (output / prefix / "attempts" / (attempt_id + ".html")).read_text()
     assert json.loads((output / "presentation-binding.json").read_text()) == binding
     assert (output / "results.jsonl").read_bytes() == before_results
+    # A compact current authority has no old full-matrix baseline. Template
+    # invalidation must still install all live derived pages, not copied ones.
+    stale_routes = ['analysis/index.html', 'guide/index.html', 'datasets/index.html',
+                    'datasets/' + current_case['id'] + '.html']
+    for relative in stale_routes:
+        (output/relative).write_text('<html><body>stale-current-state-route</body></html>')
+    for relative in ['summary.json', 'reliability.json']:
+        _write(output/relative, {'stale_current_state': True})
+    with patch('harness.web_fetch.report_build._current_template_refresh', return_value=True):
+        refresh_local_presentation(output, binding_path, review_only=True)
+    for relative in stale_routes:
+        assert 'stale-current-state-route' not in (output/relative).read_text()
+        if include_english:
+            assert 'stale-current-state-route' not in (output/'en'/relative).read_text()
+    for relative in ['summary.json', 'reliability.json']:
+        assert 'stale_current_state' not in json.loads((output/relative).read_text())
+    assert (output/'results.jsonl').read_bytes() == before_results
+    assert artifact.read_bytes() == original_output
+
     # A changed initial opinion must fail before any page is installed.
     _write(initial_path, {"machine_judgments_withheld": True, "attempts": []})
     before_invalid = {path.relative_to(output).as_posix(): _digest(path)
@@ -965,3 +984,61 @@ def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defec
         with pytest.raises(ValueError, match='shared scorer'):
             local_audit._require_page_identity_review(tmp_path, dataset, [record], scoring_sources=sources)
     assert (tmp_path/'identity.json').read_bytes() == prior_receipt
+
+
+def test_diagnostic_viewers_share_unchanged_source_across_languages(tmp_path):
+    from harness.web_fetch.report import diagnostic_view_page
+    from harness.web_fetch.report_i18n import write_english_report
+    from bs4 import BeautifulSoup
+    source=tmp_path/'logs/actual.txt';source.parent.mkdir()
+    original=('ERROR: exact target failure\n'+'payload ' * 200000+'unique-full-file-tail').encode()
+    source.write_bytes(original)
+    relative=diagnostic_view_page(tmp_path,'logs/actual.txt','已保存的诊断日志','仅包含实际观测的日志。')
+    write_english_report(tmp_path,source_routes=[relative])
+    for prefix in ['', 'en/']:
+        raw=(tmp_path/prefix/relative).read_bytes()
+        assert len(raw)<20000 and b'unique-full-file-tail'not in raw
+        soup=BeautifulSoup(raw,'html.parser')
+        assert soup.select_one('dialog pre[data-file]')['data-file']=='logs/actual.txt'
+        assert soup.select_one('[data-call-log-open]')
+        assert soup.select_one('[data-call-log-close]')
+        assert 'exact target failure'in soup.get_text()
+    assert source.read_bytes()==original
+
+
+def test_long_product_and_caller_logs_use_one_existing_source(tmp_path):
+    from harness.web_fetch.report import run_log_section
+    from bs4 import BeautifulSoup
+    source=tmp_path/'logs/runtime.txt';source.parent.mkdir()
+    original=('{"source":"caller","event":"request_sent"}\n--- native product ---\nERROR: exact native failure\n'
+              +'large-native-line ' * 200000+'unique-native-tail').encode()
+    source.write_bytes(original)
+    row={'attempt_id':'a','provider':'fixture','case_id':'c','run':1,'started_at':'2026-10-08',
+         'ok':False,'elapsed_ms':100,'error_type':'NativeError','error_message':'exact native failure',
+         'provider_metadata':{'public_debug_log_path':'logs/runtime.txt',
+             'public_debug_log_sha256':_digest(source)}}
+    rendered=run_log_section(tmp_path,row,'')
+    assert len(rendered)<30000 and 'unique-native-tail'not in rendered
+    soup=BeautifulSoup(rendered,'html.parser')
+    assert soup.select_one('dialog pre[data-file]')['data-file']=='logs/runtime.txt'
+    assert 'exact native failure'in soup.get_text()
+    assert source.read_bytes()==original
+
+
+def test_full_current_refresh_requires_explicit_authority_and_changed_template(tmp_path):
+    from harness.web_fetch.report_build import _current_template_refresh
+    from harness.web_fetch import report
+    path=tmp_path/'authority.json'
+    def binding(kind='current_local_snapshot_authority', schema=1):
+        _write(path, {'kind': kind, 'schema_version': schema})
+        return {'offline_revision': {'path': 'authority.json', 'sha256': _digest(path)}}
+    changed={'presentation_refresh': {'renderer_sha256': 'old-template'}}
+    assert _current_template_refresh(tmp_path,binding(),changed)
+    same={'presentation_refresh': {'renderer_sha256': _digest(__import__('pathlib').Path(report.__file__))}}
+    assert not _current_template_refresh(tmp_path,binding(),same)
+    assert not _current_template_refresh(tmp_path,binding('local_offline_score_revision'),changed)
+    assert not _current_template_refresh(tmp_path,binding(schema=2),changed)
+    assert not _current_template_refresh(tmp_path,{},changed)
+    bad=binding();path.write_text('changed')
+    with pytest.raises(ValueError):
+        _current_template_refresh(tmp_path,bad,changed)

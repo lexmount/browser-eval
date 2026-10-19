@@ -359,6 +359,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             "declared-language routes and reference assets verified"
         )
     public_payload_views = False
+    current_snapshot_authority = False
     names = {r["provider"] for r in rs}
     local_measurement = d.get("comparison", {}).get("kind") == "uniform_native_local_measurement"
     if presentation_binding and not local_measurement:
@@ -384,12 +385,18 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             from .report_build import validate_local_presentation
             checked_binding = validate_local_presentation(root, presentation_binding)[0]
             public_payload_views = bool(checked_binding.get("publication_evidence_views"))
+            if checked_binding.get('offline_revision'):
+                from .local_revision import read_bound
+                current_receipt = json.loads(read_bound(root, checked_binding['offline_revision']).read_text())
+                current_snapshot_authority = (current_receipt.get('kind') == 'current_local_snapshot_authority'
+                                              and current_receipt.get('schema_version') == 1)
         else:
             require_local_measurement(root, d, rs)
         inventory = {track: {"case_ids": [case["id"] for case in d["cases"] if case.get("track", "web") == track], "providers": providers} for track, providers in d["coverage_plan"].items()}
         local_contract = json.loads((root / "local-run-contract.json").read_text())
         canonical_cases = ({case["id"]: case for case in d["cases"]}
-                           if presentation_binding and d.get('comparison', {}).get('task_replacement')
+                           if presentation_binding and (current_snapshot_authority
+                               or d.get('comparison', {}).get('task_replacement'))
                            else {case["id"]: case for case in local_measurement_cases(local_contract)})
         canonical_dataset = (root / "dataset.json" if local_contract.get("dataset_sources")
                              else repository / local_contract["dataset_path"])
@@ -706,7 +713,10 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     execution = json.loads((root / "execution.json").read_text())["batches"]
     physical_attempts = Counter(i for b in execution for i in b["attempt_ids"])
     logical_attempts = Counter(r["attempt_id"] for r in rs)
-    if d.get('comparison', {}).get('task_replacement'):
+    if current_snapshot_authority:
+        if physical_attempts != logical_attempts:
+            raise ValueError('Current snapshot physical/logical call inventory differs')
+    elif d.get('comparison', {}).get('task_replacement'):
         require_replacement_execution(root, d['comparison']['task_replacement'],
                                       physical_attempts, logical_attempts)
     elif d.get("comparison", {}).get("superseded_formal_provider_calls"):

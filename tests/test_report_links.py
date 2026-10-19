@@ -101,3 +101,17 @@ def test_virtual_capture_links_follow_same_frozen_evidence_boundary():
     content[capture] = '<meta name="browser-eval-report" content="1">'+content[capture]
     with pytest.raises(ValueError,match='Invalid internal link'):
         validate_virtual_links(files,content.__getitem__)
+
+
+def test_bilingual_lazy_log_dialogs_require_the_same_root_bound_source():
+    import pytest
+    from harness.reporting.links import validate_virtual_links
+    pages = {name: b'<dialog><pre data-file="logs/actual.txt"></pre></dialog>'
+             for name in ['logs/view.html', 'en/logs/view.html']}
+    pages['logs/actual.txt'] = b'ERROR: exact retained native failure'
+    files = {name: {'mime': 'text/html' if name.endswith('.html') else 'text/plain'}
+             for name in pages}
+    validate_virtual_links(files, pages.__getitem__)
+    del files['logs/actual.txt']
+    with pytest.raises(ValueError, match='Invalid internal evidence'):
+        validate_virtual_links(files, pages.__getitem__)

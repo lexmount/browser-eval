@@ -569,16 +569,19 @@ def _require_page_identity_review(source, dataset, records, *, scoring_sources=N
             raise ValueError("Reviewed result differs from the shared scorer")
 
 
-def _require_local_review(source, dataset, records):
+def _require_local_review(source, dataset, records, *, review_document=None, scoring_sources=None):
     """Bind optional full independent review without certifying local evidence."""
-    _require_page_identity_review(source, dataset, records)
+    _require_page_identity_review(source, dataset, records, scoring_sources=scoring_sources)
     binding = dataset.get("comparison", {}).get("independent_review")
-    if binding is None:
+    if binding is None and review_document is None:
         return None
-    path = contained_path(source, binding["path"], reject_symlinks=True)
-    if _sha256(path) != binding.get("sha256"):
-        raise ValueError("Local independent review binding changed")
-    review = json.loads(path.read_text())
+    if review_document is None:
+        path = contained_path(source, binding["path"], reject_symlinks=True)
+        if _sha256(path) != binding.get("sha256"):
+            raise ValueError("Local independent review binding changed")
+        review = json.loads(path.read_text())
+    else:
+        review = review_document
     rows = review.get("attempts", [])
     indexed = {row["attempt_id"]: row for row in rows}
     expected = {row["attempt_id"]: row for row in records}

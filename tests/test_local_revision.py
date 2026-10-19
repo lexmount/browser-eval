@@ -8,6 +8,67 @@ from lexbench_webfetch.scoring import score_attempt
 from lexbench_webfetch.metrics import task_passed
 
 
+@pytest.mark.parametrize('defect', [None, 'case', 'row', 'source', 'answer', 'context', 'native'])
+def test_current_authority_survives_history_deletion_but_rejects_current_changes(tmp_path, defect):
+    import shutil
+    from harness.web_fetch.local_revision import compact_local_snapshot
+    raw = b'Required article'
+    (tmp_path/'answer.txt').write_bytes(raw)
+    (tmp_path/'native.json').write_text('{"answer":"Required article"}')
+    native = (tmp_path/'native.json').read_bytes()
+    case = {'id': 'a', 'url': 'https://example.test/', 'required_facts': [
+        {'id': 'article', 'alternatives': ['Required article']}]}
+    row = {'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a', 'ok': True,
+        'artifact_path': 'answer.txt', 'elapsed_ms': 7,
+        'provider_metadata': {'raw_response_path': 'native.json',
+            'raw_response_sha256': hashlib.sha256(native).hexdigest(), 'raw_response_bytes': len(native)},
+        'metrics': score_attempt(case, raw, ok=True)}
+    other = {**row, 'attempt_id': 'q__a', 'provider': 'q',
+             'metrics': {**row['metrics'], 'scoring_source_sha256': '1'*64}}
+    dataset = {'cases': [case], 'comparison': {}}
+    (tmp_path/'dataset.json').write_text(json.dumps(dataset))
+    (tmp_path/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in [row, other]))
+    config = tmp_path/'config.json'
+    config.write_text(json.dumps({'cases': [], 'rescore_attempt_ids': ['p__a'],
+        'authority': {'description': 'Shared parser correction'},
+        'regression_ids': ['ordinary-text-player-control-only', 'ordinary-text-with-player-control']}))
+    revise_local_snapshot(tmp_path, config)
+    path = next((tmp_path/'local-evidence/offline-revisions').glob('*/receipt.json'))
+    old_binding = {'path': path.relative_to(tmp_path).as_posix(),
+                   'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    binding = compact_local_snapshot(tmp_path, old_binding)
+    for directory in (tmp_path/'local-evidence/offline-revisions').iterdir():
+        if directory.name != 'current':
+            shutil.rmtree(directory)
+    dataset = json.loads((tmp_path/'dataset.json').read_text())
+    rows = [json.loads(line) for line in (tmp_path/'results.jsonl').read_text().splitlines()]
+    expected = require_local_revision(tmp_path, binding, dataset, rows)
+    assert expected['q__a'] == '1'*64
+    if defect == 'case':
+        dataset['cases'][0]['required_facts'] = ['Changed requirement']
+    elif defect == 'row':
+        rows[0]['elapsed_ms'] = 9
+    elif defect == 'source':
+        rows[0]['metrics']['scoring_source_sha256'] = '2'*64
+    elif defect == 'context':
+        rows[0]['ok'] = False
+    elif defect == 'answer':
+        (tmp_path/'answer.txt').write_text('Replaced answer')
+    elif defect == 'native':
+        (tmp_path/'native.json').write_text('{}')
+    if defect:
+        (tmp_path/'dataset.json').write_text(json.dumps(dataset))
+        (tmp_path/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+        authority_path = tmp_path/binding['path']
+        authority = json.loads(authority_path.read_text())
+        authority['dataset_sha256'] = hashlib.sha256((tmp_path/'dataset.json').read_bytes()).hexdigest()
+        authority['results_sha256'] = hashlib.sha256((tmp_path/'results.jsonl').read_bytes()).hexdigest()
+        authority_path.write_text(json.dumps(authority))
+        binding['sha256'] = hashlib.sha256(authority_path.read_bytes()).hexdigest()
+        with pytest.raises(ValueError):
+            require_local_revision(tmp_path, binding, dataset, rows)
+
+
 def test_offline_revision_preserves_calls_and_rejects_tampering(tmp_path):
     raw = b'0:00\n/\nLive\nWatch full video'
     (tmp_path / 'answer.txt').write_bytes(raw)

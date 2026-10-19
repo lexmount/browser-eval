@@ -76,6 +76,128 @@ def test_complete_replacement_preserves_distinct_scoring_sources(tmp_path):
     assert result == {r['attempt_id']: r['metrics']['scoring_source_sha256'] for r in records}
 
 
+@pytest.mark.parametrize('defect', [None, 'cas_bytes', 'cas_attempt', 'public_bytes',
+                                  'wrong_attempt', 'wrong_call', 'transaction_rollback'])
+def test_current_public_diagnostics_keep_private_identity_distinct(tmp_path, defect):
+    from harness.web_fetch.local_revision import (
+        compact_revision_authority, require_current_snapshot_authority, revise_local_snapshot)
+    _, dataset, records = setup_replacement(tmp_path)
+    rows = [row for row in records if row['case_id'] == 'new']
+    dataset = {'cases': [dataset['cases'][0]], 'comparison': {}}
+    original = b'Actual native diagnostic\n'
+    digest = hashlib.sha256(original).hexdigest()
+    row = rows[0]
+    identity = 'private_artifacts/native.log'
+    row['provider_metadata'].update(diagnostic_log_path=identity,
+        diagnostic_log_sha256=digest, diagnostic_log_bytes=len(original))
+    public = tmp_path/('logs/'+row['attempt_id']+'.debug.txt')
+    public.parent.mkdir(exist_ok=True)
+    public.write_bytes(original)
+    (tmp_path/'dataset.json').write_text(json.dumps(dataset))
+    (tmp_path/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+    config = tmp_path/'config.json'
+    config.write_text(json.dumps({'cases': [], 'rescore_attempt_ids': [],
+        'authority': {'description': 'Current shared correction'},
+        'regression_ids': ['ordinary-text-player-control-only', 'ordinary-text-with-player-control']}))
+    revise_local_snapshot(tmp_path, config)
+    path = next((tmp_path/'local-evidence/offline-revisions').glob('*/receipt.json'))
+    binding = {'path': path.relative_to(tmp_path).as_posix(),
+               'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    cas = tmp_path/'cas'
+    cas.mkdir()
+    (cas/'object.bin').write_bytes(original)
+    manifest = {'kind': 'current_private_originals',
+        'results_sha256': hashlib.sha256((tmp_path/'results.jsonl').read_bytes()).hexdigest(),
+        'bindings': [{'relative_path': identity, 'sha256': digest, 'bytes': len(original),
+            'stored_path': 'object.bin', 'roles': ['diagnostic_log'],
+            'attempt_ids': [row['attempt_id']]}]}
+    if defect == 'cas_bytes':
+        (cas/'object.bin').write_bytes(b'Changed original')
+    elif defect == 'cas_attempt':
+        manifest['bindings'][0]['attempt_ids'] = ['another-attempt']
+    manifest_path = cas/'manifest.json'
+    manifest_path.write_text(json.dumps(manifest))
+    if defect in {'cas_bytes', 'cas_attempt'}:
+        with pytest.raises(ValueError):
+            compact_revision_authority(tmp_path, binding, private_original_manifest=manifest_path)
+        return
+    authority = compact_revision_authority(tmp_path, binding, private_original_manifest=manifest_path)
+    assert authority['diagnostic_projections'][0]['verification_scope'] == 'public_view_and_disclosed_original_identity'
+    assert str(cas) not in json.dumps(authority)
+    if defect == 'transaction_rollback':
+        from harness.web_fetch.local_revision import compact_local_snapshot
+        public.write_text('Superseded derived view')
+        before = {name: (tmp_path/name).read_bytes() for name in
+                  ('dataset.json', 'results.jsonl', 'execution.json')}
+        with pytest.raises(ValueError):
+            compact_local_snapshot(tmp_path, binding, private_original_manifest=manifest_path,
+                reference_authorities=[{'path': 'missing-authority.json', 'sha256': '0'*64}])
+        assert public.read_text() == 'Superseded derived view'
+        assert all((tmp_path/name).read_bytes() == content for name, content in before.items())
+        assert not (tmp_path/'local-evidence/offline-revisions/current/receipt.json').exists()
+        return
+    if defect == 'public_bytes':
+        public.write_text('Changed public log')
+    elif defect == 'wrong_attempt':
+        authority['diagnostic_projections'][0]['attempt_id'] = rows[1]['attempt_id']
+    elif defect == 'wrong_call':
+        authority['diagnostic_projections'][0]['call_log'] = rows[1]['provider_metadata']['call_log']
+    current_rows = [json.loads(line) for line in (tmp_path/'results.jsonl').read_text().splitlines()]
+    current_dataset = json.loads((tmp_path/'dataset.json').read_text())
+    if defect:
+        with pytest.raises(ValueError):
+            require_current_snapshot_authority(tmp_path, authority, current_dataset, current_rows)
+    else:
+        # Public validation has no access to the private store; it verifies the
+        # view and disclosed original identity, without claiming original bytes.
+        manifest_path.unlink()
+        (cas/'object.bin').unlink()
+        require_current_snapshot_authority(tmp_path, authority, current_dataset, current_rows)
+
+
+@pytest.mark.parametrize('defect', [None, 'source_deleted', 'source_changed', 'contract', 'call',
+                                  'missing_source_scope', 'unknown_kind'])
+def test_current_replacement_validates_live_qualification_without_before_matrices(tmp_path, defect):
+    from harness.web_fetch.local_revision import require_current_task_replacement
+    binding, dataset, records = setup_replacement(tmp_path)
+    require_local_task_replacement(tmp_path, binding, dataset, records)
+    old = json.loads((tmp_path/'receipt.json').read_text())
+    contract = json.loads((tmp_path/'execution-contract.json').read_text())
+    observations = contract['runner_inputs']['source_observations']['new']
+    scope = {'added_case_id': 'new', 'removed_case_id': 'old',
+        'current_attempt_ids': sorted(r['attempt_id'] for r in records if r['case_id'] == 'new'),
+        'historical_transition_validated_before_compaction': True,
+        'execution_contract': old['execution_contract'], 'execution': old['cohort_execution'],
+        'pre_captures': list(observations['pre'].values()),
+        'post_captures': list(observations['post'].values()),
+        'source_capture_counts': {'pre_captures': 4, 'post_captures': 4},
+        'qualification_state': 'diagnostic; certification not upgraded'}
+    receipt = {'kind': 'current_local_snapshot_authority', 'schema_version': 1,
+               'task_replacement_current_scope': scope}
+    for name in ('before.json', 'previous.jsonl', 'calls.jsonl', 'cohort.json', 'receipt.json'):
+        (tmp_path/name).unlink()
+    if defect == 'source_deleted':
+        (tmp_path/'source.html').unlink()
+    elif defect == 'source_changed':
+        (tmp_path/'source.html').write_text('Changed source')
+    elif defect == 'contract':
+        contract['timeout_seconds'] = 44
+        (tmp_path/'execution-contract.json').write_text(json.dumps(contract))
+        scope['execution_contract']['sha256'] = hashlib.sha256(
+            (tmp_path/'execution-contract.json').read_bytes()).hexdigest()
+    elif defect == 'call':
+        records[-1]['elapsed_ms'] = 1
+    elif defect == 'missing_source_scope':
+        scope['pre_captures'].pop()
+    elif defect == 'unknown_kind':
+        receipt['kind'] = 'unknown'
+    if defect:
+        with pytest.raises(ValueError):
+            require_current_task_replacement(tmp_path, receipt, dataset, records)
+    else:
+        require_current_task_replacement(tmp_path, receipt, dataset, records)
+
+
 @pytest.mark.parametrize('defect', ['missing_method', 'changed_old_result', 'changed_case',
                                    'excluded_new_result', 'different_family', 'changed_call'])
 def test_replacement_rejects_missing_or_altered_evidence(tmp_path, defect):

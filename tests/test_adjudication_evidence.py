@@ -8,6 +8,60 @@ from harness.web_fetch.adjudication_evidence import (
 from lexbench_webfetch.scoring import score_attempt
 
 
+@pytest.mark.parametrize('defect', [None, 'case', 'answer', 'context', 'opinion',
+                                  'original_opinion', 'original_identity'])
+def test_compact_retention_keeps_actual_opinion_without_old_matrices(tmp_path, defect):
+    import copy
+    import json
+    from harness.web_fetch.adjudication_evidence import (
+        compact_retained_review_dependencies, require_retained_reviews)
+    text = 'Required complete article.'
+    (tmp_path/'answer.txt').write_text(text)
+    old_case = {'id': 'a', 'url': 'https://example.test/',
+        'required_facts': [{'id': 'article', 'alternatives': [text]}], 'forbidden_any': ['CAPTCHA']}
+    case = {k: v for k, v in old_case.items() if k != 'forbidden_any'}
+    case['diagnostic_any'] = ['CAPTCHA']
+    record = {'attempt_id': 'p__a', 'case_id': 'a', 'provider': 'p', 'ok': True,
+        'artifact_path': 'answer.txt', 'metrics': score_attempt(case, text.encode(), ok=True)}
+    opinion = {'attempt_id': 'p__a', 'content_sha256': record['metrics']['content_sha256'],
+        'agent_verdict': 'pass', 'agent_evidence': 'Complete article observed.',
+        'final_verdict': 'pass', 'original_explanation': 'Full original opinion retained.'}
+    def bind(name, value):
+        path = tmp_path/name
+        path.write_text(json.dumps(value))
+        return {'path': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    results = bind('old-results.jsonl', record)
+    prior = bind('old-review.json', {'results_sha256': results['sha256'], 'attempts': [opinion]})
+    old_dataset = bind('old-dataset.json', {'cases': [old_case]})
+    review = {'attempts': [{**copy.deepcopy(opinion), 'review_origin': 'retained'}],
+        'retained_reviewed_attempts': 1, 'fresh_reviewed_attempts': 0,
+        'retained_reviews': bind('retention.json', {'kind': 'unchanged_review_dependency_retention',
+            'provider_calls_added': 0, 'attempt_ids': ['p__a'], 'prior_results': results,
+            'prior_review': prior, 'prior_dataset': old_dataset})}
+    compact = compact_retained_review_dependencies(tmp_path, {'cases': [case]}, [record], review)
+    assert compact['attempts'][0]['original_opinion'] == opinion
+    for name in ['old-results.jsonl', 'old-review.json', 'old-dataset.json', 'retention.json']:
+        (tmp_path/name).unlink()
+    if defect == 'case':
+        case['required_facts'] = ['Different requirement']
+    elif defect == 'answer':
+        (tmp_path/'answer.txt').write_text('Changed')
+    elif defect == 'context':
+        record['ok'] = False
+    elif defect == 'opinion':
+        review['attempts'][0]['agent_evidence'] = 'Rewritten opinion'
+    elif defect == 'original_opinion':
+        compact['attempts'][0]['original_opinion']['original_explanation'] = 'Rewritten original'
+    elif defect == 'original_identity':
+        compact['attempts'][0]['original_review_input']['request_ok'] = False
+    review['retained_reviews'] = bind('compact.json', compact)
+    if defect:
+        with pytest.raises(ValueError):
+            require_retained_reviews(tmp_path, {'cases': [case]}, [record], review)
+    else:
+        assert require_retained_reviews(tmp_path, {'cases': [case]}, [record], review) == {'p__a'}
+
+
 def fixture(tmp_path):
     text = 'Required complete article.'
     (tmp_path / 'answer.txt').write_text(text)

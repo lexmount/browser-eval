@@ -264,6 +264,8 @@ def require_retained_reviews(source, dataset, records, review):
     from .result_review import review_input_identity
     from harness.record_io import load_jsonl
     receipt = json.loads(read_bound(source, binding).read_text())
+    if receipt.get('kind') == 'current_retained_review_dependencies':
+        return _require_current_retained_reviews(source, dataset, records, review, receipt)
     prior = json.loads(read_bound(source, receipt['prior_review']).read_text())
     before = json.loads(read_bound(source, receipt['prior_dataset']).read_text())
     previous = load_jsonl(read_bound(source, receipt['prior_results']))
@@ -315,4 +317,101 @@ def require_retained_reviews(source, dataset, records, review):
     if (review.get('fresh_reviewed_attempts') != fresh
             or fresh + len(ids) != len(review['attempts'])):
         raise ValueError('Fresh and retained review counts differ')
+    return retained
+
+
+def compact_retained_review_dependencies(source, dataset, records, review):
+    """Keep actual reused opinions and decision identities, not old matrices."""
+    require_retained_reviews(source, dataset, records, review)
+    from .local_revision import read_bound
+    from .result_review import review_input_identity
+    receipt = json.loads(read_bound(source, review['retained_reviews']).read_text())
+    if receipt.get('kind') == 'current_retained_review_dependencies':
+        return receipt
+    prior = json.loads(read_bound(source, receipt['prior_review']).read_text())
+    before = json.loads(read_bound(source, receipt['prior_dataset']).read_text())
+    from harness.record_io import load_jsonl
+    previous = {r['attempt_id']: r for r in load_jsonl(read_bound(source, receipt['prior_results']))}
+    old_cases = {c['id']: c for c in before['cases']}
+    cases = {c['id']: c for c in dataset['cases']}
+    indexed = {r['attempt_id']: r for r in records}
+    opinions = {r['attempt_id']: r for r in prior['attempts']}
+    rows = []
+    for identifier in receipt['attempt_ids']:
+        old = previous[identifier]
+        case = old_cases[old['case_id']]
+        rows.append({'attempt_id': identifier,
+            'case_sha256': case_hash(cases[indexed[identifier]['case_id']]),
+            'original_positive_case_sha256': case_hash({k: v for k, v in case.items()
+                if k not in {'forbidden_any', 'diagnostic_any'}}),
+            'original_forbidden_any': case.get('forbidden_any', []),
+            'original_diagnostic_any': case.get('diagnostic_any', []),
+            'original_review_input': review_input_identity(old),
+            'current_review_input': review_input_identity(indexed[identifier]),
+            'original_opinion_sha256': case_hash(opinions[identifier]),
+            'original_opinion': opinions[identifier]})
+    result = {'kind': 'current_retained_review_dependencies', 'schema_version': 1,
+        'provider_calls_added': 0, 'new_independent_reviews': 0,
+        'validation_scope': 'current_decision_dependencies', 'attempts': rows}
+    _require_current_retained_reviews(source, dataset, records, review, result)
+    return result
+
+
+def _require_current_retained_reviews(source, dataset, records, review, receipt):
+    from .result_review import review_input_identity
+    rows = receipt.get('attempts', [])
+    dependencies = {r['attempt_id']: r for r in rows}
+    retained = {r['attempt_id'] for r in review.get('attempts', [])
+                if r.get('review_origin') == 'retained'}
+    if (receipt.get('schema_version') != 1 or receipt.get('provider_calls_added') != 0
+            or receipt.get('new_independent_reviews') != 0
+            or receipt.get('validation_scope') != 'current_decision_dependencies'
+            or len(dependencies) != len(rows) or set(dependencies) != retained
+            or review.get('retained_reviewed_attempts') != len(rows)):
+        raise ValueError('Compact retained review scope differs')
+    cases = {c['id']: c for c in dataset['cases']}
+    indexed = {r['attempt_id']: r for r in records}
+    current = {r['attempt_id']: r for r in review['attempts']}
+    immutable = ('agent_verdict', 'agent_evidence', 'effective_agent_verdict',
+                 'effective_agent_evidence', 'initial_review_sha256', 'content_sha256')
+    for identifier, dependency in dependencies.items():
+        record = indexed[identifier]
+        case = cases[record['case_id']]
+        opinion, row = dependency['original_opinion'], current[identifier]
+        old_bans, old_hints = (dependency['original_forbidden_any'],
+                               dependency['original_diagnostic_any'])
+        bans, hints = case.get('forbidden_any', []), case.get('diagnostic_any', [])
+        if (dependency['case_sha256'] != case_hash(case)
+                or dependency['original_positive_case_sha256'] != case_hash({k: v
+                    for k, v in case.items() if k not in {'forbidden_any', 'diagnostic_any'}})
+                or not ((old_bans == bans and old_hints == hints)
+                        or (not bans and hints == old_bans and not old_hints))):
+            raise ValueError('Compact retained review contract changed')
+        cited = set(opinion.get('adjudication_evidence', {}).get('rule_ids', []))
+        if ((old_bans != bans or old_hints != hints)
+                and (record['metrics'].get('diagnostic_hits')
+                     or cited & {'forbidden_any', 'diagnostic_any'}
+                     or '命中词：。' in opinion.get('adjudication', ''))):
+            raise ValueError('Compact retained opinion depends on changed policy')
+        identity = review_input_identity(record)
+        if (dependency['current_review_input'] != identity
+                or dependency['original_review_input'] != identity
+                or dependency.get('original_opinion_sha256') != case_hash(opinion)
+                or opinion.get('attempt_id') != identifier
+                or any(row.get(k) != opinion.get(k) for k in immutable)
+                or opinion.get('final_verdict') not in {'pass', 'fail'}
+                or row.get('final_verdict') != opinion['final_verdict']):
+            raise ValueError('Compact retained review input or original opinion changed')
+        # Opinion reuse binds the exact original/current decision inputs. The
+        # snapshot authority separately validates private diagnostic identities
+        # against their disclosed public runtime views; those views are not the
+        # original diagnostic bytes and must not be read as if they were.
+        read_evidence_binding(source, {'path': record['artifact_path'],
+                                      'sha256': record['metrics']['content_sha256']})
+        for artifact in identity['raw_artifacts']:
+            read_evidence_binding(source, artifact)
+    fresh = sum(r.get('review_origin') == 'fresh' for r in review['attempts'])
+    if (review.get('fresh_reviewed_attempts') != fresh
+            or fresh + len(rows) != len(review['attempts'])):
+        raise ValueError('Fresh and compact retained review counts differ')
     return retained

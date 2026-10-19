@@ -113,7 +113,7 @@ async function fill(pre,force=false){
  pre.dataset.loaded='1';pre.classList.remove('deferred-evidence');pre.removeAttribute('role');pre.textContent=tr('正在加载完整内容…','Loading complete content…');
  try{let text=pre.dataset.record?await metadata(Number(pre.dataset.record)-1):await textFile(pre.dataset.file);
   if(pre.dataset.readable)text=text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,c=>'\\x'+c.charCodeAt(0).toString(16).padStart(2,'0'));
-  if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label',tr('完整实际返回','Complete actual output'));pre.replaceWith(box)}else pre.textContent=text;
+  if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label',pre.dataset.evidenceKind==='log'?tr('完整日志与响应','Complete logs and responses'):tr('完整实际返回','Complete actual output'));pre.replaceWith(box)}else pre.textContent=text;
  }catch(error){pre.dataset.loaded='';pre.dataset.deferred='';deferFill(pre,tr('加载失败：','Load failed: ')+error.message+tr('。点击重试，或下载原始输出。','. Click to retry, or download the original output.'))}
 }
 async function render(){

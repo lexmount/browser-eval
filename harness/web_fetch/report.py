@@ -360,7 +360,24 @@ function outcomes(row,key){return new Set((row.dataset[key]||'').split(' ').filt
 function compareMethods(){let a=document.getElementById('compare-a'),relation=document.getElementById('compare-relation'),track=document.getElementById('compare-track'),count=document.getElementById('compare-count');if(!a||!relation||!track||!count)return;let boxes=[...document.querySelectorAll('[data-compare-method]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});let others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others],shown=0;document.querySelectorAll('#compare-rows tr').forEach(row=>{let pass=outcomes(row,'pass'),fail=outcomes(row,'fail'),match=others.length>0&&(!track.value||row.dataset.track===track.value);if(match)match={mixed:selected.some(x=>pass.has(x))&&selected.some(x=>fail.has(x)),a_pass_others_fail:pass.has(a.value)&&others.every(x=>fail.has(x)),a_fail_others_pass:fail.has(a.value)&&others.every(x=>pass.has(x)),all_pass:selected.every(x=>pass.has(x)),all_fail:selected.every(x=>fail.has(x)),exact_pass:selected.every(x=>pass.has(x))&&pass.size===selected.length}[relation.value];row.hidden=!match;if(match)shown++});count.textContent=others.length?tr(`找到 ${shown} 个任务`,`${shown} tasks found`):tr('请至少选择一个对比方法','Select at least one comparison method')}
 function wmbCompare(){let a=document.getElementById('wmb-compare-a'),relation=document.getElementById('wmb-compare-relation'),axis=document.getElementById('wmb-compare-axis'),category=document.getElementById('wmb-compare-category'),count=document.getElementById('wmb-compare-count');if(!a||!relation||!axis||!category||!count)return;let boxes=[...document.querySelectorAll('[data-wmb-compare-method]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});let others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others],rows=[...document.querySelectorAll('#wmb-compare-rows tr')],allowed=new Set(rows.map(row=>row.dataset[axis.value]).filter(Boolean));for(let option of category.options)option.disabled=!!option.value&&!!axis.value&&!allowed.has(option.value);if(category.value&&!allowed.has(category.value))category.value='';category.disabled=!axis.value;let shown=0;for(let row of rows){let delivered=outcomes(row,'delivered'),failed=outcomes(row,'failed'),match=others.length>0&&(!axis.value||!category.value||row.dataset[axis.value]===category.value);if(match)match={mixed:selected.some(x=>delivered.has(x))&&selected.some(x=>failed.has(x)),a_success_others_fail:delivered.has(a.value)&&others.every(x=>failed.has(x)),a_fail_others_success:failed.has(a.value)&&others.every(x=>delivered.has(x)),all_success:selected.every(x=>delivered.has(x)),all_fail:selected.every(x=>failed.has(x)),exact_success:selected.every(x=>delivered.has(x))&&delivered.size===selected.length}[relation.value];row.hidden=!match;if(match){shown++;row.cells[0].textContent=shown}}count.textContent=others.length?tr(`显示 ${shown} / ${rows.length} 页`,`Showing ${shown} / ${rows.length} pages`):tr('请至少选择一个对比方法','Select at least one comparison method')}
 let callLogTrigger=null;
-function openCallLog(button){let dialog=document.getElementById(button.dataset.callLogOpen);if(!dialog)return;callLogTrigger=button;if(!dialog.dataset.bound){dialog.dataset.bound='1';dialog.addEventListener('close',()=>{let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()});dialog.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()}}});dialog.addEventListener('click',event=>{if(event.target===dialog){if(typeof dialog.close==='function')dialog.close();else closeCallLog({closest:()=>dialog})}})}if(typeof fill==='function')dialog.querySelectorAll('pre[data-file],pre[data-record]').forEach(pre=>fill(pre));if(typeof dialog.showModal==='function')dialog.showModal();else{dialog.setAttribute('open','');dialog.setAttribute('aria-modal','true')}dialog.querySelector('[data-call-log-close]')?.focus()}
+async function loadDiagnosticEvidence(dialog){
+ for(const pre of dialog.querySelectorAll('pre[data-file],pre[data-record],pre[data-evidence-file]')){
+  if(typeof fill==='function'&&(pre.dataset.file||pre.dataset.record)){fill(pre);continue}
+  if(pre.dataset.loaded||pre.dataset.loading)continue;
+  pre.dataset.loading='1';pre.textContent=tr('正在加载完整记录…','Loading the complete record…');
+  try{
+   const script=document.querySelector('script[src*="report.js"]');
+   const source=pre.dataset.file?new URL(pre.dataset.file,new URL('../',script.src)):new URL(pre.dataset.evidenceFile,document.baseURI);
+   const response=await fetch(source);if(!response.ok)throw Error('HTTP '+response.status);
+   let text=await response.text();if(pre.dataset.readable)text=text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,c=>'\\x'+c.charCodeAt(0).toString(16).padStart(2,'0'));
+   if(text.length>256*1024){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label',tr('完整日志与响应','Complete logs and responses'));pre.replaceWith(box)}else pre.textContent=text;
+   pre.dataset.loaded='1';
+  }catch(error){pre.textContent=tr('完整记录读取失败：','Complete record could not be loaded: ')+error.message+tr('；可使用下载链接，并重新打开重试。','; use the download link or reopen to retry.')}
+  finally{delete pre.dataset.loading}
+ }
+}
+
+function openCallLog(button){let dialog=document.getElementById(button.dataset.callLogOpen);if(!dialog)return;callLogTrigger=button;if(!dialog.dataset.bound){dialog.dataset.bound='1';dialog.addEventListener('close',()=>{let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()});dialog.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()}}});dialog.addEventListener('click',event=>{if(event.target===dialog){if(typeof dialog.close==='function')dialog.close();else closeCallLog({closest:()=>dialog})}})}loadDiagnosticEvidence(dialog);if(typeof dialog.showModal==='function')dialog.showModal();else{dialog.setAttribute('open','');dialog.setAttribute('aria-modal','true')}dialog.querySelector('[data-call-log-close]')?.focus()}
 function closeCallLog(button){let dialog=button.closest('dialog');if(!dialog)return;if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()}}
 function applyReportAnchor(anchor){if(!anchor)return;if(wmbInspect(anchor))return;if(anchor.startsWith('track-')){chooseTab('dataset-hub','cases');let s=document.querySelector('select[data-filter="track"]');if(s){s.value=anchor.slice(6);document.querySelectorAll('select[data-filter]').forEach(x=>{if(x!==s)x.value=''});cascadeFilters(s)}}else if(['references','sources'].includes(anchor)){chooseTab('dataset-hub',anchor)}else{let target=document.getElementById(anchor);for(let p=target;p;p=p.parentElement){if(p.dataset?.panel)chooseTab(p.parentElement.id,p.dataset.panel);if(p.tagName==='DETAILS')p.open=true}}}
 function wmbFilters(){let table=document.querySelector('[data-wmb-table]');if(!table)return;let rows=table.tBodies[0].rows,controls=[...document.querySelectorAll('[data-wmb-filter]')],values=Object.fromEntries(controls.map(c=>[c.dataset.wmbFilter,c.value])),axis=values.axis||'',query=(values.query||'').trim().toLowerCase();let category=controls.find(c=>c.dataset.wmbFilter==='category');if(category){let allowed=new Set();for(let row of rows)if(!values.method||row.dataset.method===values.method)allowed.add(row.dataset[axis]);for(let option of category.options)option.disabled=!!option.value&&!allowed.has(option.value);if(category.value&&!allowed.has(category.value)){category.value='';values.category=''}}let failure=controls.find(c=>c.dataset.wmbFilter==='failure');if(failure){let available=new Set();for(let row of rows)if((!values.method||row.dataset.method===values.method)&&(!values.request||row.dataset.request===values.request)&&row.dataset.failure)available.add(row.dataset.failure);for(let option of failure.options)option.disabled=!!option.value&&!available.has(option.value);failure.disabled=values.request==='success'||available.size===0;if(failure.disabled||failure.value&&!available.has(failure.value)){failure.value='';values.failure=''}}let band=controls.find(c=>c.dataset.wmbFilter==='band');if(band){band.disabled=!values.metric;if(band.disabled){band.value='';values.band=''}}let count=0;for(let row of rows){let search=row.dataset.searchNormalized||(row.dataset.searchNormalized=(row.dataset.search||'').toLowerCase());let show=(!values.method||row.dataset.method===values.method)&&(!axis||!values.category||row.dataset[axis]===values.category)&&(!values.request||row.dataset.request===values.request)&&(!values.failure||row.dataset.failure===values.failure)&&(!query||search.includes(query));if(show&&values.metric){let raw=row.dataset[values.metric],number=raw===''||raw==null?null:Number(raw);if(values.band==='unavailable')show=number===null;else if(values.band){let [low,high]=values.band.split(':').map(Number);show=number!==null&&number>=low&&number<(high===1?1.0000001:high)}}row.hidden=!show;if(show){count++;row.cells[0].textContent=count}}let indicator=document.querySelector('[data-wmb-count]');if(indicator)indicator.textContent=tr(`显示 ${count} / ${rows.length} 条`,`Showing ${count} / ${rows.length}`)}
@@ -566,6 +583,14 @@ def _separate_observed_logs(text):
  return native.strip('\n'), '\n'.join(events)
 
 
+def _log_evidence_dialog(relative, label):
+    """Use the shared evidence dialog, backed by one existing public file."""
+    target='saved-log-'+hashlib.sha256(relative.encode()).hexdigest()[:16]
+    return (f'<button type="button" class="call-log-button" data-call-log-open="{target}" aria-haspopup="dialog">'+model_text('打开完整记录','Open complete record')+'</button>'
+        f'<dialog class="call-log-dialog wmb-detail-dialog" id="{target}" aria-labelledby="{target}-title"><div class="call-log-shell"><header><h2 id="{target}-title">{label}</h2><button type="button" data-call-log-close aria-label="关闭">关闭</button></header><div class="wmb-dialog-content">'
+        f'<pre data-file="{esc(relative)}" data-readable="1" data-evidence-kind="log"></pre></div></div></dialog>')
+
+
 def diagnostic_view_page(out, relative, label, note):
     """Show the real sanitized text in HTML; retain its original download bytes."""
     source=contained_path(out,relative)
@@ -574,7 +599,8 @@ def diagnostic_view_page(out, relative, label, note):
     body=(hero(label,'真实保存记录；仅为浏览显示，未增加产品调用。')+
           section('记录来源','<p>'+esc(note)+'</p><p>'+link('../'+relative,'下载原始公开文件')+
                   ' · '+str(len(raw))+' 字节 · SHA-256：<code class="break">'+hashlib.sha256(raw).hexdigest()+'</code></p>')+
-          section('完整记录','<pre>'+esc(raw.decode('utf-8','replace'))+'</pre>'))
+          section(model_text('记录摘录','Record excerpt'),'<pre>'+esc(_diagnostic_log_excerpt(raw.decode('utf-8','replace'))[:6000])+'</pre>')+
+          section(model_text('完整记录','Complete record'),_log_evidence_dialog(relative,esc(label))))
     write(out,view,label,body)
     return view
 
@@ -614,16 +640,16 @@ def run_log_section(out,record,output):
                 f'<code class="break">JSON SHA-256：{esc(log["sha256"])}</code>')
   if stderr_data:
    rows=''.join(f'<li value="{int(match.group(1))}"><code>{esc(match.group(2))}</code></li>'
-                for line in _reader_log_excerpt(stderr_text).splitlines()
+                for line in _reader_log_excerpt(stderr_text)[:6000].splitlines()
                 if (match:=re.match(r'\s*(\d+)\s{2}(.*)',line)))
    completeness=('这份公开日志是现有调用记录中保存的前段内容，原始记录注明其已截断。' if truncated else
                  '以下内容逐行摘自这次物理调用已保存的完整 stderr / debug 日志。')
    body=(f'<p class="source-note">{completeness} 行号对应调用日志 JSON 中的 process.stderr 字段；人工说明不写入日志框。</p>'
          +(f'<ol class="log-lines">{rows}</ol>' if rows else '')
-         +f'<p>{raw_download}</p>')
+         +f'<p>{raw_download}</p>'+_log_evidence_dialog(log['path'],esc(log['label'])))
   else:
    body=(f'<p class="source-note">这次物理调用没有保存可展示的 stderr / debug 日志；'
-         f'不会补造不存在的日志。</p><p>{raw_download}</p>')
+         f'不会补造不存在的日志。</p><p>{raw_download}</p>'+_log_evidence_dialog(log['path'],esc(log['label'])))
   diagnostics.append(f'<article><h3>{esc(log["label"])}</h3>{body}</article>')
  complete_label=('是' if any_stderr and not any_truncated else
                  '否（至少一份公开日志已截断）' if any_stderr else '不适用（没有保存 debug 日志）')
@@ -638,8 +664,8 @@ def run_log_section(out,record,output):
   any_truncated=bool(metadata.get('diagnostic_log_truncated'))
   complete_label='已保存文件截断；原生日志范围见说明' if any_truncated else '已保存文件未截断；原生日志范围见说明'
   native_text,caller_text=_separate_observed_logs(debug_bytes.decode("utf-8", "replace"))
-  native_view=('<pre data-log-source="product">'+esc(native_text)+'</pre>' if native_text else '<p data-log-unavailable>本次没有取得产品或依赖库的原生日志。已保存的调用方记录见下方。</p>')
-  diagnostics=[f'<article><h3>实际诊断日志 · 产品与依赖库</h3><p>{esc(metadata.get("public_log_note") or "仅展示真实观测记录；未开放的内部过程不作推断。")}</p><p>返回 JSON 在“原始返回”中单独展示；接入程序记录在下方“调用方事件”中。</p>{native_view}<details><summary>调用方事件（测试程序记录）</summary><pre data-log-source="caller">{esc(caller_text)}</pre></details><p><a href="../{esc(public_debug)}" download>下载运行时日志（已分离返回内容）</a> · 公开 SHA-256：<code class="break">{esc(metadata["public_debug_log_sha256"])}</code> · 原始采集记录 {int(metadata.get("diagnostic_log_bytes") or 0):,} 字节（可含协议返回） · 原始 SHA-256：<code class="break">{esc(metadata.get("diagnostic_log_sha256") or "—")}</code></p></article>']
+  native_view=('<pre data-log-source="product">'+esc(_reader_log_excerpt(native_text)[:6000])+'</pre>' if native_text else '<p data-log-unavailable>本次没有取得产品或依赖库的原生日志。已保存的调用方记录见下方。</p>')
+  diagnostics=[f'<article><h3>实际诊断日志 · 产品与依赖库</h3><p>{esc(metadata.get("public_log_note") or "仅展示真实观测记录；未开放的内部过程不作推断。")}</p><p>返回 JSON 在“原始返回”中单独展示；接入程序记录在下方“调用方事件”中。</p>{native_view}<details><summary>调用方事件（测试程序记录）</summary><pre data-log-source="caller">{esc(_reader_log_excerpt(caller_text)[:6000])}</pre></details>{_log_evidence_dialog(public_debug,model_text("完整诊断日志","Complete diagnostic log"))}<p><a href="../{esc(public_debug)}" download>下载运行时日志（已分离返回内容）</a> · 公开 SHA-256：<code class="break">{esc(metadata["public_debug_log_sha256"])}</code> · 原始采集记录 {int(metadata.get("diagnostic_log_bytes") or 0):,} 字节（可含协议返回） · 原始 SHA-256：<code class="break">{esc(metadata.get("diagnostic_log_sha256") or "—")}</code></p></article>']
  version=method_version(record,method_provenance(out)) or '—'
  command=metadata.get('command_args') or metadata.get('command') or '—（调用记录未保存可展示的完整命令）'
  if isinstance(command,list):command=' '.join(str(item) for item in command)
@@ -828,9 +854,8 @@ def generate_cohort_diagnostic(out, model):
 '''
  (out/'assets/style.css').write_text(STYLE+EXTRA+diagnostic_style,encoding='utf-8')
  (out/'assets/report.js').write_text(JS+'''
-async function loadDiagnosticEvidence(dialog){for(let pre of dialog.querySelectorAll('pre[data-evidence-file]')){if(pre.dataset.loaded)continue;try{let response=await fetch(pre.dataset.evidenceFile);if(!response.ok)throw Error('HTTP '+response.status);pre.textContent=await response.text();pre.dataset.loaded='1'}catch(error){pre.textContent='完整证据读取失败：'+error.message+'；可使用上方下载链接。'}}}
 function diagnosticAnchor(){let select=document.querySelector('select[data-filter="issue"]');if(!select)return;let match=location.hash.match(/^#issue=([a-z]+)$/);if(!match||![...select.options].some(o=>o.value===match[1]))return;document.querySelectorAll('select[data-filter]').forEach(s=>s.value=s.dataset.filter==='result'?'fail':'');select.value=match[1];cascadeFilters();document.getElementById('failure-inventory')?.scrollIntoView()}
-document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[data-call-log-open]').forEach(b=>b.addEventListener('click',()=>{openCallLog(b);loadDiagnosticEvidence(document.getElementById(b.dataset.callLogOpen))}));document.querySelectorAll('[data-call-log-close]').forEach(b=>b.addEventListener('click',()=>closeCallLog(b)));diagnosticAnchor()});window.addEventListener('hashchange',diagnosticAnchor);''',encoding='utf-8')
+document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[data-call-log-open]').forEach(b=>b.addEventListener('click',()=>{openCallLog(b)}));document.querySelectorAll('[data-call-log-close]').forEach(b=>b.addEventListener('click',()=>closeCallLog(b)));diagnosticAnchor()});window.addEventListener('hashchange',diagnosticAnchor);''',encoding='utf-8')
  groups={g['id']:g for g in model['cohorts']};rows=model['rows'];labels=model['cause_labels']
  files={r[field]['path']:(out/r[field]['path']).read_bytes() for r in rows for field in ('log','reference')}
  findings={r['id']:diagnostic_findings(r,files) for r in rows}
@@ -1171,14 +1196,14 @@ def review_cell(audit, rows, base=''):
  if unresolved:label+=f' · 未决 {unresolved}'
  return cell(link(base+'review/index.html',label),len(items)/len(rows) if rows else -1)
 
-def _evidence_chunks(text, width=620):
+def _evidence_chunks(text, width=620, overlap=100):
  chunks=[]
  for raw in text.splitlines():
   line=raw.strip()
   if not line:continue
   if len(line)<=width:chunks.append(line)
   else:
-   for start in range(0,len(line),width-100):chunks.append(line[start:start+width])
+   for start in range(0,len(line),width-overlap):chunks.append(line[start:start+width])
  return chunks
 
 def _best_evidence_excerpt(expected, output):
@@ -1193,18 +1218,25 @@ def _best_evidence_excerpt(expected, output):
 
 def _normalized_evidence_lines(output):
  from lexbench_webfetch.metrics import normalize_for_match
- return [(line,normalize_for_match(line)) for raw in output.splitlines() if (line:=raw.strip())]
+ return [[line,normalize_for_match(line),None] for raw in output.splitlines() if (line:=raw.strip())]
 
 def _exact_evidence_lines(expected, output, *, normalized_lines=None):
- """Return complete output lines containing the normalized expected text."""
+ """Locate one bounded, verbatim fragment; never repeat a whole long HTML line."""
  from lexbench_webfetch.metrics import normalize_for_match
  normalized_expected=normalize_for_match(expected)
- selected=[]
  lines=_normalized_evidence_lines(output) if normalized_lines is None else normalized_lines
- for line,normalized_line in lines:
-  if normalized_expected and normalized_expected in normalized_line:
-   if line not in selected:selected.append(line)
- return '\n\n'.join(selected)
+ for entry in lines:
+  line,normalized_line=entry[:2]
+  if not normalized_expected or normalized_expected not in normalized_line:continue
+  if len(line)<=1200:return line
+  # Retain the full-line match requirement: cutting Markdown syntax must not
+  # turn an otherwise excluded destination into a spurious visible-text hit.
+  if entry[2] is None:
+   entry[2]=[(chunk,normalize_for_match(chunk))
+             for chunk in _evidence_chunks(line,width=1200,overlap=600)]
+  for chunk,normalized_chunk in entry[2]:
+   if normalized_expected in normalized_chunk:return chunk
+ return ''
 
 def _diagnostic_log_excerpt(text):
  """Keep exact retained log lines around reader-relevant diagnostics."""
@@ -1491,9 +1523,6 @@ def stable_anchor_evidence(metrics,output):
    candidate=_exact_evidence_lines(alternative,output,normalized_lines=normalized_lines)
    if candidate:excerpt=candidate;break
   passed=bool(item.get('pass'));css='pass' if passed else 'fail'
-  if passed and not excerpt:
-   matched=[value for value in item.get('matched',[]) if value]
-   excerpt='\n'.join(matched)
   comparison=_stable_field_comparison(metrics,item) if not passed else None
   field_detail='';badge='命中' if passed else '未命中'
   if comparison:
@@ -1977,7 +2006,7 @@ def local_audit_banner(dataset):
 from .methods import with_measured_method_labels
 
 @with_measured_method_labels
-def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None,dataset_case_ids:set[str]|None=None,frozen_scores:bool=False,english_routes=None):
+def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None,dataset_case_ids:set[str]|None=None,frozen_scores:bool=False,english_routes=None,diagnostic_view_paths=()):
  from .publication_privacy import public_render_views
  _public_views=public_render_views(out,records)
  if english_routes is not None and not presentation_only:
@@ -2437,6 +2466,14 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   write(out,'changes/index.html','变更记录',hero('变更记录','列出本轮核验后的修正；修正读取已保存的返回，不代表重新调用产品。')+section('本轮结果修正','<div class="review-rounds">'+updates+'</div>')+section('详细依据','<p>'+link('../review/index.html','核验范围与修正说明')+' · '+link('../analysis/index.html','逐任务结果与证据')+' · '+link('../reproduce/index.html','运行参数与版本')+'</p>'))
  else:
   render_changes(out,cases,records,dataset)
+ for relative in diagnostic_view_paths:
+  from bs4 import BeautifulSoup
+  with (out/relative).open(encoding='utf-8') as source_header:
+   previous=BeautifulSoup(source_header.read(8192),'html.parser')
+  heading=previous.find('h1');source_heading=previous.find('h2',string='记录来源')
+  if heading is None or source_heading is None:raise ValueError('Saved diagnostic viewer header is unavailable: '+relative)
+  note=source_heading.find_next('p')
+  diagnostic_view_page(out,str(Path(relative).with_suffix('.txt')),heading.get_text(),note.get_text() if note else '')
  if include_english:
   from .report_i18n import write_english_report
   write_english_report(out,source_routes=english_routes)
