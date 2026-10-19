@@ -3,10 +3,11 @@ import hashlib
 import html
 import json
 import re
-from copy import deepcopy
 from collections import OrderedDict
+from copy import deepcopy
 from functools import lru_cache
 from pathlib import PurePosixPath, PureWindowsPath
+from threading import Lock
 from urllib.parse import unquote_plus
 
 
@@ -478,16 +479,25 @@ def _scan_publication_risk(data):
     return inspect(payload)
 
 
-@lru_cache(maxsize=8)
-def _cached_publication_risk(data):
-    return _scan_publication_risk(data)
+_publication_risks = OrderedDict()
+_publication_risks_lock = Lock()
 
 
 def publication_risk(data):
-    """Reuse checks only for identical immutable bytes; bound retained memory."""
+    """Cache decisions by actual bytes, retaining no payloads or file metadata."""
     data = bytes(data)
-    return (_cached_publication_risk(data) if len(data) <= 2_000_000
-            else _scan_publication_risk(data))
+    key = (len(data), hashlib.sha256(data).digest())
+    # Hold the lock through a miss so concurrent identical inputs scan once.
+    # File readers still read and verify their bytes before reaching this owner.
+    with _publication_risks_lock:
+        if key in _publication_risks:
+            _publication_risks.move_to_end(key)
+            return _publication_risks[key]
+        result = _scan_publication_risk(data)
+        _publication_risks[key] = result
+        if len(_publication_risks) > 16384:
+            _publication_risks.popitem(last=False)
+        return result
 
 
 def project_file(name, data):

@@ -414,7 +414,7 @@ def test_bilingual_download_link_displays_text_instead_of_escaped_markup():
 def test_privacy_check_reuses_only_identical_bytes():
     from unittest.mock import patch
     from harness.web_fetch import publication_privacy as owner
-    owner._cached_publication_risk.cache_clear()
+    owner._publication_risks.clear()
     safe = b'Unique unchanged evidence cache fixture'
     unsafe = safe+b'\nAuthorization: Custom private-credential'
     with patch.object(owner, '_scan_publication_risk', wraps=owner._scan_publication_risk) as scan:
@@ -423,4 +423,69 @@ def test_privacy_check_reuses_only_identical_bytes():
         assert scan.call_count == 1
         assert owner.publication_risk(unsafe) == 'sensitive field value'
         assert scan.call_count == 2
-    owner._cached_publication_risk.cache_clear()
+    owner._publication_risks.clear()
+
+
+def test_large_public_view_cache_still_reads_new_bytes_and_rejects_new_secret(tmp_path):
+    from unittest.mock import patch
+
+    from harness.web_fetch import publication_privacy as owner
+    raw = b'large public evidence cache fixture\n'*65000
+    assert len(raw) > 2_000_000
+    public, receipt = owner.project_evidence_view(
+        'public-evidence/large.txt', raw, role='scored_answer')
+    path = tmp_path/receipt['path']
+    path.parent.mkdir()
+    path.write_bytes(public)
+    receipt_path = tmp_path/'receipt.json'
+    def bind():
+        receipt_path.write_text(json.dumps(receipt))
+        return {'path': 'receipt.json',
+                'sha256': hashlib.sha256(receipt_path.read_bytes()).hexdigest()}
+    binding = bind()
+    with owner._publication_risks_lock:
+        owner._publication_risks.clear()
+    with patch.object(owner, '_scan_publication_risk', wraps=owner._scan_publication_risk) as scan:
+        owner.require_public_evidence_view(tmp_path, binding)
+        owner.require_public_evidence_view(tmp_path, binding)
+        assert scan.call_count == 1
+        changed = public+b'\nAuthorization: Custom newly-added-private-credential'
+        path.write_bytes(changed)
+        for prefix in ('original', 'published'):
+            receipt[prefix+'_sha256'] = hashlib.sha256(changed).hexdigest()
+            receipt[prefix+'_bytes'] = len(changed)
+        with pytest.raises(ValueError, match='privacy state'):
+            owner.require_public_evidence_view(tmp_path, bind())
+        assert scan.call_count == 2
+
+
+def test_risk_cache_coalesces_concurrent_scans_and_keeps_only_bounded_digest_keys(monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    from harness.web_fetch import publication_privacy as owner
+    calls = []
+    entered, release = Event(), Event()
+    def scan(data):
+        calls.append(len(data))
+        entered.set()
+        assert release.wait(5)
+        return None
+    with owner._publication_risks_lock:
+        owner._publication_risks.clear()
+    monkeypatch.setattr(owner, '_scan_publication_risk', scan)
+    value = b'parallel unchanged body\n'*100000
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = [pool.submit(owner.publication_risk, value) for _ in range(4)]
+        assert entered.wait(5)
+        release.set()
+        assert [future.result() for future in futures] == [None]*4
+    assert calls == [len(value)]
+    monkeypatch.setattr(owner, '_scan_publication_risk', lambda data: None)
+    for index in range(16400):
+        owner.publication_risk(str(index).encode())
+    assert len(owner._publication_risks) == 16384
+    assert all(isinstance(key[0], int) and isinstance(key[1], bytes) and len(key[1]) == 32
+               for key in owner._publication_risks)
+    with owner._publication_risks_lock:
+        owner._publication_risks.clear()
