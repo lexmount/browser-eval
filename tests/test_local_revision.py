@@ -499,7 +499,7 @@ def test_native_context_revision_replays_native_fields_and_rejects_tampering(tmp
     current.update(title=None, final_url=current['url'])
     (tmp_path/'results.jsonl').write_text(json.dumps(current)+'\n')
     config = {'cases': [], 'authority': {'description': 'Recover native title and redirect without new calls.'},
-        'regression_ids': ['native-title-must-match-original', 'native-returned-title-remains-answer',
+        'regression_ids': ['native-title-must-match-original', 'native-returned-body-fact-with-title-remains-valid',
                            'native-final-url-must-match-original', 'native-returned-redirect-resolves-relative-image'],
         'native_answer_corrections': [{'attempt_id': current['attempt_id'],
             'native_response': {'path': 'private_artifacts/context.response.bin', 'sha256': hashlib.sha256(native).hexdigest()},
