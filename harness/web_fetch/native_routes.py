@@ -31,6 +31,52 @@ class NativeRoute:
             raise ValueError('Native route answer_fields must be a nonempty tuple of field names')
 
 
+@dataclass(frozen=True)
+class NativeRequestSignature:
+    """Validated immutable view of one retained physical invocation."""
+
+    transport: str
+    interface: str
+    endpoint_sha256: str | None
+    parameters_json: str
+    sha256: str
+    computed_sha256: str
+
+    @classmethod
+    def parse(cls, item, *, field):
+        import re
+        def reject(name):
+            raise ValueError('Native route ' + field + name + ' is invalid')
+        if not isinstance(item, dict):
+            reject('')
+        signature = item.get('signature')
+        if not isinstance(signature, dict):
+            reject('.signature')
+        transport = signature.get('transport')
+        if not isinstance(transport, str) or transport not in {'http', 'cli', 'jsonl', 'fixture'}:
+            reject('.signature.transport')
+        interface = signature.get('interface')
+        if not isinstance(interface, str) or not interface.strip():
+            reject('.signature.interface')
+        endpoint = signature.get('endpoint_sha256')
+        if ('endpoint_sha256' not in signature or
+                endpoint is not None and (not isinstance(endpoint, str) or re.fullmatch('[0-9a-f]{64}', endpoint) is None)):
+            reject('.signature.endpoint_sha256')
+        parameters = signature.get('parameters')
+        if not isinstance(parameters, dict):
+            reject('.signature.parameters')
+        digest = item.get('sha256')
+        if not isinstance(digest, str) or re.fullmatch('[0-9a-f]{64}', digest) is None:
+            reject('.sha256')
+        # A JSON snapshot avoids retaining a mutable caller-owned parameter tree.
+        return cls(transport, interface, endpoint, json.dumps(parameters), digest,
+                   canonical_json_sha256(signature))
+
+    @property
+    def parameters(self):
+        return json.loads(self.parameters_json)
+
+
 def declared_input_media_kind(case, *, required=True):
     """Read a dataset declaration or its worker projection; never inspect a URL.
 
@@ -327,6 +373,8 @@ def verify_native_route_contract(source, manifest, dataset, records):
                     and receipt.get('answer_selection_policy') != cells[key]['answer_selection_policy']):
                 raise ValueError('Native answer selection policy differs from its pre-call freeze')
             requests = receipt.get('requests', [])
+            if not isinstance(requests, list):
+                raise ValueError('Native route requests must be an array')
             state = receipt.get('transport_state')
             if state not in {'started', 'not_started'}:
                 raise ValueError('Native result lacks its transport stage')
@@ -337,17 +385,17 @@ def verify_native_route_contract(source, manifest, dataset, records):
                 raise ValueError('Native failed result lacks an explicit failure stage')
             if len(requests) > 1 or (physical['ok'] and not requests and cells[key]['transport'] != 'fixture'):
                 raise ValueError('Native result lacks one complete invocation signature')
-            for item in requests:
-                signature = item['signature']
-                if (canonical_json_sha256(signature) != item.get('sha256')
-                        or signature['transport'] != cells[key]['transport']
-                        or signature['interface'] != cells[key]['interface']
-                        or signature['endpoint_sha256'] != cells[key]['endpoint_sha256']
-                        or signature.get('parameters') != cells[key]['request_parameters']):
+            for index, item in enumerate(requests):
+                signature = NativeRequestSignature.parse(item, field=f'requests[{index}]')
+                if (signature.computed_sha256 != signature.sha256
+                        or signature.transport != cells[key]['transport']
+                        or signature.interface != cells[key]['interface']
+                        or signature.endpoint_sha256 != cells[key]['endpoint_sha256']
+                        or signature.parameters != cells[key]['request_parameters']):
                     raise ValueError('Native invocation differs from its frozen interface')
-                if key in signatures and signatures[key] != item['sha256']:
+                if key in signatures and signatures[key] != signature.sha256:
                     raise ValueError('Native request signature differs within its declared class')
-                signatures[key] = item['sha256']
+                signatures[key] = signature.sha256
     if actual != expected:
         raise ValueError('Native route contract has an incomplete result scope')
     return doc

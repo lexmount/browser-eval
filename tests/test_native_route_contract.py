@@ -954,3 +954,58 @@ def test_native_route_declaration_is_immutable():
     route = NativeRoute('http', '/extract', ('content',))
     with pytest.raises(FrozenInstanceError):
         route.interface = '/other'
+
+
+@pytest.mark.parametrize('field,bad_value', [
+    ('requests', {}), ('requests', None), ('requests', 'wrong'),
+    ('item', None), ('item', []), ('signature', None), ('signature', []),
+    ('transport', None), ('transport', []), ('interface', None), ('interface', []),
+    ('endpoint_sha256', 123), ('parameters', None), ('parameters', []),
+    ('sha256', None), ('sha256', []),
+    *[(name, '__missing__') for name in ('signature', 'transport', 'interface',
+                                         'endpoint_sha256', 'parameters', 'sha256')],
+])
+def test_release_rejects_malformed_request_fields_with_named_errors(tmp_path, field, bad_value):
+    from datetime import datetime, timezone
+    from unittest.mock import Mock
+    from harness.web_fetch.native_routes import verify_native_route_contract
+    provider, cases, ledger, manifest, dataset = _route_http_fixture(tmp_path)
+    records = []
+    for case in cases:
+        endpoint, arguments = provider.native_http_arguments(case, 45)
+        provider.native_http_request(case, Mock(), endpoint, native_route_ledger=ledger, **arguments)
+        records.append({'provider': provider.name, 'case_id': case.id, 'url': case.url,
+                        'started_at': datetime.now(timezone.utc).isoformat(), 'ok': True,
+                        'provider_metadata': {'native_route_receipt': ledger.receipt(provider, case)}})
+    assert verify_native_route_contract(tmp_path, manifest, dataset, records)
+    receipt = records[0]['provider_metadata']['native_route_receipt']
+    if bad_value == '__missing__':
+        owner = receipt['requests'][0]
+        if field not in {'signature', 'sha256'}:
+            owner = owner['signature']
+        del owner[field]
+    elif field == 'requests':
+        receipt['requests'] = bad_value
+    elif field == 'item':
+        receipt['requests'][0] = bad_value
+    elif field in {'signature', 'sha256'}:
+        receipt['requests'][0][field] = bad_value
+    else:
+        receipt['requests'][0]['signature'][field] = bad_value
+    with pytest.raises(ValueError, match='Native route requests' if field == 'item' else field):
+        verify_native_route_contract(tmp_path, manifest, dataset, records)
+
+
+def test_parsed_request_signature_detaches_mutable_parameter_inputs():
+    from dataclasses import FrozenInstanceError
+    from harness.record_io import canonical_json_sha256
+    from harness.web_fetch.native_routes import NativeRequestSignature
+    source = {'transport': 'cli', 'interface': 'ordinary_markdown', 'endpoint_sha256': None,
+              'parameters': {'argv': ['native']}}
+    item = {'signature': source, 'sha256': canonical_json_sha256(source)}
+    parsed = NativeRequestSignature.parse(item, field='requests[0]')
+    source['parameters']['argv'].append('tampered')
+    parsed.parameters['argv'].append('also-tampered')
+    assert parsed.parameters == {'argv': ['native']}
+    with pytest.raises(FrozenInstanceError):
+        parsed.interface = 'changed'
