@@ -253,6 +253,9 @@ validation, not each measured fetch; a changed binary requires revalidation.
 
 ### Retries
 
+A repair run may retain successful results and rerun only failed or affected cases. Keep every physical call and select the final response under the declared retry/correction policy. Recompute scores for the complete selected result population when the scorer changes; rescoring does not require new provider calls. If executable builds differ, disclose their fingerprints and selected result counts as cumulative results. This does not establish the full-suite result or speed of one build.
+
+
 All methods default to one retry after a failed task. Set
 `--max-failure-retries N` to any nonnegative integer; `0` disables retries.
 There are at most N+1 calls per task, stopping as soon as the task passes.

@@ -6,15 +6,16 @@ from collections import Counter
 from lexbench_webfetch.metrics import task_measured
 
 
-def implementation_conflicts(records: list[dict]) -> dict[str, list[str]]:
-    """Find method labels that combine results from distinct executable builds."""
+def implementation_inventory(records: list[dict]) -> dict[str, dict[str, int]]:
+    """Disclose retained and rerun build populations without requiring new calls."""
     implementations = {}
     for row in records:
         fingerprint = (row.get("provider_metadata") or {}).get("binary_sha256")
         if fingerprint:
-            implementations.setdefault(row.get("provider"), set()).add(fingerprint)
-    return {provider: sorted(hashes) for provider, hashes in implementations.items()
-            if len(hashes) > 1}
+            counts = implementations.setdefault(row.get("provider"), {})
+            counts[fingerprint] = counts.get(fingerprint, 0) + 1
+    return {provider: dict(sorted(counts.items()))
+            for provider, counts in implementations.items()}
 
 
 def assess_reliability(dataset: dict, records: list[dict]) -> dict:
@@ -37,7 +38,7 @@ def assess_reliability(dataset: dict, records: list[dict]) -> dict:
         if row.get("case_id") in cases
         and not task_measured(row.get("metrics", {}), cases[row["case_id"]].get("task_kind", "body"))
     )
-    conflicts = implementation_conflicts(records)
+    implementations = implementation_inventory(records)
     errors = []
     if not cases:
         errors.append("评测集没有案例")
@@ -51,8 +52,6 @@ def assess_reliability(dataset: dict, records: list[dict]) -> dict:
         errors.append(f"存在 {len(duplicates)} 个重复或多次选入的调用")
     if unjudged:
         errors.append(f"存在 {len(unjudged)} 个无法判定通过或失败的调用")
-    if conflicts:
-        errors.append("同一方法混用了不同可执行文件: " + ", ".join(sorted(conflicts)))
     complete = bool(expected) and not errors
     return {
         "schema_version": 1,
@@ -65,7 +64,7 @@ def assess_reliability(dataset: dict, records: list[dict]) -> dict:
         "extra": [{"provider": p, "case_id": c} for p, c in extra],
         "duplicates": [{"provider": p, "case_id": c, "count": counts[(p, c)]} for p, c in duplicates],
         "unjudged": [{"provider": p, "case_id": c} for p, c in unjudged],
-        "implementation_conflicts": conflicts,
+        "implementation_inventory": implementations,
         "errors": errors,
         "publication_policy": "all_planned_provider_case_pairs_must_exist_once_and_be_judged",
     }

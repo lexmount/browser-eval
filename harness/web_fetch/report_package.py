@@ -35,10 +35,7 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None) 
         return False
     dataset_path = source / "dataset.json"
     dataset = json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
-    from .reliability import implementation_conflicts
     records = load_jsonl(source / "results.jsonl")
-    if conflicts := implementation_conflicts(records):
-        raise ValueError("Refusing to package mixed executable versions: " + ", ".join(sorted(conflicts)))
     from .reference_lifecycle import require_certifiable_evidence
     manifests = []
     for name in ('manifest.json', 'execution.json'):

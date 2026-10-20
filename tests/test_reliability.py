@@ -16,14 +16,15 @@ class ReliabilityTests(unittest.TestCase):
         self.assertTrue(result['complete'])
         self.assertEqual(result['judged_calls'],1)
 
-    def test_replacing_failures_with_another_binary_cannot_form_one_version_score(self):
+    def test_failure_only_reruns_retain_successes_and_disclose_build_counts(self):
         dataset = {**self.dataset, 'cases': [self.dataset['cases'][0],
                    {'id': 'b', 'track': 'web', 'task_kind': 'body'}]}
         rows = [{**self.record, 'provider_metadata': {'binary_sha256': 'first-build'}},
                 {**self.record, 'case_id': 'b',
                  'provider_metadata': {'binary_sha256': 'replacement-build'}}]
-        with self.assertRaisesRegex(ValueError, 'different|可执行文件'):
-            require_reliable(dataset, rows)
+        result = require_reliable(dataset, rows)
+        self.assertEqual(result['implementation_inventory']['p'],
+                         {'first-build': 1, 'replacement-build': 1})
         rows[1]['provider_metadata']['binary_sha256'] = 'first-build'
         self.assertTrue(require_reliable(dataset, rows)['complete'])
 

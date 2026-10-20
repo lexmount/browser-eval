@@ -179,3 +179,20 @@ def test_report_labels_distinguish_release_and_source_build_with_same_version(tm
 
     unrelated(tmp_path,{},records)
     assert provider_label('moli-release')==original
+
+
+def test_method_guide_discloses_retained_success_and_repaired_failure_builds(tmp_path):
+    from harness.web_fetch.report_methods import render_methods
+    from harness.web_fetch.report import hero, section, table, cell, link, esc
+    records = [{'provider': 'sample', 'provider_type': 'fixture',
+                'provider_metadata': {'binary_sha256': build}}
+               for build in ('retained-build', 'retained-build', 'repair-build')]
+    body = render_methods(tmp_path, records, hero=hero, section=section,
+                          table=table, cell=cell, link=link, esc=esc)
+    assert 'implementation-scope' in body
+    assert 'retained-build' in body and 'repair-build' in body
+    assert '>2<' in body and '>1<' in body
+    assert '累计成绩不代表某一个版本' in body
+    single = render_methods(tmp_path, records[:2], hero=hero, section=section,
+                            table=table, cell=cell, link=link, esc=esc)
+    assert 'implementation-scope' not in single
