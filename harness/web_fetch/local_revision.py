@@ -479,8 +479,8 @@ def require_current_snapshot_authority(source, receipt, dataset, records):
             or receipt.get('history_validated_before_compaction') is not True):
         raise ValueError('Invalid compact current snapshot authority')
     for name, key in [('dataset.json', 'dataset_sha256'), ('results.jsonl', 'results_sha256')]:
-        if hashlib.sha256((source/name).read_bytes()).hexdigest() != receipt.get(key):
-            raise ValueError('Current snapshot bytes changed: ' + name)
+        read_evidence_binding(source, {'path': name, 'sha256': receipt.get(key)},
+                              allow_public_view=False)
     if (json.loads((source/'dataset.json').read_text()) != dataset
             or load_jsonl(source/'results.jsonl') != records):
         raise ValueError('Current snapshot arguments differ from bound bytes')
@@ -1053,9 +1053,9 @@ def _revise_local_snapshot(source, configuration, transaction):
         if row['case_id'] not in replacements and row['attempt_id'] not in additional:
             continue
         case = indexed[row['case_id']]
-        raw = contained_path(source, row['artifact_path'], reject_symlinks=True).read_bytes()
-        if hashlib.sha256(raw).hexdigest() != row['metrics']['content_sha256']:
-            raise ValueError('Local revision output integrity failure')
+        raw = read_evidence_binding(source, {
+            'path': row['artifact_path'], 'sha256': row['metrics']['content_sha256'],
+        }, allow_public_view=False).read_bytes()
         before = (input_verdicts[row['attempt_id']] if input_verdicts is not None
                   else task_passed(row['ok'], row['metrics']))
         before_verdicts[row['attempt_id']] = before

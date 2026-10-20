@@ -55,6 +55,29 @@ def test_proposed_evidence_reads_are_scoped_and_hash_checked(tmp_path, interrupt
         read_evidence_binding(source, binding(b'proposed'))
 
 
+@pytest.mark.parametrize('allow_public_view', [False, True])
+def test_evidence_reader_requires_original_bytes_when_requested(tmp_path, monkeypatch, allow_public_view):
+    from harness.web_fetch import publication_privacy as privacy
+    path = tmp_path / 'answer.txt'
+    path.write_bytes(b'original')
+    binding = {'path': path.name, 'sha256': hashlib.sha256(b'original').hexdigest()}
+    calls = []
+    def public_view(source, requested):
+        calls.append(requested)
+        return path, {'original_bytes': 8}
+    monkeypatch.setattr(privacy, 'bound_public_view', public_view)
+    assert privacy.read_evidence_binding(tmp_path, binding, allow_public_view=allow_public_view) == path
+    assert not calls
+    path.write_bytes(b'public projection')
+    if allow_public_view:
+        assert privacy.read_evidence_binding(tmp_path, binding) == path
+        assert calls == [binding]
+    else:
+        with pytest.raises(ValueError, match='evidence binding changed'):
+            privacy.read_evidence_binding(tmp_path, binding, allow_public_view=False)
+        assert not calls
+
+
 class PublicationPrivacyTests(unittest.TestCase):
     def test_result_streams_are_omitted_only_when_a_public_call_log_owns_them(self):
         with_log = {

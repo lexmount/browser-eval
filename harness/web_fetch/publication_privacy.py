@@ -901,8 +901,13 @@ def bound_public_view(source, binding):
     return contained_path(source, receipt['path'], reject_symlinks=True), receipt
 
 
-def read_evidence_binding(source, binding):
-    """Verify original bytes, or return the explicitly disclosed public view."""
+def read_evidence_binding(source, binding, *, allow_public_view=True):
+    """Verify bound bytes, optionally accepting an explicitly disclosed public view.
+
+    Scoring and exact-byte authorities require originals; presentation checks may
+    accept their separately verified public projection. Both use the same path,
+    staged-write and hash checks.
+    """
     from lexbench_webfetch.paths import contained_path
     path = contained_path(source, binding['path'], reject_symlinks=True)
     staged = _STAGED_EVIDENCE.get()
@@ -914,7 +919,7 @@ def read_evidence_binding(source, binding):
             return proposed
     if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == binding.get('sha256'):
         return path
-    public = bound_public_view(source, binding)
+    public = bound_public_view(source, binding) if allow_public_view else None
     if public is None:
         raise ValueError('Local revision evidence binding changed: ' + binding['path'])
     return public[0]
