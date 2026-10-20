@@ -167,20 +167,18 @@ def require_local_execution_contract(source, dataset, records, contract, executi
         raise ValueError("Local measurement matrix is incomplete or has retries")
     if len(execution["batches"]) != len(contract["providers"]):
         raise ValueError("Local measurement execution scope differs")
-    if contract.get("execution_plans"):
-        # Only retained schema-1 plans use the historical lineage protocol.
-        # The legacy owner rejects unknown plan names and contract kinds.
-        from .local_execution_legacy import require_legacy_execution_segments
-        require_legacy_execution_segments(
-            source, contract, execution["batches"], records,
-            cases=local_measurement_cases(contract), timeout_seconds=timeout,
-            validate_record_correction=_require_local_record_correction)
-    else:
+    def validate_current_batches():
         for field in ("runtime_source_sha256", "provider_config_sha256"):
             _require_local_method_bindings(contract, execution["batches"], field)
-    for batch in execution["batches"]:
-        if not contract.get("execution_plans"):
+        for batch in execution["batches"]:
             _require_local_batch_segments(batch)
+    from .local_execution_legacy import require_execution_lineage
+    require_execution_lineage(
+        source, contract, execution["batches"], records,
+        cases=canonical["cases"], timeout_seconds=timeout,
+        validate_record_correction=_require_local_record_correction,
+        validate_current_batches=validate_current_batches)
+    for batch in execution["batches"]:
         ids = batch.get("attempt_ids", [])
         measured_ids = {r["attempt_id"] for r in records
                         if r["provider"] == batch["providers"][0]["name"]}
@@ -240,8 +238,9 @@ def _require_local_runner_inputs(source, contract, execution, records):
         raise ValueError('Local runner configuration binding differs')
     if not set(contract['providers']) <= set(configuration['providers']):
         raise ValueError('Local runner configuration omits a method')
-    if network.get('dns_mode') != 'system' or network.get('usable_for_guarded_local_comparison') is not True:
-        raise ValueError('Local runner lacks usable system DNS evidence')
+    dns_mode = _require_bound_dns_mode(configuration, contract['providers'], network)
+    if network.get('usable_for_guarded_local_comparison') is not True:
+        raise ValueError('Local runner lacks usable public DNS evidence')
     from .network_preflight import GUARDED_NATIVE_TYPES, require_usable_public_dns
     require_usable_public_dns(network)
     from urllib.parse import urlsplit
@@ -252,7 +251,7 @@ def _require_local_runner_inputs(source, contract, execution, records):
         expected_hosts = {urlsplit(case['url']).hostname for case in canonical}
         if (len(hosts) != len(expected_hosts) or {host.get('host') for host in hosts} != expected_hosts
                 or any(not host.get('addresses') or host.get('dns_error') for host in hosts)):
-            raise ValueError('Local runner system DNS scope is incomplete')
+            raise ValueError('Local runner public DNS scope is incomplete')
     for batch in execution['batches']:
         name = batch['providers'][0]['name']
         guarded = method_types[name] in GUARDED_NATIVE_TYPES
@@ -261,7 +260,7 @@ def _require_local_runner_inputs(source, contract, execution, records):
                 or any(row.get('provider_type') != method_types[name]
                        for row in records if row['provider'] == name)):
             raise ValueError('Local runner method identity differs from frozen configuration')
-        expected_network = ({'dns_mode': 'system', 'sha256': inputs['network']['sha256']}
+        expected_network = ({'dns_mode': dns_mode, 'sha256': inputs['network']['sha256']}
                             if guarded else None)
         if (batch.get('dataset_sha256') != inputs['dataset']['sha256']
                 or batch.get('environment') != contract['environment']
@@ -292,3 +291,19 @@ def _require_local_runner_inputs(source, contract, execution, records):
                     or (stage == 'pre' and observed > min(times))
                     or (stage == 'post' and observed < max(ends))):
                 raise ValueError('Local runner source observation does not bracket the calls')
+
+
+def _require_bound_dns_mode(configuration, providers, network):
+    """Match observed DNS to guarded adapters' frozen configuration."""
+    from .network_dns import validate_dns_mode
+    from .network_preflight import GUARDED_NATIVE_TYPES
+    observed = validate_dns_mode(network.get('dns_mode'))
+    modes = {
+        validate_dns_mode(config.get('dns_mode', 'system'))
+        for name in providers
+        for config in [configuration['providers'][name]]
+        if config.get('method_type', config['type']) in GUARDED_NATIVE_TYPES
+    }
+    if modes and modes != {observed}:
+        raise ValueError('Local runner DNS differs from frozen provider configuration')
+    return observed

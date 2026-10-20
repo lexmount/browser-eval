@@ -53,6 +53,8 @@ class BenchmarkSelectionTests(unittest.TestCase):
 
         class ObservedProvider(Provider):
             def fetch(self, case, timeout):
+                if timeout != 30:
+                    raise AssertionError('CLI deadline did not reach provider')
                 calls.append((self.name, case.id))
                 return ProviderResult(True, f"content {self.name} {case.id}")
 
@@ -61,7 +63,7 @@ class BenchmarkSelectionTests(unittest.TestCase):
             self.run_main([
                 '--dataset', str(self.root / 'evaluation/dataset.json'),
                 '--provider-config', str(config), '--providers', 'fixture-one,fixture-two',
-                '--workers', '1', '--call-order', 'case-alternating', '--measure-only',
+                '--workers', '1', '--call-order', 'case-alternating', '--measure-only', '--timeout', '30',
             ])
         self.assertEqual(calls, [
             ('fixture-one', 'web-a'), ('fixture-two', 'web-a'),
@@ -76,6 +78,7 @@ class BenchmarkSelectionTests(unittest.TestCase):
         execution = json.loads((self.output / 'execution.json').read_text())
         self.assertEqual(execution['aggregate']['call_order'], 'case-alternating')
         self.assertEqual(execution['batches'][0]['parameters']['provider_concurrency'], 1)
+        self.assertEqual(execution['batches'][0]['parameters']['timeout'], 30)
         observations = self.root / 'observations.json'
         observations.write_text('[]\n')
         from harness.web_fetch.evidence import finalize_aggregate
@@ -87,6 +90,12 @@ class BenchmarkSelectionTests(unittest.TestCase):
     def test_alternating_cohort_rejects_parallel_workers_before_creating_evidence(self):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             self.run_main(['--call-order', 'case-alternating', '--workers', '2'])
+        self.assertFalse(self.output.exists())
+
+    def test_invalid_deadline_is_rejected_before_creating_evidence(self):
+        for timeout in ('0', '-1', 'nan', 'inf'):
+            with self.subTest(timeout=timeout), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                self.run_main(['--timeout', timeout])
         self.assertFalse(self.output.exists())
 
     def test_alternating_cohort_stops_when_a_timed_out_call_cannot_be_cancelled(self):

@@ -147,6 +147,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--providers", required=True)
     parser.add_argument("--case-ids", required=True)
     parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--timeout", type=float, default=45,
+                        help="Per-call deadline passed to the shared runner")
     add_failure_retry_argument(parser)
     parser.add_argument("--call-order", choices=("provider", "case-alternating"), default="provider")
     parser.add_argument("--capture-workers", type=int, default=8)
@@ -174,6 +176,9 @@ def main(argv: list[str] | None = None) -> None:
         ),
     )
     args = parser.parse_args(argv)
+    import math
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        parser.error("--timeout must be positive and finite")
     if args.provider_config and not args.provider_config.is_file():
         parser.error("--provider-config must be an existing file")
     if args.call_order == "case-alternating" and (args.workers != 1 or not args.provider_config):
@@ -300,6 +305,8 @@ def main(argv: list[str] | None = None) -> None:
         selected,
         "--workers",
         str(args.workers),
+        "--timeout",
+        str(args.timeout),
         "--max-failure-retries",
         str(args.max_failure_retries),
         "--measure-only",

@@ -76,6 +76,42 @@ def test_complete_replacement_preserves_distinct_scoring_sources(tmp_path):
     assert result == {r['attempt_id']: r['metrics']['scoring_source_sha256'] for r in records}
 
 
+@pytest.mark.parametrize('defect', [None, 'configuration', 'receipt', 'private_ip', 'missing_host'])
+def test_bound_local_runner_accepts_public_doh_and_rejects_drift(tmp_path, defect):
+    from harness.web_fetch.local_execution_contract import _require_local_runner_inputs
+    _, _, records = setup_replacement(tmp_path)
+    contract = json.loads((tmp_path/'execution-contract.json').read_text())
+    execution = json.loads((tmp_path/'execution.json').read_text())
+    calls = [row for row in records if row['case_id'] == 'new']
+
+    def replace_input(key, value):
+        binding = contract['runner_inputs'][key]
+        path = tmp_path/binding['path']
+        path.write_text(json.dumps(value))
+        binding['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    replace_input('providers', {'providers': {
+        method: {'type': 'moli_webfetch', 'dns_mode': 'system' if defect == 'configuration' else 'public_doh'}
+        for method in ['a', 'b']}})
+    replace_input('network', {'dns_mode': 'public_doh', 'usable_for_guarded_local_comparison': True,
+        'hosts': [] if defect == 'missing_host' else [{'host': 'example.invalid',
+            'addresses': ['127.0.0.1' if defect == 'private_ip' else '1.1.1.1'],
+            'synthetic': False, 'non_public': False}]})
+    contract['provider_config_sha256'] = contract['runner_inputs']['providers']['sha256']
+    for batch in execution['batches']:
+        batch['providers'][0].update(type='moli_webfetch', implementation_identity={'fixture': 'retained'})
+        batch['network_preflight'] = {
+            'dns_mode': 'system' if defect == 'receipt' else 'public_doh',
+            'sha256': contract['runner_inputs']['network']['sha256']}
+    for row in calls:
+        row['provider_type'] = 'moli_webfetch'
+    if defect:
+        with pytest.raises(ValueError):
+            _require_local_runner_inputs(tmp_path, contract, execution, calls)
+    else:
+        _require_local_runner_inputs(tmp_path, contract, execution, calls)
+
+
 @pytest.mark.parametrize('defect', [None, 'cas_bytes', 'cas_attempt', 'public_bytes',
                                   'wrong_attempt', 'wrong_call', 'transaction_rollback'])
 def test_current_public_diagnostics_keep_private_identity_distinct(tmp_path, defect):

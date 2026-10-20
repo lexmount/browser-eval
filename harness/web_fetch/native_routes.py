@@ -100,7 +100,7 @@ def declared_input_media_kind(case, *, required=True):
 
 # Native parameter values come from the immutable provider configuration and its
 # pinned implementation, not a case URL, expected text, or provider outcome.
-def native_route_cell(provider, case):
+def native_route_cell(provider, case, *, timeout_seconds=45):
     media = declared_input_media_kind(case)
     kind, track = case.task_kind, case.track
     key = (provider.name, track, kind, media)
@@ -111,14 +111,11 @@ def native_route_cell(provider, case):
     transport, interface, fields = route.transport, route.interface, list(route.answer_fields)
     endpoint = None
     if transport == 'http':
-        endpoint, _ = provider.native_http_arguments(case, 45)
+        endpoint, _ = provider.native_http_arguments(case, timeout_seconds)
     from .native_projection import native_projection_policy
-    options = ('max_bytes', 'max_age', 'max_age_hours', 'only_main_content', 'include_images',
-               'extract_depth', 'text_verbosity', 'include_resource_links', 'rich_links_limit',
-               'wait_until', 'block_private_networks', 'dns_mode', 'log_level', 'formats')
     cell = {'method': key[0], 'provider_type': method, 'track': track, 'task_kind': kind, 'input_media_kind': media,
             'transport': transport, 'interface': interface, 'answer_fields': fields,
-            'configured_parameters': {k: config[k] for k in options if k in config},
+            'configured_parameters': provider.native_configured_parameters(),
             'unspecified_parameters': 'native defaults from the bound implementation',
             **({'command_sha256': canonical_json_sha256(config.get('command'))} if transport == 'jsonl' else {}),
             'provider_configuration_sha256': canonical_json_sha256(config),
@@ -176,6 +173,7 @@ class NativeRouteLedger:
     def __init__(self, cases, providers, *, timeout_seconds=45):
         from datetime import datetime, timezone
         import threading
+        self.timeout_seconds = timeout_seconds
         self.cells, self.observed, self.calls, self.errors = {}, {}, {}, []
         self.physical_attempts = {}
         self.lock = threading.Lock()
@@ -188,7 +186,7 @@ class NativeRouteLedger:
                                        'task_kind': case.task_kind, 'input_media_kind': media,
                                        'input_url_sha256': canonical_json_sha256(case.url)})
             for provider in self.providers.values():
-                key, cell = native_route_cell(provider, case)
+                key, cell = native_route_cell(provider, case, timeout_seconds=self.timeout_seconds)
                 if case.track == 'dynamic':
                     from .retrieval_hints import native_default_case
                     if not native_default_case(case):
@@ -244,7 +242,7 @@ class NativeRouteLedger:
             self.physical_attempts[identity] = physical_attempt
 
     def observe(self, provider, case, *, transport, parameters, endpoint=None, interface=None):
-        key, current = native_route_cell(provider, case)
+        key, current = native_route_cell(provider, case, timeout_seconds=self.timeout_seconds)
         cell = self.cells.get(key, {})
         with self.lock:
             message = 'Native route protocol was already violated' if self.errors else None
@@ -275,7 +273,7 @@ class NativeRouteLedger:
     def receipt(self, provider, case, *, ok=None):
         """Transport started means entry to the outbound call, not server receipt."""
         from copy import deepcopy
-        key, _ = native_route_cell(provider, case)
+        key, _ = native_route_cell(provider, case, timeout_seconds=self.timeout_seconds)
         with self.lock:
             ordinal = self.physical_attempts.get((provider.name, case.id), 1)
             calls = self.calls.get((provider.name, case.id, ordinal), [])

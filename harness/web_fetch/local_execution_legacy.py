@@ -10,6 +10,21 @@ import json
 from lexbench_webfetch.paths import contained_path
 
 
+def require_execution_lineage(
+    source, contract, batches, records, *, cases, timeout_seconds,
+    validate_record_correction, validate_current_batches,
+):
+    """Select retained plan verification without teaching current cohorts its format."""
+    if not contract.get("execution_plans"):
+        validate_current_batches()
+        return
+    require_legacy_execution_segments(
+        source, contract, batches, records, cases=cases,
+        timeout_seconds=timeout_seconds,
+        validate_record_correction=validate_record_correction,
+    )
+
+
 def require_legacy_execution_segments(
     source, contract, batches, records, *, cases, timeout_seconds, validate_record_correction
 ):

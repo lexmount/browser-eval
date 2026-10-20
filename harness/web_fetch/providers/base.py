@@ -78,6 +78,21 @@ def terminate_owned_process_tree(process):
 
 
 class Provider(ABC):
+    # Public configuration diagnostics only. Credentials, commands and local
+    # paths remain covered by the full configuration hash, never displayed.
+    # Adapters may extend this declaration for their own safe options.
+    native_configuration_fields = (
+        'max_bytes', 'max_age', 'max_age_hours', 'only_main_content', 'include_images',
+        'extract_depth', 'text_verbosity', 'include_resource_links', 'rich_links_limit',
+        'wait_until', 'block_private_networks', 'dns_mode', 'log_level', 'formats',
+    )
+
+    def native_configured_parameters(self):
+        """Return the adapter's explicitly public configuration diagnostics."""
+        from copy import deepcopy
+        return {key: deepcopy(self.config[key])
+                for key in self.native_configuration_fields if key in self.config}
+
     def native_route(self, case):
         """Declare native transport, interface and candidate answer fields."""
         raise ValueError('Unsupported fixed-native interface: ' + self.type)

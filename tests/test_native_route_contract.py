@@ -870,6 +870,53 @@ def test_synthetic_all_provider_route_declarations_match_frozen_baseline():
     assert _synthetic_route_baseline() == expected
 
 
+def test_nondefault_timeout_is_used_for_freeze_observation_and_receipt(tmp_path):
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.native_routes import NativeRouteLedger, normalized_http_parameters
+    from harness.web_fetch.providers.base import build_provider
+    provider = build_provider('tavily', {'type': 'tavily_extract',
+                                       'uniform_native_parameters': True})
+    case = EvalCase('case', 'Case', 'https://example.test/', 'control', [],
+                    source_benchmark={'input_media_kind': 'html_page'})
+    original = provider.native_http_arguments
+    seen = []
+
+    def arguments(case, timeout):
+        seen.append(timeout)
+        endpoint, options = original(case, timeout)
+        return endpoint + '?budget=' + str(timeout), options
+
+    provider.native_http_arguments = arguments
+    ledger = NativeRouteLedger([case], [provider], timeout_seconds=30)
+    ledger.write(tmp_path, dataset_sha256='dataset', runtime_source_sha256='runtime')
+    endpoint, options = arguments(case, 30)
+    ledger.observe(provider, case, transport='http', endpoint=endpoint,
+                   parameters=normalized_http_parameters(case, options))
+    assert ledger.receipt(provider, case)['transport_state'] == 'started'
+    assert seen and set(seen) == {30}
+    with pytest.raises(ValueError, match='endpoint differs'):
+        ledger.observe(provider, case, transport='http', endpoint=endpoint+'changed',
+                       parameters=normalized_http_parameters(case, options))
+
+
+def test_provider_declares_safe_configuration_without_central_route_changes():
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.native_routes import native_route_cell
+    from harness.web_fetch.providers.fixture import FixtureProvider
+
+    class ExtendedFixture(FixtureProvider):
+        native_configuration_fields = (*FixtureProvider.native_configuration_fields, 'new_limit')
+
+    provider = ExtendedFixture('fixture', {'type': 'fixture', 'new_limit': [12],
+        'api_key': 'secret', 'command': ['/private/worker'], 'repo_path': '/private/repo'})
+    case = EvalCase('case', 'Case', 'https://example.test/', 'control', [],
+                    source_benchmark={'input_media_kind': 'html_page'})
+    _, cell = native_route_cell(provider, case)
+    assert cell['configured_parameters'] == {'new_limit': [12]}
+    cell['configured_parameters']['new_limit'].append(99)
+    assert provider.config['new_limit'] == [12]
+
+
 @pytest.mark.parametrize('config', [
     {'type': 'http'},
     {'type': 'subprocess_jsonl', 'method_type': 'unregistered-worker'},

@@ -10,6 +10,32 @@ from harness.web_fetch import local_audit
 from harness.web_fetch.reliability import require_reliable
 
 
+@pytest.mark.parametrize('mode', ['system', 'public_doh'])
+def test_local_dns_matches_frozen_guarded_configuration(mode):
+    config = {'providers': {'local': {'type': 'subprocess_jsonl',
+        'method_type': 'deepseek_harness_builtin', 'dns_mode': mode},
+        'remote': {'type': 'tavily_extract'}}}
+    assert local_execution_contract._require_bound_dns_mode(
+        config, ['local', 'remote'], {'dns_mode': mode}) == mode
+    other = 'system' if mode == 'public_doh' else 'public_doh'
+    with pytest.raises(ValueError, match='DNS differs'):
+        local_execution_contract._require_bound_dns_mode(
+            config, ['local', 'remote'], {'dns_mode': other})
+    config['providers']['second'] = {'type': 'moli_webfetch', 'dns_mode': other}
+    with pytest.raises(ValueError, match='DNS differs'):
+        local_execution_contract._require_bound_dns_mode(
+            config, ['local', 'second'], {'dns_mode': mode})
+
+
+def test_local_dns_preserves_default_and_rejects_unknown_mode():
+    config = {'providers': {'local': {'type': 'moli_webfetch'}}}
+    assert local_execution_contract._require_bound_dns_mode(
+        config, ['local'], {'dns_mode': 'system'}) == 'system'
+    with pytest.raises(ValueError, match='dns_mode must'):
+        local_execution_contract._require_bound_dns_mode(
+            config, ['local'], {'dns_mode': 'unchecked'})
+
+
 def bind(root, name, value, *, lines=False):
     path = root / name
     path.parent.mkdir(parents=True, exist_ok=True)
