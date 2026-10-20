@@ -85,7 +85,7 @@ def test_browser_audit_resume_is_input_bound_and_preserves_access_failures(tmp_p
         calls.append(case['id'])
         return {'case_id':case['id'],'status':'failure' if case['id']=='blocked' else 'success',
                 'content_text':'Verify you are human' if case['id']=='blocked' else 'Article body'}
-    monkeypatch.setattr(browser_capture,'capture_with_retries',observe)
+    monkeypatch.setattr(browser_capture,'_capture_in_process',observe)
     cases=[{'id':k,'url':'https://example.com/'+k} for k in ('article','blocked')]
     binary = tmp_path / 'browser'
     binary.write_bytes(b'synthetic browser identity')
@@ -109,7 +109,7 @@ def test_browser_audit_resume_is_input_bound_and_preserves_access_failures(tmp_p
 def test_checkpoint_cannot_cross_dns_modes(tmp_path, monkeypatch):
     binary = tmp_path / 'browser'
     binary.write_bytes(b'synthetic browser identity')
-    monkeypatch.setattr(browser_capture, 'capture_with_retries', lambda case, *args, **kwargs: {
+    monkeypatch.setattr(browser_capture, '_capture_in_process', lambda case, *args, **kwargs: {
         'case_id': case['id'], 'status': 'success', 'completion': {'satisfied': True},
     })
     options = dict(timeout_ms=1000, attempts=1, checkpoints=tmp_path / 'checkpoints',
@@ -403,7 +403,7 @@ def test_batch_writes_every_case_before_failing_closed(tmp_path, monkeypatch):
             'completion': {'satisfied': succeeded},
         }
 
-    monkeypatch.setattr(browser_capture, 'capture_with_retries', fake_capture)
+    monkeypatch.setattr(browser_capture, '_capture_in_process', fake_capture)
     monkeypatch.setattr('sys.argv', [
         'capture_headless_browser_observations.py',
         '--dataset', str(dataset), '--output', str(output),
