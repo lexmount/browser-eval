@@ -125,3 +125,21 @@ def test_firecrawl_current_route_and_billing_boundaries_are_localized_one_to_one
     ]:
         assert text in english
     assert untranslated_english_narrative(english) == []
+
+
+def test_bound_pricing_supplies_new_bilingual_statement_without_catalog_edits(tmp_path):
+    data = json.loads(SOURCE.read_text())
+    provider = next(p for p in data['providers'] if p['id'] == 'exa')
+    provider['scope'] = '模拟说明：新的套餐边界。'
+    provider['verified_at'] = '2031-02-03'
+    data['translations'] = {'模拟说明：新的套餐边界。': 'Synthetic note: revised plan scope.'}
+    assets = tmp_path / 'report-assets'
+    assets.mkdir()
+    (assets / 'provider-pricing.json').write_text(json.dumps(data))
+    rendered = render_pricing(tmp_path, ['exa'], table=table, cell=cell, link=link, esc=esc)
+    english = localize_html(rendered, PurePosixPath('adoption/index.html'))
+    assert '模拟说明：新的套餐边界。' in rendered
+    assert 'Synthetic note: revised plan scope.' in english
+    assert '模拟说明' not in english
+    assert '2031-02-03' in english
+    assert json.loads((tmp_path / 'adoption/pricing.json').read_text()) == data

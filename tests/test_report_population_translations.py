@@ -56,3 +56,41 @@ def test_plain_latency_translation_preserves_wording_for_any_task_count(task_cou
         "scheduling and limits are documented in the call-chain audit. Local and remote "
         "environments, networks, and product limits still affect latency."
     )
+
+
+@pytest.mark.parametrize("resources,bodies,files", [(2, 3, 4), (0, 0, 0), (7, 0, 1)])
+def test_media_guides_and_examples_follow_the_declared_population(resources, bodies, files):
+    from harness.web_fetch.report_components import task_pass_guide, examples
+    cases = {}
+    for kind, count in (("resource", resources), ("body", bodies), ("file", files)):
+        for index in range(count):
+            key = f"{kind}-{index}"
+            cases[key] = {"id": key, "name": key, "track": "video", "task_kind": kind}
+    for track, count in (("web_media", resources + bodies), ("media_file", files)):
+        chinese = task_pass_guide(track, cases=cases)
+        english = localize_html(chinese, PurePosixPath("index.html"))
+        assert f"共 {count} 题" in chinese
+        assert f"Across {count} tasks" in english
+        assert "共 " not in english
+        if track == "web_media":
+            assert f"{resources} require resource URLs and {bodies} require registered text or structure" in english
+    example_html = examples(cases)
+    english = localize_html(example_html, PurePosixPath("methodology/index.html"))
+    assert f"Across {resources + bodies} tasks" in english
+    assert f"Across {files} tasks" in english
+
+
+@pytest.mark.parametrize("budget,inner", [(12.5, 11000), (60, 54000), (None, 40500)])
+def test_interface_timeout_uses_supplied_evidence_and_translates_arbitrary_values(budget, inner):
+    from harness.web_fetch.report_interfaces import method_spec
+    row = {"provider_type": "moli_webfetch", "provider_metadata": {
+        "internal_timeout_policy": "explicit", "http_connect_timeout_ms": inner}}
+    result = method_spec("moli", row, timeout_seconds=budget)
+    description = next(value for key, _, value in result["params"] if key == "外层截止")
+    english = translate_text(description)
+    assert f"{inner:,} ms" in english
+    if budget is None:
+        assert "Outer deadline not recorded" in english
+    else:
+        assert f"{budget:g}-second outer deadline" in english
+    assert "45-second" not in english

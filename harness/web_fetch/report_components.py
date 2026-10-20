@@ -146,7 +146,7 @@ TRACK_CONTEXT = {
     },
     'web_media': {
         'flow': ['请求媒体网页', '定位指定资源或信息', '提取地址或文字', '交付题目要求的结果'],
-        'flow_note': '16 道题只要求网页中的资源地址，另 1 道题要求视频页标题与发布者；这组不下载媒体文件。',
+        'flow_note': '按各题登记的要求返回资源地址、文字或结构。',
         'meaning': '从网页中找到指定图片、视频资源或视频入口地址，或读取视频页登记的文字信息。这里测的是网页取数，不是图片或视频理解。',
         'example': '含图页面须返回登记的图片地址；视频信息页须返回标题与发布者。拿到地址不代表已经取得对应文件。',
         'case_id': 'image-01',
@@ -163,6 +163,23 @@ TRACK_CONTEXT = {
 }
 
 
+def media_population_text(track, cases):
+    """Describe the declared population, without assuming a historical cohort."""
+    from .models import report_family
+    selected = [case for case in (cases or {}).values() if report_family(case) == track]
+    if track == 'media_file':
+        return (f'输入直接指向媒体文件，共 {len(selected)} 题：必须取得原始字节，并通过各题登记的格式、长度与文件指纹要求。',
+                f'The input points directly to a media file. Across {len(selected)} tasks, return original bytes satisfying each registered format, length and fingerprint requirement.')
+    resources = sum(case.get('task_kind', 'body') == 'resource' for case in selected)
+    other = len(selected) - resources
+    return (f'输入是网页，共 {len(selected)} 题：{resources} 题要求资源地址，{other} 题要求登记的文字或结构。地址验收不代表已下载媒体文件。',
+            f'The input is a webpage. Across {len(selected)} tasks, {resources} require resource URLs and {other} require registered text or structure. URL acceptance does not establish media-file download.')
+
+
+def bilingual_text(zh, en):
+    return '<span data-report-en="' + escape(en, quote=True) + '">' + escape(zh) + '</span>'
+
+
 def task_pass_guide(track, base='', cases=None):
     rules = {
         'dynamic': '核验初次加载范围：稳定内容锚点（稳定标题、栏目、说明）与条目的必需字段、数量、唯一性和类型共同决定任务通过。频繁变化的名单、条目标题和价格按声明的结构与类型核验，不固定旧快照取值。HTTP 页面壳不通过；渲染、内嵌数据和公开 API 均可作为实现路径。全文质量仅在有完整、可比的参考时另算。',
@@ -170,8 +187,8 @@ def task_pass_guide(track, base='', cases=None):
         'document': '文档正文按请求状态、最低长度与全部内容核对点验收；只拿到下载链接不能通过。验证或错误提示只作诊断。F1另算，不作为通过门槛。',
         'image': '含图页面须在实际返回值中找齐指定图片地址；直接 PNG 须交付文件字节并通过格式、长度与目标 SHA-256 验收。',
         'video': '按案例区分：找齐播放入口、核对标题与发布者，或交付通过格式、长度与目标 SHA-256 验收的原文件。链接不等于文件，均不测画面理解。',
-        'web_media': '输入是网页，共 17 题：16 题返回指定图片、视频或视频入口地址，1 题返回视频页登记的文字信息。地址题不下载媒体文件；文字题也不据此推断已取得视频字节。',
-        'media_file': '输入直接指向媒体文件，共 3 题：必须取得原始字节，并通过格式特征、长度与目标 SHA-256 验收。只复述输入网址不通过，也不要求把二进制内容转换成 Markdown。',
+        'web_media': media_population_text('web_media', cases)[0],
+        'media_file': media_population_text('media_file', cases)[0],
         'challenge': '请求成功，取得至少 3 条具名详情链接，字段完整、类型正确、条目不重复，链接符合目标站点规则；有独立内容证据的稳定标题、栏目、说明还须命中。频繁变化的名单和价格不固定旧值。通过表示满足上述取数要求，不证明变化值真实或最新。',
         'risk_control': '请求成功并取得指定目标页面；正文分区、组合规则和登记为必需的稳定文字均须满足。登记为诊断的稳定文字只帮助核对抓取范围，不影响是否通过。文章不能只返回标题或开头，列表须达到登记的字段、真实链接、路径、去重和数量要求；验证页、空返回和页面外壳均不通过。',
     }
@@ -195,6 +212,9 @@ def task_pass_guide(track, base='', cases=None):
             text+=' '+c['name']+' 的字段覆盖要求：'+'、'.join(f'{labels.get(k,k)}至少 {v} 条' for k,v in fields.items())+'，各归属于完整且唯一的记录。'
             text_en+=' '+c['name']+' field coverage: '+', '.join(f'{k}: at least {v} records' for k,v in fields.items())+'; every field must belong to a complete, unique record.'
     context = TRACK_CONTEXT.get(track)
+    if track in {'web_media', 'media_file'}:
+        text, text_en = media_population_text(track, cases)
+        context = {**context, 'flow_note': text}
     kinds = {c.get('task_kind', 'body') for c in (cases or {}).values()
              if c.get('track', 'web') == track}
     if track == 'web' and kinds and kinds != {'body'}:
@@ -222,7 +242,7 @@ def task_pass_guide(track, base='', cases=None):
             '<p class="track-meaning">'+escape(context['meaning'])+'</p>'
             '<figure class="track-flow" aria-label="典型处理流程"><figcaption>典型处理流程</figcaption><ol>'
             + ''.join('<li><span>'+escape(step)+'</span></li>' for step in context['flow'])+'</ol>'
-            '<p>'+escape(context['flow_note'])+'</p></figure>'
+            '<p>'+(bilingual_text(text, text_en) if track in {'web_media', 'media_file'} else escape(context['flow_note']))+'</p></figure>'
             '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+'<span data-report-en="'+escape(text_en,quote=True)+'">'+escape(text)+'</span>'+coverage_note+'</p></div>'
             '<details class="track-more"><summary>任务例子与评测边界</summary><dl>'
             '<div><dt>一个例子</dt><dd>'+escape(context['example'])+example_link+'</dd></div>'
@@ -230,7 +250,7 @@ def task_pass_guide(track, base='', cases=None):
             '<a href="'+escape(base+'methodology/index.html#task-examples-'+track)+'">任务示例与完整判定规则 →</a></details></div>')
 
 
-def examples():
+def examples(cases=None):
     items=[
         ('web','静态网站正文',[
             ('任务','打开 Books to Scrape 首页，取得本页书目正文。'),
@@ -251,13 +271,13 @@ def examples():
             ('怎样算通过','必须返回文档正文，只返回论文下载地址不通过。<a href="../datasets/document-01.html">查看本例完整参考与逐方法结果 →</a>'),
         ]),
         ('web_media','网页内嵌媒体',[
-            ('任务','输入网页，从页面里找到指定图片、视频或视频入口地址；另有 1 题读取视频页标题与发布者。'),
-            ('标准答案','16 道地址题使用独立保存的资源地址或地址规则；1 道文字题使用可见标题与发布者。'),
+            ('任务',bilingual_text(*media_population_text('web_media', cases))),
+            ('标准答案',bilingual_text('各题独立登记目标资源地址、文字或结构要求。', 'Each task independently declares target resource URLs, text or structural requirements.')),
             ('怎么测','地址题只核对返回值里是否出现目标地址，不要求另行下载媒体文件；文字题按登记事实核对。'),
             ('怎样算通过','完成该题声明的地址或文字交付。拿到地址不等于取得文件，也不表示理解了图片、画面、字幕或声音。<a href="../datasets/image-01.html">查看网页媒体参考与结果 →</a>'),
         ]),
         ('media_file','直接媒体文件',[
-            ('任务','输入 1 个直接图片地址或 2 个直接视频地址，取得原始文件。'),
+            ('任务',bilingual_text(*media_population_text('media_file', cases))),
             ('标准答案','独立保存的原文件格式、长度和 SHA-256。'),
             ('怎么测','核对实际返回字节的格式特征、长度和目标 SHA-256；不对二进制文件做 Markdown 转换。'),
             ('怎样算通过','必须实际交付匹配的文件字节；复述输入网址或只返回网页文字不通过。本组不测试媒体理解。<a href="../datasets/image-10.html">查看原始文件参考与结果 →</a>'),

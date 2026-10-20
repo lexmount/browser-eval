@@ -28,6 +28,19 @@ def render_pricing(out, names, *, table, cell, link, esc):
     if not source.is_file():
         source = SOURCE
     data = json.loads(source.read_text())
+    translations = data.get('translations', {})
+    if not isinstance(translations, dict) or any(not isinstance(k, str) or not isinstance(v, str) for k, v in translations.items()):
+        raise ValueError('Pricing translations must map source text to English text')
+    escape_value = esc
+
+    def esc(value):
+        original = escape_value(value)
+        english = translations.get(value) if isinstance(value, str) else None
+        if english is None:
+            return original
+        from html import escape
+        return '<span data-report-en="' + escape(english, quote=True) + '">' + original + '</span>'
+
     dest = out / 'adoption'
     dest.mkdir(exist_ok=True)
     (dest / 'pricing.json').write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')

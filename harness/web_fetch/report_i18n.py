@@ -54,12 +54,8 @@ TEXT = {
     "原生 Markdown 中保留的媒体地址；直接文件可验收原始字节": "Media URLs retained in native Markdown; direct files can validate raw bytes",
     "按题目要求预先选定参评浏览器的官方原生接口。网页正文和文档正文都必须以可读 Markdown 交付；除 Chromium 使用固定的 HTML-to-Markdown 包外，不会改取 HTML、JSON DOM 或 PDF/DOCX 字节后替选手提取正文。网页内嵌媒体题只检查原生输出中的指定图片、视频或条目地址，媒体文件不下载。只有直接媒体文件题返回原始字节，并校验类型、文件头、长度和 SHA-256；这是二进制文件交付，不冒充 Markdown。下表按固定任务输入列出处理链；失败后不切换接口或引擎。": "Each task is assigned an official native interface before execution. Webpage and document body tasks must deliver readable Markdown. Chromium is the sole exception: it uses the fixed HTML-to-Markdown package because it has no native Markdown output. The benchmark does not take HTML, a JSON DOM, or PDF or DOCX bytes and extract body text on a participant's behalf. Webpage media-information tasks check only the required image, video, or entry URL in native output and do not download the media. Direct-media-file tasks alone return original bytes, which are checked for type, signature, length, and SHA-256. That binary deliverable is not presented as Markdown. The table lists the route fixed for each task input; a failure never switches interface or engine.",
     "外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值": "The outer deadline is always 45 seconds. Internal parameters follow the frozen call record: explicit mode reserves time for finalization and cleanup; uniform mode keeps the product defaults.",
-    "45 秒外层截止；Moli 总等待、HTTP 和连接超时保留该二进制默认值": "45-second outer deadline; Moli's total-wait, HTTP, and connection timeouts retain the measured binary's defaults",
     "这批调用未传入 Moli 内部超时参数。": "These calls did not pass Moli internal-timeout arguments.",
-    "45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时 45,000 毫秒": "45-second outer deadline; the measured command also explicitly set Moli's total-wait, HTTP, and connection timeouts to 45,000 ms",
-    "45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时 40,500 毫秒": "45-second outer deadline; the measured command also explicitly set Moli's total-wait, HTTP, and connection timeouts to 40,500 ms",
     "这批调用使用保存记录中的显式 Moli 超时，未写成产品默认值。": "These calls used the explicit Moli timeouts preserved in their records; the report does not describe them as product defaults.",
-    "45 秒外层截止；Moli 内部超时以逐次调用记录为准": "45-second outer deadline; Moli's internal timeout policy is taken from each saved call record",
     "保存证据未提供可核对的 Moli 内部超时策略。": "The saved evidence does not expose a verifiable Moli internal-timeout policy.",
     "网页和文档正文使用原生 Markdown；直接媒体文件使用原始响应": "Native Markdown for webpage and document body text; raw responses for direct media files",
     "HTML/TXT 可以直接返回正文；PDF/DOCX 必须由同一原生 Markdown 接口交付可读文字": "HTML and TXT can return body text directly; PDF and DOCX must deliver readable text through the same native Markdown interface",
@@ -67,9 +63,6 @@ TEXT = {
     "CLI · 按任务预选原生 Markdown、HTML 或原始响应路线": "CLI · preselects native Markdown, HTML, or raw-response routes by task",
     "网页内嵌媒体": "Embedded webpage media",
     "直接媒体文件": "Direct media files",
-    "输入是网页，共 17 题：16 题返回指定图片、视频或视频入口地址，1 题返回视频页登记的文字信息。地址题不下载媒体文件；文字题也不据此推断已取得视频字节。": "The input is a webpage. Across 17 tasks, 16 require specified image, video, or video-entry URLs and 1 requires registered text from a video page. URL tasks do not download the media file, and the text task does not imply that video bytes were obtained.",
-    "输入直接指向媒体文件，共 3 题：必须取得原始字节，并通过格式特征、长度与目标 SHA-256 验收。只复述输入网址不通过，也不要求把二进制内容转换成 Markdown。": "The input points directly to a media file. Across 3 tasks, the method must obtain the original bytes and pass format-signature, length, and target SHA-256 checks. Repeating the input URL fails, and binary content does not need conversion to Markdown.",
-    "16 道题只要求网页中的资源地址，另 1 道题要求视频页标题与发布者；这组不下载媒体文件。": "16 tasks require resource URLs from a webpage; 1 requires the video-page title and publisher. This group does not download media files.",
     "直接取得 Moli 原生 HTML；共同评分器只识别其中的资源 URL": "Returns Moli's native HTML directly; the shared scorer only identifies resource URLs in it",
     "使用 Moli 官方等待能力；只等待，不抽取或拼接正文": "Uses Moli's official wait capability for readiness only; it neither extracts nor assembles body text",
     "所有正文与结构任务使用 Moli 原生 Markdown。旧版 selector 合同只映射到官方等待参数，不参与正文抽取。图片、视频资源页使用原生 HTML，共同评分器只识别其中的资源 URL。直接 PDF/DOCX 仍调用同一原生接口；接口没有交付可读正文时按失败记录，评测端不下载后解析。文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。": "All body and structured tasks use Moli's native Markdown. Legacy selector contracts map only to official wait parameters and do not extract body text. Image and video resource pages use native HTML, from which the shared scorer only identifies resource URLs. Direct PDF and DOCX inputs still use the same native interface; if it does not deliver readable text, the task fails and the benchmark does not download and parse the file. File tasks use native CDP responses or the same binary's raw attachment interface. The final URL is diagnostic only and does not determine body-task acceptance. A failure never triggers a format switch or another provider.",
@@ -2416,7 +2409,6 @@ TEXT.update({
     "直接 PNG 地址须交付与独立保存样本一致的文件格式、长度和 SHA-256；只返回该 PNG 的网址不通过。": "A direct PNG task must deliver a file matching the independently saved sample's format, length, and SHA-256. Returning only the PNG URL fails.",
     "这组只验证文件交付，不测试图片描述、视频理解、语音转写或字幕质量。": "These tasks assess file delivery only. Image descriptions, video understanding, speech transcription, and caption quality are outside their scope.",
     "输入网页，从页面里找到指定图片、视频或视频入口地址；另有 1 题读取视频页标题与发布者。": "Given a web page, find the specified image, video, or playback URL. 1 additional task asks for the video-page title and publisher.",
-    "16 道地址题使用独立保存的资源地址或地址规则；1 道文字题使用可见标题与发布者。": "16 URL tasks use independently saved resource URLs or URL rules. 1 text task uses the visible title and publisher.",
     "地址题只核对返回值里是否出现目标地址，不要求另行下载媒体文件；文字题按登记事实核对。": "URL tasks check whether the returned value contains the target URL and do not require a separate media download. The text task checks the registered facts.",
     "完成该题声明的地址或文字交付。拿到地址不等于取得文件，也不表示理解了图片、画面、字幕或声音。": "Return the URL or text required by the task. A URL alone does not deliver the file or show understanding of images, video, captions, or audio.",
     "输入 1 个直接图片地址或 2 个直接视频地址，取得原始文件。": "Retrieve the original file from 1 direct image URL or either of 2 direct video URLs.",
@@ -3671,6 +3663,21 @@ REGEX.extend([
     (re.compile(r"^· 请求：(成功|失败) · 耗时：([\d,.]+) ms · 实际输出：([\d,]+) 字符$"),
      lambda m: f"· Request: {'success' if m[1] == '成功' else 'failure'} · Duration: {m[2]} ms · Actual output: {m[3]} characters"),
 ])
+
+
+def _timeout_translation(match):
+    budget = (f"{match['seconds']}-second outer deadline" if match['seconds'] else
+              "Outer deadline not recorded")
+    suffix = match['suffix']
+    if suffix == 'Moli 总等待、HTTP 和连接超时保留该二进制默认值':
+        return budget + "; Moli's total-wait, HTTP, and connection timeouts retain the measured binary's defaults"
+    if suffix == 'Moli 内部超时以逐次调用记录为准':
+        return budget + "; Moli's internal timeout policy is taken from each saved call record"
+    milliseconds = re.search(r' ([\d,]+) 毫秒$', suffix)
+    return budget + "; the measured command explicitly set Moli's total-wait, HTTP, and connection timeouts" + (f" to {milliseconds[1]} ms" if milliseconds else " (value not recorded)")
+
+
+REGEX.append((re.compile(r"^(?:(?P<seconds>[\d.]+) 秒外层截止|外层截止时间未记录)；(?P<suffix>Moli 总等待、HTTP 和连接超时保留该二进制默认值|Moli 内部超时以逐次调用记录为准|实测命令同时显式传入 Moli 总等待、HTTP 和连接超时(?: [\d,]+ 毫秒)?)$"), _timeout_translation))
 
 
 def translate_text(value: str, translations=None) -> str:

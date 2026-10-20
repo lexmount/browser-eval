@@ -144,22 +144,23 @@ def method_access(name, records):
  return {**access,'links':[(f'Moli {version}',f'https://github.com/lexmount/moli/releases/tag/v{version}')]}
 
 
-def method_spec(name, record):
+def method_spec(name, record, *, timeout_seconds=None):
  engine=native_browser_engine(name) or name
  if record and record.get('provider_type')=='moli_webfetch':
   base=SPECS['moli-webfetch']
   meta=record.get('provider_metadata') or {}
   policy=meta.get('internal_timeout_policy')
+  budget=(f'{timeout_seconds:g} 秒外层截止' if isinstance(timeout_seconds,(int,float)) and not isinstance(timeout_seconds,bool) and timeout_seconds>0 else '外层截止时间未记录')
   if policy=='native_default':
-   timeout_description='45 秒外层截止；Moli 总等待、HTTP 和连接超时保留该二进制默认值'
+   timeout_description=budget+'；Moli 总等待、HTTP 和连接超时保留该二进制默认值'
    timeout_note='这批调用未传入 Moli 内部超时参数。'
   elif policy=='explicit':
    timeout_ms=meta.get('http_connect_timeout_ms')
-   timeout_description=('45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时'
+   timeout_description=(budget+'；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时'
                         +((' '+f'{timeout_ms:,}'+' 毫秒') if isinstance(timeout_ms,int) else ''))
    timeout_note='这批调用使用保存记录中的显式 Moli 超时，未写成产品默认值。'
   else:
-   timeout_description='45 秒外层截止；Moli 内部超时以逐次调用记录为准'
+   timeout_description=budget+'；Moli 内部超时以逐次调用记录为准'
    timeout_note='保存证据未提供可核对的 Moli 内部超时策略。'
   params=[(key,kind,timeout_description if key=='外层截止' else description)
           for key,kind,description in base['params']]
@@ -393,7 +394,8 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
 def render_interfaces(out,records):
  from .artifacts import record_public_call_log_bindings, verify_public_call_log
  dataset_path=out/"dataset.json"
- native_default=dataset_path.is_file() and json.loads(dataset_path.read_text()).get("comparison",{}).get("kind")=="uniform_native_local_measurement"
+ comparison=json.loads(dataset_path.read_text()).get("comparison",{}) if dataset_path.is_file() else {}
+ native_default=comparison.get("kind")=="uniform_native_local_measurement"
  def pre(value):return '<pre>'+escape(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2))+'</pre>'
  def fields(rows):return '<dl class="interface-fields">'+''.join('<div><dt><code>'+escape(k)+'</code> <small>'+escape(t)+'</small></dt><dd>'+escape(d)+'</dd></div>' for k,t,d in rows)+'</dl>'
  measured={r['provider'] for r in records}
@@ -403,7 +405,7 @@ def render_interfaces(out,records):
   body='<p>已测方法的输入展示保存的公开调用字段，输出展示同一次调用的实际节选。完整配置、原始响应和日志见环境与调用详情。未参评方法保留仓库登记示例。</p>'
  for i,name in enumerate(names):
   r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
-  s=method_spec(name,r)
+  s=method_spec(name,r,timeout_seconds=comparison.get("timeout_seconds"))
   if r and native_default:
    bindings=record_public_call_log_bindings(r)
    if not bindings:
