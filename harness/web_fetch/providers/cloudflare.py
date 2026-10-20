@@ -16,7 +16,7 @@ from ..retrieval_hints import native_contract_for_case, native_default_case, pla
 from lexbench_webfetch.paths import validate_http_url
 from ..native_projection import native_answer_projection
 from .base import Provider
-from .http_client import HttpOnlyRedirectHandler, HttpResponse, inner_timeout_budget, request
+from .http_client import HttpOnlyRedirectHandler, HttpResponse, request
 
 _DIRECT_DOCUMENT_EXTENSIONS = (
     ".pdf",
@@ -217,6 +217,57 @@ def _interface_error(*, response_status: int,
 
 
 class CloudflareMarkdownProvider(Provider):
+    def __init__(self, name, config):
+        super().__init__(name, config)
+        native = bool(config.get('uniform_native_parameters'))
+        self._prepare_timeouts = self._native_timeouts if native else self._diagnostic_timeouts
+        self._completion = self._native_completion if native else self._diagnostic_completion
+        self._convert_document = self._native_document_route if native else self._diagnostic_document_route
+        self._prepare_media = self._native_media if native else self._diagnostic_media
+
+    @staticmethod
+    def _native_timeouts(body, timeout_ms):
+        return None
+
+    @staticmethod
+    def _diagnostic_timeouts(body, timeout_ms):
+        if 'url' in body:
+            body['gotoOptions']['timeout'] = timeout_ms
+        body['actionTimeout'] = timeout_ms
+        if 'waitForSelector' in body:
+            body['waitForSelector']['timeout'] = timeout_ms
+        return timeout_ms
+
+    @staticmethod
+    def _native_completion(case, body, timeout, service_timeout_ms):
+        return None, None
+
+    @staticmethod
+    def _diagnostic_completion(case, body, timeout, service_timeout_ms):
+        if case.track != 'dynamic' or native_default_case(case) or 'url' not in body:
+            return None, None
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError('invalid dynamic retrieval_hints v1')
+        plan = plan_for_case(case)
+        contract = native_contract_for_case(case)
+        return plan or (contract.completion_plan(service_timeout_ms) if contract else None), contract
+
+    @staticmethod
+    def _native_document_route(case):
+        return False
+
+    def _diagnostic_document_route(self, case):
+        return self.config.get('browser') != 'kitesurf' and _uses_direct_document_route(case)
+
+    @staticmethod
+    def _native_media(body, include_video_page_links, timeout_ms):
+        return None
+
+    def _diagnostic_media(self, body, include_video_page_links, timeout_ms):
+        if include_video_page_links:
+            body['elements'] = [{'selector': 'a[href]'}]
+        self._diagnostic_timeouts(body, timeout_ms)
+
     def native_route(self, case):
         return 'http', self.native_http_interface(case), ['result', 'meta.title', 'meta.finalUrl']
 
@@ -262,14 +313,14 @@ class CloudflareMarkdownProvider(Provider):
 
     def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict | None = None, *, native_route_ledger=None) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
-        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
+        http_timeout = self.http_timeout_budget(timeout)
         if (
             case.task_kind == "resource"
             and case.track in {"image", "video"}
             and self.config.get("page_output") != "native_markdown"
         ):
             return self._fetch_media_resources(case, http_timeout=http_timeout, native_route_ledger=native_route_ledger)
-        if not self.config.get("uniform_native_parameters") and self.config.get("browser") != "kitesurf" and _uses_direct_document_route(case):
+        if self._convert_document(case):
             return self._fetch_direct_document(
                 case,
                 account_id=account_id,
@@ -282,29 +333,14 @@ class CloudflareMarkdownProvider(Provider):
         if request_body is not None and "html" in request_body:
             arguments['json_body'] = dict(request_body)
         request_body = arguments['json_body']
-        if not self.config.get("uniform_native_parameters"):
-            if "url" in request_body:
-                request_body['gotoOptions']['timeout'] = service_timeout_ms
-            request_body['actionTimeout'] = service_timeout_ms
+        disclosed_timeout_ms = self._prepare_timeouts(request_body, service_timeout_ms)
         route = "browser_rendering_markdown"
         wait_metadata = None
-        plan = None
-        native_contract = None
-        if case.track == "dynamic" and not self.config.get("uniform_native_parameters") and not native_default_case(case) and "url" in request_body:
-            try:
-                if not math.isfinite(timeout) or timeout <= 0:
-                    raise ValueError
-                plan = plan_for_case(case)
-                native_contract = native_contract_for_case(case)
-                if plan is None and native_contract is not None:
-                    plan = native_contract.completion_plan(service_timeout_ms)
-            except (KeyError, TypeError, ValueError):
-                return ProviderResult(
-                    False,
-                    "",
-                    error_type="configuration",
-                    error_message="invalid dynamic retrieval_hints v1",
-                )
+        try:
+            plan, native_contract = self._completion(case, request_body, timeout, service_timeout_ms)
+        except (KeyError, TypeError, ValueError):
+            return ProviderResult(False, "", error_type="configuration",
+                                  error_message="invalid dynamic retrieval_hints v1")
 
         if plan is not None:
             # The Markdown endpoint exposes waitForSelector, but no selector-count
@@ -326,9 +362,7 @@ class CloudflareMarkdownProvider(Provider):
             request_body["gotoOptions"] = {
                 "waitUntil": wait_until,
             }
-            if not self.config.get("uniform_native_parameters"):
-                request_body["gotoOptions"]["timeout"] = effective_timeout_ms
-                request_body["actionTimeout"] = effective_timeout_ms
+            self._prepare_timeouts(request_body, effective_timeout_ms)
             # Quick Actions documents these as independent readiness timers, not
             # an ordered selector-then-delay chain. Supplying both can let the
             # shorter timer win, so choose the strongest single native signal.
@@ -343,8 +377,7 @@ class CloudflareMarkdownProvider(Provider):
                     strategy = "native_completion_unsupported"
             else:
                 request_body["waitForSelector"] = {"selector": plan.selector}
-                if not self.config.get("uniform_native_parameters"):
-                    request_body["waitForSelector"]["timeout"] = effective_timeout_ms
+                self._prepare_timeouts(request_body, effective_timeout_ms)
                 strategy = "selector"
             count_enforced = plan.frame_selector is None and plan.minimum_count == 1
             exact = count_enforced and plan.delay_ms == 0
@@ -368,7 +401,7 @@ class CloudflareMarkdownProvider(Provider):
                 "unsupported": unsupported,
                 "delay_ms": plan.delay_ms,
                 "timeout_ms": (
-                    None if self.config.get("uniform_native_parameters") else effective_timeout_ms
+                    effective_timeout_ms
                 ),
                 "client_http_timeout_ms": int(http_timeout * 1000),
                 "wait_until": wait_until,
@@ -424,7 +457,7 @@ class CloudflareMarkdownProvider(Provider):
                 "route": route,
                 "wait": wait_metadata,
                 "browser": self.config.get("browser"),
-                "service_timeout_ms": None if self.config.get("uniform_native_parameters") else service_timeout_ms,
+                "service_timeout_ms": disclosed_timeout_ms,
                 "client_http_timeout_ms": int(http_timeout * 1000),
                 "input_mode": "inline_html" if "html" in request_body else "url",
                 "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -447,18 +480,15 @@ class CloudflareMarkdownProvider(Provider):
         native_route_ledger=None,
     ) -> ProviderResult:
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
-        native = bool(self.config.get("uniform_native_parameters"))
+        native = self._native_mode
         include_video_page_links = case.track == "video" and (native or any(
             isinstance(resource, dict) and resource.get("kind") == "video-link"
             for resource in case.expected_resources
         ))
         endpoint, arguments = self._http_arguments(case, http_timeout, '/scrape')
         request_body = arguments['json_body']
-        if not native:
-            if include_video_page_links:
-                request_body['elements'] = [{'selector': 'a[href]'}]
-            request_body['gotoOptions']['timeout'] = service_timeout_ms
-            request_body['actionTimeout'] = service_timeout_ms
+        self._prepare_media(request_body, include_video_page_links, service_timeout_ms)
+        disclosed_timeout_ms = None if native else service_timeout_ms
         selectors = [item['selector'] for item in request_body['elements']]
         response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
@@ -518,7 +548,7 @@ class CloudflareMarkdownProvider(Provider):
                 "error_count": len(errors),
                 "retry_after": response.headers.get("retry-after"),
                 "browser_ms_used": response.headers.get("x-browser-ms-used"),
-                "service_timeout_ms": None if self.config.get("uniform_native_parameters") else service_timeout_ms,
+                "service_timeout_ms": disclosed_timeout_ms,
                 "client_http_timeout_ms": int(http_timeout * 1000),
             },
         )
@@ -703,12 +733,7 @@ class CloudflareMarkdownProvider(Provider):
         )
 
 
-class CloudflareContentProvider(Provider):
-    native_route = CloudflareMarkdownProvider.native_route
-    native_http_interface = CloudflareMarkdownProvider.native_http_interface
-    native_http_arguments = CloudflareMarkdownProvider.native_http_arguments
-    _http_arguments = CloudflareMarkdownProvider._http_arguments
-
+class CloudflareContentProvider(CloudflareMarkdownProvider):
     """Rendered HTML diagnostic. It is deliberately excluded from the readable-text leaderboard."""
 
     def validate(self) -> list[str]:
@@ -716,12 +741,10 @@ class CloudflareContentProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
-        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
+        http_timeout = self.http_timeout_budget(timeout)
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
         endpoint, arguments = self._http_arguments(case, http_timeout, '/content')
-        if not self.config.get("uniform_native_parameters"):
-            arguments['json_body']['gotoOptions']['timeout'] = service_timeout_ms
-            arguments['json_body']['actionTimeout'] = service_timeout_ms
+        disclosed_timeout_ms = self._prepare_timeouts(arguments['json_body'], service_timeout_ms)
         response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
@@ -759,7 +782,7 @@ class CloudflareContentProvider(Provider):
                 "upstream_status": upstream_status,
                 "empty_content": envelope_success and not content,
                 "error_count": len(errors),
-                "service_timeout_ms": None if self.config.get("uniform_native_parameters") else service_timeout_ms,
+                "service_timeout_ms": disclosed_timeout_ms,
                 "client_http_timeout_ms": int(http_timeout * 1000),
             },
         )
