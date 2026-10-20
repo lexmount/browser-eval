@@ -1117,6 +1117,17 @@ from per-attempt states; overridden review opinions require task/answer hashes,
 original answer excerpts, concrete rules and a reason. This is supplemental
 adjudication, not a new blind review of the entire matrix.
 
+For explicitly requested history reduction,
+`local_revision.compact_local_snapshot(source, binding, **options)` validates the
+bound revision chain, installs a current-only authority and returns its path/hash
+binding. It retains the current measured evidence; it is not a report renderer.
+For a public metadata copy,
+`publication_privacy.project_host_metadata_files(files, host_prefixes, **options)`
+accepts a relative-path-to-bytes mapping and explicit host prefixes, returning a
+projected mapping plus an original/public hash receipt. The caller persists and
+binds that receipt; scored answers and raw response payloads cannot be changed
+through this metadata operation.
+
 Local uncertified reports retain a disclosure on every page and omit ordinal
 rankings. The CLI cannot hide the disclosure. Historical article HTML is limited
 to inert allowlisted markup and safe links/raster images; its translations apply

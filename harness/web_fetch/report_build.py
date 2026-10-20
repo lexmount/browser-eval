@@ -1608,12 +1608,9 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
         routes += ['review/index.html']
         if refresh_all_current_pages:
             routes += ['guide/index.html']
-            from .report_explainer import supports_authored_explainer
             current_article = (authored_interpretation
                 and not dataset.get('comparison', {}).get('call_chain_audit')
-                and (dataset.get('comparison', {}).get('report_interpretation')
-                     or (supports_authored_explainer({case['id']: case for case in dataset['cases']})
-                         and not all(row.get('provider_type') == 'fixture' for row in records))))
+                and dataset.get('comparison', {}).get('report_interpretation'))
             if current_article:
                 routes += ['guide/article.html', 'guide/interpretation-evidence.json']
                 if (output/'guide/cowagent-text-probe.json').is_file():

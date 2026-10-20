@@ -2099,8 +2099,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  if local_pass_rate_ranking(dataset):
   description=model_text(f'{len(cases)} 个案例 · {len(names)} 种方法 · 按本轮任务通过率排序。',f'{len(cases)} cases · {len(names)} methods · Ordered by task pass rate for this sample.')
  home='<div class="home-page">'+hero('Web Fetch 评测报告',description)
- from .report_explainer import article_title,render_explainer,supports_authored_explainer
- TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else article_title(records) if authored_interpretation and supports_authored_explainer(cases) and not all(row.get('provider_type') == 'fixture' for row in records) else '本报告的任务范围与验收规则'
+ from .report_explainer import render_explainer
+ TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else '本报告的任务范围与验收规则'
  if authored_interpretation and dataset.get('comparison',{}).get('report_interpretation'):
   binding=dataset['comparison']['report_interpretation']
   TITLE=json.loads(contained_path(out,binding['path']).read_text())['title']
@@ -2336,13 +2336,18 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
     ('直接证据',reviewed.get('agent_evidence') or '—'),
     ('最终结论',final),
    ]
+   adjudication_en=None
    if reviewed.get('adjudication_evidence'):
     proof=reviewed['adjudication_evidence']
+    adjudication_en=proof.get('reason_en')
+    if not adjudication_en and proof.get('rule_assertions'):
+     from .adjudication_evidence import adjudication_reason
+     adjudication_en=adjudication_reason(proof['rule_assertions'],language='en')
     review_rows.append(('分歧裁定',proof.get('summary_zh',reviewed['adjudication'])))
    body+=section('独立结果核验',table(
        ['项目','核验记录'],
        [('',cell(esc(label))+cell(
-           model_text(value,reviewed.get('adjudication_evidence',{}).get('reason_en')) if label=='分歧裁定'
+           model_text(value,adjudication_en) if label=='分歧裁定'
            else '<span translate="no">'+esc(value)+'</span>' if label=='直接证据' else esc(value))) for label,value in review_rows],
        metrics=[]),'independent-review')
    if reviewed.get('adjudication_evidence',{}).get('summary_zh'):
@@ -2654,7 +2659,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')
  if headless:
   methodology+=section('从参考到发布','<div class="guide-grid"><article class="guide-card"><h3>1 · 冻结参考</h3><p>锁定既定题目、答案和验收规则；只有明确声明需要实时参考的任务才重新采集源页。</p></article><article class="guide-card"><h3>2 · 执行调用</h3><p>同一 URL、任务和截止时间；各方法使用其最快的正式任务原生产物路线，保留版本、输出与哈希。</p></article><article class="guide-card"><h3>3 · 测后核验</h3><p>核对冻结题目、答案、规则和调用记录；需要实时参考的任务另做前后采集，确认参考未变。</p></article><article class="guide-card"><h3>4 · 结果独立审查</h3><p>独立审查按明确指定的范围开展，检查输出、参考答案和验收规则；本轮审查覆盖见下方，不把程序评分当成独立审查。</p></article></div>'+review_summary(out,'../'),'评测流程')
- examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples())
+ examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples({c['id']:c for c in dataset.get('cases',[])}))
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
  methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档题验收可读正文；网页媒体题验收指定资源地址或登记文字；直接媒体文件题验收图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。文档正文必须由参评方法交付为可读文字；直接媒体文件任务到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%。所有位置一次性做全局容量分配；同一返回片段实例只能计入一个位置，位置排列顺序不影响结论。若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。直接媒体文件任务必须有字节验收，资源 URL 不等于文件。</p>')
  if (out/'resource-cohort/resource-comparison.json').is_file():
