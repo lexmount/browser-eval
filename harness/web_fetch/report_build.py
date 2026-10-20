@@ -730,7 +730,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if dataset.get("comparison", {}).get("kind") == "uniform_native_local_measurement":
             shutil.copy2(source / "local-run-contract.json", staging / "local-run-contract.json")
             if (source/"providers.json").is_file():
-                from .report import NATIVE_OPTION_LABELS, require_public_method_options
+                from .report import NATIVE_OPTION_LABELS
+                from .publication_privacy import require_public_method_options
                 config_bytes = contained_path(source, 'providers.json', reject_symlinks=True).read_bytes()
                 config_hash = hashlib.sha256(config_bytes).hexdigest()
                 contract = json.loads((source / 'local-run-contract.json').read_text())

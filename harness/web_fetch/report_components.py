@@ -8,6 +8,7 @@ from dataclasses import dataclass
 class MeasurementPresentation:
     """Presentation choices only; execution and release gates validate the protocol."""
 
+    local_matrix: bool = False
     native_outputs: bool = False
     all_call_latency: bool = False
     explain_unjudged: bool = False
@@ -15,7 +16,7 @@ class MeasurementPresentation:
 
 _MEASUREMENT_PRESENTATIONS = {
     "uniform_native_local_measurement": MeasurementPresentation(
-        native_outputs=True, all_call_latency=True, explain_unjudged=True),
+        local_matrix=True, native_outputs=True, all_call_latency=True, explain_unjudged=True),
 }
 
 

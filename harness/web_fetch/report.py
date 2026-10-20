@@ -2014,7 +2014,7 @@ def local_pass_rate_ranking(dataset):
 def local_audit_banner(dataset):
  if dataset.get('comparison',{}).get('publication_state')!='local_audit_only_not_for_release':
   return ''
- if measurement_presentation(dataset).native_outputs:
+ if measurement_presentation(dataset).local_matrix:
   if local_pass_rate_ranking(dataset):
    return '<p class="wrap source-note" data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate">'+model_text('按本次所列任务的通过率排序；未完成仓库认证流程。测试日期和核验范围见详情。','Ordered by pass rate on the listed tasks; repository certification is incomplete. See details for test dates and verification scope.')+'</p>'
   note='已有复核记录；覆盖和裁定依据见核验页面。' if dataset['comparison'].get('independent_review') else '结果为机器判定，未进行独立人工审核。'
@@ -2623,26 +2623,9 @@ def write_review_page(out,records):
 
 NATIVE_OPTION_LABELS={'wait_until':'页面完成条件','block_private_networks':'阻止访问私网','max_bytes':'返回内容上限（字节）','max_age':'缓存最长年龄','proxy':'代理选择','formats':'请求输出格式','only_main_content':'只取主要正文','extract_depth':'提取深度','include_images':'包含图片','text_verbosity':'正文详细程度','max_age_hours':'缓存最长年龄（小时）','include_resource_links':'包含资源链接','rich_links_limit':'具名链接数量上限','document_max_bytes':'文档大小上限（字节）','min_interval_seconds':'调用间隔（秒）','log_level':'日志级别','retain_complete_diagnostic_log':'完整保存诊断日志','max_diagnostic_bytes':'日志保存上限（字节）','uniform_native_parameters':'使用统一固定原生选项','dns_mode':'域名解析方式'}
 
-def require_public_method_options(configuration):
- """Reject private values even when their option name is displayable."""
- from urllib.parse import urlsplit
- from .publication_privacy import publication_risk
- def contains_url_credentials(value):
-  if isinstance(value,dict):return any(contains_url_credentials(v) for v in value.values())
-  if isinstance(value,list):return any(contains_url_credentials(v) for v in value)
-  if isinstance(value,str):
-   try:
-    url=urlsplit(value)
-    return url.username is not None or url.password is not None
-   except ValueError:
-    return True
-  return False
- if publication_risk(json.dumps(configuration).encode()) or contains_url_credentials(configuration):
-  raise ValueError('Frozen public options contain unsafe values')
-
 def load_frozen_method_options(out,records):
  """Bind displayed controls to their actual configuration and call scope."""
- from .publication_privacy import read_evidence_binding
+ from .publication_privacy import read_evidence_binding, require_public_method_options
  document=json.loads((out/'frozen-method-options.json').read_text())
  if document.get('schema_version')!=2 or not document.get('source_config'):
   raise ValueError('Frozen option display requires a bound configuration and call scope')
@@ -2682,7 +2665,7 @@ def load_frozen_method_options(out,records):
 
 def write_support(out,records,manifests,*,authored_interpretation=True):
  dataset=json.loads((out/'dataset.json').read_text()) if (out/'dataset.json').is_file() else {}
- local_matrix=measurement_presentation(dataset).native_outputs
+ local_matrix=measurement_presentation(dataset).local_matrix
  headless=is_headless_cohort(records)
  from .report_components import task_contract_guide
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')

@@ -15,6 +15,22 @@ from threading import Lock
 from urllib.parse import unquote_plus
 
 
+def require_public_method_options(configuration):
+ """Reject private values even when their option name is displayable."""
+ from urllib.parse import urlsplit
+ def contains_url_credentials(value):
+  if isinstance(value,dict):return any(contains_url_credentials(v) for v in value.values())
+  if isinstance(value,list):return any(contains_url_credentials(v) for v in value)
+  if isinstance(value,str):
+   try:
+    url=urlsplit(value)
+    return url.username is not None or url.password is not None
+   except ValueError:
+    return True
+  return False
+ if publication_risk(json.dumps(configuration).encode()) or contains_url_credentials(configuration):
+  raise ValueError('Frozen public options contain unsafe values')
+
 @dataclass(frozen=True)
 class EvidenceBinding:
     """Validated identity of bound bytes; parsing never rewrites saved JSON."""
