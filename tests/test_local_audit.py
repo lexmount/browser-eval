@@ -812,12 +812,13 @@ def test_worker_protocol_response_is_not_a_runtime_log():
     assert runtime_log_text(response+progress+worker)==progress+worker
 
 
-def test_local_offline_projection_keeps_native_url_and_call_facts(tmp_path):
+@pytest.mark.parametrize('returned_url', ['https://example.test/actual', None])
+def test_local_offline_projection_keeps_native_url_and_call_facts(tmp_path, returned_url):
     import copy
     original = {"attempt_id": "a", "ok": True, "elapsed_ms": 17,
                 "final_url": "https://example.test/input", "metrics": {"content_sha256": "body"}}
     corrected = copy.deepcopy(original)
-    corrected.update(final_url="https://example.test/actual", scoring={"mode": "offline_rescore"})
+    corrected.update(final_url=returned_url, scoring={"mode": "offline_rescore"})
     corrected["metrics"]["score"] = 1
     native = tmp_path / "native.json"
     _write(native, {"data": {"url": corrected["final_url"]}})
@@ -836,8 +837,16 @@ def test_local_offline_projection_keeps_native_url_and_call_facts(tmp_path):
         local_audit._require_local_record_correction(tmp_path, original, changed)
     _write(path, {**receipt, "call_identities": {"a": local_audit.local_measurement_call_sha256(corrected)}})
     _write(native, {"data": {"url": "https://example.test/wrong"}})
-    with pytest.raises(ValueError, match="native response"):
+    with pytest.raises(ValueError):
         local_audit._require_local_record_correction(tmp_path, original, corrected)
+    # Missing is not the same as an explicitly returned JSON null.
+    for payload in ({'data': {}}, {}):
+        _write(native, payload)
+        receipt['call_identities']['a'] = local_audit.local_measurement_call_sha256(corrected)
+        receipt['field_projections']['a']['final_url']['sha256'] = _digest(native)
+        _write(path, receipt)
+        with pytest.raises(ValueError, match='field is missing'):
+            local_audit._require_local_record_correction(tmp_path, original, corrected)
 
 
 def test_local_review_retains_deferred_failure_and_rejects_wrong_coverage(tmp_path):

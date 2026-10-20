@@ -151,7 +151,7 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
     raise ValueError('Unsupported native answer selection policy: ' + str(provider_type))
 
 
-def _projection_value(payload, pointer):
+def native_field_value(payload, pointer):
     if not isinstance(pointer, list) or not pointer:
         raise ValueError('Native answer projection requires a nonempty field pointer')
     value = payload
@@ -209,7 +209,7 @@ def _selected(payload, spec):
     if 'default' in spec and spec['default'] not in (None, '', [], {}):
         raise ValueError('Native answer defaults must be empty')
     try:
-        return _projection_value(payload, spec['pointer'])
+        return native_field_value(payload, spec['pointer'])
     except ValueError:
         if 'default' not in spec:
             raise

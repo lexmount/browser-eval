@@ -445,14 +445,19 @@ def _require_local_record_correction(source, original, corrected, receipt=None):
     if changed - {"final_url"}:
         raise ValueError("Local correction changed measured call facts")
     if "final_url" in changed:
+        from .native_projection import native_field_value
+        from .publication_privacy import read_evidence_binding
         proof = receipt.get("field_projections", {}).get(identifier, {}).get("final_url", {})
-        path = contained_path(source, proof.get("path", ""), reject_symlinks=True)
-        if not path.is_file() or _sha256(path) != proof.get("sha256"):
-            raise ValueError("Local URL correction lost its native response")
-        value = json.loads(path.read_text())
-        for key in proof.get("json_pointer", []):
-            value = value.get(key) if isinstance(value, dict) else None
-        if (not proof.get("json_pointer") or value != corrected.get("final_url")
+        if not proof.get('path') or not proof.get('sha256'):
+            raise ValueError('Local URL correction lost its native response')
+        path = read_evidence_binding(source, proof)
+        pointer = proof.get('json_pointer')
+        # The legacy receipt selects object keys only; sharing extraction must
+        # not silently add array selection to this historical contract.
+        if not isinstance(pointer, list) or not pointer or any(not isinstance(key, str) for key in pointer):
+            raise ValueError('Local URL correction requires object field names')
+        value = native_field_value(json.loads(path.read_text()), pointer)
+        if (value != corrected.get("final_url")
                 or proof.get("original_value") != original.get("final_url")):
             raise ValueError("Local URL correction differs from native response")
 
