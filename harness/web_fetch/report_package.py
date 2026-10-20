@@ -29,6 +29,10 @@ def _require(condition, detail):
 def validate_release(source: Path) -> bool:
     dataset_path = source / "dataset.json"
     dataset = json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
+    from .reliability import implementation_conflicts
+    records = load_jsonl(source / "results.jsonl")
+    if conflicts := implementation_conflicts(records):
+        raise ValueError("Refusing to package mixed executable versions: " + ", ".join(sorted(conflicts)))
     from .reference_lifecycle import require_certifiable_evidence
     manifests = []
     for name in ('manifest.json', 'execution.json'):
@@ -41,7 +45,7 @@ def validate_release(source: Path) -> bool:
     if content_binding:
         from .report_explainer import current_browser_article_model
         current_browser_article_model(source, {case['id']:case for case in dataset['cases']},
-                                      load_jsonl(source/'results.jsonl'), content_binding)
+                                      records, content_binding)
     sampled = dataset.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown"
     if not sampled:
         reliability = json.loads((source / "reliability.json").read_text())
@@ -49,7 +53,7 @@ def validate_release(source: Path) -> bool:
             raise ValueError("Refusing to package an incomplete or unjudged benchmark report")
         if dataset.get("comparison", {}).get("require_independent_result_review"):
             from .result_review import require_result_review
-            require_result_review(source, dataset, load_jsonl(source / "results.jsonl"))
+            require_result_review(source, dataset, records)
         return False
     review = json.loads((source / "result-review.json").read_text())
     if review.get("status") != "passed" or review.get("failures"):
@@ -65,7 +69,6 @@ def validate_release(source: Path) -> bool:
         or set(review.get("providers", [])) != set(providers)
     ):
         raise ValueError("Report/review scope differs from the declared matrix")
-    records = load_jsonl(source / "results.jsonl")
     expected = {(provider, case) for provider in providers for case in cases}
     if (
         len(records) != len(expected)

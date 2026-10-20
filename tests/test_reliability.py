@@ -16,6 +16,24 @@ class ReliabilityTests(unittest.TestCase):
         self.assertTrue(result['complete'])
         self.assertEqual(result['judged_calls'],1)
 
+    def test_replacing_failures_with_another_binary_cannot_form_one_version_score(self):
+        dataset = {**self.dataset, 'cases': [self.dataset['cases'][0],
+                   {'id': 'b', 'track': 'web', 'task_kind': 'body'}]}
+        rows = [{**self.record, 'provider_metadata': {'binary_sha256': 'first-build'}},
+                {**self.record, 'case_id': 'b',
+                 'provider_metadata': {'binary_sha256': 'replacement-build'}}]
+        with self.assertRaisesRegex(ValueError, 'different|可执行文件'):
+            require_reliable(dataset, rows)
+        rows[1]['provider_metadata']['binary_sha256'] = 'first-build'
+        self.assertTrue(require_reliable(dataset, rows)['complete'])
+
+    def test_separately_named_builds_can_be_compared_on_the_complete_population(self):
+        dataset = {**self.dataset, 'coverage_plan': {'web': ['release', 'candidate']}}
+        rows = [{**self.record, 'provider': name,
+                 'provider_metadata': {'binary_sha256': name + '-build'}}
+                for name in ('release', 'candidate')]
+        self.assertTrue(require_reliable(dataset, rows)['complete'])
+
     def test_missing_duplicate_and_unjudged_are_rejected(self):
         self.assertFalse(assess_reliability(self.dataset,[])['complete'])
         duplicate=assess_reliability(self.dataset,[self.record,self.record])

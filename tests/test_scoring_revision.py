@@ -66,7 +66,7 @@ def test_invalid_history_rejects_before_any_evidence_write(tmp_path: Path, histo
             canonical,
             root_cause_category="answer-surface",
             root_cause="Synthetic correction restores a required fact in the answer surface.",
-            regression_ids=["answer-title-supplies-required-fact"],
+            regression_ids=["body-only-word-boundary-answer-title-supplies-required-fact"],
         )
     assert {p.name: p.read_bytes() for p in evidence.iterdir()} == before
 
@@ -78,7 +78,7 @@ def test_valid_history_can_extend_and_retains_prior_receipts(tmp_path: Path):
     authority = {
         "root_cause_category": "answer-surface",
         "root_cause": "Synthetic correction restores a required fact in the answer surface.",
-        "regression_ids": ["answer-title-supplies-required-fact"],
+        "regression_ids": ["body-only-word-boundary-answer-title-supplies-required-fact"],
     }
     first = revise(evidence, canonical, **authority)
     assert first["task_decision_changes"] == [
@@ -131,7 +131,7 @@ def test_reader_prompt_can_follow_scoring_contract_without_changing_saved_call(t
         canonical,
         root_cause_category="answer-surface",
         root_cause="The reader-facing scope described obsolete answer tokens that providers never receive.",
-        regression_ids=["answer-title-supplies-required-fact"],
+        regression_ids=["body-only-word-boundary-answer-title-supplies-required-fact"],
     )
 
     assert receipt["provider_calls"] == 0
@@ -160,7 +160,7 @@ def test_reader_prompt_revision_cannot_change_provider_url(tmp_path: Path):
             canonical,
             root_cause_category="answer-surface",
             root_cause="The reader-facing scope changed but the physical provider URL must remain frozen.",
-            regression_ids=["answer-title-supplies-required-fact"],
+            regression_ids=["body-only-word-boundary-answer-title-supplies-required-fact"],
         )
 
     assert {path.name: path.read_bytes() for path in evidence.iterdir()} == before
@@ -179,7 +179,7 @@ def test_scorer_drift_and_task_rule_change_are_rejected_atomically(tmp_path: Pat
             canonical,
             root_cause_category="answer-surface",
             root_cause="A shared answer-surface correction changed the scorer implementation.",
-            regression_ids=["answer-title-supplies-required-fact"],
+            regression_ids=["body-only-word-boundary-answer-title-supplies-required-fact"],
         )
 
     assert {path.name: path.read_bytes() for path in evidence.iterdir()} == before
@@ -194,7 +194,7 @@ def test_scorer_drift_and_task_rule_change_can_be_recorded_in_two_steps(tmp_path
     authority = {
         "root_cause_category": "answer-surface",
         "root_cause": "A shared answer-surface correction changed the scorer implementation.",
-        "regression_ids": ["answer-title-supplies-required-fact"],
+        "regression_ids": ["body-only-word-boundary-answer-title-supplies-required-fact"],
     }
 
     scorer_receipt = revise(evidence, evidence / "dataset.json", **authority)
@@ -243,7 +243,7 @@ def test_scorer_only_revision_accepts_an_assembled_mixed_source_cohort(tmp_path:
         evidence / "dataset.json",
         root_cause_category="answer-surface",
         root_cause="An assembled cohort retains outputs scored by two older scorer builds.",
-        regression_ids=["answer-title-supplies-required-fact"],
+        regression_ids=["body-only-word-boundary-answer-title-supplies-required-fact"],
     )
 
     assert receipt["input_scoring_source_sha256s"] == ["0" * 64, "1" * 64]
@@ -268,7 +268,7 @@ def test_scoring_validation_preserves_complete_saved_attempt_bytes(tmp_path, fai
     receipt = revise(evidence, evidence / 'dataset.json', validate_only=True,
         root_cause_category='answer-surface',
         root_cause='Validate the saved scoring without rewriting a physical-call record.',
-        regression_ids=['answer-title-supplies-required-fact'])
+        regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'])
     assert receipt['validation_only'] is True
     assert receipt['task_decision_changes'] == []
     assert receipt['input_results_sha256'] == receipt['output_results_sha256']
@@ -289,7 +289,7 @@ def test_scoring_validation_rejects_changed_verdict_or_requirements_atomically(t
         revise(evidence, canonical, validate_only=True,
             root_cause_category='answer-surface',
             root_cause='Validation rejects changed scores and requirements without writing evidence.',
-            regression_ids=['answer-title-supplies-required-fact'])
+            regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'])
     assert {p.name:p.read_bytes() for p in evidence.iterdir()} == before
 
 
@@ -298,7 +298,7 @@ def test_report_assets_can_update_together_without_changing_scored_calls(tmp_pat
     evidence, canonical, _ = revision_fixture(tmp_path, b'[]')
     revise(evidence, canonical, root_cause_category='answer-surface',
         root_cause='Synthetic required-answer correction has an executable acceptance control.',
-        regression_ids=['answer-title-supplies-required-fact'])
+        regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'])
     calls = (evidence / 'results.jsonl').read_bytes()
     content = evidence / 'report-assets' / 'browser-interpretation.json'
     content.parent.mkdir()
@@ -328,7 +328,7 @@ def test_report_asset_update_rejects_unbound_provenance_before_writing(tmp_path,
     evidence, canonical, _ = revision_fixture(tmp_path, b'[]')
     revise(evidence, canonical, root_cause_category='answer-surface',
         root_cause='Synthetic required-answer correction has an executable acceptance control.',
-        regression_ids=['answer-title-supplies-required-fact'])
+        regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'])
     content = evidence / 'article.json'
     content.write_text('{}')
     implementation = evidence / 'implementation-provenance.json'

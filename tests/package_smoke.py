@@ -1709,7 +1709,7 @@ def main():
             root / 'cohort', root / 'cohort/dataset.json',
             root_cause_category='answer-surface',
             root_cause='Synthetic installation control preserves the complete answer scoring surface.',
-            regression_ids=['answer-title-supplies-required-fact'],
+            regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'],
         )
         assert receipt['provider_calls'] == 0 and receipt['task_decision_changes'] == []
         revised = json.loads((root / 'cohort/results.jsonl').read_text())

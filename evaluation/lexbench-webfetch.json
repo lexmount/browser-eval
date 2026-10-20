@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "external_benchmark_binding",
   "repository": "https://github.com/lexmount/lexbench-webfetch",
-  "revision": "6d8d72637bb96f4938b9a2f7c46d0c7dffd74945",
+  "revision": "c9183abce7cdecc377e229a6c323add1d8cdbc13",
   "ownership": {
     "benchmark": "Task populations, task model, acceptance scoring, file checks, compiler and frozen definitions",
     "harness": "Execution, reference lifecycle, evidence and reports"
@@ -78,7 +78,7 @@
     "evaluation/risk-control/remaining-70-rule-review.md": "301574dddcfddf6d30ed4d882cdd40b1ae859fdc95a0a02cf9868f55e3fd1079",
     "evaluation/risk-control/rule-authoring-guide.md": "74363ab502978179e5438a0b992bac7563090e41c91784e492636832dc1cd088",
     "evaluation/risk-control/source-inputs.json": "77c5a4b62c07d59ed57154a833e85f9e7a97bc739730f51cd4ca3a698edb9258",
-    "evaluation/scoring-regressions.json": "d519f86e327d9e2fd1c884670642eb31714435864e834592e2c7b65ef21ee655",
+    "evaluation/scoring-regressions.json": "a9271915ac3baf3c0ab88341b29ad4a7b62e5964563f168729814e1102f8c771",
     "evaluation/source-inputs.json": "c202abc4624811b938a837402bbaf0ecbe716e375fbca70567346d2edb3b1708"
   }
 }

@@ -19,6 +19,26 @@ PRIVATE_ARTIFACT_ROOT = "private_artifacts"
 PUBLIC_CALL_LOG_ROOT = "call-logs"
 
 
+def file_scoring_metadata(case, metadata: dict, source: Path) -> dict:
+    """Recheck delivered file bytes against current rules without changing call evidence."""
+    from lexbench_webfetch.file_acceptance import evaluate_files
+
+    case = case if isinstance(case, dict) else vars(case)
+    evaluation = metadata.get("file_evaluation")
+    if case.get("task_kind") != "file" or not isinstance(evaluation, dict):
+        return metadata
+    delivered = evaluation.get("files", [])
+    payloads = []
+    for item in delivered:
+        raw = contained_path(source, item["artifact_path"], reject_symlinks=True).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != item.get("sha256"):
+            raise ValueError("Delivered file integrity failure: " + item["artifact_path"])
+        payloads.append(raw)
+    current = evaluate_files(case, payloads)
+    current["files"] = [{**old, **new} for old, new in zip(delivered, current["files"])]
+    return {**metadata, "file_evaluation": current}
+
+
 def public_call_log_binding(value: dict[str, Any] | None) -> dict[str, Any] | None:
     """Normalize a public call-log binding and reject partial/unsafe claims."""
     if value is None:

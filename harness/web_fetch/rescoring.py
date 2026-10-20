@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 from harness.record_io import parse_jsonl
-from harness.web_fetch.artifacts import verify_record_artifacts
+from harness.web_fetch.artifacts import verify_record_artifacts, file_scoring_metadata
 from harness.web_fetch.failure_diagnosis import diagnose
 from lexbench_webfetch.metrics import summarize
 from harness.web_fetch.models import execution_id
@@ -42,7 +42,7 @@ def _rescore_one(arguments):
         status_code=r.get("status_code"),
         title=r.get("title"),
         final_url=r.get("final_url"),
-        metadata=r.get("provider_metadata", {}),
+        metadata=file_scoring_metadata(c, r.get("provider_metadata", {}), source),
         previous_metrics=r["metrics"],
         list_reference=load_list_reference(c, source),
     )

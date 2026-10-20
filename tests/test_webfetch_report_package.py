@@ -120,6 +120,18 @@ def test_declared_small_matrix_packages_through_public_command(tmp_path):
         )
 
 
+def test_stale_complete_flag_cannot_publish_mixed_executable_versions(tmp_path):
+    source, archive = report_tree(tmp_path)
+    rows = [{'attempt_id': 'native-' + case, 'provider': 'native', 'case_id': case,
+             'provider_metadata': {'binary_sha256': fingerprint}}
+            for case, fingerprint in [('alpha', 'original-build'), ('beta', 'new-build')]]
+    (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    archive.write_bytes(b'previous verified release')
+    with pytest.raises(ValueError, match='mixed executable versions'):
+        report_package.build(source, archive)
+    assert archive.read_bytes() == b'previous verified release'
+
+
 @pytest.mark.parametrize(
     "damage",
     [

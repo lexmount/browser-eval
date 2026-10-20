@@ -22,6 +22,20 @@ def stage_name(command):
 
 
 class CertifiedBenchmarkTests(unittest.TestCase):
+    def test_unresolved_selected_rules_fail_before_capture_or_provider_calls(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = root / 'dataset.json'
+            dataset.write_text(json.dumps({'cases': [{
+                'id': 'provisional', 'rule_review': {'status': 'unresolved'}}]}))
+            with patch('harness.web_fetch.certification.run') as invoked:
+                with self.assertRaises(SystemExit):
+                    main(['--dataset', str(dataset), '--output', str(root / 'run'),
+                          '--work-root', str(root / 'work'), '--providers', 'fixture',
+                          '--case-ids', 'provisional'])
+            invoked.assert_not_called()
+            self.assertFalse((root / 'work').exists())
+
     def test_diagnostic_execution_cannot_be_assembled_or_rendered_as_certified(self):
         from harness.web_fetch import benchmark_runner as run_benchmark
         from harness.web_fetch import reference_freeze as freeze_headless_references
