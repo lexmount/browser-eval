@@ -20,6 +20,33 @@ Test both accepted and rejected scenarios. Fix scoring rules rather than editing
 
 Write documentation in English. Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Preserve original task text, quotations and frozen acceptance inputs. Reports follow their track's language settings.
 
+## PR and commit titles
+
+Use `<type>(<scope>): <summary>` for PR titles and new commit subjects. The scope is optional; use the module or feature affected, such as `scoring` or `webfetch`.
+
+Choose the type that describes the change:
+
+| Type | Change |
+| --- | --- |
+| `fix` | Correct existing behavior |
+| `feat` | Add supported behavior |
+| `docs` | Change documentation |
+| `refactor` | Restructure code without changing behavior |
+| `test` | Add or correct tests |
+| `perf` | Improve performance |
+| `build` / `ci` | Change packaging, dependencies or automation |
+| `chore` | Other maintenance |
+
+Write the summary in English, start with an imperative verb, and describe the concrete change. Aim for 72 characters or fewer, including the prefix; omit a trailing period. Use `!` before the colon for a breaking change and explain the migration in the description.
+
+Examples:
+
+- `fix(scoring): require facts in the returned body`
+- `fix(webfetch): reject mixed executable versions before release`
+- `docs(contributing): define PR and commit title conventions`
+
+Avoid titles such as `Fix review feedback`, `Update code` or `Misc improvements`; name the behavior or document that changes. A PR title describes the complete diff; each commit subject describes that commit. Update the PR title when its scope changes. If squash merging is used, use a subject that follows the same format. Apply this convention to new work; do not rewrite shared commits solely to rename them.
+
 ## Run the checks
 
 ```bash
