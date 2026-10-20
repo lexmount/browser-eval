@@ -348,3 +348,55 @@ def test_fresh_review_keeps_the_immutable_blind_initial_opinion(tmp_path, defect
             _require_supplemental_reviews(tmp_path, {'cases': [case]}, [record], review)
     else:
         assert _require_supplemental_reviews(tmp_path, {'cases': [case]}, [record], review) == {'p__a'}
+
+
+@pytest.mark.parametrize('key, value, zh, en', [
+    ('task_result', {'passed': True}, '任务判定：通过。', 'Task result: pass.'),
+    ('request_status', {'passed': False}, '请求状态：未通过。', 'Request status: fail.'),
+    ('required_facts', {'passed': False, 'matched': 2, 'total': 3},
+     '必需文字：未通过（2/3）。', 'Required text: fail (2/3).'),
+    ('expected_any', {'passed': True}, '目标标记：通过。', 'Target markers: pass.'),
+    ('min_content_chars', {'passed': False, 'actual': 9, 'minimum': 10},
+     '最低长度：未通过（9，要求至少 10）。', 'Minimum length: fail (9; minimum 10).'),
+    ('body_requirements', {'passed': True}, '正文覆盖：通过。', 'Body coverage: pass.'),
+    ('required_patterns', {'passed': False, 'results': [{'id': 'code', 'pass': False}, {'id': 'heading', 'pass': True}]},
+     '格式与代码要求：未通过（未满足 code）。', 'Formatting and code requirements: fail (unmet: code).'),
+    ('required_patterns', {'passed': True, 'results': [{'id': 'code', 'pass': True}]},
+     '格式与代码要求：通过。', 'Formatting and code requirements: pass.'),
+    ('acceptance_contract', {'passed': False, 'anchor_hits': 1, 'anchor_total': 2,
+                            'records': 3, 'minimum_records': 4, 'missing_anchors': ['title']},
+     '内容与条目要求：未通过（稳定文字 1/2；独立条目 3，要求至少 4；缺少 title）。',
+     'Content and record requirements: fail (stable text 1/2; distinct records 3; minimum 4; missing title).'),
+    ('acceptance_contract', {'passed': True, 'anchor_hits': 2, 'anchor_total': 2,
+                            'records': 4, 'minimum_records': 4, 'missing_anchors': []},
+     '内容与条目要求：通过（稳定文字 2/2；独立条目 4，要求至少 4）。',
+     'Content and record requirements: pass (stable text 2/2; distinct records 4; minimum 4).'),
+    ('composite_acceptance', {'passed': True}, '组合要求：通过。', 'Combined requirements: pass.'),
+    ('expected_resources', {'passed': False}, '目标资源：未通过。', 'Target resources: fail.'),
+    ('forbidden_any', {'passed': True}, '明确禁止要求：通过。', 'Prohibited content: pass.'),
+    ('diagnostic_any', {'hits': []}, '诊断词命中：无（不单独决定通过或失败）。',
+     'Diagnostic matches: none (do not independently determine pass or fail).'),
+    ('diagnostic_any', {'hits': ['CAPTCHA', '登录']}, '诊断词命中：CAPTCHA、登录（不单独决定通过或失败）。',
+     'Diagnostic matches: CAPTCHA, 登录 (do not independently determine pass or fail).'),
+])
+def test_adjudication_language_preserves_checked_rule_details(key, value, zh, en):
+    import copy
+    assertions = {key: value}
+    before = copy.deepcopy(assertions)
+    assert adjudication_reason(assertions) == zh
+    assert adjudication_reason(assertions, language='zh') == zh
+    assert adjudication_reason(assertions, language='en') == en
+    assert assertions == before
+
+
+def test_english_presentation_keeps_historical_adjudication_proof_valid(tmp_path):
+    import copy
+    case, record, row = fixture(tmp_path)
+    before = copy.deepcopy(row)
+    assert row['adjudication'] == '任务判定：通过；请求状态：通过；必需文字：通过（1/1）；诊断词命中：无（不单独决定通过或失败）。'
+    english = adjudication_reason(row['adjudication_evidence']['rule_assertions'], language='en')
+    assert english == 'Task result: pass; Request status: pass; Required text: pass (1/1); Diagnostic matches: none (do not independently determine pass or fail).'
+    assert require_adjudication_evidence(tmp_path, {'cases': [case]}, [record], {'attempts': [row]}) == 1
+    assert row == before
+    with pytest.raises(ValueError, match='language must be zh or en'):
+        adjudication_reason({}, language='fr')

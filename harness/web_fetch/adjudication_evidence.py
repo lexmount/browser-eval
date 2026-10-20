@@ -60,8 +60,39 @@ def current_rule_outcomes(case, record):
     return outcomes
 
 
-def adjudication_reason(assertions):
+def adjudication_reason(assertions, *, language="zh"):
     """Render claims from checked facts, never unchecked free-form hit text."""
+    if language not in {"zh", "en"}:
+        raise ValueError("Adjudication language must be zh or en")
+    if language == "en":
+        labels = {'task_result': 'Task result', 'request_status': 'Request status',
+            'required_facts': 'Required text', 'expected_any': 'Target markers',
+            'min_content_chars': 'Minimum length', 'body_requirements': 'Body coverage',
+            'required_patterns': 'Formatting and code requirements',
+            'acceptance_contract': 'Content and record requirements',
+            'composite_acceptance': 'Combined requirements',
+            'expected_resources': 'Target resources', 'forbidden_any': 'Prohibited content'}
+        parts = []
+        for key, value in assertions.items():
+            if key == 'diagnostic_any':
+                parts.append('Diagnostic matches: ' + (', '.join(value['hits']) or 'none')
+                             + ' (do not independently determine pass or fail)')
+                continue
+            detail = ''
+            if key == 'required_facts':
+                detail = f" ({value['matched']}/{value['total']})"
+            elif key == 'min_content_chars':
+                detail = f" ({value['actual']}; minimum {value['minimum']})"
+            elif key == 'acceptance_contract':
+                detail = (f" (stable text {value['anchor_hits']}/{value['anchor_total']}; "
+                          f"distinct records {value['records']}; minimum {value['minimum_records']}"
+                          + ('; missing ' + ', '.join(value['missing_anchors'])
+                             if value['missing_anchors'] else '') + ')')
+            elif key == 'required_patterns':
+                missing = [r['id'] for r in value['results'] if not r['pass']]
+                detail = (' (unmet: ' + ', '.join(missing) + ')') if missing else ''
+            parts.append(labels[key] + ': ' + ('pass' if value['passed'] else 'fail') + detail)
+        return '; '.join(parts) + '.'
     labels = {'task_result': '任务判定', 'request_status': '请求状态',
         'required_facts': '必需文字', 'expected_any': '目标标记',
         'min_content_chars': '最低长度', 'body_requirements': '正文覆盖',
