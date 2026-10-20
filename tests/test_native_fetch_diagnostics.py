@@ -24,3 +24,16 @@ def test_incomplete_or_ambiguous_capture_ownership_is_not_inferred(middle):
 @pytest.mark.parametrize('log',[event(403)+event(200),event(302)+event(200,URL+'?next=1'),event(200)+COMMIT,event(403,URL+'/other')])
 def test_ambiguous_response_or_navigation_does_not_supply_status(log):
     assert native_fetch_diagnostics(log,URL)==(None,False)
+
+
+@pytest.mark.parametrize('requested,observed,page_matches,log_status', [
+    (URL, URL, True, 200),
+    (URL, URL+'?tracking=1', True, None),
+    (URL+'?page=1', URL+'?page=1', True, 200),
+    (URL+'?page=1', URL+'?page=2', False, None),
+])
+def test_page_acceptance_and_request_log_ownership_have_distinct_query_contracts(
+        requested, observed, page_matches, log_status):
+    from lexbench_webfetch.scoring import _same_page_url
+    assert _same_page_url(observed, requested) is page_matches
+    assert native_fetch_diagnostics(event(200, observed), requested) == (log_status, False)
