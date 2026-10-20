@@ -145,6 +145,27 @@ class ResultReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'different results'):
                 require_result_review(root,dataset,records)
 
+    def test_bound_review_preserves_historical_scorer_verdict(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);dataset,records,review=self.fixture(root)
+            records[0]['metrics']['forbidden_hits'] = []
+            (root/'results.jsonl').write_text(json.dumps(records[0])+'\n')
+            review['bindings']['results_sha256'] = hashlib.sha256(
+                (root/'results.jsonl').read_bytes()).hexdigest()
+            (root/'result-review.json').write_text(json.dumps(review))
+
+            with patch(
+                    'harness.web_fetch.reference_lifecycle.valid_scoring_revision',
+                    return_value=True):
+                checked = require_blind_result_review(root,dataset,records)
+            self.assertEqual(checked['attempts'][0]['machine_verdict'],'pass')
+
+            with patch(
+                    'harness.web_fetch.reference_lifecycle.valid_scoring_revision',
+                    return_value=False), self.assertRaisesRegex(
+                        ValueError, 'Historical scoring metrics'):
+                require_blind_result_review(root,dataset,records)
+
     def test_missing_or_unresolved_review_blocks_required_report(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset,records,review=self.fixture(root)
