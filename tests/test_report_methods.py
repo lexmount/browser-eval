@@ -133,7 +133,6 @@ def test_report_labels_distinguish_release_and_source_build_with_same_version(tm
     from harness.web_fetch.methods import with_measured_method_labels
     from harness.web_fetch.report import provider_label
     from harness.web_fetch.report_methods import display_name
-    from harness.web_fetch.report_explainer import provider_name
 
     identities={'implementations':[
         {'provider':'moli-release','binary_sha256':'stable','version':'1.1.15'},
@@ -146,7 +145,7 @@ def test_report_labels_distinguish_release_and_source_build_with_same_version(tm
 
     @with_measured_method_labels
     def render(out,dataset,rows):
-        for label in (provider_label,display_name,lambda n:provider_name(n,n)):
+        for label in (provider_label,display_name):
             assert label('moli-release')=='Moli 1.1.15'
             assert label('moli-candidate')=='Moli 1.1.17 · candidate build (99a22382)'
 

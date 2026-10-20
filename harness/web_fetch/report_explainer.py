@@ -1,4 +1,4 @@
-"""One authored article; all figures use the report builder's normalized inputs."""
+"""Bound report interpretations and a population-driven default summary."""
 import base64
 import hashlib
 import json
@@ -7,7 +7,7 @@ import statistics
 from collections import Counter
 from html import escape
 from pathlib import Path
-from urllib.parse import quote, urlsplit
+from urllib.parse import urlsplit
 
 from harness.record_io import canonical_json_sha256
 
@@ -17,52 +17,13 @@ from .methods import with_measured_method_labels
 from .report_style import STYLE
 from lexbench_webfetch.paths import contained_path
 
-from .publication_target import public_report_url
 
-ROOT = Path(__file__).resolve().parents[2]
 from .models import REPORT_FAMILIES as BROWSER_FAMILY_NAMES, report_family
-
-PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
-                  'cloudflare-markdown': 'Cloudflare Markdown', 'exa': 'Exa',
-                  'langchain-webbase': 'LangChain WebBaseLoader', 'firecrawl': 'Firecrawl',
-                  'crawl4ai': 'Crawl4AI', 'openclaw-built-in': 'OpenClaw',
-                  'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
-                  'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区',
-                  'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.5',
-                  'moli-pr919': 'Moli 历史方法标识',
-                  'moli-1.1.3': 'Moli 1.1.3', 'moli-1.1.11': 'Moli 1.1.11'}
-
-def provider_name(name, fallback):
-    from .methods import measured_method_label
-    return measured_method_label(name, PROVIDER_NAMES.get(name, fallback))
-
-
-
-
-
-
-def evidence_url(path):
-    contained_path(ROOT, path)
-    if Path(path).suffix != '.html':
-        return public_report_url() + '#page=guide%2Findex.html&anchor=evidence'
-    return public_report_url() + '#page=' + quote(str(path), safe='')
-
-
-
-
 
 
 def _mean(values):
     values = [v for v in values if v is not None]
     return statistics.mean(values) if values else None
-
-
-
-
-
-
-
-
 
 
 def _table(headers, rows, caption):
@@ -74,18 +35,6 @@ def _table(headers, rows, caption):
             '<div class="editorial-table" role="region" tabindex="0" aria-label="' + escape(caption) + '">'
             '<table><caption>' + escape(caption) + '</caption><thead><tr>' + head + '</tr></thead>'
             '<tbody>' + body + '</tbody></table></div>')
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def _headless_article_input(cases, records, providers):
@@ -153,8 +102,6 @@ def _article_speed_population(cases, records, providers, *, execution_scope):
     }
 
 
-
-
 def _render_article_resources(summary, selected):
     if summary is None:
         return ('<p>当前证据没有独立的客户端资源测量；本文不从耗时反推 CPU 或内存。</p>',
@@ -167,8 +114,6 @@ def _render_article_resources(summary, selected):
         f'{result["winner_count"]} 项最低。这里的资源领先不等于综合任务通过率领先。'
     )
     return rendered, interpretation
-
-
 
 
 def load_browser_failure_review(out, cases, records, content):
@@ -549,7 +494,6 @@ def _browser_error_excerpt(row, has_failures, *, reviewed_error=None):
         excerpt=('\n[…节选…]\n'.join(fragment[:450] for fragment in fragments)+'\n[…结尾…]\n'+error[-1800:])[:4000] if fragments else error[-4000:]
         return '错误过长，仅节选关键错误及结尾；完整错误和日志见结果详情。\n'+excerpt
     return error
-
 
 
 def _browser_wait_summary(records, name):
