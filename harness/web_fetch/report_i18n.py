@@ -4047,62 +4047,6 @@ TEXT.update({'内容选择': 'Content selection',
                                                         'changing scoring rules, rescore the declared scope '
                                                         'before rebuilding; rebuilding pages alone does not '
                                                         'update scores.',
- '430 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。': 'Passed / decidable results among 430 planned tasks; each task '
-                                            'has equal weight, and undecidable results are excluded from the '
-                                            'denominator.',
- '每种方法均使用同一组 430 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。': 'Each '
-                                                                                                                                'method '
-                                                                                                                                'uses '
-                                                                                                                                'the '
-                                                                                                                                'same '
-                                                                                                                                '430 '
-                                                                                                                                'tasks, '
-                                                                                                                                'including '
-                                                                                                                                'passes, '
-                                                                                                                                'failures, '
-                                                                                                                                'errors, '
-                                                                                                                                'and '
-                                                                                                                                'timeouts. '
-                                                                                                                                'Latency '
-                                                                                                                                'runs '
-                                                                                                                                'from '
-                                                                                                                                'input '
-                                                                                                                                'to '
-                                                                                                                                'return '
-                                                                                                                                'and '
-                                                                                                                                'excludes '
-                                                                                                                                'the '
-                                                                                                                                'common '
-                                                                                                                                'cooldown '
-                                                                                                                                'between '
-                                                                                                                                'calls. '
-                                                                                                                                'Cases '
-                                                                                                                                'execute '
-                                                                                                                                'sequentially '
-                                                                                                                                'within '
-                                                                                                                                'each '
-                                                                                                                                'method; '
-                                                                                                                                'inter-method '
-                                                                                                                                'scheduling '
-                                                                                                                                'and '
-                                                                                                                                'limits '
-                                                                                                                                'are '
-                                                                                                                                'documented '
-                                                                                                                                'in '
-                                                                                                                                'the '
-                                                                                                                                'call-chain '
-                                                                                                                                'audit. '
-                                                                                                                                'Local '
-                                                                                                                                'and '
-                                                                                                                                'remote '
-                                                                                                                                'environments, '
-                                                                                                                                'networks, '
-                                                                                                                                'and '
-                                                                                                                                'product '
-                                                                                                                                'limits '
-                                                                                                                                'still '
-                                                                                                                                'affect '
-                                                                                                                                'latency.',
  '全部调用均值': 'All-call mean',
  '全部调用 P50': 'All-call P50',
  '全部调用 P95': 'All-call P95',
@@ -4313,7 +4257,8 @@ PHRASES.update({"Codex 独立复核": "Codex independent review", "见原始复�
 TEXT.update({
     "请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求。验证码或错误提示文字不单独决定任务是否通过。完整度、纯净度和 F1 另算，不作为通过门槛。": "The request must succeed and satisfy minimum length, every required checkpoint, significant marker, and structure requirement. Verification or error notices do not independently determine acceptance. Completeness, purity, and F1 are separate metrics, not pass thresholds.",
 })
-REGEX.insert(0, (re.compile(r"^(\d+) 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。$"), r"Passed / decidable results among \1 planned tasks; every task has equal weight, and undecidable results are excluded from the denominator."))
+REGEX.insert(0, (re.compile(r"^(\d+) 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。$"), r"Passed / decidable results among \1 planned tasks; each task has equal weight, and undecidable results are excluded from the denominator."))
+REGEX.insert(0, (re.compile('^每种方法均使用同一组 (\\d+) 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。$'), 'Each method uses the same \\1 tasks, including passes, failures, errors, and timeouts. Latency runs from input to return and excludes the common cooldown between calls. Cases execute sequentially within each method; inter-method scheduling and limits are documented in the call-chain audit. Local and remote environments, networks, and product limits still affect latency.'))
 REGEX.insert(0, (re.compile(r"^(\d+)/(\d+) · 复核记录$"), r"\1/\2 · review records"))
 REGEX.insert(0, (re.compile(r"^(\d+) 条通过结果的参考词精确率低于 30%。此比例用于定位检查对象，不是统一失败线；通过不保证干净正文，正文参考的范围和时间也会影响该指标。$"), r"\1 passing results have reference word precision below 30%. This locates inspection candidates, not a universal failure threshold. Passing does not establish clean body text; reference scope and time also affect this metric."))
 
