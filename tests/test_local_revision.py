@@ -228,6 +228,36 @@ def test_score_revision_chain_validates_both_steps_and_reaches_original_inputs(t
     assert (tmp_path/first_binding['path']).read_bytes() == original_bytes
 
 
+@pytest.mark.parametrize('field,value', [
+    ('authority', []),
+    ('authority', {'description': 7}),
+    ('input_dataset', None),
+    ('input_results', []),
+    ('changed_case_ids', [[]]),
+    ('rescored_attempt_ids', 'all'),
+    ('task_verdict_changes', [{'before': True, 'after': False}]),
+    ('native_answer_corrections', [None]),
+    ('native_context_corrections', [{'attempt_id': []}]),
+    ('output_dataset_sha256', None),
+    ('scoring_source_sha256', 1),
+])
+def test_revision_receipt_reports_malformed_fields_without_rewriting_evidence(tmp_path, field, value):
+    from harness.web_fetch.local_revision import validate_revision_chain
+    _, (binding, receipt) = _two_revision_chain(tmp_path)
+    dataset_before = (tmp_path/'dataset.json').read_bytes()
+    results_before = (tmp_path/'results.jsonl').read_bytes()
+    receipt[field] = value
+    path = tmp_path/binding['path']
+    path.write_text(json.dumps(receipt))
+    raw = path.read_bytes()
+    binding['sha256'] = hashlib.sha256(raw).hexdigest()
+    with pytest.raises(ValueError, match='revision\\.' + field):
+        validate_revision_chain(tmp_path, binding)
+    assert path.read_bytes() == raw
+    assert (tmp_path/'dataset.json').read_bytes() == dataset_before
+    assert (tmp_path/'results.jsonl').read_bytes() == results_before
+
+
 @pytest.mark.parametrize('tamper, message', [
     ('authority', 'authority'), ('regression_ids', 'regression provenance'),
     ('changed_case_ids', 'case scope'), ('task_verdict_changes', 'verdict transitions'),

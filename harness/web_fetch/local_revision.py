@@ -4,6 +4,7 @@ import json
 import fcntl
 import shutil
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from harness.record_io import canonical_json_sha256, load_jsonl
@@ -12,7 +13,57 @@ from .cohort_exclusions import require_cohort_exclusions
 from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.scoring_regressions import require_scoring_regressions
 from .scoring_revision import ALLOWED_FIELDS
-from .publication_privacy import read_evidence_binding, staged_evidence_reads
+from .publication_privacy import EvidenceBinding, read_evidence_binding, staged_evidence_reads
+
+
+@dataclass(frozen=True)
+class RevisionStep:
+    """Typed input boundary; validation never rewrites the frozen receipt."""
+
+    authority_description: str
+    changed_case_ids: tuple[str, ...]
+    rescored_attempt_ids: tuple[str, ...]
+    input_dataset: EvidenceBinding
+    input_results: EvidenceBinding
+
+    @classmethod
+    def from_mapping(cls, receipt):
+        if not isinstance(receipt, dict):
+            raise ValueError('revision must be an object')
+        authority = receipt.get('authority')
+        if not isinstance(authority, dict):
+            raise ValueError('revision.authority must be an object')
+        description = authority.get('description')
+        if not isinstance(description, str) or not description.strip():
+            raise ValueError('revision.authority.description must be a nonempty string')
+        scopes = []
+        for field in ('changed_case_ids', 'rescored_attempt_ids'):
+            value = receipt.get(field)
+            if (not isinstance(value, list)
+                    or any(not isinstance(item, str) or not item for item in value)
+                    or len(value) != len(set(value))):
+                raise ValueError(f'revision.{field} must be a list of unique identifiers')
+            scopes.append(tuple(value))
+        for field in ('task_verdict_changes', 'native_answer_corrections', 'native_context_corrections'):
+            value = receipt.get(field, [] if field != 'task_verdict_changes' else None)
+            if not isinstance(value, list):
+                raise ValueError(f'revision.{field} must be a list')
+            for index, item in enumerate(value):
+                if (not isinstance(item, dict)
+                        or not isinstance(item.get('attempt_id'), str) or not item['attempt_id']):
+                    raise ValueError(f'revision.{field}[{index}].attempt_id must be a nonempty string')
+        for field in ('output_dataset_sha256', 'output_results_sha256', 'scoring_source_sha256'):
+            value = receipt.get(field)
+            if (not isinstance(value, str) or len(value) != 64
+                    or any(char not in '0123456789abcdef' for char in value)):
+                raise ValueError(f'revision.{field} must be a SHA-256 digest')
+        regressions = receipt.get('regression_ids')
+        if (not isinstance(regressions, list) or not regressions
+                or any(not isinstance(item, str) or not item for item in regressions)):
+            raise ValueError('revision.regression_ids requires executable regression provenance')
+        bindings = [EvidenceBinding.from_mapping(receipt.get(field), field='revision.' + field)
+                    for field in ('input_dataset', 'input_results')]
+        return cls(description, *scopes, *bindings)
 
 
 def _require_revision_regressions(identifiers):
@@ -175,8 +226,11 @@ def validate_revision_chain(source, binding, dataset=None, records=None):
     if records is None:
         records = load_jsonl(source / 'results.jsonl')
     receipt = json.loads(read_evidence_binding(source, binding).read_text())
+    if not isinstance(receipt, dict):
+        raise ValueError('revision must be an object')
     if receipt.get('kind') == 'current_local_snapshot_authority':
         return require_current_snapshot_authority(source, receipt, dataset, records), None, None
+    RevisionStep.from_mapping(receipt)
     outputs = {name: hashlib.sha256(read_evidence_binding(source, {
         'path': name, 'sha256': receipt[key]}).read_bytes()).hexdigest()
         for name, key in [('dataset.json', 'output_dataset_sha256'),
@@ -869,16 +923,9 @@ def _read_input_verdicts(source, binding, input_results_sha256, identifiers):
 
 
 def _require_revision_step(source, receipt, dataset, records, outputs):
+    parsed = RevisionStep.from_mapping(receipt)
     if receipt.get('kind') != 'local_offline_score_revision' or receipt.get('provider_calls_added') != 0:
         raise ValueError('Local revision must preserve original provider calls')
-    if (not isinstance(receipt.get('authority', {}).get('description'), str)
-            or not receipt['authority']['description'].strip()
-            or not isinstance(receipt.get('changed_case_ids'), list)
-            or len(receipt['changed_case_ids']) != len(set(receipt['changed_case_ids']))
-            or not isinstance(receipt.get('rescored_attempt_ids'), list)
-            or len(receipt['rescored_attempt_ids']) != len(set(receipt['rescored_attempt_ids']))
-            or not isinstance(receipt.get('task_verdict_changes'), list)):
-        raise ValueError('Local revision needs authority, declared scope and verdict changes')
     before_dataset = json.loads(read_evidence_binding(source, receipt['input_dataset']).read_text())
     previous = load_jsonl(read_evidence_binding(source, receipt['input_results']))
     for name, key in [('dataset.json', 'output_dataset_sha256'), ('results.jsonl', 'output_results_sha256')]:
@@ -902,7 +949,7 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
             raise ValueError('Local score revision changed source or acquisition inputs')
         if fields:
             changed_cases.add(identifier)
-    if changed_cases != set(receipt.get('changed_case_ids', [])):
+    if changed_cases != set(parsed.changed_case_ids):
         raise ValueError('Local revision case scope differs')
     if changed_cases and receipt.get('rule_revision') is not True:
         raise ValueError('Changed acceptance contract requires an explicit rule revision')
@@ -910,7 +957,7 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
     new_rows = {row['attempt_id']: row for row in records}
     if len(old_rows) != len(previous) or len(new_rows) != len(records) or set(old_rows) != set(new_rows):
         raise ValueError('Local revision changed the call inventory')
-    scored = set(receipt.get('rescored_attempt_ids', []))
+    scored = set(parsed.rescored_attempt_ids)
     if not scored <= set(new_rows):
         raise ValueError('Local revision rescoring scope differs')
     native_proofs = receipt.get('native_answer_corrections', [])
