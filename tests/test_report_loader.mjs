@@ -229,7 +229,7 @@ console.log('PASS: lazy adapter metadata excludes private response pointers recu
 
 const dialogListeners=new Map();let closeFocused=false,triggerFocused=false,opened=false,dialogFills=0;
 const closeControl={focus(){closeFocused=true},closest:()=>dialog};
-const deferredDialogPre={};
+const deferredDialogPre={dataset:{file:'call-logs/test.json'}};
 const dialog={dataset:{},setAttribute(){},removeAttribute(){},
  addEventListener(name,handler){dialogListeners.set(name,handler)},
  querySelector:()=>closeControl,querySelectorAll:()=>[deferredDialogPre],showModal(){opened=true},
@@ -263,3 +263,55 @@ await assert.rejects(vm.runInContext("fileBytes('missing.html')",patchContext),/
 vm.runInContext('pack=async()=>new Uint8Array([0,65,66,67,0])',patchContext);
 assert.equal(await vm.runInContext("textFile('old.txt')",patchContext),'ABC');
 console.log('PASS: incremental Unicode routes coexist with unchanged packed evidence; malformed or missing routes fail');
+
+// Exercise the actual compact wire format, including negative block deltas,
+// empty files, Unicode bytes, multiple packs and exact reconstructed length.
+const {gzipSync}=await import('node:zlib');
+const compactParts=[Buffer.from('alpha'),Buffer.from('βbeta'),Buffer.from('!!!')];
+const compactCatalog=Buffer.alloc(6+5*4);
+compactParts.forEach((part,i)=>compactCatalog.writeUInt16LE(part.length,i*2));
+[0,2,1,4,1].forEach((delta,i)=>compactCatalog.writeUInt32LE(delta,6+i*4));
+const compactWire={schema_version:3,block_count:3,pack_starts:[0,2],packs:['data/000.gz','data/001.gz'],files:{
+ 'a.txt':{parts:[0,3],size:16},'b.txt':{parts:[3,2],size:9},'empty.txt':{parts:[5,0],size:0}}};
+const compactResponses={
+ 'manifest.json':JSON.stringify({schema_version:3,compressed_manifest:'manifest.json.gz'}),
+ 'manifest.json.gz':gzipSync(JSON.stringify(compactWire)),
+ 'catalog.bin.gz':gzipSync(compactCatalog),
+ 'data/000.gz':gzipSync(Buffer.concat(compactParts.slice(0,2))),
+ 'data/001.gz':gzipSync(compactParts[2])};
+const externalPackUrl='https://artifact.example/api/preview/data-part/data/001.gz?__artifact_version=ver_frozen';
+compactWire.external_packs={'data/001.gz':{url:externalPackUrl}};
+compactResponses['manifest.json.gz']=gzipSync(JSON.stringify(compactWire));
+compactResponses[externalPackUrl]=compactResponses['data/001.gz'];delete compactResponses['data/001.gz'];
+const compactContext=vm.createContext({TextDecoder,URL,Response,DecompressionStream,
+ fetch:async path=>new Response(compactResponses[path],{status:200}),
+ window:{addEventListener(){}},document:{addEventListener(){}}});
+vm.runInContext(js,compactContext);
+assert.equal(Buffer.from(await vm.runInContext("fileBytes('a.txt')",compactContext)).toString(),'alphaβbetaalpha');
+assert.equal(Buffer.from(await vm.runInContext("fileBytes('b.txt')",compactContext)).toString(),'!!!βbeta');
+assert.equal((await vm.runInContext("fileBytes('empty.txt')",compactContext)).length,0);
+await vm.runInContext("manifest().then(m=>{m.files['a.txt'].size++})",compactContext);
+await assert.rejects(vm.runInContext("fileBytes('a.txt')",compactContext),/文件长度错误|Invalid file length/);
+console.log('PASS: compact catalog reconstructs Unicode, repeated blocks, negative deltas and empty files; rejects wrong length');
+
+// The existing dialog uses the same root-relative source in both languages.
+let requestedSource,sourceReads=0;
+const staticPre={dataset:{file:'logs/exact.txt',readable:'1'},textContent:''};
+const staticDialog={querySelectorAll:()=>[staticPre]};
+const sourceContext=vm.createContext({URL,TextDecoder,
+ document:{querySelector:()=>({src:signedBase+'assets/report.js'}),baseURI:signedBase+'en/logs/view.html'},
+ tr:(zh,en)=>en,fetch:async url=>{requestedSource=String(url);sourceReads++;return{ok:true,text:async()=> 'ERROR: <untrusted> exact failure\n'}}});
+vm.runInContext(callDialogJs,sourceContext);sourceContext.logDialog=staticDialog;
+await vm.runInContext('loadDiagnosticEvidence(logDialog)',sourceContext);
+assert.equal(requestedSource,signedBase+'logs/exact.txt');
+assert.equal(staticPre.textContent,'ERROR: <untrusted> exact failure\n');
+assert.equal(staticPre.dataset.loaded,'1');
+await vm.runInContext('loadDiagnosticEvidence(logDialog)',sourceContext);
+assert.equal(sourceReads,1);
+staticPre.dataset.loaded='';sourceContext.fetch=async()=>({ok:false,status:404});
+await vm.runInContext('loadDiagnosticEvidence(logDialog)',sourceContext);
+assert.match(staticPre.textContent,/HTTP 404/);assert.equal(staticPre.dataset.loaded,'');
+sourceContext.fetch=async()=>({ok:true,text:async()=> 'recovered exact log'});
+await vm.runInContext('loadDiagnosticEvidence(logDialog)',sourceContext);
+assert.equal(staticPre.textContent,'recovered exact log');
+console.log('PASS: shared lazy log dialog preserves signed-root paths, exact text, retry and existing packaged fill');

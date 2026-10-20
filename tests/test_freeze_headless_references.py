@@ -7,7 +7,6 @@ from pathlib import Path
 
 from lexbench_webfetch.body_coverage import body_requirements
 from harness.web_fetch.reference_freeze import (
-    _digest_json,
     _change_for_case,
     _require_promotion,
     compute_reference_update,
@@ -15,6 +14,7 @@ from harness.web_fetch.reference_freeze import (
 )
 from lexbench_webfetch.scoring_regressions import build_correction_provenance
 from harness.web_fetch.reference_freeze import prepare_promotion, promote
+from harness.record_io import canonical_json_sha256
 
 from tests.reference_freeze_fixture import ROOT_CAUSE, REGRESSIONS, create_promotion_inputs
 
@@ -31,8 +31,8 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             'affected_scope':['ground_truth_main_content','body_requirements'],
             'old_reference_sha256':'a'*64,
             'new_reference_sha256':'b'*64,
-            'old_body_requirements_sha256':_digest_json({'old':True}),
-            'new_body_requirements_sha256':_digest_json({'new':True}),
+            'old_body_requirements_sha256':canonical_json_sha256({'old':True}),
+            'new_body_requirements_sha256':canonical_json_sha256({'new':True}),
             'source_revision':{
                 'url':'https://en.wikipedia.org/w/index.php?title=AI&oldid=123',
                 'revision':'oldid:123','source_snapshot_sha256':'c'*64},

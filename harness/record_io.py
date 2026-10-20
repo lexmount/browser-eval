@@ -1,5 +1,25 @@
 """UTF-8 JSONL framing shared by execution, certification and report readers."""
 import json
+import hashlib
+from pathlib import Path
+
+
+
+def file_sha256(path):
+    """Hash file bytes without loading the entire artifact into memory.
+
+    This is a digest primitive, not a trust boundary: callers retain their
+    containment, symlink, expected-hash and public-view policies.
+    """
+    with Path(path).open('rb') as source:
+        return hashlib.file_digest(source, 'sha256').hexdigest()
+
+
+def canonical_json_sha256(value):
+    """Hash the shared compact UTF-8 JSON protocol, including legacy NaN bytes."""
+    raw = json.dumps(value, ensure_ascii=False, sort_keys=True,
+                     separators=(',', ':'), allow_nan=True).encode('utf-8')
+    return hashlib.sha256(raw).hexdigest()
 
 
 def same_json_record(left, right):

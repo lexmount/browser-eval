@@ -10,6 +10,8 @@ import unittest
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from bs4 import BeautifulSoup
 
 from harness.web_fetch.publication_check import check as check_bundle
@@ -19,6 +21,61 @@ from harness.web_fetch.publication_privacy import (
     project_redundant_result_streams,
     publication_risk,
 )
+
+
+@pytest.mark.parametrize('interrupted', [False, True])
+def test_proposed_evidence_reads_are_scoped_and_hash_checked(tmp_path, interrupted):
+    from harness.web_fetch.publication_privacy import read_evidence_binding, staged_evidence_reads
+    source = tmp_path / 'source'
+    other = tmp_path / 'other'
+    source.mkdir()
+    other.mkdir()
+    original = source / 'receipt.json'
+    original.write_bytes(b'original')
+    (other / original.name).write_bytes(b'original')
+    proposed = tmp_path / 'proposed.json'
+    proposed.write_bytes(b'proposed')
+    def binding(raw):
+        return {'path': original.name, 'sha256': hashlib.sha256(raw).hexdigest()}
+    try:
+        with staged_evidence_reads(source, lambda path: proposed):
+            assert read_evidence_binding(source, binding(b'proposed')) == proposed
+            assert read_evidence_binding(other, binding(b'original')) == other / original.name
+            # A matching old file must never hide a corrupt proposed replacement.
+            with pytest.raises(ValueError, match='Staged revision evidence binding changed'):
+                read_evidence_binding(source, binding(b'original'))
+            with pytest.raises(ValueError):
+                read_evidence_binding(source, {'path': '../proposed.json', 'sha256': binding(b'proposed')['sha256']})
+            if interrupted:
+                raise RuntimeError('interrupted validation')
+    except RuntimeError:
+        assert interrupted
+    assert read_evidence_binding(source, binding(b'original')) == original
+    with pytest.raises(ValueError):
+        read_evidence_binding(source, binding(b'proposed'))
+
+
+@pytest.mark.parametrize('allow_public_view', [False, True])
+def test_evidence_reader_requires_original_bytes_when_requested(tmp_path, monkeypatch, allow_public_view):
+    from harness.web_fetch import publication_privacy as privacy
+    path = tmp_path / 'answer.txt'
+    path.write_bytes(b'original')
+    binding = {'path': path.name, 'sha256': hashlib.sha256(b'original').hexdigest()}
+    calls = []
+    def public_view(source, requested):
+        calls.append(requested)
+        return path, {'original_bytes': 8}
+    monkeypatch.setattr(privacy, 'bound_public_view', public_view)
+    assert privacy.read_evidence_binding(tmp_path, binding, allow_public_view=allow_public_view) == path
+    assert not calls
+    path.write_bytes(b'public projection')
+    if allow_public_view:
+        assert privacy.read_evidence_binding(tmp_path, binding) == path
+        assert calls == [binding]
+    else:
+        with pytest.raises(ValueError, match='evidence binding changed'):
+            privacy.read_evidence_binding(tmp_path, binding, allow_public_view=False)
+        assert not calls
 
 
 class PublicationPrivacyTests(unittest.TestCase):
@@ -575,3 +632,304 @@ class PublicationPrivacyTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_host_metadata_projection_rebinds_dependencies_without_changing_measurements():
+    import hashlib
+    import json
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    config = json.dumps({'binary': '/Users/fixture/tool/bin', 'version': '1.2.3', 'environment': {'hostname': 'private-machine'}}).encode()
+    config_hash = hashlib.sha256(config).hexdigest()
+    result = json.dumps({'ok': True, 'duration': 1.25, 'content_sha256': 'a'*64,
+                         'provider_config_sha256': config_hash,
+                         'provider_metadata': {'stderr': 'at /Users/fixture/work/main.py:4'}}).encode()+b'\n'
+    files = {'config.json': config, 'results.jsonl': result, 'answer.txt': b'actual answer'}
+    original = files.copy()
+    public, receipt = project_host_metadata_files(files, ['/Users/fixture'])
+    assert files == original
+    assert public['answer.txt'] == files['answer.txt']
+    row = json.loads(public['results.jsonl'])
+    assert row['provider_config_sha256'] == hashlib.sha256(public['config.json']).hexdigest()
+    assert (row['ok'], row['duration'], row['content_sha256']) == (True, 1.25, 'a'*64)
+    assert json.loads(public['config.json'])['version'] == '1.2.3'
+    assert 'hostname' not in json.loads(public['config.json'])['environment']
+    assert b'/Users/fixture' not in b''.join(public.values())
+    assert receipt['files'][0]['original_sha256'] == config_hash
+    assert receipt['files'][0]['published_sha256'] != config_hash
+    assert '/Users/fixture' not in json.dumps(receipt)
+    repeated, unchanged = project_host_metadata_files(public, ['/Users/fixture'])
+    assert repeated == public and unchanged['files'] == []
+
+
+def test_public_diagnostic_contexts_redact_queries_and_preserve_scores():
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    row = {'ok': True, 'elapsed_ms': 12.5, 'metrics': {'content_pass': True,
+        'content_sha256': 'a' * 64, 'composite_group_results': [{'records': [
+            {'context': '[Forum](https://example.test/thread?access_token=private-token-canary)'}]}]}}
+    raw = (json.dumps(row) + '\n').encode()
+    files = {'results.jsonl': raw, 'receipt.json': json.dumps({'results_sha256': hashlib.sha256(raw).hexdigest()}).encode()}
+    public, receipt = project_host_metadata_files(files, ['/Users/fixture'], public_excerpt_views=True)
+    projected = json.loads(public['results.jsonl'])
+    assert b'private-token-canary' not in public['results.jsonl']
+    assert projected['ok'] == row['ok'] and projected['elapsed_ms'] == row['elapsed_ms']
+    assert projected['metrics']['content_pass'] is True
+    assert projected['metrics']['content_sha256'] == 'a' * 64
+    assert json.loads(public['receipt.json'])['results_sha256'] == hashlib.sha256(public['results.jsonl']).hexdigest()
+    assert files['results.jsonl'] == raw
+    assert any('.metrics.' in field and field.endswith('.context') for item in receipt['files'] for field in item['redacted_fields'])
+    unchanged, _ = project_host_metadata_files(files, ['/Users/fixture'])
+    assert unchanged == files
+
+
+def test_host_metadata_projection_requires_an_explicit_non_root_prefix():
+    import pytest
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    for prefixes in ([], ['/'], ['relative/path']):
+        with pytest.raises(ValueError):
+            project_host_metadata_files({}, prefixes)
+
+
+def test_public_metadata_receipt_checks_bytes_and_excludes_scored_payloads(tmp_path):
+    import hashlib
+    import json
+    import pytest
+    from harness.web_fetch.publication_privacy import project_host_metadata_files, require_host_metadata_projection
+    original={'config.json': b'{"binary":"/Users/fixture/tool"}'}
+    public,receipt=project_host_metadata_files(original,['/Users/fixture'])
+    (tmp_path/'config.json').write_bytes(public['config.json'])
+    def bind():
+        path=tmp_path/'projection.json'
+        path.write_text(json.dumps(receipt))
+        return {'path':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+    require_host_metadata_projection(tmp_path,bind())
+    (tmp_path/'config.json').write_text('{"binary":"changed"}')
+    with pytest.raises(ValueError):require_host_metadata_projection(tmp_path,bind())
+    (tmp_path/'config.json').write_bytes(public['config.json'])
+    receipt['files'][0]['path']='artifacts/answer.json'
+    with pytest.raises(ValueError,match='preserve scored payloads'):
+        require_host_metadata_projection(tmp_path,bind())
+
+
+def test_host_projection_does_not_match_another_user_with_the_same_prefix():
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    files={'config.json': b'{"binary":"/Users/fixture-other/tool"}'}
+    public,receipt=project_host_metadata_files(files,['/Users/fixture'])
+    assert public==files and receipt['files']==[]
+
+
+def test_named_host_in_auxiliary_log_is_projected_with_bound_public_hash(tmp_path):
+    import hashlib
+    import json
+    from harness.web_fetch.publication_privacy import project_host_metadata_files, require_host_metadata_projection
+    name='logs/case.debug.txt'
+    raw=b'{"hostname":"fixture.local","message":"response completed"}'
+    inputs={name:raw,'answer.txt':b'unchanged scored text'}
+    public,receipt=project_host_metadata_files(inputs,['/Users/fixture'],host_names=['fixture.local'])
+    assert public['answer.txt']==inputs['answer.txt']
+    assert b'fixture.local' not in public[name]
+    assert b'response completed' in public[name]
+    (tmp_path/'logs').mkdir();(tmp_path/name).write_bytes(public[name])
+    path=tmp_path/'projection.json';path.write_text(json.dumps(receipt))
+    require_host_metadata_projection(tmp_path,{'path':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+
+
+def test_host_projection_refuses_to_rewrite_score_bearing_or_response_payloads():
+    import pytest
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    for name in ('artifacts/answer.json','logs/case.response.txt','answer.txt'):
+        raw=b'{"host":"fixture.local"}'
+        with pytest.raises(ValueError,match='must not alter scored'):
+            project_host_metadata_files({name:raw},['/Users/fixture'],host_names=['fixture.local'])
+def test_long_unterminated_escaped_string_preserves_content_without_rescanning_suffixes():
+    from harness.web_fetch.publication_privacy import redact_url_queries
+    text = '"' + ('\\"fragment' * 20000)
+    assert redact_url_queries(text) == (text, 0)
+
+
+def test_long_escaped_url_still_redacts_sensitive_query_value():
+    from harness.web_fetch.publication_privacy import redact_url_queries
+    text = 'ordinary log ' * 500 + r'"https:\/\/example.com\/image?apiKey=private-value&width=300"'
+    public, count = redact_url_queries(text)
+    assert count == 1
+    assert 'private-value' not in public
+    assert 'width=300' in public
+
+
+def test_large_and_small_string_tokenization_have_identical_public_redaction_semantics():
+    import random
+    from harness.web_fetch.publication_privacy import redact_url_queries
+    rng = random.Random(51)
+    prefix = ' ' * 4097
+    fragments = [
+        '"abc\\"def" tail "https://example.com/?token=private-value"',
+        '"unterminated\\"suffix', '"line\nfeed"', '"line\\\nfeed"',
+        '"line\\\rfeed"', '"\\u0068ttps://example.com/?token=private-value"',
+        '"nul\x00boundary"', '"backslash\\\\"',
+    ]
+    fragments += [''.join(rng.choice('ab"\\\r\n\t\x00') for _ in range(60)) for _ in range(64)]
+    for text in fragments:
+        expected, count = redact_url_queries(text)
+        assert redact_url_queries(prefix+text) == (prefix+expected, count)
+
+
+@pytest.mark.parametrize("delimiter", ["&quot;", "&apos;", "&gt;", "&#34;", "&Tab;"])
+def test_encoded_url_boundary_does_not_expand_unrelated_large_html(delimiter):
+    import tracemalloc
+    from harness.web_fetch.publication_privacy import _redact_plain_url_queries
+    suffix = "x" * 100000
+    source = "https://example.test/?token=private-value" + delimiter + suffix
+    tracemalloc.start()
+    try:
+        projected, count = _redact_plain_url_queries(source)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert projected == "https://example.test/?token=[REDACTED]" + delimiter + suffix
+    assert count == 1
+    # This is evidence after the URL, not a 100 KB URL character map.
+    assert peak < 2_000_000
+
+
+@pytest.mark.parametrize("boundary", [5000, 65535, 65536, 131071])
+def test_sparse_json_scanner_matches_string_grammar_across_windows(boundary):
+    import random
+    from harness.web_fetch.publication_privacy import _JSON_STRING, _json_string_spans
+    random_source = random.Random(90210)
+    for _ in range(20):
+        tail = ''.join(random_source.choice('abc"\\\n\r\t') for _ in range(150))
+        text = 'x' * boundary + tail
+        assert list(_json_string_spans(text)) == [m.span() for m in _JSON_STRING.finditer(text)]
+
+
+@pytest.mark.parametrize('depth',range(1,7))
+def test_nested_url_delimiters_keep_exact_projection_with_bounded_memory(depth):
+    import html
+    import tracemalloc
+    from harness.web_fetch.publication_privacy import _url_entity_surface,project_file
+    delimiter = '&quot;'
+    for _ in range(depth):
+        delimiter = html.escape(delimiter,quote=False)
+    raw = 'https://api.invalid/?token=example'+delimiter+'z'*100000
+    tracemalloc.start()
+    try:
+        _url_entity_surface(raw)
+        _,peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 100000
+    data = ('prefix '+raw+' suffix').encode()
+    assert project_file('view.html',data)[0] == data.replace(b'token=example',b'token=[REDACTED]')
+
+
+def test_incomplete_nested_entity_does_not_hide_late_url_credentials():
+    from harness.web_fetch.publication_privacy import project_file
+    raw = b'https://api.invalid/?first=1&amp;look=&quotx'+b'z'*10000+b'&token=example'
+    assert project_file('view.html',raw)[0] == raw.replace(b'token=example',b'token=[REDACTED]')
+
+
+@pytest.mark.parametrize('data',[
+    b'{"text":"safe"}\n{"text":"also safe"}\n',
+    b'{"authorization":"Bearer example-secret"}\n{"text":"safe"}\n',
+    b'{"text":"safe"}\n{"url":"https://api.invalid/?token=secret"}\n',
+    b'{"authorization":\n"Bearer example-secret"}\n',
+    b'{"text":"unterminated\n{"authorization":"Bearer example-secret"}\n',
+    b'{"authorization":"[REDACTED]"}\n{"text":"\\u4e2d\\u6587"}\n',
+])
+def test_jsonl_risk_keeps_record_boundaries_and_falls_back_for_malformed_data(data):
+    from harness.web_fetch.publication_privacy import publication_file_risk,publication_risk
+    assert bool(publication_file_risk('records.jsonl',data)) == bool(publication_risk(data))
+
+
+def test_short_plain_text_cache_preserves_sensitive_context_and_excludes_large_values():
+    from harness.web_fetch.publication_privacy import (
+        _cached_plain_publication_risk, _plain_publication_risk, publication_risk,
+    )
+    _cached_plain_publication_risk.cache_clear()
+    assert _plain_publication_risk(b'public text') is None
+    assert _plain_publication_risk(b'public text') is None
+    assert _cached_plain_publication_risk.cache_info().hits == 1
+    size = _cached_plain_publication_risk.cache_info().currsize
+    assert _plain_publication_risk(b'x'*2048) is None
+    assert _cached_plain_publication_risk.cache_info().currsize == size
+    assert publication_risk(b'{"text":"same-value"}') is None
+    assert publication_risk(b'{"password":"same-value"}') == 'sensitive field value'
+
+
+def test_large_plain_risk_cache_reuses_hashes_without_retaining_payload(monkeypatch):
+    import json
+    from harness.web_fetch import publication_privacy as privacy
+    privacy._large_plain_risks.clear()
+    original = privacy._scan_plain_publication_risk
+    calls = []
+    def scan(data):
+        calls.append(len(data))
+        return original(data)
+    monkeypatch.setattr(privacy,'_scan_plain_publication_risk',scan)
+    value = b'unique immutable public evidence '*200
+    assert privacy._plain_publication_risk(value) is None
+    assert privacy._plain_publication_risk(value) is None
+    assert calls == [len(value)]
+    assert privacy._plain_publication_risk(value+b'changed') is None
+    assert calls == [len(value),len(value)+7]
+    assert all(isinstance(key[1],bytes) and len(key[1])==32 for key in privacy._large_plain_risks)
+    assert privacy.publication_risk(json.dumps({'password':value.decode()}).encode()) == 'sensitive field value'
+
+
+@pytest.mark.parametrize('name',['response.txt','response.json','response.log'])
+def test_json_wrapped_text_is_projected_by_content_not_filename(name):
+    import json
+    from harness.web_fetch.publication_privacy import project_file,publication_risk
+    original = json.dumps({'success':True,'result':'API example: {"clientSecret": "string"}'}).encode()
+    public,receipt = project_file(name,original)
+    assert receipt and receipt['original_sha256'] != receipt['published_sha256']
+    assert '[REDACTED]' in json.loads(public)['result']
+    assert publication_risk(public) is None
+    safe = b'{ "success": true, "result": "public text" }\n'
+    assert project_file(name,safe) == (safe,None)
+
+
+def test_nested_sensitive_objects_and_documented_auth_placeholders_agree_at_export():
+    import json
+    from harness.web_fetch.publication_privacy import project_file,publication_risk
+    raw = b'{"credentials":{"user":"example-user","password":"example-pass"}}'
+    public,receipt = project_file('native.txt',raw)
+    assert receipt and json.loads(public)['credentials'] == {'user':'[REDACTED]','password':'[REDACTED]'}
+    assert publication_risk(public) is None
+    placeholder = b'{"Authorization":"Bearer <YOUR_API_KEY>"}'
+    assert project_file('native.txt',placeholder) == (placeholder,None)
+    assert publication_risk(placeholder) is None
+
+
+def test_review_layer_excerpts_project_public_examples_and_rebind_wrappers():
+    from harness.web_fetch.publication_privacy import project_host_metadata_files, publication_risk
+    example = '{"clientSecret":"private-example-canary","count":5}'
+    nested = {'frozen_reference_files': [{'probes': [{'text': example}]}]}
+    original = {'attempts': [{'agent_evidence': example, 'effective_agent_evidence': example,
+        'anomaly_review': {'layers': {'reference': {**nested,
+            'evidence': json.dumps(nested)}}}}]}
+    raw = json.dumps(original).encode()
+    files = {'local-evidence/review/supplement.json': raw,
+             'result-review.json': json.dumps({'supplemental_reviews': [{'path':
+                 'local-evidence/review/supplement.json', 'sha256': hashlib.sha256(raw).hexdigest()}]}).encode()}
+    unchanged, _ = project_host_metadata_files(files, ['/Users/fixture'])
+    assert unchanged == files and publication_risk(raw)
+    public, receipt = project_host_metadata_files(files, ['/Users/fixture'], public_excerpt_views=True)
+    projected = public['local-evidence/review/supplement.json']
+    assert not publication_risk(projected) and b'private-example-canary' not in projected
+    row = json.loads(projected)['attempts'][0]
+    assert json.loads(row['agent_evidence'])['count'] == 5
+    assert json.loads(row['anomaly_review']['layers']['reference']['evidence'])['frozen_reference_files'][0]['probes'][0]['text']
+    binding = json.loads(public['result-review.json'])['supplemental_reviews'][0]
+    assert binding['sha256'] == hashlib.sha256(projected).hexdigest()
+    assert files['local-evidence/review/supplement.json'] == raw
+    record = next(r for r in receipt['files'] if r['path'].endswith('supplement.json'))
+    assert record['original_sha256'] == hashlib.sha256(raw).hexdigest()
+    assert record['published_sha256'] == binding['sha256']
+
+
+def test_review_projection_does_not_hide_risks_in_unrelated_metadata():
+    from harness.web_fetch.publication_privacy import project_host_metadata_files, publication_risk
+    raw = json.dumps({'unrelated': '{"clientSecret":"private-example-canary"}'}).encode()
+    files = {'local-evidence/review/supplement.json': raw}
+    public, _ = project_host_metadata_files(files, ['/Users/fixture'], public_excerpt_views=True)
+    assert public == files and publication_risk(public['local-evidence/review/supplement.json'])

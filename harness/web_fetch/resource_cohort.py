@@ -164,8 +164,9 @@ def load_cohort(root: Path) -> tuple[dict, list[dict], list[dict], dict]:
     require_verified_reference_checks(batches, cases=dataset, records=records, source=root,
                                       allow_scoring_rule_revision=True)
     require_result_review(root, dataset, records)
+    native_cases = {c['id']: c for c in dataset['cases']}
     for record in records:
-        verify_record_artifacts(root, record)
+        verify_record_artifacts(root, record, native_cases=native_cases)
     summary = build_summary(dataset, records, batches)
     summary['bindings'] = {
         'dataset_sha256': hashlib.sha256(dataset_path.read_bytes()).hexdigest(),

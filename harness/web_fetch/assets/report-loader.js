@@ -2,9 +2,23 @@
 const decoder=new TextDecoder();let currentPage='index.html',renderId=0;
 function englishRoute(){const hash=typeof location==='undefined'?'':location.hash||'',match=/(?:^#|&)page=([^&]+)/.exec(hash),path=match?decodeURIComponent(match[1]):currentPage;return path==='en/index.html'||path.startsWith('en/')||(typeof document!=='undefined'&&document.documentElement?.lang==='en')}
 function tr(zh,en){return englishRoute()?en:zh}
+async function compactCatalog(descriptor){
+ if(descriptor.schema_version!==3)return descriptor;
+ const compressed=await fetch('manifest.json.gz');if(!compressed.ok)throw Error(tr('数据目录加载失败','Failed to load the data catalog'));
+ const m=await new Response(compressed.body.pipeThrough(new DecompressionStream('gzip'))).json();
+ const response=await fetch('catalog.bin.gz');if(!response.ok)throw Error(tr('内容索引加载失败','Failed to load the content index'));
+ const buffer=await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+ m.binary=new DataView(buffer);m.sizes=new Uint16Array(m.block_count);m.offsets=new Uint32Array(m.block_count);m.packIds=new Uint16Array(m.block_count);
+ let packId=0,offset=0;
+ for(let i=0;i<m.block_count;i++){
+  if(packId+1<m.pack_starts.length&&i===m.pack_starts[packId+1]){packId++;offset=0}
+  m.sizes[i]=m.binary.getUint16(i*2,true);m.offsets[i]=offset;m.packIds[i]=packId;offset+=m.sizes[i];
+ }
+ return m;
+}
 let manifestPromise;
 function manifest(){
- if(!manifestPromise)manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error(tr('数据目录加载失败','Failed to load the data catalog'));return r.json()}).catch(error=>{manifestPromise=undefined;throw error});
+ if(!manifestPromise)manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error(tr('数据目录加载失败','Failed to load the data catalog'));return r.json()}).then(compactCatalog).catch(error=>{manifestPromise=undefined;throw error});
  return manifestPromise;
 }
 function reportText(zh,en,path=currentPage){return path.startsWith('en/')?en:zh}
@@ -22,7 +36,7 @@ function restorePageState(path){
 }
 const packs=new Map();
 async function pack(name){
- if(!packs.has(name))packs.set(name,fetch(name).then(async r=>{if(!r.ok)throw Error(tr('内容加载失败','Failed to load report content'));return new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())}).catch(error=>{packs.delete(name);throw error}));
+ if(!packs.has(name))packs.set(name,manifest().then(m=>fetch(m.external_packs?.[name]?.url||name)).then(async r=>{if(!r.ok)throw Error(tr('内容加载失败','Failed to load report content'));return new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())}).catch(error=>{packs.delete(name);throw error}));
  const result=await packs.get(name);
  if(packs.size>6){const first=packs.keys().next().value;if(first!==name)packs.delete(first)}
  return result;
@@ -31,7 +45,17 @@ async function fileBytes(path){
  const m=await manifest(),f=m.files[path];if(!f)throw Error(tr('文件不存在：','File not found: ')+path);
  if(f.inline_base64!==undefined){const bytes=Uint8Array.from(atob(f.inline_base64),c=>c.charCodeAt(0));if(bytes.length!==f.size)throw Error(tr('文件长度错误：','Invalid file length: ')+path);return bytes}
  const result=new Uint8Array(f.size);let offset=0;
- for(const hash of f.parts){const part=m.blocks[hash],bytes=await pack(part.pack);result.set(bytes.subarray(part.offset,part.offset+part.size),offset);offset+=part.size}
+ if(m.schema_version===3){
+  let id=0;
+  for(let i=0;i<f.parts[1];i++){
+   const delta=m.binary.getUint32(m.block_count*2+(f.parts[0]+i)*4,true);id+=(delta>>>1)^-(delta&1);
+   const bytes=await pack(m.packs[m.packIds[id]]),start=m.offsets[id],size=m.sizes[id];
+   result.set(bytes.subarray(start,start+size),offset);offset+=size;
+  }
+ }else{
+  for(const hash of f.parts){const part=m.blocks[hash],bytes=await pack(part.pack);result.set(bytes.subarray(part.offset,part.offset+part.size),offset);offset+=part.size}
+ }
+ if(offset!==f.size)throw Error(tr('文件长度错误：','Invalid file length: ')+path);
  return result;
 }
 async function textFile(path){return decoder.decode(await fileBytes(path))}
@@ -89,7 +113,7 @@ async function fill(pre,force=false){
  pre.dataset.loaded='1';pre.classList.remove('deferred-evidence');pre.removeAttribute('role');pre.textContent=tr('正在加载完整内容…','Loading complete content…');
  try{let text=pre.dataset.record?await metadata(Number(pre.dataset.record)-1):await textFile(pre.dataset.file);
   if(pre.dataset.readable)text=text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,c=>'\\x'+c.charCodeAt(0).toString(16).padStart(2,'0'));
-  if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label',tr('完整实际返回','Complete actual output'));pre.replaceWith(box)}else pre.textContent=text;
+  if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label',pre.dataset.evidenceKind==='log'?tr('完整日志与响应','Complete logs and responses'):tr('完整实际返回','Complete actual output'));pre.replaceWith(box)}else pre.textContent=text;
  }catch(error){pre.dataset.loaded='';pre.dataset.deferred='';deferFill(pre,tr('加载失败：','Load failed: ')+error.message+tr('。点击重试，或下载原始输出。','. Click to retry, or download the original output.'))}
 }
 async function render(){

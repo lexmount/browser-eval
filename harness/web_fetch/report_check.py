@@ -7,7 +7,7 @@ import re
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 from harness.record_io import load_jsonl
 from harness.report_languages import check_language_contract, generated_languages, visible_numbers
@@ -20,20 +20,67 @@ from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.storage import require_canonical_inputs, require_current_report_profile
 
 
+def require_public_evidence_page(content, relative, views):
+    """Require inspectable public downloads and honest original/public hashes."""
+    from bs4 import BeautifulSoup
+    from urllib.parse import unquote, urljoin
+    content = re.sub(r'<(pre|script|style)\b[^>]*>.*?</\1>', '', content, flags=re.I | re.S)
+    soup = BeautifulSoup(content, 'html.parser')
+    visible = soup.get_text(' ', strip=True)
+    if '<span data-report-en=' in visible:
+        raise ValueError('Public evidence link displays escaped interface markup')
+    base = 'https://report.invalid/'+relative
+    if soup.find('base', href=True):
+        base = urljoin(base, soup.find('base')['href'])
+    targets = set()
+    for anchor in soup.select('a[href]'):
+        href = anchor['href']
+        parsed = urlsplit(href)
+        if parsed.scheme or parsed.netloc or href.startswith('/'):
+            continue
+        targets.add(unquote(urlsplit(urljoin(base, href)).path).lstrip('/'))
+    answer = views['scored_answer']
+    if answer['original_sha256'] != answer['published_sha256']:
+        if (answer['original_sha256'] not in visible or answer['published_sha256'] not in visible
+                or answer['path'] not in targets or answer['receipt'] not in targets):
+            raise ValueError('Public answer lacks visible original/public identities or download links')
+    native = views.get('native_response')
+    if native and (native['path'] not in targets or native['receipt'] not in targets):
+        raise ValueError('Complete native public response or its identity receipt is not linked')
+
+
+def check_public_evidence_pages(root, records):
+    from .publication_privacy import public_render_views
+    views = public_render_views(root, records)
+    languages = generated_languages(root)
+    for row in records:
+        selected = views[row['attempt_id']]
+        for language in languages:
+            relative = ('en/' if language == 'en' else '')+'attempts/'+row['attempt_id']+'.html'
+            path = root/relative
+            if not path.is_file():
+                raise ValueError('Public evidence result page is missing')
+            require_public_evidence_page(path.read_text(), relative, selected)
+
+
 class Tables(HTMLParser):
     def __init__(self):
         super().__init__()
         self.in_th = False
         self.first = False
         self.headers = []
+        self.unindexed_headers = []
+        self.unindexed = False
 
     def handle_starttag(self, tag, attrs):
         if tag == "table":
             self.first = True
+            self.unindexed = dict(attrs).get('data-row-index') == 'false'
         if tag == "th" and self.first:
             self.in_th = True
             self.first = False
             self.headers.append("")
+            self.unindexed_headers.append(self.unindexed)
 
     def handle_data(self, text):
         if self.in_th:
@@ -42,6 +89,28 @@ class Tables(HTMLParser):
     def handle_endtag(self, tag):
         if tag == "th":
             self.in_th = False
+
+
+def require_table_index_headers(parser, *, english=False, diagnostic=False):
+    expected = 'No.' if english else '序号'
+    for header, unindexed in zip(parser.headers, parser.unindexed_headers):
+        if diagnostic and unindexed and header in {'方法', '方法 ↕', 'Method', 'Method ↕'}:
+            continue
+        if header != expected:
+            raise ValueError('Unexpected table index header: ' + header)
+
+
+def require_home_comparison_layout(home, track_count, *, diagnostic=False, sample_ranking=False):
+    overall = ('任务判定汇总（非排名）' if diagnostic else
+               '本轮任务通过率排名' if sample_ranking else '综合通过率总榜')
+    details = '按任务类别查看诊断结果' if diagnostic else f'{track_count} 类分榜'
+    markers = [f'{track_count} 类任务概览', overall, details]
+    headings = [re.sub(r'<[^>]+>', '', value) for value in re.findall(r'<h2[^>]*>(.*?)</h2>', home, re.S)]
+    if any(marker not in headings for marker in markers) or not (
+            headings.index(markers[1]) < headings.index(markers[0]) < headings.index(markers[2])):
+        raise ValueError('Task overview and comparison must precede detailed results')
+    if '判分完整性' not in home or ('本类最高：' in home) == diagnostic:
+        raise ValueError('Comparison winner disclosure differs from evidence state')
 
 
 class VisibleText(HTMLParser):
@@ -100,6 +169,7 @@ class PageShape(HTMLParser):
         self.assets = assets
         self.figures = []
         self.images = []
+        self.english_images = []
 
     def handle_starttag(self, tag, attrs):
         if tag == "figure":
@@ -107,6 +177,11 @@ class PageShape(HTMLParser):
         if self.assets and self.figures:
             attrs = self.assets.rewrite(self.page, self.figures[-1], tag, attrs)
         values = dict(attrs)
+        # This script selects the primary language at the shared entry point;
+        # it is not report content and intentionally exists only on that page.
+        if tag == "script" and "data-report-language-entry" in values:
+            self.skip += 1
+            return
         self.tags[tag] += 1
         if values.get("id"):
             self.ids.add(values["id"])
@@ -115,12 +190,15 @@ class PageShape(HTMLParser):
                 (key, value)
                 for key, value in attrs
                 if key.startswith("data-") and key != "data-i18n-attrs"
+                and not (key == "data-en-src" and self.page
+                         and self.page.parts[-2:] == ("methodology", "index.html"))
             )
         )
         if values.get("href") and (not values.get("hreflang")):
             self.links.append(values["href"])
         if tag == "img" and values.get("src"):
             self.images.append(values["src"])
+            self.english_images.append(values.get("data-en-src", values["src"]))
         if tag in {"pre", "code", "script", "style"}:
             self.skip += 1
 
@@ -133,6 +211,93 @@ class PageShape(HTMLParser):
     def handle_data(self, text):
         if not self.skip:
             self.numbers.extend(visible_numbers(text))
+
+
+def check_localized_image_sources(zh, en, canonical):
+    """Require each declared English companion, never silently use the old image."""
+    expected = Counter(canonical(zh.page, value) for value in zh.english_images)
+    actual = Counter(canonical(en.page, value) for value in en.images)
+    if expected != actual:
+        raise ValueError('Localized image sources differ from the declared companions')
+
+
+def check_saved_result_summary(root, dataset, records):
+    from lexbench_webfetch.metrics import task_measured, task_passed
+    cases = {case['id']: case for case in dataset['cases']}
+    summary = json.loads((root / 'summary.json').read_text())
+    groups = {}
+    for row in records:
+        key = (cases[row['case_id']].get('track', 'web'), row['provider'])
+        groups.setdefault(key, []).append(row)
+    for (track, provider), rows in groups.items():
+        saved = summary.get(track, {}).get(provider, {})
+        expected = {'attempts': len(rows),
+                    'task_pass': sum(task_passed(row['ok'], row['metrics']) for row in rows),
+                    'task_evaluated_attempts': sum(task_measured(row['metrics']) for row in rows),
+                    'task_excluded_attempts': sum(bool(row['metrics'].get('evaluation_excluded')) for row in rows)}
+        if any(saved.get(key) != value for key, value in expected.items()):
+            raise ValueError('Saved result summary differs from current evidence: ' + provider + '/' + track)
+
+
+def require_replacement_execution(root, binding, physical, logical):
+    """Keep superseded task calls as history without counting them as current rows."""
+    from .publication_privacy import read_evidence_binding
+    receipt = json.loads(read_evidence_binding(root, binding).read_text())
+    previous = load_jsonl(read_evidence_binding(root, receipt['baseline_results']))
+    calls = load_jsonl(read_evidence_binding(root, receipt['cohort_results']))
+    expected_physical = Counter(row['attempt_id'] for row in previous + calls)
+    current = [row for row in previous if row['case_id'] != receipt['removed_case_id']]
+    expected_logical = Counter(row['attempt_id'] for row in current + calls)
+    if physical != expected_physical or logical != expected_logical:
+        raise ValueError('Task replacement physical/logical call inventory differs')
+
+
+class VisibleLocalScope(HTMLParser):
+    """Disclosure attributes count only when attached to visible explanatory text."""
+    def __init__(self):
+        super().__init__()
+        self.stack = []
+        self.visible = set()
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        inherited = self.stack[-1][1:] if self.stack else (False, set())
+        style = re.sub(r'\s+', '', attrs.get('style', '')).lower()
+        hidden = (inherited[0] or tag in {'script', 'style', 'template'}
+                  or 'hidden' in attrs or attrs.get('aria-hidden') == 'true'
+                  or 'display:none' in style or 'visibility:hidden' in style)
+        kinds = set(inherited[1])
+        if attrs.get('data-evidence-state') == 'local_measurement': kinds.add('evidence')
+        if attrs.get('data-ranking-scope') == 'saved-task-pass-rate': kinds.add('ranking')
+        if tag not in {'area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'}:
+            self.stack.append((tag, hidden, kinds))
+
+    def handle_endtag(self, tag):
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index][0] == tag:
+                del self.stack[index:]
+                break
+
+    def handle_data(self, data):
+        if data.strip() and self.stack and not self.stack[-1][1]:
+            self.visible.update(self.stack[-1][2])
+
+
+def check_local_diagnostic_presentation(root: Path, *, ranked=False):
+    """Track evidence state and scope any explicitly requested sample ranking."""
+    for path in root.rglob('*.html'):
+        page = path.read_text(encoding='utf-8')
+        if '<meta name="browser-eval-report" content="1">' not in page:
+            continue  # Original response/source HTML is evidence, not report prose.
+        disclosure = VisibleLocalScope()
+        disclosure.feed(page)
+        if 'evidence' not in disclosure.visible:
+            raise ValueError('Local diagnostic disclosure missing: ' + str(path.relative_to(root)))
+        if ranked and 'ranking' not in disclosure.visible:
+            raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))
+        for table in re.findall(r'<table\b[^>]*\bid="ranking-[^"]+".*?</table>', page, re.S):
+            if not ranked and ('data-dir="desc"' in table or re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table)):
+                raise ValueError('Uncertified diagnostic comparison assigns ranks: ' + str(path.relative_to(root)))
 
 
 def check(root: Path, *, authority_root: Path, profile: Path | None = None, presentation_binding: Path | None = None, source_dataset: Path | None = None):
@@ -167,7 +332,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     if manifest_path.is_file():
         from harness.reporting.templates import resolve_template
         manifest = json.loads(manifest_path.read_text())
-        expected_template = None if d.get('comparison', {}).get('kind') == 'uniform_native_local_measurement' else resolve_template('webfetch', root=repository)
+        expected_template = resolve_template('webfetch', root=repository)
         if manifest.get('template') != expected_template:
             raise ValueError('Report manifest differs from the maintained template')
         for name in ('dataset', 'results'):
@@ -198,22 +363,50 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             "PASS: WebMainBench preselected-200 matrix, sample, scores, retries, "
             "declared-language routes and reference assets verified"
         )
+    public_payload_views = False
+    current_snapshot_authority = False
     names = {r["provider"] for r in rs}
     local_measurement = d.get("comparison", {}).get("kind") == "uniform_native_local_measurement"
     if presentation_binding and not local_measurement:
         raise ValueError("Presentation binding requires a frozen uniform-native diagnostic snapshot")
+    from .report import local_pass_rate_ranking
+    sample_ranking = local_measurement and local_pass_rate_ranking(d)
     if local_measurement:
+        check_local_diagnostic_presentation(root, ranked=sample_ranking)
+        if (root / 'result-review.json').is_file():
+            from .adjudication_evidence import require_adjudication_evidence, require_current_review_state
+            review=json.loads((root / 'result-review.json').read_text())
+            require_current_review_state(rs,review)
+            require_adjudication_evidence(root,d,rs,review)
+        if (root / 'local-evidence/result-ledger.json').is_file():
+            from .result_ledger import validate_ledger
+            ledger = validate_ledger(json.loads((root / 'local-evidence/result-ledger.json').read_text()), rs, source=root)
+            if ledger['states'][-1]['source_results_sha256'] != hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest():
+                raise ValueError('Result ledger source hash differs from current results')
         from .local_audit import require_local_measurement
+        from .local_execution_contract import local_measurement_cases
         if presentation_binding:
             if profile:
                 raise ValueError("Presentation binding cannot certify a release profile")
             from .report_build import validate_local_presentation
-            validate_local_presentation(root, presentation_binding)
+            checked_binding = validate_local_presentation(root, presentation_binding)[0]
+            public_payload_views = bool(checked_binding.get("publication_evidence_views"))
+            if checked_binding.get('offline_revision'):
+                from .publication_privacy import read_evidence_binding
+                current_receipt = json.loads(read_evidence_binding(root, checked_binding['offline_revision']).read_text())
+                current_snapshot_authority = (current_receipt.get('kind') == 'current_local_snapshot_authority'
+                                              and current_receipt.get('schema_version') == 1)
         else:
             require_local_measurement(root, d, rs)
         inventory = {track: {"case_ids": [case["id"] for case in d["cases"] if case.get("track", "web") == track], "providers": providers} for track, providers in d["coverage_plan"].items()}
-        canonical_dataset = repository / json.loads((root / "local-run-contract.json").read_text())["dataset_path"]
-    elif source_dataset or (profile_path and (json.loads(profile_path.read_text()).get('frozen_inputs') or (profile_path.parent / "dataset.json").is_file())):
+        local_contract = json.loads((root / "local-run-contract.json").read_text())
+        canonical_cases = ({case["id"]: case for case in d["cases"]}
+                           if presentation_binding and (current_snapshot_authority
+                               or d.get('comparison', {}).get('task_replacement'))
+                           else {case["id"]: case for case in local_measurement_cases(local_contract, root)})
+        canonical_dataset = (root / "dataset.json" if local_contract.get("dataset_sources")
+                             else repository / local_contract["dataset_path"])
+    elif source_dataset or (profile_path and (json.loads(profile_path.read_text()).get('frozen_inputs') or (profile_path.parent / 'dataset.json').is_file())):
         inventory = {
             track: {
                 "case_ids": [
@@ -277,21 +470,34 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         raise ValueError("Report acceptance check failed")
     if not len({(r["provider"], r["case_id"]) for r in rs}) == expected:
         raise ValueError("Report acceptance check failed")
+    if public_payload_views:
+        check_public_evidence_pages(root, rs)
     case_by_id = {c["id"]: c for c in d["cases"]}
     for case in d["cases"]:
         safe_identifier(case["id"])
-        validate_resource_source_evidence(case, canonical_dataset, execution=True)
-    reliability = require_reliable(d, rs)
+        validate_resource_source_evidence(case, canonical_dataset)
+    if local_measurement:
+        from .local_audit import require_complete_local_inventory
+        reliability = require_complete_local_inventory(d, rs)
+    else:
+        reliability = require_reliable(d, rs)
     saved_reliability = json.loads((root / "reliability.json").read_text())
     if not saved_reliability == reliability:
         raise ValueError("Saved reliability status differs from report evidence")
+    if local_measurement and d.get('comparison', {}).get('result_ledger'):
+        check_saved_result_summary(root, d, rs)
     for r in rs:
         safe_identifier(r["attempt_id"])
         safe_identifier(r["provider"])
         safe_identifier(r["case_id"])
-        p = contained_path(root, r["artifact_path"], reject_symlinks=True)
-        if not hashlib.sha256(p.read_bytes()).hexdigest() == r["metrics"]["content_sha256"]:
-            raise ValueError(p)
+        if public_payload_views:
+            from .publication_privacy import read_evidence_binding
+            read_evidence_binding(root, {'path': r['artifact_path'],
+                                         'sha256': r['metrics']['content_sha256']})
+        else:
+            p = contained_path(root, r['artifact_path'], reject_symlinks=True)
+            if hashlib.sha256(p.read_bytes()).hexdigest() != r['metrics']['content_sha256']:
+                raise ValueError(p)
         if not r["ok"]:
             if not not r["metrics"]["content_pass"]:
                 raise ValueError("Report acceptance check failed")
@@ -309,14 +515,15 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             )
             if local_measurement:
                 from lexbench_webfetch.stable_tasks import validate_acceptance_contract
-                validate_acceptance_contract(c["acceptance_contract"])
+                if c.get("acceptance_contract"):
+                    validate_acceptance_contract(c["acceptance_contract"])
+                elif not (stable_checks or c.get("task_kind") == "file"):
+                    raise ValueError(c["id"])
             elif not stable_checks:
                 raise ValueError(c["id"])
         if c.get("ground_truth_main_content"):
             expected = c["ground_truth_main_content"].encode()
             if local_measurement:
-                from .reference_inputs import read_dataset_bytes
-                canonical_cases = {case["id"]: case for case in json.loads(read_dataset_bytes(canonical_dataset))["cases"]}
                 valid_reference = expected == canonical_cases[c["id"]]["ground_truth_main_content"].encode()
             elif source_dataset:
                 digest = hashlib.sha256(expected).hexdigest()
@@ -350,9 +557,13 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             and (target.suffix.lower() in {".html", ".htm"})
         ):
             target = Path(*target.parts[1:])
+        query = parsed.query
+        if target == Path("index.html"):
+            query = urlencode([(key, item) for key, item in parse_qsl(query, keep_blank_values=True)
+                               if (key, item) != ("report-language", "zh")])
         return (
             target.as_posix()
-            + ("?" + parsed.query if parsed.query else "")
+            + ("?" + query if query else "")
             + ("#" + parsed.fragment if parsed.fragment else "")
         )
 
@@ -392,6 +603,8 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             en_links = Counter(canonical_link(en_path, value) for value in en.links)
             if zh_links != en_links:
                 bilingual_issues.append((relative, "evidence or navigation links differ"))
+            if relative == Path("methodology/index.html"):
+                check_localized_image_sources(zh, en, canonical_link)
             if relative in {Path("guide/index.html"), Path("guide/article.html")}:
                 if Counter(canonical_link(zh_path, value) for value in zh.images) != Counter(
                     canonical_link(en_path, value) for value in en.images
@@ -417,6 +630,12 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     allowed_english_source_text = {"中文"} | {
         case["name"] for case in d["cases"] if case.get("name")
     }
+    archived_manifest = root / "archived-reading.json"
+    if archived_manifest.is_file():
+        from .report_reading import render_archived_reading
+        # Validate the archived source before allowing its original case names.
+        render_archived_reading(root, "en" if has_english else "zh")
+        allowed_english_source_text.update(json.loads(archived_manifest.read_text()).get("preserved_source_names", []))
     if has_english:
         for relative in english_primary:
             if relative not in en_pages:
@@ -461,9 +680,8 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         parser.feed(text)
         relative_parts = p.relative_to(root).parts
         if "browser-use" not in relative_parts:
-            expected_index_header = "No." if relative_parts[0] == "en" else "序号"
-            if not all(h == expected_index_header for h in parser.headers):
-                raise ValueError((p, parser.headers))
+            require_table_index_headers(parser, english=relative_parts[0] == 'en',
+                                        diagnostic=local_measurement)
         if p.parent.name == "attempts":
             record = next(r for r in rs if r["attempt_id"] == p.stem)
             case = case_by_id[record["case_id"]]
@@ -473,7 +691,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                 else "标准答案与验收规则"
                 if case.get("task_kind") == "structure"
                 else "验收规则（无全文参考）"
-                if case.get('task_kind', 'body') == 'body' and not (case.get('ground_truth_main_content') or case.get('reference_answer'))
+                if case.get("task_kind", "body") == "body" and not (case.get("ground_truth_main_content") or case.get("reference_answer"))
                 else "完整标准答案"
             )
             actual_heading = (
@@ -505,7 +723,13 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     execution = json.loads((root / "execution.json").read_text())["batches"]
     physical_attempts = Counter(i for b in execution for i in b["attempt_ids"])
     logical_attempts = Counter(r["attempt_id"] for r in rs)
-    if d.get("comparison", {}).get("superseded_formal_provider_calls"):
+    if current_snapshot_authority:
+        if physical_attempts != logical_attempts:
+            raise ValueError('Current snapshot physical/logical call inventory differs')
+    elif d.get('comparison', {}).get('task_replacement'):
+        require_replacement_execution(root, d['comparison']['task_replacement'],
+                                      physical_attempts, logical_attempts)
+    elif d.get("comparison", {}).get("superseded_formal_provider_calls"):
         if not set(physical_attempts) == set(logical_attempts):
             raise ValueError("Report acceptance check failed")
         if (
@@ -517,14 +741,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         raise ValueError("Report acceptance check failed")
     home = (root / "index.html").read_text()
     track_count = len({case.get("track", "web") for case in d["cases"]})
-    if (
-        not home.index("<h2>综合通过率总榜</h2>")
-        < home.index(f"<h2>{track_count} 类任务概览</h2>")
-        < home.index(f"<h2>{track_count} 类分榜</h2>")
-    ):
-        raise ValueError("Core comparison must precede the overview and detailed rankings")
-    if not ("本类最高：" in home and "判分完整性" in home):
-        raise ValueError("Report acceptance check failed")
+    require_home_comparison_layout(home, track_count, diagnostic=local_measurement and not sample_ranking, sample_ranking=sample_ranking)
     if (root / "resource-cohort/resource-comparison.json").is_file():
         from .report_resources import check_resource_presentation
         resource_summary = json.loads((root / "resource-cohort/resource-comparison.json").read_text())
@@ -716,7 +933,11 @@ def check_revision(out: Path, *, authority_root: Path):
             if expected_failure not in [h.get_text() for h in soup.select("#filtered-table th")]:
                 raise ValueError(path)
     records = load_jsonl(out / 'results.jsonl')
-    if records and all(row.get('provider_type') == 'fixture' for row in records):
+    from .methods import native_browser_engine
+    synthetic = dataset.get('comparison', {}).get('kind') == 'synthetic_browser_report'
+    if records and all(row.get('provider_type') == 'fixture' for row in records) and (
+        synthetic or all(not native_browser_engine(row['provider']) for row in records)
+    ):
         methods = BeautifulSoup((out / 'adoption/index.html').read_text(), 'html.parser')
         for name in {row['provider'] for row in records}:
             if methods.find(id='interface-' + name) is None:

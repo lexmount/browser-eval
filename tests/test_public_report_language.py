@@ -13,6 +13,70 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_media_family_guides_preserve_numbers_and_translate_every_explanation():
+    from collections import Counter
+    from pathlib import PurePosixPath
+    from harness.web_fetch.report_components import examples, task_contract_guide, task_pass_guide
+    from harness.web_fetch.report_i18n import localize_html
+    from harness.web_fetch.report_check import EnglishNarrative, PageShape
+
+    source = task_pass_guide('web_media') + task_pass_guide('media_file') + task_contract_guide() + examples()
+    english = localize_html(source, PurePosixPath('methodology/index.html'))
+    zh_shape, en_shape = PageShape(), PageShape()
+    zh_shape.feed(source)
+    en_shape.feed(english)
+    assert Counter(zh_shape.numbers) == Counter(en_shape.numbers)
+    narrative = EnglishNarrative({'中文'})
+    narrative.feed(english)
+    assert not narrative.untranslated
+
+
+def test_registered_interfaces_and_pricing_have_complete_english(tmp_path):
+    from collections import Counter
+    from pathlib import PurePosixPath
+    from harness.web_fetch.report import table, cell, link, esc
+    from harness.web_fetch.report_interfaces import SPECS, render_interfaces
+    from harness.web_fetch.report_pricing import render_pricing
+    from harness.web_fetch.report_i18n import localize_html
+    from harness.web_fetch.report_check import EnglishNarrative, PageShape
+
+    source = render_pricing(tmp_path, list(SPECS), table=table, cell=cell, link=link, esc=esc)
+    source += render_interfaces(tmp_path, [])
+    english = localize_html(source, PurePosixPath('adoption/index.html'))
+    zh_shape, en_shape = PageShape(), PageShape()
+    zh_shape.feed(source)
+    en_shape.feed(english)
+    assert Counter(zh_shape.numbers) == Counter(en_shape.numbers)
+    narrative = EnglishNarrative({'中文'})
+    narrative.feed(english)
+    assert not narrative.untranslated
+
+
+def test_scoped_english_refresh_preserves_unselected_pages_and_rejects_escaping_paths(tmp_path, monkeypatch):
+    from harness.web_fetch.report_i18n import write_english_report
+    (tmp_path/'index.html').write_text('<html lang="zh-CN"><body><h1>评测方法</h1></body></html>')
+    (tmp_path/'en/attempts').mkdir(parents=True)
+    saved = tmp_path/'en/attempts/saved.html'
+    original = b'Exact previously generated result detail'
+    saved.write_bytes(original)
+    assert write_english_report(tmp_path, source_routes=['index.html']) == 1
+    assert 'Methodology' in (tmp_path/'en/index.html').read_text()
+    assert saved.read_bytes() == original
+    monkeypatch.chdir(tmp_path)
+    assert write_english_report(Path('.'), source_routes=['index.html']) == 1
+    for route in ('../outside.html', '/outside.html', 'en/index.html', 'results.jsonl'):
+        with pytest.raises(ValueError, match='relative Chinese HTML'):
+            write_english_report(tmp_path, source_routes=[route])
+    assert saved.read_bytes() == original
+    (tmp_path/'alias').mkdir()
+    (tmp_path/'alias/index.html').write_text('<html></html>')
+    (tmp_path/'outside').mkdir()
+    (tmp_path/'en/alias').symlink_to(tmp_path/'outside', target_is_directory=True)
+    with pytest.raises(ValueError, match='Symlinked evidence'):
+        write_english_report(tmp_path, source_routes=['alias/index.html'])
+    assert not (tmp_path/'outside/index.html').exists()
+
+
 @pytest.mark.parametrize("mode", ["--diagnostic-cohorts", "--webmainbench-full"])
 @pytest.mark.parametrize("language", [None, "zh", "en"])
 @pytest.mark.parametrize("saved", [False, True])

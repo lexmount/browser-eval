@@ -9,13 +9,39 @@ from urllib.parse import urlsplit
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import plan_for_case, native_default_case
+from ..native_projection import native_answer_projection
 from .base import Provider
-from .http_client import inner_timeout_budget, request
+from ..native_routes import NativeRoute
+from .http_client import request
 
 
 class FirecrawlProvider(Provider):
+    def native_route(self, case) -> NativeRoute:
+        fields = (['data.rawBase64'] if case.task_kind == 'file' else
+                  ['data.markdown', 'data.links', 'data.images', 'data.videos', 'data.video'])
+        return NativeRoute('http', '/v2/scrape', tuple(fields + ['data.metadata.title', 'data.metadata.url']))
+
     _PROXY_MAX_CREDITS = {"basic": 1, "enhanced": 1, "auto": 1}
     _VIDEO_FORMAT_CREDITS = 5
+
+    def native_http_arguments(self, case, timeout):
+        formats = ['rawBase64'] if case.task_kind == 'file' else list(self.config.get('formats', ['markdown']))
+        if case.track == 'video' and case.task_kind == 'resource' and 'video' not in formats:
+            formats.append('video')
+        body = {'url': case.url, 'formats': formats, 'maxAge': int(self.config.get('max_age', 0)),
+                'proxy': str(self.config.get('proxy', 'auto'))}
+        if 'only_main_content' in self.config:
+            body['onlyMainContent'] = self.config['only_main_content']
+        if case.task_kind == 'file':
+            body['parsers'] = []
+        headers = {'Authorization': 'Bearer '+str(self.config['api_key'])} if self.config.get('api_key') else {}
+        return (str(self.config.get('base_url', 'https://api.firecrawl.dev')).rstrip('/') + '/v2/scrape',
+                self.native_http_options(body, headers, timeout))
+
+    def diagnostic_http_arguments(self, case, timeout):
+        endpoint, arguments = self.native_http_arguments(case, timeout)
+        arguments['json_body']['timeout'] = min(int(timeout * 1000), 300_000)
+        return endpoint, arguments
 
     def validate(self) -> list[str]:
         if "only_main_content" in self.config and not isinstance(self.config["only_main_content"], bool):
@@ -95,7 +121,7 @@ class FirecrawlProvider(Provider):
                 "Firecrawl capacity_credits_per_call is below the configured proxy bound"
             )
         try:
-            http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
+            http_timeout = self.http_timeout_budget(timeout)
         except ValueError as error:
             raise ValueError("invalid Firecrawl capacity preflight timeout") from error
         base_url = str(self.config.get("base_url", "https://api.firecrawl.dev")).rstrip("/")
@@ -131,14 +157,10 @@ class FirecrawlProvider(Provider):
                 f"requires at least {required} credits"
             )
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
-        base_url = str(self.config.get("base_url", "https://api.firecrawl.dev")).rstrip("/")
-        headers = {}
-        if self.config.get("api_key"):
-            headers["Authorization"] = f"Bearer {self.config['api_key']}"
         try:
-            http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
+            http_timeout = self.http_timeout_budget(timeout)
         except ValueError:
             return ProviderResult(
                 False,
@@ -155,36 +177,9 @@ class FirecrawlProvider(Provider):
                 error_message="Firecrawl timeout budget is below the API minimum",
             )
         file_route = case.task_kind == "file"
-        requested_formats = (
-            ["rawBase64"]
-            if file_route
-            else list(self.config.get("formats", ["markdown"]))
-        )
-        # Firecrawl's native video format is a media-discovery output, not a
-        # replacement for page Markdown. Request it only for the declared
-        # video track so unrelated calls do not pay the extra media cost.
         native_video_route = case.track == "video" and case.task_kind == "resource"
-        if native_video_route and "video" not in requested_formats:
-            requested_formats.append("video")
-        request_body = {
-            "url": case.url,
-            # rawBase64 must be the sole format on file-delivery tasks.  It is
-            # the target URL's response body, unlike markdown/images/links.
-            "formats": requested_formats,
-            "maxAge": int(self.config.get("max_age", 0)),
-            "proxy": str(self.config.get("proxy", "auto")),
-            **({} if self.config.get("uniform_native_parameters") else {"timeout": service_timeout_ms}),
-        }
-        # Page-wide contracts can require navigation and footer text. Forward
-        # the native scope switch only when explicitly configured; omission
-        # retains the service default for existing cohorts.
-        if "only_main_content" in self.config:
-            request_body["onlyMainContent"] = self.config["only_main_content"]
-        if file_route:
-            # The benchmark asks for the original bytes. Disabling Firecrawl's
-            # default PDF parser avoids both irrelevant conversion and the
-            # otherwise unbounded per-page credit charge.
-            request_body["parsers"] = []
+        endpoint, arguments = self.request_arguments(case, http_timeout)
+        request_body = arguments['json_body']
         route = "v2_scrape_raw_base64" if file_route else "v2_scrape"
         wait_metadata = None
         dynamic_wait_strategy = None
@@ -289,14 +284,7 @@ class FirecrawlProvider(Provider):
                         "Firecrawl dynamic_wait_strategy must be actions or wait_for"
                     ),
                 )
-        response = request(
-            f"{base_url}/v2/scrape",
-            method="POST",
-            timeout=http_timeout,
-            max_bytes=int(self.config.get("max_bytes", 20_000_000)),
-            headers=headers,
-            json_body=request_body,
-        )
+        response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
         except ValueError:
@@ -384,6 +372,9 @@ class FirecrawlProvider(Provider):
         source_url = (
             metadata.get("sourceURL") if isinstance(metadata.get("sourceURL"), str) else None
         )
+        # sourceURL echoes the input; url records the observed destination.
+        final_url = metadata.get("url")
+        final_url = final_url if isinstance(final_url, str) and final_url else None
         content_type = (
             metadata.get("contentType")
             if isinstance(metadata.get("contentType"), str) else None
@@ -392,7 +383,7 @@ class FirecrawlProvider(Provider):
             ok=ok,
             content=content if ok and not file_route else "",
             status_code=response.status,
-            final_url=source_url or case.url,
+            final_url=final_url,
             title=metadata.get("title") if ok and isinstance(metadata.get("title"), str) else None,
             error_type=error_type,
             error_message=error_message,
@@ -436,6 +427,7 @@ class FirecrawlProvider(Provider):
                 "links": data.get("links") if ok and isinstance(data.get("links"), list) else [],
                 "images": data.get("images") if ok and isinstance(data.get("images"), list) else [],
                 "videos": videos if ok else [],
+                **({'native_answer_projection': native_answer_projection('firecrawl', case, payload, response.status)} if ok or final_url is not None else {}),
                 **(
                     {
                         "raw_file": {

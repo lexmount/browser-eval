@@ -9,6 +9,7 @@ from typing import Any
 
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
+from ..retrieval_hints import NATIVE_RETRIEVAL_HINTS
 
 
 def terminate_owned_process_tree(process):
@@ -77,32 +78,94 @@ def terminate_owned_process_tree(process):
 
 
 class Provider(ABC):
+    # Public configuration diagnostics only. Credentials, commands and local
+    # paths remain covered by the full configuration hash, never displayed.
+    # Adapters may extend this declaration for their own safe options.
+    native_configuration_fields = (
+        'max_bytes', 'max_age', 'max_age_hours', 'only_main_content', 'include_images',
+        'extract_depth', 'text_verbosity', 'include_resource_links', 'rich_links_limit',
+        'wait_until', 'block_private_networks', 'dns_mode', 'log_level', 'formats',
+    )
+
+    def native_configured_parameters(self):
+        """Return the adapter's explicitly public configuration diagnostics."""
+        from copy import deepcopy
+        return {key: deepcopy(self.config[key])
+                for key in self.native_configuration_fields if key in self.config}
+
+    def native_route(self, case):
+        """Declare native transport, interface and candidate answer fields."""
+        raise ValueError('Unsupported fixed-native interface: ' + self.type)
+
     def __init__(self, name: str, config: dict[str, Any]):
         self.name = name
         self.config = config
         self.type = str(config.get("type", name))
+        from functools import partial
+        from .http_client import inner_timeout_budget
+        self._native_mode = bool(config.get('uniform_native_parameters'))
+        self.http_timeout_budget = partial(inner_timeout_budget, native_default=self._native_mode)
+        self.request_arguments = (self._native_request_arguments if self._native_mode
+                                  else self.diagnostic_http_arguments)
 
     def check_native_call(self, case: EvalCase) -> None:
-        """Allow only shared, answer-free capabilities on fixed native calls."""
-        if not self.config.get("uniform_native_parameters"):
+        """Permit native task outputs, never case-specific retrieval assistance."""
+        if bool(self.config.get('uniform_native_parameters')) != self._native_mode:
+            raise ValueError('Native execution mode changed after provider initialization')
+        if not self._native_mode:
             return
-        if case.retrieval_hints:
-            if (
-                case.track != "dynamic"
-                or case.retrieval_hints != {"version": 3, "mode": "native"}
-            ):
-                raise ValueError("fixed native calls prohibit per-case retrieval hints")
-        supported = {
-            "web": {"body", "structure"},
-            "dynamic": {"body", "structure"},
-            "challenge": {"body", "structure"},
-            "risk_control": {"body", "structure"},
-            "document": {"body", "file"},
-            "image": {"body", "resource"},
-            "video": {"body", "resource"},
-        }
-        if case.task_kind not in supported.get(case.track, set()):
-            raise ValueError("fixed native calls do not support this declared task route")
+        if case.retrieval_hints and not (case.track == "dynamic" and case.retrieval_hints == NATIVE_RETRIEVAL_HINTS):
+            raise ValueError("fixed native calls prohibit per-case retrieval hints")
+        if case.track not in {"web", "dynamic", "challenge", "risk_control", "document", "image", "video", "file"}:
+            raise ValueError("fixed native calls require a declared task route")
+        if case.track == "document" and case.task_kind == "resource":
+            raise ValueError("fixed native calls require a declared task route")
+        if case.task_kind not in {"body", "structure", "resource", "file"}:
+            raise ValueError("fixed native calls require a declared native output kind")
+
+    def capture_native_request(self, case, *, transport, parameters, endpoint=None, interface=None, native_route_ledger=None):
+        ledger = native_route_ledger
+        if ledger is not None:
+            ledger.observe(self, case, transport=transport, parameters=parameters,
+                           endpoint=endpoint, interface=interface)
+
+    def native_http_request(self, case, callback, endpoint, *, native_route_ledger=None, **kwargs):
+        """Check and observe the actual call, even without an attached ledger.
+
+        Adapters share ``native_http_arguments`` for construction. Rebuilding
+        here is intentional: callers can still alter its mutable arguments or
+        call this boundary directly. The ledger separately binds the request
+        to the contract frozen before the cohort.
+        """
+        ledger = native_route_ledger
+        if bool(self.config.get('uniform_native_parameters')) != self._native_mode:
+            raise ValueError('Native execution mode changed after provider initialization')
+        if self._native_mode:
+            native_endpoint, native_arguments = self.native_http_arguments(case, kwargs.get('timeout'))
+            if endpoint != native_endpoint or kwargs != native_arguments:
+                if ledger is not None:
+                    ledger.reject(self, case, 'Native adapter arguments differ from its canonical request builder')
+                raise ValueError('Native adapter arguments differ from its canonical request builder')
+            endpoint, kwargs = native_endpoint, native_arguments
+        if ledger is not None:
+            from ..native_routes import normalized_http_parameters
+            self.capture_native_request(case, transport='http', endpoint=endpoint, native_route_ledger=ledger,
+                                        parameters=normalized_http_parameters(case, kwargs))
+        return callback(endpoint, **kwargs)
+
+    def native_http_arguments(self, case, timeout):
+        raise ValueError('Provider has no fixed-native HTTP request builder')
+
+    def _native_request_arguments(self, case, timeout):
+        # Retain one canonical builder for both freeze and transport checks.
+        return self.native_http_arguments(case, timeout)
+
+    def diagnostic_http_arguments(self, case, timeout):
+        return self.native_http_arguments(case, timeout)
+
+    def native_http_options(self, body, headers, timeout):
+        return {'method': 'POST', 'json_body': body, 'headers': headers,
+                'timeout': timeout, 'max_bytes': int(self.config.get('max_bytes', 20_000_000))}
 
     @property
     def min_interval_seconds(self) -> float:

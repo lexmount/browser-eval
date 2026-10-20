@@ -68,7 +68,8 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     main(['--dataset',str(dataset),'--output',str(output),
                           '--work-root',str(root/'work'),'--providers','fixture',
                           '--provider-config',str(config),'--case-ids','stable',
-                          '--retrieval-mode',mode,'--max-failure-retries',str(retries),'--diagnostic'])
+                          '--retrieval-mode',mode,'--max-failure-retries',str(retries),
+                          '--timeout','30','--diagnostic'])
                 (output/'sources').mkdir(exist_ok=True)
                 (output/'list-references').mkdir(exist_ok=True)
                 with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
@@ -79,6 +80,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 self.assertEqual(saved['comparison']['unqualified_reference_cases'],[])
                 batches=json.loads((output/'execution.json').read_text())['batches']
                 self.assertTrue(all(b['parameters']['max_failure_retries']==retries for b in batches))
+                self.assertTrue(all(b['parameters']['timeout']==30 for b in batches))
                 self.assertTrue(all(b['evidence_state']=='diagnostic' and
                     b['unqualified_reference_cases']==[] for b in batches))
                 # Dropping dataset display metadata cannot erase execution provenance.

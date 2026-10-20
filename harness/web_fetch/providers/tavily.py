@@ -5,8 +5,10 @@ import hashlib
 
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
+from ..native_projection import native_answer_projection
 from .base import Provider
-from .http_client import inner_timeout_budget, request
+from ..native_routes import NativeRoute
+from .http_client import request
 
 
 # Tavily's failed_results entries are free-form.  Keep the useful public API
@@ -28,35 +30,31 @@ def _public_failure_errors(values: list[object]) -> list[str]:
 
 
 class TavilyExtractProvider(Provider):
+    def native_route(self, case) -> NativeRoute:
+        return NativeRoute('http', '/extract', ('results[].raw_content', 'results[].images', 'images', 'results[].url',))
+
+    def native_http_arguments(self, case, timeout):
+        body = {'urls': [case.url], 'extract_depth': self.config.get('extract_depth', 'advanced'),
+                'format': 'markdown', 'include_images': bool(self.config.get('include_images', False))}
+        return (str(self.config.get('base_url', 'https://api.tavily.com')).rstrip('/') + '/extract',
+                self.native_http_options(body, {'Authorization': 'Bearer '+str(self.config.get('api_key', ''))}, timeout))
+
+    def diagnostic_http_arguments(self, case, timeout):
+        endpoint, arguments = self.native_http_arguments(case, timeout)
+        extract_timeout = min(float(self.config.get('extract_timeout_seconds', 60.0)), timeout, 60.0)
+        if extract_timeout >= 1.0:
+            arguments['json_body']['timeout'] = round(extract_timeout, 3)
+        return endpoint, arguments
+
     def validate(self) -> list[str]:
         return [] if self.config.get("api_key") else ["api_key"]
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
-        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
-        configured_extract_timeout = float(
-            self.config.get("extract_timeout_seconds", 60.0)
-        )
-        extract_timeout = min(configured_extract_timeout, http_timeout, 60.0)
-        request_body = {
-            "urls": [case.url],
-            "extract_depth": self.config.get("extract_depth", "advanced"),
-            "format": "markdown",
-            "include_images": bool(self.config.get("include_images", False)),
-        }
-        # Tavily accepts 1-60 seconds. Production benchmark budgets are above
-        # that lower bound; for unusually short diagnostic runs, the client
-        # deadline remains authoritative and we omit an invalid API value.
-        if extract_timeout >= 1.0 and not self.config.get("uniform_native_parameters"):
-            request_body["timeout"] = round(extract_timeout, 3)
-        response = request(
-            f"{str(self.config.get('base_url', 'https://api.tavily.com')).rstrip('/')}/extract",
-            method="POST",
-            timeout=http_timeout,
-            max_bytes=int(self.config.get("max_bytes", 20_000_000)),
-            headers={"Authorization": f"Bearer {self.config.get('api_key', '')}"},
-            json_body=request_body,
-        )
+        http_timeout = self.http_timeout_budget(timeout)
+        endpoint, arguments = self.request_arguments(case, http_timeout)
+        request_body = arguments['json_body']
+        response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
         except ValueError:
@@ -84,7 +82,7 @@ class TavilyExtractProvider(Provider):
             ok=ok,
             content=content,
             status_code=response.status,
-            final_url=(result.get("url") or case.url) if ok else case.url,
+            final_url=result.get("url") or case.url,
             error_type=error_type,
             error_message=error_message,
             metadata={
@@ -110,5 +108,6 @@ class TavilyExtractProvider(Provider):
                     request_body.get("timeout")
                 ),
                 "images": (result.get("images") or payload.get("images") or []) if ok else [],
+                **({'native_answer_projection': native_answer_projection('tavily_extract', case, payload, response.status)} if ok or content or result.get('url') else {}),
             },
         )

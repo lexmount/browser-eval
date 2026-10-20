@@ -17,6 +17,12 @@ def main():
     sys.path.insert(0, str(root))
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
     from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
+    from harness.web_fetch.diagnostics import diagnostic_context, redact
+
+    class NativeLogSink:
+        def emit(self, source, event, **fields):
+            print(json.dumps(redact({"source": source, "event": event, **fields}),
+                             ensure_ascii=False, default=str), file=sys.stderr, flush=True)
     module = None
     for line in sys.stdin:
         if not line.strip():
@@ -34,7 +40,10 @@ def main():
                     module, 'DEFAULT_TIMEOUT', None)
                 tool = module.WebFetch({'cwd': str(workspace)})
                 dns_mode = validate_dns_mode(request.get('dns_mode', 'system'))
-                with public_dns_context(dns_mode, request['timeout_seconds']) as dns_trace:
+                with diagnostic_context(
+                    NativeLogSink() if request.get('log_level') == 'debug' else None,
+                    names=('log', 'urllib3', 'requests', 'langchain_community'),
+                ), public_dns_context(dns_mode, request['timeout_seconds']) as dns_trace:
                     result = tool.execute({'url': request['url']})
                 metadata.update(dns_mode=dns_mode, dns_resolutions=dns_trace,
                                 effective_timeout_seconds=metadata['cowagent_default_timeout_seconds'],

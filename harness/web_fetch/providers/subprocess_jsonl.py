@@ -14,12 +14,18 @@ from typing import Any
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import plan_for_case, native_default_case
+from ..native_projection import native_answer_projection
 from .base import Provider
+from ..native_routes import NativeRoute
 from .runtime_identity import validate_runtime_identity
 
 
 class SubprocessJsonlProvider(Provider):
     """Invoke a persistent repository-native worker over line-delimited JSON."""
+    def native_route(self, case) -> NativeRoute:
+        if self.type not in {'subprocess_jsonl', 'cowagent_builtin'}:
+            return super().native_route(case)
+        return NativeRoute('jsonl', 'native_worker_command', ('content', 'metadata.links', 'metadata.images', 'metadata.videos', 'metadata.media', 'metadata.extras', 'files', 'title', 'final_url',))
 
     _RUNTIME_CONTRACTS = {
         "cowagent_builtin": {
@@ -60,6 +66,8 @@ class SubprocessJsonlProvider(Provider):
     def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
         self.type = str(config.get("method_type") or self.type)
+        self.worker_request = (self._native_worker_request if self._native_mode
+                               else self._diagnostic_worker_request)
         self._process: subprocess.Popen[str] | None = None
         self._stdout_queue: queue.Queue[str | None] = queue.Queue()
         self._stderr_lock = threading.Condition()
@@ -194,8 +202,42 @@ class SubprocessJsonlProvider(Provider):
             "stderr_truncated": retained_bytes < actual_bytes,
         }
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def native_worker_request(self, case, timeout, diagnostic_path=None):
+        from ..native_routes import declared_input_media_kind
+        media = declared_input_media_kind(case, required=False)
+        return {'url': case.url, 'log_level': self.config.get('log_level'),
+                'diagnostic_path': diagnostic_path, 'timeout_seconds': timeout,
+                'uniform_native_parameters': True,
+                'max_bytes': int(self.config.get('max_bytes', 20_000_000)),
+                'dns_mode': self.config.get('dns_mode', 'system'),
+                'task_kind': case.task_kind, 'track': case.track,
+                **({'input_media_kind': media} if media is not None else {}), 'retrieval_plan': None,
+                'retrieval_mode': 'native_default' if case.track == 'dynamic' else 'declared_plan'}
+
+    def _native_worker_request(self, case, timeout, diagnostic_path, input_media, retrieval_plan):
+        return self.native_worker_request(case, timeout, diagnostic_path)
+
+    def _diagnostic_worker_request(self, case, timeout, diagnostic_path, input_media, retrieval_plan):
+        return {
+            "url": case.url,
+            "log_level": self.config.get("log_level"),
+            "diagnostic_path": diagnostic_path,
+            "timeout_seconds": timeout,
+            "uniform_native_parameters": False,
+            "max_bytes": int(self.config.get("max_bytes", 20_000_000)),
+            "dns_mode": self.config.get("dns_mode", "system"),
+            "task_kind": case.task_kind,
+            "track": case.track,
+            **({"input_media_kind": input_media} if input_media is not None else {}),
+            "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
+            "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
+        }
+
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
+        from ..native_routes import declared_input_media_kind
+        input_media = declared_input_media_kind(case, required=bool(
+            self._native_mode and case.track == "document"))
         answer_begin = time.perf_counter()
         try:
             retrieval_plan = plan_for_case(case)
@@ -216,19 +258,16 @@ class SubprocessJsonlProvider(Provider):
             # consumed by the reader before _start returns.
             stderr_cursor = (0, 0)
         assert process.stdin is not None and process.stdout is not None
-        request = {
-            "url": case.url,
-            "log_level": self.config.get("log_level"),
-            "diagnostic_path": str(self._active_diagnostics.path) if self._active_diagnostics else None,
-            "timeout_seconds": timeout,
-            "uniform_native_parameters": bool(self.config.get("uniform_native_parameters")),
-            "max_bytes": int(self.config.get("max_bytes", 20_000_000)),
-            "dns_mode": self.config.get("dns_mode", "system"),
-            "task_kind": case.task_kind,
-            "track": case.track,
-            "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
-            "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
-        }
+        request = self.worker_request(case, timeout,
+            str(self._active_diagnostics.path) if self._active_diagnostics else None,
+            input_media, retrieval_plan)
+        if native_route_ledger is not None:
+            from harness.record_io import canonical_json_sha256
+            projected = {**request, 'url': '<input-url>',
+                         'diagnostic_path': '<diagnostic-output>' if request['diagnostic_path'] else None}
+            self.capture_native_request(case, native_route_ledger=native_route_ledger, transport='jsonl', interface='native_worker_command',
+                parameters={'request': projected,
+                            'command_sha256': canonical_json_sha256([self._resolve_token(part) for part in self.config['command']])})
         if self._active_diagnostics: self._active_diagnostics.emit("caller", "worker_request_sent", request=request)
         try:
             process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
@@ -302,6 +341,8 @@ class SubprocessJsonlProvider(Provider):
                     worker_logs_truncated = True
                 continue
             payload = candidate
+        if payload.get("content") is not None and not isinstance(payload["content"], str):
+            raise ValueError("worker content must be text or absent")
         ok = bool(payload.get("ok"))
         files = []
         for item in payload.get("files") or []:
@@ -320,6 +361,8 @@ class SubprocessJsonlProvider(Provider):
             error_message=None if ok else str(payload.get("error_message") or "worker failed"),
             metadata={
                 **dict(payload.get("metadata") or {}),
+                **({'native_answer_projection': native_answer_projection('subprocess_jsonl', case, payload)}
+                   ),
                 "_raw_response_b64": base64.b64encode(line.encode("utf-8")).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(line.encode("utf-8")).hexdigest(),
                 "raw_response_bytes": len(line.encode("utf-8")),

@@ -137,6 +137,8 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
 
 重建时不传 `--language`，会沿用上次的选择。切换语言不重新调用浏览器或服务，也不改变评分；任务原文、响应和日志保留原来的语言。目前支持英文（`en`）和中文（`zh`），其他语言代码会报错。独立构建器和历史报告的支持范围见[报告语言说明](report-hosting.md#report-languages)。
 
+冻结的本地报告使用随证据保存的 `presentation-binding.json`。报告专用配置和发布目标保存在 Git 之外，与该报告的证据放在一起。按照[冻结本地报告流程](../harness/web_fetch/README.md#frozen-local-report-inputs)检查或重建，不改变保存的评分。
+
 在线发布：
 
 1. 在[中国站](https://artifact-site.lexmount.cn/)或[全球站](https://yours.lexmount.com/artifact-site)登录或创建账户。

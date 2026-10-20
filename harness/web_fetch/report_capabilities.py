@@ -238,6 +238,9 @@ def task_capabilities(out, names, records):
     cases={case['id']:case for case in dataset['cases']}
     matrix=browser_task_interface_matrix(cases,names)
     configured={}
+    budget=dataset.get('comparison',{}).get('timeout_seconds')
+    budget_zh=(f'外层预算 {budget:g} 秒。' if isinstance(budget,(int,float)) and not isinstance(budget,bool) and budget>0 else '外层预算未记录。')
+    budget_en=(f'Outer budget: {budget:g} seconds.' if isinstance(budget,(int,float)) and not isinstance(budget,bool) and budget>0 else 'Outer budget not recorded.')
     for name in names:
         engine=native_browser_engine(name)
         row={**CAPABILITIES[engine]}
@@ -262,7 +265,8 @@ def task_capabilities(out, names, records):
             notes=('浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。'
                    if engine!='chromium' else
                    'Chromium 负责访问和渲染；所有页面类任务都取得完整 HTML，再由固定标准包转成 Markdown。评测端不运行资源提取脚本，也不读取文档查看器私有对象。完整分类及边界见报告解读的接口表。'),
-            tested='接口按任务大类预选；获取、等待和原生输出共享 45 秒预算。Chromium 的 HTML 转换也计入该预算。失败不切换引擎，不按评分结果选择更好的返回。')
+            tested=budget_zh+'接口按任务大类预选；具体请求参数见保存的调用记录。',
+            tested_en=budget_en+' Interfaces are selected by task family; exact request parameters are in the saved call records.')
         source='task-native-'+name
         source_url={'moli':'https://github.com/lexmount/moli','lightpanda':'https://github.com/lightpanda-io/browser','obscura':'https://github.com/h4ckf0r0day/obscura','chromium':'https://developer.chrome.com/docs/automation-and-testing/headless','kitesurf':'https://developers.cloudflare.com/browser-run/kitesurf/'}[engine]
         source_url=browser_method_registry()[name].get('source_url',source_url)
@@ -286,6 +290,8 @@ def render_capabilities(out, names, *, table, cell, link, records=()):
         if name not in capabilities:
             continue
         row = capabilities[name]
+        from .report_components import bilingual_text
+        tested = (bilingual_text(row['tested'], row['tested_en']) if row.get('tested_en') else bilingual_text('仓库登记配置示例；实际调用以保存记录为准。', 'Repository configuration example; consult saved records for actual calls.') + escape(row['tested']))
         method = cell(link('#capability-'+name, labels.get(name,name)))
         values = []
         for key in ['web', 'document', 'image', 'av', 'file']:
@@ -297,7 +303,7 @@ def render_capabilities(out, names, *, table, cell, link, records=()):
         sources = ' · '.join(link(SOURCES[s][1], SOURCES[s][0]+' ↗') for s in row['sources'])
         details.append(f'<details class="interface-panel" id="capability-{escape(name)}"><summary>{escape(labels.get(name,name))} · 范围与官方依据</summary>'+
                        f'<p><strong>对应接口：</strong>{escape(row["scope"])}</p><p>{escape(row["notes"])}</p>'+
-                       f'<p><strong>登记配置：</strong>{escape(row["tested"])}</p><p class="source-note">{sources}</p></details>')
+                       f'<p><strong>登记配置：</strong>{tested}</p><p class="source-note">{sources}</p></details>')
     legend = ('<p>原有资料核对日期：'+CHECKED_AT+'；本版新增 Cloudflare 与 Firecrawl 接口核对日期：'+ROUTE_CHECKED_AT+'。托管服务按官方文档；内置工具按固定源码。此处说明可选能力，<strong>不是实测成绩</strong>；没有启用的选项不补算进榜单。</p>'
               '<dl class="capability-legend"><div><dt>支持 / 需配置</dt><dd>有对应实现或契约；需配置表示要启用额外模式。</dd></div>'
               '<div><dt>仅链接 / 有限支持</dt><dd>仅返回地址，或只覆盖指定输入、正文区域。</dd></div>'

@@ -239,3 +239,59 @@ def test_invalid_execution_limits_fail_before_work_or_calls(tmp_path, phase, opt
         with pytest.raises(SystemExit):
             main()
     assert not work.exists()
+
+
+@pytest.mark.parametrize("verdict", ["pass", "fail"])
+def test_body_evidence_accepts_concrete_two_character_chinese_table_headings(verdict):
+    from harness.web_fetch.review_execution import validate_review_evidence
+    headings = "编号 | 姓名 | 状态 | 邮箱 | 性别 | 年龄 | 城市 | 签名 | 时间 | 操作"
+    validate_review_evidence({"attempt_id": "table", "verdict": verdict,
+        "evidence": "beginning: " + headings + "; middle: 姓名 | 邮箱; end: 城市 | 签名",
+        "anomalies": []}, "body")
+
+
+@pytest.mark.parametrize("value", [
+    "占位", "占位符", "证据 | 内容 | 正文", "开头 | 中间 | 结尾",
+    "得分 90 | 覆盖率 80% | 阈值 60%", "评分 | 分数 | 通过率 | 百分比",
+    "90 | 80% | 60%", "score 90 | coverage 80% | threshold 60%",
+    "<actual passage>", "符合要求 | 达到阈值",
+])
+def test_body_evidence_still_rejects_placeholders_and_scoring_only(value):
+    from harness.web_fetch.review_execution import validate_review_evidence
+    with pytest.raises(ValueError, match="direct artifact evidence"):
+        validate_review_evidence({"attempt_id": "placeholder", "verdict": "pass",
+            "evidence": "; ".join(label + ": " + value for label in ("beginning", "middle", "end")),
+            "anomalies": []}, "body")
+
+
+@pytest.mark.parametrize("headings", [
+    ("الرئيسية", "مسلسلات وأفلام", "رفض الكل تأكيد خياراتي"),
+    ("Главная", "Каталог фильмов", "Настройки подписки"),
+    ("मुखपृष्ठ", "नाम", "संपर्क"),
+    ("ראשי", "סרטים", "הגדרות"),
+])
+def test_body_evidence_accepts_direct_unicode_script_observations(headings):
+    from harness.web_fetch.review_execution import validate_review_evidence
+
+    validate_review_evidence({
+        "attempt_id": "unicode", "verdict": "pass", "anomalies": [],
+        "evidence": "; ".join(label + ": " + heading for label, heading in
+                              zip(("beginning", "middle", "end"), headings)),
+    }, "body")
+
+
+@pytest.mark.parametrize("value", [
+    "٩٠ | ٨٠٪ | ٦٠٪", "９０ | ８０% | ６０%", "① | ½ | Ⅳ",
+    "النتيجة ٩٠ | التغطية ٨٠٪ | العتبة ٦٠٪", "٩٠ بالمئة | ٨٠ نقاط",
+    "ناجح | موجود | متطلبات", "دليل | محتوى | نتيجة", "<actual passage>",
+    "نَتِيجَة | تَغْطِيَة | عَتَبَة",
+])
+def test_unicode_body_evidence_rejects_numbers_generic_terms_and_placeholders(value):
+    from harness.web_fetch.review_execution import validate_review_evidence
+
+    with pytest.raises(ValueError, match="direct artifact evidence"):
+        validate_review_evidence({
+            "attempt_id": "unicode-placeholder", "verdict": "pass", "anomalies": [],
+            "evidence": "; ".join(label + ": " + value for label in
+                                  ("beginning", "middle", "end")),
+        }, "body")

@@ -1,25 +1,15 @@
 """Fail-closed validation for explicitly non-publishable local audit bundles."""
-import hashlib
 import json
 from pathlib import Path
+from harness.record_io import file_sha256, canonical_json_sha256
 
 from lexbench_webfetch.metrics import task_passed
-from .reference_inputs import input_tree, read_dataset_bytes
+from .reference_inputs import input_tree
 from lexbench_webfetch.paths import contained_path
+from . import adjudication_evidence, local_execution_contract
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_NAME = "local-audit-manifest.json"
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _canonical_sha256(value) -> str:
-    encoded = json.dumps(
-        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
 
 
 def _repository_file(relative: str) -> Path:
@@ -78,7 +68,7 @@ def _source_evidence_inventory(dataset: dict) -> list[dict]:
             rows.append({
                 "case_id": case_id,
                 "path": "evaluation/sources/" + path.relative_to(source_root).as_posix(),
-                "sha256": _sha256(path),
+                "sha256": file_sha256(path),
                 "bytes": path.stat().st_size,
                 "purpose": purposes.get(path.name, "independent source evidence"),
             })
@@ -89,7 +79,7 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
     """Verify committed source evidence and scoring controls as exact inventories."""
     bindings = receipt.get("repository_evidence", {})
     source_path = _repository_file(bindings.get("source_manifest_path"))
-    if _sha256(source_path) != bindings.get("source_manifest_sha256"):
+    if file_sha256(source_path) != bindings.get("source_manifest_sha256"):
         raise ValueError("Repository source evidence manifest changed")
     source_manifest = json.loads(source_path.read_text(encoding="utf-8"))
     if (source_manifest.get("schema_version") != 1
@@ -109,7 +99,7 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
         raise ValueError("Repository source evidence scope is inconsistent")
 
     scoring_path = _repository_file(bindings.get("scoring_revision_path"))
-    if _sha256(scoring_path) != bindings.get("scoring_revision_sha256"):
+    if file_sha256(scoring_path) != bindings.get("scoring_revision_sha256"):
         raise ValueError("Scoring revision receipt changed")
     scoring = json.loads(scoring_path.read_text(encoding="utf-8"))
     if (scoring.get("schema_version") != 1
@@ -144,9 +134,9 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
     base_set, revision_set = set(base_ids), set(revision_ids)
     base_controls = [row for row in controls if row["id"] in base_set]
     revision_controls = [row for row in controls if row["id"] in revision_set]
-    if (_canonical_sha256(base_controls)
+    if (canonical_json_sha256(base_controls)
             != scoring.get("bindings", {}).get("preexisting_controls_sha256")
-            or _canonical_sha256(revision_controls)
+            or canonical_json_sha256(revision_controls)
             != scoring.get("bindings", {}).get("revision_controls_sha256")):
         raise ValueError("Scoring control contents changed")
     expected_rows = [{
@@ -192,7 +182,7 @@ def audit_file_inventory(source: Path) -> list[dict]:
             continue
         rows.append({
             "path": path.relative_to(source).as_posix(),
-            "sha256": _sha256(path),
+            "sha256": file_sha256(path),
             "bytes": path.stat().st_size,
         })
     return rows
@@ -206,7 +196,7 @@ def local_audit_manifest(source: Path) -> dict:
         path = contained_path(source, name)
         if not path.is_file() or path.is_symlink():
             raise ValueError("Local audit required file is missing or unsafe: " + name)
-        bindings[name] = _sha256(path)
+        bindings[name] = file_sha256(path)
     return {
         "schema_version": 1,
         "kind": "complete_local_audit_inventory",
@@ -222,7 +212,7 @@ def _require_manifest(source: Path, receipt: dict) -> dict:
     if relative != MANIFEST_NAME or not expected:
         raise ValueError("Local audit receipt does not bind the complete manifest")
     path = contained_path(source, relative)
-    if not path.is_file() or path.is_symlink() or _sha256(path) != expected:
+    if not path.is_file() or path.is_symlink() or file_sha256(path) != expected:
         raise ValueError("Local audit manifest is missing, unsafe, or changed")
     manifest = json.loads(path.read_text(encoding="utf-8"))
     if manifest.get("schema_version") != 1:
@@ -241,7 +231,7 @@ def _require_review(source: Path, dataset: dict, records: list[dict],
                     receipt: dict, manifest: dict) -> dict:
     path = contained_path(source, "result-review.json")
     expected_review = receipt.get("evidence", {}).get("result_review_sha256")
-    if not expected_review or _sha256(path) != expected_review:
+    if not expected_review or file_sha256(path) != expected_review:
         raise ValueError("Local audit result review changed")
     review = json.loads(path.read_text(encoding="utf-8"))
     if review.get("schema_version") != 1:
@@ -284,16 +274,17 @@ def _require_review(source: Path, dataset: dict, records: list[dict],
     for relative, expected in review_contract.get("bound_receipts", {}).items():
         evidence_path = contained_path(source, relative)
         if (not evidence_path.is_file() or evidence_path.is_symlink()
-                or _sha256(evidence_path) != expected):
+                or file_sha256(evidence_path) != expected):
             raise ValueError("Local audit review receipt changed: " + relative)
     return review
 
 
 def _read_bound_receipt(source: Path, receipt: dict, relative: str) -> dict:
+    from .publication_privacy import read_evidence_binding
     expected = receipt.get("review", {}).get("bound_receipts", {}).get(relative)
-    path = contained_path(source, relative)
-    if not expected or not path.is_file() or path.is_symlink() or _sha256(path) != expected:
+    if not expected:
         raise ValueError("Local audit review receipt changed: " + relative)
+    path = read_evidence_binding(source, {'path': relative, 'sha256': expected})
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -365,36 +356,6 @@ def _require_lineage(source: Path, receipt: dict) -> None:
         raise ValueError("PR review correction lineage is inconsistent")
 
 
-def _require_local_batch_segments(batch):
-    """A resumed batch must retain distinct physical manifests and the same policy."""
-    segments = batch.get("segments")
-    if segments is None:
-        return
-    if not isinstance(segments, list) or not segments:
-        raise ValueError("Local measurement has no physical segments")
-    attempts = []
-    for segment in segments:
-        for field in ("provider_config_sha256", "runtime_source_sha256", "parameters", "providers"):
-            if segment.get(field) != batch.get(field):
-                raise ValueError("Local measurement segment parameters differ")
-        ids = segment.get("attempt_ids", [])
-        if len(ids) != segment.get("attempt_count"):
-            raise ValueError("Local measurement segment count differs")
-        attempts.extend(ids)
-    if (len(attempts) != len(set(attempts))
-            or set(attempts) != set(batch.get("attempt_ids", []))
-            or len(attempts) != batch.get("attempt_count")):
-        raise ValueError("Local measurement segments repeat or omit a call")
-
-
-def local_measurement_call_sha256(record):
-    """Bind measured call facts independently of later scores/report metadata."""
-    derived = {"metrics", "diagnosis", "failure_category", "scoring", "provider_metadata"}
-    facts = {key: value for key, value in record.items() if key not in derived}
-    facts["content_sha256"] = record.get("metrics", {}).get("content_sha256")
-    return _canonical_sha256(facts)
-
-
 def _require_local_scoring_revision(source, contract, records):
     from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
     if any(r.get("metrics", {}).get("scoring_source_sha256") != SCORING_SOURCE_SHA256
@@ -409,7 +370,7 @@ def _require_local_scoring_revision(source, contract, records):
             or receipt.get("corrected_scoring_source_sha256") != SCORING_SOURCE_SHA256
             or receipt.get("original_call_config_sha256") != contract.get("provider_config_sha256")
             or receipt.get("call_identities") != {
-                r["attempt_id"]: local_measurement_call_sha256(r) for r in records}):
+                r["attempt_id"]: local_execution_contract.local_measurement_call_sha256(r) for r in records}):
         raise ValueError("Invalid local scoring correction binding")
     from lexbench_webfetch.scoring_regressions import build_correction_provenance
     provenance = receipt.get("provenance") or {}
@@ -418,105 +379,44 @@ def _require_local_scoring_revision(source, contract, records):
         provenance.get("regression_ids", []), receipt.get("task_verdict_changes", []))
     if provenance != expected_provenance:
         raise ValueError("Invalid local scoring correction provenance")
+    rule_revision = receipt.get('rule_revision', False)
+    if type(rule_revision) is not bool:
+        raise ValueError('Local scoring rule revision must be explicit')
     for record in records:
         scoring = record.get("scoring", {})
         if (record.get("metrics", {}).get("scoring_source_sha256") != SCORING_SOURCE_SHA256
                 or scoring.get("mode") != "offline_rescore"
                 or scoring.get("input_results_sha256") != receipt.get("original_results_sha256")
-                or scoring.get("rule_revision") is not False
+                or scoring.get("rule_revision") is not rule_revision
                 or scoring.get("reference_revision") is not False):
             raise ValueError("Local scoring correction changed rules or lost its predecessor")
 
 
-def _require_local_method_bindings(contract, batches, field):
-    """Join each method's execution to its declared runtime or configuration."""
-    variants = contract.get(field + "_by_provider")
-    expected = set(contract["providers"])
-    label = "runtime" if field == "runtime_source_sha256" else "configuration"
-    if variants is not None:
-        if (not isinstance(variants, dict) or set(variants) != expected
-                or any(not isinstance(value, str) or len(value) != 64
-                       or any(char not in "0123456789abcdef" for char in value)
-                       for value in variants.values())):
-            raise ValueError(f"Invalid local {label} variant bindings")
-    seen = set()
-    for batch in batches:
-        providers = batch.get("providers", [])
-        if len(providers) != 1:
-            raise ValueError(f"Local {label} batch must identify one method")
-        name = providers[0].get("name")
-        if name not in expected or name in seen:
-            raise ValueError(f"Local {label} batches repeat or omit a method")
-        seen.add(name)
-        digest = variants[name] if variants is not None else contract[field]
-        if batch.get(field) != digest:
-            raise ValueError(f"Local measurement execution {label} differs")
-    if seen != expected:
-        raise ValueError(f"Local {label} batches repeat or omit a method")
+def require_complete_local_inventory(dataset: dict, records: list[dict]) -> dict:
+    """Allow explicit unknown verdicts locally, never missing physical results."""
+    from .reliability import assess_reliability
+
+    comparison = dataset.get("comparison", {})
+    if (comparison.get("kind") != "uniform_native_local_measurement"
+            or comparison.get("publication_state") != "local_audit_only_not_for_release"):
+        raise ValueError("Incomplete adjudication is only allowed in a local measurement")
+    reliability = assess_reliability(dataset, records)
+    if (not reliability["expected_calls"] or reliability["missing"]
+            or reliability["extra"] or reliability["duplicates"]):
+        raise ValueError("Local measurement physical inventory is incomplete")
+    return reliability
 
 
 def require_local_measurement(source: Path, dataset: dict, records: list[dict]) -> None:
     """Validate a new complete local matrix without claiming independent review."""
-    from .reliability import require_reliable
-    from .artifacts import verify_record_public_call_logs, record_public_call_log_bindings
     contract = json.loads(contained_path(source, "local-run-contract.json").read_text())
-    if (contract.get("schema_version") != 1
-            or contract.get("kind") != "uniform_native_local_measurement"
-            or contract.get("runs") != 1 or contract.get("timeout_seconds") != 45
-            or contract.get("max_failure_retries") != 0):
-        raise ValueError("Invalid uniform native local measurement contract")
-    _require_local_scoring_revision(source, contract, records)
-    raw = read_dataset_bytes(contained_path(ROOT, contract["dataset_path"], reject_symlinks=True))
-    canonical = json.loads(raw)
-    if (hashlib.sha256(raw).hexdigest() != contract["dataset_sha256"]
-            or dataset["cases"] != canonical["cases"]):
-        raise ValueError("Local measurement changed the committed cases")
-    expected = {(p, c["id"]) for p in contract["providers"] for c in canonical["cases"]}
-    if (len(records) != len(expected)
-            or {(r["provider"], r["case_id"]) for r in records} != expected
-            or any(r["run"] != 1 or r.get("provider_metadata", {}).get("retry") for r in records)):
-        raise ValueError("Local measurement matrix is incomplete or has retries")
-    require_reliable(dataset, records)
     execution = json.loads(contained_path(source, "execution.json").read_text())
-    if dataset.get("comparison", {}).get("local_run_contract_sha256") != _sha256(source / "local-run-contract.json"):
+    if dataset.get("comparison", {}).get("local_run_contract_sha256") != file_sha256(source / "local-run-contract.json"):
         raise ValueError("Local measurement pre-call contract changed")
-    if len(execution["batches"]) != len(contract["providers"]):
-        raise ValueError("Local measurement execution scope differs")
-    for field in ("runtime_source_sha256", "provider_config_sha256"):
-        _require_local_method_bindings(contract, execution["batches"], field)
-    for batch in execution["batches"]:
-        _require_local_batch_segments(batch)
-        ids = batch.get("attempt_ids", [])
-        measured_ids = {r["attempt_id"] for r in records
-                        if r["provider"] == batch["providers"][0]["name"]}
-        if (len(ids) != len(set(ids)) or set(ids) != measured_ids
-                or batch.get("attempt_count") != len(measured_ids)):
-            raise ValueError("Local measurement execution calls differ from results")
-        if (batch.get("parameters", {}).get("timeout") != 45
-                or batch.get("parameters", {}).get("runs") != 1
-                or batch.get("parameters", {}).get("provider_concurrency") != 1
-                or batch.get("parameters", {}).get("max_failure_retries") != 0):
-            raise ValueError("Local measurement execution parameters differ")
-    for record in records:
-        if len(record_public_call_log_bindings(record)) != 1:
-            raise ValueError("Local measurement requires one complete call log per result")
-        lexical = source
-        for part in Path(record["artifact_path"]).parts:
-            lexical = lexical / part
-            if lexical.is_symlink():
-                raise ValueError("Local measurement output is unsafe")
-        artifact = contained_path(source, record["artifact_path"])
-        if artifact.is_symlink() or _sha256(artifact) != record["metrics"]["content_sha256"]:
-            raise ValueError("Local measurement output changed")
-        verify_record_public_call_logs(source, record)
-        binding = record_public_call_log_bindings(record)[0]
-        log = json.loads(contained_path(source, binding["path"]).read_text())
-        if (any(log["identity"][key] != record[key]
-                for key in ("attempt_id", "provider", "case_id", "run"))
-                or log["output"]["path"] != record["artifact_path"]
-                or log["output"]["sha256"] != record["metrics"]["content_sha256"]):
-            raise ValueError("Local measurement call log belongs to a different result")
-    return None
+    _require_local_scoring_revision(source, contract, records)
+    local_execution_contract.require_local_execution_contract(source, dataset, records, contract, execution)
+    require_complete_local_inventory(dataset, records)
+    return adjudication_evidence._require_local_review(source, dataset, records)
 
 
 def require_local_audit(source: Path, dataset: dict, records: list[dict]) -> dict:
@@ -538,12 +438,12 @@ def require_local_audit(source: Path, dataset: dict, records: list[dict]) -> dic
     bindings = receipt.get("bindings", {})
     for name, key in (("dataset.json", "dataset_sha256"),
                       ("results.jsonl", "results_sha256")):
-        if _sha256(contained_path(source, name)) != bindings.get(key):
+        if file_sha256(contained_path(source, name)) != bindings.get(key):
             raise ValueError("Local audit receipt binding mismatch: " + name)
     _require_repository_bindings(dataset, receipt)
     manifest = _require_manifest(source, receipt)
     for name in ("dataset.json", "results.jsonl", "result-review.json"):
-        if manifest.get("bindings", {}).get(name) != _sha256(contained_path(source, name)):
+        if manifest.get("bindings", {}).get(name) != file_sha256(contained_path(source, name)):
             raise ValueError("Local audit manifest binding mismatch: " + name)
     _require_lineage(source, receipt)
     return _require_review(source, dataset, records, receipt, manifest)

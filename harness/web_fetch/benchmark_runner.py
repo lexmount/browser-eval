@@ -8,7 +8,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from .artifacts import materialize_bound_artifacts, materialize_task_references
-from .config import load_dataset, load_provider_config, load_runtime_env, add_failure_retry_argument
+from .config import (
+    DEFAULT_CALL_TIMEOUT_SECONDS, load_dataset, load_provider_config,
+    load_runtime_env, add_failure_retry_argument,
+)
 from .providers import build_provider
 from .reference_inputs import input_tree
 from .report_build import build_report
@@ -34,8 +37,13 @@ def main(argv=None):
     parser.add_argument('--call-order', choices=('provider', 'case-alternating'), default='provider',
                         help='Run serially by task with alternating method order, or use provider batches')
     parser.add_argument('--runs',type=int,default=1)
+    parser.add_argument('--timeout', type=float, default=DEFAULT_CALL_TIMEOUT_SECONDS,
+                        help='Positive per-call deadline in seconds, retained in execution evidence')
     add_failure_retry_argument(parser)
     args=parser.parse_args(argv)
+    import math
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        parser.error('--timeout must be positive and finite')
     if args.provider_config and not args.provider_config.is_file():
         parser.error('--provider-config must be an existing file')
     if args.workers < 1:parser.error('--workers must be positive')
@@ -112,7 +120,7 @@ def main(argv=None):
             meta={**dataset,'cases':[c for c in dataset['cases'] if c['id'] in selected_ids]}
             folder=args.output/'workers'/name/scope
             provider=build_provider(name,config[name])
-            rs,_=run_evaluation(output_dir=folder,dataset_meta=meta,dataset_path=args.dataset,cases=selected,providers=[provider],provider_config_path=path,runs=args.runs,timeout=45,delay=.5,provider_concurrency=1,max_failure_retries=args.max_failure_retries)
+            rs,_=run_evaluation(output_dir=folder,dataset_meta=meta,dataset_path=args.dataset,cases=selected,providers=[provider],provider_config_path=path,runs=args.runs,timeout=args.timeout,delay=.5,provider_concurrency=1,max_failure_retries=args.max_failure_retries)
             materialize_bound_artifacts(args.output, folder, rs)
             batches.append(json.loads((folder/'manifest.json').read_text()));records.extend(rs)
         return records,batches
@@ -122,7 +130,7 @@ def main(argv=None):
         records, _ = run_evaluation(
             output_dir=folder, dataset_meta=dataset, dataset_path=args.dataset,
             cases=cases, providers=selected_providers, provider_config_path=args.provider_config,
-            runs=args.runs, timeout=45, delay=.5, provider_concurrency=1,
+            runs=args.runs, timeout=args.timeout, delay=.5, provider_concurrency=1,
             max_failure_retries=args.max_failure_retries, call_order=args.call_order,
         )
         materialize_bound_artifacts(args.output, folder, records)

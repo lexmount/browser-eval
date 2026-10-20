@@ -32,6 +32,21 @@ class ReportLinkCheckTest(unittest.TestCase):
                 with self.subTest(root=root):
                     self.assertEqual(self.run_check(root).returncode, 1)
 
+    def test_frozen_source_navigation_is_not_report_navigation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "local-evidence" / "capture" / "source.html"
+            source.parent.mkdir(parents=True)
+            source.write_text('<a href="original-site-only.html">Source navigation</a>')
+            home = root / "index.html"
+            home.write_text('<a href="local-evidence/capture/source.html">Frozen source</a>')
+            self.assertEqual(self.run_check(root).returncode, 0)
+            home.write_text('<a href="local-evidence/capture/missing.html">Missing evidence</a>')
+            self.assertEqual(self.run_check(root).returncode, 1)
+            home.write_text('<a href="local-evidence/capture/source.html">Frozen source</a>')
+            source.write_text('<meta content="1" name="browser-eval-report"><a href="missing.html">Report navigation</a>')
+            self.assertEqual(self.run_check(root).returncode, 1)
+
     def test_rejects_missing_fragment(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -70,3 +85,33 @@ class ReportLinkCheckTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_virtual_capture_links_follow_same_frozen_evidence_boundary():
+    import pytest
+    from harness.reporting.links import validate_virtual_links
+    capture = 'en/local-evidence/capture/source.html'
+    files = {'index.html':{'mime':'text/html'},capture:{'mime':'text/html'}}
+    content = {'index.html':f'<a href="{capture}">Evidence</a>',capture:'<link href="missing.css"><a href="remote-site-page.html">Original</a>'}
+    validate_virtual_links(files,content.__getitem__)
+    content['index.html'] = '<a href="local-evidence/missing.html">Missing evidence</a>'
+    with pytest.raises(ValueError,match='Invalid internal link'):
+        validate_virtual_links(files,content.__getitem__)
+    content['index.html'] = f'<a href="{capture}">Evidence</a>'
+    content[capture] = '<meta name="browser-eval-report" content="1">'+content[capture]
+    with pytest.raises(ValueError,match='Invalid internal link'):
+        validate_virtual_links(files,content.__getitem__)
+
+
+def test_bilingual_lazy_log_dialogs_require_the_same_root_bound_source():
+    import pytest
+    from harness.reporting.links import validate_virtual_links
+    pages = {name: b'<dialog><pre data-file="logs/actual.txt"></pre></dialog>'
+             for name in ['logs/view.html', 'en/logs/view.html']}
+    pages['logs/actual.txt'] = b'ERROR: exact retained native failure'
+    files = {name: {'mime': 'text/html' if name.endswith('.html') else 'text/plain'}
+             for name in pages}
+    validate_virtual_links(files, pages.__getitem__)
+    del files['logs/actual.txt']
+    with pytest.raises(ValueError, match='Invalid internal evidence'):
+        validate_virtual_links(files, pages.__getitem__)

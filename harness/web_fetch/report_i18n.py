@@ -37,6 +37,9 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "仓库内测试适配器；只用于确定性回归测试。": "Repository test adapter; used only for deterministic regression tests.",
+    "不需要账号或环境变量。": "No account or environment variables required.",
+    "先检查请求与返回内容，再逐项检查本例声明的稳定文字、正文覆盖与组合规则；诊断文字只显示命中情况。": "Check the request and returned content, then apply the declared stable text, body coverage and composite requirements. Diagnostic text reports matches without changing the verdict.",
     "本轮所有本地方法的每个主机名和跳转都使用固定的 Cloudflare HTTPS DNS，且不回退到系统 DNS。Moli、Lightpanda 和 Obscura 通过进程内解析器取得同一组公网地址；Chromium 使用自身的严格安全 DNS 配置。各浏览器原有的私网访问保护保持不变。": "Every local method uses the fixed Cloudflare HTTPS DNS service for each hostname and redirect, with no fallback to system DNS. Moli, Lightpanda, and Obscura receive the same public addresses through a process-scoped resolver; Chromium uses its own strict secure-DNS profile. Each browser keeps its existing private-network protection.",
     "Kitesurf 在 Cloudflare Browser Run 中执行，使用云端网络。它的任务结果可以按同一验收规则比较，但耗时包含不同的部署位置和公网路径，不能据此判断本地浏览器引擎谁更快。": "Kitesurf runs in Cloudflare Browser Run and uses its cloud network. Its task outcomes use the same acceptance rules, but its latency includes a different deployment location and public-network path and therefore cannot rank local browser-engine speed.",
     "CLI · 原生 Markdown 或原始响应路线": "CLI · native Markdown or raw-response route",
@@ -53,12 +56,8 @@ TEXT = {
     "原生 Markdown 中保留的媒体地址；直接文件可验收原始字节": "Media URLs retained in native Markdown; direct files can validate raw bytes",
     "按题目要求预先选定参评浏览器的官方原生接口。网页正文和文档正文都必须以可读 Markdown 交付；除 Chromium 使用固定的 HTML-to-Markdown 包外，不会改取 HTML、JSON DOM 或 PDF/DOCX 字节后替选手提取正文。网页内嵌媒体题只检查原生输出中的指定图片、视频或条目地址，媒体文件不下载。只有直接媒体文件题返回原始字节，并校验类型、文件头、长度和 SHA-256；这是二进制文件交付，不冒充 Markdown。下表按固定任务输入列出处理链；失败后不切换接口或引擎。": "Each task is assigned an official native interface before execution. Webpage and document body tasks must deliver readable Markdown. Chromium is the sole exception: it uses the fixed HTML-to-Markdown package because it has no native Markdown output. The benchmark does not take HTML, a JSON DOM, or PDF or DOCX bytes and extract body text on a participant's behalf. Webpage media-information tasks check only the required image, video, or entry URL in native output and do not download the media. Direct-media-file tasks alone return original bytes, which are checked for type, signature, length, and SHA-256. That binary deliverable is not presented as Markdown. The table lists the route fixed for each task input; a failure never switches interface or engine.",
     "外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值": "The outer deadline is always 45 seconds. Internal parameters follow the frozen call record: explicit mode reserves time for finalization and cleanup; uniform mode keeps the product defaults.",
-    "45 秒外层截止；Moli 总等待、HTTP 和连接超时保留该二进制默认值": "45-second outer deadline; Moli's total-wait, HTTP, and connection timeouts retain the measured binary's defaults",
     "这批调用未传入 Moli 内部超时参数。": "These calls did not pass Moli internal-timeout arguments.",
-    "45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时 45,000 毫秒": "45-second outer deadline; the measured command also explicitly set Moli's total-wait, HTTP, and connection timeouts to 45,000 ms",
-    "45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时 40,500 毫秒": "45-second outer deadline; the measured command also explicitly set Moli's total-wait, HTTP, and connection timeouts to 40,500 ms",
     "这批调用使用保存记录中的显式 Moli 超时，未写成产品默认值。": "These calls used the explicit Moli timeouts preserved in their records; the report does not describe them as product defaults.",
-    "45 秒外层截止；Moli 内部超时以逐次调用记录为准": "45-second outer deadline; Moli's internal timeout policy is taken from each saved call record",
     "保存证据未提供可核对的 Moli 内部超时策略。": "The saved evidence does not expose a verifiable Moli internal-timeout policy.",
     "网页和文档正文使用原生 Markdown；直接媒体文件使用原始响应": "Native Markdown for webpage and document body text; raw responses for direct media files",
     "HTML/TXT 可以直接返回正文；PDF/DOCX 必须由同一原生 Markdown 接口交付可读文字": "HTML and TXT can return body text directly; PDF and DOCX must deliver readable text through the same native Markdown interface",
@@ -66,13 +65,10 @@ TEXT = {
     "CLI · 按任务预选原生 Markdown、HTML 或原始响应路线": "CLI · preselects native Markdown, HTML, or raw-response routes by task",
     "网页内嵌媒体": "Embedded webpage media",
     "直接媒体文件": "Direct media files",
-    "输入是网页，共 17 题：16 题返回指定图片、视频或视频入口地址，1 题返回视频页登记的文字信息。地址题不下载媒体文件；文字题也不据此推断已取得视频字节。": "The input is a webpage. Across 17 tasks, 16 require specified image, video, or video-entry URLs and one requires registered text from a video page. URL tasks do not download the media file, and the text task does not imply that video bytes were obtained.",
-    "输入直接指向媒体文件，共 3 题：必须取得原始字节，并通过格式特征、长度与目标 SHA-256 验收。只复述输入网址不通过，也不要求把二进制内容转换成 Markdown。": "The input points directly to a media file. Across three tasks, the method must obtain the original bytes and pass format-signature, length, and target SHA-256 checks. Repeating the input URL fails, and binary content does not need conversion to Markdown.",
     "直接取得 Moli 原生 HTML；共同评分器只识别其中的资源 URL": "Returns Moli's native HTML directly; the shared scorer only identifies resource URLs in it",
     "使用 Moli 官方等待能力；只等待，不抽取或拼接正文": "Uses Moli's official wait capability for readiness only; it neither extracts nor assembles body text",
     "所有正文与结构任务使用 Moli 原生 Markdown。旧版 selector 合同只映射到官方等待参数，不参与正文抽取。图片、视频资源页使用原生 HTML，共同评分器只识别其中的资源 URL。直接 PDF/DOCX 仍调用同一原生接口；接口没有交付可读正文时按失败记录，评测端不下载后解析。文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。": "All body and structured tasks use Moli's native Markdown. Legacy selector contracts map only to official wait parameters and do not extract body text. Image and video resource pages use native HTML, from which the shared scorer only identifies resource URLs. Direct PDF and DOCX inputs still use the same native interface; if it does not deliver readable text, the task fails and the benchmark does not download and parse the file. File tasks use native CDP responses or the same binary's raw attachment interface. The final URL is diagnostic only and does not determine body-task acceptance. A failure never triggers a format switch or another provider.",
     "moli fetch；正文使用原生 Markdown，资源页使用原生 HTML，预声明完成条件只调用官方等待参数，直接文件使用原始响应": "moli fetch; body tasks use native Markdown, resource pages use native HTML, preregistered completion conditions only call official wait parameters, and direct files use raw responses",
-    "Moli 1.1.4：所有正文与结构任务使用原生 Markdown；旧版动态任务的预声明 selector 只映射到 --wait-selector 或 --wait-script。资源页使用原生 HTML，共同评分器只识别其中的资源 URL。直接 PDF/DOCX 仍走原生接口，未提供可读正文时按失败记录；文件题验收原始字节。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。": "Moli 1.1.4: all body and structured tasks use native Markdown; preregistered selectors from legacy dynamic tasks map only to --wait-selector or --wait-script. Resource pages use native HTML, from which the shared scorer only identifies resource URLs. Direct PDF and DOCX inputs still use the native interface and fail if it does not provide readable text; file tasks validate raw bytes. There is no layout extraction, post-failure format fallback, or cross-provider recovery. Only actual execution records enter the ranking.",
     "资源页原生 HTML 中的图片地址": "Image URLs in native HTML from the resource page",
     "资源页原生 HTML 中的媒体地址": "Media URLs in native HTML from the resource page",
     "直接取得 Moli 原生 HTML；共同评分器只识别其中的图片 URL": "Returns Moli's native HTML directly; the shared scorer only identifies image URLs in it",
@@ -101,7 +97,45 @@ TEXT = {
     "下载最终物理调用记录": "Download the final physical-call record",
     "。运行记录保留请求状态、耗时和证据路径；原始输出保持调用后保存的字节。": ". The record retains request status, duration and evidence paths. Raw output preserves the saved response bytes.",
     "请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求；不得命中非参考正文自身包含的错误页标记。完整度、纯净度和 F1 另算，不作为通过门槛。": "A successful request must satisfy the task's minimum length, all required text checks, salient markers and structure requirements. Error-page markers absent from the reference must not appear. Recall, precision and F1 are calculated separately and do not determine acceptance.",
+    "云端服务未公开后端版本": "The cloud service does not disclose its backend version",
+    "未取得可确认的版本信息": "No verifiable version information is available",
+    "本轮使用版本／源码提交": "Version / source commit used in this run",
+    "显示本轮使用的软件版本或源码提交。云端服务未公开可确认的后端版本号时，直接说明；这不代表服务没有版本。": "Software versions or source commits used for this run. Undisclosed cloud backend versions are stated explicitly; this does not mean the service has no version.",
+    "本轮启用自身 DEBUG 并捕获网络库日志。": "This run enabled native DEBUG output and captured network-library logs.",
+    "列出本轮核验后的修正；修正读取已保存的返回，不代表重新调用产品。": "Corrections after verification of this run use saved responses; they do not represent new product calls.",
+    "本轮结果修正": "Corrections to this run",
+    "详细依据": "Supporting evidence",
+    "核验范围与修正说明": "Review scope and corrections",
+    "产品原生返回；保留实际输出与日志": "Native product output; actual responses and logs are retained",
+    "缓存与等待选项见本轮固定配置": "See the frozen configuration for cache and wait settings",
+    "Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。": "Firecrawl, Tavily, Exa and Cloudflare, called through their respective APIs.",
+    "本轮实际固定配置": "Frozen settings used in this run",
+    "本轮保存了哪些日志": "Logs retained in this run",
+    "产品与依赖库日志范围": "Product and dependency log coverage",
+
+    "比例只对应本报告列出的案例与配置。先看总榜和分榜，再打开具体案例，对照验收要求与实际返回。请求成功只表示方法正常返回；任务通过表示返回内容满足该案例的全部要求。": "Rates apply only to the cases and configurations in this report. Start with the overall and category rankings, then open individual cases to compare requirements with actual output. Request success means the method returned normally; task success means the returned content met every requirement for that case.",
+    "评分规则与计时范围见“评测方法”，检查和修正记录见“核验记录”，方法版本、固定配置与日志范围见“环境与复现”。": "See Methodology for scoring and timing, Review history for checks and corrections, and Reproduce for method versions, fixed options and log coverage.",
     "已保存的诊断日志": "Saved diagnostic logs",
+    "已保存的诊断日志 · Web Fetch": "Saved diagnostic logs · Web Fetch",
+    "完整原始响应": "Complete original response",
+    "完整原始响应 · Web Fetch": "Complete original response · Web Fetch",
+    "查看完整 API 响应（已隐藏凭据与本机路径）": "View complete API response (credentials and local paths hidden)",
+    "查看已保存的诊断日志（已隐藏凭据与本机路径）": "View saved diagnostic logs (credentials and local paths hidden)",
+    "已隐藏凭据与本机路径": "Credentials and local paths hidden",
+    "真实保存记录；仅为浏览显示，未增加产品调用。": "Actual saved records, formatted for browsing without additional product calls.",
+    "记录来源": "Record source",
+    "下载原始公开文件": "Download original public file",
+    "仅包含实际观测的日志。": "Contains only observed logs.",
+    "产品实际返回；公开副本已隐藏凭据与本机路径。": "Actual product response; credentials and local paths are hidden in this public copy.",
+    "或": "or",
+    "稳定内容与结构检查通过。": "Stable content and structure checks passed.",
+    "条目结构检查通过；本例未设置稳定文字核对点。": "Record structure passed; this task has no stable-text checks.",
+    "稳定文字或记录结构没有满足任务要求。": "Stable text or record structure did not meet the task requirements.",
+    "全部文字组都须命中。": "Every text group must match.",
+    "完整参考正文": "Complete reference body",
+    "查看原始验收规则": "View raw acceptance rules",
+    "正文长度要求": "Body length requirement",
+    "· 公开 SHA-256：": "· Public SHA-256:",
     "已保存文件截断；原生日志范围见说明": "Saved file truncated; see native log coverage notes",
     "已保存文件未截断；原生日志范围见说明": "Saved file not truncated; see native log coverage notes",
     "本次没有取得产品或依赖库的原生日志。已保存的调用方记录见下方。": "No native product or dependency logs were obtained for this call. Saved caller records appear below.",
@@ -113,13 +147,42 @@ TEXT = {
     "已保存真实诊断（原生日志范围见说明）": "Observed diagnostics saved (see native log coverage notes)",
     "本轮未重新核验来源。": "Sources were not reverified for this run.",
     "本地实测版": "Local measured comparison",
-    "全部方法使用同一组已提交案例和判分规则，每例一次调用，统一45秒外部时限，不设逐例等待或提取参数，不重试。结果为机器判定，未进行独立人工审核；本报告仅供本地查看，不代表正式发布。": "All methods use the same committed cases and scoring rules: one call per case, a shared 45-second caller deadline, no per-case wait or extraction parameters, and no retries. Results are machine-scored without independent human review. This report is for local inspection and is not a formal release.",
+    "本地未认证诊断快照 · 不可用于排名": "Local uncertified diagnostic snapshot · not for ranking",
+    "来源未在调用前后完成全量核验。保存的评分、质量指标和复核记录仅供诊断，不代表正式发布或认证结果。": "Sources were not fully verified before and after calls. Saved scores, quality metrics and review records are diagnostic evidence, not a certified release.",
+    "本地诊断结果，不提供名次。": "Local diagnostic results; no ranks are assigned.",
+    "任务判定汇总（非排名）": "Task judgments (not a ranking)",
+    "按任务类别查看诊断结果": "Diagnostic results by task family",
+    "方法按名称排列，不提供名次。任务判定、内容质量和耗时分别展示。": "Methods are listed by name without ranks. Task judgments, content quality and latency are shown separately.",
+    "本地未认证诊断结果，仅展示保存的任务判定与耗时，不用于产品排名。通过不代表返回内容干净；请同时查看全文指标和挑战提示。": "Local uncertified diagnostic results show saved task judgments and latency, not product rankings. Passing does not establish clean content; also inspect full-text metrics and challenge indicators.",
+    "诊断指标说明": "Diagnostic metric definitions",
+    "无命中": "No matches",
+    "评分修正账目": "Scoring revision ledger",
+    "每轮增加、减少与最终通过数均从逐条状态记录计算；排除结果保留原始调用，不计入比较分母。": "Additions, removals and final passes are derived from individual result states. Excluded results retain their original calls and stay outside comparison denominators.",
+    "阶段": "Stage",
+    "修正前通过": "Passes before",
+    "新增通过": "Passes added",
+    "减少通过": "Passes removed",
+    "修正后通过": "Passes after",
+    "下载逐条增减账目": "Download per-result revision ledger",
+    "通过结果的内容诊断": "Content diagnostics for passing results",
+    "目标覆盖与附加内容": "Target coverage and additional content",
+    "目标要求：": "Target requirements:",
+    "附加内容诊断：": "Additional-content diagnostics:",
+    "参考词精确率：": "Reference word precision:",
+    "包含验证码组件文字": "Challenge-widget text is present",
+    "未检测到该组件文字特征": "No matching widget-text signature detected",
+    "排除比较": "Excluded from comparison",
+    "通过只表示满足登记的目标要求，不保证干净正文。提示词命中不证明整页被拦截；词精确率也受参考范围和时间影响。低于 30% 仅用于定位检查对象，不是统一失败线。": "Passing means the registered target requirements were met, not that the body is clean. Hint words do not establish that the whole page was blocked; word precision also depends on reference scope and time. Below 30% identifies inspection candidates, not a universal failure threshold.",
+    "评测环境异常：统一排除比较": "Evaluation environment defect: excluded across all methods",
+    "已有复核记录；覆盖和裁定依据见核验页面。": "Review records are available; see the review page for coverage and adjudication evidence.",
+    "结果为机器判定，未进行独立人工审核。": "Results are machine judgments without independent human review.",
     "调用链与日志检查": "Call-chain and log audit",
     "题目通过": "Task passes",
     "诊断日志": "Diagnostic logs",
     "原生日志范围": "Native log coverage",
     "检查结论": "Audit findings",
     "如何读取本轮结果": "How to read these results",
+    "本轮按保存的实际返回进行机器判分，比例只对应本报告列出的案例与配置。日志可用于复查调用和判分；失败原因须结合原始响应、调用记录及核验记录判断，不能一概归因于产品内部。": "Saved outputs are machine-scored. Rates apply only to the cases and configurations listed here. Assess failure causes using the native response, call log and review record; failures cannot all be attributed to product internals.",
     "本轮按保存的实际返回进行机器判分，比例只对应本报告列出的案例与配置。日志可用于复查调用和判分；未经过独立人工审核，不能将失败一概归因于产品内部。": "Saved outputs are machine-scored. Rates apply only to the cases and configurations listed here. Logs support review of calls and scoring; without independent human review, failures cannot all be attributed to product internals.",
     "逐次结果与筛选": "Per-call results and filters",
     "题目与计时规则": "Tasks and timing rules",
@@ -181,7 +244,6 @@ TEXT = {
     '本报告由本地测试适配器生成。没有正式评测发布记录。': 'This report was generated by a local test adapter and has no formal benchmark release history.',
 
     "Lightpanda、Obscura 与 Moli 的普通网页使用 CLI 正文输出。Moli 的直接文档和媒体 URL 使用裸 fetch：正文任务在预算内解析，文件任务校验字节。": "Lightpanda, Obscura and Moli use CLI body output for ordinary web pages. Moli uses bare fetch for direct document and media URLs: body parsing stays within the time budget and file tasks validate bytes.",
-    "Chromium 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。五种方法都不调用模型。": "Playwright obtains Chromium's complete rendered DOM, then node-html-markdown 2.0.0 converts it. None of these five methods calls a model.",
     "实际版本、配置和调用路线见“环境与复现”及逐次调用记录。": "See Environment & reproduction and the individual call records for measured versions, settings and execution routes.",
     "保留同一次调用的原生 Markdown 和最终页面地址。Lightpanda 解包原生 JSON；Obscura 执行固定哈希的官方 Markdown 脚本，并读取当前地址；页面完成条件不变。": "Retain native Markdown and the final page URL from the same call. Lightpanda unwraps its native JSON; Obscura evaluates the hash-pinned upstream Markdown script and reads the current URL, preserving the page completion conditions.",
     "安装与本报告版本和 SHA-256 一致的浏览器，配置 CHROMIUM_BINARY；详见“环境与复现”。": "Install the browser matching this report's version and SHA-256, and configure CHROMIUM_BINARY; see Environment & reproduction.",
@@ -196,7 +258,6 @@ TEXT = {
     "查看结果、实际返回及失败证据": "View results, actual outputs, and failure evidence",
     "安装并固定官方 v1.1.11 二进制；不需要供应商账号或 API Key。": "Install and pin the official v1.1.11 binary; no provider account or API key is required.",
     "本地 CLI。": "Local CLI.",
-    "核验于 2026-09-28。算力、网络、存储、代理和维护成本自担；没有测量这些成本，不把本地调用等同于零成本。官方托管产品或服务价格不属于本轮执行模式。": "Verified on 2026-09-28. Compute, network, storage, proxy, and maintenance costs are borne locally; these costs were not measured, so a local call is not treated as free. Official hosted-product or service pricing is outside this run mode.",
     "普通网页使用 fetch --dump markdown；本轮风险网站评测固定 debug 日志并逐次完整留存。": "Ordinary web pages use fetch --dump markdown; this risk-control benchmark pins debug logging and retains the complete log for every call.",
     "从官方 v1.1.11 release 获取二进制，配置 MOLI_1_1_11_BINARY。": "Obtain the binary from the official v1.1.11 release and configure MOLI_1_1_11_BINARY.",
     "Moli 1.1.11 正式发布": "Moli 1.1.11 official release",
@@ -207,6 +268,8 @@ TEXT = {
     "从官方 v1.1.7 release 获取二进制，配置 MOLI_1_1_7_BINARY。": "Obtain the binary from the official v1.1.7 release and configure MOLI_1_1_7_BINARY.",
     "Moli 1.1.7 正式发布": "Moli 1.1.7 official release",
     "本方法只使用官方 1.1.7 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与媒体的裸 fetch 路线在正式二进制上实测确认。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。": "This method uses only the official 1.1.7 release binary and is scored separately from other Moli versions. Ordinary web pages use native Markdown; bare-fetch routes for direct documents and media were verified on the release binary. If a body-text task retrieves a supported original document, text is parsed within the same timing budget; file tasks validate bytes directly. The method does not switch engines or output modes after a failure.",
+    "风控网站": "Risk-control websites",
+    "历史访问受限网址内容": "Historically access-restricted URL content",
     "风控网站正文": "Risk-control website body text",
     "请求指定网址": "Request the specified URL",
     "识别目标页或拦截页": "Identify the target page or a blocked page",
@@ -331,12 +394,7 @@ TEXT = {
     "Moli：普通正文用 Markdown，挑战题用 JSON 返回最终 DOM、状态和跳转诊断；动态等待与正文范围分离。DOCX 在同一次 CLI 运行中二次 fetch 原始字节；不调用模型。": "Moli: ordinary body tasks use Markdown, while challenge tasks use JSON to return the final DOM, status, and redirect diagnostics. Dynamic waiting is separate from body scope. DOCX performs a second fetch for original bytes within the same CLI run; no model is called.",
     "动态 / 资源页 / DOCX": "Dynamic / resource pages / DOCX",
     "服务端提取截止；由客户端内层截止推导，本轮 40.5 秒，官方范围 1–60 秒": "Server-side extraction deadline; derived from the inner client deadline, 40.5 seconds in this run, within the official 1–60 second range",
-    "使用官方高级提取路线；45 秒外层预算预留持久化时间后，客户端与服务端提取截止均为 40.5 秒。HTTP 200 但没有 raw_content 仍按适配器请求失败记录。原始响应在私有证据边界独立哈希，公开报告只保留规范化结果与绑定摘要。": "Uses the official advanced extraction path. After reserving persistence time from the 45-second outer budget, both the client and server extraction deadlines are 40.5 seconds. An HTTP 200 response without raw_content is still recorded as an adapter request failure. The raw response is independently hash-bound at the private evidence boundary; the public report retains only the normalized result and binding digest.",
     "本轮 15,000 毫秒；采用官方建议上界，且小于 40.5 秒客户端内层截止": "15,000 milliseconds in this run; the upper end of the official recommendation and below the 40.5-second inner client deadline",
-    "强制实时抓取使用官方建议的 15 秒 livecrawlTimeout，并保持在本轮 40.5 秒客户端内层截止以内。没有正文或逐网址状态失败，不能仅凭 HTTP 200 判成功；原始 API 响应只进入私有哈希绑定证据，不随公开报告发布。": "Forced live crawling uses the officially recommended 15-second livecrawlTimeout and keeps it within this run's 40.5-second inner client deadline. Missing text or a failed per-URL status cannot be treated as success merely because HTTP returned 200. Raw API responses enter only private hash-bound evidence and are not published with the report.",
-    "强制实时抓取使用官方建议的 15 秒 livecrawlTimeout，并保持在本轮 40.5 秒客户端内层截止以内。具名列表只使用 richLinks 中明确配对且 anchor 非空的记录；不把正文标题与裸 links 数组按位置猜配。没有正文或逐网址状态失败，不能仅凭 HTTP 200 判成功；原始 API 响应只进入私有哈希绑定证据，不随公开报告发布。": "Forced live crawling uses the officially recommended 15-second livecrawlTimeout and keeps it within this run's 40.5-second inner client deadline. Named lists use only richLinks records with explicit pairings and non-empty anchors; body titles are never positionally paired with a bare links array. Missing text or a failed per-URL status cannot be treated as success merely because HTTP returned 200. Raw API responses enter only private hash-bound evidence and are not published with the report.",
-    "本轮均为 40,500 毫秒，与实际客户端内层 HTTP 截止一致；动态题还受预声明完成截止约束": "Both are 40,500 milliseconds in this run, matching the actual inner client HTTP deadline; dynamic tasks are also bounded by their predeclared completion deadline",
-    "本轮是 Markdown 端点，不是截图或浏览器控制接口。45 秒外层预算预留结果持久化时间后，服务端导航与 action 计时器绑定 40.5 秒客户端 HTTP 截止；Cloudflare 的各等待计时器相互独立，不把它们误写成串行总预算。账户配额不足会单列失败。": "This run uses the Markdown endpoint, not screenshot or browser-control APIs. After reserving result-persistence time from the 45-second outer budget, the server navigation and action timers are bound to the 40.5-second client HTTP deadline. Cloudflare wait timers are independent and are not misrepresented as a sequential total budget. Insufficient account quota is reported as a separate failure.",
     "资源输出契约：只允许在答案图片字段中返回登记的目标、别名或匹配规则；额外图片会使任务未通过。": "Resource output contract: answer-bearing image fields may contain only registered targets, aliases, or matching patterns; additional images fail the task.",
     "资源召回率 / 纯净度": "Resource recall / precision",
     "非目标资源": "Unexpected resources",
@@ -351,7 +409,6 @@ TEXT = {
     "目标资源已命中，但答案字段还返回了非目标资源：": "The target resource was found, but answer-bearing fields also returned unexpected resources: ",
     "打开完整图片": "Open full-size image",
     "下载图片": "Download image",
-    "五款浏览器综合通过率。每款执行相同的 150 道任务，每题等权；分组列为通过数 / 本组任务数。": "Overall pass rates for five browsers. Each runs the same 150 equally weighted tasks; group columns show tasks passed / tasks in that group.",
     "从输入到交付共 2.44 秒，包含流程开销。本题预先声明为 PDF 文档，未测试未知链接的自动类型识别。": "Input-to-delivery time is 2.44 seconds, including processing overhead. This task is declared as a PDF document in advance; automatic type detection for an unknown URL was not tested.",
     "排除：Just a moment... / Prove your humanity / Access Denied；不得返回安全验证或拒绝访问页": "Exclude: Just a moment... / Prove your humanity / Access Denied; must not return a security-verification or access-denied page",
     "评测集与判定规则": "Dataset and acceptance rules",
@@ -428,7 +485,6 @@ TEXT = {
     "每款浏览器均执行 150 道题，每题等权。该指标是任务完成率，不是对所有返回文字的事实准确率。": "Each browser ran 150 equally weighted tasks. This measures task completion, not the factual accuracy of all returned text.",
     "多完成的 10 道题，来自哪里？": "Where do the 10 additional completed tasks come from?",
     "与 Chromium 相比，Moli 在网页类的总通过数相同；到了文档与媒体，两者拉开了差距。": "Moli and Chromium pass the same total number of web tasks. The gap appears in documents and media.",
-    "网页类：普通网页 100 道、动态网页 10 道、热门站点 10 道。文档、图片、视频各 10 道。": "Web tasks: 100 general pages, 10 dynamic pages, and 10 popular-site tasks. Documents, images, and videos each have 10 tasks.",
     "PDF 是一个具体原因：Moli 能先交回文件字节，再由本地 pypdf 提取正文。六道 PDF 任务中，这条路线都拿到了文字，其他四款的本轮页面转文本配置没有完成。这个成绩比较的是浏览器及其内容处理路径，包含 PDF 解析所用时间。": "PDFs explain part of the difference: Moli returns file bytes, then local pypdf extracts the text. This path retrieves text on six PDF tasks that the other four browsers' tested page-to-text configurations do not complete. The comparison includes the browser and its content-processing path, including PDF parsing time.",
     "网页类总数相同，也不意味着表现完全一样。Moli 的普通网页是 97/100，Chromium 是 99/100；热门站点为 6/10 对 4/10，两道题的得失恰好抵消。下面的案例可以看到，这些差异具体发生在哪一步。": "Equal web totals do not mean identical performance. Moli scores 97/100 on general pages and Chromium 99/100; popular-site scores are 6/10 versus 4/10, offsetting the two-task difference. The examples below show where these differences occur.",
     "速度看三个数：平均耗时、P50 和 P95": "Three latency measures: mean, P50, and P95",
@@ -450,9 +506,7 @@ TEXT = {
     "五个案例是五种阅读入口，不是五个统计分组。完整评测集分为普通网页、动态网页、热门站点、文档、图片、视频六组。图片和视频可能要求资源地址或原文件，PDF 正文则使用正文覆盖规则。": "The five examples are ways to explore the results, not five reporting groups. The full dataset has six groups: general pages, dynamic pages, popular sites, documents, images, and videos. Image and video tasks can require URLs or original files; PDF text uses body-coverage rules.",
     "参考内容来自独立取得的页面或文件；列表使用独立确认的结构要求，不固定每天变化的商品名单。正文阈值是工程验收下限，未通过敏感性实验确定为最优值。评分曾统一修订并离线重算，当前成绩采用最终复核口径。": "References come from independently retrieved pages or files. Lists use independently confirmed structural requirements without freezing a changing daily catalog. Body thresholds are engineering acceptance floors, not values shown optimal by sensitivity experiments. Scoring rules were revised consistently and results rescored offline; current scores use the final reviewed rules.",
     "每题保留一次主结果，不在失败后择优重试。Codex 独立复核了完整报告的 1,050 条主结果，未决判定为 0，其中本文五款浏览器占 750 条。Moli 1.1.1 是三个受测版本中总通过数最高的版本；本文统一使用这个版本，没有按题拼接不同版本。": "Each task retains one primary result, without retrying failures to choose a better output. Codex independently reviewed the full report's 1,050 primary results, with 0 unresolved verdicts; this article's five browsers account for 750. Moli 1.1.1 has the highest total passes among the three tested versions. This article uses that version throughout, without mixing versions task by task.",
-    "正文与列表还检查明显乱码：替代字符同时达到 20 个、占输出至少 2%，会导致该文本任务失败。文本规范化、逐项阈值、完整参考与原始返回均保存在完整报告中。": "Body text and lists are also checked for obvious decoding damage. At least 20 replacement characters making up at least 2% of the output cause the text task to fail. Text normalization, itemized thresholds, complete references, and original outputs are retained in the full report.",
     "相同任务，五条内容获取路径": "The same tasks, five content-retrieval paths",
-    "浏览器怎样把内容交出来，会直接影响成绩。本轮四款在本地运行，Kitesurf 通过远端服务调用；Chromium 需要将页面结构转换为 Markdown，Moli 的 PDF 路线另有本地解析步骤。": "How a browser delivers content affects its results. Four browsers run locally here; Kitesurf is called through a remote service. Chromium converts the page structure to Markdown, while Moli's PDF path includes a local parsing step.",
     "定位与运行位置": "Purpose and execution location",
     "本轮交付路径": "Output path in this run",
     "面向 AI Agent 的 Rust 浏览器；本地": "Rust browser for AI agents; local",
@@ -469,7 +523,6 @@ TEXT = {
     "因此，如果你的 Agent 既读网页，也读 PDF、取媒体原文件，Moli 当前的覆盖优势值得优先测试。若主要处理长篇 HTML 正文，Chromium 仍是重要参照；云端部署、并发和成本则需要另行评估，本轮没有测量。": "For agents reading pages and PDFs and retrieving original media files, Moli's current coverage advantage makes it worth testing early. For long HTML text, Chromium remains an important reference. Cloud deployment, concurrency, and cost need separate evaluation; they were not measured here.",
     "通过率领先之后，还要补哪些内容？": "Beyond the leading pass rate, what still needs work?",
     "长网页：需要拿到正文，而不是验证页": "Long pages: retrieve the body, not a verification page",
-    "Moli 未通过的三个普通网页都是 W3C 长标准：CSS 2.1、WCAG 2.1、XML 1.0。它们返回了同样的 475 字符安全验证页，Chromium 和 Lightpanda 则取到了正文。": "Moli's three general-page failures are long W3C standards: CSS 2.1, WCAG 2.1, and XML 1.0. They return the same 475-character security-verification page, while Chromium and Lightpanda retrieve the body.",
     "即使任务通过，正文找回多少也值得单独看。98 道有完整可比参考的普通网页中，Chromium 的 Recall 与 F1 均高于 Moli。这也是本文使用“任务通过率最高”，而不把它扩大成“所有内容准确率最高”的原因。": "Even when a task passes, body recovery deserves a separate look. Across 98 general pages with complete, comparable references, Chromium has higher recall and F1 than Moli. That is why this article claims the highest task pass rate, not the highest accuracy for all content.",
     "动态内容：延迟出现的列表和 iframe": "Dynamic content: delayed lists and iframes",
     "五款浏览器的动态任务都是 8/10。共同未通过的两道题，暴露了两种常见的读取缺口。": "All five browsers score 8/10 on dynamic tasks. Their two shared failures expose two common retrieval gaps.",
@@ -477,8 +530,6 @@ TEXT = {
     "3 秒：目标列表": "3 seconds: target list",
     "Moli 交回了框架，没有目标列表。需要检查等待条件，以及最终是否取到了完整记录。": "Moli returns the shell without the target list. Waiting conditions and retrieval of complete records need checking.",
     "目录在 iframe 里": "Catalog inside an iframe",
-    "Moli 达到 45 秒仍无结果；Chromium、Lightpanda 和 Kitesurf 只取得外围页面。": "Moli has no result after 45 seconds; Chromium, Lightpanda, and Kitesurf retrieve only the outer page.",
-    "这些样本能告诉我们缺了什么，还不足以将原因完全归于浏览器内核。等待策略、子页面获取和网络条件，需要用受控实验进一步分开。": "These samples identify what is missing, but do not establish the browser engine as the sole cause. Controlled experiments need to separate waiting strategy, embedded-page retrieval, and network conditions.",
     "下一轮": "Next round",
     "扩大样本，再验证优势能否保持": "Expand the sample and test whether the advantages hold",
     "这轮测试给出的结论已经具体：Moli 1.1.1 在 150 道混合内容任务中完成得最多，在共同成功的速度样本上平均耗时和 P50 最低；PDF 与原文件是主要增益，长网页与动态内容仍有缺口。": "This run gives a concrete result: Moli 1.1.1 completes the most tasks in the 150-task mixed-content set and has the lowest mean latency and P50 on the shared-success sample. PDFs and original files account for most of its gains; long pages and dynamic content still have gaps.",
@@ -546,7 +597,6 @@ TEXT = {
     "本轮输入统一是 URL。有的地址指向网页，其中可能嵌有图片、视频或文档；有的直接指向 PDF、PNG 或视频文件，点击地址就能取得文件响应。评测会按题目要求读取正文、定位资源地址或取得原文件。它关心从 URL 到可用内容这一段：该有的正文是否齐全，列表是否包含要求的字段，返回的文件是否正确，以及这一过程花了多久。模型拿到内容后能否推理正确、浏览器能否完成连续网页操作，都需要另外评测。": "Every input in this run is a URL. Some point to pages that may embed images, videos, or documents; others point directly to PDFs, PNGs, or videos and return a file response. Depending on the task, the benchmark reads body text, locates a resource URL, or retrieves the original file. It checks whether the required text is complete, list fields are present, files are correct, and how long retrieval takes. Correct reasoning from that content and completing sequences of web interactions need separate evaluations.",
     "在相同成功任务上，Moli 的中位耗时在本文五款浏览器中最低": "On the same successful tasks, Moli has the lowest median latency among the five browsers here",
     "Moli 1.1.1 的 P50 为 2.70 秒，Chromium 为 3.63 秒，前者低约 25.8%，也是本文五款浏览器中最低的。P50 是耗时分布的中点：这 8 题中，一半任务的耗时不超过 2.70 秒，不意味着每个网页都更快。P95 描述较慢一端的等待时间，在这组样本中 Lightpanda 的数值更低，8 题也不足以说明生产环境的长期延迟和吞吐。": "Moli 1.1.1's P50 was 2.70 seconds, compared with Chromium's 3.63 seconds: about 25.8% lower, and the lowest among the five browsers here. P50 is the midpoint of the latency distribution: among these 8 tasks, half took no more than 2.70 seconds. This does not mean every page is faster. P95 describes the slower end, where Lightpanda had the lower value. These 8 tasks cannot establish long-term production latency or throughput.",
-    "输入：URL · 共同预算：45 秒 · 任务要求已知": "Input: URL · shared budget: 45 seconds · task requirements known",
     "网页或 PDF 地址": "Web or PDF URL",
     "列表页 URL": "List-page URL",
     "资源详情页 URL": "Resource-detail URL",
@@ -575,7 +625,6 @@ TEXT = {
     "02 / 怎样判定完成": "02 / How completion is assessed",
     "用五个真实样本，把验收过程展开": "Five real examples, with the acceptance checks explained",
     "同样是交给浏览器一个 URL，任务可能要求一篇正文、几条商品记录、一条下载地址，也可能直接要文件。判断是否完成，必须先明确要交回什么。下面用五个样本解释这四类交付物，网页正文和 PDF 正文因处理路线不同分开举例。实际数据按六个分组统计：普通网页 100 题，动态网页、热门站点、文档、图片、视频各 10 题。图片和视频组都可能要求资源地址或原文件，PDF 则沿用正文验收。": "A URL can require body text, product records, a download link, or the file itself. Acceptance starts by defining that output. Five examples below explain these four output types; web and PDF text have separate examples because their processing paths differ. Results use six reporting groups: general pages with 100 tasks, and dynamic pages, popular sites, documents, images, and videos with 10 each. Image and video tasks can require URLs or files, while PDFs use body-text acceptance.",
-    "每题只在满足规定交付物时记为通过，没有“正文拿到一半算半题”的做法。请求失败、超过 45 秒预算，或必需检查不达标，都记为未通过。这个预算覆盖调用和形成交付物的处理过程，包括本地正文转换或 PDF 解析；离线评分不计入耗时。": "A task passes only when its required output is delivered; half the text does not earn half a pass. Request errors, exceeding the 45-second budget, or failing required checks all count as failures. The budget covers the call and output preparation, including local text conversion or PDF parsing. Offline scoring is excluded.",
     "从调用开始，到可验收结果形成": "From the start of the call to an assessable output",
     "共同预算：45 秒 · 输入的任务类型预先已知": "Shared budget: 45 seconds · input task type known in advance",
     "网页 / PDF": "Web / PDF",
@@ -819,7 +868,6 @@ TEXT = {
     "统计时保留六个分组：100 个普通网页，以及动态网页、热门站点、文档、图片、视频各 10 个。普通网页包含文档站、百科、项目说明和标准文本；动态网页专门检查延迟出现、后续取数和 iframe 内的内容；热门站点考察真实站点上较复杂的页面与列表。": "Results retain six groups: 100 general pages, plus 10 each for dynamic pages, popular sites, documents, images, and videos. General pages include documentation sites, encyclopedias, project descriptions, and standards. Dynamic tasks examine delayed content, subsequent data retrieval, and iframe content; popular-site tasks cover more complex real-world pages and lists.",
     "普通网页占三分之二，所以总分很大程度上反映这组样本的构成。10 个文档任务与 100 个普通网页任务不能代表全网的真实比例，小分组相差一题就是 10 个百分点。本文同时保留逐类结果和实际案例，让读者能判断差距是否发生在自己的输入类型上。": "General pages make up two-thirds of the sample, so they strongly influence the total. The ratio of 10 document tasks to 100 general-page tasks does not represent the web as a whole; one task in a small group changes its score by 10 percentage points. Category results and concrete examples help readers judge whether the differences affect their own input types.",
     "成功判定跟着任务走，不只看请求有没有报错": "Acceptance follows the task, not just the request status",
-    "每道题先声明期待结果，再调用浏览器，最后把实际返回放到同一套验收规则下检查。本轮每题保留一次主调用结果，没有失败后择优重试；从发起调用到形成可验收输出，共享 45 秒预算。本地启动、取页、正文转换或文件解析均计入，远端 Kitesurf 还包含网络往返。": "Each task declares its expected output before the browser call. The returned output is then checked against shared acceptance rules. This run keeps one primary result per task, without retrying failures to choose a better response. A 45-second budget covers the call through to the assessable output, including local startup, retrieval, text conversion, or file parsing. Remote Kitesurf calls also include the network round trip.",
     "一个普通网页任务怎样判分": "How a general-page task is scored",
     "题目要求至少 76 个字符，并包含标题、用途说明、更多信息链接三组内容。可以接受题目声明的等价表述，同时排除验证页、访问拒绝等错误内容，并检查参考正文区域覆盖。": "The task requires at least 76 characters and three content groups: title, purpose, and further-information link. Declared equivalent wording is accepted. Verification pages, access-denied responses, and other errors are excluded, and reference body-region coverage is checked.",
     "可通过的结果": "An acceptable result",
@@ -898,7 +946,6 @@ TEXT = {
     "延迟出现的引文列表": "Delayed quote list",
     "Moli 返回了页面框架，没有交付目标列表。下一次实验需要比较不同等待条件，并检查实际出现的目标记录，不能只延长一个固定时间就判定已修复。": "Moli returns the page shell without the target list. The next experiment should compare wait conditions and inspect the actual target records. Extending a fixed delay alone does not establish a fix.",
     "iframe 内的目录": "Catalog inside an iframe",
-    "Moli 运行到 45 秒仍无结果；Chromium、Lightpanda 和 Kitesurf 只拿到外围页面。应单独检查子页面获取及其完成条件。": "Moli has no result after 45 seconds; Chromium, Lightpanda, and Kitesurf retrieve only the outer page. Embedded-page retrieval and its completion conditions need separate checks.",
     "Obscura 在这两题均未完成取页，说明相同失败结果不一定由相同原因造成。当前证据能定位缺失的交付物，但尚未通过受控实验分离网络、等待策略和 iframe 处理各自的影响。": "Obscura fails to complete retrieval on both tasks, so identical verdicts need not have identical causes. The evidence identifies missing outputs, but controlled experiments have not yet separated network, wait-strategy, and iframe effects.",
     "06 / 结论与下一轮": "06 / Conclusions and next round",
     "Moli 已有可用优势，下一步要验证稳定覆盖": "Moli has practical advantages; consistent coverage is the next test",
@@ -927,7 +974,6 @@ TEXT = {
     "这也是 Web Fetch 最实际的问题：": "This is the practical question behind Web Fetch:",
     "输入一个网址，最终交给下游的内容是什么？": "Given a URL, what content reaches the next stage?",
     "一篇文章需要正文，商品列表需要名称和链接，图片地址可能需要返回原文件。打开页面、收到响应，还只是中间步骤。": "An article needs body text; a product list needs names and links; an image URL may need to return the original file. Opening the page and receiving a response are intermediate steps.",
-    "我们用 150 个任务比较 Moli 1.1.1、Chromium、Lightpanda、Obscura 和 Kitesurf。每题在 45 秒内按要求交付内容，才计为通过。": "We used 150 tasks to compare Moli 1.1.1, Chromium, Lightpanda, Obscura, and Kitesurf. A task passes only when the required content is delivered within 45 seconds.",
     "01 / 总成绩": "01 / Overall results",
     "10 题净差，全部来自文档与媒体": "The 10-task net difference comes entirely from documents and media",
     "任务通过数 / 150 题": "Tasks passed / 150 tasks",
@@ -954,7 +1000,6 @@ TEXT = {
     "02 / 文档": "02 / Documents",
     "PDF 要交付正文，先要取得完整文件": "Delivering PDF text starts with fetching the complete file",
     "文档类别中，Moli 1.1.1 完成 7/10，另外四款浏览器的受测路线均为 1/10。六个只有 Moli 完成的任务都是 PDF，包括《Attention Is All You Need》《BERT》以及固定页数的示例文档。": "Moli 1.1.1 completed 7/10 document tasks; each of the other four tested paths completed 1/10. The six tasks completed only by Moli were PDFs, including Attention Is All You Need, BERT, and fixed-page sample documents.",
-    "它们重复检验了同一条处理路线。评测程序已知任务属于文档类型，选择 Moli 的原始文件获取接口，再由本地解析器在同一个 45 秒预算内提取正文。": "These tasks repeatedly tested the same path. The harness knew the task was a document, selected Moli's raw-file retrieval interface, and then used a local parser to extract text within the same 45-second budget.",
     "案例：Attention Is All You Need · PDF": "Example: Attention Is All You Need · PDF",
     "Moli 获取 PDF": "Moli fetches the PDF",
     "本地 pypdf 解析": "Local pypdf parsing",
@@ -1001,7 +1046,6 @@ TEXT = {
     "延迟内容": "Delayed content",
     "Moli 返回了页面框架，没有交付随后出现的目标列表。后续需要验证按目标内容等待是否有效。": "Moli returned the page shell without the target list that appeared later. A follow-up experiment should test whether waiting for the target content helps.",
     "iframe 子页面": "iframe content",
-    "Moli 到 45 秒仍无结果；三条路线只取得外围页面。需要单独验证子页面的读取。": "Moli had no result after 45 seconds; three paths retrieved only the outer page. Reading the embedded page requires a separate test.",
     "共同失败并不意味着原因相同。Lightpanda 在 IMDb、Kitesurf 在 YouTube 也各有其余四款未完成的任务。总榜排序，不能代替对具体页面的测试。": "Shared failures do not establish a shared cause. Lightpanda also had an IMDb success, and Kitesurf a YouTube success, that the other four did not achieve. Overall rankings cannot replace testing individual pages.",
     "05 / 速度观察": "05 / Latency observations",
     "共同成功的 8 题中，Moli 中位耗时 2.70 秒": "Across 8 shared successes, Moli's median latency is 2.70 seconds",
@@ -1736,6 +1780,8 @@ TEXT.update({
     "请求网页": "Request page",
     "定位正文区域": "Locate body region",
     "去除导航等杂文": "Remove navigation and noise",
+    "按题目范围保留文字": "Retain text within the task scope",
+    "从文章、文档站、百科或项目主页中取回题目要求的内容。导航和页脚是否需要保留，由每道题登记的范围决定；它们不能替代要求的正文、列表或表格。": "Retrieve the required content from articles, documentation, encyclopedias or project pages. Each task declares whether navigation and footer text must be retained; they cannot substitute for the required body, lists or tables.",
     "输出正文": "Return body text",
     "目标是读出页面内容，而不是保存整份网页源码。正文若已在响应中，普通 HTTP 加解析器就可能完成。": "The goal is readable page content, not a copy of the complete page source. When the body is already present in the response, ordinary HTTP plus a parser may be sufficient.",
     "项目仓库页以 README 为正文：只返回仓库名称和简介不够；把文件目录、导航一起带回来，也可能降低纯净度。": "For a repository page, the README is the body target. A repository name and short description are insufficient, while including the file tree and navigation may reduce precision.",
@@ -1841,7 +1887,6 @@ TEXT.update({
     "页面在 CowAgent 输出里留下页面壳，名言和作者核对点缺失；飞书帮助文档只有标题，没有要求的正文。零售退换货页则是请求被拒绝。前两例要靠内容判断才能触发后备方法，最后一例可以由请求错误触发。因此，只在网络异常时切换方法，无法复现这里看到的全部互补覆盖。": "page leaves only a page shell in CowAgent output, with quote and author checks missing; the Feishu help document contains only its title, not the required body. The retail returns page is rejected at request time. The first two need content validation to trigger a fallback, while the last can use a request error. Switching methods only on network errors therefore cannot reproduce all of the complementary coverage observed here.",
     "页面壳也不能直接证明正文必须经异步请求取得。对初始源文档的复核发现，": "A page shell also does not prove that the body must be fetched asynchronously. Review of the initial source documents found that",
     "的名言载荷和飞书文章内容已经嵌入 HTML；取回源字节与正确提取嵌入内容是两件事。它们揭示的是当前提取路径的缺口，不能作为浏览器执行能力的独立证据。": "already embeds both the quote payload and the Feishu article content in HTML. Retrieving source bytes and correctly extracting embedded content are distinct tasks. These cases expose a gap in the current extraction path; they are not independent evidence that browser execution is required.",
-    "客户端计时从调用开始到最终内容及必要转换完成，涵盖下载、渲染和本地解析。离线评分和报告生成不计入调用耗时。超过原调用登记预算的记录保留实际内容和耗时，但不算按时交付；历史调用的硬截止执行和运行时审计开销没有重新测量。主结果里各方法自身通过项的耗时均值不能当作同题速度排名；如有同窗速度子集，应同时阅读固定分母的全调用耗时、各方法条件成功耗时和共同通过诊断。": "Client timing runs from the start of the call until final content and any required conversion are complete, including downloading, rendering, and local parsing. Offline scoring and report generation are excluded. Records exceeding their registered call budget retain their actual content and latency but do not count as on-time delivery; hard-deadline enforcement and runtime-audit overhead for historical calls were not remeasured. Mean latency among each method's own passing primary results is not a matched-task speed ranking. When a same-window cohort is available, read its fixed-denominator all-call latency together with each method's conditional successful-call latency and the shared-pass diagnostic.",
     "不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。": "Different methods run in parallel while calls within each method are serial. Non-body tasks run after body-text tasks. Firecrawl cools down for 6.1 seconds after each call. This report is not an official WCXB leaderboard.",
     "十二方法机器失败项盲审与分歧裁决": "Blind review and adjudication of machine failures across twelve methods",
     "失败项盲审发现 2 条机器判定与独立审查分歧，均为 Exa 正文名称与另一组裸 URL 被审查者按顺序推断成具名链接。": "Failure-only blind review found 2 disagreements with machine verdicts. In both, the reviewer inferred named Exa links by positionally joining body names to a separate array of bare URLs.",
@@ -1857,14 +1902,9 @@ TEXT.update({
     "热门网站正文：内容可以变化，交付契约仍然稳定": "Popular-site text: content may change while the delivery contract stays stable",
     "方法与样本范围": "Methods and sample scope",
     "各类任务的样本数与实际调用日期": "Task counts and actual call dates by family",
-    "这轮评测给每种方法一个 URL，检查它是否交付指定的正文、条目或资源。参评者包括普通 HTTP 与文本提取、浏览器型实现和托管抓取 API；没有让 Agent 自主搜索或反复尝试。任务通过由确定性规则判断，不使用大模型裁判。每例可同时登记稳定的内容核对点与数量、字段、结构要求：页面标题、栏目和说明文字仍可核验，频繁变化的名单与价格不锁定字面值。": "Each method receives one URL and must deliver the requested body text, records, or resources. The cohort includes plain HTTP/text extraction, browser-based implementations, and managed scraping APIs; agents are not allowed to search autonomously or retry repeatedly. Deterministic rules, not an LLM judge, decide task acceptance. A task may combine stable content checks with count, field, and structure requirements: headings, sections, and explanatory text remain verifiable, while frequently changing names and prices are not frozen as literal answers.",
-    "任务通过要满足该例登记的内容核对点、结构及错误页等规则，不设 F1 门槛。F1 是另一项文本质量诊断：完整度看参考词语取回了多少，纯净度看输出有多少属于参考，F1 用调和平均综合二者。只有参考范围明确时才计算，并说明比较的是整篇正文还是选定部分；局部参考不能解释为整页质量。它不裁定逐句语义，也不取代内容和结构验收。": "A task passes only when its registered content checks, structure rules, and error-page checks are satisfied; there is no F1 threshold. F1 is a separate text-quality diagnostic: recall measures how much reference text was retrieved, precision measures how much output belongs to the reference, and F1 is their harmonic mean. It is calculated only when reference scope is explicit, with whole-body and selected-region comparisons identified separately. A partial reference cannot describe whole-page quality. It neither judges sentence-level meaning nor replaces content and structure acceptance.",
-    "正文任务还检查分布在全文的覆盖要求：按已声明参考划分最多五个区域，每区至少取回 80% 的参考词语计数。只返回标题或开头不能代表完整正文。这是覆盖下限，不是逐句语义验证，也不等同于 F1 门槛；连续的全文指标仍按实际输出计算。": "Body-text tasks also check coverage across the document: the declared reference is divided into at most five regions, and each region must recover at least 80% of its reference-word count. Returning only a title or opening section is not a complete body. This is a coverage floor, not sentence-level semantic validation or an F1 threshold; continuous full-text metrics are still computed from the actual output.",
-    "当前核对到的网页提取函数先删除 script 和 style 内容，再删除 HTML 标签、整理空白。这条文本路线没有借助大模型理解页面，也不会因为网页里包含脚本就自动执行脚本。对已经出现在响应 HTML 中的正文，它可能足够；对藏在脚本或运行时响应中的内容，同样的操作就可能把所需信息留在文本之外。": "The inspected extraction function first removes script and style content, then strips HTML tags and normalizes whitespace. This text-only route does not use an LLM to understand the page, and it does not execute scripts merely because the page contains them. It may suffice for body text already present in the response HTML; content hidden in scripts or runtime responses may remain outside the delivered text.",
     "同一次去标签操作会保留文字，但丢掉地址。它可以完成一些正文任务，却不能代替下游判断需要什么。交付目标应决定文本清洗的激进程度，以及是否保留链接。属性一旦从输出中消失，后续再精确的关键词检查也找不回地址。": "The same tag-stripping operation preserves text but discards URLs. It can satisfy some body-text tasks, but it cannot decide what downstream consumers need. The delivery goal must determine how aggressively text is cleaned and whether links must be retained. Once attributes have disappeared from the output, more precise keyword matching cannot recover their URLs.",
     "这个实验只验证合成输入上的当前提取函数。已保存的 CowAgent 调用没有逐次源响应指纹，也没有把同一响应字节交给多个提取器。因此不能把每一个实测成功或失败都归因到这个函数，也不能从这个实验计算保留文本范围对通过率的贡献。": "This experiment validates only the current extraction function on synthetic input. Saved CowAgent calls do not include a per-call source fingerprint or feed the same response bytes through multiple extractors. The experiment therefore cannot attribute every observed success or failure to this function, or quantify how retained-text scope affects pass rate.",
     "后备方法能否发挥作用，先取决于系统能否检出主方法的错误。生产环境通常没有每个新 URL 的完整参考，不能直接照搬这份评测的事后评分。页面身份、最小内容和业务必需字段，才是要测的触发条件。如果验收器把看似合理但错误的正文当成成功，再强的后备也不会被调用。": "A fallback helps only if the system detects the primary method's error. Production usually lacks a complete reference for every new URL, so this benchmark's post-hoc scoring cannot be copied directly. Page identity, minimum content, and business-required fields are the trigger conditions to test. If the validator accepts plausible but incorrect body text, a capable fallback is never invoked.",
-    "这使 CowAgent 作为技术文档基线、Moli 作为后备成为值得验证的组合。试验应在同一时间窗跑完整链路，记录错误触发、漏触发、后备结果和总耗时，而不能只重放已经知道会失败的案例。正文噪声还应单独验收，以免提高了交付覆盖，却降低了检索质量。": "This makes CowAgent as a technical-document baseline and Moli as a fallback a combination worth validating. Run the complete chain in one time window and record correct triggers, missed triggers, fallback outcomes, and total latency; do not replay only cases already known to fail. Judge body-text noise separately so that higher delivery coverage does not come at the cost of retrieval quality.",
     "这也解释了为什么不能把正文选型直接带到文档和媒体交付。PDF 或 DOCX 正文可读，不等于版式或原文件被保留；图片或视频地址可访问，不等于文件已下载或内容已理解。下游要地址，就验收地址；下游要文件，就要求可校验字节。更可读的纯文本不能代替这项检查。": "This also explains why a body-text choice cannot be carried directly into document and media delivery. Usable PDF or DOCX text does not mean layout or the original file was preserved; an accessible image or video URL does not mean the file was downloaded or its content understood. If downstream needs a URL, validate the URL; if it needs a file, require verifiable bytes. More readable plain text cannot substitute for this check.",
     "剧集榜单的名字和顺序可以更新，页面身份、稳定栏目与说明文字仍然可以核对。条目按要求数量、非空名称和有效详情地址验收。标题正确但列表为空，或条目完整但来自错误栏目，都可能不通过混合契约。可重现的是问题与规则，不是某天的全部答案。": "A show's name and rank may change, while page identity, stable sections, and explanatory copy remain valid checks. Records are checked for the required count, non-empty names, and valid detail URLs. A correct title with an empty list—or complete records from the wrong section—can still fail the mixed contract. What is reproducible is the question and its rules, not every answer from one day.",
     "通过率衡量已登记的内容与结构要求。只数卡片会让空占位通过；只看字段非空，又可能放过错位或伪造的条目。稳定文字命中与字段完整，也不能证明每个事实准确、实时或无遗漏。只有参考范围明确时才计算文本重合。缺少参考不会抹掉已完成的内容与结构检查，也不把 F1 记成零分。": "Pass rate measures the registered content and structure requirements. Counting cards alone accepts empty placeholders; checking only non-empty fields can accept mismatched or fabricated records. Even stable-text matches and complete fields do not prove every fact is accurate, current, or exhaustive. Use text overlap only when reference scope is explicit. A missing reference does not erase completed content/structure checks or turn F1 into zero.",
@@ -1897,29 +1937,19 @@ TEXT.update({
     "内嵌 JSON 呈现": "Embedded JSON rendering", "异步接口": "Asynchronous API",
     "React 应用": "React application", "GraphQL 异步接口": "Asynchronous GraphQL API",
     "接口规范转为可读目录": "API specification converted to a readable catalog",
-    "名言列表与 ScrapingCourse 的 JavaScript 商品页，经独立 GET 和浏览器核对，目标条目未出现在初始 HTML 中。它们要求在首次加载后交付指定范围的名言或商品。这支持“单靠初始 HTML 不够”，但不支持“必须执行 JavaScript”：直接调用页面使用的内容 API，只要返回满足同一任务契约，也是一条有效路线。": "The quote list and ScrapingCourse JavaScript product page were checked through independent GET and browser observations; their target records were absent from the initial HTML. They require delivery of the specified quotes or products after initial load. This shows that initial HTML alone is insufficient, not that JavaScript execution is mandatory: directly calling the page's content API is also valid when it satisfies the same task contract.",
     "商品页还有一个会制造假完成的细节：初始页面已有 12 个占位卡片，但卡片文字为空。只等 DOM 数量达标，会把空占位当成加载完成。参考采集要求“数量达标且必需字段非空”，在有上限的等待内取得目标条目，并由独立观察核对完整范围。数量与字段要同时满足，才能把“布局已经出现”与“内容可以交付”区分开。": "The product page exposes another false-completion trap: its initial page contains 12 cards whose text is empty. Waiting only for the DOM count treats placeholders as complete. Reference capture therefore requires both the target count and non-empty required fields within a bounded wait, followed by an independent full-scope observation. Count and field requirements together distinguish visible layout from deliverable content.",
-    "动态取数也不只涉及脚本等待。Swagger 页要把外部接口规范变成可读目录；商品评论已经放在内嵌 JSON 中，页面稍后才把它显示出来；龟类目录位于另一个 iframe 文档，沿着父页给出的地址继续获取即可，不需要 JavaScript。它们都说明初始页面的文字抽取不等于内容交付，但所需的补救路径并不相同。这组样本来自公开练习站和应用示例，适合检验机制，不能代表生产网站的分布。": "Dynamic retrieval is not only about waiting for scripts. The Swagger task must turn an external API specification into a readable catalog; reviews are embedded in JSON before the page displays them; and a turtle catalog lives in an iframe document that can be fetched from its parent URL without JavaScript. Initial-page text extraction is therefore not the same as content delivery, and the required remedy differs by case. These public practice sites and examples test mechanisms, not the distribution of production websites.",
-    "动态呈现与数据变化是两个维度。固定的名言也可以经异步接口或计时器显示；每日变动的榜单也可能直接写在 HTML 中。任务可以要求一定数量的完整条目、非空名称和指定类型的字段，不必锁定今天的名字或价格；稳定的标题、栏目和说明仍保留内容核对。页面内容变化，不妨碍用同一份内容与结构契约验收。": "Dynamic presentation and changing data are separate dimensions. Fixed quotes may appear through an asynchronous API or timer, while a daily chart may be present directly in HTML. Tasks can require a count of complete records, non-empty names, and typed fields without freezing today's names or prices; stable headings, sections, and explanations remain content checks. Changing page content can still be judged by one stable content-and-structure contract.",
-    "对这类页面，接入前应试验的是取数路径与完成条件：源 HTML 是否足够，如果不够，后续数据从哪里来，什么状态才允许交付。浏览器启动成功并没有替应用回答这些问题。": "Before integrating such pages, test the retrieval path and completion condition: whether source HTML is sufficient, where later data comes from, and what state permits delivery. Successful browser startup does not answer these application-level questions.",
     "原始输出与当前参考": "Raw output and current reference",
     "Books to Scrape 的书目页": "The Books to Scrape catalog",
-    "、JSON 字段和转义字符；脚本载荷里的词语也进入 F1 的重合计算，但尚未成为任务要求的逐条名言、作者与标签。解析载荷并正确组织条目可能是一条取数路径，直接交付脚本文字则没有完成正文契约。": ", JSON fields, and escapes. Words in a script payload may overlap the F1 reference without becoming the required quote, author, and tag records. Parsing and structuring that payload may be a valid route; delivering raw script text is not the body-text contract.",
     "换成": "with", "，再运行统一的": ", then run the shared ", "通过，": "passes, while its",
     "未提供调用时间": "Call time not provided", "调用日期未提供": "Call date not provided",
     "抓取接口正常返回之后，正文仍可能缺失、混入导航，或丢掉详情地址。这轮实测从这些差异出发，判断哪些方法值得接入，哪些结论还需要试验。": "After a fetch interface returns normally, body text may still be missing, mixed with navigation, or stripped of detail URLs. These measured differences show which methods merit integration and which conclusions still require experiments.",
     "当前输入不足以比较 Cloudflare Markdown 与 Exa。": "The current input cannot compare Cloudflare Markdown with Exa.",
     "当前输入没有可展示的 CowAgent 低 F1 通过案例。": "The current input has no low-F1 passing CowAgent task to show.",
-    "当前输入未包含书目页的 CowAgent 执行记录，无法核算价格反事实。": "The current input contains no CowAgent run for the book catalog, so the price counterfactual cannot be calculated.",
-    "这项固定内容任务登记了具体价格，所以价格替换会改变判定。会更新的商品列表则可以保留稳定的栏目标题与说明核对，同时检查条目数量、名称、价格字段和详情链接。这样既能发现抓错页面或漏掉说明，也不会因今天换了商品而判错。格式合格的价格仍可能不准确，不能把字段齐全当成事实核验。": "This fixed-content task registers exact prices, so replacing a price changes the verdict. A changing product list can instead retain stable headings and explanations while checking record count, names, price fields, and detail links. That catches wrong pages and missing explanations without failing merely because today's products changed. A well-formed price may still be inaccurate; complete fields are not factual verification.",
     "提供各例匹配口径。": "provides each task's matching rules.",
     "当前输入没有 CowAgent 网页记录。": "The current input has no CowAgent web records.",
     "当前输入不满足逐例配对条件，不能计算 CowAgent 与 Moli 的离线互补覆盖。": "The current input does not support task-level pairing, so CowAgent and Moli's offline complementary coverage cannot be calculated.",
     "同一网页的正文与媒体地址是两种交付目标；文字保留完整，地址仍可能丢失。": "Body text and media URLs from the same page are different deliverables; complete text can still omit the URLs.",
     "成功集并集覆盖了全部案例，仍需验证线上能否识别缺项并触发后备；离线覆盖不能直接当作服务保证。": "The union covers every task, but production still must detect missing content and trigger fallback. Offline coverage is not a service guarantee.",
-    "这也解释了为什么不能把正文选型直接用于文档与媒体交付。PDF、DOCX 的文字可用，不代表版式或原文件已保留；图片与视频入口可用，也不代表文件已经下载或画面已被理解。若下游需要地址，就应核验地址；若下游需要文件，就必须收到可核验的字节。纯文本输出是否更易读，无法代替这项检查。": "A body-text choice cannot be applied directly to document and media delivery. Usable PDF or DOCX text does not preserve layout or the original file; accessible image and video endpoints do not mean files were downloaded or understood. Validate URLs when downstream needs URLs, and require verifiable bytes when it needs files. Readable plain text cannot replace that check.",
-    "剧集榜单的名字和顺序可以更新，页面身份、稳定栏目和说明内容仍可作为核对点；条目部分则检查规定数量、非空名称和符合要求的详情地址。标题正确但列表为空，或条目齐全却来自错误栏目，都可能不满足这份混合契约。可重复的是问题与规则，不是某天的全部答案。": "Show names and order may change, while page identity, stable sections, and explanations remain valid checks. Records must meet count, non-empty-name, and detail-URL requirements. A correct heading with an empty list, or complete records from the wrong section, can fail this mixed contract. What is reproducible is the question and its rules, not every answer from one day.",
-    "通过率衡量已登记的内容与结构要求。只数卡片会接受空占位，只查非空字段也可能接受错配或虚假条目；即使稳定内容命中、字段齐全，也不证明所有事实准确、数据最新或整页无遗漏。参考范围明确时再看文本重合，缺少参考不抹去已完成的内容与结构检查，也不把 F1 记成零分。": "Pass rate measures registered content and structure requirements. Counting cards alone accepts empty placeholders, while checking only non-empty fields can accept mismatched or false records. Stable-content matches and complete fields still do not prove every fact accurate, current, or exhaustive. Use text overlap only with explicit reference scope; missing references do not erase content and structure checks or turn F1 into zero.",
     "样本与时间范围：各类任务按各自契约验收，日期不构成同时间受控对照": "Sample and date scope: each family follows its own contract; dates are not a same-time controlled comparison",
     "判定规则与指标口径": "Acceptance rules and metric definitions",
     "规范化执行记录": "Normalized run records", "计算明细与复验入口：": "Calculation details and reproduction: ",
@@ -1928,9 +1958,6 @@ TEXT.update({
     "可接受表达": "Accepted expression", "核对本例的书名、价格与库存规则": "Inspect this task's title, price, and stock rules",
     "Moli 通过而 CowAgent 未通过的网页，逐例回到原始记录": "Web tasks passed by Moli but not CowAgent, linked to original runs",
     "正常返回；任务未通过": "Normal response; task failed",
-    "同一次去标签操作，既保住了文字，也丢掉了地址。它能满足某些正文任务，却无法替下游决定哪些部分值得保留；文字要清理到什么程度、链接是否必须保留，应由交付目标决定。属性已经从输出中消失之后，再提高关键词匹配精度也找不回地址。": "The same tag-stripping operation preserves text but discards URLs. It can satisfy some body-text tasks, but it cannot decide what downstream consumers need. The delivery goal must determine how aggressively text is cleaned and whether links must be retained. Once attributes have disappeared, more precise keyword matching cannot recover their URLs.",
-    "这个实验只验证合成输入上的当前提取函数。已保存的 CowAgent 调用没有逐次源码指纹，也没有把同一份响应字节交给多个提取算法做对照。因此，还不能把每次成功或失败都归因于这段函数，更不能量化保留文字范围对通过率的贡献。": "This experiment validates only the current extraction function on synthetic input. Saved CowAgent calls lack per-call source fingerprints and were not compared by feeding identical response bytes to multiple extractors. The experiment therefore cannot attribute every success or failure to this function or quantify how retained-text scope affects pass rate.",
-    "后备方法能否发挥作用，取决于系统是否识别出了首方法的错误。生产环境通常没有每个新 URL 的完整参考，不能照搬这里的事后判分；页面身份、最低内容量和业务必需字段才是需要试验的触发条件。若判定器接受了一份看似充足的错误正文，后备方法即使有能力也不会被调用。": "A fallback helps only when the system detects the primary method's error. Production usually lacks a complete reference for every new URL, so this post-hoc scoring cannot be copied directly. Page identity, minimum content, and business-required fields are the trigger conditions to test. If the validator accepts plausible but wrong body text, a capable fallback is never called.",
     "这也解释了为什么不能把正文选型直接用于文档与媒体交付。PDF、DOCX 的文字可用，不代表版式或原文件已保留；图片与视频入口可用，也不代表文件已经下载或画面已被理解。若下游需要地址，就应核验地址；若下游需要文件，就必须收到可校验的字节。纯文本输出是否更易读，无法代替这项检查。": "This is also why a body-text choice cannot be applied directly to document and media delivery. Usable PDF or DOCX text does not preserve layout or the original file; an accessible image or video endpoint does not mean the file was downloaded or its content understood. Validate a URL when downstream needs a URL, and require verifiable bytes when it needs a file. Readable plain text cannot replace that check.",
     "冷启动、缓存、会话与失败重试": "Cold start, cache, session, and failure retry",
     "进程或浏览器生命周期": "Process or browser lifecycle",
@@ -2102,7 +2129,6 @@ TEXT.update({
     "Lightpanda、Obscura 与三个 Moli 版本的普通网页使用 CLI 正文输出。三个 Moli 版本的直接文档和媒体 URL 均使用裸 fetch：正文任务在预算内解析，文件任务校验字节。": "Lightpanda, Obscura, and all three Moli versions use CLI body output for ordinary web pages. Direct document and media URLs use bare fetch for every Moli version: body tasks parse within the deadline, while file tasks validate bytes.",
     "Chromium 152 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。七种方法都不调用模型。": "Playwright retrieves the complete rendered DOM from Chromium 152, then node-html-markdown 2.0.0 converts it. None of the seven methods calls a model.",
     "Lightpanda、Obscura 与 Moli 1.1.1 的普通网页使用 CLI 正文输出。Moli 的直接文档和媒体 URL 使用裸 fetch：正文任务在预算内解析，文件任务校验字节。": "Lightpanda, Obscura, and Moli 1.1.1 use CLI body output for general pages. Moli uses bare fetch for direct document and media URLs: body tasks parse within the budget, while file tasks validate bytes.",
-    "Chromium 152 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。五种方法都不调用模型。": "Playwright retrieves the complete rendered DOM from Chromium 152, then node-html-markdown 2.0.0 converts it. None of the five methods calls a model.",
     "截至 2026-09-07，Cloudflare 尚未发布 Kitesurf 源码或自行部署包；本轮只能通过 Cloudflare 账号版 Browser Run 远程测试，不能把它当作本地开源浏览器。": "As of 2026-09-07, Cloudflare has not released Kitesurf source code or a self-hosting package. This benchmark can test it only remotely through account-level Browser Run, so it is not treated as a local open-source browser.",
     "Cloudflare 官方博客表示计划在准备好后开源，并希望允许客户部署到自己的账户。这是未来计划，不是当前已有能力。": "Cloudflare's official blog states an intention to open-source Kitesurf when ready and to let customers deploy it in their own accounts. That is a future plan, not a current capability.",
     "Playwright 启动 Chromium，取完整渲染 DOM，再由 node-html-markdown 2.0.0 生成 Markdown。": "Playwright starts Chromium and captures the complete rendered DOM, which node-html-markdown 2.0.0 converts to Markdown.",
@@ -2183,8 +2209,6 @@ TEXT.update({
     "记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。": "record inputs, output hashes, verdict changes, and provider-call counts without presenting later rules as the original run configuration.",
     "关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，菜单路径如 Settings > AI 与 Settings>AI 等价；忽略 Markdown 链接地址、行内代码与加粗标记。一个已被完整记录边界约束的字段允许丢失内联元素间空白，例如标签列表": "Key facts are matched mechanically against normalized visible text: Unicode, letter case, and layout whitespace are normalized, so menu paths such as Settings > AI and Settings>AI are equivalent; Markdown link destinations, inline-code markers, and emphasis markers are ignored. A field whose complete record boundary is known may omit whitespace between inline elements, so the tag list",
     "内容等价；相邻独立链接仍按独立词段核对，不猜测跨记录的粘连分词。保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。": "is content-equivalent. Adjacent independent links are still checked as separate token segments, with no guessed segmentation across records. Numbers, signs, negation, punctuation, and English word boundaries are preserved. Acceptance never relies on an LLM or fuzzy similarity.",
-    "不同方法并行，同一方法串行；正文结束后再测其他任务。七种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.0.6、1.1.1、1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。三个 Moli 版本遇到直接 PDF、DOCX、图片或视频 URL 时均使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。本报告另对四题、三个 Moli 版本做三轮配对时延纠正，统一采用最终轮的 12 个耗时，不挑最快；内容、评分和判定未改变。方法之间并行、同一方法串行。本报告不是 WCXB 官方榜单。": "Methods run in parallel, while tasks within each method run serially; non-body tasks start after body-text tasks finish. Each of the seven methods uses a fresh process or context for every call. For static web text, Kitesurf uses Cloudflare's account-level /markdown endpoint; Lightpanda, Obscura, and Moli 1.0.6, 1.1.1, and 1.1.3 use their own CLI body-text capabilities; Chromium converts the complete rendered DOM with node-html-markdown 2.0.0. For direct PDF, DOCX, image, or video URLs, all three Moli versions use automatic responses without --dump or page-wait flags; body tasks parse readable text within the budget, while file tasks validate bytes directly. Failure retries were disabled in the original primary matrix, and every call had a 45-second end-to-end budget. Before measurement, the runner may declare at most one retry after failure: every physical call and total latency are retained, and the final response is always used rather than the best response. A proven command, version, judge, reference, or measurement error may be rerun across its complete declared scope and supersede the authoritative logical result; old evidence must not be deleted. This report also applies a three-round paired latency correction to the same four tasks across three Moli versions, consistently using the final round's 12 timings rather than the fastest; content, scores, and verdicts are unchanged. Methods run in parallel and tasks within each method run serially. This is not an official WCXB ranking.",
-    "不同方法并行，同一方法串行；正文结束后再测其他任务。五种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.1.1 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。Moli 遇到直接 PDF、DOCX、图片或视频 URL 时使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。历史报告中的 Moli 1.0.6 与 1.1.3 证据继续归档，但不进入当前报告矩阵。方法之间并行、同一方法串行。本报告不是 WCXB 官方榜单。": "Methods run in parallel, while tasks within each method run serially; non-body tasks start after body-text tasks finish. Each of the five methods uses a fresh process or context for every call. For static web text, Kitesurf uses Cloudflare's account-level /markdown endpoint; Lightpanda, Obscura, and Moli 1.1.1 use their own CLI body-text capabilities; Chromium converts the complete rendered DOM with node-html-markdown 2.0.0. For direct PDF, DOCX, image, or video URLs, Moli uses automatic responses without --dump or page-wait flags; body tasks parse readable text within the budget, while file tasks validate bytes directly. Failure retries were disabled in the original primary matrix, and every call had a 45-second end-to-end budget. Before measurement, the runner may declare at most one retry after failure: every physical call and total latency are retained, and the final response is always used rather than the best response. A proven command, version, judge, reference, or measurement error may be rerun across its complete declared scope and supersede the authoritative logical result; old evidence must not be deleted. Evidence for Moli 1.0.6 and 1.1.3 remains archived in historical reports but is excluded from the current report matrix. Methods run in parallel and tasks within each method run serially. This is not an official WCXB ranking.",
 
     # Capability, pricing, and adoption copy.
     "核对日期：2026-09-11。托管服务按官方文档；内置工具按固定源码。此处说明可选能力，": "Checked 2026-09-11. Managed services are described from official documentation and built-in tools from pinned source. These are optional capability declarations,",
@@ -2214,7 +2238,6 @@ TEXT.update({
     "直接取得 Moli 原生 Markdown；直接 PDF/DOCX 不提供可读正文": "Retrieve Moli native Markdown directly; direct PDF/DOCX inputs do not yield readable body text",
     "通过 Moli 原生执行接口读取已加载内容；表达式只由公开任务类型决定": "Read loaded content through Moli's native execution interface; expressions are selected only by public task type",
     "Markdown 正文统一使用 Moli 默认 done 完成方式": "Markdown body uses Moli's default done completion mode",
-    "每次调用 45 秒；不改写 Moli 内部 HTTP 和连接超时默认值": "45 seconds per call; Moli's internal HTTP and connection timeout defaults remain unchanged",
     "默认启用": "Enabled by default",
     "普通、动态、热门、风控和直接文档正文统一使用 Moli 原生 Markdown。文件使用原生 CDP 响应或同一二进制的原始附件接口。图片、视频资源和嵌入文档只通过 Moli 原生执行接口读取已加载内容，不另抓模块或下载文档后外部解析。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。": "Regular, dynamic, popular-site, risk-control, and direct-document body tasks use Moli's native Markdown. Files use native CDP responses or the same binary's raw attachment interface. Image and video resources and embedded documents use only Moli's native execution interface to inspect loaded content; the runner does not fetch modules separately or parse downloaded documents externally. The final URL is diagnostic only and does not determine whether body extraction passes. A failure does not switch format or borrow another provider.",
     "普通、动态、热门、风控及 HTML/TXT 文档正文使用 Moli 原生 Markdown。直接 PDF/DOCX 仍调用同一原生接口；接口没有交付可读正文时按失败记录，评测端不下载后解析。文件使用原生 CDP 响应或同一二进制的原始附件接口。图片、视频资源和嵌入文档只通过 Moli 原生执行接口读取已加载内容。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。": "Regular, dynamic, popular-site, risk-control, and HTML/TXT document-body tasks use Moli's native Markdown. Direct PDF/DOCX inputs still use that native interface; if it does not return readable body text, the task fails and the benchmark does not download and parse the file. Files use native CDP responses or the same binary's raw attachment interface. Image and video resources and embedded documents use only Moli's native execution interface to inspect loaded content. The final URL is diagnostic only and does not determine whether body extraction passes. A failure does not switch format or borrow another provider.",
@@ -2244,8 +2267,6 @@ TEXT.update({
     "普通正文使用 Markdown；动态、资源页和嵌入文档使用一次有界 DOM eval；直接 PDF、DOCX 与媒体文件在调用前选择不带 --dump 和页面等待参数的原始响应路线。直接文档正文在同一截止预算内解析，文件任务按统一字节规则验收；不在失败后切换格式或借用其他 provider。": "Ordinary body tasks use Markdown. Dynamic, resource-page, and embedded-document tasks use one bounded DOM eval. Direct PDF, DOCX, and media inputs preselect a raw-response route without --dump or page-wait flags. Direct-document text is parsed within the same deadline, and file tasks use shared byte-level validation; no post-failure format switch or cross-provider fallback is used.",
     "普通正文使用 Markdown；动态完成条件与正文提取范围分离。直接 PDF 与媒体使用不带 --dump 的原始响应路线；DOCX 因当前 Moli CLI 的 OOXML 误分类，在同一次 CLI 运行中由页面运行时二次 fetch 原始字节并明确披露。文档解析计入同一截止预算；私网保护默认开启，只对冻结公开测试域名使用精确白名单；不在失败后切换格式或借用其他 provider。": "Ordinary body tasks use Markdown, and dynamic completion is separate from extraction scope. Direct PDF and media inputs use raw responses without --dump. Because the current Moli CLI misclassifies OOXML, DOCX tasks make a disclosed second fetch for the original bytes from the page runtime within the same CLI invocation. Document parsing remains inside the shared deadline. Private-network protection stays enabled by default, with exact exceptions only for frozen public benchmark hosts; no post-failure format switch or cross-provider fallback is used.",
     "普通正文使用 Markdown；挑战题使用一次 JSON 请求返回最终 DOM、HTTP 状态、最终 URL 与有界网络诊断，并在同一截止内本地转 Markdown；动态、资源页和嵌入文档使用一次有界 DOM eval；直接 PDF、DOCX 与媒体文件在调用前选择不带 --dump 和页面等待参数的原始响应路线。直接文档正文在同一截止预算内解析，文件任务按统一字节规则验收；不在失败后切换格式或借用其他 provider。": "Ordinary body tasks use Markdown. Challenge tasks use one JSON request to return the final DOM, HTTP status, final URL, and bounded network diagnostics, then convert that DOM to Markdown locally within the same deadline. Dynamic, resource-page, and embedded-document tasks use one bounded DOM eval. Direct PDF, DOCX, and media inputs preselect a raw-response route without --dump or page-wait flags. Direct-document text is parsed within the same deadline, and file tasks use shared byte-level validation; no post-failure format switch or cross-provider fallback is used.",
-    "Moli 1.1.4：普通正文使用 Markdown；挑战题一次请求返回 JSON 最终 DOM、HTTP 状态、最终 URL 和网络诊断，DOM 在同一截止内本地转 Markdown；动态任务用预声明 selector、数量和有界等待返回记录文本；资源页从渲染 DOM、同源 iframe 与有界同源模块返回 URL；嵌入文档使用页面运行时；直接 PDF、DOCX 与媒体不传 --dump。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。": "Moli 1.1.4: ordinary body tasks use Markdown. Challenge tasks return the final DOM, HTTP status, final URL, and network diagnostics in one JSON request, with the DOM converted locally to Markdown within the same deadline. Dynamic tasks return record text using predeclared selectors, counts, and bounded waits. Resource pages return URLs from the rendered DOM, same-origin iframes, and bounded same-origin modules. Embedded documents use the page runtime, while direct PDF, DOCX, and media requests omit --dump. No layout capture, post-failure format fallback, or cross-provider supplemental fetch is used; only executed records enter the rankings.",
-    "Moli 1.1.4：普通正文使用 Markdown；挑战题一次请求返回 JSON 最终 DOM、HTTP 状态、最终 URL 和网络诊断，DOM 在同一截止内本地转 Markdown；动态任务分别使用预声明的完成 selector 与正文范围；资源页从渲染 DOM、同源 iframe 与有界同源模块返回 URL；直接 PDF 与媒体不传 --dump。DOCX 因当前 CLI 的 OOXML 误分类，在同一次 CLI 运行中由页面运行时二次 fetch 原始字节；冻结公开域名的 split-DNS 例外使用精确白名单。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。": "Moli 1.1.4: ordinary body tasks use Markdown. Challenge tasks return the final DOM, HTTP status, final URL, and network diagnostics in one JSON request, with the DOM converted locally to Markdown within the same deadline. Dynamic tasks use separate predeclared completion selectors and body scopes. Resource pages return URLs from the rendered DOM, same-origin iframes, and bounded same-origin modules. Direct PDF and media inputs omit --dump. Because the current CLI misclassifies OOXML, DOCX bytes are fetched a second time by the page runtime within the same CLI run. Split-DNS exceptions for frozen public hosts use an exact allowlist. No layout capture, post-failure format fallback, or cross-provider supplemental fetch is used; only executed records enter the rankings.",
     "本轮 advanced": "advanced in this run",
     "使用官方高级提取路线；HTTP 200 但没有 raw_content 仍按适配器请求失败记录。原始响应在私有证据边界独立哈希，公开报告只保留规范化结果与绑定摘要。": "The run uses the documented advanced extraction route. An HTTP 200 response without raw_content is still recorded as an adapter request failure. The raw response is independently hash-bound as private evidence; the public report retains only the normalized result and binding summary.",
     "本轮 full，要求完整正文而非 compact 默认值": "full in this run, requesting complete body text instead of the compact default",
@@ -2282,11 +2303,9 @@ TEXT.update({
     "CLI 自带等待；45 秒外层预算；直接使用原生 Markdown。": "CLI-managed waiting; 45-second outer budget; native Markdown used directly.",
     "普通网页原生 Markdown；直接文档与媒体使用裸 fetch 自动响应；原始文档的正文解析计入任务耗时": "Native Markdown for ordinary pages; automatic bare-fetch responses for direct documents and media; body parsing from original documents is included in task latency",
     "moli fetch；普通正文使用 Markdown，动态/资源/嵌入文档使用有界 DOM eval，直接文档与媒体使用裸 fetch 自动响应": "moli fetch; ordinary body tasks use Markdown, dynamic/resource/embedded-document tasks use bounded DOM eval, and direct documents and media use automatic bare-fetch responses",
-    "Moli 1.1.4 · WebFetch skill ↗": "Moli 1.1.4 · WebFetch skill ↗",
     "Moli 1.1.4 · 输出与接口边界 ↗": "Moli 1.1.4 · output and interface boundaries ↗",
     "Moli 1.1.4 · 官方发布 ↗": "Moli 1.1.4 · official release ↗",
     "截图和 PDF 是启用 --layout 后生成的页面产物，不是读取已有文档或下载原媒体。官方未承诺文档 OCR、媒体理解或音频转写；直接非 HTML 输入不强制使用 Markdown。": "Screenshots and PDFs generated with --layout are page artifacts, not reads of existing documents or downloads of original media. The official contract does not promise document OCR, media understanding, or audio transcription; direct non-HTML inputs are not forced through Markdown.",
-    "Moli 1.1.4：普通正文使用 Markdown；动态任务用预声明 selector、数量和有界等待返回记录文本；资源页从渲染 DOM 与有界同源模块返回 URL；嵌入文档使用页面运行时；直接 PDF、DOCX 与媒体不传 --dump。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。": "Moli 1.1.4: ordinary body tasks use Markdown; dynamic tasks return record text using predeclared selectors, counts, and bounded waits; resource pages return URLs from the rendered DOM and bounded same-origin modules; embedded documents use the page runtime; direct PDF, DOCX, and media inputs omit --dump. No layout, post-failure format fallback, or cross-provider retrieval is used; only measured execution records enter the ranking.",
     "本轮 advanced + markdown + include_images=true，不传 query；未测试 Research 文件上传。": "This run uses advanced + markdown + include_images=true without query; Research file upload is not tested.",
     "text.verbosity=full、maxAgeHours=0，并取 links/imageLinks；本轮没有调用摘要或高亮生成。": "This run uses text.verbosity=full and maxAgeHours=0 and collects links/imageLinks; summary and highlight generation are not called.",
     "text.verbosity=full、maxAgeHours=0；资源题取 links/imageLinks，具名列表题取 richLinks 并只接收非空 anchor—URL 对。本轮没有调用摘要或高亮生成。": "This run uses text.verbosity=full and maxAgeHours=0. Resource tasks collect links/imageLinks; named-list tasks collect richLinks and accept only non-empty anchor–URL pairs. Summary and highlight generation are not called.",
@@ -2326,11 +2345,25 @@ TEXT.update({
 # rendered on the methodology page and therefore need full English editions;
 # measured task names and prompts remain unchanged.
 TEXT.update({
-    "输入网页，从页面里找到指定图片、视频或视频入口地址；另有 1 题读取视频页标题与发布者。": "Given a web page, find the specified image, video, or playback URL. One additional task asks for the video-page title and publisher.",
-    "16 道地址题使用独立保存的资源地址或地址规则；1 道文字题使用可见标题与发布者。": "Sixteen URL tasks use independently saved resource URLs or URL rules. One text task uses the visible title and publisher.",
+    "从网页中找到指定图片、视频资源或视频入口地址，或读取视频页登记的文字信息。这里测的是网页取数，不是图片或视频理解。": "Find the specified image, video, or video-entry URLs on a webpage, or read its registered video information. These tasks measure webpage data retrieval; image and video understanding are outside their scope.",
+    "请求媒体网页": "Request the media webpage",
+    "定位指定资源或信息": "Locate the required resource or information",
+    "提取地址或文字": "Extract URLs or text",
+    "交付题目要求的结果": "Return the required result",
+    "含图页面须返回登记的图片地址；视频信息页须返回标题与发布者。拿到地址不代表已经取得对应文件。": "Image pages must return the registered image URLs; video-information pages must return the title and publisher. Returning a URL does not establish that its file was obtained.",
+    "地址题只核对目标地址，文字题只核对登记信息；不检查画面、字幕、声音，也不要求下载媒体字节。": "URL tasks check the target URLs and text tasks check the registered information. They do not assess frames, captions, or audio, and do not require downloading media bytes.",
+    "取得直接媒体文件。必须返回可验证的图片或视频字节；复述网址、返回文件名或网页文字都不能代替文件。": "Retrieve a direct media file and return verifiable image or video bytes. Repeating a URL, filename, or webpage text cannot substitute for the file.",
+    "请求直接文件地址": "Request the direct file URL",
+    "接收响应字节": "Receive response bytes",
+    "识别文件格式": "Identify the file format",
+    "核对长度与 SHA-256": "Verify length and SHA-256",
+    "输入直接指向图片或视频文件，评测对象是返回的原始字节，不进行 Markdown 转换。": "The input points directly to an image or video file. Evaluation uses the returned original bytes without Markdown conversion.",
+    "直接 PNG 地址须交付与独立保存样本一致的文件格式、长度和 SHA-256；只返回该 PNG 的网址不通过。": "A direct PNG task must deliver a file matching the independently saved sample's format, length, and SHA-256. Returning only the PNG URL fails.",
+    "这组只验证文件交付，不测试图片描述、视频理解、语音转写或字幕质量。": "These tasks assess file delivery only. Image descriptions, video understanding, speech transcription, and caption quality are outside their scope.",
+    "输入网页，从页面里找到指定图片、视频或视频入口地址；另有 1 题读取视频页标题与发布者。": "Given a web page, find the specified image, video, or playback URL. 1 additional task asks for the video-page title and publisher.",
     "地址题只核对返回值里是否出现目标地址，不要求另行下载媒体文件；文字题按登记事实核对。": "URL tasks check whether the returned value contains the target URL and do not require a separate media download. The text task checks the registered facts.",
     "完成该题声明的地址或文字交付。拿到地址不等于取得文件，也不表示理解了图片、画面、字幕或声音。": "Return the URL or text required by the task. A URL alone does not deliver the file or show understanding of images, video, captions, or audio.",
-    "输入 1 个直接图片地址或 2 个直接视频地址，取得原始文件。": "Retrieve the original file from one direct image URL or either of two direct video URLs.",
+    "输入 1 个直接图片地址或 2 个直接视频地址，取得原始文件。": "Retrieve the original file from 1 direct image URL or either of 2 direct video URLs.",
     "独立保存的原文件格式、长度和 SHA-256。": "Independently saved file format, length, and SHA-256.",
     "核对实际返回字节的格式特征、长度和目标 SHA-256；不对二进制文件做 Markdown 转换。": "Check the returned bytes against the required file signature, length, and SHA-256. Binary files are not converted to Markdown.",
     "必须实际交付匹配的文件字节；复述输入网址或只返回网页文字不通过。本组不测试媒体理解。": "The method must return the matching file bytes. Repeating the input URL or returning page text does not pass. These tasks do not test media understanding.",
@@ -2489,15 +2522,14 @@ TEXT.update({
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
 PHRASES = {
+    "处理路线：": "Retrieval path: ",
     "Moli 1.1.15 · 独立资源批次": "Moli 1.1.15 · independent resource cohort",
     "的 Moli 已保存输出仍包含": "'s saved Moli output still contains ",
-    "，内容规则未通过。请求成功在这里记录了一个正常返回的结果，却没有等来任务要求的内容。这比方法是否具备浏览器功能更接近本次接入要解决的问题。": ", but failed the content rule. A normal response did not wait for the required content. This is closer to the integration problem than whether the method has browser features.",
     "Quotes to Scrape 的": "Quotes to Scrape's ",
     "CowAgent 已通过网页中 F1 最低的是": "The lowest-F1 general-web task passed by CowAgent is ",
     "CowAgent 的已保存输出": "CowAgent's saved output ",
     "在这份输出的内存副本中，把": "In an in-memory copy of this output, replace ",
     "保留完整协议，": "retains the complete protocol; ",
-    "保留逐次调用。本文的配对、离线并集和反事实实验用于选择后续验证方向，不是线上重试链路、成本或长期稳定性的测量。": "retains every call. The paired comparisons, offline unions, and counterfactual experiments guide follow-up validation; they do not measure a production retry chain, cost, or long-term reliability.",
     "同一个 Books to Scrape 站点，CowAgent 的": "On the same Books to Scrape site, CowAgent's ",
     "书目正文任务": "catalog body-text task",
     "商品封面地址任务": "product-cover URL task",
@@ -2610,7 +2642,6 @@ PHRASES = {
     "本地项目内置实现；不需要云端抓取 Key。": "Built into the local project; no cloud-retrieval key is required.",
     "注册或登录 Tavily Platform，从控制台复制 API key。": "Register for or sign in to Tavily Platform and copy an API key from the console.",
     "官方快速开始说明每月有 1,000 免费 API credits，无需绑卡。": "The official quickstart states that 1,000 free API credits are available each month with no card required.",
-    "静态网站正文的分类标签与参考来源不足以逐页证明正文必须执行 JavaScript 后才出现。当前输入没有动态网站正文实测，不能把所有网页称为静态任务，也不能把动态类别标签当作浏览器必需的证据。": "General-web category labels and reference sources are not enough to prove, page by page, that body content appears only after JavaScript executes. The current input contains no measured rendered-web cohort, so it cannot label every webpage as static or treat a dynamic category label as evidence that a browser is required.",
 }
 
 
@@ -2624,6 +2655,17 @@ for adoption_text in (
     ADOPTION_TEXT_D,
 ):
     TEXT.update(adoption_text)
+
+
+def _body_region_summary(match):
+    regions = match[1]
+    for source, target in (("开头", "Opening"), ("前部", "Early section"),
+                           ("中部", "Middle"), ("后部", "Late section"),
+                           ("结尾", "Ending"), ("位置", "Region")):
+        regions = regions.replace(source + " ", target + " ")
+    return ("Body coverage is incomplete. Regions below target: "
+            + regions.replace("、", ", ")
+            + ". The complete reference and actual output are shown side by side below.")
 
 
 REGEX = [
@@ -2682,6 +2724,7 @@ REGEX = [
      lambda match: f"The evaluation does not cover its plan; {match.group(1)} unplanned calls are present"
                    + (f"; {match.group(2)} calls have no pass/fail judgement" if match.group(2) else "")
                    + ". Rankings on this page must not be used for conclusions or publication."),
+    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · 本地未认证诊断快照。$"), r"\1 tasks · \2 methods · local uncertified diagnostic snapshot."),
     (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · (\d+)\s*类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · \3 family rankings and one overall coverage ranking."),
     (re.compile(r"^(\d+)\s*类任务概览$"), r"\1 task families"),
     (re.compile(r"^(\d+)\s*类分榜$"), r"Rankings for \1 task families"),
@@ -2793,7 +2836,7 @@ REGEX = [
     (re.compile(r"^实际解析出 (\d+) 条完整且不重复的记录，要求至少 (\d+) 条；结构检查未通过，稳定文字检查未通过。$"), r"Parsed \1 complete, unique records against a minimum of \2; structure and stable-text checks failed."),
     (re.compile(r"^实际解析出 (\d+) 条完整且不重复的记录，要求至少 (\d+) 条；结构检查(通过|未通过)，稳定文字检查(通过|未通过)。$"), lambda m: f"Parsed {m.group(1)} complete, unique records against a minimum of {m.group(2)}; structure {'passed' if m.group(3) == '通过' else 'failed'} and stable-text checks {'passed' if m.group(4) == '通过' else 'failed'}."),
     (re.compile(r"^完整度 / 纯净度 / F1 为 ([^。]+)。$"), r"Recall / precision / F1: \1."),
-    (re.compile(r"^正文没有抓全；低于目标的位置为：(.+)。下方会把完整标准答案与实际返回并排展示。$"), r"Body coverage is incomplete. Regions below target: \1. The complete reference and actual output are shown side by side below."),
+    (re.compile(r"^正文没有抓全；低于目标的位置为：(.+)。下方会把完整标准答案与实际返回并排展示。$"), _body_region_summary),
     (re.compile(r"^这一段标准答案产生 ([\d,]+) 个连续六字符片段；在上方完整实际返回（([\d,]+) 字符）中命中 ([\d,]+) 个，所以覆盖率为 ([\d,]+) ÷ ([\d,]+) = ([\d.]+%)。目标 ([\d.]+%)，硬下限 ([\d.]+%)。$"), r"This reference region produces \1 contiguous six-character shingles. \3 are found in the complete output above (\2 characters), so coverage is \4 ÷ \5 = \6. Target: \7; hard floor: \8."),
     (re.compile(r"^· 采集时间 (.+)$"), r"· captured at \1"),
 ]
@@ -2820,7 +2863,6 @@ TEXT.update({
     "正文或文件": "Text or file",
     "Browser Use：操作网页": "Browser Use: interact with pages",
     "让 AI 搜索商品、筛选规格，再加入购物车。它需要看当前页面，决定点击或填写什么，操作后再继续观察。": "Ask AI to search for a product, filter specifications, and add it to the cart. It must inspect the current page, decide what to click or fill in, act, and inspect the result.",
-    "这次的 150 道任务评测 Web Fetch：同样的网址、同样的内容要求，每题给 45 秒，检查交回的结果并记录耗时。浏览器是否适合连续操作网页，需要用 Browser Use 任务另外评测。": "These 150 tasks evaluate Web Fetch: the same URLs and content requirements, with 45 seconds per task, checking the returned results and recording latency. Sequences of page interactions require a separate Browser Use evaluation.",
     "完整报告包含三个 Moli 版本。本文选取总通过数最高的 1.1.1，所有任务统一使用该版本结果。": "The full report includes three Moli versions. This article uses 1.1.1, the version with the most total passes, consistently across all tasks.",
     "文档与媒体：Moli 通过 24/30，Chromium 通过 14/30": "Documents and media: Moli passes 24/30, Chromium 14/30",
     "把 150 道题按内容拆开，净增的 10 道全部来自文档、图片和视频。120 道网页任务中，两者各通过 111 道。": "Breaking the 150 tasks down by content, all 10 net additional passes come from documents, images, and videos. Of the 120 web tasks, both browsers pass 111.",
@@ -2834,7 +2876,6 @@ TEXT.update({
     "内容与判分": "Content and scoring",
     "一篇 PDF 怎样算读完，一张图片怎样算取到": "What counts as retrieving a PDF or an image",
     "《Attention Is All You Need》这道题要求取得论文正文。只返回标题，或者只返回 PDF 地址，都不合格：输出需要包含指定文字，并覆盖论文各段的内容。换成图片任务，要求又可能是下载地址，也可能是图片文件本身。这些不同的交付要求，决定了每道题怎样判分。": "The Attention Is All You Need task requires the paper’s text. Returning only a title or PDF URL does not pass: the output must contain specified text and cover regions of the paper. An image task may instead require a download URL or the image file itself. These delivery requirements determine how each task is scored.",
-    "150 道任务按来源分为普通网页、动态网页、热门站点、文档、图片、视频六组。同类来源也可能有不同的交付要求：图片页面可以只要求找到原图地址，直接图片链接则可以要求下载原文件。": "The 150 tasks are grouped by source into general pages, dynamic pages, popular sites, documents, images, and videos. Tasks from the same source type may require different outputs: an image page may require the original image URL, while a direct image link may require the original file.",
     "正文与文件参考来自独立获取的来源；商品列表检查经独立确认的稳定文字与结构，不把每天变化的商品名单固定成答案。正文覆盖阈值是本评测采用的工程验收下限，尚未通过阈值敏感性实验校准。当前成绩采用统一修订、离线重算后的规则。": "Text and file references come from independently retrieved sources. Product lists are checked against independently confirmed stable text and structure, without freezing a changing daily catalog. Body-coverage thresholds are engineering acceptance floors for this benchmark and have not been calibrated through threshold-sensitivity experiments. Current scores use consistently revised rules applied through offline rescoring.",
     "每款配置每题保留一次主结果。完整报告的 1,050 条主结果经 Codex 独立复核，无未决判定；其中本文五款浏览器占 750 条。": "Each configuration retains one primary result per task. Codex independently reviewed the full report’s 1,050 primary results, with no unresolved verdicts. The five browsers in this article account for 750 results.",
     "选型时，任务构成会改变这张榜单的意义。文档与媒体占本轮题量的 20%，Moli 在这 30 道里比 Chromium 多通过 10 道；如果应用只读普通网页，对应成绩就是 97/100 与 99/100。需要云端部署的团队，还要结合并发和成本测试；本轮未测量这两项。": "The task mix matters when choosing a browser. Documents and media make up 20% of this dataset; Moli passes 10 more of those 30 tasks than Chromium. For an application reading only general web pages, the relevant scores are 97/100 and 99/100. Teams needing cloud deployment also need concurrency and cost tests, neither of which was measured here.",
@@ -2842,8 +2883,6 @@ TEXT.update({
     "长网页的验证页，动态页面的等待": "Verification pages on long documents, waiting for dynamic content",
     "三份 W3C 标准，返回的都是 475 字符验证页": "Three W3C standards return the same 475-character verification page",
     "98 道有完整可比参考的普通网页中，Moli 平均找回 95.3% 的参考正文词语，Chromium 为 99.8%。这个比例称为 Recall。另一个指标 Precision 检查输出词语中有多少与参考重合，F1 综合两者；它们衡量文字重合，不判断文字中的事实是否正确。": "Across 98 general pages with complete, comparable references, Moli recovers an average of 95.3% of reference words, versus Chromium’s 99.8%. This proportion is recall. Precision measures how much of the output overlaps the reference, and F1 combines the two. These metrics measure text overlap, not factual correctness.",
-    "五款浏览器的动态任务均通过 8/10，共同未通过的是延迟列表和 iframe 目录。iframe 是嵌在网页里的子页面；主页面读取成功，子页面的内容仍可能缺失。": "All five browsers pass 8/10 dynamic tasks. Their shared failures are a delayed list and an iframe catalog. An iframe is a page embedded in another page; retrieving the outer page can still leave the embedded content missing.",
-    "Moli 交回了页面框架，目标列表缺失。对此类页面，读取何时结束会影响最终能否拿到记录。": "Moli returns the page shell without the target list. On pages like this, when retrieval ends affects whether the records are captured.",
     "后续评测": "Future evaluations",
     "从 150 道读取任务，走向连续网页操作": "From 150 retrieval tasks to sequences of web interactions",
     "这次测试中，Moli 1.1.1 的 90.0% 任务通过率排在五款浏览器首位；同样 8 道成功网页的平均耗时为 3.41 秒，P50 为 2.70 秒，两项也排在首位。PDF 和原文件交付带来了额外的成功任务，长网页正文的找回比例则仍低于 Chromium。": "In this test, Moli 1.1.1 ranks first among the five browsers with a 90.0% task pass rate. On the same 8 successfully retrieved pages, it also ranks first for mean latency at 3.41 seconds and P50 at 2.70 seconds. PDF and original-file delivery add successful tasks, while recovery of long-page text remains below Chromium.",
@@ -2857,7 +2896,6 @@ TEXT.update({
     "Moli 的 P50 为 2.70 秒，Chromium 为 3.63 秒，减少 25.8%。均值与 P50 两项，Moli 都是这五款中最低。": "Moli’s P50 is 2.70 seconds versus Chromium’s 3.63 seconds, a 25.8% reduction. Moli has the lowest mean and P50 among these five browsers.",
     "预选任务按参考正文长度分层，并覆盖不同域名。每个配置每题运行一次，计时覆盖从输入网址到返回内容的过程，包括内容提取与后处理；Kitesurf 通过远端服务调用，还包含网络往返。": "Preselected tasks are stratified by reference-text length and cover different domains. Each configuration runs each task once. Timing covers the input URL through returned content, including extraction and post-processing. Kitesurf is called through a remote service, so its time also includes network round trips.",
     "20 道预选任务与 8 道共同成功任务的名单、单次耗时，均可在完整报告的测速页查看。": "The full report’s latency page lists all 20 preselected tasks, the 8 shared successes, and individual run times.",
-    "正文与文件参考来自独立获取的来源；商品列表检查经独立确认的稳定文字与结构，不把每天变化的商品名单固定成答案。正文覆盖阈值是本评测采用的工程验收下限，尚未通过阈值敏感性实验校准。": "Text and file references come from independently retrieved sources. Product lists are checked against independently confirmed stable text and structure, without freezing a changing daily catalog. Body-coverage thresholds are engineering acceptance floors for this benchmark and have not been calibrated through threshold-sensitivity experiments.",
     "每款配置每题保留一次主结果。完整报告提供每道题的参考内容、实际输出和各项判定，便于逐条复查。": "Each configuration retains one primary result per task. The full report provides each task’s reference, actual output, and item-level verdicts for inspection.",
     "PDF 和原文件交付解释了 Moli 在这轮混合任务中的增益。下一步需要验证：增加站点与文档类型后，这些成功能否重复，现有的读取缺口能否补齐。": "PDF and original-file delivery explain Moli’s gains in this mixed task set. The next step is to test whether those successes repeat across more sites and document types, and whether the current retrieval gaps can be closed.",
     "延迟列表、iframe，以及本轮未通过的 DOCX 和嵌入式文档查看器，需要在迭代后重新验证；热门站点需要重复运行，速度比较也需要更多共同成功样本。": "Delayed lists, iframes, DOCX, and embedded document viewers that failed this run need retesting after updates. Popular sites need repeated runs, and latency comparisons need more shared successful tasks.",
@@ -2871,8 +2909,6 @@ TEXT.update({
 
 
 TEXT.update({
-    "普通网页占题量的三分之二；其余每组只有 10 道，相差一道就是 10 个百分点。这是本轮样本的构成，并不代表全网内容的真实比例。应用以什么内容为主，应当对应看哪一组结果。": "General pages account for two-thirds of the tasks. Each remaining group has only 10 tasks, so one task changes its pass rate by 10 percentage points. This is the composition of this test set, not the distribution of content across the web. Focus on the groups that match the content your application uses.",
-    "任务通过与正文完整度因此要分开看：结果可以满足题目要求，同时夹带多余导航；也可能找回部分正文，却漏掉必需段落而未通过。只有完整参考可用的任务才参与上表统计，缺少参考的任务不按零分或满分处理。": "Task acceptance and text completeness need to be considered separately. An output can meet the task requirements while including unwanted navigation text. It can also recover some text but fail because required passages are missing. Only tasks with complete references enter the statistics above. Missing references are treated as unavailable, not as zero or perfect scores."
 })
 
 
@@ -2900,18 +2936,14 @@ TEXT.update({
     "历史主结果，调用跨批次；详见测速分析": "Recorded primary results span batches; see the latency analysis",
     "9 道共同成功网页 · 同窗测速 P50": "9 shared web successes · same-window P50",
     "Chromium：3.87 秒，Moli 减少 27.2%": "Chromium: 3.87 seconds; Moli is 27.2% lower",
-    "同窗均值 / P95：Moli 4.45 / 12.84 秒；Lightpanda 3.82 / 6.03 秒": "Same-window mean / P95: Moli 4.45 / 12.84 seconds; Lightpanda 3.82 / 6.03 seconds",
     "六组真实案例": "Examples from six groups",
     "98 道共同成功任务，Moli 的平均耗时为 3.01 秒": "98 shared successful tasks: Moli averages 3.01 seconds",
-    "150 道主任务中，五款浏览器都通过的有 98 道：普通网页 79 道、动态网页 8 道、热门站点 2 道、文档 1 道、图片 5 道、视频 3 道。比较同一组成功任务，能排除“很快返回空内容”或各自只完成简单任务的影响。": "Of the 150 main tasks, all five browsers pass 98: 79 general pages, 8 dynamic pages, 2 popular sites, 1 document, 5 images, and 3 videos. Comparing identical successful tasks excludes quick empty responses and differences caused by browsers completing only their easier tasks.",
     "主评测：全部 98 道共同成功任务 · 秒": "Main evaluation: all 98 shared successes · seconds",
-    "同一任务集合，包含内容提取与后处理。主结果跨批次采集：Lightpanda 的这 98 道调用均在 9 月 8 日，其余四款多数在 9 月 4 日。以下统计反映实际保存的调用耗时，不是同一环境下的纯浏览器内核速度。": "The same task set, including content extraction and post-processing. Primary results were collected across batches: all 98 Lightpanda calls were on 9/8, while most calls for the other four browsers were on 9/4. These statistics describe recorded call times, not isolated browser-engine speed under identical conditions.",
     "这 98 道中，Moli 的均值为 3.01 秒、P50 为 2.44 秒、P95 为 6.03 秒，三项都是五款中最低。但网络和运行时间不同，不能仅凭这组记录确定差距有多少来自浏览器实现。": "Across these 98 tasks, Moli records a mean of 3.01 seconds, P50 of 2.44 seconds, and P95 of 6.03 seconds, the lowest of the five on all three measures. Network conditions and execution times differ, so these records alone cannot establish how much of the gap comes from browser implementation.",
     "9 道同窗测速：Moli 的 P50 为 2.82 秒": "9 same-window tasks: Moli records a P50 of 2.82 seconds",
     "为进一步观察速度，我们从主评测的普通网页中预选 20 道，另行安排在同一个时间窗口执行。其中五款都成功读取的有 9 道，下面比较这 9 个相同网页。": "To examine speed further, we preselected 20 general pages from the main evaluation and ran them separately within the same time window. All five browsers successfully retrieved 9 pages. The comparison below uses those same 9 pages.",
     "同窗测速：9 道共同成功网页 · 秒": "Same-window latency: 9 shared web successes · seconds",
     "绿色标记该项最低值。计时包含内容提取与后处理；远端 Kitesurf 还包含网络往返。P50 为中位数；本组仅 9 道，按报告算法，P95 等于各自最慢的一道。": "Green marks the lowest value in each measure. Timing includes content extraction and post-processing; remote Kitesurf calls also include network round trips. P50 is the median. With only 9 tasks, the report’s P95 calculation gives each browser’s slowest task.",
-    "Moli 的 P50 为 2.82 秒，Chromium 为 3.87 秒，Lightpanda 为 3.51 秒。均值与 P95 则是 Lightpanda 更低：分别为 3.82 秒和 6.03 秒，Moli 为 4.45 秒和 12.84 秒。": "Moli’s P50 is 2.82 seconds, versus 3.87 for Chromium and 3.51 for Lightpanda. Lightpanda has the lower mean and P95: 3.82 and 6.03 seconds, respectively, versus Moli’s 4.45 and 12.84 seconds.",
     "差异集中在一张 Sponsors 页面：Moli 成功取得内容，但花了 12.84 秒，Lightpanda 用了 5.59 秒。这次慢调用把 Moli 的均值和 P95 拉高，却没有改变 P50 最低的结果。对通常要等多久、偶尔会等多长，两类指标给出了不同的信息。": "The difference centers on a Sponsors page. Moli successfully retrieved its content in 12.84 seconds; Lightpanda took 5.59 seconds. This slow call raised Moli’s mean and P95 while leaving its P50 the lowest. Typical waits and occasional slow calls tell different parts of the story.",
     "测速样本与计算方法": "Latency samples and calculations",
     "两组统计都取本文五款浏览器共同通过的全部任务，不混用各自成功的不同网页。主评测为 98 道，同窗测速为预选 20 道中的 9 道。完整报告另保留其他 Moli 版本，可按受测配置查看其对应样本。": "Both sets use every task passed by all five browsers in this article, without mixing different successful pages. The main evaluation has 98 shared successes; the same-window test has 9 out of 20 preselected tasks. The full report also retains other Moli versions, with samples available by tested configuration.",
@@ -2998,9 +3030,6 @@ TEXT.update({
 TEXT.update({
     "绿色标记该项最低值。计时包含内容提取与后处理；远端 Kitesurf 还包含网络往返。本组仅 9 道，按报告算法，P95 等于各自最慢的一道。": "Green marks the lowest value in each measure. Timing includes content extraction and post-processing; remote Kitesurf calls also include network round trips. With only 9 tasks, the report’s P95 calculation gives each browser’s slowest task.",
     "显示值保留两位小数，差值与百分比使用未舍入值计算。主评测的跨批次采集与同窗测速的小样本，都限制了对长期运行速度的推断。": "Displayed values use two decimal places; differences and percentages use unrounded values. Collection across batches in the main evaluation and the small same-window sample both limit conclusions about long-term speed.",
-    "每款配置每题保留一次主结果。参考内容在被测输出之外独立准备，浏览器可以采用不同获取与转换路径，最后按同一题目要求判定。完整报告保留每道题的运行记录、原始输出、文件指纹及逐项判定，可从结论追溯到具体返回内容。": "Each configuration retains one primary result per task. References are prepared independently of the tested outputs. Browsers may use different retrieval and conversion paths, but face the same task requirements. The full report retains run records, original outputs, file fingerprints, and item-level verdicts, allowing conclusions to be traced to the returned content.",
-    "正文质量另看 98 道有完整可比参考的普通网页。这与前面跨类型、共同成功的 98 道耗时样本不是同一集合。在这组普通网页中，Moli 平均找回 95.3% 的参考正文词语，Chromium 为 99.8%。这个比例称为 Recall。另一个指标 Precision 检查输出词语中有多少与参考重合，F1 综合两者；它们衡量文字重合，不判断文字中的事实是否正确。": "Text quality uses a separate set of 98 general pages with complete, comparable references. This differs from the earlier latency set of 98 shared successes across content types. On these general pages, Moli recovers an average of 95.3% of reference body words, versus Chromium’s 99.8%. This proportion is recall. Precision measures how much of the output overlaps the reference, and F1 combines the two. These metrics measure text overlap, not factual correctness.",
-    "网页加载完成的信号也不同：Chromium 使用页面结构就绪事件，Kitesurf 等待网络活动趋于空闲，Moli 与 Lightpanda 使用各自的 done 状态，Obscura 在加载事件后继续等待页面稳定。这些信号不保证目标内容已经出现，因此最终仍要检查实际交回的列表和正文。": "Page-completion signals also differ. Chromium uses the event indicating that the page structure is ready; Kitesurf waits for network activity to become idle; Moli and Lightpanda use their respective done states; Obscura waits for the page to stabilize after the load event. These signals do not guarantee that the requested content has appeared, so the returned lists and text still need checking.",
     "Moli 也在继续迭代：1.1.2、1.1.3、1.1.4 分别于 9 月 4 日、5 日、8 日发布。1.1.4 包含页面重定向处理修复。是否改善这里的延迟列表、iframe 或文档问题，仍需同题复测。": "Moli continues to change: versions 1.1.2, 1.1.3, and 1.1.4 were released on 9/4, 5, and 8, respectively. Version 1.1.4 includes fixes to page-redirect handling. Whether it improves the delayed-list, iframe, or document issues here requires retesting the same tasks.",
     "应交付目标视频文件的地址或有效播放器入口；封面图片与普通首页链接不算。": "Return the target video file URL or a valid player entry point; a cover image or ordinary homepage link does not qualify.",
 })
@@ -3045,7 +3074,6 @@ TEXT.update({
 TEXT.update({
     "十种方法仍执行同一组 150 题，保留 1,500 条权威结果。接口修正只认证重跑 Cloudflare 23 条和 Firecrawl 17 条，共 40 次新调用；任务通过数由 1,024 增至 1,029。document-05 的公共格式归一化不调用供应商，又增加 1 条通过，最终为 1,030/1,500。Moli 仍为 1.1.4。": "The same 150 tasks and ten methods retain 1,500 authoritative results. Certified interface reruns were limited to 23 Cloudflare and 17 Firecrawl results, for 40 new calls; task passes rose from 1,024 to 1,029. Shared formatting normalization for document-05 added one pass without another provider call, yielding 1,030/1,500. Moli remains at 1.1.4.",
     "40 条新物理调用取代同一方法—题目的旧权威结果；其余 1,460 条沿用旧调用。document-05 的 Markdown 表格分隔行在所有方法共用的格式归一化中按排版处理，保存输出离线复评分。": "Forty new physical calls supersede the old authoritative results for the same method–task pairs; the other 1,460 calls are inherited. The Markdown table divider in document-05 is treated as layout by shared normalization across all methods, with saved outputs rescored offline.",
-    "接口重跑使通过数从 1,024/1,500 到 1,029/1,500；公共归一化再到 1,030/1,500。分母、150 题、十方法和 Moli 1.1.4 均不变。": "Interface reruns raised passes from 1,024/1,500 to 1,029/1,500; shared normalization then raised them to 1,030/1,500. The denominator, 150 tasks, ten methods, and Moli 1.1.4 are unchanged.",
     "40 条新结果先隐藏机器判定逐条独立核验；未变化的 1,460 条沿用哈希绑定的旧逐条核验。image-04 按同资产缩略图域名迁移裁决，并在公共资源规则中同时拒绝缺少缩略图标识的近似地址。": "The 40 new results were independently checked one by one with machine judgments hidden; 1,460 unchanged results inherit hash-bound earlier individual reviews. image-04 was adjudicated as a thumbnail-host migration of the same asset, while shared resource rules also reject similar URLs lacking a thumbnail marker.",
     "当前 1,500/1,500 条结果均有逐条判定核验，未决判定 0。image-04 修正未改变当前成绩；异常根因调查与逐条判定核验分别记录，不把后者冒充前者。": "All 1,500/1,500 results have individual verdict review, with zero unresolved verdicts. The image-04 correction did not affect the current score. Root-cause anomaly investigation and individual verdict review are recorded separately; the latter is not presented as the former.",
 })
@@ -3110,33 +3138,23 @@ TEXT.update({
     "01 浏览器怎样把网页交给 AI": "01 How browsers deliver pages to AI",
     "02 多通过的 10 道任务，来自文档与媒体": "02 Documents and media account for 10 additional passes",
     "耗时样本与计算方法": "Latency sample and calculations",
-    "取五款浏览器在 150 道主任务中共同通过的全部 98 道，不混用各自成功的不同任务。均值是全部耗时相加后除以 98；P50 是中间位置的耗时；P95 反映这组记录中较慢的一端。": "The sample includes all 98 tasks passed by all five browsers among the 150 main tasks, without mixing different successful tasks. The mean is the sum of latencies divided by 98; P50 is the middle latency; P95 describes the slower end of these records.",
-    "显示值保留两位小数，差值与百分比使用未舍入值计算。调用跨批次采集，每个配置每题只有一次主结果，尚不能据此估计长期运行波动。": "Displayed values use two decimal places; differences and percentages use unrounded values. Calls were collected across batches, with one primary result per configuration and task. They are not sufficient to estimate variability over long-term operation.",
     "03 从任务要求到逐项验收": "03 From task requirements to item-level acceptance",
     "04 五款浏览器的实现与实测差异": "04 Implementations and measured differences across five browsers",
     "浏览器及定位": "Browser and purpose",
     "实测长处": "Measured strengths",
     "未完成或边界": "Failures and scope limits",
     "面向 AI Agent 的 Rust 浏览器，提供获取与自动化接口": "Rust browser for AI agents, with retrieval and automation interfaces",
-    "本地；原生 Markdown；直接文档与媒体可返回原始响应，PDF 由 pypdf 提取文字": "Local; native Markdown; raw responses for direct documents and media; pypdf extracts PDF text",
     "文档 7/10、图片 10/10、视频 7/10": "Documents 7/10; images 10/10; videos 7/10",
-    "普通网页 97/100；三份 W3C 标准停在验证页；DOCX 与嵌入式文档查看器未完成": "General pages 97/100; three W3C standards stop at verification pages; DOCX and embedded document viewers are incomplete",
     "通用开源浏览器，许多浏览器产品以它为基础": "General-purpose open-source browser underlying many browser products",
-    "本地无头模式；读取 DOM 页面结构，经 node-html-markdown 2.0.0 转为 Markdown": "Local headless mode; reads the page DOM and converts it to Markdown with node-html-markdown 2.0.0",
     "普通网页 99/100；98 道可比正文的平均词语找回比例 99.8%": "General pages 99/100; average reference-word recovery of 99.8% across 98 comparable text tasks",
-    "文档 1/10；该结果对应当前页面转文本路线，增加文件下载与 PDF 解析需重新评测": "Documents 1/10 under the current page-to-text path; adding file downloading and PDF parsing requires reevaluation",
-    "Zig 开发，面向 AI 与自动化的无头浏览器，非 Chromium 分支": "Headless browser written in Zig for AI and automation; not a Chromium fork",
     "本地；原生 Markdown": "Local; native Markdown",
-    "普通网页 92/100；取得三份 W3C 标准正文；IMDb 题仅它通过": "General pages 92/100; retrieves the three W3C standards; the only browser to pass IMDb",
     "文档 1/10；动态网页仍有 2/10 未完成": "Documents 1/10; 2/10 dynamic pages remain incomplete",
     "采用 V8 执行 JavaScript 的 Rust 无头浏览器": "Rust headless browser using V8 to execute JavaScript",
     "本地标准模式；原生 Markdown": "Local standard mode; native Markdown",
-    "普通网页 90/100、热门站点 5/10；取得 Moli 未交回的 Blender 下载资源入口": "General pages 90/100; popular sites 5/10; retrieves the Blender download link missed by Moli",
     "未启用 stealth 模式或备用引擎；结果不覆盖这些配置": "Stealth mode and alternative engines were not enabled; results do not cover those configurations",
     "远端 Browser Run；提交 URL，返回 Markdown": "Remote Browser Run; submit a URL and receive Markdown",
     "普通网页 88/100、动态网页 8/10；YouTube 题仅它通过": "General pages 88/100; dynamic pages 8/10; the only browser to pass YouTube",
     "计时包含网络往返；未测试托管成本、扩容和生产并发": "Timing includes network round trips; hosting cost, scaling, and production concurrency were not tested",
-    "这张表比较的是浏览器连同获取、等待和转换步骤的整条路径。选择时，除了看自己的输入类型，也要看是否需要文件解析、远端托管，以及对应任务在哪里失败。": "This table compares complete paths, including each browser’s retrieval, waiting, and conversion steps. When choosing, consider your input types, whether you need file parsing or remote hosting, and where the relevant tasks fail.",
     "05 尚未完成的网页与文档": "05 Pages and documents still incomplete",
     "Moli 1.1.1 通过 135/150 道任务，完成率为 90.0%；Chromium 为 125/150、83.3%。这是按题目要求验收的完成率。": "Moli 1.1.1 passes 135/150 tasks, a 90.0% completion rate, versus Chromium’s 125/150 and 83.3%. Completion is assessed against each task’s requirements.",
     "文档与媒体通过数为 24/30 对 14/30，构成 Moli 多通过的 10 道；120 道网页任务中，两者均为 111/120。": "Document and media passes are 24/30 versus 14/30, accounting for Moli’s 10 additional passes. Across 120 web tasks, both score 111/120.",
@@ -3144,8 +3162,6 @@ TEXT.update({
     "待补的缺口也具体：三份 W3C 标准的验证页、延迟列表、iframe 子页面，以及 DOCX 和嵌入式文档查看器。普通网页的正文词语找回比例，Moli 为 95.3%，Chromium 为 99.8%，还不能称为完全对齐。": "The remaining gaps are specific: verification pages on three W3C standards, delayed lists, iframe content, DOCX, and embedded document viewers. Reference-word recovery on general pages is 95.3% for Moli and 99.8% for Chromium, so they are not yet fully matched.",
     "接下来验证什么": "What to test next",
     "增加站点、文档类型和重复次数；在相同运行条件下扩大速度样本，观察热门站点的成功率波动。": "Add sites, document types, and repeated runs; expand the latency sample under the same execution conditions and observe success-rate variability on popular sites.",
-    "跟进版本迭代，复测现有失败任务。Moli 1.1.2、1.1.3、1.1.4 分别于 9 月 4 日、5 日、8 日发布，1.1.4 包含重定向处理修复；能否改善本文中的缺口，仍以同题复测为准。": "Retest current failures as versions change. Moli 1.1.2, 1.1.3, and 1.1.4 were released on 9/4, 5, and 8, respectively. Version 1.1.4 includes redirect-handling fixes; improvements to the gaps in this article still require retesting the same tasks.",
-    "开展 Browser Use 评测，用搜索、点击、翻页和填写等连续操作，比较 Agent 完成整段网页任务的表现。": "Run Browser Use evaluations with sequences of searches, clicks, pagination, and form inputs to compare how agents complete entire web tasks."
 })
 
 
@@ -3160,40 +3176,30 @@ TEXT.update({
     "这 30 道中，Moli 通过 24 道，Chromium 通过 14 道；120 道网页任务中，两者均为 111/120。": "Of these 30 tasks, Moli passes 24 and Chromium passes 14. Across 120 web tasks, both score 111/120.",
     "98 道共同成功任务，三项耗时均较低。": "Lower on all three latency measures across 98 shared successes.",
     "Moli 的均值、P50、P95 为 3.01、2.44、6.03 秒，Chromium 为 5.27、4.58、10.83 秒。这组跨批次记录尚不能隔离网络和运行条件的影响。": "Moli’s mean, P50, and P95 are 3.01, 2.44, and 6.03 seconds, versus Chromium’s 5.27, 4.58, and 10.83 seconds. These records collected across batches cannot isolate network and execution conditions.",
-    "仍需改进的任务包括三份 W3C 标准、延迟列表、iframe 子页面、DOCX 和嵌入式文档查看器。普通网页也有正文完整度差距：参考正文词语找回比例为 Moli 95.3%、Chromium 99.8%。": "Tasks still needing improvement include three W3C standards, delayed lists, iframe content, DOCX, and embedded document viewers. General pages also show a gap in text completeness: reference-word recovery is 95.3% for Moli and 99.8% for Chromium."
 })
 
 
 TEXT.update({
     "Moli Web Fetch 实测：": "Moli Web Fetch benchmark:",
-    "Moli 1.1.1 的任务通过率为 90.0%（135/150），比 Chromium 的 83.3% 高 6.7 个百分点。多完成的 10 道来自文档与媒体：取得 PDF 正文、图片和视频资源，也是 AI 读取网络内容的一部分。": "Moli 1.1.1 has a task pass rate of 90.0% (135/150), 6.7 percentage points above Chromium’s 83.3%. The 10 additional passes come from documents and media: retrieving PDF text, images, and video resources is also part of giving AI access to online content.",
     "平均耗时减少 · 相对 Chromium": "Mean latency reduction · versus Chromium",
     "Moli 3.01 秒 / Chromium 5.27 秒": "Moli 3.01 seconds / Chromium 5.27 seconds",
     "P50 耗时减少 · 相对 Chromium": "P50 latency reduction · versus Chromium",
     "Moli 2.44 秒 / Chromium 4.58 秒": "Moli 2.44 seconds / Chromium 4.58 seconds",
     "P95 耗时减少 · 相对 Chromium": "P95 latency reduction · versus Chromium",
     "Moli 6.03 秒 / Chromium 10.83 秒": "Moli 6.03 seconds / Chromium 10.83 seconds",
-    "耗时比较取五款共同成功的全部 98 道任务，包含内容提取和后处理。主记录跨批次采集，网络与运行时间不同，不能当作受控条件下的内核速度差异。": "The latency comparison uses all 98 tasks passed by all five browsers and includes content extraction and post-processing. Primary records were collected across batches with different network conditions and execution times, so these are not browser-engine speed differences measured under controlled conditions.",
     "01 这次测什么": "01 What was tested",
     "02 通过率与耗时": "02 Pass rates and latency",
     "03 测试方法与实例": "03 Methods and examples",
     "04 浏览器与测试配置": "04 Browsers and test configurations",
     "05 失败任务与正文缺失": "05 Failed tasks and missing text",
     "06 结论与后续测试": "06 Findings and further tests",
-    "Web Fetch 从给定网址取得所需内容，例如论文正文或商品列表；输出通常是 Markdown，也就是带少量格式标记的文字，或供后续工具使用的文件。": "Web Fetch retrieves required content from a given URL, such as a paper’s text or a product list. It typically returns Markdown—text with lightweight formatting—or files for downstream tools.",
-    "Browser Use 则让 AI 根据当前页面决定下一步操作，点击或填写后继续观察，例如搜索商品、筛选规格，再加入购物车。": "Browser Use lets AI decide its next action from the current page, then inspect the result after clicking or filling in a field—for example, searching for products, filtering specifications, and adding an item to the cart.",
-    "文档与媒体的通过率，Moli 为 80.0%（24/30），Chromium 为 46.7%（14/30）。网页类则同为 92.5%（111/120）。": "Document and media pass rates are 80.0% (24/30) for Moli and 46.7% (14/30) for Chromium. Both score 92.5% (111/120) on web tasks.",
-    "其中六道 PDF 题只有 Moli 的本轮配置通过：先取得文件，再由本地 pypdf 提取正文，解析时间也计入耗时。其余四款的本轮 Markdown 输出路线未交回合格正文。": "Six PDF tasks pass only with Moli’s tested configuration: retrieve the file, then extract text using local pypdf, with parsing included in latency. The other four browsers’ tested Markdown output paths do not return acceptable text.",
-    "相同的网页总分来自不同任务：普通网页为 Moli 97.0%、Chromium 99.0%；热门站点为 60.0% 和 40.0%。每组题数见开头的分项成绩。": "Equal web totals come from different tasks: general pages score 97.0% for Moli and 99.0% for Chromium; popular sites score 60.0% and 40.0%, respectively. Group task counts appear in the opening results table.",
     "98 道共同成功任务的耗时": "Latency across 98 shared successful tasks",
-    "输入都是网址，交付内容可以分为五种。浏览器可采用不同实现，最终按同样的任务要求验收。": "All inputs are URLs, but outputs fall into five types. Browsers may use different implementations, with results checked against the same task requirements.",
     "网页正文：保留标题、必要内容和指定链接。": "Page text: retain the title, required content, and specified links.",
     "文档正文：从 PDF 等文件解析文字，覆盖要求的正文区域。": "Document text: extract text from files such as PDFs and cover the required body regions.",
     "列表记录：名称与字段完整，重复条目只计一次。": "List records: include complete names and fields; count duplicates only once.",
     "媒体地址：返回目标图片或视频的可用 URL。": "Media URLs: return a usable URL for the target image or video.",
     "原始文件：交付实际字节，核对格式、大小和文件指纹。": "Original files: deliver actual bytes and verify format, size, and file fingerprint.",
     "六个评测集的实际结果": "Recorded results from six dataset groups",
-    "六个评测集按内容来源分组，与五种交付类型交叉：动态网页可能交付列表，视频页面可能交付资源地址。下面每组一道实测，展示参考内容、真实输出和逐项判定。": "The six dataset groups are organized by content source and overlap with the five output types: a dynamic page may return a list, while a video page may return a resource URL. One recorded task per group below shows reference content, actual output, and item-level verdicts.",
     "样本与判定规则": "Samples and acceptance rules",
     "W3C 标准的访问验证": "Access verification on W3C standards",
     "延迟加载与 iframe": "Delayed loading and iframes",
@@ -3407,7 +3413,6 @@ TEXT.update({
     "当前证据没有独立的客户端资源测量；不从耗时或进程体积推测 CPU 与内存。": "The current evidence has no independent client-side resource measurement; CPU and memory are not inferred from latency or process size.",
     "当前证据没有独立的客户端资源测量；本文不从耗时反推 CPU 或内存。": "The current evidence has no independent client-side resource measurement; this article does not infer CPU or memory from latency.",
     "资源指标待独立同题测量后补充。": "Resource metrics will be added only after an independent matched-task measurement.",
-    "每题等权，失败与超时计入总数；通过表示交付结果满足题目要求。当前报告固定使用 Moli 1.1.1，不在同一报告中混合不同版本。": "Tasks are equally weighted, with failures and timeouts included in the total. The current report fixes Moli at version 1.1.1 and does not mix versions within one report.",
     "平均 CPU 时间": "Mean CPU time",
     "平均 CPU 占单核": "Mean CPU as one-core utilization",
     "平均峰值内存": "Mean peak memory",
@@ -3432,7 +3437,6 @@ TEXT.update({
     "资源汇总只使用所有展示配置共同通过的任务，避免把快速失败或空输出当成节省资源。短于采样间隔的内存/CPU 峰值可能遗漏；远端服务的服务端 CPU、内存与上游流量不可观测。": "Resource aggregates use only tasks passed by every displayed configuration, avoiding credit for fast failures or empty output. Memory or CPU spikes shorter than the sample interval may be missed; server-side CPU, memory, and upstream traffic for remote services are not observable.",
     "资源数据来自单独的同题 cohort，不回填到历史正确率调用。每次调用启动一个受限的 Linux 客户端容器及独立网络；宿主控制器和容器启停不计入。CPU 与网络总量读取累计计数，内存与速率分位数按 50 ms 采样。": "Resource data comes from a separate matched-task cohort and is not backfilled into historical correctness calls. Each call starts a limited Linux client container with a dedicated network; the host controller and container lifecycle are excluded. CPU and network totals use cumulative counters, while memory and rate percentiles are sampled every 50 ms.",
     "资源汇总只使用所有展示配置共同通过的任务，避免把快速失败或空输出当成节省资源。短于采样间隔的内存或速率峰值可能遗漏；远端服务的服务端 CPU、内存与上游流量不可观测。": "Resource aggregates use only tasks passed by every displayed configuration, avoiding credit for fast failures or empty output. Memory or rate peaks shorter than the sample interval may be missed; server-side CPU, memory, and upstream traffic for remote services are not observable.",
-    "增加站点、文档类型和重复次数；在相同运行条件下扩大速度与资源样本，观察热门站点的成功率波动。": "Add sites, document types, and repeated runs; expand latency and resource samples under the same execution conditions, and observe pass-rate variation on popular sites.",
     "本轮资源效率领先": "Resource-efficiency leader in this run",
     "本轮资源效率并列领先": "Resource-efficiency co-leaders in this run",
     "个可按低消耗比较的指标最低。资源结果与任务通过率分别判断，不合成总分。": "lower-is-better resource metrics. Resource results and task pass rate are judged separately and are not combined into a composite score.",
@@ -3445,8 +3449,6 @@ TEXT.update({
     "同题口径：所列配置共同通过": "Matched-task scope: general pages passed by every listed configuration:",
     "所列配置共同通过": "Tasks passed by every listed configuration:",
     "；这项交集只作附加诊断，不用于选择资源表的样本。各方法成功调用的条件统计另保留在资源证据中。": "; this intersection is diagnostic only and does not select the resource-table population. Conditional statistics for each method's successful calls are retained in the resource evidence.",
-    "资源数据来自四种本地方法的独立同题测量，不回填到历史通过率调用。每次调用启动一个受限的 Linux 客户端容器及独立网络；宿主控制器和容器启停不计入。CPU 与网络总量读取累计计数，内存与速率分位数按 50 ms 采样。": "Resource data comes from a separate matched-task measurement of the four local methods and is not added to historical pass-rate calls. Each call starts a limited Linux client container with a dedicated network; the host controller and container lifecycle are excluded. CPU and network totals use cumulative counters, while memory and rate percentiles are sampled every 50 ms.",
-    "资源主表统计预先确定的全部任务，包括失败调用，并列出各方法的通过数；成功调用另作条件统计，共同通过的任务仅作诊断。短于采样间隔的内存或速率峰值可能遗漏；Kitesurf 等远端服务的服务端 CPU、内存与上游流量不可观测，因而不进入资源表。": "The primary resource table includes every predeclared task, including failed calls, and shows each method's pass count. Successful calls have separate conditional statistics; shared successes are diagnostic only. Memory or rate peaks shorter than the sampling interval may be missed. Server-side CPU, memory, and upstream traffic for remote services such as Kitesurf are unobservable, so they are excluded from the resource table.",
     "资源主表纳入预先确定的全部任务，包括失败调用，统计容器内调用进程、浏览器与转换过程的消耗；同时列出各方法通过数。各方法成功调用另作条件统计，共同通过的任务仅作诊断。Kitesurf 的远端 CPU、内存和上游流量不可见，因此不进入资源表。缺少任一资源字段、非 Linux/cgroup v2、镜像或二进制身份变化、并发不为 1，都会阻断资源包构建。": "The primary resource table includes every predeclared task, including failed calls, and measures the caller process, browser, and conversion within the container. Each method's pass count is shown. Successful calls have separate conditional statistics; shared successes are diagnostic only. Kitesurf's remote CPU, memory, and upstream traffic are unobservable, so it is excluded. Missing resource fields, a non-Linux/cgroup-v2 backend, changed image or binary identity, or concurrency other than one block resource packaging.",
     "个普通网页；失败任务不进入资源排名。": "pages; failed tasks do not enter the resource ranking.",
     "CPU 与计算": "CPU and compute",
@@ -3558,11 +3560,32 @@ TEXT.update({
 })
 
 REGEX.extend([
+    (re.compile(r"^核验于 (\d{4}-\d{2}-\d{2})。算力、网络、存储、代理和维护成本自担；没有测量这些成本，不把本地调用等同于零成本。官方托管产品或服务价格不属于本地执行模式。$"),
+     r"Checked on \1. The caller pays compute, network, storage, proxy, and maintenance costs. These costs were not measured, so local calls are not treated as free. Official managed-product or service prices do not apply to local execution."),
+    (re.compile(r"^本方法只使用官方 (\d+(?:\.\d+)+) 发行二进制，与其他 Moli 版本分开计分。网页正文、文档正文、结构题和网页内嵌媒体题统一使用原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不按题目设置 selector。网页媒体只核对这份输出中的目标地址，不下载，也不切换 HTML、JSON 或网络跟踪接口。直接 PDF/DOCX 没有交付可读正文时按失败记录；直接媒体文件验收原始字节。评测端不使用外部 PDF/DOCX 解析器补正文，也不在失败后切换引擎或输出模式。$"),
+     r"This method uses only the official \1 release binary and is scored separately from other Moli versions. Webpage body text, document body text, structured tasks, and webpage media tasks use native Markdown. Every dynamic-body task enables --layout, --with-frames, and domstable, without task-specific selectors. Webpage media tasks check only target URLs in that output; they do not download media or switch to HTML, JSON, or network-tracing interfaces. Direct PDF/DOCX tasks fail without readable body text; direct media files are evaluated as original bytes. The benchmark does not supply external PDF/DOCX parsing or switch engines or output modes after a failure."),
+    (re.compile(r"^必需文字组 (\d+)（任一写法即可）$"), r"Required text group \1 (any alternative may match)"),
+    (re.compile(r"^· 原始采集记录 ([\d,]+) 字节（可含协议返回） · 原始 SHA-256：$"), r"· Original capture: \1 bytes (may include protocol responses) · Original SHA-256:"),
     (re.compile(r"^本报告纳入 ([\d,]+) 个逻辑结果。运行参数见下表；保留的物理调用与输出见各结果详情。$"),
      r"This report includes \1 logical results. Run parameters are listed below; each result detail contains its retained physical calls and outputs."),
     (re.compile(r"^· 请求：(成功|失败) · 耗时：([\d,.]+) ms · 实际输出：([\d,]+) 字符$"),
      lambda m: f"· Request: {'success' if m[1] == '成功' else 'failure'} · Duration: {m[2]} ms · Actual output: {m[3]} characters"),
 ])
+
+
+def _timeout_translation(match):
+    budget = (f"{match['seconds']}-second outer deadline" if match['seconds'] else
+              "Outer deadline not recorded")
+    suffix = match['suffix']
+    if suffix == 'Moli 总等待、HTTP 和连接超时保留该二进制默认值':
+        return budget + "; Moli's total-wait, HTTP, and connection timeouts retain the measured binary's defaults"
+    if suffix == 'Moli 内部超时以逐次调用记录为准':
+        return budget + "; Moli's internal timeout policy is taken from each saved call record"
+    milliseconds = re.search(r' ([\d,]+) 毫秒$', suffix)
+    return budget + "; the measured command explicitly set Moli's total-wait, HTTP, and connection timeouts" + (f" to {milliseconds[1]} ms" if milliseconds else " (value not recorded)")
+
+
+REGEX.append((re.compile(r"^(?:(?P<seconds>[\d.]+) 秒外层截止|外层截止时间未记录)；(?P<suffix>Moli 总等待、HTTP 和连接超时保留该二进制默认值|Moli 内部超时以逐次调用记录为准|实测命令同时显式传入 Moli 总等待、HTTP 和连接超时(?: [\d,]+ 毫秒)?)$"), _timeout_translation))
 
 
 def translate_text(value: str, translations=None) -> str:
@@ -3606,10 +3629,19 @@ class Localizer(HTMLParser):
         self.stack: list[str] = []
         self.source = source
         self.translations = translations
+        self.translate_stack = []
+        self.model_text_stack = []
+
+    def _allows_translation(self, attrs):
+        mode = (dict(attrs).get("translate") or "").lower()
+        if mode in {"yes", "no"}:
+            return mode == "yes"
+        return self.translate_stack[-1] if self.translate_stack else True
 
     def _start_tag(self, attrs) -> str:
         original = self.get_starttag_text()
-        if any(tag in self.stack for tag in ("pre", "code", "script", "style")):
+        if (not self._allows_translation(attrs)
+                or any(tag in self.stack for tag in ("pre", "code", "script", "style"))):
             return original
         values = dict(attrs)
         article = self.source in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}
@@ -3620,7 +3652,7 @@ class Localizer(HTMLParser):
             return pattern.sub(lambda match: match.group(1) + '"'
                                + html.escape(value, quote=True) + '"', markup)
 
-        if article:
+        if article or self.source == PurePosixPath("methodology/index.html"):
             # The renderer supplies both language assets. Localization only selects
             # an existing URL; it never reads files or modifies measured evidence.
             for name in ("src", "href"):
@@ -3641,8 +3673,14 @@ class Localizer(HTMLParser):
         self.parts.append(f"<!{decl}>")
 
     def handle_starttag(self, tag: str, attrs) -> None:
+        localized = dict(attrs).get('data-report-en') if tag == 'span' else None
+        parent_model = any(self.model_text_stack)
+        self.model_text_stack.append(localized is not None or parent_model)
+        self.translate_stack.append(self._allows_translation(attrs))
         self.stack.append(tag)
         self.parts.append(self._start_tag(attrs))
+        if localized is not None and not parent_model:
+            self.parts.append(html.escape(localized))
 
     def handle_startendtag(self, tag: str, attrs) -> None:
         self.parts.append(self._start_tag(attrs))
@@ -3650,18 +3688,27 @@ class Localizer(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag in self.stack:
             self.stack = self.stack[:len(self.stack) - 1 - self.stack[::-1].index(tag)]
+            self.translate_stack = self.translate_stack[:len(self.stack)]
+            self.model_text_stack = self.model_text_stack[:len(self.stack)]
         self.parts.append(f"</{tag}>")
 
     def handle_data(self, data: str) -> None:
-        if any(tag in self.stack for tag in ("pre", "code", "script", "style")):
+        if any(self.model_text_stack):
+            return
+        if ((self.translate_stack and not self.translate_stack[-1])
+                or any(tag in self.stack for tag in ("pre", "code", "script", "style"))):
             self.parts.append(data)
         else:
             self.parts.append(translate_text(data, self.translations))
 
     def handle_entityref(self, name: str) -> None:
+        if any(self.model_text_stack):
+            return
         self.parts.append(f"&{name};")
 
     def handle_charref(self, name: str) -> None:
+        if any(self.model_text_stack):
+            return
         self.parts.append(f"&#{name};")
 
     def handle_comment(self, data: str) -> None:
@@ -3766,18 +3813,346 @@ def localize_html(page: str, source: PurePosixPath, *, translations=None) -> str
     english = PurePosixPath("en") / source
     page = page.replace('<html lang="zh-CN">', '<html lang="en">', 1)
     page = re.sub(r'<header class="top">.*?</header>', _header(source, english), page, count=1, flags=re.S)
+    # Raw evidence and executable/style blocks are preserved, never translated.
+    # Mask them before parsing so large responses do not incur entity-by-entity work.
+    preserved = []
+    def preserve(match):
+        preserved.append(match.group(0))
+        return f"<!--LOCALIZATION-PRESERVED-{len(preserved)-1}-->"
+    page = re.sub(r"<(pre|script|style)\b[^>]*>.*?</\1>", preserve, page, flags=re.S | re.I)
     parser = Localizer(source, translations)
     parser.feed(page)
     parser.close()
-    return _rewrite_links("".join(parser.parts), source, english)
+    localized = "".join(parser.parts)
+    for index, block in enumerate(preserved):
+        localized = localized.replace(f"<!--LOCALIZATION-PRESERVED-{index}-->", block)
+    return _rewrite_links(localized, source, english)
 
 
-def write_english_report(out: Path) -> int:
-    """Mirror every Chinese HTML route and return the mirrored route count."""
+TEXT.update({
+    "安装与账号准备": "Installation and account setup",
+    "账号与安装 · Web Fetch": "Access & setup · Web Fetch",
+})
+
+TEXT.update({'内容选择': 'Content selection',
+ '典型处理流程': 'Typical processing flow',
+ '变更记录 · Web Fetch': 'Changelog · Web Fetch',
+ '已知 URL → 网页正文、页面资源地址或直接文档文字': 'Known URL → page body, resource URLs, or direct document text',
+ '已知 URL → 可读文本/文档文字': 'Known URL → readable text or document text',
+ '本地浏览器渲染 + Markdown 抽取': 'Local browser rendering + Markdown extraction',
+ '匿名 HTTP provider + Turndown': 'Anonymous HTTP provider + Turndown',
+ '已知 URL → 正文文本': 'Known URL → body text',
+ 'HTTP + BeautifulSoup 网页文本加载器': 'HTTP + BeautifulSoup page-text loader',
+ '已知 URL → 渲染正文、结构化资源 URL 或原文件字节': 'Known URL → rendered body, structured resource URLs, or original file '
+                                   'bytes',
+ 'HTTP GET + Readability 正文抽取（关闭 Firecrawl 回退）': 'HTTP GET + Readability body extraction (Firecrawl fallback '
+                                                 'disabled)',
+ '已知 URL → raw_content': 'Known URL → raw_content',
+ '逐任务结果与证据': 'Per-task results and evidence',
+ '运行参数与版本': 'Run parameters and versions',
+ '本报告纳入 4,300 个逻辑结果。运行参数见下表；保留的物理调用与输出见各结果详情。': 'This report includes 4,300 logical results. Run parameters '
+                                                'are listed below; retained physical calls and outputs are '
+                                                'available in each result detail.',
+ '固定选项': 'Fixed options',
+ '页面完成条件：': 'Page completion condition:',
+ '阻止访问私网：': 'Block private-network access:',
+ '返回内容上限（字节）：': 'Maximum returned bytes:',
+ '调用间隔（秒）：': 'Inter-call interval (seconds):',
+ '日志级别：': 'Log level:',
+ '完整保存诊断日志：': 'Retain full diagnostic logs:',
+ '日志保存上限（字节）：': 'Maximum retained log bytes:',
+ '使用统一固定原生选项：': 'Use uniform fixed native options:',
+ '域名解析方式：': 'DNS resolution mode:',
+ '缓存最长年龄：': 'Maximum cache age:',
+ '代理选择：': 'Proxy selection:',
+ '请求输出格式：': 'Requested output formats:',
+ '只取主要正文：': 'Main content only:',
+ '提取深度：': 'Extraction depth:',
+ '包含图片：': 'Include images:',
+ '正文详细程度：': 'Text verbosity:',
+ '缓存最长年龄（小时）：': 'Maximum cache age (hours):',
+ '包含资源链接：': 'Include resource links:',
+ '具名链接数量上限：': 'Maximum named links:',
+ '文档大小上限（字节）：': 'Maximum document bytes:',
+ '每次调用都保存了测试程序的调用记录：何时开始、传入什么参数、何时返回，以及是否发生错误。各案例详情中的“调用方事件”展示这些记录。': 'Every call retains harness events: '
+                                                                      'start time, input parameters, return '
+                                                                      'time, and errors. These appear under '
+                                                                      'Caller events in each case detail.',
+ '“产品与依赖库日志”展示产品或底层库实际输出的运行信息。云端服务没有开放的内部日志，不会用测试程序的记录代替。下表说明各方法留下了哪些日志。': 'Product and dependency logs '
+                                                                           'contain runtime information '
+                                                                           'actually emitted by the product '
+                                                                           'or underlying libraries. Harness '
+                                                                           'events do not substitute for '
+                                                                           'unavailable cloud-internal logs. '
+                                                                           'The table lists what was '
+                                                                           'retained for each method.',
+ '已启用产品 debug；日志文件另含调用方记录。': 'Product debug enabled; the log file also contains caller events.',
+ '保留真实请求、返回错误及可用请求标识；未取得云服务内部 debug，后台能力尚未确认。': 'Actual requests, returned errors, and available request IDs '
+                                                'retained; cloud-internal debug was not obtained, and '
+                                                'backend capabilities remain unconfirmed.',
+ '已启用 debug；实际原生日志可能很少，不能以日志文件存在推断内部过程完整。': 'Debug enabled; native logs may be sparse, and the presence of a '
+                                            'log file does not prove complete internal-process coverage.',
+ '保留真实调用、返回和错误；此抓取路径未确认可开启内部 debug。': 'Actual calls, responses, and errors retained; internal debug '
+                                      'availability for this retrieval path is unconfirmed.',
+ '保留底层 HTTP 库日志；不等同于完整产品内部执行日志。': 'Underlying HTTP-library logs retained; these are not complete '
+                                  'product-internal execution logs.',
+ '启用原生 verbose 运行日志，并捕获进程输出。': 'Native verbose logging enabled, with process output captured.',
+ '完整日志在各案例详情中查看。日志可以帮助定位问题，但没有记录的内部过程不能据此推断；日志文件存在，也不等于产品的全部内部过程都有记录。': 'Full retained logs are available in '
+                                                                        'each case detail. They help locate '
+                                                                        'problems, but unrecorded internal '
+                                                                        'processes cannot be inferred; a log '
+                                                                        'file does not mean every internal '
+                                                                        'process was recorded.',
+ '以下命令从本轮保存的证据构建本地报告，不重新调用产品：': 'These commands build the local report from saved evidence without '
+                                'additional product calls:',
+ '使用与本轮结果对应的证据目录。调用时的版本、配置和评分器哈希见': 'Use the evidence directory corresponding to these results. Call-time '
+                                    'versions, configuration, and scorer hashes are in',
+ '调用前冻结协议': 'Pre-call frozen protocol',
+ '。上面的构建命令读取保存的评分；修改评分规则后，应先按声明范围复评分，不能仅重建页面就称成绩已经更新。': '. The build commands read saved scores. After '
+                                                        'changing scoring rules, rescore the declared scope '
+                                                        'before rebuilding; rebuilding pages alone does not '
+                                                        'update scores.',
+ '全部调用均值': 'All-call mean',
+ '全部调用 P50': 'All-call P50',
+ '全部调用 P95': 'All-call P95',
+ '请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求。验证码或错误提示文字不单独决定任务是否通过。完整度、纯净度和 F1 另算，不作为通过门槛。 已登记正文覆盖规则的案例，还须在最多 5 个参考区域中逐区达到 80% 词语计数覆盖，不能只返回标题或开头。': 'The '
+                                                                                                                                             'request '
+                                                                                                                                             'must '
+                                                                                                                                             'succeed '
+                                                                                                                                             'and '
+                                                                                                                                             'satisfy '
+                                                                                                                                             'the '
+                                                                                                                                             'case '
+                                                                                                                                             'minimum '
+                                                                                                                                             'length, '
+                                                                                                                                             'every '
+                                                                                                                                             'required '
+                                                                                                                                             'checkpoint, '
+                                                                                                                                             'significant '
+                                                                                                                                             'marker, '
+                                                                                                                                             'and '
+                                                                                                                                             'structure '
+                                                                                                                                             'requirement. '
+                                                                                                                                             'Verification '
+                                                                                                                                             'or '
+                                                                                                                                             'error '
+                                                                                                                                             'text '
+                                                                                                                                             'does '
+                                                                                                                                             'not '
+                                                                                                                                             'independently '
+                                                                                                                                             'determine '
+                                                                                                                                             'acceptance. '
+                                                                                                                                             'Completeness, '
+                                                                                                                                             'purity, '
+                                                                                                                                             'and '
+                                                                                                                                             'F1 '
+                                                                                                                                             'are '
+                                                                                                                                             'separate '
+                                                                                                                                             'metrics, '
+                                                                                                                                             'not '
+                                                                                                                                             'pass '
+                                                                                                                                             'thresholds. '
+                                                                                                                                             'Cases '
+                                                                                                                                             'with '
+                                                                                                                                             'body-coverage '
+                                                                                                                                             'rules '
+                                                                                                                                             'must '
+                                                                                                                                             'reach '
+                                                                                                                                             '80% '
+                                                                                                                                             'token-count '
+                                                                                                                                             'coverage '
+                                                                                                                                             'in '
+                                                                                                                                             'each '
+                                                                                                                                             'of '
+                                                                                                                                             'up '
+                                                                                                                                             'to '
+                                                                                                                                             '5 '
+                                                                                                                                             'reference '
+                                                                                                                                             'regions; '
+                                                                                                                                             'a '
+                                                                                                                                             'title '
+                                                                                                                                             'or '
+                                                                                                                                             'opening '
+                                                                                                                                             'alone '
+                                                                                                                                             'is '
+                                                                                                                                             'insufficient.',
+ '文档正文按请求状态、最低长度与全部内容核对点验收；只拿到下载链接不能通过。验证或错误提示只作诊断。F1另算，不作为通过门槛。 已登记正文覆盖规则的案例，还须在最多 5 个参考区域中逐区达到 80% 词语计数覆盖，不能只返回标题或开头。': 'Document '
+                                                                                                                          'text '
+                                                                                                                          'is '
+                                                                                                                          'accepted '
+                                                                                                                          'by '
+                                                                                                                          'request '
+                                                                                                                          'status, '
+                                                                                                                          'minimum '
+                                                                                                                          'length, '
+                                                                                                                          'and '
+                                                                                                                          'all '
+                                                                                                                          'content '
+                                                                                                                          'checkpoints; '
+                                                                                                                          'a '
+                                                                                                                          'download '
+                                                                                                                          'link '
+                                                                                                                          'alone '
+                                                                                                                          'is '
+                                                                                                                          'insufficient. '
+                                                                                                                          'Verification '
+                                                                                                                          'and '
+                                                                                                                          'error '
+                                                                                                                          'notices '
+                                                                                                                          'are '
+                                                                                                                          'diagnostic '
+                                                                                                                          'only. '
+                                                                                                                          'F1 '
+                                                                                                                          'is '
+                                                                                                                          'separate, '
+                                                                                                                          'not '
+                                                                                                                          'a '
+                                                                                                                          'pass '
+                                                                                                                          'threshold. '
+                                                                                                                          'Cases '
+                                                                                                                          'with '
+                                                                                                                          'body-coverage '
+                                                                                                                          'rules '
+                                                                                                                          'must '
+                                                                                                                          'reach '
+                                                                                                                          '80% '
+                                                                                                                          'token-count '
+                                                                                                                          'coverage '
+                                                                                                                          'in '
+                                                                                                                          'each '
+                                                                                                                          'of '
+                                                                                                                          'up '
+                                                                                                                          'to '
+                                                                                                                          '5 '
+                                                                                                                          'reference '
+                                                                                                                          'regions; '
+                                                                                                                          'a '
+                                                                                                                          'title '
+                                                                                                                          'or '
+                                                                                                                          'opening '
+                                                                                                                          'alone '
+                                                                                                                          'is '
+                                                                                                                          'insufficient.',
+ '不支持输入类型': 'Unsupported input type',
+ '任务规则未满足': 'Task requirements not met',
+ '取页返回 404': 'Retrieval returned 404',
+ '取页连接失败': 'Retrieval connection failed',
+ '方法安全限制': 'Method safety restriction',
+ '方法禁止跨站跳转': 'Method blocks cross-site redirects',
+ '方法空页规则拦截': 'Method empty-page rule blocked retrieval',
+ '正文提取为空': 'Body extraction empty',
+ '源站要求验证码': 'Source site requires verification',
+ '搜索': 'Search',
+ '搜索案例、方法或原因': 'Search cases, methods, or reasons',
+ '参考标注': 'Reference annotations',
+ '任务验收': 'Task acceptance',
+ '评分口径': 'Scoring scope',
+ '核对请求是否成功，再逐项检查本例要求的稳定文字、正文覆盖与完整条目。验证或拦截提示只作诊断，出现提示不单独导致失败；只有页面外壳而没有合格目标内容仍不通过。': 'Check request success, '
+                                                                                   'then validate the '
+                                                                                   'required stable text, '
+                                                                                   'body coverage, and '
+                                                                                   'complete records. '
+                                                                                   'Verification or blocking '
+                                                                                   'notices are diagnostic '
+                                                                                   'only and do not '
+                                                                                   'independently cause '
+                                                                                   'failure; a page shell '
+                                                                                   'without qualifying '
+                                                                                   'target content still '
+                                                                                   'fails.',
+ '接口返回 → 检查目标内容是否为空 → 核对题目要求的文字和字段 → 检查列表数量、类型与唯一性 → 汇总任务结果。只执行该例适用的检查；失败详情保留具体未满足项。图片与视频沿用请求和交付检查，资源地址或文件字节另按格式核验。': 'Response '
+                                                                                                                      '→ '
+                                                                                                                      'check '
+                                                                                                                      'for '
+                                                                                                                      'empty '
+                                                                                                                      'target '
+                                                                                                                      'content '
+                                                                                                                      '→ '
+                                                                                                                      'verify '
+                                                                                                                      'required '
+                                                                                                                      'text '
+                                                                                                                      'and '
+                                                                                                                      'fields '
+                                                                                                                      '→ '
+                                                                                                                      'check '
+                                                                                                                      'list '
+                                                                                                                      'count, '
+                                                                                                                      'types, '
+                                                                                                                      'and '
+                                                                                                                      'uniqueness '
+                                                                                                                      '→ '
+                                                                                                                      'aggregate '
+                                                                                                                      'the '
+                                                                                                                      'task '
+                                                                                                                      'verdict. '
+                                                                                                                      'Only '
+                                                                                                                      'checks '
+                                                                                                                      'applicable '
+                                                                                                                      'to '
+                                                                                                                      'that '
+                                                                                                                      'case '
+                                                                                                                      'run; '
+                                                                                                                      'failure '
+                                                                                                                      'details '
+                                                                                                                      'retain '
+                                                                                                                      'unmet '
+                                                                                                                      'requirements. '
+                                                                                                                      'Images '
+                                                                                                                      'and '
+                                                                                                                      'videos '
+                                                                                                                      'use '
+                                                                                                                      'request '
+                                                                                                                      'and '
+                                                                                                                      'delivery '
+                                                                                                                      'checks, '
+                                                                                                                      'with '
+                                                                                                                      'resource '
+                                                                                                                      'URLs '
+                                                                                                                      'or '
+                                                                                                                      'file '
+                                                                                                                      'bytes '
+                                                                                                                      'validated '
+                                                                                                                      'by '
+                                                                                                                      'format.'})
+REGEX.insert(0, (re.compile(r"^源码提交：(.+)$"), r"Source commit: \1"))
+
+TEXT.update({'本轮修正与检查限制': 'Corrections and review limits'})
+PHRASES.update({"Codex 独立复核": "Codex independent review", "见原始复核材料绑定记录": "see the binding in the original review evidence", "见原始复核材料": "see original review evidence"})
+
+TEXT.update({
+    "请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求。验证码或错误提示文字不单独决定任务是否通过。完整度、纯净度和 F1 另算，不作为通过门槛。": "The request must succeed and satisfy minimum length, every required checkpoint, significant marker, and structure requirement. Verification or error notices do not independently determine acceptance. Completeness, purity, and F1 are separate metrics, not pass thresholds.",
+})
+REGEX.insert(0, (re.compile(r"^(\d+) 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。$"), r"Passed / decidable results among \1 planned tasks; each task has equal weight, and undecidable results are excluded from the denominator."))
+REGEX.insert(0, (re.compile('^每种方法均使用同一组 (\\d+) 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。$'), 'Each method uses the same \\1 tasks, including passes, failures, errors, and timeouts. Latency runs from input to return and excludes the common cooldown between calls. Cases execute sequentially within each method; inter-method scheduling and limits are documented in the call-chain audit. Local and remote environments, networks, and product limits still affect latency.'))
+REGEX.insert(0, (re.compile(r"^(\d+)/(\d+) · 复核记录$"), r"\1/\2 · review records"))
+REGEX.insert(0, (re.compile(r"^(\d+) 条通过结果的参考词精确率低于 30%。此比例用于定位检查对象，不是统一失败线；通过不保证干净正文，正文参考的范围和时间也会影响该指标。$"), r"\1 passing results have reference word precision below 30%. This locates inspection candidates, not a universal failure threshold. Passing does not establish clean body text; reference scope and time also affect this metric."))
+
+TEXT.update({
+    "版本优先使用调用时记录的版本号；源码实现使用冻结的提交号。云端服务没有公开后端版本时如实标注。二进制哈希用于确认具体执行文件；事后核验的版本会说明依据。": "Versions use call-time records where available; source implementations use frozen commits. Undisclosed cloud backend versions are stated explicitly. Binary hashes identify the executable, and retrospectively verified versions state their evidence.",
+})
+
+def write_english_report(out: Path, *, source_routes=None) -> int:
+    """Mirror Chinese HTML routes; a scoped refresh preserves other editions."""
+    if source_routes is None:
+        sources = sorted(path for path in out.rglob("*.html") if "en" not in path.relative_to(out).parts)
+    else:
+        from lexbench_webfetch.paths import contained_path
+        sources = []
+        for name in sorted(set(source_routes)):
+            route = PurePosixPath(name)
+            if route.is_absolute() or '..' in route.parts or not route.parts or route.parts[0] == 'en' or route.suffix != '.html':
+                raise ValueError('Scoped English routes must be relative Chinese HTML paths')
+            path = contained_path(out, str(route), reject_symlinks=True)
+            contained_path(out, 'en/' + str(route), reject_symlinks=True)
+            if not path.is_file():
+                raise FileNotFoundError('Missing Chinese route: ' + str(route))
+            sources.append(out / str(route))
     history_path = out / "report-changes.json"
     translations = release_translations(json.loads(history_path.read_text())) if history_path.is_file() else {}
+    from .report_reading import archived_translations
+    article_translations = archived_translations(out)
     english_root = out / "en"
-    if english_root.exists():
+    if source_routes is None and english_root.exists():
         shutil.rmtree(english_root)
     dataset_path = out / "dataset.json"
     allowed_source_text = {"中文"}
@@ -3786,12 +4161,28 @@ def write_english_report(out: Path) -> int:
         allowed_source_text.update(
             case.get("name") for case in dataset.get("cases", []) if case.get("name")
         )
-    sources = sorted(path for path in out.rglob("*.html") if "en" not in path.relative_to(out).parts)
+    archived_manifest = out / "archived-reading.json"
+    if archived_manifest.is_file():
+        allowed_source_text.update(json.loads(archived_manifest.read_text()).get("preserved_source_names", []))
     for source_path in sources:
         source = PurePosixPath(source_path.relative_to(out).as_posix())
         target = out / "en" / Path(str(source))
         target.parent.mkdir(parents=True, exist_ok=True)
-        localized = localize_html(source_path.read_text(encoding="utf-8"), source, translations=translations)
+        raw=source_path.read_text(encoding="utf-8")
+        if str(source)=='guide/index.html' and (out/'archived-reading.json').is_file():
+            from .report_reading import render_archived_reading
+            from bs4 import BeautifulSoup, Comment
+            parsed = BeautifulSoup(raw, 'html.parser')
+            article = parsed.select_one('[data-archived-reading="true"]')
+            if article is None:
+                raise ValueError('Historical article route lacks its scoped wrapper')
+            article.replace_with(Comment('ARCHIVED-ARTICLE'))
+            shell = localize_html(str(parsed), source, translations=translations)
+            body = localize_html(render_archived_reading(out,'en'), source,
+                                 translations=article_translations)
+            localized = shell.replace('<!--ARCHIVED-ARTICLE-->', body)
+        else:
+            localized=localize_html(raw,source,translations=translations)
         if source in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}:
             untranslated = untranslated_english_narrative(localized, allowed_source_text)
             if untranslated:

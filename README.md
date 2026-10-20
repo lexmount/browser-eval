@@ -137,6 +137,8 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
 
 Rebuilding without `--language` keeps the previous choice. Language changes do not repeat calls or change scores; task wording, responses and logs retain their original language. English (`en`) and Chinese (`zh`) are supported; other language codes are rejected. See [report language support](docs/report-hosting.md#report-languages) for the standalone builders and historical reports.
 
+Frozen local snapshots use their own external `presentation-binding.json`; keep report-specific profiles and publication targets with their saved evidence, outside Git. Follow the [frozen local report workflow](harness/web_fetch/README.md#frozen-local-report-inputs) to check or rebuild them without changing saved scores.
+
 To publish online:
 
 1. Sign in or create an account on the [China site](https://artifact-site.lexmount.cn/) or [global site](https://yours.lexmount.com/artifact-site).

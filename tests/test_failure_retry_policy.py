@@ -1,31 +1,41 @@
 import json
+from dataclasses import asdict
 
 import pytest
 
 from harness.web_fetch.cli import build_parser
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
-from harness.web_fetch.providers.base import Provider
+from harness.web_fetch.providers.fixture import FixtureProvider
 from harness.web_fetch.runner import run_evaluation
 
 
-class Responses(Provider):
+class Responses(FixtureProvider):
     def __init__(self, answers, *, native=False):
         super().__init__('custom-method', {'type': 'fixture', 'uniform_native_parameters': native})
         self.answers = iter(answers)
         self.calls = 0
 
-    def fetch(self, case, timeout):
+    def fetch(self, case, timeout, *, native_route_ledger=None):
         self.calls += 1
-        return next(self.answers)
+        result = next(self.answers)
+        if self.config['uniform_native_parameters']:
+            import base64
+            import hashlib
+            raw = json.dumps({'content': result.content}).encode()
+            result.metadata.update(_raw_response_b64=base64.b64encode(raw).decode(),
+                raw_response_sha256=hashlib.sha256(raw).hexdigest(), raw_response_bytes=len(raw),
+                native_answer_projection={'schema_version': 2, 'content_pointer': ['content'], 'content_format': 'text'})
+        return result
 
 
 @pytest.fixture
 def run_task(tmp_path):
     def run(provider, **options):
+        case = EvalCase('one', 'One', 'https://example.com', 'static', ['Expected'], source_benchmark={'input_media_kind': 'html_page'})
         rows, _ = run_evaluation(
-            output_dir=tmp_path, dataset_meta={'id': 'retry'}, dataset_path=tmp_path/'dataset.json',
-            cases=[EvalCase('one', 'One', 'https://example.com', 'static', ['Expected'])],
+            output_dir=tmp_path, dataset_meta={'id': 'retry', 'cases': [asdict(case)]}, dataset_path=tmp_path/'dataset.json',
+            cases=[case],
             providers=[provider], provider_config_path=tmp_path/'providers.json',
             runs=1, timeout=2, delay=0, **options,
         )

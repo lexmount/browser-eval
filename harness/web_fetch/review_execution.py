@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 import subprocess
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -104,7 +105,19 @@ def _concrete_evidence(value):
     without_numbers = re.sub(
         r"\b\d+(?:\.\d+)?\s*(?:%|percent|points?)?\b", " ", value, flags=re.IGNORECASE
     )
-    words = re.findall(r"[A-Za-z\u3400-\u9fff]{3,}", without_numbers)
+    # Keep Unicode letters and their combining marks together. ASCII words
+    # retain the existing three-letter minimum; other scripts commonly use
+    # short headings, including two-character Chinese and Indic labels.
+    words, current = [], []
+    for character in unicodedata.normalize("NFKC", without_numbers) + " ":
+        if unicodedata.category(character)[0] in {"L", "M"}:
+            current.append(character)
+        elif current:
+            word = "".join(current)
+            minimum = 3 if word.isascii() else 2
+            if sum(character.isalpha() for character in word) >= minimum:
+                words.append(word)
+            current = []
     generic = {
         "pass",
         "passed",
@@ -126,8 +139,33 @@ def _concrete_evidence(value):
         "要求",
         "存在",
         "缺失",
+        "占位",
+        "占位符",
+        "证据",
+        "内容",
+        "正文",
+        "开头",
+        "中间",
+        "结尾",
+        "评分",
+        "分数",
+        "覆盖",
+        "通过率",
+        "百分比",
+        "结果",
+        "符合要求",
+        "达到阈值",
+        "نجاح", "ناجح", "فشل", "فاشل", "نتيجة", "النتيجة",
+        "درجة", "الدرجة", "تغطية", "التغطية", "عتبة", "العتبة",
+        "متطلبات", "المتطلبات", "موجود", "مفقود", "بداية", "منتصف",
+        "نهاية", "دليل", "أدلة", "محتوى", "المحتوى", "نسبة", "النسبة",
+        "بالمئة", "بالمائة", "نقطة", "نقاط", "معايير", "المعايير",
     }
-    return any(word.lower() not in generic for word in words)
+    return any(
+        "".join(character for character in word
+                if unicodedata.category(character)[0] != "M").casefold() not in generic
+        for word in words
+    )
 
 
 def validate_review_evidence(row, task_kind):
@@ -1214,8 +1252,10 @@ def bind_review_workspace(evidence, work, records, bindings, options, *, prior=N
     if current != bindings:
         raise ValueError("Review evidence changed during execution")
     artifacts = {}
+    from .native_routes import native_cases_by_id
+    native_cases = native_cases_by_id(evidence)
     for record in records:
-        verify_record_artifacts(evidence, record)
+        verify_record_artifacts(evidence, record, native_cases=native_cases)
         artifacts.update(artifact_bindings(record))
         artifacts.update({item["path"]: item["sha256"] for item in record_private_bindings(record)})
     identity = {

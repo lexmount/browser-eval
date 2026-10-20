@@ -166,7 +166,7 @@ def require_native_task_routes(cases, records):
     import hashlib
     from types import SimpleNamespace
     from .providers.headless import output_mode_for_case
-    from .retrieval_hints import native_contract_for_case
+    from .retrieval_hints import NATIVE_RETRIEVAL_HINTS, native_contract_for_case
 
     inventory = {case['id']: SimpleNamespace(id=case['id'], url=case['url'], track=case.get('track','web'), task_kind=case.get('task_kind','body'), retrieval_hints=case.get('retrieval_hints',{}), source_benchmark=case.get('source_benchmark',{}), expected_resources=[{'kind':r.get('kind')} for r in case.get('expected_resources',[])]) for case in cases}
     expressions = {'resource':RESOURCE_PAGE_EXPRESSION, 'media_metadata':MEDIA_METADATA_EXPRESSION,
@@ -192,7 +192,7 @@ def require_native_task_routes(cases, records):
         native_dynamic_task = (
             provider == 'moli'
             and case.track == 'dynamic'
-            and case.retrieval_hints == {'version': 3, 'mode': 'native'}
+            and case.retrieval_hints == NATIVE_RETRIEVAL_HINTS
         )
         # The runner may expire before a worker returns metadata. Its retained
         # call and cohort receipts still bind the invocation and deadline.

@@ -51,11 +51,26 @@ Never overwrite old evidence or select a later response because it scores better
 
 Before a cohort-wide offline recomputation, finish the paired controls and compare the known affected output family with its independent judgments. Cover equivalent serializers and adjacent invalid forms together, including visible text outside a link, image alternatives, and record ownership. Batch the shared corrections before the expensive sweep; do not rerun unchanged browser calls. Bound both worker count and queued payloads when saved outputs or logs are large.
 
+A partial impact cache must retain each inherited record's actual scoring-source identity. Never stamp unchanged cached metrics with the new source hash. Select candidates through the same normalized fields as the changed parser; raw substring searches can miss labels formed by nested markup. Before accepting a partial sweep, check the normalized full-population candidates against the selected scope and rescore any uncovered candidates through the public scorer.
+
 A subresource network error does not establish a main-navigation failure. Failure categories must agree with the reviewed cause and its actual stage; keep missing embedded content, unsupported direct-file conversion, empty output, and process crashes distinct. Interpretation pages show complete distributions and representative evidence. Full per-result diagnoses belong in the existing result inventory and details.
 
 ## Revision receipts
 
-A score-only revision must record old and new dataset/result hashes, changed fields, decision changes, provider call count of zero, reviewer binding, and predecessor history hash. A new provider call must receive a new call identity and must not be described as a scoring correction.
+When the user explicitly requests removal of superseded history, validate the
+complete existing chain once, then use the local revision owner's current
+snapshot authority. Retain current calls, original answers/native evidence,
+actual per-row scoring sources, current contracts, necessary correction causes
+and executable controls. Compact reused review dependencies to their actual
+original opinions and original/current decision-input identities; never count
+them as fresh review. Validate current evidence and adjudications after deleting
+old datasets, results, reports and intermediate states. Do not retain reverse
+patches or treat hashes of deleted files as verified content. This current-only
+authority does not reproduce deleted transitions or upgrade certification.
+Ordinary presentation refresh and publication reuse current validated inputs;
+they do not require another full historical snapshot.
+
+A score-only revision must record old and new dataset/result hashes, changed fields, decision changes, provider call count of zero, reviewer binding, and predecessor history hash. A new provider call must receive a new call identity and must not be described as a scoring correction. Before rescoring, validate the predecessor chain and every declared input-verdict binding, including its frozen predicate and source manifest. Reject incomplete provenance before scoring or writing revision history; do not discover it after processing the affected outputs.
 
 Do not treat changed reference text or a list of flipped verdicts as a completed correction. Record the defect mechanism, not only its symptom, and bind each revision to compact synthetic regression cases that execute the same public scorer and task predicate as live evaluation. Include both a valid equivalent form and a nearby invalid form whenever the defect can create errors in both directions. Validate this provenance before writing the revised dataset or results; missing or unknown regression IDs fail closed.
 

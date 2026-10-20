@@ -1137,8 +1137,9 @@ def rebind_metadata_review(evidence: Path, prior_dataset: Path, *, rebound_at=No
         reference_path = staged / "reference-revisions.json"
         if reference_path.exists() and not valid_reference_revision(staged):
             raise ValueError("Reference revision history is invalid or unbound")
+        native_cases = {c['id']: c for c in prior_document['cases']}
         for record in records:
-            verify_record_artifacts(staged, record)
+            verify_record_artifacts(staged, record, native_cases=native_cases)
         (staged / "dataset.json").write_bytes(current_bytes)
         results_bytes = (staged / "results.jsonl").read_bytes()
         if not rebind_unchanged_result_review(

@@ -22,8 +22,13 @@ if __name__ == '__main__':
     add_language_argument(parser)
     parser.add_argument('--include-english',action='store_true',
                         help='generate both editions; --language selects the homepage')
-    parser.add_argument('--refresh-presentation', type=Path,
+    refresh = parser.add_mutually_exclusive_group()
+    refresh.add_argument('--refresh-review', type=Path,
+                         help='refresh coverage and fresh review details from bound supplemental reviews')
+    refresh.add_argument('--refresh-presentation', type=Path,
                         help='refresh an existing local report using a hash-bound current-local-results.json; preserve measured evidence')
+    parser.add_argument('--presentation-binding', type=Path,
+                        help='rebuild a hash-bound historical local report without rescoring')
     parser.add_argument('--local-audit',action='store_true',
                         help='build an explicitly local, non-publishable audit report from bound evidence')
     parser.add_argument('--diagnostic-cohorts',action='store_true',
@@ -33,12 +38,17 @@ if __name__ == '__main__':
     parser.add_argument('--wcxb',action='store_true',help='Build the independently bound WCXB report')
     parser.add_argument('--webmainbench-full',action='store_true',help='Build the separately certified complete 545-case report')
     args=parser.parse_args()
+    if args.presentation_binding and not args.local_audit:
+        parser.error('--presentation-binding requires --local-audit')
     from harness.reporting.templates import resolve_template
     resolve_template('webfetch')
-    if args.refresh_presentation:
+    if args.refresh_presentation or args.refresh_review:
         if not args.output or args.evidence or args.profile or args.local_audit or args.include_english or args.language or args.diagnostic_cohorts or args.wcxb or args.webmainbench_full or args.public_benchmark_research:
             parser.error('--refresh-presentation requires only an existing --output and its result binding')
-        print(refresh_local_presentation(args.output, args.refresh_presentation))
+        if args.refresh_review:
+            print(refresh_local_presentation(args.output, args.refresh_review, review_only=True))
+        else:
+            print(refresh_local_presentation(args.output, args.refresh_presentation))
         raise SystemExit(0)
     def requested_language(output, supported=SUPPORTED_REPORT_LANGUAGES):
         try:
@@ -68,7 +78,9 @@ if __name__ == '__main__':
         evidence=require_evidence(args.evidence)
         print(build_report(evidence,args.output,
                            include_english=args.include_english, language=requested_language(args.output),
-                           local_audit=True))
+                           local_audit=True,
+                           show_local_status_banners=True,
+                           presentation_binding=args.presentation_binding))
         raise SystemExit(0)
     if sum(bool(value) for value in (args.profile, args.wcxb, args.webmainbench_full)) > 1:
         parser.error('--profile, --wcxb and --webmainbench-full are mutually exclusive')

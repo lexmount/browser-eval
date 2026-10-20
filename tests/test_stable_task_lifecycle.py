@@ -44,6 +44,7 @@ class StableLifecycleTests(unittest.TestCase):
             path = root/'dataset.json'
             path.write_text(json.dumps(dataset))
             provider = Mock()
+            provider.config = {}
             provider.name, provider.type, provider.min_interval_seconds = 'p', 'synthetic', 0
             provider.validate.return_value = []
             provider.fetch.return_value = ProviderResult(ok=True, content='# Catalog\n\nNew item\n$99')

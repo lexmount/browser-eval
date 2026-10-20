@@ -3,6 +3,7 @@ import hashlib
 import json
 import tempfile
 from pathlib import Path
+from harness.record_io import canonical_json_sha256
 
 from harness.web_fetch.task_outputs import require_native_task_routes
 from harness.web_fetch.report_interfaces import SPECS, browser_task_interface_matrix, method_access, method_spec
@@ -253,7 +254,7 @@ class NativeBrowserVariantTests(unittest.TestCase):
             require_current_report_profile(root, root / "profile.json")
 
     def test_interpretation_counts_engines_and_configurations_separately(self):
-        from harness.web_fetch.report_explainer import _render_current_browser_article, _digest, _headless_article_input
+        from harness.web_fetch.report_explainer import _render_current_browser_article, _headless_article_input
         providers = ["moli", "lightpanda", "obscura", "chromium", "kitesurf", self.candidate]
         families = ["web", "dynamic", "challenge", "risk_control", "document", "image", "video"]
         cases = {f: {"id": f, "name": f, "url": "https://example.com/", "track": f,
@@ -269,7 +270,7 @@ class NativeBrowserVariantTests(unittest.TestCase):
             (out / "output.txt").write_text("Observed body")
             content = {"schema": "webfetch_browser_interpretation/1", "title": "配置对比",
                        "intro": "同一任务和答案。", "scoring": "按任务验收。", "conclusions": "保留实际结果。",
-                       "evidence_sha256": _digest(_headless_article_input(cases, records, sorted(providers))),
+                       "evidence_sha256": canonical_json_sha256(_headless_article_input(cases, records, sorted(providers))),
                        "providers": {p: {"specimen_case_id": "web", "explanation": "未满足要求。"} for p in providers}}
             path = out / "article.json"
             path.write_text(json.dumps(content))

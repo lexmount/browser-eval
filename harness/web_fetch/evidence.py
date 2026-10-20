@@ -11,7 +11,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from harness.record_io import load_jsonl, parse_jsonl, read_completed_records
+from harness.record_io import file_sha256, load_jsonl, parse_jsonl, read_completed_records
 
 from .artifacts import (
     materialize_bound_artifacts,
@@ -95,11 +95,11 @@ def recover_completed_batch(source: Path, manifest: dict, records: list[dict]) -
         artifact = contained_path(source, row["artifact_path"])
         digest = row["metrics"]["content_sha256"]
         if (artifact.is_symlink() or not artifact.is_file()
-                or hashlib.sha256(artifact.read_bytes()).hexdigest() != digest
+                or file_sha256(artifact) != digest
                 or log["output"]["path"] != row["artifact_path"]
                 or log["output"]["sha256"] != digest):
             raise ValueError("Interrupted result output differs from completed physical call")
-        verify_record_artifacts(source, row)
+        verify_record_artifacts(source, row, native_cases=cases)
         ends.append(ended)
     batch = deepcopy(manifest)
     batch.update(completed_at=max(ends).isoformat(), attempt_count=len(records),
@@ -107,9 +107,9 @@ def recover_completed_batch(source: Path, manifest: dict, records: list[dict]) -
     batch["recovery"] = {
         "kind": "all-saved-completed-calls-from-interrupted-batch",
         "original_batch_completed": False,
-        "source_manifest_sha256": hashlib.sha256((source / "manifest.json").read_bytes()).hexdigest(),
-        "source_results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
-        "source_dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
+        "source_manifest_sha256": file_sha256(source / "manifest.json"),
+        "source_results_sha256": file_sha256(source / "results.jsonl"),
+        "source_dataset_sha256": file_sha256(source / "dataset.json"),
         "pending_logical_results": len(cases) * len(providers) - len(records),
         "selection": "every persisted completed call, regardless of pass or fail",
         "boundary": "last saved call completion; original full batch did not complete",
@@ -156,8 +156,9 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
     if len(set(paths)) != len(paths):
         raise ValueError("Duplicate artifact paths")
     for root, group in [(canonical, existing), (incoming, records)]:
+        native_cases = {c['id']: c for c in (dataset if root == canonical else incoming_dataset)['cases']}
         for r in group:
-            verify_record_artifacts(root, r)
+            verify_record_artifacts(root, r, native_cases=native_cases)
             if Path(r['artifact_path']).parts[0] != 'artifacts':
                 raise ValueError('Output paths must be inside artifacts/')
         require_verified_reference_checks(
@@ -215,8 +216,9 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
         )
         if isinstance(plan, dict):
             (staging / 'dataset.json').write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + '\n')
+        native_cases = {c['id']: c for c in dataset['cases']}
         for row in existing + records:
-            verify_record_artifacts(staging, row)
+            verify_record_artifacts(staging, row, native_cases=native_cases)
         require_verified_reference_checks(execution['batches'], cases=dataset,
                                           records=existing + records, source=staging)
         swap = Path(tempfile.mkdtemp(prefix=".evidence-swap-", dir=canonical.parent))
@@ -649,10 +651,6 @@ def _is_reference_finalization(original: dict, current: dict) -> bool:
     return True
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _verify_existing_postcheck(worker: Path, manifest: dict,
                                observations: Path) -> bool:
     """Accept only the exact verified postcheck left by an interrupted finalize.
@@ -670,9 +668,9 @@ def _verify_existing_postcheck(worker: Path, manifest: dict,
     if checks.get("status") != "verified" or postcheck.get("status") != "verified":
         raise ValueError(f"Retained reference postcheck is not verified: {worker}")
     expected = {
-        "evidence_sha256": _sha256(observations),
-        "results_sha256": _sha256(worker / "results.jsonl"),
-        "dataset_sha256": _sha256(worker / "dataset.json"),
+        "evidence_sha256": file_sha256(observations),
+        "results_sha256": file_sha256(worker / "results.jsonl"),
+        "dataset_sha256": file_sha256(worker / "dataset.json"),
     }
     for field, value in expected.items():
         if postcheck.get(field) != value:

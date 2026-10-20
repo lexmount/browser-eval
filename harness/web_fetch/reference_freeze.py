@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PureWindowsPath
 from urllib.parse import parse_qs, urlsplit
 
-from harness.record_io import read_completed_records
+from harness.record_io import canonical_json_sha256, read_completed_records
 from harness.web_fetch.artifacts import materialize_task_references
 from lexbench_webfetch.body_coverage import body_requirements
 from lexbench_webfetch.metrics import normalize_for_match
@@ -37,11 +37,6 @@ REFERENCE_PROMOTION_REGRESSION_IDS = {
     'reference-scope-retains-main-content',
     'reference-scope-excludes-site-chrome',
 }
-
-
-def _digest_json(value):
-    raw=json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()
-    return hashlib.sha256(raw).hexdigest()
 
 
 def browser_observation_bytes(observation):
@@ -239,8 +234,8 @@ def compute_reference_update(dataset, captures, observations=None, *, refresh_ca
             changes.append({'case_id':cid,'affected_scope':affected,
                 'old_reference_sha256':hashlib.sha256(old.encode()).hexdigest(),
                 'new_reference_sha256':hashlib.sha256(text.encode()).hexdigest(),
-                'old_body_requirements_sha256':_digest_json(old_requirements),
-                'new_body_requirements_sha256':_digest_json(new_requirements),
+                'old_body_requirements_sha256':canonical_json_sha256(old_requirements),
+                'new_body_requirements_sha256':canonical_json_sha256(new_requirements),
                 'source_revision':_source_revision(
                     case,row,browser_observation=cid in observations)})
         case['ground_truth_main_content']=text

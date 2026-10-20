@@ -5,8 +5,10 @@ import hashlib
 
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
+from ..native_projection import native_answer_projection
 from .base import Provider
-from .http_client import inner_timeout_budget, request
+from ..native_routes import NativeRoute
+from .http_client import request
 
 
 # Exa's per-URL failure envelope contains free-form JSON.  Publish only the
@@ -56,41 +58,38 @@ def _public_url_error(value: object) -> dict[str, object]:
 
 
 class ExaContentsProvider(Provider):
+    def native_route(self, case) -> NativeRoute:
+        return NativeRoute('http', '/contents', ('results[].text', 'results[].extras', 'results[].title', 'results[].url',))
+
+    def native_http_arguments(self, case, timeout):
+        body = {'urls': [case.url], 'text': {'verbosity': self.config.get('text_verbosity', 'full')},
+                'maxAgeHours': int(self.config.get('max_age_hours', 0))}
+        extras = {'links': 20, 'imageLinks': 20} if self.config.get('include_resource_links') else {}
+        if self.config.get('rich_links_limit'):
+            extras['richLinks'] = int(self.config.get('rich_links_limit', 100))
+        if extras:
+            body['extras'] = extras
+        return (str(self.config.get('base_url', 'https://api.exa.ai')).rstrip('/') + '/contents',
+                self.native_http_options(body, {'x-api-key': str(self.config.get('api_key', ''))}, timeout))
+
+    def diagnostic_http_arguments(self, case, timeout):
+        endpoint, arguments = self.native_http_arguments(case, timeout)
+        body = arguments['json_body']
+        body['livecrawlTimeout'] = min(int(self.config.get('livecrawl_timeout_ms', 15_000)),
+                                       max(1, int(timeout * 1000)))
+        if case.acceptance_contract.get('schema') == 'named_link':
+            body.setdefault('extras', {})['richLinks'] = int(self.config.get('rich_links_limit', 100))
+        return endpoint, arguments
+
     def validate(self) -> list[str]:
         return [] if self.config.get("api_key") else ["api_key"]
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
-        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
-        livecrawl_timeout_ms = min(
-            int(self.config.get("livecrawl_timeout_ms", 15_000)),
-            max(1, int(http_timeout * 1000)),
-        )
-        extras = ({"links": 20, "imageLinks": 20}
-                  if self.config.get("include_resource_links") else {})
-        if self.config.get("rich_links_limit") or (case.acceptance_contract.get("schema") == "named_link" and not self.config.get("uniform_native_parameters")):
-            # Bare links and surrounding text do not prove record ownership.
-            # Exa's richLinks route returns the explicit anchor/URL pair needed
-            # by the shared named-link answer contract.
-            extras["richLinks"] = int(self.config.get("rich_links_limit", 100))
-        response = request(
-            f"{str(self.config.get('base_url', 'https://api.exa.ai')).rstrip('/')}/contents",
-            method="POST",
-            timeout=http_timeout,
-            max_bytes=int(self.config.get("max_bytes", 20_000_000)),
-            headers={"x-api-key": str(self.config.get("api_key", ""))},
-            json_body={
-                "urls": [case.url],
-                "text": {"verbosity": self.config.get("text_verbosity", "full")},
-                "maxAgeHours": int(self.config.get("max_age_hours", 0)),
-                # Exa recommends 10-15 seconds when maxAgeHours can trigger a
-                # live crawl. Keep that provider-side deadline inside the
-                # runner's shorter HTTP budget rather than relying on Exa's
-                # default and letting the client abandon a still-running job.
-                **({} if self.config.get("uniform_native_parameters") else {"livecrawlTimeout": livecrawl_timeout_ms}),
-                **({"extras": extras} if extras else {}),
-            },
-        )
+        http_timeout = self.http_timeout_budget(timeout)
+        endpoint, arguments = self.request_arguments(case, http_timeout)
+        request_body = arguments['json_body']
+        response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
         except ValueError:
@@ -133,7 +132,7 @@ class ExaContentsProvider(Provider):
             ok=ok,
             content=content,
             status_code=response.status,
-            final_url=(result.get("url") or case.url) if ok else case.url,
+            final_url=result.get("url") or case.url,
             title=result.get("title") if ok else None,
             error_type=error_type,
             error_message=error_message,
@@ -148,7 +147,7 @@ class ExaContentsProvider(Provider):
                 "request_id": payload.get("requestId"),
                 "url_status": public_status,
                 "url_error": public_url_error,
-                "livecrawl_timeout_ms": None if self.config.get("uniform_native_parameters") else livecrawl_timeout_ms,
+                "livecrawl_timeout_ms": request_body.get('livecrawlTimeout'),
                 "cost_dollars": (
                     cost
                     if isinstance(cost, (int, float))
@@ -157,5 +156,7 @@ class ExaContentsProvider(Provider):
                 ),
                 "extras": result_extras,
                 "links": _rich_answer_links(result_extras),
+                **({'native_answer_projection': native_answer_projection('exa_contents', case, payload, response.status)}
+                   if ok or content or result.get('url') else {}),
             },
         )

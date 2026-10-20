@@ -54,6 +54,32 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_mixed_retained_review_summary_identifies_only_fresh_blind_scope(self):
+        from harness.web_fetch.report import review_summary
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory)
+            data={'retained_reviews':{'path':'retained.json'},'reviewed_attempts':3,
+                  'expected_attempts':3,'fresh_reviewed_attempts':1,'retained_reviewed_attempts':2,
+                  'review_protocol':{'blind_initial_verdict':False}}
+            (out/'result-review.json').write_text(json.dumps(data))
+            self.assertIn('已知程序结论',review_summary(out))
+            data['review_protocol']['fresh_blind_initial_verdict']=True
+            (out/'result-review.json').write_text(json.dumps(data))
+            rendered=review_summary(out)
+            self.assertIn('先隐藏程序结论独立判断',rendered)
+            self.assertNotIn('本次为已知程序结论',rendered)
+            self.assertIn('2 条沿用',rendered)
+            data.update(fresh_reviewed_attempts=1348,retained_reviewed_attempts=2952,
+                        reviewed_attempts=4300,expected_attempts=4300,
+                        fresh_blind_reviewed_attempts=1320,renewed_context_reviewed_attempts=28)
+            (out/'result-review.json').write_text(json.dumps(data))
+            rendered=review_summary(out)
+            self.assertIn('1320 条先隐藏程序结论',rendered)
+            self.assertIn('28 条因规则或请求状态修正补充复裁',rendered)
+            self.assertIn('查看当前证据与程序结论',rendered)
+            self.assertNotIn('1348 条先隐藏',rendered)
+
+
     def test_scoped_presentation_refresh_updates_only_explicit_result_details(self):
         cases=[case('first'),case('second')]
         rows=[record(c,passed=False,ok=False) for c in cases]
@@ -79,6 +105,14 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertNotEqual(detail_paths[0].read_bytes(),before[0])
                 self.assertEqual(detail_paths[1].read_bytes(),before[1])
                 self.assertEqual((out/'datasets/first.html').read_bytes(),dataset_before)
+                other_dataset=(out/'datasets/second.html').read_bytes()
+                cases[0]['name']='Updated frozen task name'
+                generate(out,{'cases':cases},rows,[],presentation_only=True,dataset_case_ids={'first'})
+                self.assertIn('Updated frozen task name',(out/'datasets/first.html').read_text())
+                self.assertEqual((out/'datasets/second.html').read_bytes(),other_dataset)
+                self.assertEqual(detail_paths[1].read_bytes(),before[1])
+                with self.assertRaisesRegex(ValueError,'Unknown dataset'):
+                    generate(out,{'cases':cases},rows,[],presentation_only=True,dataset_case_ids={'absent'})
                 with self.assertRaisesRegex(ValueError,'Unknown detail'):
                     generate(out,{'cases':cases},rows,[],presentation_only=True,detail_attempt_ids={'absent'})
 
@@ -99,8 +133,6 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertEqual(REPORT_FAMILIES['media_file'], '直接媒体文件')
 
     def test_task_family_names_and_order_share_the_report_registry(self):
-        from harness.web_fetch.report_explainer import TRACK_NAMES
-        self.assertIs(TRACK_NAMES, TRACKS)
         self.assertEqual(list(TRACKS), ['web','dynamic','challenge','risk_control','document','image','video'])
         self.assertEqual(TRACKS['risk_control'], '风控网页正文')
 
@@ -130,18 +162,18 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertEqual(len(rows),1)
                 self.assertNotIn('ghijkl</pre>',cards)
 
-    def test_body_display_uses_same_mixed_html_surface_as_scorer(self):
+    def test_bound_body_evidence_is_displayed_without_rescoring(self):
         from lexbench_webfetch.scoring import score_attempt
         contract={'version':3,'unit':'region_compact_hexagram_recall',
                   'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
                   'regions':[{'id':'body','text':'abcdefghijkl'}]}
         c=case('body',kind='body');c['body_requirements']=contract
-        output='# Heading\nabcdefghijkl<script>hidden words</script>'
-        r={'ok':True,'status_code':200}
-        metrics=score_attempt(c,output.encode(),ok=True)
-        scoring_text=_body_scoring_text(r,output)
-        self.assertNotIn('hidden words',scoring_text)
-        rows,cards=body_region_rows(c,metrics,scoring_text)
+        metrics=score_attempt(c,b'abcdefghijkl',ok=True)
+        saved=copy.deepcopy(metrics)
+        with patch('lexbench_webfetch.body_coverage.evaluate_body_requirements',
+                   side_effect=AssertionError('presentation must not rescore saved passages')):
+            rows,cards=body_region_rows(c,metrics,'abcdefghijkl')
+        self.assertEqual(metrics,saved)
         self.assertEqual(len(rows),1)
         self.assertIn('abcdefghijkl',''.join(cards))
 
@@ -289,7 +321,7 @@ class ReportBodyScopeTests(unittest.TestCase):
 
         def failed(**metrics):
             r = record(c, passed=False)
-            r["metrics"].update(request_ok=True, content_chars=500,
+            r["metrics"].update(forbidden_requirement_hits=[], request_ok=True, content_chars=500,
                                 stable_task_pass=False)
             r["metrics"].update(metrics)
             return r
@@ -298,6 +330,11 @@ class ReportBodyScopeTests(unittest.TestCase):
             failure_category(failed(blocked_page=True, composite_acceptance_pass=False), c),
             "返回验证或拦截页面",
         )
+        for track in ("risk_control", "web", "challenge", "popular"):
+            qualified_case = case("qualified", "body", track)
+            qualified = record(qualified_case, passed=True)
+            qualified["metrics"].update(forbidden_requirement_hits=[], blocked_page=True, stable_blocked_page=True)
+            self.assertEqual(failure_category(qualified, qualified_case), "—")
         self.assertEqual(failure_category(failed(content_chars=0), c), "完全空返回")
         self.assertEqual(
             failure_category(failed(content_chars=37, markdown_headings=0, markdown_links=0,
@@ -1098,3 +1135,44 @@ class ReportBodyScopeTests(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+
+
+def test_body_display_shares_native_markup_and_entity_handling_with_scorer():
+    from lexbench_webfetch.scoring import score_attempt
+    contract = {"version": 3, "unit": "region_compact_hexagram_recall",
+                "minimum_coverage": .8, "minimum_floor": .6, "minimum_region_passes": 1,
+                "regions": [{"id": "body", "text": "abcdefghijkl"}]}
+    definition = {"id": "markup", "url": "https://example.test", "body_requirements": contract}
+    for output in ("abcdef<br>ghijkl", "abcdef&#103;hijkl", "`<br>` abcdefghijkl",
+                   "\\<br> abcdefghijkl", "<main>abcdef<script>ghijkl</script></main>",
+                   'abcdef <a href="https://example.test/ghijkl">source</a>',
+                   'abcdef <img src="https://example.test/ghijkl" alt="photo">'):
+        record = {"ok": True, "title": "abcdefghijkl"}
+        metrics = score_attempt(definition, output.encode(), ok=True, title=record["title"])
+        display = _body_scoring_text(record, output)
+        rows, cards = body_region_rows(definition, metrics, display)
+        assert len(rows) == 1
+        assert "<script>" not in display
+        if output.startswith(("`", "\\")):
+            assert "<br>" in display
+
+
+def test_frozen_body_details_preserve_saved_allocation_and_redact_excerpts():
+    from lexbench_webfetch.body_coverage import evaluate_body_requirements
+    contract = {"version": 3, "unit": "region_compact_hexagram_recall", "minimum_coverage": .8, "minimum_floor": .6,
+                "minimum_region_passes": 1, "regions": [{"id": "body", "text": "abcdefghijkl"}]}
+    definition = {"body_requirements": contract}
+    metrics = evaluate_body_requirements("abcdefghijkl https://example.test/?access_token=secret123456", contract)
+    original = copy.deepcopy(metrics)
+    with unittest.TestCase().assertRaisesRegex(ValueError, 'Saved body evidence differs'):
+        body_region_rows(definition, metrics, 'changed public output')
+    rows, cards = body_region_rows(definition, metrics, 'changed public output', frozen_scores=True)
+    assert len(rows) == 1
+    assert 'abcdefghijkl' in ''.join(cards)
+    assert 'secret123456' not in ''.join(cards)
+    assert metrics == original
+    for region in metrics['body_region_results']:
+        region.pop('matched_output_passages')
+    with patch('lexbench_webfetch.body_coverage.evaluate_body_requirements', side_effect=AssertionError('Must not rescore')):
+        _, cards = body_region_rows(definition, metrics, 'different output', frozen_scores=True)
+    assert '历史评分未保存' in ''.join(cards)

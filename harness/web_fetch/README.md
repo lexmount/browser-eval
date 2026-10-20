@@ -34,6 +34,14 @@ results, execution manifests, selection receipts and internal audit notes.
 Record each substantive release's issue, change, score effect, evidence and limits.
 Keep the measured dataset/results untouched for presentation-only revisions.
 
+Offline local revisions stage only their changed artifacts, receipts and current
+dataset/results. The complete revision is validated before installation. A
+per-snapshot lock and recoverable write journal restore every touched file after
+an interrupted installation; the next revision recovers an unfinished journal
+before scoring. Large unchanged captures are neither copied nor revalidated by
+this transaction. Preparing and verifying native corrections use the same
+projection, including bound same-call diagnostics and transport context.
+
 The ranking column `判分完整性` is judged calls divided by planned calls, not a
 success rate or text-completeness score. Every planned provider/case pair must
 exist exactly once and be judged. Any missing, duplicate or unjudged pair marks
@@ -655,6 +663,54 @@ protocol remain dated observations and cannot be certified retroactively.
 
 ### Native caller limits and DNS
 
+With `uniform_native_parameters`, webpage body/structure calls use the same
+native request regardless of the web, dynamic, popular (`challenge`), or
+risk-control family. Case-specific retrieval hints remain prohibited. Scoring
+keeps the original case and frozen acceptance contract; family is not a reason
+to inject scripts, convert HTML to Markdown, or fetch another URL.
+
+New fixed-native cohorts declare `source_benchmark.input_media_kind` for every
+case (`html_page`, `direct_pdf`, `direct_docx`, `direct_text`, `direct_image`, or
+`direct_media`). JSONL workers receive the same declaration as
+`input_media_kind`. Native document routes use this frozen type, not URL suffixes
+or expected answers. Historical calls without this declaration are not silently
+upgraded to the new protocol.
+
+Before any case call, the runner writes `native-route-contract.json`, binding
+every method/track/task-kind/input-type cell to its interface, answer fields,
+configuration and normalized transport parameters. Actual arguments are checked
+before transport; changing the task URL, endpoint or parameters fails the run.
+Each physical call permits one adapter invocation and retains its own request
+receipt, including every caller retry. Each receipt binds to the pre-call contract.
+Aggregation retains the exact contract bytes; report and release checks verify
+its hash, complete declared scope and per-result receipts. A retrospective audit
+of old logs cannot substitute for this pre-call proof.
+
+New contracts also freeze the deterministic answer-selection policy in
+`native_projection.py`, retaining its hash-bound source once per run. Adapters
+and saved-evidence validation share that policy. Fixed response-structure and
+transport-status branches are allowed; choosing another source after the call
+is rejected even when both fields contain identical bytes. Validation never
+executes retained source code: reproduce with the matching implementation when
+the policy hash differs. Historical declarations without this policy binding
+continue to prove field reconstruction only, not a pre-call selection rule.
+
+Resource tasks may select a declared native output: Firecrawl image/link/video
+fields, Cloudflare's generic media-element scrape, and Crawl4AI media fields.
+Moli uses native HTML for resource discovery and native Markdown for webpage
+body/structure, without caller-authored extraction scripts.
+File tasks may collect Moli's raw output, Firecrawl rawBase64, or Crawl4AI's
+native downloaded files. No caller follows returned links to manufacture files.
+Document text uses the product's own URL handling; Crawl4AI direct PDFs select
+its native PDF strategies. Moli direct PDF/DOCX responses remain original
+file bytes, not extracted text; a body contract cannot pass on bytes alone.
+The fixed mode never uses the legacy Moli external
+document parser or Cloudflare download-then-upload converter. Unsupported or
+incomplete native output remains incomplete under the unchanged scoring rules.
+Cloudflare's fixed media selectors are independent of reference answers, and
+native resource/PDF routes retain product-default internal timeouts.
+
+
 Native workers receive the caller deadline and fixed native capacity options,
 and record effective limits. In fixed-native mode, the outer deadline does not
 override product timers. CowAgent uses its native `DEFAULT_TIMEOUT` unchanged.
@@ -668,6 +724,25 @@ SSRF guards, rewrite selected URLs, or classify this environment rejection as a
 product retrieval failure. Full native tool/worker envelopes are retained privately
 with hashes, separately from scored answer text. Historical outputs without those
 envelopes remain insufficient for an exact raw-response audit.
+
+When those retained bytes contain private host paths or credentials, the shared
+`publication_privacy.project_evidence_view` creates a separate post-score copy
+under `public-evidence/`. Keep the originals private. The bound receipt records
+original and public hashes and byte sizes; `require_public_evidence_view` checks
+the delivered copy without claiming it can reconstruct omitted values. Native
+JSON envelopes are projected structurally to preserve field types. Before using
+such views in a handoff, verify that the public native-field projection still
+matches the public answer and that rescoring it preserves the task verdict.
+Do not replace an original scored binding with a public-view hash or describe a
+redacted reproduction as byte-for-byte recovery of the private call. Public
+frozen presentations declare `publication_evidence_views` in their presentation
+binding. The shared gate requires complete current answer/native coverage,
+checks the actual displayed aliases, rejects private artifact trees, and keeps
+ordinary acquisition/aggregation checks strict. Redacted excerpts can verify
+visible text, not original private coordinates. Report rebuilding uses saved
+original scores; changed public text does not reproduce every original text
+quality diagnostic. Disk-backed metadata projection and independent file clones
+keep large histories practical without hard-linking writable outputs to inputs.
 
 
 For native caller comparisons, `dns_mode` is explicitly `system` (default) or
@@ -774,22 +849,41 @@ The policy is declared before calls and applies to every task in that family;
 case IDs, hostname rules, answer-dependent delays, and extraction scripts are
 not accepted by this setting. Call metadata records the selected family policy.
 
-### Fixed native webpage calls
+### Fixed native calls
 
-`uniform_native_parameters: true` selects the fixed-native body/structure policy for web and dynamic tasks. Choose documented native extraction options once per method (for example Tavily advanced, Cloudflare networkidle2, Crawl4AI iframe/overlay options, native freshness and capacity options). The caller deadline is 45 seconds; product connection, navigation and extraction timers retain their native defaults. HTTP-client deadlines and worker cancellation enforce collection time, not product-side budgets. CowAgent globals are never patched.
+`uniform_native_parameters: true` freezes class-level interfaces, answer fields,
+and request parameters before calls. Each task declares `input_media_kind`
+independently of its URL spelling or reference answer. The 45-second caller
+budget leaves product timers at their native defaults. Per-case extraction hints,
+cross-provider fallback, injected extraction algorithms, and answer synthesis are
+prohibited. The exact dynamic marker `{"version": 3, "mode": "native"}` declares
+no per-case assistance and is allowed with a stable acceptance contract.
 
-Moli uses its native `done` completion for ordinary tasks and native
-`domstable` completion for the complete dynamic-body family. The same policy
-applies to the release and candidate builds. It is fixed before calls and may
-not vary by case or change after a failure.
+Moli's fixed-native request builder uses Markdown for webpage text, HTML for
+resource discovery, and original bytes for declared direct PDF, DOCX, and file
+inputs. Its ordinary native task-family interface supports native Markdown with
+layout and child documents. The invocation profile declares which interface was
+measured; a newer implementation never relabels historical calls. Output capture
+limits do not cap underlying downloads. Caller retries follow the shared
+[retry policy](#retries), while historical cohorts retain their frozen budgets.
+Keep the complete native response, projection declaration, and request receipts.
 
-Per-case retrieval hints and auxiliary document/media/challenge routes are rejected before invocation in this mode. Cross-provider fallback, injected extraction algorithms and answer synthesis are prohibited. Caller failure retries follow the shared [retry policy](#retries); historical cohorts retain their frozen retry budgets. Keep the native response envelope and its declared answer; the product may still impose its own limits or internal retries. Moli webpage, document-body and webpage-media-information tasks all use its native Markdown; only direct-media-file tasks use raw bytes. Prepare a new frozen invocation profile after a policy change; preserve previous measurements and do not infer revised scores without calls.
-### 原生内容接口与评测边界
+### Content acceptance and page identity
 
-给定网址的正文任务验收返回的目标内容，不要求接口返回最终网址或 HTML 语言标签。
-最终网址、HTTP 状态和语言标签保留为辅助诊断；缺失这些字段本身不扣分。
-登录页、验证页、错误页、空正文、缺少题目要求的文字或字段仍然失败。
-验收规则对所有选手一致，禁止从标准答案补正文或推断缺失输出。
+Final URLs and document-language metadata are diagnostic by default. A task that
+requires these observations declares `page_identity_required: true`; its existing
+navigation/language fields define the accepted identity. Missing identity stays
+unavailable unless another independently failed requirement establishes failure.
+A proven mismatch fails that task. Native response provenance is always checked,
+including the title and final URL supplied to the scorer, regardless of whether
+identity itself is an acceptance requirement.
+
+When migrating a historical task that already required page identity, make that
+requirement explicit through a bound offline revision. Preserve its original
+outputs, timings, review observations, and prior task definition. Adding this
+annotation does not authorize dropping any other task requirement or creating a
+new provider call. Content requirements continue to reject missing target text,
+records, fields, empty answers, or error-page shells independently of metadata.
 
 ### Main-document identity on declared navigation tasks
 
@@ -904,6 +998,172 @@ physical-call output, uses the final declared response, verifies hashes and
 exposes the directory only after the entire matrix passes. Unbound review
 receipts cannot authorize a new assembly. Existing published reports retain
 their frozen evidence and are restored from their pinned release.
+
+### Frozen local report inputs
+
+Keep each saved report's presentation binding and publication target outside Git,
+alongside its evidence under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval`)
+or another explicitly selected directory. These are report instances, not reusable
+code. Use the binding supplied with that exact snapshot; do not select an older
+binding by its task count or treat a historical publication target as current.
+The binding records the dataset, results, scorer and auxiliary evidence hashes.
+The shared report owner validates those saved inputs without provider calls or
+rescoring with the installed scorer.
+
+For an existing frozen local report, pass its external binding explicitly:
+
+```sh
+uv run --frozen python scripts/check_report.py /absolute/path/to/saved-report \
+  --presentation-binding /absolute/path/to/saved-report/presentation-binding.json
+uv run --frozen python scripts/build_report.py --local-audit \
+  --evidence /absolute/path/to/saved-report --output /absolute/path/to/new-report \
+  --presentation-binding /absolute/path/to/saved-report/presentation-binding.json \
+  --language zh --include-english
+```
+
+The build copies the validated binding into the new report. Check the new output
+with its matching `--presentation-binding` too. For a fresh local measurement,
+use `--local-audit` with its external evidence and an explicit output directory;
+do not borrow a previous report's binding. Any scoring change must first follow
+the declared correction protocol; rendering alone does not update scores.
+Publication remains a separate explicit action with that report's own target.
+
+The maintained synthetic example in
+`tests/test_local_audit.py::test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review`
+exercises collection, external bindings, rebuilding and packaging without real
+provider calls. It also checks changed evidence and preservation of frozen scores.
+`tests/test_external_local_report.py` additionally runs the public build and
+check commands with different external task/method inventories and deadlines,
+including both language editions. Its inputs stay in a temporary evidence tree;
+no repository profile is created.
+
+The local measurement schema is a single-call protocol: one run, no retry and
+serial execution per provider. A different deadline or supported DNS mode is an
+input, not a new protocol. Repeated experiments need a predeclared score-bearing
+run and complete physical-call lineage before they can share this report's
+one-result-per-method/task denominator. Do not enable repeated runs by removing
+the schema checks or by selecting the best observed result.
+
+Historical audit tests read their frozen scorer bytes from
+`<data-home>/scoring-snapshots/<scorer-sha256>/`; they verify the complete scorer,
+registry and scenario-test hashes rather than substituting current code.
+Ordinary tests skip absent historical snapshots; strict reference-input tests
+require them. Changed installed bytes fail either mode.
+
+### Evidence ownership and historical readers
+
+LexBench scores submitted answers and delivered file bytes. Native response
+selection, diagnostic log decoding and source-field verification belong to
+`native_projection.py` in this harness. Both collection and saved-answer checks
+use that owner; changing the owner does not upgrade historical calls to a
+pre-call policy they never recorded.
+
+All hash-bound reads use `publication_privacy.read_evidence_binding`, including
+proposed files during a local revision. The revision supplies a scoped resolver;
+the reader still rejects unsafe paths, changed bytes and undisclosed public
+substitutes. Audit and privacy readers do not import the revision writer to read
+evidence. Canonical compact JSON hashes share `harness.record_io`; raw-file,
+pretty-printed manifest and normalized-text identities retain their own byte
+contracts.
+
+New local revisions reuse page-identity opinions only when task, physical-call
+and answer bindings remain unchanged. Changed inputs require an explicitly
+bound new identity review; the revision never migrates an old opinion to a
+changed task automatically. Legacy diagnostic-field rebinding receipts and
+resumed/admitted execution plans remain read-only decoders for frozen inputs.
+There is no current writer for those historical formats. Do not extend them
+into a new execution protocol or infer a new independent review from them.
+
+`local_execution_legacy.py` owns only the historical plan decoder and its
+dispatch. `local_audit.py` retains the older, explicitly selected merged-audit
+receipt reader; new local matrices select `uniform_native_local_measurement`
+before that reader. These readers remain supported because frozen evidence
+still names their contracts. Removing them requires migrating the corresponding
+authority to a pinned, reproducible verifier first, not merely moving Python
+files into an untrusted evidence package. Their negative controls must continue
+to reject missing calls, changed configuration and altered review evidence.
+
+### Current acceptance and retained corrections
+
+The shared scorer uses one current acceptance predicate. Verification/error hints
+are diagnostics; declared `forbidden_any` requirements remain contract gates.
+Treating previously forbidden words as hints requires an explicit case revision
+to `diagnostic_any` and a complete rescore of the affected method/task scope.
+Content, records, page identity and completion deadlines still determine acceptance;
+reference precision and observed challenge components remain separate diagnostics.
+
+Historical results retain their hash-bound frozen scorer rather than selecting
+old behavior in the current runtime. The current predicate rejects legacy metrics
+that need that frozen scorer or an explicit offline rescore. Current regression
+controls verify current behavior; superseded controls retain their IDs, definition
+hashes and retirement reasons, with original definitions preserved in the frozen
+history. Do not mix old metrics with a new predicate.
+
+Stable text contracts declare `content_scope` (`target_content` or
+`full_page_stable_coverage`) and may declare `text_exclusions`. A target-content
+contract rejects positive anchors observed in excluded navigation/footer regions.
+A whole-page contract can require their stable text, alongside body coverage or
+complete record requirements. `source_location` records the independent observation;
+it is not an implicit DOM selector. HTML exclusions apply before text matching;
+plain-text outputs need explicit textual exclusions where roles otherwise disappear.
+
+The following are Python maintenance APIs, invoked explicitly from a Python
+script with `uv run --frozen python <script.py>`; they do not have dedicated CLI
+commands. Import them from `harness.web_fetch.local_revision` or
+`harness.web_fetch.publication_privacy` as named below. Their arguments are
+caller-supplied evidence paths, bindings and correction configuration, not values
+inferred from the latest report. Use them only for an authorized correction or
+history reduction.
+
+`local_revision.revise_local_snapshot(source, configuration)` only rescores a separate saved snapshot.
+Changed contracts require `rule_revision: true`. Its receipt binds the predecessor,
+selected complete method/task scope, regression IDs, source hashes, explicit contract
+changes, actual scoring time and verdict changes. Physical output bytes, call identities,
+timestamps and latencies remain unchanged. Proven environment defects exclude a
+case symmetrically across every method. The result ledger derives all transitions
+from per-attempt states; overridden review opinions require task/answer hashes,
+original answer excerpts, concrete rules and a reason. This is supplemental
+adjudication, not a new blind review of the entire matrix.
+
+For explicitly requested history reduction,
+`local_revision.compact_local_snapshot(source, binding, **options)` validates the
+bound revision chain, installs a current-only authority and returns its path/hash
+binding. It retains the current measured evidence; it is not a report renderer.
+The lower-level `local_revision.compact_revision_authority(source, binding, ...)`
+returns a validated current-state authority document. It does not install that
+document or remove history; callers must persist and bind it before discarding
+superseded files. Prefer `compact_local_snapshot` for the complete operation.
+For a public metadata copy,
+`publication_privacy.project_host_metadata_files(files, host_prefixes, **options)`
+accepts a relative-path-to-bytes mapping and explicit host prefixes, returning a
+projected mapping plus an original/public hash receipt. The caller persists and
+binds that receipt; scored answers and raw response payloads cannot be changed
+through this metadata operation.
+
+Local uncertified reports retain a disclosure on every page and omit ordinal
+rankings. The CLI cannot hide the disclosure. Historical article HTML is limited
+to inert allowlisted markup and safe links/raster images; its translations apply
+only inside the article. A diagnostic snapshot cannot certify a formal release.
+
+
+### Native scored result context
+
+Native projection schema 2 includes `result_fields.title` and `result_fields.final_url`
+alongside text, resource metadata and delivered files. Validate these fields before
+persisting a call, before native-response scoring, and when aggregating saved calls.
+JSON fields use declared structural pointers. A final address may also be replayed
+from a retained same-call main-document log or a source HTTP response receipt;
+request-URL fallback applies only when the selected native address is absent.
+Resolve relative resource attributes against that verified address. A title absent
+from the native response cannot supply required facts.
+
+Schema-1 declarations must not contain `result_fields`, even an empty object.
+Current persistence rejects mixed declarations, including discarded timeout answers.
+Immutable schema-1 acquisitions retain their original text/resource/file scope;
+they do not retroactively prove title/address provenance. Bind a separate offline
+context audit to historical results, replay the complete affected route when a
+context difference is found, and retain the original records and exact score effects.
+These checks add no provider calls.
 按任务类型预选官方支持的正文、资源或原始文件接口。JSON 包装中的原生 Markdown
 可以解包；不能把 JSON DOM、HTML 或下载的 PDF/DOCX 另行转换成选手的正文成绩。
 Chromium 没有原生 Markdown，网页 HTML 使用固定版本的 node-html-markdown；此例外
@@ -975,3 +1235,48 @@ The same content may supply `background`, raster
 builder and its six-chapter interpretation. Assets stay outside Git and are copied
 only through their hash bindings. The independent HTML embeds figures and reviewed
 causes without copying every failure's complete output and logs.
+
+### Sharing a frozen diagnostic snapshot
+
+Pass the same `--presentation-binding /path/to/binding.json` to
+`scripts/package_artifact_hub.py` and `scripts/check_publication_bundle.py` when
+sharing a previously validated frozen local report. Both commands verify its
+saved matrix, scorer identity, evidence and revision bindings through the existing
+presentation validator. This does not certify the cohort or add result reviews;
+its visible evidence-state and review-scope disclosures remain intact. Without
+this explicit binding, publication retains the certified-evidence gate.
+
+The profile-bound publisher accepts the same binding. Use `--visibility unlisted`
+for ordinary link sharing at the existing `/s/<slug>` address; `private` and
+`public` must follow the requested access scope. The publisher verifies the
+actual access state without creating an independent share link.
+
+Large publication trees automatically use content-defined deduplication and a
+compressed catalog when fixed-block storage exceeds the upload budget. Both
+encodings retain complete virtual files, source bindings and file hashes.
+An acceptance contract stays inline when no standalone contract file exists.
+To reuse a completed public content cache, pass `--cached-content <directory>`
+to `scripts/package_artifact_hub.py` with the same source and, when applicable,
+`--presentation-binding`. The packer refreshes source-bound result privacy and
+footprint projections when the cache uses an earlier representation; it rejects
+a cache bound to another source. `--refresh-privacy` additionally applies the
+current privacy checks to other cached files. Complete publication checks run
+before the archive is installed. Source and input cache remain unchanged.
+Saved public snapshots may retain original scored hashes while storing separately
+bound public evidence views. Verify both identities through the existing public-view
+helpers; report retained views separately instead of calling them original bytes.
+
+If the complete compressed report still exceeds a deployment's artifact capacity,
+use `--parts-directory <new-directory>` to prepare a main archive and capacity-bound
+data attachments. The preparation gate checks their combined evidence, links and
+hashes. Publish the attachments, bind each exact committed version with
+the Python API `harness.web_fetch.report_package.bind_data_parts(archive,
+plan_path, publications)`, and pass `--parts-manifest <directory>/parts.json` when publishing
+the main report. Ordinary publication rejects unresolved or mismatched attachments.
+Keep the main profile's `data_publications` registry aligned with that bound plan;
+main and data artifacts must use the same profile-bound service.
+Invoke that API from a maintenance script with `uv run --frozen python <script.py>`;
+there is no separate bind command. `archive` and `plan_path` are `Path` objects
+for the prepared main archive and parts manifest; `publications` maps each part
+identifier to its committed publication receipt. This step binds existing uploads;
+it does not upload attachments.

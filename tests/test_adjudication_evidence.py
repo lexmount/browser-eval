@@ -1,0 +1,402 @@
+import hashlib
+
+import pytest
+
+from harness.web_fetch.adjudication_evidence import (
+    adjudication_reason, current_rule_outcomes, require_adjudication_evidence,
+)
+from harness.record_io import canonical_json_sha256
+from lexbench_webfetch.scoring import score_attempt
+
+
+@pytest.mark.parametrize("field,value", [
+    ("captures_path", None), ("captures_path", []),
+    ("captures_sha256", None), ("captures_sha256", 42),
+    ("attempts", None), ("attempts", {}),
+    ("attempts[0]", "invalid"),
+    ("attempts[0].attempt_id", None), ("attempts[0].case_sha256", []),
+    ("attempts[0].call_sha256", None), ("attempts[0].content_sha256", False),
+    ("attempts[0].capture_index", True), ("attempts[0].capture_index", -1),
+    ("attempts[0].capture_index", 99), ("attempts[0].matching_samples", {}),
+    ("attempts[0].corresponding_url", None),
+])
+def test_identity_update_reports_malformed_receipt_field_without_writes(tmp_path, field, value):
+    import json
+    import re
+    from harness.web_fetch.adjudication_evidence import prepare_reviewed_page_identities
+
+    captures = tmp_path / "captures.json"
+    captures.write_text('[{"url":"https://example.test/","text":"source"}]')
+    receipt = {
+        "kind": "retrospective_page_identity_review", "provider_calls_added": 0,
+        "captures_path": captures.name,
+        "captures_sha256": hashlib.sha256(captures.read_bytes()).hexdigest(),
+        "attempts": [{
+            "attempt_id": "a", "case_sha256": "case", "call_sha256": "call",
+            "content_sha256": "answer", "capture_index": 0, "capture_sha256": "capture",
+            "corresponding_url": "https://example.test/", "reviewed_at": "2026-10-20",
+            "basis": "retrospective_content_correspondence", "matching_samples": [],
+        }],
+    }
+    if field.startswith("attempts[0]."):
+        receipt["attempts"][0][field.split(".")[1]] = value
+    elif field == "attempts[0]":
+        receipt["attempts"][0] = value
+    elif value is None:
+        receipt.pop(field)
+    else:
+        receipt[field] = value
+    path = tmp_path / "review.json"
+    path.write_text(json.dumps(receipt))
+    binding = {"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    dataset = {"cases": [], "comparison": {"page_identity_review": binding}}
+    unchanged = json.dumps(dataset)
+    files = {item.name: item.read_bytes() for item in tmp_path.iterdir()}
+    with pytest.raises(ValueError, match=re.escape("page_identity_review." + field)):
+        prepare_reviewed_page_identities(tmp_path, dataset, dataset, [])
+    assert json.dumps(dataset) == unchanged
+    assert {item.name: item.read_bytes() for item in tmp_path.iterdir()} == files
+
+
+def test_identity_receipt_parsed_fields_are_immutable():
+    from dataclasses import FrozenInstanceError
+    from harness.web_fetch.adjudication_evidence import PageIdentityReviewInputs
+    document = {"captures_path": "captures.json", "captures_sha256": "digest", "attempts": []}
+    parsed = PageIdentityReviewInputs.parse(document)
+    document["captures_path"] = "changed.json"
+    assert parsed.captures_path == "captures.json"
+    assert parsed.attempts == ()
+    with pytest.raises(FrozenInstanceError):
+        parsed.captures_path = "changed.json"
+
+
+@pytest.mark.parametrize("entry", ["identity", "identity_update", "independent_review"])
+@pytest.mark.parametrize("changed", [False, True])
+def test_review_inputs_require_original_bound_bytes(tmp_path, monkeypatch, entry, changed):
+    import json
+    from harness.web_fetch import adjudication_evidence, publication_privacy
+
+    def no_public_substitute(*args):
+        raise AssertionError("Original review input must not fall back to a public projection")
+
+    monkeypatch.setattr(publication_privacy, "bound_public_view", no_public_substitute)
+
+    def save(name, value):
+        path = tmp_path / name
+        path.write_text(json.dumps(value))
+        return {"path": name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+
+    dataset = {"cases": [], "comparison": {}}
+    if entry == "independent_review":
+        (tmp_path / "results.jsonl").write_bytes(b"")
+        binding = save("review.json", {
+            "kind": "local_independent_review", "review_protocol": {"scope": "all"},
+            "reviewed_attempts": 0, "expected_attempts": 0, "attempts": [], "unresolved": 0,
+            "results_sha256": hashlib.sha256(b"").hexdigest(),
+        })
+        dataset["comparison"]["independent_review"] = binding
+        invoke = lambda: adjudication_evidence._require_local_review(tmp_path, dataset, [])
+        error = "Local independent review binding changed"
+    else:
+        binding = save("captures.json", [])
+        receipt = save("identity.json", {
+            "kind": "retrospective_page_identity_review", "provider_calls_added": 0,
+            "captures_path": binding["path"], "captures_sha256": binding["sha256"],
+            "attempts": [],
+        })
+        dataset["comparison"]["page_identity_review"] = receipt
+        if entry == "identity":
+            invoke = lambda: adjudication_evidence._require_page_identity_review(tmp_path, dataset, [])
+            error = "Page review captures changed"
+        else:
+            invoke = lambda: adjudication_evidence.prepare_reviewed_page_identities(
+                tmp_path, dataset, dataset, [])
+            error = "Page identity capture changed before rescoring"
+    if changed:
+        (tmp_path / binding["path"]).write_text("{}")
+        with pytest.raises(ValueError, match=error):
+            invoke()
+    else:
+        invoke()
+
+
+@pytest.mark.parametrize('defect', [None, 'case', 'answer', 'context', 'opinion',
+                                  'original_opinion', 'original_identity'])
+@pytest.mark.parametrize('wording', ['Original explanation.', 'Quoted text: 命中词：。'])
+def test_compact_retention_keeps_actual_opinion_without_old_matrices(tmp_path, defect, wording):
+    import copy
+    import json
+    from harness.web_fetch.adjudication_evidence import (
+        compact_retained_review_dependencies, require_retained_reviews)
+    text = 'Required complete article.'
+    (tmp_path/'answer.txt').write_text(text)
+    old_case = {'id': 'a', 'url': 'https://example.test/',
+        'required_facts': [{'id': 'article', 'alternatives': [text]}], 'forbidden_any': ['CAPTCHA']}
+    case = {k: v for k, v in old_case.items() if k != 'forbidden_any'}
+    case['diagnostic_any'] = ['CAPTCHA']
+    record = {'attempt_id': 'p__a', 'case_id': 'a', 'provider': 'p', 'ok': True,
+        'artifact_path': 'answer.txt', 'metrics': score_attempt(case, text.encode(), ok=True)}
+    opinion = {'attempt_id': 'p__a', 'content_sha256': record['metrics']['content_sha256'],
+        'agent_verdict': 'pass', 'agent_evidence': 'Complete article observed.',
+        'final_verdict': 'pass', 'original_explanation': 'Full original opinion retained.',
+        'adjudication': wording}
+    def bind(name, value):
+        path = tmp_path/name
+        path.write_text(json.dumps(value))
+        return {'path': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    results = bind('old-results.jsonl', record)
+    prior = bind('old-review.json', {'results_sha256': results['sha256'], 'attempts': [opinion]})
+    old_dataset = bind('old-dataset.json', {'cases': [old_case]})
+    review = {'attempts': [{**copy.deepcopy(opinion), 'review_origin': 'retained'}],
+        'retained_reviewed_attempts': 1, 'fresh_reviewed_attempts': 0,
+        'retained_reviews': bind('retention.json', {'kind': 'unchanged_review_dependency_retention',
+            'provider_calls_added': 0, 'attempt_ids': ['p__a'], 'prior_results': results,
+            'prior_review': prior, 'prior_dataset': old_dataset})}
+    compact = compact_retained_review_dependencies(tmp_path, {'cases': [case]}, [record], review)
+    assert compact['attempts'][0]['original_opinion'] == opinion
+    for name in ['old-results.jsonl', 'old-review.json', 'old-dataset.json', 'retention.json']:
+        (tmp_path/name).unlink()
+    if defect == 'case':
+        case['required_facts'] = ['Different requirement']
+    elif defect == 'answer':
+        (tmp_path/'answer.txt').write_text('Changed')
+    elif defect == 'context':
+        record['ok'] = False
+    elif defect == 'opinion':
+        review['attempts'][0]['agent_evidence'] = 'Rewritten opinion'
+    elif defect == 'original_opinion':
+        compact['attempts'][0]['original_opinion']['original_explanation'] = 'Rewritten original'
+    elif defect == 'original_identity':
+        compact['attempts'][0]['original_review_input']['request_ok'] = False
+    review['retained_reviews'] = bind('compact.json', compact)
+    if defect:
+        with pytest.raises(ValueError):
+            require_retained_reviews(tmp_path, {'cases': [case]}, [record], review)
+    else:
+        assert require_retained_reviews(tmp_path, {'cases': [case]}, [record], review) == {'p__a'}
+
+
+def fixture(tmp_path):
+    text = 'Required complete article.'
+    (tmp_path / 'answer.txt').write_text(text)
+    case = {'id': 'a', 'url': 'https://example.test/', 'required_facts': [
+        {'id': 'article', 'alternatives': [text]}], 'diagnostic_any': ['CAPTCHA']}
+    metrics = score_attempt(case, text.encode(), ok=True)
+    record = {'attempt_id': 'p__a', 'case_id': 'a', 'ok': True,
+              'artifact_path': 'answer.txt', 'metrics': metrics}
+    assertions = current_rule_outcomes(case, record)
+    reason = adjudication_reason(assertions)
+    row = {'attempt_id': 'p__a', 'agent_verdict': 'fail', 'final_verdict': 'pass',
+           'adjudication': reason, 'adjudication_evidence': {
+               'reason': reason, 'case_sha256': canonical_json_sha256(case),
+               'content_sha256': metrics['content_sha256'],
+               'rule_ids': list(assertions), 'rule_assertions': assertions,
+               'samples': [{'start': 0, 'end': len(text), 'text': text}]}}
+    return case, record, row
+
+
+@pytest.mark.parametrize('defect', [None, 'unknown_rule', 'false_hit', 'false_result',
+    'false_reason', 'empty_hit_claim', 'placeholder_reason', 'excerpt', 'verdict', 'historical_migration'])
+def test_adjudication_rejects_semantic_falsehoods_not_only_missing_text(tmp_path, defect):
+    case, record, row = fixture(tmp_path)
+    proof = row['adjudication_evidence']
+    review = {'attempts': [row]}
+    if defect == 'unknown_rule':
+        proof['rule_ids'].append('nonexistent-rule')
+    elif defect == 'false_hit':
+        proof['rule_assertions']['diagnostic_any']['hits'] = ['CAPTCHA']
+    elif defect == 'false_result':
+        proof['rule_assertions']['required_facts']['passed'] = False
+    elif defect == 'false_reason':
+        proof['reason'] = row['adjudication'] = 'CAPTCHA 已命中；正文通过。'
+    elif defect == 'empty_hit_claim':
+        proof['reason'] = row['adjudication'] = '命中词：。因此原意见不成立。'
+    elif defect == 'placeholder_reason':
+        proof['reason'] = row['adjudication'] = '核对已有原始返回、冻结要求和相应修正证据；当前结论见评分明细。'
+    elif defect == 'excerpt':
+        proof['samples'][0]['text'] = 'Invented article'
+    elif defect == 'verdict':
+        row['final_verdict'] = 'fail'
+        row['agent_verdict'] = 'pass'
+    elif defect == 'historical_migration':
+        review['rule_binding_revision'] = {'new_independent_review': False}
+    if defect:
+        with pytest.raises(ValueError):
+            require_adjudication_evidence(tmp_path, {'cases': [case]}, [record], review)
+    else:
+        assert require_adjudication_evidence(tmp_path, {'cases': [case]}, [record], review) == 1
+        assert '诊断词命中：无' in row['adjudication']
+
+
+@pytest.mark.parametrize('defect', [None, 'answer', 'excerpt', 'opinion', 'case', 'binding'])
+def test_supplemental_review_binds_new_opinion_task_and_complete_answer(tmp_path, defect):
+    import copy
+    import json
+    from harness.web_fetch.adjudication_evidence import _require_supplemental_reviews
+    text = 'Complete document and sqlite3 test.db'
+    (tmp_path/'answer.txt').write_text(text)
+    case = {'id': 'a', 'required_facts': ['sqlite3 test.db']}
+    record = {'attempt_id': 'p__a', 'case_id': 'a', 'artifact_path': 'answer.txt',
+              'metrics': {'content_sha256': hashlib.sha256(text.encode()).hexdigest()}}
+    row = {'attempt_id': 'p__a', 'agent_verdict': 'pass', 'agent_evidence': 'Required command is present.',
+           'content_sha256': record['metrics']['content_sha256'],
+           'review_evidence': {'case_sha256': canonical_json_sha256(case),
+               'samples': [{'start': 0, 'end': len(text), 'text': text}]}}
+    supplement = {'kind': 'supplemental_saved_output_review', 'results_sha256': 'a'*64,
+        'provider_calls_added': 0, 'reviewed_attempts': 1, 'reviewer': {'agent': 'independent reviewer'},
+        'review_protocol': {'blind_initial_verdict': False}, 'attempts': [copy.deepcopy(row)]}
+    if defect == 'excerpt':
+        row['review_evidence']['samples'][0]['text'] = 'Invented answer'
+        supplement['attempts'] = [copy.deepcopy(row)]
+    path = tmp_path/'supplement.json'
+    path.write_text(json.dumps(supplement))
+    binding = {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    review = {'attempts': [row], 'results_sha256': 'a'*64, 'supplemental_reviews': [binding]}
+    if defect == 'answer': (tmp_path/'answer.txt').write_text('Changed answer')
+    elif defect == 'opinion': row['agent_verdict'] = 'fail'
+    elif defect == 'case': case['required_facts'] = ['different command']
+    elif defect == 'binding': binding['sha256'] = 'b'*64
+    if defect:
+        with pytest.raises(ValueError):
+            _require_supplemental_reviews(tmp_path, {'cases': [case]}, [record], review)
+    else:
+        assert _require_supplemental_reviews(tmp_path, {'cases': [case]}, [record], review) == {'p__a'}
+
+
+@pytest.mark.parametrize('defect', [None, 'positive_rule', 'answer', 'opinion', 'verdict',
+    'policy_hit', 'dependent_reason', 'prior_binding', 'count', 'missing_receipt'])
+@pytest.mark.parametrize('wording', ['Original explanation.', 'Quoted text: 命中词：。'])
+def test_retention_requires_unchanged_decision_dependencies(tmp_path, defect, wording):
+    import copy
+    import json
+    from harness.web_fetch.adjudication_evidence import require_retained_reviews
+    from harness.web_fetch.result_review import review_input_identity
+    text = 'Required complete article.'
+    if defect == 'policy_hit': text += ' CAPTCHA'
+    old_case = {'id': 'a', 'url': 'https://example.test/',
+                'required_facts': [{'id': 'article', 'alternatives': ['Required complete article.']}],
+                'forbidden_any': ['CAPTCHA']}
+    case = {k: v for k, v in old_case.items() if k != 'forbidden_any'}
+    case['diagnostic_any'] = ['CAPTCHA']
+    (tmp_path/'answer.txt').write_text(text)
+    metrics = score_attempt(case, text.encode(), ok=True)
+    record = {'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a', 'ok': True,
+              'artifact_path': 'answer.txt', 'metrics': metrics}
+    original = {'attempt_id': 'p__a', 'content_sha256': metrics['content_sha256'],
+                'agent_verdict': 'pass', 'agent_evidence': 'Required article is complete.',
+                'final_verdict': 'pass', 'adjudication': wording}
+    if defect == 'dependent_reason':
+        original['adjudication_evidence'] = {'rule_ids': ['forbidden_any']}
+    def bind(name, value, *, jsonl=False):
+        path = tmp_path/name
+        path.write_text(json.dumps(value) + ('\n' if jsonl else ''))
+        return {'path': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    old_record = copy.deepcopy(record)
+    assert review_input_identity(record) == review_input_identity(old_record)
+    result_binding = bind('old-results.jsonl', old_record, jsonl=True)
+    prior = {'results_sha256': result_binding['sha256'], 'attempts': [original]}
+    if defect == 'prior_binding': prior['results_sha256'] = 'x'*64
+    receipt = {'kind': 'unchanged_review_dependency_retention', 'provider_calls_added': 0,
+        'attempt_ids': ['p__a'], 'prior_results': result_binding,
+        'prior_dataset': bind('old-dataset.json', {'cases': [old_case]}),
+        'prior_review': bind('old-review.json', prior)}
+    row = {**copy.deepcopy(original), 'review_origin': 'retained'}
+    review = {'attempts': [row], 'retained_reviewed_attempts': 1,
+              'fresh_reviewed_attempts': 0, 'retained_reviews': bind('retention.json', receipt)}
+    if defect == 'positive_rule': case['required_facts'] = ['A different article']
+    elif defect == 'answer': (tmp_path/'answer.txt').write_text('Changed answer')
+    elif defect == 'opinion': row['agent_evidence'] = 'Rewritten opinion'
+    elif defect == 'verdict': row['final_verdict'] = 'fail'
+    elif defect == 'count': review['fresh_reviewed_attempts'] = 1
+    elif defect == 'missing_receipt': review.pop('retained_reviews')
+    if defect:
+        with pytest.raises(ValueError):
+            require_retained_reviews(tmp_path, {'cases': [case]}, [record], review)
+    else:
+        assert require_retained_reviews(tmp_path, {'cases': [case]}, [record], review) == {'p__a'}
+
+
+@pytest.mark.parametrize('defect', [None, 'opinion', 'reason', 'anomaly', 'unblinded', 'missing'])
+def test_fresh_review_keeps_the_immutable_blind_initial_opinion(tmp_path, defect):
+    import copy
+    import json
+    from harness.web_fetch.adjudication_evidence import _require_supplemental_reviews
+    case, record, row = fixture(tmp_path)
+    text = (tmp_path/'answer.txt').read_text()
+    row.update(content_sha256=record['metrics']['content_sha256'],
+               agent_evidence='The required article is absent.', reviewer_anomalies=[],
+               review_evidence={'case_sha256': canonical_json_sha256(case),
+                   'samples': [{'start': 0, 'end': len(text), 'text': text}]})
+    initial = {'machine_judgments_withheld': defect != 'unblinded', 'attempts': [{
+        'attempt_id': 'p__a', 'verdict': 'fail', 'reason': row['agent_evidence'], 'anomalies': []}]}
+    if defect == 'missing': initial['attempts'] = []
+    if defect == 'opinion': row['agent_verdict'] = 'pass'
+    elif defect == 'reason': row['agent_evidence'] = 'Rewritten initial opinion'
+    elif defect == 'anomaly': row['reviewer_anomalies'] = ['Invented anomaly']
+    def bind(name, document):
+        path = tmp_path/name
+        path.write_text(json.dumps(document))
+        return {'path': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    supplement = {'kind': 'supplemental_saved_output_review', 'provider_calls_added': 0,
+        'results_sha256': 'a'*64, 'reviewed_attempts': 1, 'reviewer': {'model': 'reviewer'},
+        'review_protocol': {'blind_initial_verdict': True},
+        'blind_initial_outputs': [bind('initial.json', initial)], 'attempts': [copy.deepcopy(row)]}
+    review = {'results_sha256': 'a'*64, 'attempts': [row],
+              'supplemental_reviews': [bind('supplement.json', supplement)]}
+    if defect:
+        with pytest.raises(ValueError):
+            _require_supplemental_reviews(tmp_path, {'cases': [case]}, [record], review)
+    else:
+        assert _require_supplemental_reviews(tmp_path, {'cases': [case]}, [record], review) == {'p__a'}
+
+
+@pytest.mark.parametrize('key, value, zh, en', [
+    ('task_result', {'passed': True}, '任务判定：通过。', 'Task result: pass.'),
+    ('request_status', {'passed': False}, '请求状态：未通过。', 'Request status: fail.'),
+    ('required_facts', {'passed': False, 'matched': 2, 'total': 3},
+     '必需文字：未通过（2/3）。', 'Required text: fail (2/3).'),
+    ('expected_any', {'passed': True}, '目标标记：通过。', 'Target markers: pass.'),
+    ('min_content_chars', {'passed': False, 'actual': 9, 'minimum': 10},
+     '最低长度：未通过（9，要求至少 10）。', 'Minimum length: fail (9; minimum 10).'),
+    ('body_requirements', {'passed': True}, '正文覆盖：通过。', 'Body coverage: pass.'),
+    ('required_patterns', {'passed': False, 'results': [{'id': 'code', 'pass': False}, {'id': 'heading', 'pass': True}]},
+     '格式与代码要求：未通过（未满足 code）。', 'Formatting and code requirements: fail (unmet: code).'),
+    ('required_patterns', {'passed': True, 'results': [{'id': 'code', 'pass': True}]},
+     '格式与代码要求：通过。', 'Formatting and code requirements: pass.'),
+    ('acceptance_contract', {'passed': False, 'anchor_hits': 1, 'anchor_total': 2,
+                            'records': 3, 'minimum_records': 4, 'missing_anchors': ['title']},
+     '内容与条目要求：未通过（稳定文字 1/2；独立条目 3，要求至少 4；缺少 title）。',
+     'Content and record requirements: fail (stable text 1/2; distinct records 3; minimum 4; missing title).'),
+    ('acceptance_contract', {'passed': True, 'anchor_hits': 2, 'anchor_total': 2,
+                            'records': 4, 'minimum_records': 4, 'missing_anchors': []},
+     '内容与条目要求：通过（稳定文字 2/2；独立条目 4，要求至少 4）。',
+     'Content and record requirements: pass (stable text 2/2; distinct records 4; minimum 4).'),
+    ('composite_acceptance', {'passed': True}, '组合要求：通过。', 'Combined requirements: pass.'),
+    ('expected_resources', {'passed': False}, '目标资源：未通过。', 'Target resources: fail.'),
+    ('forbidden_any', {'passed': True}, '明确禁止要求：通过。', 'Prohibited content: pass.'),
+    ('diagnostic_any', {'hits': []}, '诊断词命中：无（不单独决定通过或失败）。',
+     'Diagnostic matches: none (do not independently determine pass or fail).'),
+    ('diagnostic_any', {'hits': ['CAPTCHA', '登录']}, '诊断词命中：CAPTCHA、登录（不单独决定通过或失败）。',
+     'Diagnostic matches: CAPTCHA, 登录 (do not independently determine pass or fail).'),
+])
+def test_adjudication_language_preserves_checked_rule_details(key, value, zh, en):
+    import copy
+    assertions = {key: value}
+    before = copy.deepcopy(assertions)
+    assert adjudication_reason(assertions) == zh
+    assert adjudication_reason(assertions, language='zh') == zh
+    assert adjudication_reason(assertions, language='en') == en
+    assert assertions == before
+
+
+def test_english_presentation_keeps_historical_adjudication_proof_valid(tmp_path):
+    import copy
+    case, record, row = fixture(tmp_path)
+    before = copy.deepcopy(row)
+    assert row['adjudication'] == '任务判定：通过；请求状态：通过；必需文字：通过（1/1）；诊断词命中：无（不单独决定通过或失败）。'
+    english = adjudication_reason(row['adjudication_evidence']['rule_assertions'], language='en')
+    assert english == 'Task result: pass; Request status: pass; Required text: pass (1/1); Diagnostic matches: none (do not independently determine pass or fail).'
+    assert require_adjudication_evidence(tmp_path, {'cases': [case]}, [record], {'attempts': [row]}) == 1
+    assert row == before
+    with pytest.raises(ValueError, match='language must be zh or en'):
+        adjudication_reason({}, language='fr')

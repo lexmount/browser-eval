@@ -264,8 +264,59 @@ def _resource_target_matches(case, candidates: list[dict]) -> list[dict]:
     return results
 
 
+def _resource_observation_scope(case, root, evidence):
+    """Retain an observation's old scope across an explicit score-only alias revision."""
+    current = resource_source_scope_identity(case)
+    binding = current['resource_output_contract'].pop('equivalence_revision', None)
+    if binding is None:
+        return current
+    identifier = safe_identifier(_get(case, 'id'))
+    if (not isinstance(binding, dict)
+            or re.fullmatch(r'resource-equivalence-(?:revision|[0-9a-f]{64})\.json',
+                            str(binding.get('path', ''))) is None):
+        raise ReferenceLifecycleError('Invalid resource equivalence revision binding')
+    try:
+        raw = contained_path(root, identifier + '/' + binding['path']).read_bytes()
+        if sha256(raw) != binding.get('sha256'):
+            raise ReferenceLifecycleError('Resource equivalence revision hash changed')
+        receipt = json.loads(raw)
+        before = receipt['before_scope']
+        canonical = json.dumps(current, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+        if (receipt.get('kind') != 'offline_resource_equivalence_revision'
+                or receipt.get('provider_calls_added') != 0
+                or receipt.get('new_source_observation') is not False
+                or receipt.get('after_scope_sha256') != sha256(canonical)
+                or receipt.get('source_evidence_sha256') != _get(case, 'source_verification', {}).get('evidence_sha256')
+                or receipt.get('browser_observation_sha256') != evidence.get('independent_browser_observation', {}).get('sha256')
+                or not receipt.get('authority', {}).get('description')):
+            raise ReferenceLifecycleError('Resource equivalence revision authority/scope differs')
+        # Only add declared equivalents. Never replace primary source targets,
+        # their identity, candidate policy, task URL, or historical observations.
+        old_targets, new_targets = before['expected_resources'], current['expected_resources']
+        if ({k: v for k, v in before.items() if k != 'expected_resources'}
+                != {k: v for k, v in current.items() if k != 'expected_resources'}
+                or len(old_targets) != len(new_targets)):
+            raise ReferenceLifecycleError('Resource equivalence revision changed source scope')
+        for old, new in zip(old_targets, new_targets):
+            if ({k: v for k, v in old.items() if k not in {'aliases', 'url_patterns'}}
+                    != {k: v for k, v in new.items() if k not in {'aliases', 'url_patterns'}}
+                    or any(not set(old.get(key, [])) <= set(new.get(key, []))
+                           for key in ('aliases', 'url_patterns'))):
+                raise ReferenceLifecycleError('Resource equivalence revision replaced a primary target')
+        from lexbench_webfetch.scoring_regressions import require_scoring_regressions
+        controls = receipt.get('regression_ids')
+        if not isinstance(controls, list) or not controls:
+            raise ReferenceLifecycleError('Resource equivalence revision lacks executable controls')
+        require_scoring_regressions(controls)
+    except ReferenceLifecycleError:
+        raise
+    except (OSError, ValueError, TypeError, KeyError) as error:
+        raise ReferenceLifecycleError('Invalid resource equivalence revision') from error
+    return before
+
+
 def validate_resource_source_evidence(case, dataset_path: Path, *, execution: bool = False) -> dict | None:
-    """Qualify resource sources, or reuse fixed targets during declared execution.
+    """Fail closed unless every resource target has independent, hash-bound evidence.
 
     HTTP probes remain useful diagnostics, but a blocked probe cannot become a
     valid source merely because an unbound human-review note says the page was
@@ -327,6 +378,7 @@ def validate_resource_source_evidence(case, dataset_path: Path, *, execution: bo
     candidates = [*candidates, *observed_candidates]
     source_qualified = evidence.get("state") == "captured" and evidence.get("status") == 200
 
+    observed_scope = _resource_observation_scope(case, root, evidence)
     browser_binding = evidence.get("independent_browser_observation")
     if browser_binding is not None:
         if (not isinstance(browser_binding, dict)
@@ -351,12 +403,13 @@ def validate_resource_source_evidence(case, dataset_path: Path, *, execution: bo
         if (observation.get("case_id") != identifier
                 or observation.get("url") != _get(case, "url")
                 or observation.get("independent") is not True
-                or observation.get("resource_scope_identity") != resource_source_scope_identity(case)
+                or observation.get("resource_scope_identity") != observed_scope
                 or not isinstance(observed_candidates, list) or len(observed_candidates) > 512
                 or observation.get("resource_candidates_sha256") != sha256(canonical)):
             raise ReferenceLifecycleError(f"{identifier}: browser observation scope/hash mismatch")
         timestamp(observation.get("checked_at"))
-        browser_matches = _resource_target_matches(case, observed_candidates)
+        browser_matches = _resource_target_matches(
+            {**observed_scope, "id": observed_scope["case_id"]}, observed_candidates)
         browser_qualified = (
             observation.get("status") == "success"
             and observation.get("completion", {}).get("satisfied") is True
@@ -1039,6 +1092,7 @@ def valid_scoring_revision(source) -> bool:
     if not isinstance(rows, list) or not rows:
         return False
     allowed_fields = {
+        "page_identity_required",
         'body_requirements', 'required_patterns', 'required_facts',
         'acceptance_contract', 'composite_acceptance', 'forbidden_any', 'expected_resources',
         'resource_output_contract', 'task_prompt', 'reference_answer',
@@ -1460,6 +1514,10 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
     def valid_hash(value):
         return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
 
+    from .native_routes import verify_native_execution_manifests
+    verify_native_execution_manifests(source, manifests,
+        {'cases': [dict(c) if isinstance(c, dict) else vars(c) for c in case_map.values()]}
+        if case_map is not None else None, records)
     allow_scoring_rule_revision = (allow_scoring_rule_revision or valid_scoring_revision(source))
     revised_references = reference_revision_cases(source)
     original_latency = latency_correction_original_elapsed(source, records=records)

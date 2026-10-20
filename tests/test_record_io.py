@@ -1,10 +1,40 @@
 """JSONL records are framed by LF bytes, including during concurrent writes."""
 import json
+import hashlib
 from dataclasses import asdict
 
 import pytest
 
-from harness.record_io import load_jsonl, parse_jsonl, read_completed_records, same_json_record
+from harness.record_io import canonical_json_sha256, load_jsonl, parse_jsonl, read_completed_records, same_json_record
+
+
+@pytest.mark.parametrize('value,raw', [
+    ({'z': 'English', 'a': '中文'}, '{"a":"中文","z":"English"}'),
+    ({'nested': [{'b': False, 'a': None}, [1, True, 'é']]},
+     '{"nested":[{"a":null,"b":false},[1,true,"é"]]}'),
+    ({'n': float('nan')}, '{"n":NaN}'),
+    ({'n': float('inf')}, '{"n":Infinity}'),
+    ({'n': float('-inf')}, '{"n":-Infinity}'),
+])
+def test_canonical_hash_preserves_frozen_utf8_json_bytes(value, raw):
+    assert canonical_json_sha256(value) == hashlib.sha256(raw.encode('utf-8')).hexdigest()
+
+
+@pytest.mark.parametrize('left,right', [
+    ({'ok': True}, {'ok': 1}),
+    ({'n': 1}, {'n': 1.0}),
+    ({'text': '中文'}, {'text': '\\u4e2d\\u6587'}),
+    ({'n': float('nan')}, {'n': 'NaN'}),
+    ([1, 2], [2, 1]),
+])
+def test_canonical_hash_does_not_collapse_distinct_json_bytes(left, right):
+    assert canonical_json_sha256(left) != canonical_json_sha256(right)
+
+
+def test_canonical_hash_sorts_keys_without_changing_unicode_representation():
+    assert canonical_json_sha256({'b': 1, 'a': '中文'}) == canonical_json_sha256({'a': '中文', 'b': 1})
+    raw = json.dumps({'a': '中文'}, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    assert canonical_json_sha256({'a': '中文'}) != hashlib.sha256(raw).hexdigest()
 
 
 @pytest.mark.parametrize('left,right,expected', [
@@ -116,3 +146,23 @@ def test_browser_use_resume_preserves_unicode_in_attempt_records(tmp_path):
            'error': '文本\u2028段落\u2029结束'}
     path.write_text(json.dumps(row, ensure_ascii=False) + '\n')
     assert _load_completed_attempts(path, 'fixture') == {('fixture', 'fixture', 1, 1): row}
+
+
+@pytest.mark.parametrize('content', [b'', bytes(range(256)) * 12000])
+def test_file_digest_matches_protocol_bytes_without_whole_file_reads(tmp_path, monkeypatch, content):
+    from pathlib import Path
+    from harness.record_io import file_sha256
+    path = tmp_path / 'large-evidence.bin'
+    path.write_bytes(content)
+    expected = hashlib.sha256(content).hexdigest()
+    def forbid_whole_file_read(*args, **kwargs):
+        pytest.fail('File hashing should not allocate another full artifact copy')
+    monkeypatch.setattr(Path, 'read_bytes', forbid_whole_file_read)
+    assert file_sha256(path) == expected
+    assert file_sha256(str(path)) == expected
+
+
+def test_file_digest_preserves_missing_file_error(tmp_path):
+    from harness.record_io import file_sha256
+    with pytest.raises(FileNotFoundError):
+        file_sha256(tmp_path / 'missing')

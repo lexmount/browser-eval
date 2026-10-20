@@ -1,8 +1,10 @@
-"""Reject synthetic DNS addresses before a local/remote comparison spends calls."""
+"""Reject non-public DNS addresses before a public local/remote comparison spends calls."""
 import ipaddress
 import socket
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
+
+GUARDED_NATIVE_TYPES = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin", "langchain_webbase", "moli_webfetch", "crawl4ai"}
 
 _FAKE_IP_RANGE = ipaddress.ip_network("198.18.0.0/15")
 
@@ -51,6 +53,16 @@ def require_usable_public_dns(audit, *, allow_partial_resolution_failures=False)
     if unresolved and (not allow_partial_resolution_failures or not resolved):
         scope = "all declared public benchmark hosts" if not resolved else "public benchmark hosts"
         raise ValueError("DNS resolution failed for " + scope + ": " + ", ".join(unresolved))
+
+
+    # Recompute from retained addresses as well, so older preflight receipts
+    # without the diagnostic field cannot conceal a private-address answer.
+    non_public = [row["host"] for row in audit["hosts"]
+                  if any(not ipaddress.ip_address(address).is_global
+                         for address in row.get("addresses", []))]
+    if non_public:
+        raise ValueError("System DNS returned non-public addresses for: " + ", ".join(non_public) +
+                         "; use a real-public-address DNS environment before comparison. Do not disable product safety guards.")
 
 
 def preflight_guarded_providers(providers, cases):

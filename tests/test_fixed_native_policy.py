@@ -1,7 +1,9 @@
 import json
+from pathlib import Path
 from dataclasses import replace
 from unittest.mock import patch
 import pytest
+from tests.conftest import read_frozen_dataset_bytes
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.providers.base import build_provider
 from harness.web_fetch.providers.http_client import HttpResponse
@@ -39,11 +41,14 @@ def test_fixed_native_requests_preserve_capabilities_without_product_timers(kind
 
 @pytest.mark.parametrize("kind", ["moli_webfetch", "firecrawl", "tavily_extract", "exa_contents",
     "cloudflare_markdown", "cowagent_builtin", "subprocess_jsonl"])
-def test_fixed_native_rejects_per_case_hints_before_call(kind):
+def test_fixed_native_rejects_hints_and_unknown_outputs_before_call(kind):
     provider = build_provider(kind, {"type": kind, "uniform_native_parameters": True})
     case = EvalCase("one", "one", "https://example.com/", "control", [],
         retrieval_hints={"completion": {"selector": ".answer"}})
     with pytest.raises(ValueError, match="per-case"):
+        provider.fetch(case, 45)
+    case = replace(case, retrieval_hints={}, task_kind="undeclared")
+    with pytest.raises(ValueError, match="declared native output"):
         provider.fetch(case, 45)
 
 
@@ -70,13 +75,13 @@ def test_fixed_native_rejects_case_specific_page_capabilities():
         provider.check_native_call(case)
 
 
-@pytest.mark.parametrize("track,task_kind", [("document", "resource"), ("image", "file"),
+@pytest.mark.parametrize("track,task_kind", [("document", "resource"), ("image", "undeclared"),
     ("unknown", "body")])
 def test_fixed_native_rejects_undeclared_task_routes(track, task_kind):
     provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
     case = EvalCase("one", "one", "https://example.com/", "control", [],
         track=track, task_kind=task_kind)
-    with pytest.raises(ValueError, match="declared task route"):
+    with pytest.raises(ValueError, match="declared.*(?:route|output)"):
         provider.check_native_call(case)
 
 
@@ -91,12 +96,93 @@ def test_runner_rejects_extra_attempts_before_preflight(tmp_path, runs, retries)
     assert not (tmp_path / "run").exists()
 
 
+@pytest.mark.parametrize("kind,module", [("firecrawl", "firecrawl"), ("exa_contents", "exa"),
+    ("tavily_extract", "tavily"), ("cloudflare_markdown", "cloudflare")])
+def test_web_family_does_not_change_native_cloud_request(kind, module):
+    provider = build_provider(module, {"type": kind, "uniform_native_parameters": True,
+        "api_key": "fixture", "api_token": "fixture", "account_id": "fixture"})
+    bodies = []
+    for track in ("web", "dynamic", "challenge", "risk_control"):
+        case = EvalCase("one", "one", "https://example.com/", "control", [], track=track,
+            acceptance_contract={"version": 1, "schema": "body_text", "minimum_records": 0,
+                                 "stable_text_anchors": [{"id": "answer", "alternatives": ["Expected answer"]}]})
+        with patch(f"harness.web_fetch.providers.{module}.request") as call:
+            call.return_value = HttpResponse(200, case.url, {}, b'{}')
+            provider.fetch(case, 45)
+            assert call.call_count == 1
+            bodies.append(call.call_args)
+    assert all(body == bodies[0] for body in bodies)
+
+
+def test_native_cloudflare_document_never_downloads_in_caller():
+    provider = build_provider("cf", {"type": "cloudflare_markdown", "uniform_native_parameters": True})
+    case = EvalCase("pdf", "pdf", "https://example.com/a.pdf", "control", [], track="document")
+    with patch("harness.web_fetch.providers.cloudflare._get_document", side_effect=AssertionError("extra download")), \
+         patch("harness.web_fetch.providers.cloudflare._uses_direct_document_route", side_effect=AssertionError("native URL guessing")), \
+         patch("harness.web_fetch.providers.cloudflare.request") as call:
+        call.return_value = HttpResponse(200, case.url, {}, b'{"success":true,"result":"native text"}')
+        assert provider.fetch(case, 45).content == "native text"
+        assert call.call_count == 1
+        assert call.call_args.args[0].endswith("/markdown")
+        assert call.call_args.kwargs["json_body"]["url"] == case.url
+
+
+def test_native_cloudflare_media_has_no_answer_dependent_selectors_or_timers():
+    provider = build_provider("cf", {"type": "cloudflare_markdown", "uniform_native_parameters": True})
+    bodies = []
+    for expected in ([], [{"kind": "video-link", "urls": ["https://secret-answer.invalid/"]}]):
+        case = EvalCase("media", "media", "https://example.com/", "control", [],
+            track="video", task_kind="resource", expected_resources=expected)
+        with patch("harness.web_fetch.providers.cloudflare.request") as call:
+            call.return_value = HttpResponse(200, case.url, {}, b'{"success":true,"result":[]}')
+            provider.fetch(case, 45)
+            assert call.call_count == 1
+            bodies.append(call.call_args.kwargs["json_body"])
+    assert bodies[0] == bodies[1]
+    assert "actionTimeout" not in bodies[0]
+    assert "timeout" not in bodies[0]["gotoOptions"]
+
+
+def test_historical_430_cases_pass_native_hint_and_output_guard():
+    from harness.web_fetch.config import load_dataset
+    provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
+    count = 0
+    for filename in ("dataset.json", "dynamic-content-100-moli-webfetch/dataset.json",
+                     "popular-sites/dataset.json", "risk-control/dataset.json"):
+        path = Path(__file__).resolve().parents[1] / "evaluation" / filename
+        read_frozen_dataset_bytes(path)
+        _, cases = load_dataset(path)
+        for case in cases:
+            if filename == "dataset.json" and case.track not in {"web", "document", "image", "video"}:
+                continue
+            provider.check_native_call(case)
+            count += 1
+    assert count == 430
+
+
+def test_native_media_projection_keeps_all_returned_fields_without_link_guessing():
+    payload = {'success': True, 'result': [
+        {'selector': 'video', 'results': [{'attributes': [{'name': 'src', 'value': '/a.mp4'}]}]},
+        {'selector': 'a[href]', 'results': [{'attributes': [
+            {'name': 'href', 'value': '/opaque'}, {'name': 'href', 'value': '/about'},
+            {'name': 'title', 'value': 'Unchanged native label'}]}]}]}
+    case = EvalCase('control', 'control', 'https://example.com/', 'control', [],
+                    track='video', task_kind='resource')
+    provider = build_provider('cf', {'type': 'cloudflare_markdown',
+        'uniform_native_parameters': True, 'account_id': 'fixture', 'api_token': 'fixture'})
+    with patch('harness.web_fetch.providers.cloudflare.request',
+               return_value=HttpResponse(200, case.url, {}, json.dumps(payload).encode())) as call:
+        result = provider.fetch(case, 45)
+    assert call.call_count == 1
+    assert result.metadata['videos'] == [
+        'https://example.com/a.mp4', 'https://example.com/about', 'https://example.com/opaque']
+    assert json.loads(result.content) == payload['result']
 def test_native_dataset_marker_reaches_real_runner_without_per_case_assistance(tmp_path):
     from harness.web_fetch.retrieval_hints import native_fetch_dataset
     from harness.web_fetch.runner import run_evaluation
     from harness.web_fetch.config import load_dataset
     source = {"id": "native-dynamic", "tool": "web_fetch", "cases": [{"id": "dynamic", "name": "Dynamic",
-        "url": "https://example.com/", "category": "dynamic", "track": "dynamic", "expected_any": ["fixture"]}]}
+        "url": "https://example.com/", "category": "dynamic", "track": "dynamic", "expected_any": ["fixture"], "source_benchmark": {"input_media_kind": "html_page"}, "acceptance_contract": {"version": 1, "schema": "body_text", "minimum_records": 0, "stable_text_anchors": [{"id": "fixture", "alternatives": ["fixture"]}]}}]}
     dataset = native_fetch_dataset(source)
     assert native_fetch_dataset(dataset) == dataset
     path = tmp_path / "dataset.json"

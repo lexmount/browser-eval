@@ -4,6 +4,7 @@ import re
 from html import escape
 from lexbench_webfetch.paths import contained_path
 from .methods import native_browser_engine, browser_method_registry, browser_method_label
+from .report_components import measurement_presentation
 
 URL='https://example.com/'
 HEADLESS_ACCESS={
@@ -144,22 +145,23 @@ def method_access(name, records):
  return {**access,'links':[(f'Moli {version}',f'https://github.com/lexmount/moli/releases/tag/v{version}')]}
 
 
-def method_spec(name, record):
+def method_spec(name, record, *, timeout_seconds=None):
  engine=native_browser_engine(name) or name
  if record and record.get('provider_type')=='moli_webfetch':
   base=SPECS['moli-webfetch']
   meta=record.get('provider_metadata') or {}
   policy=meta.get('internal_timeout_policy')
+  budget=(f'{timeout_seconds:g} 秒外层截止' if isinstance(timeout_seconds,(int,float)) and not isinstance(timeout_seconds,bool) and timeout_seconds>0 else '外层截止时间未记录')
   if policy=='native_default':
-   timeout_description='45 秒外层截止；Moli 总等待、HTTP 和连接超时保留该二进制默认值'
+   timeout_description=budget+'；Moli 总等待、HTTP 和连接超时保留该二进制默认值'
    timeout_note='这批调用未传入 Moli 内部超时参数。'
   elif policy=='explicit':
    timeout_ms=meta.get('http_connect_timeout_ms')
-   timeout_description=('45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时'
+   timeout_description=(budget+'；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时'
                         +((' '+f'{timeout_ms:,}'+' 毫秒') if isinstance(timeout_ms,int) else ''))
    timeout_note='这批调用使用保存记录中的显式 Moli 超时，未写成产品默认值。'
   else:
-   timeout_description='45 秒外层截止；Moli 内部超时以逐次调用记录为准'
+   timeout_description=budget+'；Moli 内部超时以逐次调用记录为准'
    timeout_note='保存证据未提供可核对的 Moli 内部超时策略。'
   params=[(key,kind,timeout_description if key=='外层截止' else description)
           for key,kind,description in base['params']]
@@ -393,7 +395,9 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
 def render_interfaces(out,records):
  from .artifacts import record_public_call_log_bindings, verify_public_call_log
  dataset_path=out/"dataset.json"
- native_default=dataset_path.is_file() and json.loads(dataset_path.read_text()).get("comparison",{}).get("kind")=="uniform_native_local_measurement"
+ dataset=json.loads(dataset_path.read_text()) if dataset_path.is_file() else {}
+ comparison=dataset.get("comparison",{})
+ native_default=measurement_presentation(dataset).native_outputs
  def pre(value):return '<pre>'+escape(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2))+'</pre>'
  def fields(rows):return '<dl class="interface-fields">'+''.join('<div><dt><code>'+escape(k)+'</code> <small>'+escape(t)+'</small></dt><dd>'+escape(d)+'</dd></div>' for k,t,d in rows)+'</dl>'
  measured={r['provider'] for r in records}
@@ -403,13 +407,15 @@ def render_interfaces(out,records):
   body='<p>已测方法的输入展示保存的公开调用字段，输出展示同一次调用的实际节选。完整配置、原始响应和日志见环境与调用详情。未参评方法保留仓库登记示例。</p>'
  for i,name in enumerate(names):
   r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
-  s=method_spec(name,r)
-  if r and native_default:
-   bindings=record_public_call_log_bindings(r)
-   if not bindings:
-    raise ValueError("Measured native interface requires a saved call log: "+name)
+  s=method_spec(name,r,timeout_seconds=comparison.get("timeout_seconds"))
+  bindings=record_public_call_log_bindings(r) if r else []
+  if r and native_default and not bindings:
+   raise ValueError("Measured native interface requires a saved call log: "+name)
+  if bindings:
    request=json.loads(verify_public_call_log(out,bindings[-1]).read_text())["request"]
-   s={**s,"params":[],"request":request,"notes":"此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。"}
+   from .methods import method_page_model
+   model=method_page_model(name,name,[x for x in records if x["provider"]==name])
+   s={**s,"entry":model["endpoint"],"params":[],"request":request,"notes":"此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。"}
   access=method_access(name,records)
   if r:
    content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
@@ -422,7 +428,9 @@ def render_interfaces(out,records):
   if access:
    body+='<h3>账号与获取入口</h3><p>'+escape(access['account'])+'</p><p>'+escape(access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+escape(label)+'</a>' for label,url in access['links'])+'</p><p class="source-note">实际版本和接口见运行记录；下方链接指向官方说明。</p>'
   sample_label='本轮输出节选 · 统一记录' if r else '本轮未执行'
-  body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+('<h4>本轮保存的调用字段</h4>' if r and native_default else '<h4>调用输入示例</h4>')+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
+  body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+('<h4>本轮保存的调用字段</h4>' if bindings else '<h4>调用输入示例</h4>')+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
   measured_link='<a href="../attempts/'+escape(r['attempt_id'])+'.html">该次完整输出与判定 →</a>' if r else '未纳入本轮；参数说明为仓库登记模式，不计入本轮结果'
-  body+='<p>'+escape(s['notes'])+'</p><p class="source-note">核对实现：<code>'+escape(s['source'])+'</code> · '+measured_link+' · <a href="interfaces/'+name+'.json">示例 JSON</a></p></details>'
+  from .report_components import bilingual_text
+  example_note='' if bindings else bilingual_text('以下接口说明与数值属于仓库登记示例，不是这次调用的请求记录。', 'The following interface descriptions and values are registered examples, not this call’s request record.')
+  body+='<p>'+example_note+escape(s['notes'])+'</p><p class="source-note">核对实现：<code>'+escape(s['source'])+'</code> · '+measured_link+' · <a href="interfaces/'+name+'.json">示例 JSON</a></p></details>'
  return body

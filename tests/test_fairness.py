@@ -287,7 +287,7 @@ class FairnessTests(unittest.TestCase):
         self.assertNotIn('shipping', missing['stable_records'][0]['fields'])
         self.assertEqual(missing['stable_records'][1]['fields']['shipping'], 'Free shipping')
 
-    def test_dynamic_declared_exclusions_are_executable_not_prose_only(self):
+    def test_dynamic_prompt_hits_are_diagnostic_when_target_is_complete(self):
         cases = {case['id']: case for case in self.historical_dataset()['cases']}
         supplemental = {
             'dynamic-react-cart': [
@@ -301,22 +301,23 @@ class FairnessTests(unittest.TestCase):
             ],
         }
         for identifier, tokens in supplemental.items():
-            case = cases[identifier]
+            case = dict(cases[identifier])
+            case['diagnostic_any'] = case.pop('forbidden_any', [])
             target_only = case['ground_truth_main_content']
             clean = score_attempt(case, target_only.encode(), ok=True)
             with self.subTest(case=identifier, variant='target-only'):
                 self.assertTrue(task_passed(True, clean))
-                self.assertEqual(clean['forbidden_hits'], [])
+                self.assertEqual(clean['diagnostic_hits'], [])
             for token in tokens:
                 extended = score_attempt(
                     case, f'{target_only}\n\n{token}'.encode(), ok=True)
                 with self.subTest(case=identifier, supplemental=token):
                     self.assertTrue(extended['stable_structure_pass'])
                     if identifier == 'dynamic-react-cart' or token == 'Similar Products':
-                        self.assertEqual(extended['forbidden_hits'], [token])
-                        self.assertFalse(task_passed(True, extended))
+                        self.assertEqual(extended['diagnostic_hits'], [token])
+                        self.assertTrue(task_passed(True, extended))
                     else:
-                        self.assertEqual(extended['forbidden_hits'], [])
+                        self.assertEqual(extended['diagnostic_hits'], [])
                         self.assertTrue(task_passed(True, extended))
 
     def test_end_to_end_processing_is_timed_and_late_answers_rejected(self):
@@ -344,7 +345,7 @@ class FairnessTests(unittest.TestCase):
         m = score_attempt(c,b'link only',ok=True)
         r = {'provider':'p','ok':True,'metrics':m,'elapsed_ms':20,'case_id':'x'}
         self.assertFalse(task_measured(m))
-        self.assertEqual(result_label(r,c),'未测')
+        self.assertEqual(result_label(r,c),'无法判定')
         self.assertIn('data-result="unmeasured"',case_attrs(r,c))
         self.assertIn('0/1', ranking([r],{'x':c},'media_file'))
 

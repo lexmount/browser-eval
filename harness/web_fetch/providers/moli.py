@@ -14,13 +14,17 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from urllib.parse import parse_qsl, quote, urlsplit
+from urllib.parse import urlsplit
+
+from ..native_projection import main_document_url_from_fetch_log as _diagnostic_main_document_url
 
 from lexbench_webfetch.models import EvalCase, TRACKS
 from harness.web_fetch.models import ProviderResult
-from ..retrieval_hints import native_contract_for_case, plan_for_case
+from ..retrieval_hints import NATIVE_RETRIEVAL_HINTS, native_contract_for_case, plan_for_case
 from lexbench_webfetch.paths import validate_http_url
+from ..native_projection import native_answer_projection
 from .base import Provider, terminate_owned_process_tree
+from ..native_routes import NativeRoute
 from .http_client import inner_timeout_budget
 
 _WAIT_UNTIL_VALUES = {
@@ -107,112 +111,62 @@ def _moli_native_error_type(stderr: str | bytes) -> str:
 
 
 def _native_fetch_diagnostics(stderr: bytes, requested_url: str) -> tuple[int | None, bool]:
-    """Read only same-call native events; ambiguous document ownership stays unknown."""
-    prefix = rb"(?:^|\n)(?:\d{4}-\d{2}-\d{2}T[^\s]+\s+)?"
-    rows = list(re.finditer(
-        prefix + rb"DEBUG fetch request complete method=(?:GET|POST) "
-        rb"url=(?P<url>\S+) final_url=\S+ status=(?P<status>\d{3})\b[^\r\n]*",
-        stderr,
-    ))
-    requested = requested_url.encode("utf-8")
-    matches = [row for row in rows if row.group("url") == requested]
-    status = None
-    if len(matches) == 1:
-        row = matches[0]
-        value = int(row.group("status"))
-        # Legacy logs cannot bind subsequent HTTP redirect hops to a Document.
-        # A committed script navigation also invalidates the initial response.
-        later = stderr[row.end():]
-        if not 300 <= value < 400 and not any(marker in later for marker in (
-            b"committed main navigation before replacement realm bootstrap",
-            b"detached committed main WindowProxy for replacement context",
-        )):
-            status = value
-    waits = re.finditer(
-        prefix + rb"WARN fetch readiness wait timed out; returning best-effort page "
-        rb"page_id=\d+ url=(?P<url>\S+) final_url=\S+ "
-        rb"wait_until=(?:DomStable|NetworkIdle) timeout_ms=[1-9]\d* "
-        rb"remaining_ms=\d+ error=[^\r\n]+",
-        stderr,
-    )
-    return status, any(row.group("url") == requested for row in waits)
+    """Use the same capture-bounded native parser as saved-call replay."""
+    from ..native_projection import native_fetch_diagnostics
+    return native_fetch_diagnostics(stderr, requested_url)
 
 
-def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> str | None:
-    """Read Moli's effective main-document URL from the same call's debug log."""
-    pattern = re.compile(
-        rb"fetch request complete method=(?:GET|POST) url=(?P<url>\S+) "
-        rb"final_url=(?P<final_url>\S+) status=(?P<status>\d{3})\b"
-    )
-
-    diagnostic = stderr.encode("utf-8") if isinstance(stderr, str) else stderr
-    navigation_pattern = re.compile(
-        rb"following pending location navigation asynchronously[^\n]* url=(?P<url>\S+)"
-    )
-
-    def field(row: re.Match[bytes], name: str) -> str:
-        return row.group(name).decode("utf-8", "replace")
-
-    def identity(value: str) -> tuple | None:
-        try:
-            validate_http_url(value)
-            parts = urlsplit(value)
-            return (
-                parts.scheme.casefold(),
-                (parts.hostname or "").casefold(),
-                parts.port if parts.port is not None else (443 if parts.scheme.casefold() == "https" else 80),
-                re.sub(r"%[0-9a-fA-F]{2}", lambda match: match[0].upper(),
-                       quote(parts.path, safe="/%:@!$&'()*+,;=")).rstrip("/") or "/",
-                sorted(parse_qsl(parts.query, keep_blank_values=True)),
-            )
-        except ValueError:
-            return None
-
-    requested_identity = identity(requested_url)
-    if requested_identity is None:
-        return None
-    rows = list(pattern.finditer(diagnostic))
-
-    # Legacy completion records do not identify redirect hops or request owners.
-    # Never infer the document from GET ordering or challenge query parameters.
-    row = next((candidate for candidate in rows
-                if identity(field(candidate, "url")) == requested_identity), None)
-    if row is None or 300 <= int(field(row, "status")) < 400:
-        return None
-    navigations = list(navigation_pattern.finditer(diagnostic))
-    for index, navigation in enumerate(navigations):
-        boundary = navigations[index + 1].start() if index + 1 < len(navigations) else len(diagnostic)
-        commits = [diagnostic.find(marker, navigation.end(), boundary) for marker in (
-            b"committed main navigation before replacement realm bootstrap",
-            b"detached committed main WindowProxy for replacement context",
-        )]
-        committed = next((position for position in commits if position >= 0), -1)
-        if committed < 0:
-            continue
-        navigation_identity = identity(field(navigation, "url"))
-        if navigation_identity is None:
-            return None
-        matches = [candidate for candidate in rows
-                   if navigation.end() <= candidate.start() < boundary
-                   and identity(field(candidate, "url")) == navigation_identity]
-        if len(matches) != 1 or 300 <= int(field(matches[0], "status")) < 400:
-            return None
-        row = matches[0]
-    candidate = field(row, "final_url")
-    if identity(candidate) is None:
-        return None
-    try:
-        validate_http_url(candidate)
-    except ValueError:
-        return None
-    return candidate
+def replay_native_http_error_context(stdout: bytes, diagnostic: bytes, requested_url: str,
+                                     exit_code: int, projection: dict) -> dict:
+    """Replay only a proved HTTP error, never process failure or arbitrary fields."""
+    if projection != {'schema_version': 1, 'format': 'fetch_log_http_error'}:
+        raise ValueError('Unsupported native HTTP context projection')
+    stdout.decode('utf-8')
+    if type(exit_code) is not int or exit_code != 0:
+        raise ValueError('Native HTTP context requires a completed successful process')
+    status, _ = _native_fetch_diagnostics(diagnostic, requested_url)
+    if status is None or not 400 <= status < 600:
+        raise ValueError('Native HTTP context has no unambiguous captured HTTP error')
+    return {'ok': False, 'status_code': status, 'error_type': 'api_error',
+            'error_message': f'Moli returned HTTP {status}'}
 
 
+
+
+def _route_for_case(case: EvalCase, *, native_default: bool = False) -> str:
+    """Select one output contract before applying page-family extraction rules."""
+    if case.task_kind == "file":
+        return "raw_file"
+    if native_default:
+        if case.task_kind == "resource":
+            return "native_resource_html"
+        from ..native_routes import declared_input_media_kind
+        media = declared_input_media_kind(case, required=case.track == "document")
+        if case.track == "document" and media in {"direct_pdf", "direct_docx"}:
+            return "native_document_bytes"
+        return "dynamic_native_markdown" if case.track == "dynamic" else "ordinary_markdown"
+    return "resource_native_markdown" if case.task_kind == "resource" else "dynamic_native_markdown" if case.track == "dynamic" else "ordinary_markdown"
+
+
+def _family_wait_until(config, track):
+    default = (config.get('dynamic_wait_until', 'domstable')
+               if track == 'dynamic' else config.get('wait_until', 'done'))
+    return config.get('wait_until_by_track', {}).get(track, default)
 
 
 class MoliWebFetchProvider(Provider):
+    def native_route(self, case) -> NativeRoute:
+        interface = _route_for_case(case, native_default=True)
+        fields = (['original_bytes'] if interface in {'raw_file', 'native_document_bytes'}
+                  else ['stdout', 'diagnostic.main_document_url'])
+        return NativeRoute('cli', interface, tuple(fields))
+
     def __init__(self, name, config):
         super().__init__(name, config)
+        native = bool(config.get('uniform_native_parameters'))
+        self._select_command = self._native_command if native else self._diagnostic_command
+        self._file_delivery = self._native_file_delivery if native else self._diagnostic_file_delivery
+        self._retain_source = self._retain_native_source if native else self._retain_diagnostic_source
         self._process_lock = threading.Lock()
         self._cancel_requested = False
         self._active_process = None
@@ -285,7 +239,7 @@ class MoliWebFetchProvider(Provider):
                 "local_report_complete_diagnostic_links (requires retain_complete_diagnostic_log)"
             )
         allowlist = self.config.get("private_network_allowlist_hosts", [])
-        if self.config.get("uniform_native_parameters") and allowlist:
+        if self._native_mode and allowlist:
             errors.append("private_network_allowlist_hosts cannot vary uniform native parameters")
         if (
             not isinstance(allowlist, list)
@@ -356,7 +310,71 @@ class MoliWebFetchProvider(Provider):
                         self._implementation_identity["native_dns"] = binding
         return errors
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def native_cli_command(self, case):
+        route = _route_for_case(case, native_default=True)
+        argv = [str(self.config.get('binary', 'moli')), 'fetch']
+        native_dynamic = case.track == 'dynamic' and case.retrieval_hints == NATIVE_RETRIEVAL_HINTS
+        if route not in {'raw_file', 'native_document_bytes'}:
+            wait = _family_wait_until(self.config, case.track)
+            argv += ['--dump', 'html' if case.task_kind == 'resource' else 'markdown', '--wait-until', wait]
+            if native_dynamic:
+                argv += ['--layout', '--with-frames']
+        if self.config.get('block_private_networks', True):
+            argv.append('--block-private-networks')
+        if self.config.get('log_level'):
+            argv += ['--log-level', str(self.config['log_level'])]
+        return [*argv, case.url]
+
+    @staticmethod
+    def _native_file_delivery(case, binary, call_deadline):
+        return None
+
+    def _diagnostic_file_delivery(self, case, binary, call_deadline):
+        if case.task_kind != 'file':
+            return None
+        from .headless import HeadlessProvider
+        native = HeadlessProvider(self.name, {**self.config, 'type':'headless_markdown',
+                                              'engine':'moli', 'binary':binary,
+                                              'max_original_file_bytes':int(self.config.get('max_bytes',20_000_000))})
+        with self._process_lock:
+            self._active_native_provider = native
+            if self._cancel_requested: native.cancel()
+        try:
+            result = native.fetch(case, max(.001, call_deadline-time.monotonic()))
+            result.metadata.update(route='raw_file',
+                reported_version=self._reported_version, binary_sha256=self._binary_sha256)
+            return result
+        finally:
+            with self._process_lock: self._active_native_provider = None
+
+    @staticmethod
+    def _diagnostic_command(case, binary, command, dump, layout, include_subdocuments,
+                            wait_metadata, family_wait, track_waits, native_dynamic_task):
+        return command, _route_for_case(case), dump, layout, include_subdocuments, wait_metadata
+
+    def _native_command(self, case, binary, command, dump, layout, include_subdocuments,
+                        wait_metadata, family_wait, track_waits, native_dynamic_task):
+        route = _route_for_case(case, native_default=True)
+        command = [binary, *self.native_cli_command(case)[1:]]
+        dump = None if route in {'raw_file', 'native_document_bytes'} else 'html' if case.task_kind == 'resource' else 'markdown'
+        if not native_dynamic_task:
+            layout = include_subdocuments = False
+            wait_metadata = {'wait_until': family_wait, 'strategy': 'native_default_completion'}
+            if case.track in track_waits:
+                wait_metadata.update(scope=f'{case.track}_task_family', strategy='native_task_family_completion')
+        return command, route, dump, layout, include_subdocuments, wait_metadata
+
+    @staticmethod
+    def _retain_diagnostic_source(metadata, raw, case):
+        pass
+
+    @staticmethod
+    def _retain_native_source(metadata, raw, case):
+        metadata.update(_raw_stdout_b64=base64.b64encode(raw).decode('ascii'),
+            raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
+            native_answer_projection=native_answer_projection('moli_webfetch', case, {}))
+
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
         validate_http_url(case.url)
         if not math.isfinite(timeout) or timeout <= 0:
@@ -369,7 +387,7 @@ class MoliWebFetchProvider(Provider):
                 case.track == "dynamic"
                 and isinstance(case.retrieval_hints, dict)
                 and case.retrieval_hints.get("version") == 3
-                and case.retrieval_hints != {"version": 3, "mode": "native"}
+                and case.retrieval_hints != NATIVE_RETRIEVAL_HINTS
             ):
                 raise ValueError(
                     f"{case.id}: Moli native dynamic tasks require one family marker"
@@ -401,36 +419,14 @@ class MoliWebFetchProvider(Provider):
             return ProviderResult(
                 False, "", error_type="configuration", error_message="; ".join(errors)
             )
-        from .headless import HeadlessProvider
-        # Moli has one content interface for every webpage and document-body
-        # task.  Only a direct-media-file deliverable takes the raw-byte path.
-        # This avoids changing the participant's output format within a report
-        # family based on the URL suffix or the expected answer.
-        if case.task_kind == 'file':
-            native = HeadlessProvider(self.name, {**self.config, 'type':'headless_markdown',
-                                                  'engine':'moli', 'binary':binary,
-                                                  'max_original_file_bytes':int(self.config.get('max_bytes',20_000_000))})
-            with self._process_lock:
-                self._active_native_provider = native
-                if self._cancel_requested: native.cancel()
-            try:
-                result = native.fetch(case, max(.001, call_deadline-time.monotonic()))
-                result.metadata.update(route='raw_file',
-                    reported_version=self._reported_version, binary_sha256=self._binary_sha256)
-                return result
-            finally:
-                with self._process_lock: self._active_native_provider = None
-        wait = self.config.get("wait_until", "done")
-        family_wait = (
-            self.config.get("dynamic_wait_until", "domstable")
-            if case.track == "dynamic"
-            else wait
-        )
+        file_result = self._file_delivery(case, binary, call_deadline)
+        if file_result is not None:
+            return file_result
+        family_wait = _family_wait_until(self.config, case.track)
         track_waits = self.config.get("wait_until_by_track", {})
-        family_wait = track_waits.get(case.track, family_wait)
         native_dynamic_task = (
             case.track == "dynamic"
-            and case.retrieval_hints == {"version": 3, "mode": "native"}
+            and case.retrieval_hints == NATIVE_RETRIEVAL_HINTS
         )
         wait_option = "--" + self.config.get("wait_option", "wait-until")
         timeout_ms = str(max(1, int(inner_timeout_budget(timeout) * 1000)))
@@ -531,11 +527,6 @@ class MoliWebFetchProvider(Provider):
         )
         # The retained answer limit must not restrict page or subresource downloads.
         command.extend(["--http-connect-timeout", timeout_ms])
-        if self.config.get("uniform_native_parameters"):
-            for flag in ("--timeout", "--http-timeout", "--http-connect-timeout"):
-                if flag in command:
-                    index = command.index(flag)
-                    del command[index:index + 2]
         block_private_networks = bool(self.config.get("block_private_networks", True))
         requested_host = (urlsplit(case.url).hostname or "").casefold()
         private_network_guard_exception = block_private_networks and requested_host in set(
@@ -547,19 +538,24 @@ class MoliWebFetchProvider(Provider):
         if log_level:
             command.extend(["--log-level", str(log_level)])
         command.append(case.url)
+        command, route, dump, layout, include_subdocuments, wait_metadata = self._select_command(
+            case, binary, command, dump, layout, include_subdocuments, wait_metadata,
+            family_wait, track_waits, native_dynamic_task)
+        raw_task = route in {'raw_file', 'native_document_bytes'}
         limit = int(self.config.get("max_bytes", 20_000_000))
-        retain_diagnostic = bool(self.config.get("retain_complete_diagnostic_log", False))
+        retain_diagnostic = bool(self.config.get("retain_complete_diagnostic_log", False) or self._native_mode)
         diagnostic_limit = int(self.config.get("max_diagnostic_bytes", 100_000_000))
         diagnostic_read_limit = diagnostic_limit if retain_diagnostic else limit
         metadata = {
             "dump": dump,
             "layout": layout,
             "with_frames": include_subdocuments,
-            "http_connect_timeout_ms": None if self.config.get("uniform_native_parameters") else int(timeout_ms),
-            "internal_timeout_policy": "native_default" if self.config.get("uniform_native_parameters") else "explicit",
+            "http_connect_timeout_ms": None if self._native_mode else int(timeout_ms),
+            "internal_timeout_policy": "native_default" if self._native_mode else "explicit",
             "http_max_response_bytes": None,
             "retained_output_max_bytes": limit,
-            "route": (
+            "route": route,
+            "native_route_label": (
                 "resource_native_markdown"
                 if case.task_kind == "resource"
                 else "dynamic_native_markdown"
@@ -645,6 +641,9 @@ class MoliWebFetchProvider(Provider):
                 process_environment = dns_broker.environment(library)
                 metadata["native_dns_binding"] = binding
             try:
+                self.capture_native_request(case, native_route_ledger=native_route_ledger, transport='cli', interface=route,
+                    parameters={'argv': ['<native-binary>', *command[1:-1], '<input-url>'],
+                                'binary_sha256': getattr(self, '_binary_sha256', None)})
                 process = subprocess.Popen(
                     command,
                     stdin=subprocess.DEVNULL,
@@ -751,6 +750,19 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli fetch exceeded time budget",
                 metadata=metadata,
             )
+        if raw_task:
+            self._retain_source(metadata, raw, case)
+            if route == "native_document_bytes":
+                metadata["native_output_contract"] = "original_document_bytes_without_extracted_text"
+            ok = process.returncode == 0
+            return ProviderResult(
+                ok,
+                "",
+                files=[{"data": raw}] if raw else [],
+                error_type=None if ok else "tool_error",
+                error_message=None if ok else stderr or "Moli file request failed",
+                metadata=metadata,
+            )
         try:
             content = raw.decode("utf-8")
         except UnicodeDecodeError:
@@ -761,7 +773,11 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli markdown output is not UTF-8",
                 metadata=metadata,
             )
+        self._retain_source(metadata, raw, case)
         native_status, readiness_timed_out = _native_fetch_diagnostics(diagnostic_raw, case.url)
+        http_context = (replay_native_http_error_context(raw, diagnostic_raw, case.url,
+                        process.returncode, {'schema_version': 1, 'format': 'fetch_log_http_error'})
+                        if process.returncode == 0 and native_status is not None and 400 <= native_status < 600 else None)
         if native_status is not None:
             metadata["http_status_source"] = "same_call_native_document_event"
         if readiness_timed_out:
@@ -786,23 +802,23 @@ class MoliWebFetchProvider(Provider):
         # Nonempty best-effort output remains a valid answer for the shared scorer;
         # its content failures do not acquire a new retry policy.
         return ProviderResult(
-            ok,
+            http_context['ok'] if http_context else ok,
             content,
             status_code=native_status if native_status is not None else parsed_error_status,
             final_url=final_url,
             error_type=(
-                None
+                http_context['error_type'] if http_context else (None
                 if ok
                 else "api_error"
                 if parsed_error_status is not None
-                else native_error_type
+                else native_error_type)
             ),
             error_message=(
-                None
+                http_context['error_message'] if http_context else (None
                 if ok
                 else f"Moli returned HTTP {parsed_error_status}"
                 if parsed_error_status is not None
-                else stderr or "Moli request failed"
+                else stderr or "Moli request failed")
             ),
             metadata=metadata,
         )

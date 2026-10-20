@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -293,6 +293,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
+    { name = "fastcdc" },
     { name = "lexbench-webfetch" },
 ]
 
@@ -349,10 +350,11 @@ requires-dist = [
     { name = "crawl4ai", marker = "extra == 'oss-eval'", specifier = "==0.9.3" },
     { name = "docker", marker = "extra == 'browser-use-eval'", specifier = ">=7,<8" },
     { name = "docker", marker = "extra == 'headless-eval'", specifier = ">=7,<8" },
+    { name = "fastcdc", specifier = "==1.7.0" },
     { name = "jieba", marker = "extra == 'webmainbench-eval'", specifier = "==0.42.1" },
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
-    { name = "lexbench-webfetch", git = "https://github.com/lexmount/lexbench-webfetch.git?rev=6d8d72637bb96f4938b9a2f7c46d0c7dffd74945" },
+    { name = "lexbench-webfetch", git = "https://github.com/lexmount/lexbench-webfetch.git?rev=84c177d97da3b82567d9881e377aa728929cf129" },
     { name = "markdown", marker = "extra == 'webmainbench-eval'", specifier = ">=3.7,<4" },
     { name = "openai", marker = "extra == 'webmainbench-eval'", specifier = ">=2.8,<4" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
@@ -688,6 +690,18 @@ wheels = [
 ]
 
 [[package]]
+name = "click-default-group"
+version = "1.2.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1d/ce/edb087fb53de63dad3b36408ca30368f438738098e668b78c87f93cd41df/click_default_group-1.2.4.tar.gz", hash = "sha256:eb3f3c99ec0d456ca6cd2a7f08f7d4e91771bef51b01bdd9580cc6450fe1251e", size = 3505, upload-time = "2023-08-04T07:54:58.425Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/1a/aff8bb287a4b1400f69e09a53bd65de96aa5cee5691925b38731c67fc695/click_default_group-1.2.4-py2.py3-none-any.whl", hash = "sha256:9b60486923720e7fc61731bdb32b617039aba820e22e1c88766b1125592eaa5f", size = 4123, upload-time = "2023-08-04T07:54:56.875Z" },
+]
+
+[[package]]
 name = "click-log"
 version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -706,6 +720,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/27/fb/576f067976d320f5f0114a8d9fa1215425441bb35627b1993e5afd8111e5/cloudpickle-3.1.2.tar.gz", hash = "sha256:7fda9eb655c9c230dab534f1983763de5835249750e85fbcef43aaa30a9a2414", size = 22330, upload-time = "2025-11-03T09:25:26.604Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/39/799be3f2f0f38cc727ee3b4f1445fe6d5e4133064ec2e4115069418a5bb6/cloudpickle-3.1.2-py3-none-any.whl", hash = "sha256:9acb47f6afd73f60dc1df93bb801b472f05ff42fa6c84167d25cb206be1fbf4a", size = 22228, upload-time = "2025-11-03T09:25:25.534Z" },
+]
+
+[[package]]
+name = "codetiming"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/4e/c40bf151af20ba2748bd6ea24e484d7b6196b1056ba3a1a4ee33b6939c37/codetiming-1.4.0.tar.gz", hash = "sha256:4937bf913a2814258b87eaaa43d9a1bb24711ffd3557a9ab6934fa1fe3ba0dbc", size = 14899, upload-time = "2022-11-08T07:12:29.361Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bc/91/e4a2b7c64e738beefddfa24b409d6eecb16c378bde01578918b6ea722a09/codetiming-1.4.0-py3-none-any.whl", hash = "sha256:3b80f409bef00941a9755c5524071ce2f72eaa4520f4bc35b33869cde024ccbd", size = 7165, upload-time = "2022-11-08T07:12:23.553Z" },
 ]
 
 [[package]]
@@ -911,6 +934,33 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/41/43/948d10bf42735709edb5ae51e23297d034086f17fc7279fef385a7acb473/fake_useragent-2.2.0.tar.gz", hash = "sha256:4e6ab6571e40cc086d788523cf9e018f618d07f9050f822ff409a4dfe17c16b2", size = 158898, upload-time = "2025-04-14T15:32:19.238Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/51/37/b3ea9cd5558ff4cb51957caca2193981c6b0ff30bd0d2630ac62505d99d0/fake_useragent-2.2.0-py3-none-any.whl", hash = "sha256:67f35ca4d847b0d298187443aaf020413746e56acd985a611908c73dba2daa24", size = 161695, upload-time = "2025-04-14T15:32:17.732Z" },
+]
+
+[[package]]
+name = "fastcdc"
+version = "1.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "click-default-group" },
+    { name = "codetiming" },
+    { name = "humanize" },
+    { name = "py-cpuinfo" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f6/b8/b4c03fea1cc6e5573e571304e248571669a5fe76b2c234cbe02dd00b2163/fastcdc-1.7.0.tar.gz", hash = "sha256:634b4fbea85296484e896b6ff70e43bcd94724989530c8639a6e5b253105eed2", size = 17628, upload-time = "2024-06-27T15:55:34.684Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3b/58/d35d53fd1c548b7158637071513195366c9ab2074dfbaa293ecd25348fce/fastcdc-1.7.0-cp311-cp311-macosx_11_0_x86_64.whl", hash = "sha256:acd71ad4fa64352c4ad96f0ef6af4d70d84b95e168e89685ad844ba1847949d7", size = 367874, upload-time = "2024-06-27T15:54:37.81Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/a7/99fb058cfdfcbca6c6cc892cfe33b4fea7ea6008f8407da361dd544d5592/fastcdc-1.7.0-cp311-cp311-macosx_12_0_x86_64.whl", hash = "sha256:758b239ad384e30bd11d1c633b2b302d42bf90d2041dd81bb330174f21ead88d", size = 367968, upload-time = "2024-06-27T15:54:39.792Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/da/ad93e7eff62efe8ab5190bdc6a25e52dde2e24931cd1b601b0bee3b6ee98/fastcdc-1.7.0-cp311-cp311-macosx_13_0_x86_64.whl", hash = "sha256:9fd1f1b0ec31e76bb8332634c7968a8c2dbbea523da08a8e992a0407872a703b", size = 366545, upload-time = "2024-06-27T15:54:42.405Z" },
+    { url = "https://files.pythonhosted.org/packages/58/e2/577f6cb3bd05efd583c9ea4400591a1119b59c5e78890c1f4a3aa3760736/fastcdc-1.7.0-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:7a296db028111d91cdbbdf96e533e1eeef3b485b8afb00cdb28f21fde5d0f1df", size = 366547, upload-time = "2024-06-27T15:54:44.964Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/0e/d7188adf9ff0db17fc449723eb940698b2e57f7ee117a68d3dffa1d796e6/fastcdc-1.7.0-cp311-cp311-manylinux_2_31_x86_64.whl", hash = "sha256:6faa04585913712cf9c8145907607262b199d7efc09f63e6d9bde4d6c387c03f", size = 765966, upload-time = "2024-06-27T15:54:48.607Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/82/2d1598307cde7f7e34ae756ff359d4065413fdccf16989cc674050955be0/fastcdc-1.7.0-cp311-cp311-win_amd64.whl", hash = "sha256:62161731452f3938eac0b32596240230a5322e0cd55f5e248ed61ab294e29804", size = 270199, upload-time = "2024-06-27T15:54:50.981Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/d2/de4fdb44aa33301db953abf36e5a178ce391657335c54182dc2281360d61/fastcdc-1.7.0-cp312-cp312-macosx_11_0_x86_64.whl", hash = "sha256:6cf75d6ebc38c9744e3e8e11486bd91b3301c453c258337ab34fc3806a0b47f3", size = 371015, upload-time = "2024-06-27T15:54:53.261Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/2e/be04e02d151b95840169575d81d7a1ed1e1be1ba94ed3aacef28f568a4ed/fastcdc-1.7.0-cp312-cp312-macosx_12_0_x86_64.whl", hash = "sha256:f797f02dad05ab3006f28e2fd7aa4c2f9be696341f40ee760730102de227bc0c", size = 371420, upload-time = "2024-06-27T15:54:55.415Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/77/b7033bb25541f4141a0993b314eb1a2c58a20e44e143e3bae253f1680e00/fastcdc-1.7.0-cp312-cp312-macosx_13_0_x86_64.whl", hash = "sha256:06628cdd1f58f216ed631b8cdf9d5b069210aaa8cc65e0e4ea255ca71eb84bc8", size = 368931, upload-time = "2024-06-27T15:54:57.448Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/fb/f9d2fbc4a6bc1ade4250d7ba6f331f7f1c282b72db4666c4b3441a020346/fastcdc-1.7.0-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:b17830785a7b9e6507fc2d5b40c920aa16de3609f60797bc00c07061ac7ae72d", size = 368930, upload-time = "2024-06-27T15:54:59.753Z" },
+    { url = "https://files.pythonhosted.org/packages/51/11/f4e758b1d75bbf35fd31108c180280ded5bb3466980a844832bef49db6a5/fastcdc-1.7.0-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:2826371f08fb5b970723b9cec299cf003c6f1a86b1112d883473f433e9db2b10", size = 756146, upload-time = "2024-06-27T15:55:03.13Z" },
+    { url = "https://files.pythonhosted.org/packages/31/ae/1995e5afc830e747fd33f5598f8d4dc8fa716e16235d4f9e2486a4eb2d51/fastcdc-1.7.0-cp312-cp312-win_amd64.whl", hash = "sha256:38bbbc21c28c12b618f465c128bd82164d4c620888ce8d39934ca33082d203c4", size = 270902, upload-time = "2024-06-27T15:55:05.813Z" },
 ]
 
 [[package]]
@@ -1883,7 +1933,7 @@ wheels = [
 [[package]]
 name = "lexbench-webfetch"
 version = "0.2.0"
-source = { git = "https://github.com/lexmount/lexbench-webfetch.git?rev=6d8d72637bb96f4938b9a2f7c46d0c7dffd74945#6d8d72637bb96f4938b9a2f7c46d0c7dffd74945" }
+source = { git = "https://github.com/lexmount/lexbench-webfetch.git?rev=84c177d97da3b82567d9881e377aa728929cf129#84c177d97da3b82567d9881e377aa728929cf129" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "soupsieve" },
@@ -2972,6 +3022,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/04/78/0acd37ca84ce3ddffaa92ef0f571e073faa6d8ff1f0559ab1272188ea2be/psutil-7.2.2-cp36-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:b58fabe35e80b264a4e3bb23e6b96f9e45a3df7fb7eed419ac0e5947c61e47cc", size = 148266, upload-time = "2026-01-28T18:15:31.597Z" },
     { url = "https://files.pythonhosted.org/packages/b4/90/e2159492b5426be0c1fef7acba807a03511f97c5f86b3caeda6ad92351a7/psutil-7.2.2-cp37-abi3-win_amd64.whl", hash = "sha256:eb7e81434c8d223ec4a219b5fc1c47d0417b12be7ea866e24fb5ad6e84b3d988", size = 137737, upload-time = "2026-01-28T18:15:33.849Z" },
     { url = "https://files.pythonhosted.org/packages/8c/c7/7bb2e321574b10df20cbde462a94e2b71d05f9bbda251ef27d104668306a/psutil-7.2.2-cp37-abi3-win_arm64.whl", hash = "sha256:8c233660f575a5a89e6d4cb65d9f938126312bca76d8fe087b947b3a1aaac9ee", size = 134617, upload-time = "2026-01-28T18:15:36.514Z" },
+]
+
+[[package]]
+name = "py-cpuinfo"
+version = "9.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/37/a8/d832f7293ebb21690860d2e01d8115e5ff6f2ae8bbdc953f0eb0fa4bd2c7/py-cpuinfo-9.0.0.tar.gz", hash = "sha256:3cdbbf3fac90dc6f118bfd64384f309edeadd902d7c8fb17f02ffa1fc3f49690", size = 104716, upload-time = "2022-10-25T20:38:06.303Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e0/a9/023730ba63db1e494a271cb018dcd361bd2c917ba7004c3e49d5daf795a2/py_cpuinfo-9.0.0-py3-none-any.whl", hash = "sha256:859625bc251f64e21f077d099d4162689c762b5d6a4c3c97553d56241c9674d5", size = 22335, upload-time = "2022-10-25T20:38:27.636Z" },
 ]
 
 [[package]]

@@ -729,8 +729,10 @@ def _validate_layer_execution(
 
 
 def _verify_artifacts(root: Path, rows: list[dict]) -> None:
+    from .native_routes import native_cases_by_id
+    native_cases = native_cases_by_id(root)
     for row in rows:
-        verify_record_artifacts(root, row)
+        verify_record_artifacts(root, row, native_cases=native_cases)
 
 
 def _source_batches(root: Path) -> tuple[list[dict], Path]:

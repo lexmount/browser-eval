@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import posixpath
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
@@ -25,12 +26,22 @@ class PageLinks(HTMLParser):
             self.evidence.append(values["data-file"])
 
 
+def frozen_source_html(name, content):
+    """Captured site navigation is evidence; authored report navigation is checked."""
+    if isinstance(content, bytes):
+        content = content.decode('utf-8',errors='replace')
+    return ('local-evidence' in Path(name).parts and not re.search(
+        r'<meta\b[^>]*name=[\'"]browser-eval-report[\'"]',content))
+
+
 def validate_virtual_links(files, read):
     """Check the complete inventory after privacy projection or an overlay."""
     for name, file in files.items():
         if file["mime"] != "text/html":
             continue
         content = read(name)
+        if frozen_source_html(name,content):
+            continue
         parsed = PageLinks()
         parsed.feed(content.decode("utf-8") if isinstance(content, bytes) else content)
         for image, urls in ((False, parsed.links), (True, parsed.images)):
@@ -94,6 +105,11 @@ def check(root: Path) -> None:
         return parsed_pages[path]
 
     for page in pages:
+        # Frozen source HTML retains the original site's relative navigation.
+        # It is evidence, while report links pointing to it still need to exist.
+        relative = page.relative_to(root)
+        if frozen_source_html(relative,page.read_text(encoding="utf-8",errors="replace")):
+            continue
         parser = parse_page(page)
         base_dir = root if (root / 'sample-manifest.json').is_file() else page.parent
         if parser.base_href:

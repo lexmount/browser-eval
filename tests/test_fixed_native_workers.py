@@ -7,6 +7,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import pytest
+from pydantic import BaseModel
+from typing import Any
+
 ROOT = Path(__file__).resolve().parents[1]
 REQUEST = {"url": "https://example.invalid/", "timeout_seconds": 45,
            "uniform_native_parameters": True, "track": "web", "task_kind": "body",
@@ -28,7 +32,18 @@ def test_langchain_native_requests_have_no_timeout_override():
     assert json.loads(output.getvalue())["content"] == "all native text"
 
 
-def test_crawl4ai_retains_native_capabilities_and_page_timeout_default():
+@pytest.mark.parametrize("native_success", [True, False])
+def test_crawl4ai_retains_native_capabilities_and_page_timeout_default(native_success):
+    class NativeEnvelope(BaseModel):
+        success: bool
+        markdown: str
+        error_message: str | None
+        # Crawl4AI 0.9.4 exposes a deprecated descriptor in failure results.
+        fit_html: Any = property(lambda _: None)
+
+    native_text = "all native text" if native_success else ""
+    native_error = None if native_success else "native navigation failed"
+    envelope = NativeEnvelope(success=native_success, markdown=native_text, error_message=native_error)
     seen = []
     def run_config(**kwargs):
         seen.append(kwargs)
@@ -39,9 +54,9 @@ def test_crawl4ai_retains_native_capabilities_and_page_timeout_default():
         async def __aexit__(self, *args): pass
         async def arun(self, **kwargs):
             assert kwargs["config"].page_timeout == 60000
-            return SimpleNamespace(success=True, markdown=SimpleNamespace(raw_markdown="all native text"),
+            return SimpleNamespace(success=native_success, markdown=SimpleNamespace(raw_markdown=native_text),
                 downloaded_files=[], status_code=200, url=REQUEST["url"], redirected_url=None, redirected_status_code=None,
-                error_message=None, media={}, links={}, model_dump=lambda **kw: {"native": "complete"})
+                error_message=native_error, media={}, links={}, model_dump=envelope.model_dump)
     fake = {"crawl4ai": SimpleNamespace(AsyncWebCrawler=Crawler, BrowserConfig=lambda **kw: kw,
                 CacheMode=SimpleNamespace(BYPASS="bypass"), CrawlerRunConfig=run_config),
             "crawl4ai.async_configs": SimpleNamespace(HTTPCrawlerConfig=object),
@@ -58,8 +73,12 @@ def test_crawl4ai_retains_native_capabilities_and_page_timeout_default():
     assert seen[0]["remove_overlay_elements"] is True
     assert not {"js_code", "wait_for"} & seen[0].keys()
     result = json.loads(output.getvalue())
-    assert result["ok"], result
-    assert result["content"] == "all native text"
+    assert result["ok"] is native_success, result
+    assert result["content"] == native_text
+    assert result["error_message"] == native_error
+    assert result["raw_tool_response"]["success"] is native_success
+    assert result["raw_tool_response"]["markdown"] == native_text
+    assert result["raw_tool_response"]["error_message"] == native_error
 
 
 def test_typescript_workers_keep_native_timers(tmp_path):
@@ -124,3 +143,31 @@ export function createWebFetchTool(options) {
     answer = json.loads(result.stdout)
     assert 'raw_tool_response' in answer, answer
     assert answer['raw_tool_response']['seen']['web-fetch-http']['timeoutMs'] == 30000
+
+
+def test_cowagent_worker_keeps_native_url_only_and_real_debug_logs(tmp_path):
+    import logging
+    calls = []
+    class Tool:
+        def __init__(self, config): pass
+        def execute(self, arguments):
+            calls.append(arguments)
+            logging.getLogger("log").debug("native fixture diagnostic")
+            return SimpleNamespace(status="success", result="native answer", ext_data={}, display="native")
+    request = {**REQUEST, "log_level": "debug"}
+    module = SimpleNamespace(WebFetch=Tool, DEFAULT_TIMEOUT=30)
+    import importlib
+    real_import = importlib.import_module
+    def import_native(name, *args, **kwargs):
+        return module if name == "agent.tools.web_fetch.web_fetch" else real_import(name, *args, **kwargs)
+    with patch("importlib.import_module", side_effect=import_native), \
+         patch("sys.argv", ["worker", str(tmp_path)]), \
+         patch("sys.stdin", io.StringIO(json.dumps(request) + "\n")), \
+         patch("sys.stdout", new_callable=io.StringIO) as output, \
+         patch("sys.stderr", new_callable=io.StringIO) as logs:
+        worker = runpy.run_path(str(ROOT / "harness/web_fetch/workers/cowagent_worker.py"))
+        worker["main"]()
+    assert calls == [{"url": request["url"]}]
+    assert json.loads(output.getvalue())["content"] == "native answer"
+    assert "native fixture diagnostic" in logs.getvalue()
+    assert "native answer" not in logs.getvalue()

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from lexbench_webfetch.metrics import task_passed, task_measured
+from lexbench_webfetch.metrics import task_measured, task_passed
 from harness.web_fetch.reference_lifecycle import (
     reference_revision_cases,
     scoring_revision_history_sha256,
@@ -111,11 +111,15 @@ class ScoringRegressionTests(unittest.TestCase):
         root_modes = {}
         for identifier, row in rows.items():
             with self.subTest(regression=identifier):
-                metrics = score_attempt(
-                    row["case"], row["artifact"].encode(), ok=row["ok"],
-                    metadata=row.get("metadata"), title=row.get("title"),
-                    final_url=row.get("final_url"),
-                )
+                arguments = dict(ok=row['ok'], metadata=row.get('metadata'), title=row.get('title'),
+                                 final_url=row.get('final_url'))
+                if row.get('expected_validation_error'):
+                    with self.assertRaisesRegex(ValueError, row['expected_validation_error']):
+                        score_attempt(row['case'], row['artifact'].encode(), **arguments)
+                    self.assertFalse(row['expected_task_pass'])
+                    root_modes.setdefault(row['root_cause'], set()).add(row['failure_mode'])
+                    continue
+                metrics = score_attempt(row['case'], row['artifact'].encode(), **arguments)
                 verdict = task_passed(
                     row["ok"], metrics, row["case"].get("task_kind", "body")
                 )
@@ -263,7 +267,7 @@ class ScoringRegressionTests(unittest.TestCase):
             "One offline rescore applies independently reviewed acceptance and task-predicate corrections together.",
             [
                 "complete-declared-record-passes-contract",
-                "known-challenge-headings-block-complete-records",
+                "known-challenge-headings-block-complete-records-diagnostic-hints",
             ],
         )
         self.assertEqual(
