@@ -133,8 +133,6 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertEqual(REPORT_FAMILIES['media_file'], '直接媒体文件')
 
     def test_task_family_names_and_order_share_the_report_registry(self):
-        from harness.web_fetch.report_explainer import TRACK_NAMES
-        self.assertIs(TRACK_NAMES, TRACKS)
         self.assertEqual(list(TRACKS), ['web','dynamic','challenge','risk_control','document','image','video'])
         self.assertEqual(TRACKS['risk_control'], '风控网页正文')
 

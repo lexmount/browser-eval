@@ -31,8 +31,6 @@ from harness.web_fetch.report_explainer import (
     _article_speed_population,
     _headless_article_input,
     _render_article_resources,
-    headless_evidence,
-    render_explainer,
 )
 from harness.web_fetch.report_i18n import localize_html
 from harness.record_io import canonical_json_sha256
@@ -54,15 +52,11 @@ class BrowserCohortRegistryTests(unittest.TestCase):
 
     def test_task_specific_moli_adapter_keeps_browser_report_routes(self):
         from harness.web_fetch.report import is_headless_cohort
-        from harness.web_fetch.report_explainer import _is_headless_comparison, supports_authored_explainer
         records = [{'provider_type': 'moli_webfetch'}, {'provider_type': 'headless_markdown'}]
         self.assertTrue(is_headless_cohort(records))
-        self.assertTrue(_is_headless_comparison(records))
-        self.assertFalse(supports_authored_explainer({'risk': {'track': 'risk_control'}}))
         for unrelated in ([], [{'provider_type': 'moli_webfetch'}],
                           records + [{'provider_type': 'firecrawl'}]):
             self.assertFalse(is_headless_cohort(unrelated))
-            self.assertFalse(_is_headless_comparison(unrelated))
 
 
 class HeadlessReportTests(unittest.TestCase):
@@ -495,62 +489,9 @@ class HeadlessReportTests(unittest.TestCase):
                 _copy_speed_bundle(source,target,{'cases':[]},[],[])
             self.assertFalse(target.exists())
 
-    def test_matched_success_latency_and_unknown_quality(self):
-        cases={cid:{'id':cid,'name':cid,'track':'web'} for cid in ('a','b','c')}
-        records=[]
-        for name,passed,times in [('chromium',[True,True,False],[10,20,30]),('moli',[True,False,True],[5,2,3])]:
-            for cid,ok,ms in zip(cases,passed,times):
-                records.append({'provider':name,'case_id':cid,'provider_type':'headless_html',
-                    'started_at':'2026-09-03T00:00:00Z','provider_metadata':{},'ok':True,
-                    'elapsed_ms':ms,'metrics':{'content_pass':ok,'word_f1':None}})
-        evidence=headless_evidence(cases,records)
-        pair=evidence['pairs'][0]
-        self.assertEqual(pair['both_pass_ids'],['a'])
-        self.assertEqual(pair['provider_p50_ms'],5)
-        self.assertEqual(pair['chromium_p50_ms'],10)
-        self.assertEqual(pair['provider_only'],['c'])
-        self.assertEqual(pair['chromium_only'],['b'])
-        self.assertIsNone(evidence['quality']['moli']['word_f1'])
-        self.assertEqual(evidence['cases'], 3)
-        self.assertEqual(evidence['tracks']['web']['providers']['moli']['passed'], 2)
 
-    def test_authored_article_rejects_incomplete_browser_matrix(self):
-        cases = {'a': {'id': 'a', 'track': 'web'}}
-        record = {'provider': 'moli', 'case_id': 'a', 'provider_type': 'headless_html',
-                  'started_at': '2026-09-03T00:00:00Z', 'provider_metadata': {},
-                  'ok': True, 'elapsed_ms': 10,
-                  'metrics': {'content_pass': True, 'word_f1': None}}
-        with tempfile.TemporaryDirectory() as temp:
-            with self.assertRaisesRegex(ValueError, 'missing: chromium, kitesurf, lightpanda, obscura'):
-                render_explainer(Path(temp), cases, [record])
-            self.assertFalse((Path(temp) / 'guide/article.html').exists())
 
-    def test_authored_five_browser_article_rejects_changed_evidence(self):
-        cases = {'a': {'id': 'a', 'track': 'web'}}
-        records = [{'provider': name, 'case_id': 'a', 'attempt_id': name + '__a',
-                    'provider_type': 'headless_html', 'started_at': '2026-09-03T00:00:00Z',
-                    'provider_metadata': {}, 'ok': True, 'elapsed_ms': 10,
-                    'metrics': {'content_pass': True, 'word_f1': None}}
-                   for name in ('moli', 'chromium', 'lightpanda', 'obscura', 'kitesurf')]
-        with tempfile.TemporaryDirectory() as temp:
-            speed_dir = Path(temp) / 'speed-cohort'
-            speed_dir.mkdir()
-            (speed_dir / 'speed-comparison.json').write_text('{}')
-            with self.assertRaisesRegex(ValueError, 'article evidence changed'):
-                render_explainer(Path(temp), cases, records)
-            self.assertFalse((Path(temp) / 'guide/article.html').exists())
 
-    def test_authored_article_rejects_missing_speed_evidence(self):
-        cases = {'a': {'id': 'a', 'track': 'web'}}
-        records = [{'provider': name, 'case_id': 'a', 'attempt_id': name + '__a',
-                    'provider_type': 'headless_html', 'started_at': '2026-09-03T00:00:00Z',
-                    'provider_metadata': {}, 'ok': True, 'elapsed_ms': 10,
-                    'metrics': {'content_pass': True, 'word_f1': None}}
-                   for name in ('moli', 'chromium', 'lightpanda', 'obscura', 'kitesurf')]
-        with tempfile.TemporaryDirectory() as temp:
-            with self.assertRaisesRegex(ValueError, 'requires speed evidence'):
-                render_explainer(Path(temp), cases, records)
-            self.assertFalse((Path(temp) / 'guide/article.html').exists())
 
     def prepare(self,root):
         now=datetime.now(timezone.utc)

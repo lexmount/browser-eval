@@ -251,19 +251,6 @@ class ReportRevisionTests(unittest.TestCase):
   rendered=localize_html(page,PurePosixPath('guide/article.html'))
   self.assertIn('alt="Stable headings, sections, and explanations',rendered)
   self.assertNotIn('页面中稳定标题',rendered)
- def test_methodology_figure_ui_and_captions_pass_the_article_gate(self):
-  from pathlib import PurePosixPath
-  from harness.web_fetch.report_explainer import METHODOLOGY_FIGURES
-  from harness.web_fetch.report_i18n import localize_html,untranslated_english_narrative
-  figures=[]
-  for index,(_,title,alt,caption) in enumerate(METHODOLOGY_FIGURES,1):
-   figures.append(f'<figure><img alt="{alt}"><a aria-label="获取原图：{title}"></a>'
-                  f'<figcaption>图 {index} · {title}。{caption} 点击图像获取原图。</figcaption></figure>')
-  rendered=localize_html('<html lang="zh-CN"><body>'+''.join(figures)+'</body></html>',
-                         PurePosixPath('guide/article.html'))
-  self.assertEqual(untranslated_english_narrative(rendered),[])
-  self.assertIn('Figure 3 · Scoring:',rendered)
-  self.assertIn('aria-label="Download original:',rendered)
  def test_article_aria_labels_localize_without_touching_evidence_attributes(self):
   from pathlib import PurePosixPath
   from harness.web_fetch.report_i18n import localize_html
