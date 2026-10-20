@@ -28,7 +28,8 @@ def test_ambiguous_response_or_navigation_does_not_supply_status(log):
 
 @pytest.mark.parametrize('requested,observed,page_matches,log_status', [
     (URL, URL, True, 200),
-    (URL, URL+'?tracking=1', True, None),
+    (URL, URL+'?utm_source=newsletter', True, None),
+    (URL, URL+'?tracking=1', False, None),
     (URL+'?page=1', URL+'?page=1', True, 200),
     (URL+'?page=1', URL+'?page=2', False, None),
 ])
