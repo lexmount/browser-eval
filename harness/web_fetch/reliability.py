@@ -55,6 +55,8 @@ def assess_reliability(dataset: dict, records: list[dict]) -> dict:
         errors.append(f"存在 {len(duplicates)} 个重复或多次选入的调用")
     if unjudged:
         errors.append(f"存在 {len(unjudged)} 个无法判定通过或失败的调用")
+    if conflicts:
+        errors.append("同一方法混用了不同可执行文件: " + ", ".join(sorted(conflicts)))
     complete = bool(expected) and not errors
     return {
         "schema_version": 1,
