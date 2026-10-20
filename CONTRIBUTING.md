@@ -14,6 +14,7 @@ Include the task ID, method and versions, OS, command and sanitized error. Remov
 | LexBench Web Fetch task requirements | [Benchmark repository](https://github.com/lexmount/lexbench-webfetch), applied to every method |
 | Scoring fix | Shared scorer, scenario regressions and a recorded correction reason |
 | New browser, version or sample size | Configuration or registry; reuse the runner and renderer |
+| New report instance | The existing track's profile, external evidence and report content; reuse its build and release commands |
 | Reusable logic | `harness/`; `scripts/` stays a thin command entry point |
 
 Test both accepted and rejected scenarios. Fix scoring rules rather than editing saved verdicts. Refactoring must preserve historical measurements and certificates.
@@ -42,7 +43,7 @@ Write the summary in English, start with an imperative verb, and describe the co
 Examples:
 
 - `fix(scoring): require facts in the returned body`
-- `fix(webfetch): reject mixed executable versions before release`
+- `fix(webfetch): disclose build provenance for partial reruns`
 - `docs(contributing): define PR and commit title conventions`
 
 Avoid titles such as `Fix review feedback`, `Update code` or `Misc improvements`; name the behavior or document that changes. A PR title describes the complete diff; each commit subject describes that commit. Update the PR title when its scope changes. If squash merging is used, use a subject that follows the same format. Apply this convention to new work; do not rewrite shared commits solely to rename them.
