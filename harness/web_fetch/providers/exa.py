@@ -74,7 +74,7 @@ class ExaContentsProvider(Provider):
     def validate(self) -> list[str]:
         return [] if self.config.get("api_key") else ["api_key"]
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
         http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         livecrawl_timeout_ms = min(
@@ -89,7 +89,7 @@ class ExaContentsProvider(Provider):
             request_body['livecrawlTimeout'] = livecrawl_timeout_ms
             if case.acceptance_contract.get("schema") == "named_link":
                 request_body.setdefault('extras', {})['richLinks'] = int(self.config.get("rich_links_limit", 100))
-        response = self.native_http_request(case, request, endpoint, **arguments)
+        response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
         except ValueError:

@@ -320,7 +320,7 @@ class MoliWebFetchProvider(Provider):
             argv += ['--log-level', str(self.config['log_level'])]
         return [*argv, case.url]
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
         validate_http_url(case.url)
         if not math.isfinite(timeout) or timeout <= 0:
@@ -617,7 +617,7 @@ class MoliWebFetchProvider(Provider):
                 process_environment = dns_broker.environment(library)
                 metadata["native_dns_binding"] = binding
             try:
-                self.capture_native_request(case, transport='cli', interface=route,
+                self.capture_native_request(case, native_route_ledger=native_route_ledger, transport='cli', interface=route,
                     parameters={'argv': ['<native-binary>', *command[1:-1], '<input-url>'],
                                 'binary_sha256': getattr(self, '_binary_sha256', None)})
                 process = subprocess.Popen(

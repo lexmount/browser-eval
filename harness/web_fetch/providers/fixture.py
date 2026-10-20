@@ -25,7 +25,7 @@ class FixtureProvider(Provider):
                     'result_fields': {'title': {'pointer': ['title']}, 'final_url': {'pointer': ['final_url']}}})
         return result
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         fail_cases = set(self.config.get("fail_cases", []))
         if case.id in fail_cases:
             return self._result(

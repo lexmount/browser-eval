@@ -241,9 +241,9 @@ class CloudflareMarkdownProvider(Provider):
     def validate(self) -> list[str]:
         return [name for name in ("api_token", "account_id") if not self.config.get(name)]
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
-        return self._fetch_payload(case, timeout)
+        return self._fetch_payload(case, timeout, native_route_ledger=native_route_ledger)
 
     def fetch_html(self, case: EvalCase, html: str, timeout: float) -> ProviderResult:
         """Run the product's documented inline-HTML route for frozen benchmarks."""
@@ -260,7 +260,7 @@ class CloudflareMarkdownProvider(Provider):
             },
         )
 
-    def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict | None = None) -> ProviderResult:
+    def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict | None = None, *, native_route_ledger=None) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
         http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         if (
@@ -268,7 +268,7 @@ class CloudflareMarkdownProvider(Provider):
             and case.track in {"image", "video"}
             and self.config.get("page_output") != "native_markdown"
         ):
-            return self._fetch_media_resources(case, http_timeout=http_timeout)
+            return self._fetch_media_resources(case, http_timeout=http_timeout, native_route_ledger=native_route_ledger)
         if not self.config.get("uniform_native_parameters") and self.config.get("browser") != "kitesurf" and _uses_direct_document_route(case):
             return self._fetch_direct_document(
                 case,
@@ -380,7 +380,7 @@ class CloudflareMarkdownProvider(Provider):
                 "support": "unsupported",
                 "harness_content_assembly": False,
             }
-        response = self.native_http_request(case, request, endpoint, **arguments)
+        response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
         except ValueError:
@@ -444,6 +444,7 @@ class CloudflareMarkdownProvider(Provider):
         case: EvalCase,
         *,
         http_timeout: float,
+        native_route_ledger=None,
     ) -> ProviderResult:
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
         native = bool(self.config.get("uniform_native_parameters"))
@@ -459,7 +460,7 @@ class CloudflareMarkdownProvider(Provider):
             request_body['gotoOptions']['timeout'] = service_timeout_ms
             request_body['actionTimeout'] = service_timeout_ms
         selectors = [item['selector'] for item in request_body['elements']]
-        response = self.native_http_request(case, request, endpoint, **arguments)
+        response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
         except ValueError:
@@ -713,7 +714,7 @@ class CloudflareContentProvider(Provider):
     def validate(self) -> list[str]:
         return [name for name in ("api_token", "account_id") if not self.config.get(name)]
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
         http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
@@ -721,7 +722,7 @@ class CloudflareContentProvider(Provider):
         if not self.config.get("uniform_native_parameters"):
             arguments['json_body']['gotoOptions']['timeout'] = service_timeout_ms
             arguments['json_body']['actionTimeout'] = service_timeout_ms
-        response = self.native_http_request(case, request, endpoint, **arguments)
+        response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
         except ValueError:

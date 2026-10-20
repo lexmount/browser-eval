@@ -96,7 +96,7 @@ def test_actual_native_http_requests_are_locked_before_transport(tmp_path):
     with patch('harness.web_fetch.providers.tavily.request', side_effect=transport):
         for case in cases:
             started = datetime.now(timezone.utc).isoformat()
-            result = provider.fetch(case, 45)
+            result = provider.fetch(case, 45, native_route_ledger=ledger)
             records.append({'provider': provider.name, 'case_id': case.id,
                             'url': case.url, 'started_at': started, 'ok': result.ok,
                             'provider_metadata': {'native_route_receipt': ledger.receipt(provider, case)}})
@@ -114,14 +114,14 @@ def test_native_request_drift_is_rejected_before_second_transport(tmp_path, defe
     endpoint = 'https://api.tavily.com/extract'
     kwargs = {'method': 'POST', 'json_body': {'urls': [cases[0].url], 'format': 'markdown', 'extract_depth': 'advanced', 'include_images': False},
               'headers': {'Authorization': 'Bearer fixture'}, 'timeout': 45, 'max_bytes': 20000000}
-    provider.native_http_request(cases[0], callback, endpoint, **kwargs)
+    provider.native_http_request(cases[0], callback, endpoint, **kwargs, native_route_ledger=ledger)
     kwargs['json_body'] = {'urls': [cases[1].url], 'format': 'markdown', 'extract_depth': 'advanced', 'include_images': False}
     if defect == 'endpoint': endpoint = 'https://api.tavily.com/other'
     if defect == 'parameters': kwargs['json_body']['format'] = 'html'
     if defect == 'input_url': kwargs['json_body']['urls'] = ['https://wrong.test/']
     if defect == 'configuration': provider.config['include_images'] = True
     with pytest.raises(ValueError, match='Native'):
-        provider.native_http_request(cases[1], callback, endpoint, **kwargs)
+        provider.native_http_request(cases[1], callback, endpoint, **kwargs, native_route_ledger=ledger)
     assert callback.call_count == 1
     assert ledger.errors
 
@@ -138,7 +138,7 @@ def test_release_check_rejects_changed_native_route_evidence(tmp_path, defect):
         provider.native_http_request(case, Mock(), 'https://api.tavily.com/extract',
                                      method='POST', json_body={'urls': [case.url], 'format': 'markdown',
                                          'extract_depth': 'advanced', 'include_images': False},
-                                     headers={'Authorization': 'Bearer fixture'}, timeout=45, max_bytes=20000000)
+                                     headers={'Authorization': 'Bearer fixture'}, timeout=45, max_bytes=20000000, native_route_ledger=ledger)
         records.append({'provider': provider.name, 'case_id': case.id, 'url': case.url,
                         'started_at': datetime.now(timezone.utc).isoformat(), 'ok': True,
                         'provider_metadata': {'native_route_receipt': ledger.receipt(provider, case)}})
@@ -199,7 +199,7 @@ def test_jsonl_worker_receives_declared_media_and_records_actual_packet(tmp_path
     ledger = NativeRouteLedger([case], [provider], timeout_seconds=5)
     ledger.write(tmp_path, dataset_sha256='fixture', runtime_source_sha256='fixture')
     try:
-        result = provider.fetch(case, 5)
+        result = provider.fetch(case, 5, native_route_ledger=ledger)
         assert result.ok and result.content == 'direct_pdf'
         request = ledger.receipt(provider, case)['requests'][0]['signature']['parameters']['request']
         assert request['input_media_kind'] == 'direct_pdf'
@@ -239,7 +239,7 @@ def test_each_http_adapter_matches_its_pre_call_contract(tmp_path, method, modul
     # not retrieval success, and cannot accidentally make a live request.
     with patch('harness.web_fetch.providers.'+module+'.request',
                return_value=HttpResponse(200, case.url, {}, b'{}')) as transport:
-        provider.fetch(case, 17)
+        provider.fetch(case, 17, native_route_ledger=ledger)
     assert transport.call_count == 1
     receipt = ledger.receipt(provider, case)
     assert not ledger.errors and len(receipt['requests']) == 1
@@ -261,7 +261,7 @@ def test_custom_firecrawl_without_auth_still_matches_actual_request(tmp_path):
     ledger.write(tmp_path, dataset_sha256='fixture', runtime_source_sha256='fixture')
     with patch('harness.web_fetch.providers.firecrawl.request',
                return_value=HttpResponse(200, case.url, {}, b'{}')) as transport:
-        provider.fetch(case, 45)
+        provider.fetch(case, 45, native_route_ledger=ledger)
     assert transport.call_count == 1 and not ledger.errors
 
 
@@ -282,7 +282,7 @@ def test_contract_survives_aggregation_and_complete_declared_subset(tmp_path):
         provider.native_http_request(case, Mock(), 'https://api.tavily.com/extract',
             method='POST', json_body={'urls': [case.url], 'format': 'markdown',
                 'extract_depth': 'advanced', 'include_images': False},
-            headers={'Authorization': 'Bearer fixture'}, timeout=45, max_bytes=20000000)
+            headers={'Authorization': 'Bearer fixture'}, timeout=45, max_bytes=20000000, native_route_ledger=ledger)
         records.append({'attempt_id': case.id, 'provider': provider.name, 'case_id': case.id,
             'url': case.url, 'started_at': datetime.now(timezone.utc).isoformat(), 'ok': True,
             'provider_metadata': {'native_route_receipt': ledger.receipt(provider, case)}})
@@ -337,7 +337,7 @@ def test_moli_actual_cli_obeys_declared_route_without_network(tmp_path, media, k
                     task_kind=kind, source_benchmark={'input_media_kind': media})
     ledger = NativeRouteLedger([case], [provider], timeout_seconds=5)
     ledger.write(tmp_path, dataset_sha256='fixture', runtime_source_sha256='fixture')
-    provider.fetch(case, 5)
+    provider.fetch(case, 5, native_route_ledger=ledger)
     assert not ledger.errors and len(ledger.receipt(provider, case)['requests']) == 1
 
 
@@ -351,7 +351,7 @@ def test_route_verifier_preserves_optional_dataset_defaults(tmp_path):
         provider.native_http_request(case, Mock(), 'https://api.tavily.com/extract',
             method='POST', json_body={'urls': [case.url], 'format': 'markdown',
                 'extract_depth': 'advanced', 'include_images': False},
-            headers={'Authorization': 'Bearer fixture'}, timeout=45, max_bytes=20000000)
+            headers={'Authorization': 'Bearer fixture'}, timeout=45, max_bytes=20000000, native_route_ledger=ledger)
         records.append({'provider': provider.name, 'case_id': case.id, 'url': case.url,
             'started_at': datetime.now(timezone.utc).isoformat(), 'ok': True,
             'provider_metadata': {'native_route_receipt': ledger.receipt(provider, case)}})
@@ -372,7 +372,7 @@ def test_failed_native_calls_require_an_explicit_transport_stage(tmp_path, stage
     for case in cases:
         if stage == 'after_transport':
             provider.native_http_request(case, Mock(), *provider.native_http_arguments(case, 45)[:1],
-                                         **provider.native_http_arguments(case, 45)[1])
+                                         **provider.native_http_arguments(case, 45)[1], native_route_ledger=ledger)
         records.append({'provider': provider.name, 'case_id': case.id, 'url': case.url,
             'started_at': datetime.now(timezone.utc).isoformat(), 'ok': False,
             'provider_metadata': {'native_route_receipt': ledger.receipt(provider, case, ok=False)}})
@@ -447,7 +447,7 @@ def test_http_native_answers_survive_persistence_and_reject_tampering(tmp_path, 
     ledger.write(tmp_path, dataset_sha256='fixture', runtime_source_sha256='fixture')
     with patch('harness.web_fetch.providers.'+module+'.request',
                return_value=HttpResponse(200, case.url, {}, json.dumps(payload).encode())):
-        result = prepare_answer(provider.fetch(case, 45), case)
+        result = prepare_answer(provider.fetch(case, 45, native_route_ledger=ledger), case)
     assert result.ok
     result.metadata['native_route_receipt'] = ledger.receipt(provider, case, ok=result.ok)
     altered = deepcopy(result)
@@ -746,9 +746,9 @@ def test_native_retry_does_not_allow_two_requests_in_one_physical_call(tmp_path)
     ledger.begin_attempt(provider, case, 1)
     endpoint, arguments = provider.native_http_arguments(case, 45)
     transport = Mock()
-    provider.native_http_request(case, transport, endpoint, **arguments)
+    provider.native_http_request(case, transport, endpoint, **arguments, native_route_ledger=ledger)
     with pytest.raises(ValueError, match='one adapter invocation per physical attempt'):
-        provider.native_http_request(case, transport, endpoint, **arguments)
+        provider.native_http_request(case, transport, endpoint, **arguments, native_route_ledger=ledger)
     assert transport.call_count == 1
 
 
@@ -783,7 +783,7 @@ def test_shared_http_builder_controls_freeze_and_fetch(tmp_path, method, module)
     ledger.write(tmp_path, dataset_sha256='fixture', runtime_source_sha256='fixture')
     with patch('harness.web_fetch.providers.'+module+'.request',
                return_value=HttpResponse(200, case.url, {}, b'{}')) as transport:
-        provider.fetch(case, 17)
+        provider.fetch(case, 17, native_route_ledger=ledger)
     assert transport.call_count == 1
     endpoint, arguments = transport.call_args
     assert arguments['max_bytes'] == 54321
@@ -882,3 +882,21 @@ def test_route_declaration_does_not_admit_unsupported_native_types(config):
                            source_benchmark={'input_media_kind': 'html_page'})
     with pytest.raises(ValueError, match='Unsupported fixed-native interface'):
         native_route_cell(provider, case)
+
+
+def test_explicit_ledgers_do_not_replace_each_others_provider_state(tmp_path):
+    from unittest.mock import Mock
+    from harness.web_fetch.native_routes import NativeRouteLedger
+    provider, cases, first, _, _ = _route_http_fixture(tmp_path)
+    second = NativeRouteLedger(cases, [provider])
+    other = tmp_path / 'other'
+    other.mkdir()
+    second.write(other, dataset_sha256='dataset', runtime_source_sha256='runtime')
+    assert not hasattr(provider, '_native_route_ledger')
+    endpoint, arguments = provider.native_http_arguments(cases[0], 45)
+    provider.native_http_request(cases[0], Mock(), endpoint,
+                                 native_route_ledger=first, **arguments)
+    assert first.calls and not second.calls
+    provider.native_http_request(cases[0], Mock(), endpoint,
+                                 native_route_ledger=second, **arguments)
+    assert second.calls

@@ -41,7 +41,7 @@ class TavilyExtractProvider(Provider):
     def validate(self) -> list[str]:
         return [] if self.config.get("api_key") else ["api_key"]
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
         http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         configured_extract_timeout = float(
@@ -54,7 +54,7 @@ class TavilyExtractProvider(Provider):
         # same declared API defaults used by the pre-call route contract.
         if extract_timeout >= 1.0 and not self.config.get("uniform_native_parameters"):
             request_body["timeout"] = round(extract_timeout, 3)
-        response = self.native_http_request(case, request, endpoint, **arguments)
+        response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
         except ValueError:

@@ -159,8 +159,6 @@ class NativeRouteLedger:
                 raise ValueError('Native answer policy source collision')
         path.write_bytes(raw)
         self.binding = {'path': path.name, 'sha256': hashlib.sha256(raw).hexdigest()}
-        for provider in self.providers.values():
-            provider._native_route_ledger = self
         return self.binding
 
     def reject(self, provider, case, reason):

@@ -705,7 +705,9 @@ def run_evaluation(
                             if native_routes is not None and provider.name in native_routes.providers:
                                 native_routes.begin_attempt(provider, case, physical_attempt)
                             try:
-                                result, pending = fetch_with_deadline(provider, case, timeout)
+                                result, pending = fetch_with_deadline(provider, case, timeout,
+                                    native_route_ledger=(native_routes if native_routes is not None
+                                        and provider.name in native_routes.providers else None))
                             except Exception as error:  # each physical failure remains inspectable
                                 caught_exception = error
                                 error_type, error_message = classify_exception(error)

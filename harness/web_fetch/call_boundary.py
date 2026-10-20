@@ -22,7 +22,7 @@ def prepare_answer(result, case):
     return result
 
 
-def fetch_with_deadline(provider, case, timeout):
+def fetch_with_deadline(provider, case, timeout, *, native_route_ledger=None):
     """Discard late answers; never overlap calls on a non-cancellable adapter.
 
     A timed-out daemon cannot mutate persisted output. If its adapter cannot
@@ -36,7 +36,9 @@ def fetch_with_deadline(provider, case, timeout):
         try:
             with diagnostic_context(getattr(provider, "_call_diagnostics", None)):
                 emit("provider_invoked", url=case.url, timeout_seconds=timeout)
-                fetched = provider.fetch(case, timeout)
+                fetch_options = ({'native_route_ledger': native_route_ledger}
+                                 if native_route_ledger is not None else {})
+                fetched = provider.fetch(case, timeout, **fetch_options)
                 emit("provider_returned", ok=fetched.ok, content_chars=len(fetched.content))
                 value = prepare_answer(fetched, case)
                 emit("answer_prepared", content_chars=len(value.prepared_answer[0]))

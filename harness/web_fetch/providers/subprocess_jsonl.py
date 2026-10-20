@@ -213,7 +213,7 @@ class SubprocessJsonlProvider(Provider):
                 **({'input_media_kind': media} if media is not None else {}), 'retrieval_plan': None,
                 'retrieval_mode': 'native_default' if case.track == 'dynamic' else 'declared_plan'}
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
         from ..native_routes import declared_input_media_kind
         input_media = declared_input_media_kind(case, required=bool(
@@ -254,11 +254,11 @@ class SubprocessJsonlProvider(Provider):
         }
         if self.config.get('uniform_native_parameters'):
             request = self.native_worker_request(case, timeout, request['diagnostic_path'])
-        if getattr(self, '_native_route_ledger', None) is not None:
+        if native_route_ledger is not None:
             from harness.record_io import canonical_json_sha256
             projected = {**request, 'url': '<input-url>',
                          'diagnostic_path': '<diagnostic-output>' if request['diagnostic_path'] else None}
-            self.capture_native_request(case, transport='jsonl', interface='native_worker_command',
+            self.capture_native_request(case, native_route_ledger=native_route_ledger, transport='jsonl', interface='native_worker_command',
                 parameters={'request': projected,
                             'command_sha256': canonical_json_sha256([self._resolve_token(part) for part in self.config['command']])})
         if self._active_diagnostics: self._active_diagnostics.emit("caller", "worker_request_sent", request=request)

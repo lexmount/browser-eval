@@ -99,13 +99,13 @@ class Provider(ABC):
         if case.task_kind not in {"body", "structure", "resource", "file"}:
             raise ValueError("fixed native calls require a declared native output kind")
 
-    def capture_native_request(self, case, *, transport, parameters, endpoint=None, interface=None):
-        ledger = getattr(self, '_native_route_ledger', None)
+    def capture_native_request(self, case, *, transport, parameters, endpoint=None, interface=None, native_route_ledger=None):
+        ledger = native_route_ledger
         if ledger is not None:
             ledger.observe(self, case, transport=transport, parameters=parameters,
                            endpoint=endpoint, interface=interface)
 
-    def native_http_request(self, case, callback, endpoint, **kwargs):
+    def native_http_request(self, case, callback, endpoint, *, native_route_ledger=None, **kwargs):
         """Check and observe the actual call, even without an attached ledger.
 
         Adapters share ``native_http_arguments`` for construction. Rebuilding
@@ -113,7 +113,7 @@ class Provider(ABC):
         call this boundary directly. The ledger separately binds the request
         to the contract frozen before the cohort.
         """
-        ledger = getattr(self, '_native_route_ledger', None)
+        ledger = native_route_ledger
         if self.config.get('uniform_native_parameters'):
             native_endpoint, native_arguments = self.native_http_arguments(case, kwargs.get('timeout'))
             if endpoint != native_endpoint or kwargs != native_arguments:
@@ -123,7 +123,7 @@ class Provider(ABC):
             endpoint, kwargs = native_endpoint, native_arguments
         if ledger is not None:
             from ..native_routes import normalized_http_parameters
-            self.capture_native_request(case, transport='http', endpoint=endpoint,
+            self.capture_native_request(case, transport='http', endpoint=endpoint, native_route_ledger=ledger,
                                         parameters=normalized_http_parameters(case, kwargs))
         return callback(endpoint, **kwargs)
 

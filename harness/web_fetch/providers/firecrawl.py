@@ -151,7 +151,7 @@ class FirecrawlProvider(Provider):
                 f"requires at least {required} credits"
             )
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
         try:
             http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
@@ -280,7 +280,7 @@ class FirecrawlProvider(Provider):
                         "Firecrawl dynamic_wait_strategy must be actions or wait_for"
                     ),
                 )
-        response = self.native_http_request(case, request, endpoint, **arguments)
+        response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
         except ValueError:
