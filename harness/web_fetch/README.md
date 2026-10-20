@@ -1032,6 +1032,17 @@ The maintained synthetic example in
 `tests/test_local_audit.py::test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review`
 exercises collection, external bindings, rebuilding and packaging without real
 provider calls. It also checks changed evidence and preservation of frozen scores.
+`tests/test_external_local_report.py` additionally runs the public build and
+check commands with different external task/method inventories and deadlines,
+including both language editions. Its inputs stay in a temporary evidence tree;
+no repository profile is created.
+
+The local measurement schema is a single-call protocol: one run, no retry and
+serial execution per provider. A different deadline or supported DNS mode is an
+input, not a new protocol. Repeated experiments need a predeclared score-bearing
+run and complete physical-call lineage before they can share this report's
+one-result-per-method/task denominator. Do not enable repeated runs by removing
+the schema checks or by selecting the best observed result.
 
 Historical audit tests read their frozen scorer bytes from
 `<data-home>/scoring-snapshots/<scorer-sha256>/`; they verify the complete scorer,
@@ -1062,6 +1073,15 @@ changed task automatically. Legacy diagnostic-field rebinding receipts and
 resumed/admitted execution plans remain read-only decoders for frozen inputs.
 There is no current writer for those historical formats. Do not extend them
 into a new execution protocol or infer a new independent review from them.
+
+`local_execution_legacy.py` owns only the historical plan decoder and its
+dispatch. `local_audit.py` retains the older, explicitly selected merged-audit
+receipt reader; new local matrices select `uniform_native_local_measurement`
+before that reader. These readers remain supported because frozen evidence
+still names their contracts. Removing them requires migrating the corresponding
+authority to a pinned, reproducible verifier first, not merely moving Python
+files into an untrusted evidence package. Their negative controls must continue
+to reject missing calls, changed configuration and altered review evidence.
 
 ### Current acceptance and retained corrections
 

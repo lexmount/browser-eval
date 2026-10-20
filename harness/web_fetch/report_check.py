@@ -7,7 +7,7 @@ import re
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 from harness.record_io import load_jsonl
 from harness.report_languages import check_language_contract, generated_languages, visible_numbers
@@ -177,6 +177,11 @@ class PageShape(HTMLParser):
         if self.assets and self.figures:
             attrs = self.assets.rewrite(self.page, self.figures[-1], tag, attrs)
         values = dict(attrs)
+        # This script selects the primary language at the shared entry point;
+        # it is not report content and intentionally exists only on that page.
+        if tag == "script" and "data-report-language-entry" in values:
+            self.skip += 1
+            return
         self.tags[tag] += 1
         if values.get("id"):
             self.ids.add(values["id"])
@@ -398,7 +403,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         canonical_cases = ({case["id"]: case for case in d["cases"]}
                            if presentation_binding and (current_snapshot_authority
                                or d.get('comparison', {}).get('task_replacement'))
-                           else {case["id"]: case for case in local_measurement_cases(local_contract)})
+                           else {case["id"]: case for case in local_measurement_cases(local_contract, root)})
         canonical_dataset = (root / "dataset.json" if local_contract.get("dataset_sources")
                              else repository / local_contract["dataset_path"])
     elif source_dataset or (profile_path and (json.loads(profile_path.read_text()).get('frozen_inputs') or (profile_path.parent / 'dataset.json').is_file())):
@@ -552,9 +557,13 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             and (target.suffix.lower() in {".html", ".htm"})
         ):
             target = Path(*target.parts[1:])
+        query = parsed.query
+        if target == Path("index.html"):
+            query = urlencode([(key, item) for key, item in parse_qsl(query, keep_blank_values=True)
+                               if (key, item) != ("report-language", "zh")])
         return (
             target.as_posix()
-            + ("?" + parsed.query if parsed.query else "")
+            + ("?" + query if query else "")
             + ("#" + parsed.fragment if parsed.fragment else "")
         )
 
