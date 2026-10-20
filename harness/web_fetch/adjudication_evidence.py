@@ -61,64 +61,67 @@ def current_rule_outcomes(case, record):
 
 
 def adjudication_reason(assertions, *, language="zh"):
-    """Render claims from checked facts, never unchecked free-form hit text."""
+    """Render checked facts through one rule traversal with localized messages."""
     if language not in {"zh", "en"}:
         raise ValueError("Adjudication language must be zh or en")
-    if language == "en":
-        labels = {'task_result': 'Task result', 'request_status': 'Request status',
+    labels = {
+        'zh': {'task_result': '任务判定', 'request_status': '请求状态',
+            'required_facts': '必需文字', 'expected_any': '目标标记',
+            'min_content_chars': '最低长度', 'body_requirements': '正文覆盖',
+            'required_patterns': '格式与代码要求', 'acceptance_contract': '内容与条目要求',
+            'composite_acceptance': '组合要求', 'expected_resources': '目标资源',
+            'forbidden_any': '明确禁止要求'},
+        'en': {'task_result': 'Task result', 'request_status': 'Request status',
             'required_facts': 'Required text', 'expected_any': 'Target markers',
             'min_content_chars': 'Minimum length', 'body_requirements': 'Body coverage',
             'required_patterns': 'Formatting and code requirements',
             'acceptance_contract': 'Content and record requirements',
             'composite_acceptance': 'Combined requirements',
-            'expected_resources': 'Target resources', 'forbidden_any': 'Prohibited content'}
-        parts = []
-        for key, value in assertions.items():
-            if key == 'diagnostic_any':
-                parts.append('Diagnostic matches: ' + (', '.join(value['hits']) or 'none')
-                             + ' (do not independently determine pass or fail)')
-                continue
-            detail = ''
-            if key == 'required_facts':
-                detail = f" ({value['matched']}/{value['total']})"
-            elif key == 'min_content_chars':
-                detail = f" ({value['actual']}; minimum {value['minimum']})"
-            elif key == 'acceptance_contract':
-                detail = (f" (stable text {value['anchor_hits']}/{value['anchor_total']}; "
-                          f"distinct records {value['records']}; minimum {value['minimum_records']}"
-                          + ('; missing ' + ', '.join(value['missing_anchors'])
-                             if value['missing_anchors'] else '') + ')')
-            elif key == 'required_patterns':
-                missing = [r['id'] for r in value['results'] if not r['pass']]
-                detail = (' (unmet: ' + ', '.join(missing) + ')') if missing else ''
-            parts.append(labels[key] + ': ' + ('pass' if value['passed'] else 'fail') + detail)
-        return '; '.join(parts) + '.'
-    labels = {'task_result': '任务判定', 'request_status': '请求状态',
-        'required_facts': '必需文字', 'expected_any': '目标标记',
-        'min_content_chars': '最低长度', 'body_requirements': '正文覆盖',
-        'required_patterns': '格式与代码要求', 'acceptance_contract': '内容与条目要求',
-        'composite_acceptance': '组合要求', 'expected_resources': '目标资源',
-        'forbidden_any': '明确禁止要求'}
+            'expected_resources': 'Target resources', 'forbidden_any': 'Prohibited content'},
+    }[language]
+    messages = {
+        'zh': {
+            'list_separator': '、', 'sentence_separator': '；', 'end': '。',
+            'pass': '通过', 'fail': '未通过', 'none': '无',
+            'result': '{label}：{verdict}{detail}',
+            'diagnostic': '诊断词命中：{hits}（不单独决定通过或失败）',
+            'required_facts': '（{matched}/{total}）',
+            'min_content_chars': '（{actual}，要求至少 {minimum}）',
+            'acceptance_contract': ('（稳定文字 {anchor_hits}/{anchor_total}；'
+                                    '独立条目 {records}，要求至少 {minimum_records}{missing}）'),
+            'missing': '；缺少 {items}', 'required_patterns': '（未满足 {items}）',
+        },
+        'en': {
+            'list_separator': ', ', 'sentence_separator': '; ', 'end': '.',
+            'pass': 'pass', 'fail': 'fail', 'none': 'none',
+            'result': '{label}: {verdict}{detail}',
+            'diagnostic': 'Diagnostic matches: {hits} (do not independently determine pass or fail)',
+            'required_facts': ' ({matched}/{total})',
+            'min_content_chars': ' ({actual}; minimum {minimum})',
+            'acceptance_contract': (' (stable text {anchor_hits}/{anchor_total}; '
+                                    'distinct records {records}; minimum {minimum_records}{missing})'),
+            'missing': '; missing {items}', 'required_patterns': ' (unmet: {items})',
+        },
+    }[language]
     parts = []
     for key, value in assertions.items():
         if key == 'diagnostic_any':
-            parts.append('诊断词命中：' + ('、'.join(value['hits']) or '无') + '（不单独决定通过或失败）')
-        else:
-            detail = ''
-            if key == 'required_facts':
-                detail = f"（{value['matched']}/{value['total']}）"
-            elif key == 'min_content_chars':
-                detail = f"（{value['actual']}，要求至少 {value['minimum']}）"
-            elif key == 'acceptance_contract':
-                detail = (f"（稳定文字 {value['anchor_hits']}/{value['anchor_total']}；"
-                          f"独立条目 {value['records']}，要求至少 {value['minimum_records']}"
-                          + ('；缺少 ' + '、'.join(value['missing_anchors'])
-                             if value['missing_anchors'] else '') + '）')
-            elif key == 'required_patterns':
-                missing = [r['id'] for r in value['results'] if not r['pass']]
-                detail = ('（未满足 ' + '、'.join(missing) + '）') if missing else ''
-            parts.append(labels[key] + '：' + ('通过' if value['passed'] else '未通过') + detail)
-    return '；'.join(parts) + '。'
+            hits = messages['list_separator'].join(value['hits']) or messages['none']
+            parts.append(messages['diagnostic'].format(hits=hits))
+            continue
+        detail = ''
+        if key in {'required_facts', 'min_content_chars'}:
+            detail = messages[key].format(**value)
+        elif key == 'acceptance_contract':
+            missing = messages['list_separator'].join(value['missing_anchors'])
+            missing = messages['missing'].format(items=missing) if missing else ''
+            detail = messages[key].format(missing=missing, **value)
+        elif key == 'required_patterns':
+            missing = messages['list_separator'].join(r['id'] for r in value['results'] if not r['pass'])
+            detail = messages[key].format(items=missing) if missing else ''
+        parts.append(messages['result'].format(
+            label=labels[key], verdict=messages['pass' if value['passed'] else 'fail'], detail=detail))
+    return messages['sentence_separator'].join(parts) + messages['end']
 
 
 def require_rule_assertions(case, record, row, proof):
