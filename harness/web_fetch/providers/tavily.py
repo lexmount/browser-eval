@@ -45,25 +45,13 @@ class TavilyExtractProvider(Provider):
             self.config.get("extract_timeout_seconds", 60.0)
         )
         extract_timeout = min(configured_extract_timeout, http_timeout, 60.0)
-        request_body = {
-            "urls": [case.url],
-            "extract_depth": self.config.get("extract_depth", "advanced"),
-            "format": "markdown",
-            "include_images": bool(self.config.get("include_images", False)),
-        }
-        # Tavily accepts 1-60 seconds. Production benchmark budgets are above
-        # that lower bound; for unusually short diagnostic runs, the client
-        # deadline remains authoritative and we omit an invalid API value.
+        endpoint, arguments = self.native_http_arguments(case, http_timeout)
+        request_body = arguments['json_body']
+        # Diagnostic calls bound the service timeout; native calls retain the
+        # same declared API defaults used by the pre-call route contract.
         if extract_timeout >= 1.0 and not self.config.get("uniform_native_parameters"):
             request_body["timeout"] = round(extract_timeout, 3)
-        response = self.native_http_request(case, request,
-            f"{str(self.config.get('base_url', 'https://api.tavily.com')).rstrip('/')}/extract",
-            method="POST",
-            timeout=http_timeout,
-            max_bytes=int(self.config.get("max_bytes", 20_000_000)),
-            headers={"Authorization": f"Bearer {self.config.get('api_key', '')}"},
-            json_body=request_body,
-        )
+        response = self.native_http_request(case, request, endpoint, **arguments)
         try:
             payload = response.json()
         except ValueError:

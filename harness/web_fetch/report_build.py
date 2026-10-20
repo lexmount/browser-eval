@@ -317,8 +317,8 @@ def write_frozen_presentation_manifest(output, manifest, *, show_local_status_ba
     if binding_path.is_file():
         binding = json.loads(binding_path.read_text())
         if binding.get('offline_revision'):
-            from .local_revision import read_bound
-            authority = json.loads(read_bound(output, binding['offline_revision']).read_text())
+            from .publication_privacy import read_evidence_binding
+            authority = json.loads(read_evidence_binding(output, binding['offline_revision']).read_text())
             if authority.get('kind') == 'current_local_snapshot_authority':
                 if authority.get('schema_version') != 1:
                     raise ValueError('Unsupported current presentation authority')
@@ -1463,10 +1463,11 @@ def validate_local_presentation(output: Path, binding_path: Path):
         verify_native_execution_manifests(output, json.loads(execution.read_text())['batches'], dataset, records)
     scoring_sources = {row['attempt_id']: binding.get('measured_scoring_source_sha256') for row in records}
     if binding.get('offline_revision'):
-        from .local_revision import validate_revision_chain, read_bound
+        from .local_revision import validate_revision_chain
+        from .publication_privacy import read_evidence_binding
         scoring_sources, input_dataset, input_results = validate_revision_chain(
             output, binding['offline_revision'], dataset, records)
-        revision_authority = json.loads(read_bound(output, binding['offline_revision']).read_text())
+        revision_authority = json.loads(read_evidence_binding(output, binding['offline_revision']).read_text())
         if revision_authority.get('kind') == 'current_local_snapshot_authority':
             from .local_revision import require_current_task_replacement
             if (revision_authority.get('schema_version') != 1
@@ -1483,8 +1484,8 @@ def validate_local_presentation(output: Path, binding_path: Path):
                 raise ValueError('Historical presentation revision has no input snapshot')
             if binding.get('task_replacement'):
                 from .local_revision import require_local_task_replacement
-                previous_dataset = json.loads(read_bound(output, input_dataset).read_text())
-                previous_records = load_jsonl(read_bound(output, input_results))
+                previous_dataset = json.loads(read_evidence_binding(output, input_dataset).read_text())
+                previous_records = load_jsonl(read_evidence_binding(output, input_results))
                 require_local_task_replacement(output, binding['task_replacement'], previous_dataset, previous_records)
     elif binding.get('task_replacement'):
         from .local_revision import require_local_task_replacement
@@ -1523,9 +1524,9 @@ def _review_refresh_changes(output, binding, dataset, records):
     baseline = binding.get('review_refresh_baseline')
     if baseline is None:
         return set(), set()
-    from .local_revision import read_bound
-    before_dataset = json.loads(read_bound(output, baseline['dataset']).read_text())
-    before_records = load_jsonl(read_bound(output, baseline['results']))
+    from .publication_privacy import read_evidence_binding
+    before_dataset = json.loads(read_evidence_binding(output, baseline['dataset']).read_text())
+    before_records = load_jsonl(read_evidence_binding(output, baseline['results']))
     old_cases = {case['id']: case for case in before_dataset['cases']}
     cases = {case['id']: case for case in dataset['cases']}
     old_rows = {row['attempt_id']: row for row in before_records}
@@ -1557,8 +1558,8 @@ def _current_template_refresh(output, binding, manifest):
     revision = binding.get('offline_revision')
     if not revision:
         return False
-    from .local_revision import read_bound
-    authority = json.loads(read_bound(output, revision).read_text())
+    from .publication_privacy import read_evidence_binding
+    authority = json.loads(read_evidence_binding(output, revision).read_text())
     return (authority.get('kind') == 'current_local_snapshot_authority'
             and authority.get('schema_version') == 1)
 

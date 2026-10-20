@@ -236,10 +236,10 @@ def check_saved_result_summary(root, dataset, records):
 
 def require_replacement_execution(root, binding, physical, logical):
     """Keep superseded task calls as history without counting them as current rows."""
-    from .local_revision import read_bound
-    receipt = json.loads(read_bound(root, binding).read_text())
-    previous = load_jsonl(read_bound(root, receipt['baseline_results']))
-    calls = load_jsonl(read_bound(root, receipt['cohort_results']))
+    from .publication_privacy import read_evidence_binding
+    receipt = json.loads(read_evidence_binding(root, binding).read_text())
+    previous = load_jsonl(read_evidence_binding(root, receipt['baseline_results']))
+    calls = load_jsonl(read_evidence_binding(root, receipt['cohort_results']))
     expected_physical = Counter(row['attempt_id'] for row in previous + calls)
     current = [row for row in previous if row['case_id'] != receipt['removed_case_id']]
     expected_logical = Counter(row['attempt_id'] for row in current + calls)
@@ -386,8 +386,8 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             checked_binding = validate_local_presentation(root, presentation_binding)[0]
             public_payload_views = bool(checked_binding.get("publication_evidence_views"))
             if checked_binding.get('offline_revision'):
-                from .local_revision import read_bound
-                current_receipt = json.loads(read_bound(root, checked_binding['offline_revision']).read_text())
+                from .publication_privacy import read_evidence_binding
+                current_receipt = json.loads(read_evidence_binding(root, checked_binding['offline_revision']).read_text())
                 current_snapshot_authority = (current_receipt.get('kind') == 'current_local_snapshot_authority'
                                               and current_receipt.get('schema_version') == 1)
         else:

@@ -1,5 +1,13 @@
 """UTF-8 JSONL framing shared by execution, certification and report readers."""
 import json
+import hashlib
+
+
+def canonical_json_sha256(value):
+    """Hash the shared compact UTF-8 JSON protocol, including legacy NaN bytes."""
+    raw = json.dumps(value, ensure_ascii=False, sort_keys=True,
+                     separators=(',', ':'), allow_nan=True).encode('utf-8')
+    return hashlib.sha256(raw).hexdigest()
 
 
 def same_json_record(left, right):

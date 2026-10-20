@@ -3,14 +3,16 @@ import hashlib
 import pytest
 
 from harness.web_fetch.adjudication_evidence import (
-    adjudication_reason, case_hash, current_rule_outcomes, require_adjudication_evidence,
+    adjudication_reason, current_rule_outcomes, require_adjudication_evidence,
 )
+from harness.record_io import canonical_json_sha256
 from lexbench_webfetch.scoring import score_attempt
 
 
 @pytest.mark.parametrize('defect', [None, 'case', 'answer', 'context', 'opinion',
                                   'original_opinion', 'original_identity'])
-def test_compact_retention_keeps_actual_opinion_without_old_matrices(tmp_path, defect):
+@pytest.mark.parametrize('wording', ['Original explanation.', 'Quoted text: 命中词：。'])
+def test_compact_retention_keeps_actual_opinion_without_old_matrices(tmp_path, defect, wording):
     import copy
     import json
     from harness.web_fetch.adjudication_evidence import (
@@ -25,7 +27,8 @@ def test_compact_retention_keeps_actual_opinion_without_old_matrices(tmp_path, d
         'artifact_path': 'answer.txt', 'metrics': score_attempt(case, text.encode(), ok=True)}
     opinion = {'attempt_id': 'p__a', 'content_sha256': record['metrics']['content_sha256'],
         'agent_verdict': 'pass', 'agent_evidence': 'Complete article observed.',
-        'final_verdict': 'pass', 'original_explanation': 'Full original opinion retained.'}
+        'final_verdict': 'pass', 'original_explanation': 'Full original opinion retained.',
+        'adjudication': wording}
     def bind(name, value):
         path = tmp_path/name
         path.write_text(json.dumps(value))
@@ -74,7 +77,7 @@ def fixture(tmp_path):
     reason = adjudication_reason(assertions)
     row = {'attempt_id': 'p__a', 'agent_verdict': 'fail', 'final_verdict': 'pass',
            'adjudication': reason, 'adjudication_evidence': {
-               'reason': reason, 'case_sha256': case_hash(case),
+               'reason': reason, 'case_sha256': canonical_json_sha256(case),
                'content_sha256': metrics['content_sha256'],
                'rule_ids': list(assertions), 'rule_assertions': assertions,
                'samples': [{'start': 0, 'end': len(text), 'text': text}]}}
@@ -126,7 +129,7 @@ def test_supplemental_review_binds_new_opinion_task_and_complete_answer(tmp_path
               'metrics': {'content_sha256': hashlib.sha256(text.encode()).hexdigest()}}
     row = {'attempt_id': 'p__a', 'agent_verdict': 'pass', 'agent_evidence': 'Required command is present.',
            'content_sha256': record['metrics']['content_sha256'],
-           'review_evidence': {'case_sha256': case_hash(case),
+           'review_evidence': {'case_sha256': canonical_json_sha256(case),
                'samples': [{'start': 0, 'end': len(text), 'text': text}]}}
     supplement = {'kind': 'supplemental_saved_output_review', 'results_sha256': 'a'*64,
         'provider_calls_added': 0, 'reviewed_attempts': 1, 'reviewer': {'agent': 'independent reviewer'},
@@ -151,7 +154,8 @@ def test_supplemental_review_binds_new_opinion_task_and_complete_answer(tmp_path
 
 @pytest.mark.parametrize('defect', [None, 'positive_rule', 'answer', 'opinion', 'verdict',
     'policy_hit', 'dependent_reason', 'prior_binding', 'count', 'missing_receipt'])
-def test_retention_requires_unchanged_decision_dependencies(tmp_path, defect):
+@pytest.mark.parametrize('wording', ['Original explanation.', 'Quoted text: 命中词：。'])
+def test_retention_requires_unchanged_decision_dependencies(tmp_path, defect, wording):
     import copy
     import json
     from harness.web_fetch.adjudication_evidence import require_retained_reviews
@@ -169,7 +173,7 @@ def test_retention_requires_unchanged_decision_dependencies(tmp_path, defect):
               'artifact_path': 'answer.txt', 'metrics': metrics}
     original = {'attempt_id': 'p__a', 'content_sha256': metrics['content_sha256'],
                 'agent_verdict': 'pass', 'agent_evidence': 'Required article is complete.',
-                'final_verdict': 'pass'}
+                'final_verdict': 'pass', 'adjudication': wording}
     if defect == 'dependent_reason':
         original['adjudication_evidence'] = {'rule_ids': ['forbidden_any']}
     def bind(name, value, *, jsonl=False):
@@ -210,7 +214,7 @@ def test_fresh_review_keeps_the_immutable_blind_initial_opinion(tmp_path, defect
     text = (tmp_path/'answer.txt').read_text()
     row.update(content_sha256=record['metrics']['content_sha256'],
                agent_evidence='The required article is absent.', reviewer_anomalies=[],
-               review_evidence={'case_sha256': case_hash(case),
+               review_evidence={'case_sha256': canonical_json_sha256(case),
                    'samples': [{'start': 0, 'end': len(text), 'text': text}]})
     initial = {'machine_judgments_withheld': defect != 'unblinded', 'attempts': [{
         'attempt_id': 'p__a', 'verdict': 'fail', 'reason': row['agent_evidence'], 'anomalies': []}]}

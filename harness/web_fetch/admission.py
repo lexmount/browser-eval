@@ -122,10 +122,8 @@ class CaseAdmission:
             if token['key'] not in state['active']:
                 raise ValueError('Admission token was lost')
             record = record or {}
-            message = str(record.get('error_message') or '').lower()
             limit_error = (record.get('status_code') == 429
-                           or any(value in message for value in
-                                  ('too many requests', 'rate limit', 'rate_limit', 'http 429')))
+                           or record.get('error_type') == 'rate_limit')
             if len(state['active']) > 1 and (record.get('error_type') == 'timeout' or limit_error):
                 state['parallel_enabled'] = False
                 self._event({'event': 'reduce_to_serial', 'attempt_id': record.get('attempt_id'),

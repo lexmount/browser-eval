@@ -1,10 +1,40 @@
 """JSONL records are framed by LF bytes, including during concurrent writes."""
 import json
+import hashlib
 from dataclasses import asdict
 
 import pytest
 
-from harness.record_io import load_jsonl, parse_jsonl, read_completed_records, same_json_record
+from harness.record_io import canonical_json_sha256, load_jsonl, parse_jsonl, read_completed_records, same_json_record
+
+
+@pytest.mark.parametrize('value,raw', [
+    ({'z': 'English', 'a': '中文'}, '{"a":"中文","z":"English"}'),
+    ({'nested': [{'b': False, 'a': None}, [1, True, 'é']]},
+     '{"nested":[{"a":null,"b":false},[1,true,"é"]]}'),
+    ({'n': float('nan')}, '{"n":NaN}'),
+    ({'n': float('inf')}, '{"n":Infinity}'),
+    ({'n': float('-inf')}, '{"n":-Infinity}'),
+])
+def test_canonical_hash_preserves_frozen_utf8_json_bytes(value, raw):
+    assert canonical_json_sha256(value) == hashlib.sha256(raw.encode('utf-8')).hexdigest()
+
+
+@pytest.mark.parametrize('left,right', [
+    ({'ok': True}, {'ok': 1}),
+    ({'n': 1}, {'n': 1.0}),
+    ({'text': '中文'}, {'text': '\\u4e2d\\u6587'}),
+    ({'n': float('nan')}, {'n': 'NaN'}),
+    ([1, 2], [2, 1]),
+])
+def test_canonical_hash_does_not_collapse_distinct_json_bytes(left, right):
+    assert canonical_json_sha256(left) != canonical_json_sha256(right)
+
+
+def test_canonical_hash_sorts_keys_without_changing_unicode_representation():
+    assert canonical_json_sha256({'b': 1, 'a': '中文'}) == canonical_json_sha256({'a': '中文', 'b': 1})
+    raw = json.dumps({'a': '中文'}, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    assert canonical_json_sha256({'a': '中文'}) != hashlib.sha256(raw).hexdigest()
 
 
 @pytest.mark.parametrize('left,right,expected', [

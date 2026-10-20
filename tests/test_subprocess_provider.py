@@ -128,7 +128,7 @@ class SubprocessProviderTest(unittest.TestCase):
         import hashlib
         from harness.web_fetch.models import ProviderResult
         from harness.web_fetch.runner import persist_result_artifacts
-        from lexbench_webfetch.answer_projection import project_native_answer
+        from harness.web_fetch.native_projection import project_native_answer
         cases = [
             ({'content': 'Body | Saved to: /Users/person/work/page.txt'},
              {'schema_version': 1, 'content_pointer': ['content'], 'content_format': 'text'}),
@@ -390,19 +390,17 @@ def test_native_worker_fields_and_files_are_exactly_bound(tmp_path, defect):
 def test_file_scoring_recomputes_acceptance_from_native_bytes():
     from lexbench_webfetch.scoring import score_attempt
     from lexbench_webfetch.metrics import task_passed
-    raw = json.dumps({'content': '', 'files': [{'base64': base64.b64encode(b'not a PNG').decode()}]}).encode()
     metadata = {'file_evaluation': {'pass': True}, 'native_answer_projection': {'schema_version': 1,
         'content_pointer': ['content'], 'content_format': 'text',
         'files': {'pointer': ['files'], 'format': 'worker_files'}}}
     metrics = score_attempt({'url': 'https://example.test/', 'task_kind': 'file'}, b'', ok=True,
-        metadata=metadata, previous_metrics={'raw_file_pass': True}, native_response=raw,
-        native_files=[{'data': b'not a PNG'}])
+        metadata=metadata, previous_metrics={'raw_file_pass': True}, delivered_files=[b'not a PNG'])
     assert metrics['raw_file_pass'] is False
     assert not task_passed(True, metrics, 'file')
 
 
 def test_byte_projection_cannot_claim_unverified_structured_metadata():
-    from lexbench_webfetch.answer_projection import require_native_answer_projection
+    from harness.web_fetch.native_projection import require_native_answer_projection
     metadata = {'images': ['https://example.test/forged.png'], 'native_answer_projection': {
         'schema_version': 1, 'source_format': 'bytes', 'content_format': 'utf8',
         'answer_fields': {'images': {'pointer': ['images'], 'format': 'identity'}}}}

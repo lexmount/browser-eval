@@ -1032,6 +1032,30 @@ registry and scenario-test hashes rather than substituting current code.
 Ordinary tests skip absent historical snapshots; strict reference-input tests
 require them. Changed installed bytes fail either mode.
 
+### Evidence ownership and historical readers
+
+LexBench scores submitted answers and delivered file bytes. Native response
+selection, diagnostic log decoding and source-field verification belong to
+`native_projection.py` in this harness. Both collection and saved-answer checks
+use that owner; changing the owner does not upgrade historical calls to a
+pre-call policy they never recorded.
+
+All hash-bound reads use `publication_privacy.read_evidence_binding`, including
+proposed files during a local revision. The revision supplies a scoped resolver;
+the reader still rejects unsafe paths, changed bytes and undisclosed public
+substitutes. Audit and privacy readers do not import the revision writer to read
+evidence. Canonical compact JSON hashes share `harness.record_io`; raw-file,
+pretty-printed manifest and normalized-text identities retain their own byte
+contracts.
+
+New local revisions reuse page-identity opinions only when task, physical-call
+and answer bindings remain unchanged. Changed inputs require an explicitly
+bound new identity review; the revision never migrates an old opinion to a
+changed task automatically. Legacy diagnostic-field rebinding receipts and
+resumed/admitted execution plans remain read-only decoders for frozen inputs.
+There is no current writer for those historical formats. Do not extend them
+into a new execution protocol or infer a new independent review from them.
+
 ### Current acceptance and retained corrections
 
 The shared scorer uses one current acceptance predicate. Verification/error hints

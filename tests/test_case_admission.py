@@ -1,4 +1,5 @@
 import json, threading, time
+import pytest
 from pathlib import Path
 from types import SimpleNamespace
 from harness.web_fetch.admission import CaseAdmission
@@ -9,6 +10,42 @@ from harness.web_fetch.runner import run_evaluation
 
 def method(name):return SimpleNamespace(name=name)
 def case(host):return SimpleNamespace(id=host,url='https://'+host+'/')
+
+
+@pytest.mark.parametrize('result,serial', [
+    ({'status_code': 429}, True),
+    ({'error_type': 'rate_limit'}, True),
+    ({'error_type': 'timeout'}, True),
+    ({'error_message': 'Failed for a reason unrelated to rate limit / HTTP 429'}, False),
+])
+def test_parallel_fallback_uses_error_fields_not_natural_language(tmp_path, result, serial):
+    local = CaseAdmission(tmp_path, group='local', site_cooldown=0)
+    cloud = CaseAdmission(tmp_path, group='cloud', site_cooldown=0)
+    a = local.acquire(method('a'), case('one.test'))
+    b = cloud.acquire(method('b'), case('two.test'))
+    unchanged = dict(result)
+    cloud.release(b, record=result)
+    assert json.loads((tmp_path / 'state.json').read_text())['parallel_enabled'] is not serial
+    assert result == unchanged
+    local.release(a)
+
+
+def test_same_process_same_method_calls_wait_instead_of_colliding(tmp_path):
+    gate = CaseAdmission(tmp_path, group='local', site_cooldown=0)
+    first = gate.acquire(method('same'), case('one.test'))
+    ready, admitted = threading.Event(), []
+    def next_call():
+        ready.set()
+        admitted.append(gate.acquire(method('same'), case('two.test')))
+    thread = threading.Thread(target=next_call, daemon=True)
+    thread.start()
+    assert ready.wait(1)
+    time.sleep(.15)
+    assert not admitted
+    gate.release(first)
+    thread.join(2)
+    assert admitted and first['key'] != admitted[0]['key']
+    gate.release(admitted[0])
 
 def test_same_site_waits_and_distinct_cloud_local_can_overlap(tmp_path):
  local=CaseAdmission(tmp_path,group='local',site_cooldown=0)

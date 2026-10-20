@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
+from harness.record_io import canonical_json_sha256
 
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.retrieval_hints import historical_native_fetch_dataset, native_fetch_dataset
@@ -46,11 +47,6 @@ def _canonical_bytes(value: dict) -> bytes:
     return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 
-def _case_sha256(case: dict) -> str:
-    encoded = json.dumps(case, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-    return _sha256(encoded)
-
-
 def _apply_case_corrections(
     definition: dict, selected: dict[str, dict], repository: Path
 ) -> list[str]:
@@ -88,7 +84,7 @@ def _apply_case_corrections(
             raise ValueError("Assembly case correction names an unknown or duplicate case")
         seen.add(case_id)
         case = selected[case_id]
-        if _case_sha256(case) != row["expected_definition_sha256"]:
+        if canonical_json_sha256(case) != row["expected_definition_sha256"]:
             raise ValueError("Assembly case correction input changed: " + case_id)
         changes = row["set"]
         execution_effect = row.get("execution_effect", "rescore_only")

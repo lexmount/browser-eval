@@ -298,11 +298,11 @@ def test_contract_survives_aggregation_and_complete_declared_subset(tmp_path):
     subset['projection'] = {'kind': 'complete-provider-case-subset-from-retained-run'}
     assert verify_native_execution_manifests(output, [subset], dataset, records)
     # Even a self-consistent forged request hash cannot change frozen parameters.
-    from harness.web_fetch.native_routes import _digest
+    from harness.record_io import canonical_json_sha256
     bad = deepcopy(records)
     item = bad[0]['provider_metadata']['native_route_receipt']['requests'][0]
     item['signature']['parameters']['body']['format'] = 'html'
-    item['sha256'] = _digest(item['signature'])
+    item['sha256'] = canonical_json_sha256(item['signature'])
     with pytest.raises(ValueError, match='frozen interface'):
         verify_native_execution_manifests(output, [manifest], dataset, bad)
     contract = output/manifest['native_route_contract']['path']
@@ -494,7 +494,7 @@ def test_missing_native_fields_cannot_be_filled_by_declaration_defaults(tmp_path
 
 def test_projection_cannot_read_request_echo_outside_declared_answer_fields():
     import json
-    from lexbench_webfetch.answer_projection import require_native_answer_projection
+    from harness.web_fetch.native_projection import require_native_answer_projection
     raw = json.dumps({'result': 'answer', 'request': {'images': ['https://example.test/forged.png']}}).encode()
     metadata = {'images': ['https://example.test/forged.png'],
         'native_route_receipt': {'answer_fields': ['result']},
@@ -537,7 +537,7 @@ def test_native_title_and_address_are_checked_at_live_and_saved_boundaries(tmp_p
 
 def test_native_url_fallback_cannot_override_a_returned_redirect():
     import json
-    from lexbench_webfetch.answer_projection import require_native_answer_projection
+    from harness.web_fetch.native_projection import require_native_answer_projection
     request = 'https://requested.example.test/'
     returned = 'https://returned.example.test/'
     metadata = {'native_answer_projection': {'schema_version': 2, 'content_format': 'empty',
@@ -549,7 +549,7 @@ def test_native_url_fallback_cannot_override_a_returned_redirect():
 
 
 def test_cli_final_url_replays_only_same_call_main_document_log():
-    from lexbench_webfetch.answer_projection import require_native_answer_projection
+    from harness.web_fetch.native_projection import require_native_answer_projection
     request = 'https://requested.example.test/'
     returned = 'https://returned.example.test/'
     log = f'fetch request complete method=GET url={request} final_url={returned} status=200'.encode()
@@ -636,7 +636,6 @@ def test_current_writer_rejects_schema_one_result_context(tmp_path, result_field
     from pathlib import Path
     from harness.web_fetch.models import ProviderResult
     from harness.web_fetch.runner import persist_result_artifacts
-    from lexbench_webfetch.scoring import score_attempt
     content = '' if discarded_timeout else 'answer'
     raw = json.dumps({'content': content}).encode()
     declaration = {'schema_version': 1, 'content_pointer': ['content'],
@@ -650,8 +649,8 @@ def test_current_writer_rejects_schema_one_result_context(tmp_path, result_field
         persist_result_artifacts(tmp_path, artifact, result, request_url='https://example.test/')
     assert not (tmp_path/artifact).exists()
     with pytest.raises(ValueError, match='result_fields require projection schema 2'):
-        score_attempt({'url': 'https://example.test/'}, content.encode(), ok=result.ok,
-                      metadata=metadata, native_response=raw)
+        from harness.web_fetch.native_projection import require_native_answer_projection
+        require_native_answer_projection(content, metadata, raw, request_url='https://example.test/')
 
 
 def test_saved_schema_one_keeps_original_answer_scope(tmp_path):
@@ -749,5 +748,70 @@ def test_native_retry_does_not_allow_two_requests_in_one_physical_call(tmp_path)
     transport = Mock()
     provider.native_http_request(case, transport, endpoint, **arguments)
     with pytest.raises(ValueError, match='one adapter invocation per physical attempt'):
+        provider.native_http_request(case, transport, endpoint, **arguments)
+    assert transport.call_count == 1
+
+
+@pytest.mark.parametrize('method,module', [
+    ('tavily_extract', 'tavily'), ('exa_contents', 'exa'),
+    ('firecrawl', 'firecrawl'), ('cloudflare_markdown', 'cloudflare'),
+    ('cloudflare_content', 'cloudflare'),
+])
+def test_shared_http_builder_controls_freeze_and_fetch(tmp_path, method, module):
+    from unittest.mock import patch
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.native_routes import NativeRouteLedger, normalized_http_parameters
+    from harness.web_fetch.providers.base import build_provider
+    from harness.web_fetch.providers.http_client import HttpResponse
+    provider = build_provider('method', {
+        'type': method, 'uniform_native_parameters': True, 'api_key': 'fixture',
+        'api_token': 'fixture', 'account_id': 'fixture', 'max_bytes': 12345,
+    })
+    case = EvalCase('case', 'Case', 'https://example.test/', 'control', [],
+                    source_benchmark={'input_media_kind': 'html_page'})
+    # A shared builder change must propagate to both the pre-call declaration
+    # and actual adapter transport. The endpoint/body are deliberately not
+    # repeated in this test as a second provider implementation.
+    builder = '_http_arguments' if method.startswith('cloudflare_') else 'native_http_arguments'
+    original = getattr(provider, builder)
+    def configured_arguments(*args, **kwargs):
+        endpoint, arguments = original(*args, **kwargs)
+        arguments['max_bytes'] = 54321
+        return endpoint, arguments
+    setattr(provider, builder, configured_arguments)
+    ledger = NativeRouteLedger([case], [provider], timeout_seconds=17)
+    ledger.write(tmp_path, dataset_sha256='fixture', runtime_source_sha256='fixture')
+    with patch('harness.web_fetch.providers.'+module+'.request',
+               return_value=HttpResponse(200, case.url, {}, b'{}')) as transport:
+        provider.fetch(case, 17)
+    assert transport.call_count == 1
+    endpoint, arguments = transport.call_args
+    assert arguments['max_bytes'] == 54321
+    assert normalized_http_parameters(case, arguments) == next(iter(ledger.cells.values()))['request_parameters']
+    assert not ledger.errors
+
+
+@pytest.mark.parametrize('defect', ['endpoint', 'parameters', 'input_url', 'configuration'])
+def test_direct_native_arguments_are_checked_without_a_ledger(defect):
+    from unittest.mock import Mock
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.providers.base import build_provider
+    provider = build_provider('tavily', {'type': 'tavily_extract', 'api_key': 'fixture',
+                                        'uniform_native_parameters': True})
+    case = EvalCase('case', 'Case', 'https://example.test/', 'control', [])
+    assert not hasattr(provider, '_native_route_ledger')
+    endpoint, arguments = provider.native_http_arguments(case, 17)
+    transport = Mock()
+    provider.native_http_request(case, transport, endpoint, **arguments)
+    assert transport.call_count == 1
+    if defect == 'endpoint':
+        endpoint += '/wrong'
+    elif defect == 'parameters':
+        arguments['json_body']['format'] = 'html'
+    elif defect == 'input_url':
+        arguments['json_body']['urls'] = ['https://other.test/']
+    else:
+        provider.config['include_images'] = True
+    with pytest.raises(ValueError, match='canonical request builder'):
         provider.native_http_request(case, transport, endpoint, **arguments)
     assert transport.call_count == 1

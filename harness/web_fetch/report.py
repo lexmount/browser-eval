@@ -2514,8 +2514,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
 
 def current_local_review_findings(out,dataset,records,audit):
  """Describe the current snapshot from bound calls, never cached release prose."""
- from .local_revision import read_bound
- receipt=json.loads(read_bound(out,dataset['comparison']['task_replacement']).read_text())
+ from .publication_privacy import read_evidence_binding
+ receipt=json.loads(read_evidence_binding(out,dataset['comparison']['task_replacement']).read_text())
  added=receipt['provider_calls_added']
  cases={c['id']:c for c in dataset['cases']}
  eligible=[r for r in records if measured(r,cases[r['case_id']])]
@@ -2547,7 +2547,7 @@ def current_local_review_findings(out,dataset,records,audit):
    rows.append((f'本次新复核先隐藏程序结论；初判与程序有 {conflicts} 条分歧，已对照原始返回和题目要求裁定。原始独立意见保留，未新增网页调用。',
                 f'Fresh review withheld machine verdicts. {conflicts} initial disagreements were adjudicated against the original answers and task requirements. Initial independent opinions are preserved; no new webpage calls were added.'))
  elif supplements:
-  supplement_rows = [json.loads(read_bound(out, item).read_text()) for item in supplements]
+  supplement_rows = [json.loads(read_evidence_binding(out, item).read_text()) for item in supplements]
   reviewed = sum(item['reviewed_attempts'] for item in supplement_rows)
   rows.append((f'新增调用中 {reviewed} 条已逐条补充复核，判定与程序一致；复核前已知机器汇总，不称为盲审。内容通过不保证代码可直接运行，具体质量问题见复核记录。',
                f'{reviewed} new-call results received supplemental per-answer review and agree with the scorer. The machine summary was already known; this was not blind review. A content pass does not guarantee executable code; quality issues are retained in the review records.'))
@@ -2619,12 +2619,12 @@ NATIVE_OPTION_LABELS={'wait_until':'页面完成条件','block_private_networks'
 
 def load_frozen_method_options(out,records):
  """Bind displayed controls to their actual configuration and call scope."""
- from .local_revision import read_bound
+ from .publication_privacy import read_evidence_binding
  document=json.loads((out/'frozen-method-options.json').read_text())
  if document.get('schema_version')!=2 or not document.get('source_config'):
   raise ValueError('Frozen option display requires a bound configuration and call scope')
  binding=document['source_config']
- configuration=json.loads(read_bound(out,binding).read_text())['providers']
+ configuration=json.loads(read_evidence_binding(out,binding).read_text())['providers']
  identifiers=document.get('case_ids',[])
  selected=[row for row in records if row['case_id'] in identifiers]
  providers=document.get('providers',{})

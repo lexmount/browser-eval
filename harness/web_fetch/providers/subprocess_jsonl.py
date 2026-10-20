@@ -249,12 +249,12 @@ class SubprocessJsonlProvider(Provider):
         if self.config.get('uniform_native_parameters'):
             request = self.native_worker_request(case, timeout, request['diagnostic_path'])
         if getattr(self, '_native_route_ledger', None) is not None:
-            from ..native_routes import _digest
+            from harness.record_io import canonical_json_sha256
             projected = {**request, 'url': '<input-url>',
                          'diagnostic_path': '<diagnostic-output>' if request['diagnostic_path'] else None}
             self.capture_native_request(case, transport='jsonl', interface='native_worker_command',
                 parameters={'request': projected,
-                            'command_sha256': _digest([self._resolve_token(part) for part in self.config['command']])})
+                            'command_sha256': canonical_json_sha256([self._resolve_token(part) for part in self.config['command']])})
         if self._active_diagnostics: self._active_diagnostics.emit("caller", "worker_request_sent", request=request)
         try:
             process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")

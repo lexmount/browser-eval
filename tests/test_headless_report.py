@@ -29,13 +29,13 @@ from harness.web_fetch.reference_lifecycle import (
 )
 from harness.web_fetch.report_explainer import (
     _article_speed_population,
-    _digest,
     _headless_article_input,
     _render_article_resources,
     headless_evidence,
     render_explainer,
 )
 from harness.web_fetch.report_i18n import localize_html
+from harness.record_io import canonical_json_sha256
 from harness.web_fetch.report_resources import GROUPS, render_resource_comparison
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
@@ -288,7 +288,7 @@ class HeadlessReportTests(unittest.TestCase):
                   'metrics': {'content_pass': True, 'content_sha256': 'original'},
                   'provider_metadata': {'browser_version': 'moli 1.1.1'}}
         def binding(cs, row):
-            return _digest(_headless_article_input(cs, [row], ['moli']))
+            return canonical_json_sha256(_headless_article_input(cs, [row], ['moli']))
         expected = binding(cases, record)
         annotated = record | {'diagnosis': {'independent_source_check': 'available'},
                               'title_quality': {'score': 0.5}, 'failure_category': 'label'}
@@ -628,7 +628,7 @@ class HeadlessReportTests(unittest.TestCase):
 
 class CurrentBrowserArticleTests(unittest.TestCase):
     def example(self, root):
-        from harness.web_fetch.report_explainer import _digest, _headless_article_input
+        from harness.web_fetch.report_explainer import _headless_article_input
         cases={cid:{'id':cid,'name':cid,'track':track,'url':'https://example.com/'+cid,
                     'ground_truth_main_content':'Expected complete body'}
                for cid,track in [('web-case','web'),('risk-case','risk_control')]}
@@ -650,7 +650,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                              'error_message':None if passed else 'Origin returned HTTP 403',
                              'metrics':{'content_pass':passed}})
         content={'schema':'webfetch_browser_interpretation/1',
-                 'evidence_sha256':_digest(_headless_article_input(cases,rows,['moli','lightpanda'])),
+                 'evidence_sha256':canonical_json_sha256(_headless_article_input(cases,rows,['moli','lightpanda'])),
                  'title':'浏览器结果解读','intro':'相同任务和规则下的测量。',
                  'scoring':'正文是验收目标，最终页面地址只用于诊断。','conclusions':'结合正文与交付结果选择方法。',
                  'providers':{name:{'explanation':'这一节解释实际返回的内容。',
@@ -704,7 +704,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                 results_explanation='两种配置在相同任务上的完整结果。')
             for row in rows:
                 row['metrics'].update(word_recall=0.8,word_precision=0.7,word_f1=0.75)
-            content['evidence_sha256']=_digest(_headless_article_input(cases,rows,['moli','lightpanda']))
+            content['evidence_sha256']=canonical_json_sha256(_headless_article_input(cases,rows,['moli','lightpanda']))
             (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
             review_path=root/content['failure_review']['path'];review=json.loads(review_path.read_text())
             review['results_sha256']=hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest();review_path.write_text(json.dumps(review))
@@ -905,7 +905,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             row['error_message']='BEGIN FULL DEBUG LOG\n'+('debug line\n'*12000)+'FINAL ERROR: connection reset'
             original=row['error_message']
             content_path=root/binding['path'];content=json.loads(content_path.read_text())
-            content['evidence_sha256']=_digest(_headless_article_input(cases,rows,['moli','lightpanda']))
+            content['evidence_sha256']=canonical_json_sha256(_headless_article_input(cases,rows,['moli','lightpanda']))
             content_path.write_text(json.dumps(content,ensure_ascii=False))
             binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
             body=render_explainer(root,cases,rows,content_binding=binding)
@@ -935,7 +935,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             (root/'implementation-provenance.json').write_text(json.dumps({'implementations':[
                 {'provider':'moli','binary_sha256':'example-binary','version':'9.2.3'}]}))
             content_path=root/binding['path'];content=json.loads(content_path.read_text())
-            content['evidence_sha256']=_digest(_headless_article_input(cases,rows,['moli','lightpanda']))
+            content['evidence_sha256']=canonical_json_sha256(_headless_article_input(cases,rows,['moli','lightpanda']))
             content_path.write_text(json.dumps(content));binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
             (root/'dataset.json').write_text(json.dumps({'cases':list(cases.values()),'comparison':{'report_interpretation':binding}}))
             (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
@@ -1008,14 +1008,14 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                 check_current_browser_article(root,cases,rows,binding)
 
     def test_new_content_cannot_hide_incomplete_matrix_or_changed_measurements(self):
-        from harness.web_fetch.report_explainer import render_explainer, _digest, _headless_article_input
+        from harness.web_fetch.report_explainer import render_explainer, _headless_article_input
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);cases,rows,binding=self.example(root)
             changed=deepcopy(rows);changed[0]['elapsed_ms']=100
             with self.assertRaisesRegex(ValueError,'evidence changed'):
                 render_explainer(root,cases,changed,content_binding=binding)
             p=root/binding['path'];content=json.loads(p.read_text())
-            content['evidence_sha256']=_digest(_headless_article_input(cases,rows[:-1],['moli','lightpanda']))
+            content['evidence_sha256']=canonical_json_sha256(_headless_article_input(cases,rows[:-1],['moli','lightpanda']))
             p.write_text(json.dumps(content));binding['sha256']=hashlib.sha256(p.read_bytes()).hexdigest()
             with self.assertRaisesRegex(ValueError,'complete declared matrix'):
                 render_explainer(root,cases,rows[:-1],content_binding=binding)
@@ -1025,7 +1025,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
         from harness.web_fetch.providers.fixture import FixtureProvider
         from harness.web_fetch.runner import run_evaluation
         from harness.web_fetch.report_build import build_report
-        from harness.web_fetch.report_explainer import _digest, _headless_article_input, check_current_browser_article
+        from harness.web_fetch.report_explainer import _headless_article_input, check_current_browser_article
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);source=root/'evidence';report=root/'report'
             dataset={'schema_version':1,'id':'synthetic-browser-cohort','name':'Synthetic cohort',
@@ -1052,7 +1052,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                                  provider_config_path=configuration,runs=1,timeout=5,delay=0)
             measured=json.loads((source/'dataset.json').read_text());case_map={c['id']:c for c in measured['cases']}
             content={'schema':'webfetch_browser_interpretation/1',
-                     'evidence_sha256':_digest(_headless_article_input(case_map,rows,['moli','lightpanda'])),
+                     'evidence_sha256':canonical_json_sha256(_headless_article_input(case_map,rows,['moli','lightpanda'])),
                      'title':'新一轮浏览器结果','intro':'统一规则的合成测试。',
                      'scoring':'正文必须满足题目要求。','conclusions':'完整比较所有调用。',
                      'providers':{name:{'specimen_case_id':'risk-case','explanation':'展示实际调用及程序验收结果。'} for name in ['moli','lightpanda']}}

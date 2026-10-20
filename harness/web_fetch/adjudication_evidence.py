@@ -1,13 +1,8 @@
 """Require inspectable task and answer evidence when a verdict overrides review."""
-import hashlib
 import json
+from harness.record_io import canonical_json_sha256
 
 from .publication_privacy import read_evidence_binding, evidence_excerpt_matches
-
-
-def case_hash(case):
-    return hashlib.sha256(json.dumps(case, sort_keys=True, ensure_ascii=False,
-                                    separators=(',', ':')).encode()).hexdigest()
 
 
 def requires_adjudication(row):
@@ -123,7 +118,7 @@ def require_adjudication_evidence(source, dataset, records, review):
         proof = row.get('adjudication_evidence', {})
         reason = proof.get('reason', '').strip()
         if (not reason
-                or proof.get('case_sha256') != case_hash(cases[record['case_id']])
+                or proof.get('case_sha256') != canonical_json_sha256(cases[record['case_id']])
                 or proof.get('content_sha256') != record['metrics']['content_sha256']
                 or not proof.get('rule_ids')):
             raise ValueError('Overridden review lacks specific rule/evidence: ' + row['attempt_id'])
@@ -174,7 +169,7 @@ def require_current_review_state(records, review):
 
 def _require_supplemental_reviews(source, dataset, records, review):
     """Bind newly reviewed answers without rewriting inherited opinions."""
-    from .local_revision import read_bound
+    from .publication_privacy import read_evidence_binding
     fresh = {r['attempt_id'] for r in review.get('attempts', [])
              if r.get('review_origin') == 'fresh'}
     if not review.get('supplemental_reviews'):
@@ -186,7 +181,7 @@ def _require_supplemental_reviews(source, dataset, records, review):
     current = {row['attempt_id']: row for row in review.get('attempts', [])}
     seen = set()
     for binding in review.get('supplemental_reviews', []):
-        supplement = json.loads(read_bound(source, binding).read_text())
+        supplement = json.loads(read_evidence_binding(source, binding).read_text())
         rows = supplement.get('attempts', [])
         identifiers = [row['attempt_id'] for row in rows]
         if (supplement.get('kind') != 'supplemental_saved_output_review'
@@ -201,7 +196,7 @@ def _require_supplemental_reviews(source, dataset, records, review):
         initial = {}
         if supplement.get('review_protocol', {}).get('blind_initial_verdict') is True:
             for output_binding in supplement.get('blind_initial_outputs', []):
-                output = json.loads(read_bound(source, output_binding).read_text())
+                output = json.loads(read_evidence_binding(source, output_binding).read_text())
                 if output.get('machine_judgments_withheld') is not True:
                     raise ValueError('Fresh initial review was not blind')
                 for opinion in output.get('attempts', []):
@@ -222,7 +217,7 @@ def _require_supplemental_reviews(source, dataset, records, review):
             if record is None or current.get(row['attempt_id']) != row:
                 raise ValueError('Supplemental review opinions changed')
             proof = row.get('review_evidence', {})
-            if (proof.get('case_sha256') != case_hash(cases[record['case_id']])
+            if (proof.get('case_sha256') != canonical_json_sha256(cases[record['case_id']])
                     or row.get('content_sha256') != record['metrics']['content_sha256']
                     or not row.get('agent_evidence', '').strip()
                     or row.get('agent_verdict') not in {'pass', 'fail', 'insufficient'}):
@@ -257,15 +252,15 @@ def require_retained_reviews(source, dataset, records, review):
         if retained:
             raise ValueError('Retained reviews require their original evidence')
         return set()
-    from .local_revision import read_bound
+    from .publication_privacy import read_evidence_binding
     from .result_review import review_input_identity
     from harness.record_io import load_jsonl
-    receipt = json.loads(read_bound(source, binding).read_text())
+    receipt = json.loads(read_evidence_binding(source, binding).read_text())
     if receipt.get('kind') == 'current_retained_review_dependencies':
         return _require_current_retained_reviews(source, dataset, records, review, receipt)
-    prior = json.loads(read_bound(source, receipt['prior_review']).read_text())
-    before = json.loads(read_bound(source, receipt['prior_dataset']).read_text())
-    previous = load_jsonl(read_bound(source, receipt['prior_results']))
+    prior = json.loads(read_evidence_binding(source, receipt['prior_review']).read_text())
+    before = json.loads(read_evidence_binding(source, receipt['prior_dataset']).read_text())
+    previous = load_jsonl(read_evidence_binding(source, receipt['prior_results']))
     ids = receipt.get('attempt_ids', [])
     if (receipt.get('kind') != 'unchanged_review_dependency_retention'
             or receipt.get('provider_calls_added') != 0
@@ -301,7 +296,7 @@ def require_retained_reviews(source, dataset, records, review):
         cited = set(opinion.get('adjudication_evidence', {}).get('rule_ids', []))
         if ((old_bans != bans or old_hints != hints)
                 and (record['metrics'].get('diagnostic_hits')
-                     or cited & ignored or '命中词：。' in opinion.get('adjudication', ''))):
+                     or cited & ignored)):
             raise ValueError('Retained review depends on the changed text policy')
         if (review_input_identity(record) != review_input_identity(old_record)
                 or any(row.get(k) != opinion.get(k) for k in immutable)
@@ -320,15 +315,15 @@ def require_retained_reviews(source, dataset, records, review):
 def compact_retained_review_dependencies(source, dataset, records, review):
     """Keep actual reused opinions and decision identities, not old matrices."""
     require_retained_reviews(source, dataset, records, review)
-    from .local_revision import read_bound
+    from .publication_privacy import read_evidence_binding
     from .result_review import review_input_identity
-    receipt = json.loads(read_bound(source, review['retained_reviews']).read_text())
+    receipt = json.loads(read_evidence_binding(source, review['retained_reviews']).read_text())
     if receipt.get('kind') == 'current_retained_review_dependencies':
         return receipt
-    prior = json.loads(read_bound(source, receipt['prior_review']).read_text())
-    before = json.loads(read_bound(source, receipt['prior_dataset']).read_text())
+    prior = json.loads(read_evidence_binding(source, receipt['prior_review']).read_text())
+    before = json.loads(read_evidence_binding(source, receipt['prior_dataset']).read_text())
     from harness.record_io import load_jsonl
-    previous = {r['attempt_id']: r for r in load_jsonl(read_bound(source, receipt['prior_results']))}
+    previous = {r['attempt_id']: r for r in load_jsonl(read_evidence_binding(source, receipt['prior_results']))}
     old_cases = {c['id']: c for c in before['cases']}
     cases = {c['id']: c for c in dataset['cases']}
     indexed = {r['attempt_id']: r for r in records}
@@ -338,14 +333,14 @@ def compact_retained_review_dependencies(source, dataset, records, review):
         old = previous[identifier]
         case = old_cases[old['case_id']]
         rows.append({'attempt_id': identifier,
-            'case_sha256': case_hash(cases[indexed[identifier]['case_id']]),
-            'original_positive_case_sha256': case_hash({k: v for k, v in case.items()
+            'case_sha256': canonical_json_sha256(cases[indexed[identifier]['case_id']]),
+            'original_positive_case_sha256': canonical_json_sha256({k: v for k, v in case.items()
                 if k not in {'forbidden_any', 'diagnostic_any'}}),
             'original_forbidden_any': case.get('forbidden_any', []),
             'original_diagnostic_any': case.get('diagnostic_any', []),
             'original_review_input': review_input_identity(old),
             'current_review_input': review_input_identity(indexed[identifier]),
-            'original_opinion_sha256': case_hash(opinions[identifier]),
+            'original_opinion_sha256': canonical_json_sha256(opinions[identifier]),
             'original_opinion': opinions[identifier]})
     result = {'kind': 'current_retained_review_dependencies', 'schema_version': 1,
         'provider_calls_added': 0, 'new_independent_reviews': 0,
@@ -378,8 +373,8 @@ def _require_current_retained_reviews(source, dataset, records, review, receipt)
         old_bans, old_hints = (dependency['original_forbidden_any'],
                                dependency['original_diagnostic_any'])
         bans, hints = case.get('forbidden_any', []), case.get('diagnostic_any', [])
-        if (dependency['case_sha256'] != case_hash(case)
-                or dependency['original_positive_case_sha256'] != case_hash({k: v
+        if (dependency['case_sha256'] != canonical_json_sha256(case)
+                or dependency['original_positive_case_sha256'] != canonical_json_sha256({k: v
                     for k, v in case.items() if k not in {'forbidden_any', 'diagnostic_any'}})
                 or not ((old_bans == bans and old_hints == hints)
                         or (not bans and hints == old_bans and not old_hints))):
@@ -387,13 +382,12 @@ def _require_current_retained_reviews(source, dataset, records, review, receipt)
         cited = set(opinion.get('adjudication_evidence', {}).get('rule_ids', []))
         if ((old_bans != bans or old_hints != hints)
                 and (record['metrics'].get('diagnostic_hits')
-                     or cited & {'forbidden_any', 'diagnostic_any'}
-                     or '命中词：。' in opinion.get('adjudication', ''))):
+                     or cited & {'forbidden_any', 'diagnostic_any'})):
             raise ValueError('Compact retained opinion depends on changed policy')
         identity = review_input_identity(record)
         if (dependency['current_review_input'] != identity
                 or dependency['original_review_input'] != identity
-                or dependency.get('original_opinion_sha256') != case_hash(opinion)
+                or dependency.get('original_opinion_sha256') != canonical_json_sha256(opinion)
                 or opinion.get('attempt_id') != identifier
                 or any(row.get(k) != opinion.get(k) for k in immutable)
                 or opinion.get('final_verdict') not in {'pass', 'fail'}

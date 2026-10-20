@@ -4,7 +4,7 @@ import json
 import pytest
 
 from harness.web_fetch.publication_privacy import project_evidence_view
-from lexbench_webfetch.answer_projection import project_native_answer
+from harness.web_fetch.native_projection import project_native_answer
 
 
 def test_native_envelope_view_redacts_decoded_paths_without_changing_other_fields():

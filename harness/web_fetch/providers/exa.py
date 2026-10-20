@@ -78,31 +78,15 @@ class ExaContentsProvider(Provider):
             int(self.config.get("livecrawl_timeout_ms", 15_000)),
             max(1, int(http_timeout * 1000)),
         )
-        extras = ({"links": 20, "imageLinks": 20}
-                  if self.config.get("include_resource_links") else {})
-        if self.config.get("rich_links_limit") or (case.acceptance_contract.get("schema") == "named_link" and not self.config.get("uniform_native_parameters")):
-            # Bare links and surrounding text do not prove record ownership.
-            # Exa's richLinks route returns the explicit anchor/URL pair needed
-            # by the shared named-link answer contract.
-            extras["richLinks"] = int(self.config.get("rich_links_limit", 100))
-        response = self.native_http_request(case, request,
-            f"{str(self.config.get('base_url', 'https://api.exa.ai')).rstrip('/')}/contents",
-            method="POST",
-            timeout=http_timeout,
-            max_bytes=int(self.config.get("max_bytes", 20_000_000)),
-            headers={"x-api-key": str(self.config.get("api_key", ""))},
-            json_body={
-                "urls": [case.url],
-                "text": {"verbosity": self.config.get("text_verbosity", "full")},
-                "maxAgeHours": int(self.config.get("max_age_hours", 0)),
-                # Exa recommends 10-15 seconds when maxAgeHours can trigger a
-                # live crawl. Keep that provider-side deadline inside the
-                # runner's shorter HTTP budget rather than relying on Exa's
-                # default and letting the client abandon a still-running job.
-                **({} if self.config.get("uniform_native_parameters") else {"livecrawlTimeout": livecrawl_timeout_ms}),
-                **({"extras": extras} if extras else {}),
-            },
-        )
+        endpoint, arguments = self.native_http_arguments(case, http_timeout)
+        request_body = arguments['json_body']
+        if not self.config.get("uniform_native_parameters"):
+            # Diagnostic calls keep the documented service deadline inside the
+            # HTTP budget, plus the task's explicit named-link output contract.
+            request_body['livecrawlTimeout'] = livecrawl_timeout_ms
+            if case.acceptance_contract.get("schema") == "named_link":
+                request_body.setdefault('extras', {})['richLinks'] = int(self.config.get("rich_links_limit", 100))
+        response = self.native_http_request(case, request, endpoint, **arguments)
         try:
             payload = response.json()
         except ValueError:

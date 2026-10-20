@@ -4,11 +4,26 @@ import html
 import json
 import re
 from collections import OrderedDict
+from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 from functools import lru_cache
-from pathlib import PurePosixPath, PureWindowsPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from threading import Lock
 from urllib.parse import unquote_plus
+
+
+_STAGED_EVIDENCE = ContextVar('webfetch_staged_evidence', default=None)
+
+
+@contextmanager
+def staged_evidence_reads(source, resolve):
+    """Expose a proposed write set to ordinary binding checks within this context."""
+    token = _STAGED_EVIDENCE.set((Path(source).resolve(), resolve))
+    try:
+        yield
+    finally:
+        _STAGED_EVIDENCE.reset(token)
 
 
 def project_execution_manifest(manifest: dict) -> dict:
@@ -682,8 +697,7 @@ def project_host_metadata_files(files, host_prefixes, *, host_names=(), public_e
 
 def require_host_metadata_projection(source, binding):
     """Validate public metadata hashes without certifying unavailable originals."""
-    from .local_revision import read_bound
-    receipt = json.loads(read_bound(source, binding).read_text())
+    receipt = json.loads(read_evidence_binding(source, binding).read_text())
     rows = receipt.get('files', [])
     names = [item['path'] for item in rows]
     if (receipt.get('kind') != 'host_metadata_publication_projection'
@@ -694,7 +708,7 @@ def require_host_metadata_projection(source, binding):
                 or not re.fullmatch('[0-9a-f]{64}', item.get('original_sha256', ''))
                 or item['original_sha256'] == item.get('published_sha256')):
             raise ValueError('Projection must preserve scored payloads and original identities')
-        public = read_bound(source, {'path': item['path'], 'sha256': item['published_sha256']})
+        public = read_evidence_binding(source, {'path': item['path'], 'sha256': item['published_sha256']})
         if public.stat().st_size != item['published_bytes']:
             raise ValueError('Published metadata size differs from projection receipt')
     return receipt
@@ -802,8 +816,7 @@ def project_evidence_view(name, data, *, role, host_prefixes=(), host_names=(), 
 
 def require_public_evidence_view(source, binding):
     """Verify a declared public view, without claiming original bytes are public."""
-    from .local_revision import read_bound
-    receipt = json.loads(read_bound(source, binding).read_text())
+    receipt = json.loads(read_evidence_binding(source, binding).read_text())
     name = receipt.get('path', '')
     path = PurePosixPath(name)
     redactions = receipt.get('redactions')
@@ -826,7 +839,7 @@ def require_public_evidence_view(source, binding):
     if (same and (redactions or receipt['original_bytes'] != receipt['published_bytes'])
             or not same and not redactions):
         raise ValueError('Public view identity does not match its declared redactions')
-    public = read_bound(source, {'path': name, 'sha256': receipt['published_sha256']})
+    public = read_evidence_binding(source, {'path': name, 'sha256': receipt['published_sha256']})
     raw = public.read_bytes()
     if len(raw) != receipt['published_bytes'] or publication_risk(raw):
         raise ValueError('Public evidence view bytes or privacy state differ')
@@ -892,6 +905,13 @@ def read_evidence_binding(source, binding):
     """Verify original bytes, or return the explicitly disclosed public view."""
     from lexbench_webfetch.paths import contained_path
     path = contained_path(source, binding['path'], reject_symlinks=True)
+    staged = _STAGED_EVIDENCE.get()
+    if staged is not None and Path(source).resolve() == staged[0]:
+        proposed = staged[1](path)
+        if proposed != path:
+            if not proposed.is_file() or hashlib.sha256(proposed.read_bytes()).hexdigest() != binding.get('sha256'):
+                raise ValueError('Staged revision evidence binding changed: ' + binding['path'])
+            return proposed
     if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == binding.get('sha256'):
         return path
     public = bound_public_view(source, binding)
@@ -931,11 +951,10 @@ def evidence_excerpt_matches(source, binding, sample, text):
 
 def require_public_evidence_view_inventory(source, binding, records):
     """Require complete current-answer/native-response view coverage at release."""
-    from .local_revision import read_bound
     from lexbench_webfetch.paths import contained_path
     if (source/'private_artifacts').exists():
         raise ValueError('Public evidence snapshot must not contain private artifact trees')
-    index = json.loads(read_bound(source, binding).read_text())
+    index = json.loads(read_evidence_binding(source, binding).read_text())
     if (index.get('kind') != 'post_score_public_evidence_view_inventory'
             or index.get('provider_calls_added') != 0):
         raise ValueError('Invalid public evidence view inventory')
@@ -969,7 +988,6 @@ def require_public_evidence_view_inventory(source, binding, records):
 
 def public_render_views(source, records):
     """Read bound display annotations; never rewrite saved result records."""
-    from .local_revision import read_bound
     profile_path = source/'presentation-binding.json'
     if not profile_path.is_file():
         return {}
@@ -977,7 +995,7 @@ def public_render_views(source, records):
     declared = profile.get('publication_evidence_views')
     if not declared:
         return {}
-    index = json.loads(read_bound(source, declared).read_text())
+    index = json.loads(read_evidence_binding(source, declared).read_text())
     entries = {(e['original_path'], e['original_sha256']): e for e in index['files']}
     result = {}
     for row in records:
@@ -990,7 +1008,7 @@ def public_render_views(source, records):
             if identity not in entries:
                 raise ValueError('Public rendering omits a declared evidence view')
             binding = entries[identity]['view_receipt']
-            receipt = json.loads(read_bound(source, binding).read_text())
+            receipt = json.loads(read_evidence_binding(source, binding).read_text())
             if receipt['role'] != role or receipt['original_sha256'] != identity[1]:
                 raise ValueError('Public rendering changed its original evidence identity')
             views[role] = {key: receipt[key] for key in ('path', 'original_sha256', 'published_sha256',

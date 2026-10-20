@@ -2,6 +2,7 @@
 import hashlib
 import json
 from pathlib import Path
+from harness.record_io import canonical_json_sha256
 
 from lexbench_webfetch.metrics import task_passed
 from .reference_inputs import input_tree, read_dataset_bytes
@@ -13,13 +14,6 @@ MANIFEST_NAME = "local-audit-manifest.json"
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _canonical_sha256(value) -> str:
-    encoded = json.dumps(
-        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
 
 
 def _repository_file(relative: str) -> Path:
@@ -144,9 +138,9 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
     base_set, revision_set = set(base_ids), set(revision_ids)
     base_controls = [row for row in controls if row["id"] in base_set]
     revision_controls = [row for row in controls if row["id"] in revision_set]
-    if (_canonical_sha256(base_controls)
+    if (canonical_json_sha256(base_controls)
             != scoring.get("bindings", {}).get("preexisting_controls_sha256")
-            or _canonical_sha256(revision_controls)
+            or canonical_json_sha256(revision_controls)
             != scoring.get("bindings", {}).get("revision_controls_sha256")):
         raise ValueError("Scoring control contents changed")
     expected_rows = [{
@@ -290,10 +284,11 @@ def _require_review(source: Path, dataset: dict, records: list[dict],
 
 
 def _read_bound_receipt(source: Path, receipt: dict, relative: str) -> dict:
+    from .publication_privacy import read_evidence_binding
     expected = receipt.get("review", {}).get("bound_receipts", {}).get(relative)
-    path = contained_path(source, relative)
-    if not expected or not path.is_file() or path.is_symlink() or _sha256(path) != expected:
+    if not expected:
         raise ValueError("Local audit review receipt changed: " + relative)
+    path = read_evidence_binding(source, {'path': relative, 'sha256': expected})
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -392,7 +387,7 @@ def local_measurement_call_sha256(record):
     derived = {"metrics", "diagnosis", "failure_category", "scoring", "provider_metadata"}
     facts = {key: value for key, value in record.items() if key not in derived}
     facts["content_sha256"] = record.get("metrics", {}).get("content_sha256")
-    return _canonical_sha256(facts)
+    return canonical_json_sha256(facts)
 
 
 def _require_local_scoring_revision(source, contract, records):
@@ -468,7 +463,7 @@ def score_reviewed_page_identity(source, case, record, annotation, captures, *, 
     from lexbench_webfetch.scoring import score_attempt, _same_page_url, SCORING_SOURCE_SHA256
 
     if (annotation.get("attempt_id") != record["attempt_id"]
-            or annotation.get("case_sha256") != _canonical_sha256(case)
+            or annotation.get("case_sha256") != canonical_json_sha256(case)
             or annotation.get("call_sha256") != local_measurement_call_sha256(record)
             or annotation.get("content_sha256") != record["metrics"]["content_sha256"]
             or record.get("final_url") is not None
@@ -488,7 +483,7 @@ def score_reviewed_page_identity(source, case, record, annotation, captures, *, 
     capture = captures[annotation["capture_index"]]
     corresponding_url = annotation["corresponding_url"]
     if (capture.get("url") != corresponding_url
-            or _canonical_sha256(capture) != annotation.get("capture_sha256")):
+            or canonical_json_sha256(capture) != annotation.get("capture_sha256")):
         raise ValueError("Page review capture binding differs")
     answer = contained_path(source, record["artifact_path"]).read_bytes()
     if hashlib.sha256(answer).hexdigest() != annotation["content_sha256"]:
@@ -517,7 +512,7 @@ def score_reviewed_page_identity(source, case, record, annotation, captures, *, 
                 or metrics.get('page_identity_status') != 'verified'
                 or metrics.get('final_url_consistent') is not True
                 or metrics.get('content_chars') != len(answer.decode('utf-8'))
-                or metrics.get('page_identity_review_sha256') != _canonical_sha256(annotation)):
+                or metrics.get('page_identity_review_sha256') != canonical_json_sha256(annotation)):
             raise ValueError('Reviewed result differs from its bound historical shared scorer')
         return dict(metrics)
     metrics = score_attempt(
@@ -526,7 +521,7 @@ def score_reviewed_page_identity(source, case, record, annotation, captures, *, 
         title=record.get("title"), final_url=corresponding_url,
     )
     metrics["page_identity_basis"] = "retrospective_content_correspondence"
-    metrics["page_identity_review_sha256"] = _canonical_sha256(annotation)
+    metrics["page_identity_review_sha256"] = canonical_json_sha256(annotation)
     return metrics
 
 
@@ -538,9 +533,9 @@ def _require_page_identity_review(source, dataset, records, *, scoring_sources=N
         if marked:
             raise ValueError("Reviewed page identities lack a receipt")
         return
-    from .local_revision import read_bound
+    from .publication_privacy import read_evidence_binding
     try:
-        path = read_bound(source, binding)
+        path = read_evidence_binding(source, binding)
     except ValueError as error:
         raise ValueError("Page identity review receipt changed") from error
     receipt = json.loads(path.read_text())
@@ -988,10 +983,10 @@ def require_local_audit(source: Path, dataset: dict, records: list[dict]) -> dic
 def _require_local_runner_inputs(source, contract, execution, records):
     """Verify retained runner inputs and source observations, without certifying them."""
     from datetime import datetime
-    from .local_revision import read_bound
+    from .publication_privacy import read_evidence_binding
     inputs = contract['runner_inputs']
     def read(key):
-        return json.loads(read_bound(source, inputs[key]).read_text())
+        return json.loads(read_evidence_binding(source, inputs[key]).read_text())
     frozen, configuration, network = (read(key) for key in ('dataset', 'providers', 'network'))
     canonical = local_measurement_cases(contract, source)
     if frozen['cases'] != canonical or inputs['dataset'] != contract['dataset_sources'][0]:
@@ -1040,10 +1035,10 @@ def _require_local_runner_inputs(source, contract, execution, records):
         ends = [datetime.fromisoformat(row['completed_at']) for row in records if row['case_id'] == case['id']]
         for stage in ('pre', 'post'):
             capture = observations[case['id']][stage]
-            evidence = json.loads(read_bound(source, capture['evidence']).read_text())
+            evidence = json.loads(read_evidence_binding(source, capture['evidence']).read_text())
             for key, field in [('source', 'sha256'),
                                ('reference', 'reference_sha256'), ('extracted', 'extracted_sha256')]:
-                read_bound(source, capture[key])
+                read_evidence_binding(source, capture[key])
                 if capture[key]['sha256'] != evidence.get(field):
                     raise ValueError('Local runner source bytes differ from observation')
             observed = datetime.fromisoformat(evidence['checked_at'])
@@ -1054,7 +1049,8 @@ def _require_local_runner_inputs(source, contract, execution, records):
                 raise ValueError('Local runner source observation does not bracket the calls')
 
 
-def _hint_migrated_case(case):
+def _legacy_diagnostic_migrated_case(case):
+    """Decode the exact task transition in retained legacy review receipts."""
     import copy
     result = copy.deepcopy(case)
     hints = result.pop('forbidden_any', [])
@@ -1065,12 +1061,13 @@ def _hint_migrated_case(case):
 
 
 def _require_identity_binding_revision(source, dataset, receipt):
-    from .local_revision import read_bound
+    """Verify a saved migration receipt; never create a new migrated review."""
+    from .publication_privacy import read_evidence_binding
     migration = receipt.get('binding_revision')
     if not migration:
         return
-    previous = json.loads(read_bound(source, migration['prior_receipt']).read_text())
-    old_cases = json.loads(read_bound(source, migration['prior_cases']).read_text())
+    previous = json.loads(read_evidence_binding(source, migration['prior_receipt']).read_text())
+    old_cases = json.loads(read_evidence_binding(source, migration['prior_cases']).read_text())
     cases = {case['id']: case for case in dataset['cases']}
     if (migration.get('kind') != 'diagnostic_field_migration'
             or migration.get('new_independent_review') is not False
@@ -1078,13 +1075,13 @@ def _require_identity_binding_revision(source, dataset, receipt):
             or receipt.get('captures_sha256') != previous.get('captures_sha256')):
         raise ValueError('Page identity evidence migration changed source observations')
     annotations = []
-    prior_ids = {_canonical_sha256(case): identifier for identifier, case in old_cases.items()}
+    prior_ids = {canonical_json_sha256(case): identifier for identifier, case in old_cases.items()}
     for annotation in previous['attempts']:
         identifier = prior_ids.get(annotation['case_sha256'])
         if identifier is None or identifier not in cases:
             raise ValueError('Page identity migration has no matching prior task')
         old = old_cases[identifier]
-        migrated = _hint_migrated_case(old)
+        migrated = _legacy_diagnostic_migrated_case(old)
         # Older compiled navigation tasks implied identity acceptance. Keep
         # that requirement explicit when adopting the diagnostic default.
         if (cases[identifier].get('page_identity_required') is True
@@ -1096,59 +1093,40 @@ def _require_identity_binding_revision(source, dataset, receipt):
             if ((old.get('track') == 'risk_control' and navigation.get('requested_url')
                  and navigation.get('observed_final_url')) or dynamic_identity):
                 migrated['page_identity_required'] = True
-        if (annotation['case_sha256'] != _canonical_sha256(old)
+        if (annotation['case_sha256'] != canonical_json_sha256(old)
                 or migrated != cases[identifier]):
             raise ValueError('Page identity migration changed its target contract')
         annotations.append({**annotation, 'prior_case_sha256': annotation['case_sha256'],
-                            'case_sha256': _canonical_sha256(cases[identifier])})
+                            'case_sha256': canonical_json_sha256(cases[identifier])})
     if receipt['attempts'] != annotations:
         raise ValueError('Page identity migration changed an existing reviewed annotation')
 
 
-def carry_reviewed_page_identities(source, before_dataset, dataset, records, *, write_bytes=None):
-    """Reapply retained human evidence after offline scoring; never invent a URL."""
-    from .local_revision import read_bound
+def carry_reviewed_page_identities(source, before_dataset, dataset, records):
+    """Reuse unchanged identity evidence, without creating historical migrations.
+
+    Old migration receipts remain read-only inputs to the legacy verifier.
+    Changed task, answer or physical-call inputs require a new explicit review.
+    """
+    from .publication_privacy import read_evidence_binding
     binding = before_dataset.get('comparison', {}).get('page_identity_review')
     if not binding:
         return None
-    original = json.loads(read_bound(source, binding).read_text())
+    original = json.loads(read_evidence_binding(source, binding).read_text())
     captures_path = contained_path(source, original['captures_path'], reject_symlinks=True)
     if _sha256(captures_path) != original['captures_sha256']:
         raise ValueError('Page identity capture changed before rescoring')
     captures = json.loads(captures_path.read_text())
-    old_cases = {case['id']: case for case in before_dataset['cases']}
     cases = {case['id']: case for case in dataset['cases']}
     indexed = {row['attempt_id']: row for row in records}
-    changed = any(annotation['case_sha256'] != _canonical_sha256(cases[indexed[annotation['attempt_id']]['case_id']])
-                  for annotation in original['attempts'])
     receipt = original
-    if changed:
-        prior_cases = {indexed[a['attempt_id']]['case_id']: old_cases[indexed[a['attempt_id']]['case_id']]
-                       for a in original['attempts']}
-        key = _canonical_sha256({'prior_receipt': binding, 'cases': {key: cases[key] for key in prior_cases}})[:16]
-        directory = source / 'local-evidence/page-identity-review/rebindings' / key
-        if write_bytes is None:
-            directory.mkdir(parents=True, exist_ok=True)
-        write = write_bytes or (lambda path, raw: path.write_bytes(raw))
-        old_path = directory / 'prior-cases.json'
-        prior_bytes = (json.dumps(prior_cases, ensure_ascii=False, indent=2)+'\n').encode()
-        if old_path.exists() and old_path.read_bytes() != prior_bytes:
-            raise ValueError('Page identity migration would overwrite prior case evidence')
-        write(old_path, prior_bytes)
-        receipt = {key: original[key] for key in ('kind', 'reviewed_at', 'basis', 'provider_calls_added', 'captures_path', 'captures_sha256')}
-        receipt['attempts'] = [{**a, 'prior_case_sha256': a['case_sha256'],
-            'case_sha256': _canonical_sha256(cases[indexed[a['attempt_id']]['case_id']])} for a in original['attempts']]
-        receipt['binding_revision'] = {'kind': 'diagnostic_field_migration', 'prior_receipt': binding,
-            'prior_cases': {'path': str(old_path.relative_to(source)),
-                            'sha256': hashlib.sha256(prior_bytes).hexdigest()},
-            'new_independent_review': False}
-        _require_identity_binding_revision(source, dataset, receipt)
-        path = directory / 'receipt.json'
-        raw = (json.dumps(receipt, ensure_ascii=False, indent=2)+'\n').encode()
-        if path.exists() and path.read_bytes() != raw:
-            raise ValueError('Page identity migration would overwrite a prior receipt')
-        write(path, raw)
-        binding = {'path': str(path.relative_to(source)), 'sha256': hashlib.sha256(raw).hexdigest()}
+    for annotation in receipt['attempts']:
+        row = indexed.get(annotation['attempt_id'])
+        case = cases.get(row['case_id']) if row is not None else None
+        if (case is None or annotation['case_sha256'] != canonical_json_sha256(case)
+                or annotation['call_sha256'] != local_measurement_call_sha256(row)
+                or annotation['content_sha256'] != row['metrics']['content_sha256']):
+            raise ValueError('Changed page identity review inputs require a new explicit review')
     dataset['comparison']['page_identity_review'] = binding
     for annotation in receipt['attempts']:
         row = indexed[annotation['attempt_id']]

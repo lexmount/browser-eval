@@ -222,7 +222,9 @@ class CloudflareMarkdownProvider(Provider):
                 if case.task_kind == 'resource' and case.track in {'image', 'video'} else '/markdown')
 
     def native_http_arguments(self, case, timeout):
-        interface = self.native_http_interface(case)
+        return self._http_arguments(case, timeout, self.native_http_interface(case))
+
+    def _http_arguments(self, case, timeout, interface):
         body = {'url': case.url, 'gotoOptions': {'waitUntil': self.config.get('wait_until', 'networkidle2')}}
         if interface == '/scrape':
             selectors = (['img', 'picture source'] if case.track == 'image' else
@@ -238,11 +240,7 @@ class CloudflareMarkdownProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         self.check_native_call(case)
-        return self._fetch_payload(
-            case,
-            timeout,
-            {"url": case.url, "gotoOptions": {"waitUntil": self.config.get("wait_until", "networkidle2")}},
-        )
+        return self._fetch_payload(case, timeout)
 
     def fetch_html(self, case: EvalCase, html: str, timeout: float) -> ProviderResult:
         """Run the product's documented inline-HTML route for frozen benchmarks."""
@@ -259,7 +257,7 @@ class CloudflareMarkdownProvider(Provider):
             },
         )
 
-    def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict) -> ProviderResult:
+    def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict | None = None) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
         http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         if (
@@ -267,11 +265,7 @@ class CloudflareMarkdownProvider(Provider):
             and case.track in {"image", "video"}
             and self.config.get("page_output") != "native_markdown"
         ):
-            return self._fetch_media_resources(
-                case,
-                account_id=account_id,
-                http_timeout=http_timeout,
-            )
+            return self._fetch_media_resources(case, http_timeout=http_timeout)
         if not self.config.get("uniform_native_parameters") and self.config.get("browser") != "kitesurf" and _uses_direct_document_route(case):
             return self._fetch_direct_document(
                 case,
@@ -279,21 +273,17 @@ class CloudflareMarkdownProvider(Provider):
                 http_timeout=http_timeout,
             )
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
-        query = urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""
-        endpoint = (
-            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/markdown"
-        )
-        request_body = dict(request_body)
-        if "url" in request_body:
-            request_body["gotoOptions"] = {
-                "waitUntil": self.config.get("wait_until", "networkidle2"),
-                "timeout": service_timeout_ms,
-            }
-        request_body["actionTimeout"] = service_timeout_ms
+        endpoint, arguments = self._http_arguments(case, http_timeout, '/markdown')
+        # Inline HTML is a distinct diagnostic input. URL calls share exactly
+        # the same native base request, adding only diagnostic readiness limits.
+        if request_body is not None and "html" in request_body:
+            arguments['json_body'] = dict(request_body)
+        request_body = arguments['json_body']
+        if not self.config.get("uniform_native_parameters"):
+            if "url" in request_body:
+                request_body['gotoOptions']['timeout'] = service_timeout_ms
+            request_body['actionTimeout'] = service_timeout_ms
         route = "browser_rendering_markdown"
-        if self.config.get("uniform_native_parameters"):
-            request_body.get("gotoOptions", {}).pop("timeout", None)
-            request_body.pop("actionTimeout", None)
         wait_metadata = None
         plan = None
         native_contract = None
@@ -387,14 +377,7 @@ class CloudflareMarkdownProvider(Provider):
                 "support": "unsupported",
                 "harness_content_assembly": False,
             }
-        response = self.native_http_request(case, request,
-            endpoint + ("?" + query if query else ""),
-            method="POST",
-            timeout=http_timeout,
-            max_bytes=int(self.config.get("max_bytes", 20_000_000)),
-            headers={"Authorization": f"Bearer {self.config.get('api_token', '')}"},
-            json_body=request_body,
-        )
+        response = self.native_http_request(case, request, endpoint, **arguments)
         try:
             payload = response.json()
         except ValueError:
@@ -457,7 +440,6 @@ class CloudflareMarkdownProvider(Provider):
         self,
         case: EvalCase,
         *,
-        account_id: str,
         http_timeout: float,
     ) -> ProviderResult:
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
@@ -466,31 +448,15 @@ class CloudflareMarkdownProvider(Provider):
             isinstance(resource, dict) and resource.get("kind") == "video-link"
             for resource in case.expected_resources
         ))
-        if case.track == "image":
-            selectors = ["img", "picture source"]
-        elif include_video_page_links and not native:
-            selectors = ["a[href]"]
-        else:
-            # One native media request for every video-resource task; never
-            # choose selectors from expected URLs or reference answers.
-            selectors = ["video", "video source", "audio", "audio source", "iframe", "a[href]"]
-        response = self.native_http_request(case, request,
-            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/scrape"
-            + ("?" + urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""),
-            method="POST",
-            timeout=http_timeout,
-            max_bytes=int(self.config.get("max_bytes", 20_000_000)),
-            headers={"Authorization": f"Bearer {self.config.get('api_token', '')}"},
-            json_body={
-                "url": case.url,
-                "elements": [{"selector": selector} for selector in selectors],
-                "gotoOptions": {
-                    "waitUntil": self.config.get("wait_until", "networkidle2"),
-                    **({} if self.config.get("uniform_native_parameters") else {"timeout": service_timeout_ms}),
-                },
-                **({} if self.config.get("uniform_native_parameters") else {"actionTimeout": service_timeout_ms}),
-            },
-        )
+        endpoint, arguments = self._http_arguments(case, http_timeout, '/scrape')
+        request_body = arguments['json_body']
+        if not native:
+            if include_video_page_links:
+                request_body['elements'] = [{'selector': 'a[href]'}]
+            request_body['gotoOptions']['timeout'] = service_timeout_ms
+            request_body['actionTimeout'] = service_timeout_ms
+        selectors = [item['selector'] for item in request_body['elements']]
+        response = self.native_http_request(case, request, endpoint, **arguments)
         try:
             payload = response.json()
         except ValueError:
@@ -498,7 +464,7 @@ class CloudflareMarkdownProvider(Provider):
         if not isinstance(payload, dict):
             payload = {}
         envelope_success = payload.get("success") is True
-        from lexbench_webfetch.answer_projection import project_native_answer
+        from ..native_projection import project_native_answer
         answer_key = 'images' if case.track == 'image' else 'videos'
         meta = payload.get('meta') if isinstance(payload.get('meta'), dict) else {}
         effective_url = meta.get('finalUrl') or case.url
@@ -736,6 +702,7 @@ class CloudflareMarkdownProvider(Provider):
 class CloudflareContentProvider(Provider):
     native_http_interface = CloudflareMarkdownProvider.native_http_interface
     native_http_arguments = CloudflareMarkdownProvider.native_http_arguments
+    _http_arguments = CloudflareMarkdownProvider._http_arguments
 
     """Rendered HTML diagnostic. It is deliberately excluded from the readable-text leaderboard."""
 
@@ -744,24 +711,13 @@ class CloudflareContentProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         self.check_native_call(case)
-        account_id = str(self.config.get("account_id", ""))
         http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
-        response = self.native_http_request(case, request,
-            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/content",
-            method="POST",
-            timeout=http_timeout,
-            max_bytes=int(self.config.get("max_bytes", 20_000_000)),
-            headers={"Authorization": f"Bearer {self.config.get('api_token', '')}"},
-            json_body={
-                "url": case.url,
-                "gotoOptions": {
-                    "waitUntil": self.config.get("wait_until", "networkidle2"),
-                    **({} if self.config.get("uniform_native_parameters") else {"timeout": service_timeout_ms}),
-                },
-                **({} if self.config.get("uniform_native_parameters") else {"actionTimeout": service_timeout_ms}),
-            },
-        )
+        endpoint, arguments = self._http_arguments(case, http_timeout, '/content')
+        if not self.config.get("uniform_native_parameters"):
+            arguments['json_body']['gotoOptions']['timeout'] = service_timeout_ms
+            arguments['json_body']['actionTimeout'] = service_timeout_ms
+        response = self.native_http_request(case, request, endpoint, **arguments)
         try:
             payload = response.json()
         except ValueError:

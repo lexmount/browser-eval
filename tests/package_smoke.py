@@ -28,6 +28,10 @@ def verify_dependency_metadata(source_root: Path) -> None:
 
 
 def verify_lexbench_input_ownership(source_root: Path) -> None:
+    from harness.web_fetch.native_projection import native_projection_regressions
+    from harness.web_fetch.local_revision import _require_revision_regressions
+    source_controls = native_projection_regressions()
+    assert source_controls and _require_revision_regressions(list(source_controls)) == list(source_controls)
     from harness.web_fetch.reference_inputs import benchmark_input_path, require_mutable_inputs
     from lexbench_webfetch.inputs import definition_path
     logical = source_root / 'evaluation/dataset.json'

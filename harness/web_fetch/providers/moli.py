@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from lexbench_webfetch.answer_projection import main_document_url_from_fetch_log as _diagnostic_main_document_url
+from ..native_projection import main_document_url_from_fetch_log as _diagnostic_main_document_url
 
 from lexbench_webfetch.models import EvalCase, TRACKS
 from harness.web_fetch.models import ProviderResult
@@ -111,7 +111,7 @@ def _moli_native_error_type(stderr: str | bytes) -> str:
 
 def _native_fetch_diagnostics(stderr: bytes, requested_url: str) -> tuple[int | None, bool]:
     """Use the same capture-bounded native parser as saved-call replay."""
-    from lexbench_webfetch.answer_projection import native_fetch_diagnostics
+    from ..native_projection import native_fetch_diagnostics
     return native_fetch_diagnostics(stderr, requested_url)
 
 

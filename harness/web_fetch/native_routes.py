@@ -1,7 +1,8 @@
 """Declared native input and route contracts, independent of URLs and answers."""
 import json
+from harness.record_io import canonical_json_sha256
 
-from lexbench_webfetch.answer_projection import (
+from .native_projection import (
     SCORE_ANSWER_FIELDS, require_native_projection_schema, require_native_answer_projection,
 )
 
@@ -34,13 +35,6 @@ def declared_input_media_kind(case, *, required=True):
 
 # Native parameter values come from the immutable provider configuration and its
 # pinned implementation, not a case URL, expected text, or provider outcome.
-def _digest(value):
-    import hashlib
-    import json
-    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
-                                     separators=(',', ':')).encode()).hexdigest()
-
-
 def native_route_cell(provider, case):
     media = declared_input_media_kind(case)
     kind, track = case.task_kind, case.track
@@ -85,10 +79,10 @@ def native_route_cell(provider, case):
             'transport': transport, 'interface': interface, 'answer_fields': fields,
             'configured_parameters': {k: config[k] for k in options if k in config},
             'unspecified_parameters': 'native defaults from the bound implementation',
-            **({'command_sha256': _digest(config.get('command'))} if transport == 'jsonl' else {}),
-            'provider_configuration_sha256': _digest(config),
+            **({'command_sha256': canonical_json_sha256(config.get('command'))} if transport == 'jsonl' else {}),
+            'provider_configuration_sha256': canonical_json_sha256(config),
             'answer_selection_policy': native_projection_policy(method),
-            'endpoint_sha256': _digest(endpoint) if endpoint is not None else None}
+            'endpoint_sha256': canonical_json_sha256(endpoint) if endpoint is not None else None}
     return key, cell
 
 
@@ -96,7 +90,7 @@ def _request_parameters(provider, case, cell, timeout_seconds):
     """Explicit pre-call transport contract, separately checked against adapters."""
     if cell['transport'] == 'http':
         endpoint, arguments = provider.native_http_arguments(case, timeout_seconds)
-        if _digest(endpoint) != cell['endpoint_sha256']:
+        if canonical_json_sha256(endpoint) != cell['endpoint_sha256']:
             raise ValueError('Native request builder differs from its declared endpoint')
         return normalized_http_parameters(case, arguments)
     if cell['transport'] == 'cli':
@@ -108,7 +102,7 @@ def _request_parameters(provider, case, cell, timeout_seconds):
             '<diagnostic-output>' if provider.config.get('log_level') == 'debug' else None)
         request['url'] = '<input-url>'
         command = [provider._resolve_token(part) for part in provider.config.get('command', [])]
-        return {'request': request, 'command_sha256': _digest(command)}
+        return {'request': request, 'command_sha256': canonical_json_sha256(command)}
     return {}
 
 
@@ -125,7 +119,7 @@ def normalized_http_parameters(case, arguments):
     else:
         raise ValueError('Native HTTP input differs from the frozen task URL')
     return {'method': arguments.get('method', 'GET'), 'body': body,
-            'headers_sha256': _digest(arguments.get('headers', {})),
+            'headers_sha256': canonical_json_sha256(arguments.get('headers', {})),
             'timeout_seconds': arguments.get('timeout'), 'max_bytes': arguments.get('max_bytes')}
 
 
@@ -151,7 +145,7 @@ class NativeRouteLedger:
             if self.providers:
                 self.inventory.append({'case_id': case.id, 'track': case.track,
                                        'task_kind': case.task_kind, 'input_media_kind': media,
-                                       'input_url_sha256': _digest(case.url)})
+                                       'input_url_sha256': canonical_json_sha256(case.url)})
             for provider in self.providers.values():
                 key, cell = native_route_cell(provider, case)
                 if case.track == 'dynamic':
@@ -219,13 +213,13 @@ class NativeRouteLedger:
                 message = 'Native route configuration changed after the pre-call freeze'
             elif transport != cell['transport']:
                 message = 'Native transport differs from its frozen route'
-            elif endpoint is not None and _digest(endpoint) != cell['endpoint_sha256']:
+            elif endpoint is not None and canonical_json_sha256(endpoint) != cell['endpoint_sha256']:
                 message = 'Native endpoint differs from its frozen route'
             elif interface is not None and interface != cell['interface']:
                 message = 'Native command differs from its frozen route'
             signature = {'transport': transport, 'interface': cell['interface'],
                          'endpoint_sha256': cell['endpoint_sha256'], 'parameters': parameters}
-            digest = _digest(signature)
+            digest = canonical_json_sha256(signature)
             if not message and parameters != cell.get('request_parameters'):
                 message = 'Native request parameters differ from the pre-call contract'
             if not message and key in self.observed and self.observed[key] != digest:
@@ -314,10 +308,10 @@ def verify_native_route_contract(source, manifest, dataset, records):
         actual.add(identity)
         case = cases[row['case_id']]
         media = declared_input_media_kind(case)
-        if (_digest(case['url']) != inventory[row['case_id']]['input_url_sha256']
+        if (canonical_json_sha256(case['url']) != inventory[row['case_id']]['input_url_sha256']
                 or inventory[row['case_id']] != {'case_id': row['case_id'], 'track': case.get('track', 'web'),
                 'task_kind': case.get('task_kind', 'body'), 'input_media_kind': media,
-                'input_url_sha256': _digest(row['url'])}
+                'input_url_sha256': canonical_json_sha256(row['url'])}
                 or datetime.fromisoformat(doc['frozen_at']) > datetime.fromisoformat(row['started_at'])):
             raise ValueError('Native input type or pre-call freeze differs')
         key = row['provider'], case.get('track', 'web'), case.get('task_kind', 'body'), media
@@ -352,7 +346,7 @@ def verify_native_route_contract(source, manifest, dataset, records):
                 raise ValueError('Native result lacks one complete invocation signature')
             for item in requests:
                 signature = item['signature']
-                if (_digest(signature) != item.get('sha256')
+                if (canonical_json_sha256(signature) != item.get('sha256')
                         or signature['transport'] != cells[key]['transport']
                         or signature['interface'] != cells[key]['interface']
                         or signature['endpoint_sha256'] != cells[key]['endpoint_sha256']

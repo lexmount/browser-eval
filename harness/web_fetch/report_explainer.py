@@ -11,7 +11,7 @@ from pathlib import Path
 from string import Template
 from urllib.parse import quote, urlsplit
 
-from harness.record_io import parse_jsonl
+from harness.record_io import canonical_json_sha256, parse_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 
 from .report_resources import render_resource_comparison
@@ -116,11 +116,6 @@ def _percent(value):
     return f'{value:.1%}' if value is not None else '未测'
 
 
-def _digest(value):
-    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
-                                    separators=(',', ':')).encode()).hexdigest()
-
-
 def _window_text(window):
     return (' 至 '.join(datetime.fromisoformat(window[k]).strftime('%Y-%m-%d %H:%M:%S')
                        for k in ('first_start_utc', 'last_start_utc')) + ' UTC'
@@ -168,7 +163,7 @@ def _bound_initial_audit(cases):
                      'reconstructed_sha256', 'exact_reconstruction', 'source_state')})
     return {'audited_dataset_sha256': audit['dataset_sha256'],
             'current_dataset_sha256': hashlib.sha256(raw).hexdigest(),
-            'current_web_cases_sha256': _digest(input_web), 'cases': rows,
+            'current_web_cases_sha256': canonical_json_sha256(input_web), 'cases': rows,
             'web_case_count': len(rows), 'exact_reconstructions':
             sum(r['exact_reconstruction'] is True for r in rows),
             'scope': 'frozen reference recoverability from saved initial HTML, not DOM visibility or JS necessity'}
@@ -213,7 +208,7 @@ def collect_evidence(cases, records):
     historical = [r for r in records if cases[r['case_id']].get('track', 'web') != 'dynamic']
     dynamic = [r for r in records if cases[r['case_id']].get('track') == 'dynamic']
     result = {'schema_version': 1,
-              'input': {'cases_sha256': _digest(cases), 'records_sha256': _digest(records),
+              'input': {'cases_sha256': canonical_json_sha256(cases), 'records_sha256': canonical_json_sha256(records),
                         'records_state': 'persisted shared normalization and scoring; no editorial rescoring'},
               'totals': summary(records), 'case_count': len(cases),
               'provider_count': len(providers), 'tracks': {},
@@ -653,7 +648,7 @@ def _render_headless(out, cases, records):
     # complete five-browser edition to its reviewed evidence so a later rebuild
     # cannot silently combine fresh charts with stale narrative measurements.
     reviewed_input = _headless_article_input(cases, records, selected)
-    if _digest(reviewed_input) != 'd8ec77788689869fcfe0be31bf303bdcaa28c52947a09fcbda172c47e96422e5':
+    if canonical_json_sha256(reviewed_input) != 'd8ec77788689869fcfe0be31bf303bdcaa28c52947a09fcbda172c47e96422e5':
         raise ValueError('Five-browser article evidence changed; review case prose and rebind the article before rebuilding')
     def passed(r):
         return task_passed(r['ok'], r['metrics'], cases[r['case_id']].get('task_kind', 'body'))
@@ -683,7 +678,7 @@ def _render_headless(out, cases, records):
         quality_data[n] = {'cases':len(eligible), **{k:_mean(r['metrics'].get(k) for r in eligible) for k in ('word_precision','word_recall','word_f1')}}
     quality = _table(['全文指标','Moli 1.1.1','Chromium'], [(name,*(_percent(quality_data[n][k]) for n in ('moli','chromium'))) for k,name in [('word_recall','参考正文找回比例 · Recall'),('word_precision','输出文字纯净度 · Precision'),('word_f1','综合文字重合 · F1')]], f'{quality_data["moli"]["cases"]} 个具有完整可比参考的普通网页，取逐题算术平均，包含已测失败项。文字重合不等于事实准确率。')
     speed = json.loads(speed_path.read_text())
-    if _digest(speed) != '53ebd9a2ec147e397ab4def009262701883aa22bb7f4b4dfb2c56dad5c0538db':
+    if canonical_json_sha256(speed) != '53ebd9a2ec147e397ab4def009262701883aa22bb7f4b4dfb2c56dad5c0538db':
         raise ValueError('Article speed evidence changed; review latency prose before rebuilding')
     speed_inputs = {}
     for name in ('dataset', 'results'):
@@ -955,7 +950,7 @@ def current_browser_article_model(out, cases, records, binding):
     providers = sorted({row['provider'] for row in records})
     if content.get('schema') != 'webfetch_browser_interpretation/1':
         raise ValueError('Unsupported browser interpretation content schema')
-    if content.get('evidence_sha256') != _digest(_headless_article_input(cases, records, providers)):
+    if content.get('evidence_sha256') != canonical_json_sha256(_headless_article_input(cases, records, providers)):
         raise ValueError('Browser interpretation evidence changed')
     if set(content.get('providers', {})) != set(providers):
         raise ValueError('Browser interpretation must explain every participant')

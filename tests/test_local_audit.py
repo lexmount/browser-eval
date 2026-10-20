@@ -4,6 +4,7 @@ import json
 import pytest
 
 from harness.web_fetch import local_audit
+from harness.record_io import canonical_json_sha256
 
 
 def _digest(path):
@@ -58,8 +59,8 @@ def test_frozen_scoring_controls_allow_additions_but_reject_edits(tmp_path, monk
     scoring['preexisting_control_ids'] = ['base']
     scoring['revision_controls'] = [{k: row[k] for k in ('id', 'root_cause', 'failure_mode')}
                                     for row in controls['cases'][1:]]
-    scoring['bindings']['preexisting_controls_sha256'] = local_audit._canonical_sha256(controls['cases'][:1])
-    scoring['bindings']['revision_controls_sha256'] = local_audit._canonical_sha256(controls['cases'][1:])
+    scoring['bindings']['preexisting_controls_sha256'] = canonical_json_sha256(controls['cases'][:1])
+    scoring['bindings']['revision_controls_sha256'] = canonical_json_sha256(controls['cases'][1:])
     scoring['root_causes'] = [{'id': 'fixture', 'false_positive_ids': ['negative'], 'false_negative_ids': ['positive']}]
     scoring['scope'] = {'preexisting_controls': 1, 'revision_controls': 2, 'root_causes': 1, 'paired_error_directions': True}
     _write(scoring_path, scoring)
@@ -512,7 +513,6 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
 
     # A review-only update installs both the new detail and current coverage,
     # while keeping the authored guide, logs, references and measured inputs.
-    from harness.web_fetch.adjudication_evidence import case_hash
     from lexbench_webfetch.metrics import task_passed
     current_case = json.loads((output / "dataset.json").read_text())["cases"][0]
     current_record = frozen_rows[0]
@@ -527,7 +527,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
              "machine_verdict": verdict, "current_verdict": verdict,
              "final_verdict": verdict, "review_origin": "fresh",
              "content_sha256": current_record["metrics"]["content_sha256"],
-             "review_evidence": {"case_sha256": case_hash(current_case),
+             "review_evidence": {"case_sha256": canonical_json_sha256(current_case),
                                  "samples": [{"start": 0, "end": len(text), "text": text}]}}
     supplement_path = output / "local-evidence/fresh-review.json"
     _write(supplement_path, {"kind": "supplemental_saved_output_review",
@@ -897,11 +897,11 @@ def test_retrospective_page_review_preserves_call_and_checks_other_requirements(
               'metrics': score_attempt(case, body.encode(), ok=True)}
     captures = [{'url': 'https://example.test/document', 'text': body}]
     annotation = {'attempt_id': record['attempt_id'],
-                  'case_sha256': local_audit._canonical_sha256(case),
+                  'case_sha256': canonical_json_sha256(case),
                   'call_sha256': local_audit.local_measurement_call_sha256(record),
                   'content_sha256': record['metrics']['content_sha256'],
                   'basis': 'retrospective_content_correspondence', 'reviewed_at': '2026-10-13',
-                  'capture_index': 0, 'capture_sha256': local_audit._canonical_sha256(captures[0]),
+                  'capture_index': 0, 'capture_sha256': canonical_json_sha256(captures[0]),
                   'corresponding_url': captures[0]['url'],
                   'matching_samples': ['Expected complete body.',
                       'A second distinctive sentence describing this page.']}
@@ -932,14 +932,14 @@ def test_retrospective_page_review_preserves_call_and_checks_other_requirements(
             local_audit.score_reviewed_page_identity(tmp_path, case, record, bad, captures)
     wrong = [{'url': 'https://example.test/other', 'text': body}]
     bad = {**annotation, 'corresponding_url': wrong[0]['url'],
-           'capture_sha256': local_audit._canonical_sha256(wrong[0])}
+           'capture_sha256': canonical_json_sha256(wrong[0])}
     with pytest.raises(ValueError, match='URL requirement'):
         local_audit.score_reviewed_page_identity(tmp_path, case, record, bad, wrong)
     # A reviewed page identity must never excuse missing required content.
     missing = copy.deepcopy(case)
     missing['acceptance_contract']['stable_text_anchors'].append(
         {'id': 'missing', 'alternatives': ['A required fact that was not returned']})
-    bad = {**annotation, 'case_sha256': local_audit._canonical_sha256(missing)}
+    bad = {**annotation, 'case_sha256': canonical_json_sha256(missing)}
     with pytest.raises(ValueError, match='unavailable page identity'):
         local_audit.score_reviewed_page_identity(tmp_path, missing, record, bad, captures)
 
@@ -951,11 +951,9 @@ def test_retrospective_page_review_requires_bound_receipt(tmp_path):
                 'page_identity_basis': 'retrospective_content_correspondence'}}])
 
 
-@pytest.mark.parametrize('defect', [None, 'target_changed', 'sample_changed'])
-@pytest.mark.parametrize('implicit_identity', [False, True])
+@pytest.mark.parametrize('defect', [None, 'target_changed', 'sample_changed', 'call_changed', 'answer_changed', 'diagnostic_changed'])
 @pytest.mark.parametrize('case_id', ['synthetic', 'synthetic__nested'])
-@pytest.mark.parametrize('staged', [False, True])
-def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defect, implicit_identity, case_id, staged):
+def test_offline_rescore_reuses_only_unchanged_identity_inputs(tmp_path, defect, case_id):
     import copy
     from lexbench_webfetch.scoring import score_attempt
     body = 'Expected complete body. A second distinctive sentence describing this page.'
@@ -966,9 +964,6 @@ def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defec
         'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
             'stable_text_anchors': [{'id': 'body', 'alternatives': ['Expected complete body']}]}}
     current = copy.deepcopy(old)
-    if implicit_identity:
-        old.pop('page_identity_required')
-    current['diagnostic_any'] = current.pop('forbidden_any')
     (tmp_path/'answer.txt').write_text(body)
     record = {'attempt_id': f'method__{case_id}__r001', 'case_id': case_id,
         'artifact_path': 'answer.txt', 'ok': True, 'final_url': None,
@@ -978,11 +973,11 @@ def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defec
         _write(tmp_path/name, obj)
         return {'path': name, 'sha256': _digest(tmp_path/name)}
     capture = save('captures.json', captures)
-    annotation = {'attempt_id': record['attempt_id'], 'case_sha256': local_audit._canonical_sha256(old),
+    annotation = {'attempt_id': record['attempt_id'], 'case_sha256': canonical_json_sha256(old),
         'call_sha256': local_audit.local_measurement_call_sha256(record),
         'content_sha256': record['metrics']['content_sha256'], 'basis': 'retrospective_content_correspondence',
         'reviewed_at': '2026-10-13', 'capture_index': 0,
-        'capture_sha256': local_audit._canonical_sha256(captures[0]), 'corresponding_url': captures[0]['url'],
+        'capture_sha256': canonical_json_sha256(captures[0]), 'corresponding_url': captures[0]['url'],
         'matching_samples': ['Expected complete body.', 'A second distinctive sentence describing this page.']}
     if defect == 'sample_changed': annotation['matching_samples'] = [' '*20, ' '*21]
     receipt = save('identity.json', {'kind': 'retrospective_page_identity_review',
@@ -992,24 +987,15 @@ def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defec
     dataset = {'cases': [current], 'comparison': {}}
     prior_receipt = (tmp_path/'identity.json').read_bytes()
     if defect == 'target_changed': current['task_prompt'] = 'A new target requirement'
-    from harness.web_fetch.local_revision import _RevisionTransaction, _REVISION
-    transaction = _RevisionTransaction(tmp_path)
-    token = _REVISION.set(transaction) if staged else None
-    try:
-        if defect:
-            with pytest.raises(ValueError):
-                local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record],
-                    write_bytes=transaction.write if staged else None)
-        else:
-            local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record],
-                write_bytes=transaction.write if staged else None)
-            if staged:
-                assert not (tmp_path/'local-evidence').exists()
-                transaction.commit()
-    finally:
-        if token is not None:
-            _REVISION.reset(token)
-            transaction.recover()
+    if defect == 'diagnostic_changed': current['diagnostic_any'] = current.pop('forbidden_any')
+    if defect == 'call_changed': record['elapsed_ms'] = 99
+    if defect == 'answer_changed': record['metrics']['content_sha256'] = 'different-answer'
+    if defect:
+        with pytest.raises(ValueError):
+            local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record])
+    else:
+        assert local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record]) == receipt
+    assert not (tmp_path/'local-evidence').exists()
     if not defect:
         assert local_audit.task_passed(record['ok'], record['metrics'])
         assert record['final_url'] is None
@@ -1026,6 +1012,42 @@ def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defec
         with pytest.raises(ValueError, match='shared scorer'):
             local_audit._require_page_identity_review(tmp_path, dataset, [record], scoring_sources=sources)
     assert (tmp_path/'identity.json').read_bytes() == prior_receipt
+
+
+@pytest.mark.parametrize('implicit_identity', [False, True])
+@pytest.mark.parametrize('defect', [None, 'target_changed', 'review_changed'])
+def test_saved_legacy_identity_migration_is_read_only_and_hash_bound(tmp_path, implicit_identity, defect):
+    """Published old receipts remain verifiable; no migration writer is needed."""
+    import copy
+    old = {'id': 'historical', 'forbidden_any': ['CAPTCHA'], 'track': 'risk_control',
+           'source_benchmark': {'risk_control': {'navigation_contract': {
+               'requested_url': 'https://example.test/start',
+               'observed_final_url': 'https://example.test/end'}}}}
+    if not implicit_identity:
+        old['page_identity_required'] = True
+    current = copy.deepcopy(old)
+    current['diagnostic_any'] = current.pop('forbidden_any')
+    current['page_identity_required'] = True
+    annotation = {'case_sha256': canonical_json_sha256(old), 'attempt_id': 'retained'}
+    previous = {'attempts': [annotation], 'captures_path': 'captures.json', 'captures_sha256': 'capture-hash'}
+    def save(name, value):
+        _write(tmp_path/name, value)
+        return {'path': name, 'sha256': _digest(tmp_path/name)}
+    receipt = {**previous, 'attempts': [{**annotation,
+        'prior_case_sha256': annotation['case_sha256'],
+        'case_sha256': canonical_json_sha256(current)}],
+        'binding_revision': {'kind': 'diagnostic_field_migration', 'new_independent_review': False,
+            'prior_receipt': save('prior.json', previous),
+            'prior_cases': save('cases.json', {'historical': old})}}
+    before = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    if defect == 'target_changed': current['task_prompt'] = 'new requirement'
+    if defect == 'review_changed': receipt['attempts'][0]['reviewed_at'] = 'new opinion'
+    if defect:
+        with pytest.raises(ValueError):
+            local_audit._require_identity_binding_revision(tmp_path, {'cases': [current]}, receipt)
+    else:
+        local_audit._require_identity_binding_revision(tmp_path, {'cases': [current]}, receipt)
+    assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == before
 
 
 def test_diagnostic_viewers_share_unchanged_source_across_languages(tmp_path):

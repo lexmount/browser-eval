@@ -102,7 +102,13 @@ class Provider(ABC):
                            endpoint=endpoint, interface=interface)
 
     def native_http_request(self, case, callback, endpoint, **kwargs):
-        """Observe exact transport arguments before a fixed-native HTTP call."""
+        """Check and observe the actual call, even without an attached ledger.
+
+        Adapters share ``native_http_arguments`` for construction. Rebuilding
+        here is intentional: callers can still alter its mutable arguments or
+        call this boundary directly. The ledger separately binds the request
+        to the contract frozen before the cohort.
+        """
         ledger = getattr(self, '_native_route_ledger', None)
         if self.config.get('uniform_native_parameters'):
             native_endpoint, native_arguments = self.native_http_arguments(case, kwargs.get('timeout'))

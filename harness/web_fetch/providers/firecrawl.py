@@ -148,10 +148,6 @@ class FirecrawlProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         self.check_native_call(case)
-        base_url = str(self.config.get("base_url", "https://api.firecrawl.dev")).rstrip("/")
-        headers = {}
-        if self.config.get("api_key"):
-            headers["Authorization"] = f"Bearer {self.config['api_key']}"
         try:
             http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         except ValueError:
@@ -170,36 +166,11 @@ class FirecrawlProvider(Provider):
                 error_message="Firecrawl timeout budget is below the API minimum",
             )
         file_route = case.task_kind == "file"
-        requested_formats = (
-            ["rawBase64"]
-            if file_route
-            else list(self.config.get("formats", ["markdown"]))
-        )
-        # Firecrawl's native video format is a media-discovery output, not a
-        # replacement for page Markdown. Request it only for the declared
-        # video track so unrelated calls do not pay the extra media cost.
         native_video_route = case.track == "video" and case.task_kind == "resource"
-        if native_video_route and "video" not in requested_formats:
-            requested_formats.append("video")
-        request_body = {
-            "url": case.url,
-            # rawBase64 must be the sole format on file-delivery tasks.  It is
-            # the target URL's response body, unlike markdown/images/links.
-            "formats": requested_formats,
-            "maxAge": int(self.config.get("max_age", 0)),
-            "proxy": str(self.config.get("proxy", "auto")),
-            **({} if self.config.get("uniform_native_parameters") else {"timeout": service_timeout_ms}),
-        }
-        # Page-wide contracts can require navigation and footer text. Forward
-        # the native scope switch only when explicitly configured; omission
-        # retains the service default for existing cohorts.
-        if "only_main_content" in self.config:
-            request_body["onlyMainContent"] = self.config["only_main_content"]
-        if file_route:
-            # The benchmark asks for the original bytes. Disabling Firecrawl's
-            # default PDF parser avoids both irrelevant conversion and the
-            # otherwise unbounded per-page credit charge.
-            request_body["parsers"] = []
+        endpoint, arguments = self.native_http_arguments(case, http_timeout)
+        request_body = arguments['json_body']
+        if not self.config.get("uniform_native_parameters"):
+            request_body['timeout'] = service_timeout_ms
         route = "v2_scrape_raw_base64" if file_route else "v2_scrape"
         wait_metadata = None
         dynamic_wait_strategy = None
@@ -304,14 +275,7 @@ class FirecrawlProvider(Provider):
                         "Firecrawl dynamic_wait_strategy must be actions or wait_for"
                     ),
                 )
-        response = self.native_http_request(case, request,
-            f"{base_url}/v2/scrape",
-            method="POST",
-            timeout=http_timeout,
-            max_bytes=int(self.config.get("max_bytes", 20_000_000)),
-            headers=headers,
-            json_body=request_body,
-        )
+        response = self.native_http_request(case, request, endpoint, **arguments)
         try:
             payload = response.json()
         except ValueError:

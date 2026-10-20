@@ -8,6 +8,21 @@ from lexbench_webfetch.scoring import score_attempt
 from lexbench_webfetch.metrics import task_passed
 
 
+@pytest.mark.parametrize('controls', [
+    ['native-title-must-match-original'],
+    ['native-title-must-match-original', 'ordinary-text-player-control-only'],
+    ['native-title-must-match-original', 'unknown-source-control'],
+    [],
+])
+def test_revision_controls_resolve_in_their_actual_owner(controls):
+    from harness.web_fetch.local_revision import _require_revision_regressions
+    if not controls or 'unknown-source-control' in controls:
+        with pytest.raises(ValueError):
+            _require_revision_regressions(controls)
+    else:
+        assert _require_revision_regressions(controls) == controls
+
+
 @pytest.mark.parametrize('defect', [None, 'case', 'row', 'source', 'answer', 'context', 'native'])
 def test_current_authority_survives_history_deletion_but_rejects_current_changes(tmp_path, defect):
     import shutil
@@ -471,6 +486,14 @@ def test_native_context_revision_replays_native_fields_and_rejects_tampering(tmp
     from harness.web_fetch.local_revision import _require_native_answer_correction
     proof = receipt['native_answer_corrections'][0]
     _require_native_answer_correction(tmp_path, current, fixed, proof)
+    from harness.web_fetch.local_revision import compact_local_snapshot
+    history = next(path for path in (tmp_path/'local-evidence/offline-revisions').glob('*/receipt.json')
+                   if json.loads(path.read_text()) == receipt)
+    binding = {'path': history.relative_to(tmp_path).as_posix(),
+               'sha256': hashlib.sha256(history.read_bytes()).hexdigest()}
+    compact = compact_local_snapshot(tmp_path, binding)
+    rows = [json.loads(line) for line in (tmp_path/'results.jsonl').read_text().splitlines()]
+    require_local_revision(tmp_path, compact, json.loads((tmp_path/'dataset.json').read_text()), rows)
     fixed[field] = changed
     with pytest.raises(ValueError, match='context correction'):
         _require_native_answer_correction(tmp_path, current, fixed, proof)

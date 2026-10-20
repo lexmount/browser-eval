@@ -23,6 +23,38 @@ from harness.web_fetch.publication_privacy import (
 )
 
 
+@pytest.mark.parametrize('interrupted', [False, True])
+def test_proposed_evidence_reads_are_scoped_and_hash_checked(tmp_path, interrupted):
+    from harness.web_fetch.publication_privacy import read_evidence_binding, staged_evidence_reads
+    source = tmp_path / 'source'
+    other = tmp_path / 'other'
+    source.mkdir()
+    other.mkdir()
+    original = source / 'receipt.json'
+    original.write_bytes(b'original')
+    (other / original.name).write_bytes(b'original')
+    proposed = tmp_path / 'proposed.json'
+    proposed.write_bytes(b'proposed')
+    def binding(raw):
+        return {'path': original.name, 'sha256': hashlib.sha256(raw).hexdigest()}
+    try:
+        with staged_evidence_reads(source, lambda path: proposed):
+            assert read_evidence_binding(source, binding(b'proposed')) == proposed
+            assert read_evidence_binding(other, binding(b'original')) == other / original.name
+            # A matching old file must never hide a corrupt proposed replacement.
+            with pytest.raises(ValueError, match='Staged revision evidence binding changed'):
+                read_evidence_binding(source, binding(b'original'))
+            with pytest.raises(ValueError):
+                read_evidence_binding(source, {'path': '../proposed.json', 'sha256': binding(b'proposed')['sha256']})
+            if interrupted:
+                raise RuntimeError('interrupted validation')
+    except RuntimeError:
+        assert interrupted
+    assert read_evidence_binding(source, binding(b'original')) == original
+    with pytest.raises(ValueError):
+        read_evidence_binding(source, binding(b'proposed'))
+
+
 class PublicationPrivacyTests(unittest.TestCase):
     def test_result_streams_are_omitted_only_when_a_public_call_log_owns_them(self):
         with_log = {
