@@ -815,3 +815,56 @@ def test_direct_native_arguments_are_checked_without_a_ledger(defect):
     with pytest.raises(ValueError, match='canonical request builder'):
         provider.native_http_request(case, transport, endpoint, **arguments)
     assert transport.call_count == 1
+
+
+# Synthetic declared inputs: this is not a replay of the historical 430 tasks,
+# whose input-media declarations are absent. Freeze before refactoring routes.
+def _synthetic_route_baseline():
+    from itertools import product
+    from lexbench_webfetch.models import EvalCase, TRACKS, TASK_KINDS
+    from harness.record_io import canonical_json_sha256
+    from harness.web_fetch.native_routes import native_route_cell, normalized_http_parameters
+    from harness.web_fetch.providers.base import build_provider
+    methods = ('moli_webfetch', 'firecrawl', 'tavily_extract', 'exa_contents',
+               'cloudflare_markdown', 'cloudflare_content', 'subprocess_jsonl',
+               'cowagent_builtin', 'fixture')
+    baseline = {}
+    for method, configured in product(methods, (False, True)):
+        config = {'type': method, 'uniform_native_parameters': True}
+        if configured:
+            config.update(api_key='synthetic-key', api_token='synthetic-token',
+                          account_id='synthetic-account', browser='chromium',
+                          base_url='https://service.example.test', max_bytes=123456,
+                          max_age=99, max_age_hours=2, only_main_content=False,
+                          include_images=True, extract_depth='basic',
+                          text_verbosity='full', include_resource_links=True,
+                          rich_links_limit=7, wait_until='domcontentloaded',
+                          block_private_networks=True, dns_mode='system',
+                          log_level='debug', formats=['markdown', 'links'],
+                          command=['synthetic-worker'])
+        provider = build_provider(method, config)
+        # CowAgent derives host-specific runtime paths at construction. The
+        # route declaration consumes configuration, so freeze explicit portable
+        # configuration here rather than hashing the test host's Python path.
+        provider.config = config
+        rows = []
+        for track, kind, media in product(sorted(TRACKS), TASK_KINDS, sorted(INPUT_MEDIA_KINDS)):
+            case = EvalCase('synthetic', 'Synthetic', 'https://input.example.test/value',
+                            'control', [], track=track, task_kind=kind,
+                            source_benchmark={'input_media_kind': media})
+            key, cell = native_route_cell(provider, case)
+            row = {'key': key, 'cell': cell}
+            if cell['transport'] == 'http':
+                endpoint, arguments = provider.native_http_arguments(case, 45)
+                row.update(endpoint=endpoint, parameters=normalized_http_parameters(case, arguments))
+            rows.append(row)
+        baseline[method + (':configured' if configured else ':defaults')] = {
+            'cells': len(rows), 'sha256': canonical_json_sha256(rows)}
+    return baseline
+
+
+def test_synthetic_all_provider_route_declarations_match_frozen_baseline():
+    import json
+    from pathlib import Path
+    expected = json.loads((Path(__file__).parent / 'fixtures/native-route-baseline.json').read_text())
+    assert _synthetic_route_baseline() == expected
