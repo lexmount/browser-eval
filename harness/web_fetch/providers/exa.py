@@ -5,6 +5,7 @@ import hashlib
 
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
+from ..native_projection import native_answer_projection
 from .base import Provider
 from .http_client import inner_timeout_budget, request
 
@@ -168,15 +169,7 @@ class ExaContentsProvider(Provider):
                 ),
                 "extras": result_extras,
                 "links": _rich_answer_links(result_extras),
-                **({'native_answer_projection': {
-                    'schema_version': 2, 'content_pointer': ['results', 0, 'text'],
-                    'content_format': 'text', 'optional_content': True,
-                    'result_fields': {'final_url': {'pointer': ['results', 0, 'url'], 'fallback': 'request_url'},
-                        **({'title': {'pointer': ['results', 0, 'title']}} if ok else {})},
-                    'answer_fields': ({
-                        'extras': {'pointer': ['results', 0, 'extras'], 'format': 'identity', 'default': {}},
-                        'links': {'pointer': ['results', 0, 'extras', 'richLinks'],
-                                  'format': 'named_links', 'default': []}} if ok else {})}}
+                **({'native_answer_projection': native_answer_projection('exa_contents', case, payload, response.status)}
                    if ok or content or result.get('url') else {}),
             },
         )

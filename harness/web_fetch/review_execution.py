@@ -1252,8 +1252,10 @@ def bind_review_workspace(evidence, work, records, bindings, options, *, prior=N
     if current != bindings:
         raise ValueError("Review evidence changed during execution")
     artifacts = {}
+    from .native_routes import native_cases_by_id
+    native_cases = native_cases_by_id(evidence)
     for record in records:
-        verify_record_artifacts(evidence, record)
+        verify_record_artifacts(evidence, record, native_cases=native_cases)
         artifacts.update(artifact_bindings(record))
         artifacts.update({item["path"]: item["sha256"] for item in record_private_bindings(record)})
     identity = {

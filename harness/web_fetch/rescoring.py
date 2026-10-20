@@ -124,7 +124,7 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
     if not any(case_ids is None or r["case_id"] in case_ids for r in records):
         return []
     for record in records:
-        verify_record_artifacts(source, record)
+        verify_record_artifacts(source, record, native_cases=cases)
     # One offline scoring batch, never a new provider invocation. Include this
     # script and diagnosis/report dispatch as well as the shared scorer sources.
     audit = {

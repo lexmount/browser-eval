@@ -284,6 +284,7 @@ def audit_fixed_native_comparison(
         allow_diagnostic=evidence_state == "diagnostic",
     )
     require_native_task_routes(dataset["cases"], records)
+    native_cases = {case['id']: case for case in dataset['cases']}
     indexed: dict[tuple[str, str], dict[str, Any]] = {}
     for row in records:
         provider = row["provider"]
@@ -315,7 +316,7 @@ def audit_fixed_native_comparison(
             or metadata.get("diagnostic_log_truncated") is True
         ):
             raise ValueError(provider + "/" + row["case_id"] + ": call identity or retry policy differs")
-        verify_record_artifacts(evidence_root, row)
+        verify_record_artifacts(evidence_root, row, native_cases=native_cases)
         binding = metadata.get("call_log")
         log = json.loads(verify_public_call_log(evidence_root, binding).read_bytes())
         if log.get("identity", {}).get("physical_attempt") != 1:

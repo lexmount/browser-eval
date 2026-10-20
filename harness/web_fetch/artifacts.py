@@ -328,7 +328,7 @@ def artifact_bindings(record: dict[str, Any]) -> list[tuple[str, str]]:
     return list(bindings.items())
 
 
-def verify_record_artifacts(root: Path, record: dict[str, Any]) -> None:
+def verify_record_artifacts(root: Path, record: dict[str, Any], *, native_cases=None) -> None:
     """Verify all declared public and private bytes against acquisition bindings."""
     verify_record_private_artifacts(root, record)
     for relative, digest in artifact_bindings(record):
@@ -340,14 +340,16 @@ def verify_record_artifacts(root: Path, record: dict[str, Any]) -> None:
             raise ValueError('Artifact differs from its result binding: ' + relative)
     verify_record_public_call_logs(root, record)
     from harness.web_fetch.native_routes import verify_saved_native_answer
-    verify_saved_native_answer(root, record)
+    verify_saved_native_answer(root, record, cases_by_id=native_cases)
 
 
 def materialize_bound_artifacts(output: Path, source_root: Path, records: list[dict]) -> None:
     """Verify acquisition-time authority before copying declared evidence."""
     copies = {}
+    from .native_routes import native_cases_by_id
+    native_cases = native_cases_by_id(source_root)
     for record in records:
-        verify_record_artifacts(source_root, record)
+        verify_record_artifacts(source_root, record, native_cases=native_cases)
         for relative, digest in artifact_bindings(record):
             source = contained_path(source_root, relative, reject_symlinks=True)
             target = contained_path(output, relative, reject_symlinks=True)
@@ -452,8 +454,9 @@ def copy_cohort_evidence(source, target, dataset, records, batches, *,
         if 'latency-corrections.json' in allowed:
             from .reference_lifecycle import latency_correction_original_elapsed
             latency_correction_original_elapsed(source)
+    native_cases = {case['id']: case for case in dataset['cases']}
     for record in records:
-        verify_record_artifacts(source, record)
+        verify_record_artifacts(source, record, native_cases=native_cases)
         allowed.update(relative for relative, _ in artifact_bindings(record))
         if include_private:
             allowed.update(binding['path'] for binding in record_private_bindings(record))

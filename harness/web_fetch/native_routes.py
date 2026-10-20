@@ -48,34 +48,25 @@ def native_route_cell(provider, case):
     config, method = provider.config, provider.type
     endpoint = None
     if method == 'moli_webfetch':
+        from .providers.moli import _route_for_case
         transport = 'cli'
-        interface = ('raw_file' if kind == 'file' else 'native_resource_html'
-                     if kind == 'resource' else 'native_document_bytes'
-                     if track == 'document' and media in {'direct_pdf', 'direct_docx'}
-                     else 'dynamic_native_markdown' if track == 'dynamic' else 'ordinary_markdown')
+        interface = _route_for_case(case, native_default=True)
         fields = (['original_bytes'] if interface in {'raw_file', 'native_document_bytes'}
                   else ['stdout', 'diagnostic.main_document_url'])
     elif method in {'firecrawl', 'tavily_extract', 'exa_contents', 'cloudflare_markdown', 'cloudflare_content'}:
         transport = 'http'
         if method == 'firecrawl':
             interface = '/v2/scrape'
-            endpoint = str(config.get('base_url', 'https://api.firecrawl.dev')).rstrip('/') + interface
             fields = ['data.rawBase64'] if kind == 'file' else ['data.markdown', 'data.links', 'data.images', 'data.videos', 'data.video']
             fields += ['data.metadata.title', 'data.metadata.url']
         elif method == 'tavily_extract':
             interface = '/extract'
-            endpoint = str(config.get('base_url', 'https://api.tavily.com')).rstrip('/') + interface
             fields = ['results[].raw_content', 'results[].images', 'images', 'results[].url']
         elif method == 'exa_contents':
             interface = '/contents'
-            endpoint = str(config.get('base_url', 'https://api.exa.ai')).rstrip('/') + interface
             fields = ['results[].text', 'results[].extras', 'results[].title', 'results[].url']
         else:
             interface = provider.native_http_interface(case)
-            endpoint = 'https://api.cloudflare.com/client/v4/accounts/' + str(config.get('account_id', '')) + '/browser-rendering' + interface
-            if method=='cloudflare_markdown' and config.get('browser'):
-                from urllib.parse import urlencode
-                endpoint += '?'+urlencode({'browser': config['browser']})
             fields = ['result', 'meta.title', 'meta.finalUrl']
     elif method in {'subprocess_jsonl', 'cowagent_builtin'}:
         transport, interface = 'jsonl', 'native_worker_command'
@@ -84,6 +75,9 @@ def native_route_cell(provider, case):
         transport, interface, fields = 'fixture', 'synthetic_fixture', ['content', 'title', 'final_url']
     else:
         raise ValueError('Unsupported fixed-native interface: ' + method)
+    if transport == 'http':
+        endpoint, _ = provider.native_http_arguments(case, 45)
+    from .native_projection import native_projection_policy
     options = ('max_bytes', 'max_age', 'max_age_hours', 'only_main_content', 'include_images',
                'extract_depth', 'text_verbosity', 'include_resource_links', 'rich_links_limit',
                'wait_until', 'block_private_networks', 'dns_mode', 'log_level', 'formats')
@@ -93,6 +87,7 @@ def native_route_cell(provider, case):
             'unspecified_parameters': 'native defaults from the bound implementation',
             **({'command_sha256': _digest(config.get('command'))} if transport == 'jsonl' else {}),
             'provider_configuration_sha256': _digest(config),
+            'answer_selection_policy': native_projection_policy(method),
             'endpoint_sha256': _digest(endpoint) if endpoint is not None else None}
     return key, cell
 
@@ -182,6 +177,19 @@ class NativeRouteLedger:
         path = source/'native-route-contract.json'
         if path.exists():
             raise ValueError('Native route contract already exists; do not overwrite a run')
+        from .native_projection import native_projection_source
+        from lexbench_webfetch.paths import contained_path
+        for cell in self.cells.values():
+            policy = cell['answer_selection_policy']
+            policy_source = native_projection_source()
+            if hashlib.sha256(policy_source).hexdigest() != policy['source_sha256']:
+                raise ValueError('Native answer policy changed before the pre-call freeze')
+            policy_path = contained_path(source, policy['source_path'], reject_symlinks=True)
+            policy_path.parent.mkdir(parents=True, exist_ok=True)
+            if not policy_path.exists():
+                policy_path.write_bytes(policy_source)
+            elif policy_path.read_bytes() != policy_source:
+                raise ValueError('Native answer policy source collision')
         path.write_bytes(raw)
         self.binding = {'path': path.name, 'sha256': hashlib.sha256(raw).hexdigest()}
         for provider in self.providers.values():
@@ -241,6 +249,7 @@ class NativeRouteLedger:
             return {'contract_sha256': self.binding['sha256'], 'cell': list(key),
                     'physical_attempt': ordinal,
                     'answer_fields': list(self.cells[key]['answer_fields']),
+                    'answer_selection_policy': deepcopy(self.cells[key]['answer_selection_policy']),
                     'requests': deepcopy(calls),
                     'transport_state': 'started' if calls else 'not_started',
                     **({'failure_stage': 'after_transport' if calls
@@ -272,6 +281,12 @@ def verify_native_route_contract(source, manifest, dataset, records):
             or doc.get('runtime_source_sha256') != manifest.get('runtime_source_sha256')):
         raise ValueError('Native route contract differs from the frozen execution')
     cells = {(c['method'], c['track'], c['task_kind'], c['input_media_kind']): c for c in doc['cells']}
+    for cell in cells.values():
+        policy = cell.get('answer_selection_policy')
+        if policy is not None:
+            policy_path = contained_path(source, policy['source_path'], reject_symlinks=True)
+            if hashlib.sha256(policy_path.read_bytes()).hexdigest() != policy.get('source_sha256'):
+                raise ValueError('Frozen native answer policy source changed')
     cases = {c['id']: c for c in dataset['cases']}
     inventory = {c['case_id']: c for c in doc['cases']}
     if len(cells) != len(doc['cells']) or len(inventory) != len(doc['cases']):
@@ -321,6 +336,9 @@ def verify_native_route_contract(source, manifest, dataset, records):
                 raise ValueError('Native result lacks its bound route receipt')
             if receipt.get('answer_fields') != cells[key]['answer_fields']:
                 raise ValueError('Native answer fields differ from the frozen route')
+            if ('answer_selection_policy' in cells[key]
+                    and receipt.get('answer_selection_policy') != cells[key]['answer_selection_policy']):
+                raise ValueError('Native answer selection policy differs from its pre-call freeze')
             requests = receipt.get('requests', [])
             state = receipt.get('transport_state')
             if state not in {'started', 'not_started'}:
@@ -388,6 +406,25 @@ def materialize_native_route_contracts(output, source, manifests):
         path = contained_path(source, relative, reject_symlinks=True)
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
             raise ValueError('Native route contract bytes changed')
+        document = json.loads(path.read_bytes())
+        for cell in document.get('cells', []):
+            policy = cell.get('answer_selection_policy')
+            if policy is None:
+                continue
+            policy_digest = policy.get('source_sha256')
+            policy_relative = policy.get('source_path')
+            if (not isinstance(policy_digest, str) or re.fullmatch('[0-9a-f]{64}', policy_digest) is None
+                    or policy_relative != 'native-answer-policies/'+policy_digest+'.py'):
+                raise ValueError('Invalid native answer policy source binding')
+            origin = contained_path(source, policy_relative, reject_symlinks=True)
+            if hashlib.sha256(origin.read_bytes()).hexdigest() != policy_digest:
+                raise ValueError('Frozen native answer policy source changed')
+            destination = contained_path(output, policy_relative, reject_symlinks=True)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if not destination.exists():
+                shutil.copy2(origin, destination)
+            if hashlib.sha256(destination.read_bytes()).hexdigest() != policy_digest:
+                raise ValueError('Copied native answer policy source changed')
         target_relative = 'native-route-contracts/'+digest+'.json'
         target = contained_path(output, target_relative, reject_symlinks=True)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -401,7 +438,36 @@ def materialize_native_route_contracts(output, source, manifests):
         manifest['native_route_contract'] = {'path': target_relative, 'sha256': digest}
 
 
-def verify_saved_native_answer(root, record):
+def native_cases_by_id(root):
+    """Read one operation's case authority; never cache mutable evidence globally."""
+    from lexbench_webfetch.paths import contained_path
+    path = contained_path(root, 'dataset.json', reject_symlinks=True)
+    if not path.is_file():
+        return None
+    cases = json.loads(path.read_bytes()).get('cases', [])
+    indexed = {case['id']: case for case in cases}
+    if len(indexed) != len(cases):
+        raise ValueError('Native answer dataset repeats a case identity')
+    return indexed
+
+
+def _expected_native_declaration(root, record, raw, cases_by_id):
+    from .native_projection import native_answer_projection
+    cases_by_id = native_cases_by_id(root) if cases_by_id is None else cases_by_id
+    case = (cases_by_id or {}).get(record.get('case_id'))
+    if case is None or case.get('url') != record.get('url'):
+        raise ValueError('Native answer selection lacks its frozen request identity')
+    try:
+        payload = json.loads(raw) if record['provider_type'] != 'moli_webfetch' else {}
+    except (ValueError, UnicodeDecodeError):
+        payload = {}
+    requests = record['provider_metadata']['native_route_receipt'].get('requests', [])
+    interface = requests[0].get('signature', {}).get('interface') if requests else None
+    return native_answer_projection(record['provider_type'], case, payload,
+                                    record.get('status_code'), interface=interface)
+
+
+def verify_saved_native_answer(root, record, *, cases_by_id=None):
     """Validate newly declared saved answers at aggregation/release boundaries.
 
     Older calls with no declaration need a separately recorded historical audit;
@@ -411,9 +477,34 @@ def verify_saved_native_answer(root, record):
     from lexbench_webfetch.paths import contained_path
     metadata = record.get('provider_metadata', {})
     declaration = metadata.get('native_answer_projection')
+    policy = metadata.get('native_route_receipt', {}).get('answer_selection_policy')
+    if policy is not None:
+        from .native_projection import native_projection_policy
+        if policy != native_projection_policy(record.get('provider_type')):
+            raise ValueError('Native answer selection policy implementation differs from its pre-call freeze')
+        read_evidence_binding(root, {'path': policy['source_path'],
+                                     'sha256': policy['source_sha256']})
     if not declaration:
         if metadata.get('native_answer_required'):
             raise ValueError('Scored native answer has no projection declaration')
+        if policy is not None:
+            answer = read_evidence_binding(root, {'path': record['artifact_path'],
+                'sha256': record['metrics']['content_sha256']}).read_bytes()
+            if (answer or record.get('ok') or record.get('title') is not None
+                    or record.get('final_url') not in (None, record.get('url'))
+                    or any(metadata.get(key) for key in SCORE_ANSWER_FIELDS)
+                    or metadata.get('file_evaluation', {}).get('files')):
+                raise ValueError('Scored native answer has no projection declaration for its selection policy')
+            # A timed-out empty answer is deliberately discarded. Network or
+            # pre-transport failures may have no raw response to select from.
+            if record.get('error_type') != 'timeout':
+                bytes_source = record['provider_type'] == 'moli_webfetch'
+                raw_path = metadata.get('raw_stdout_path' if bytes_source else 'raw_response_path')
+                raw_hash = metadata.get('raw_stdout_sha256' if bytes_source else 'raw_response_sha256')
+                if raw_path or raw_hash:
+                    raw = read_evidence_binding(root, {'path': raw_path, 'sha256': raw_hash}).read_bytes()
+                    if _expected_native_declaration(root, record, raw, cases_by_id) is not None:
+                        raise ValueError('Native answer declaration differs from its pre-call selection policy')
         return
     require_native_projection_schema(declaration)
     answer = read_evidence_binding(root, {'path': record['artifact_path'],
@@ -428,6 +519,10 @@ def verify_saved_native_answer(root, record):
     if not raw_path or not raw_hash:
         raise ValueError('Declared native answer lacks its retained raw response')
     raw = read_evidence_binding(root, {'path': raw_path, 'sha256': raw_hash}).read_bytes()
+    if policy is not None:
+        expected_declaration = _expected_native_declaration(root, record, raw, cases_by_id)
+        if expected_declaration != declaration:
+            raise ValueError('Native answer declaration differs from its pre-call selection policy')
     files = [{'data': contained_path(root, item['artifact_path'], reject_symlinks=True).read_bytes()}
              for item in metadata.get('file_evaluation', {}).get('files', [])]
     diagnostic = None
@@ -443,10 +538,9 @@ def verify_saved_native_answer(root, record):
     if files or 'file_evaluation' in metadata:
         from lexbench_webfetch.file_acceptance import evaluate_files
         source_verification = {}
-        dataset_path = root/'dataset.json'
-        if dataset_path.is_file():
-            cases = json.loads(dataset_path.read_bytes()).get('cases', [])
-            case = next((case for case in cases if case.get('id') == record.get('case_id')), None)
+        cases_by_id = native_cases_by_id(root) if cases_by_id is None else cases_by_id
+        if cases_by_id is not None:
+            case = cases_by_id.get(record.get('case_id'))
             if case is None:
                 raise ValueError('Native file result lacks its frozen case')
             source_verification = case.get('source_verification') or {}

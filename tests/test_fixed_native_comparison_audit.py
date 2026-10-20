@@ -11,6 +11,7 @@ from harness.web_fetch.comparison_audit import audit_fixed_native_comparison
 from harness.web_fetch.evidence import finalize_aggregate
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.native_projection import native_answer_projection
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import run_evaluation
 
@@ -77,7 +78,7 @@ class NativeFixture(Provider):
         return ProviderResult(True, content, metadata={**metadata,
             '_raw_stdout_b64': base64.b64encode(content.encode()).decode(),
             'raw_stdout_sha256': hashlib.sha256(content.encode()).hexdigest(),
-            'native_answer_projection': {'schema_version': 2, 'source_format': 'bytes', 'content_format': 'utf8'},
+            'native_answer_projection': native_answer_projection('moli_webfetch', case, {}),
             "reported_version": self.config["expected_reported_version"],
             "binary_sha256": self.config["expected_binary_sha256"],
         })

@@ -970,9 +970,11 @@ def rescore_evaluation(
         contained_path(run_dir,filename)
     case_by_id = {case.id: case for case in cases}
     records = load_records(run_dir)
+    from .native_routes import native_cases_by_id
+    native_cases = native_cases_by_id(run_dir)
     for record in records:
         if record.get("metrics", {}).get("content_sha256"):
-            verify_record_artifacts(run_dir, record)
+            verify_record_artifacts(run_dir, record, native_cases=native_cases)
         else:
             # Historical records without a primary hash keep their legacy contract.
             verify_record_private_artifacts(run_dir, record)

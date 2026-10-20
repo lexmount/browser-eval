@@ -5,6 +5,7 @@ import hashlib
 
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
+from ..native_projection import native_answer_projection
 from .base import Provider
 from .http_client import inner_timeout_budget, request
 
@@ -116,12 +117,6 @@ class TavilyExtractProvider(Provider):
                     request_body.get("timeout")
                 ),
                 "images": (result.get("images") or payload.get("images") or []) if ok else [],
-                **({'native_answer_projection': {
-                    'schema_version': 2, 'content_pointer': ['results', 0, 'raw_content'],
-                    'content_format': 'text', 'optional_content': True,
-                    'result_fields': {'final_url': {'pointer': ['results', 0, 'url'], 'fallback': 'request_url'}},
-                    'answer_fields': ({'images': {
-                        'pointer': ['results', 0, 'images'] if result.get('images') else ['images'],
-                        'format': 'identity', 'default': []}} if ok else {})}} if ok or content or result.get('url') else {}),
+                **({'native_answer_projection': native_answer_projection('tavily_extract', case, payload, response.status)} if ok or content or result.get('url') else {}),
             },
         )

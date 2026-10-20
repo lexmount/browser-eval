@@ -14,6 +14,7 @@ from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import native_contract_for_case, native_default_case, plan_for_case
 from lexbench_webfetch.paths import validate_http_url
+from ..native_projection import native_answer_projection
 from .base import Provider
 from .http_client import HttpOnlyRedirectHandler, HttpResponse, inner_timeout_budget, request
 
@@ -432,10 +433,7 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
-                **({'native_answer_projection': {'schema_version': 2,
-                    'content_pointer': ['result'], 'content_format': 'text' if envelope_success and isinstance(payload.get('result', ''), str) else 'empty', 'optional_content': True,
-                    'result_fields': {'title': {'pointer': ['meta', 'title']},
-                        'final_url': {'pointer': ['meta', 'finalUrl'], 'fallback': 'request_url'}}}}
+                **({'native_answer_projection': native_answer_projection('cloudflare_markdown', case, payload, response.status, interface='/markdown')}
                    if (envelope_success and isinstance(payload.get('result', ''), str)) or meta else {}),
                 "route": route,
                 "wait": wait_metadata,
@@ -534,8 +532,7 @@ class CloudflareMarkdownProvider(Provider):
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
                 "route": "browser_rendering_scrape_resources",
-                **({'native_answer_projection': (projection if envelope_success else {
-                    **projection, 'content_format': 'empty', 'answer_fields': {}})}
+                **({'native_answer_projection': (native_answer_projection('cloudflare_markdown', case, payload, response.status))}
                    if envelope_success or meta else {}),
                 "browser": self.config.get("browser"),
                 "endpoint_route": "/browser-rendering/scrape" + ("?" + urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""),
@@ -795,9 +792,7 @@ class CloudflareContentProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
-                **({'native_answer_projection': {'schema_version': 2,
-                    'content_pointer': ['result'], 'content_format': 'text' if envelope_success and isinstance(payload.get('result', ''), str) else 'empty', 'optional_content': True,
-                    'result_fields': {'final_url': {'pointer': ['meta', 'finalUrl'], 'fallback': 'request_url'}}}}
+                **({'native_answer_projection': native_answer_projection('cloudflare_content', case, payload, response.status)}
                    if (envelope_success and isinstance(payload.get('result', ''), str)) or meta else {}),
                 "output_contract": "rendered_html",
                 "upstream_status": upstream_status,

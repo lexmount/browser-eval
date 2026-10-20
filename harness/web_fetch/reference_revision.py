@@ -319,8 +319,10 @@ def revise(
                 or (rows and not validator(source))
             ):
                 raise ValueError("Invalid or unbound revision history: " + name)
+    from .native_routes import native_cases_by_id
+    native_cases = native_cases_by_id(source)
     for record in load_jsonl(source / "results.jsonl"):
-        verify_record_artifacts(source, record)
+        verify_record_artifacts(source, record, native_cases=native_cases)
     canonical_bytes = read_dataset_bytes(canonical_path)
     before_identity = evidence_tree_identity(source)
     for folder in ("sources", "list-references"):
@@ -343,8 +345,9 @@ def revise(
             raise ValueError("Reference revision inputs changed during staging")
         if read_dataset_bytes(canonical_path) != canonical_bytes:
             raise ValueError("Canonical reference changed during staging")
+        native_cases = native_cases_by_id(staged)
         for record in load_jsonl(staged / "results.jsonl"):
-            verify_record_artifacts(staged, record)
+            verify_record_artifacts(staged, record, native_cases=native_cases)
         commit_staged_evidence(source, staged, backup)
         committed = True
         return receipt

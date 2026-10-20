@@ -290,6 +290,7 @@ def append(source, reference, measured, checks):
             path: hashlib.sha256(raw).hexdigest() for path, raw in evidence_files.items()
         }
     artifact_paths = [contained_path(source, r["artifact_path"]) for r in records]
+    native_cases = {c['id']: c for c in supplement['cases']}
     if len(set(artifact_paths)) != len(artifact_paths):
         raise ValueError("Duplicate supplement artifact paths")
     for r in records:
@@ -300,7 +301,7 @@ def append(source, reference, measured, checks):
             raise ValueError("Output hash mismatch")
         if contained_path(source, r["artifact_path"]).exists():
             raise ValueError("Output collision")
-        verify_record_artifacts(measured, r)
+        verify_record_artifacts(measured, r, native_cases=native_cases)
     for c in supplement["cases"]:
         target = source / "sources" / c["id"]
         if target.exists():
@@ -384,6 +385,7 @@ def merge(reference, runs, output):
         raw_records = (run / "results.jsonl").read_bytes()
         rows = parse_jsonl(raw_records)
         validate_report_ids(dataset, rows)
+        native_cases = {c['id']: c for c in dataset['cases']}
         for row in rows:
             path = contained_path(run, row["artifact_path"], reject_symlinks=True)
             normalized = path.relative_to(run.resolve()).as_posix()
@@ -394,7 +396,7 @@ def merge(reference, runs, output):
             ):
                 raise ValueError("Duplicate artifact or hash mismatch")
             primary_paths.add(normalized)
-            verify_record_artifacts(run, row)
+            verify_record_artifacts(run, row, native_cases=native_cases)
         original_batches = json.loads((run / "execution.json").read_bytes())["batches"]
         require_verified_reference_checks(
             original_batches, cases=reference_cases, records=rows, source=run

@@ -99,7 +99,7 @@ def recover_completed_batch(source: Path, manifest: dict, records: list[dict]) -
                 or log["output"]["path"] != row["artifact_path"]
                 or log["output"]["sha256"] != digest):
             raise ValueError("Interrupted result output differs from completed physical call")
-        verify_record_artifacts(source, row)
+        verify_record_artifacts(source, row, native_cases=cases)
         ends.append(ended)
     batch = deepcopy(manifest)
     batch.update(completed_at=max(ends).isoformat(), attempt_count=len(records),
@@ -156,8 +156,9 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
     if len(set(paths)) != len(paths):
         raise ValueError("Duplicate artifact paths")
     for root, group in [(canonical, existing), (incoming, records)]:
+        native_cases = {c['id']: c for c in (dataset if root == canonical else incoming_dataset)['cases']}
         for r in group:
-            verify_record_artifacts(root, r)
+            verify_record_artifacts(root, r, native_cases=native_cases)
             if Path(r['artifact_path']).parts[0] != 'artifacts':
                 raise ValueError('Output paths must be inside artifacts/')
         require_verified_reference_checks(
@@ -215,8 +216,9 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
         )
         if isinstance(plan, dict):
             (staging / 'dataset.json').write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + '\n')
+        native_cases = {c['id']: c for c in dataset['cases']}
         for row in existing + records:
-            verify_record_artifacts(staging, row)
+            verify_record_artifacts(staging, row, native_cases=native_cases)
         require_verified_reference_checks(execution['batches'], cases=dataset,
                                           records=existing + records, source=staging)
         swap = Path(tempfile.mkdtemp(prefix=".evidence-swap-", dir=canonical.parent))

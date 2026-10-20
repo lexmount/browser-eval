@@ -22,6 +22,7 @@ from lexbench_webfetch.models import EvalCase, TRACKS
 from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import native_contract_for_case, plan_for_case
 from lexbench_webfetch.paths import validate_http_url
+from ..native_projection import native_answer_projection
 from .base import Provider, terminate_owned_process_tree
 from .http_client import inner_timeout_budget
 
@@ -723,8 +724,7 @@ class MoliWebFetchProvider(Provider):
             if self.config.get('uniform_native_parameters'):
                 metadata.update(_raw_stdout_b64=base64.b64encode(raw).decode('ascii'),
                     raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
-                    native_answer_projection={'schema_version': 2, 'source_format': 'bytes',
-                        'content_format': 'empty', 'files': {'format': 'raw_bytes'}})
+                    native_answer_projection=native_answer_projection('moli_webfetch', case, {}))
             if route == "native_document_bytes":
                 metadata["native_output_contract"] = "original_document_bytes_without_extracted_text"
             ok = process.returncode == 0
@@ -749,8 +749,7 @@ class MoliWebFetchProvider(Provider):
         if fixed_native:
             metadata.update(_raw_stdout_b64=base64.b64encode(raw).decode('ascii'),
                 raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
-                native_answer_projection={'schema_version': 2, 'source_format': 'bytes', 'content_format': 'utf8',
-                    'result_fields': {'final_url': {'format': 'fetch_log_final_url'}}})
+                native_answer_projection=native_answer_projection('moli_webfetch', case, {}))
         native_status, readiness_timed_out = _native_fetch_diagnostics(diagnostic_raw, case.url)
         http_context = (replay_native_http_error_context(raw, diagnostic_raw, case.url,
                         process.returncode, {'schema_version': 1, 'format': 'fetch_log_http_error'})

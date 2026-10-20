@@ -14,6 +14,7 @@ from typing import Any
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import plan_for_case, native_default_case
+from ..native_projection import native_answer_projection
 from .base import Provider
 from .runtime_identity import validate_runtime_identity
 
@@ -347,16 +348,7 @@ class SubprocessJsonlProvider(Provider):
             error_message=None if ok else str(payload.get("error_message") or "worker failed"),
             metadata={
                 **dict(payload.get("metadata") or {}),
-                **({'native_answer_projection': {'schema_version': 2,
-                    'content_pointer': ['content'],
-                    'result_fields': {'title': {'pointer': ['title']},
-                        'final_url': {'pointer': ['final_url'], 'fallback': 'request_url'}},
-                    'content_format': 'text' if isinstance(payload.get('content'), str) else 'empty',
-                    'answer_fields': {key: {'pointer': ['metadata', key], 'format': 'identity'}
-                        for key in ('links', 'images', 'videos', 'media', 'extras')
-                        if key in (payload.get('metadata') or {})},
-                    **({'files': {'pointer': ['files'], 'format': 'worker_files'}}
-                       if payload.get('files') else {})}}
+                **({'native_answer_projection': native_answer_projection('subprocess_jsonl', case, payload)}
                    ),
                 "_raw_response_b64": base64.b64encode(line.encode("utf-8")).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(line.encode("utf-8")).hexdigest(),
