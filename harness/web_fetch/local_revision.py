@@ -1094,8 +1094,14 @@ def _revise_local_snapshot(source, configuration, transaction):
             'rule_revision': bool(config.get('rule_revision')),
             'input_results_sha256': input_results_sha256}
         selected.append(row['attempt_id'])
-    from .local_audit import carry_reviewed_page_identities
-    identity_binding = carry_reviewed_page_identities(source, original_dataset, dataset, records)
+    from .local_audit import prepare_reviewed_page_identities
+    identity_updates = prepare_reviewed_page_identities(source, original_dataset, dataset, records)
+    identity_binding = identity_updates.binding if identity_updates else None
+    if identity_updates:
+        dataset['comparison']['page_identity_review'] = identity_binding
+        for row in records:
+            if row['attempt_id'] in identity_updates.metrics_by_attempt:
+                row['metrics'] = identity_updates.metrics_by_attempt[row['attempt_id']]
     changes = [{'attempt_id': row['attempt_id'], 'before': before_verdicts[row['attempt_id']],
                 'after': task_passed(row['ok'], row['metrics'])}
                for row in records if row['attempt_id'] in before_verdicts

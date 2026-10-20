@@ -999,11 +999,20 @@ def test_offline_rescore_reuses_only_unchanged_identity_inputs(tmp_path, defect,
     if defect == 'diagnostic_changed': current['diagnostic_any'] = current.pop('forbidden_any')
     if defect == 'call_changed': record['elapsed_ms'] = 99
     if defect == 'answer_changed': record['metrics']['content_sha256'] = 'different-answer'
+    from copy import deepcopy
+    unchanged_dataset, unchanged_record = deepcopy(dataset), deepcopy(record)
     if defect:
         with pytest.raises(ValueError):
-            local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record])
+            local_audit.prepare_reviewed_page_identities(tmp_path, before, dataset, [record])
+        assert dataset == unchanged_dataset
+        assert record == unchanged_record
     else:
-        assert local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record]) == receipt
+        updates = local_audit.prepare_reviewed_page_identities(tmp_path, before, dataset, [record])
+        assert updates.binding == receipt
+        assert dataset == unchanged_dataset
+        assert record == unchanged_record
+        dataset['comparison']['page_identity_review'] = updates.binding
+        record['metrics'] = updates.metrics_by_attempt[record['attempt_id']]
     assert not (tmp_path/'local-evidence').exists()
     if not defect:
         assert local_audit.task_passed(record['ok'], record['metrics'])

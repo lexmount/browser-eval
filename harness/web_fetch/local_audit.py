@@ -1,6 +1,7 @@
 """Fail-closed validation for explicitly non-publishable local audit bundles."""
 import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from harness.record_io import canonical_json_sha256
 
@@ -944,8 +945,14 @@ def _require_identity_binding_revision(source, dataset, receipt):
         raise ValueError('Page identity migration changed an existing reviewed annotation')
 
 
-def carry_reviewed_page_identities(source, before_dataset, dataset, records):
-    """Reuse unchanged identity evidence, without creating historical migrations.
+@dataclass(frozen=True)
+class ReviewedPageIdentityUpdates:
+    binding: dict
+    metrics_by_attempt: dict
+
+
+def prepare_reviewed_page_identities(source, before_dataset, dataset, records):
+    """Validate and return unchanged identity evidence without mutating inputs.
 
     Old migration receipts remain read-only inputs to the legacy verifier.
     Changed task, answer or physical-call inputs require a new explicit review.
@@ -969,9 +976,14 @@ def carry_reviewed_page_identities(source, before_dataset, dataset, records):
                 or annotation['call_sha256'] != local_measurement_call_sha256(row)
                 or annotation['content_sha256'] != row['metrics']['content_sha256']):
             raise ValueError('Changed page identity review inputs require a new explicit review')
-    dataset['comparison']['page_identity_review'] = binding
+    metrics_by_attempt = {}
     for annotation in receipt['attempts']:
         row = indexed[annotation['attempt_id']]
-        row['metrics'] = score_reviewed_page_identity(source, cases[row['case_id']], row, annotation, captures)
-    _require_page_identity_review(source, dataset, records)
-    return binding
+        metrics_by_attempt[row['attempt_id']] = score_reviewed_page_identity(
+            source, cases[row['case_id']], row, annotation, captures)
+    proposed_dataset = {**dataset, 'comparison': {
+        **dataset.get('comparison', {}), 'page_identity_review': binding}}
+    proposed_records = [{**row, 'metrics': metrics_by_attempt.get(row['attempt_id'], row['metrics'])}
+                        for row in records]
+    _require_page_identity_review(source, proposed_dataset, proposed_records)
+    return ReviewedPageIdentityUpdates(dict(binding), metrics_by_attempt)
