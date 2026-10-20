@@ -16,17 +16,16 @@ from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import plan_for_case, native_default_case
 from ..native_projection import native_answer_projection
 from .base import Provider
+from ..native_routes import NativeRoute
 from .runtime_identity import validate_runtime_identity
 
 
 class SubprocessJsonlProvider(Provider):
     """Invoke a persistent repository-native worker over line-delimited JSON."""
-    def native_route(self, case):
+    def native_route(self, case) -> NativeRoute:
         if self.type not in {'subprocess_jsonl', 'cowagent_builtin'}:
             return super().native_route(case)
-        return 'jsonl', 'native_worker_command', [
-            'content', 'metadata.links', 'metadata.images', 'metadata.videos',
-            'metadata.media', 'metadata.extras', 'files', 'title', 'final_url']
+        return NativeRoute('jsonl', 'native_worker_command', ('content', 'metadata.links', 'metadata.images', 'metadata.videos', 'metadata.media', 'metadata.extras', 'files', 'title', 'final_url',))
 
     _RUNTIME_CONTRACTS = {
         "cowagent_builtin": {

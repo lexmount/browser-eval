@@ -16,6 +16,7 @@ from ..retrieval_hints import native_contract_for_case, native_default_case, pla
 from lexbench_webfetch.paths import validate_http_url
 from ..native_projection import native_answer_projection
 from .base import Provider
+from ..native_routes import NativeRoute
 from .http_client import HttpOnlyRedirectHandler, HttpResponse, request
 
 _DIRECT_DOCUMENT_EXTENSIONS = (
@@ -268,8 +269,8 @@ class CloudflareMarkdownProvider(Provider):
             body['elements'] = [{'selector': 'a[href]'}]
         self._diagnostic_timeouts(body, timeout_ms)
 
-    def native_route(self, case):
-        return 'http', self.native_http_interface(case), ['result', 'meta.title', 'meta.finalUrl']
+    def native_route(self, case) -> NativeRoute:
+        return NativeRoute('http', self.native_http_interface(case), ('result', 'meta.title', 'meta.finalUrl',))
 
     def native_http_interface(self, case):
         return ('/content' if self.type == 'cloudflare_content' else '/scrape'

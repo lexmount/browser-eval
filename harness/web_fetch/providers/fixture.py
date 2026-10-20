@@ -7,12 +7,13 @@ import json
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
 from .base import Provider
+from ..native_routes import NativeRoute
 
 
 class FixtureProvider(Provider):
     """Deterministic provider used to verify a fresh installation offline."""
-    def native_route(self, case):
-        return 'fixture', 'synthetic_fixture', ['content', 'title', 'final_url']
+    def native_route(self, case) -> NativeRoute:
+        return NativeRoute('fixture', 'synthetic_fixture', ('content', 'title', 'final_url',))
 
 
     def _result(self, **kwargs):

@@ -7,6 +7,7 @@ from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
 from ..native_projection import native_answer_projection
 from .base import Provider
+from ..native_routes import NativeRoute
 from .http_client import request
 
 
@@ -57,8 +58,8 @@ def _public_url_error(value: object) -> dict[str, object]:
 
 
 class ExaContentsProvider(Provider):
-    def native_route(self, case):
-        return 'http', '/contents', ['results[].text', 'results[].extras', 'results[].title', 'results[].url']
+    def native_route(self, case) -> NativeRoute:
+        return NativeRoute('http', '/contents', ('results[].text', 'results[].extras', 'results[].title', 'results[].url',))
 
     def native_http_arguments(self, case, timeout):
         body = {'urls': [case.url], 'text': {'verbosity': self.config.get('text_verbosity', 'full')},

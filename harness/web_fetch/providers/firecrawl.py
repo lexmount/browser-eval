@@ -11,14 +11,15 @@ from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import plan_for_case, native_default_case
 from ..native_projection import native_answer_projection
 from .base import Provider
+from ..native_routes import NativeRoute
 from .http_client import request
 
 
 class FirecrawlProvider(Provider):
-    def native_route(self, case):
+    def native_route(self, case) -> NativeRoute:
         fields = (['data.rawBase64'] if case.task_kind == 'file' else
                   ['data.markdown', 'data.links', 'data.images', 'data.videos', 'data.video'])
-        return 'http', '/v2/scrape', fields + ['data.metadata.title', 'data.metadata.url']
+        return NativeRoute('http', '/v2/scrape', tuple(fields + ['data.metadata.title', 'data.metadata.url']))
 
     _PROXY_MAX_CREDITS = {"basic": 1, "enhanced": 1, "auto": 1}
     _VIDEO_FORMAT_CREDITS = 5

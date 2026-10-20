@@ -933,3 +933,24 @@ def test_provider_mode_cannot_be_changed_after_initialization(initial_mode):
     with pytest.raises(ValueError, match='execution mode changed'):
         provider.fetch(case, 45)
     callback.assert_not_called()
+
+
+@pytest.mark.parametrize('values,field', [
+    (('unregistered', '/extract', ('content',)), 'transport'),
+    (('http', '', ('content',)), 'interface'),
+    (('http', '/extract', []), 'answer_fields'),
+    (('http', '/extract', ('',)), 'answer_fields'),
+    (('http', '/extract', (True,)), 'answer_fields'),
+])
+def test_native_route_declaration_reports_the_invalid_field(values, field):
+    from harness.web_fetch.native_routes import NativeRoute
+    with pytest.raises(ValueError, match=field):
+        NativeRoute(*values)
+
+
+def test_native_route_declaration_is_immutable():
+    from dataclasses import FrozenInstanceError
+    from harness.web_fetch.native_routes import NativeRoute
+    route = NativeRoute('http', '/extract', ('content',))
+    with pytest.raises(FrozenInstanceError):
+        route.interface = '/other'

@@ -1,5 +1,6 @@
 """Declared native input and route contracts, independent of URLs and answers."""
 import json
+from dataclasses import dataclass
 from harness.record_io import canonical_json_sha256
 
 from .native_projection import (
@@ -10,6 +11,24 @@ INPUT_MEDIA_KINDS = frozenset({
     'html_page', 'direct_pdf', 'direct_docx', 'direct_text',
     'direct_image', 'direct_media',
 })
+
+
+@dataclass(frozen=True)
+class NativeRoute:
+    """Provider-owned route declaration before any physical invocation."""
+
+    transport: str
+    interface: str
+    answer_fields: tuple[str, ...]
+
+    def __post_init__(self):
+        if not isinstance(self.transport, str) or self.transport not in {'http', 'cli', 'jsonl', 'fixture'}:
+            raise ValueError('Native route transport must name a supported transport')
+        if not isinstance(self.interface, str) or not self.interface.strip():
+            raise ValueError('Native route interface must be a nonempty string')
+        if (not isinstance(self.answer_fields, tuple) or not self.answer_fields
+                or any(not isinstance(field, str) or not field.strip() for field in self.answer_fields)):
+            raise ValueError('Native route answer_fields must be a nonempty tuple of field names')
 
 
 def declared_input_media_kind(case, *, required=True):
@@ -40,7 +59,10 @@ def native_route_cell(provider, case):
     kind, track = case.task_kind, case.track
     key = (provider.name, track, kind, media)
     config, method = provider.config, provider.type
-    transport, interface, fields = provider.native_route(case)
+    route = provider.native_route(case)
+    if not isinstance(route, NativeRoute):
+        raise ValueError('Provider native_route must return a NativeRoute declaration')
+    transport, interface, fields = route.transport, route.interface, list(route.answer_fields)
     endpoint = None
     if transport == 'http':
         endpoint, _ = provider.native_http_arguments(case, 45)

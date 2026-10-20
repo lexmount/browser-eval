@@ -24,6 +24,7 @@ from ..retrieval_hints import native_contract_for_case, plan_for_case
 from lexbench_webfetch.paths import validate_http_url
 from ..native_projection import native_answer_projection
 from .base import Provider, terminate_owned_process_tree
+from ..native_routes import NativeRoute
 from .http_client import inner_timeout_budget
 
 _WAIT_UNTIL_VALUES = {
@@ -154,11 +155,11 @@ def _family_wait_until(config, track):
 
 
 class MoliWebFetchProvider(Provider):
-    def native_route(self, case):
+    def native_route(self, case) -> NativeRoute:
         interface = _route_for_case(case, native_default=True)
         fields = (['original_bytes'] if interface in {'raw_file', 'native_document_bytes'}
                   else ['stdout', 'diagnostic.main_document_url'])
-        return 'cli', interface, fields
+        return NativeRoute('cli', interface, tuple(fields))
 
     def __init__(self, name, config):
         super().__init__(name, config)

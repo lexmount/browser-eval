@@ -7,6 +7,7 @@ from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
 from ..native_projection import native_answer_projection
 from .base import Provider
+from ..native_routes import NativeRoute
 from .http_client import request
 
 
@@ -29,8 +30,8 @@ def _public_failure_errors(values: list[object]) -> list[str]:
 
 
 class TavilyExtractProvider(Provider):
-    def native_route(self, case):
-        return 'http', '/extract', ['results[].raw_content', 'results[].images', 'images', 'results[].url']
+    def native_route(self, case) -> NativeRoute:
+        return NativeRoute('http', '/extract', ('results[].raw_content', 'results[].images', 'images', 'results[].url',))
 
     def native_http_arguments(self, case, timeout):
         body = {'urls': [case.url], 'extract_depth': self.config.get('extract_depth', 'advanced'),
