@@ -999,32 +999,39 @@ exposes the directory only after the entire matrix passes. Unbound review
 receipts cannot authorize a new assembly. Existing published reports retain
 their frozen evidence and are restored from their pinned release.
 
-### Current local 430-task report
+### Frozen local report inputs
 
-`research/native-430-local-report.json` binds the reviewed ten-method snapshot
-by dataset, result and scorer hashes. Its `evidence_path` is relative to
-`BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval`), so an installed snapshot
-can be located without inferring it from earlier work logs. The 4,300 measured responses, execution
-segments, review payloads, archived interpretation article and its translations
-remain in the external evidence directory; they are not distributed in Git.
-The shared report owner reads those saved inputs and does not call providers
-during rendering. A frozen view can be checked without claiming that a newer
-scorer produced its historical scores:
+Keep each saved report's presentation binding and publication target outside Git,
+alongside its evidence under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval`)
+or another explicitly selected directory. These are report instances, not reusable
+code. Use the binding supplied with that exact snapshot; do not select an older
+binding by its task count or treat a historical publication target as current.
+The binding records the dataset, results, scorer and auxiliary evidence hashes.
+The shared report owner validates those saved inputs without provider calls or
+rescoring with the installed scorer.
+
+For an existing frozen local report, pass its external binding explicitly:
 
 ```sh
-uv run --frozen python scripts/check_report.py /absolute/path/to/local-report \
-  --presentation-binding research/native-430-local-report.json
+uv run --frozen python scripts/check_report.py /absolute/path/to/saved-report \
+  --presentation-binding /absolute/path/to/saved-report/presentation-binding.json
+uv run --frozen python scripts/build_report.py --local-audit \
+  --evidence /absolute/path/to/saved-report --output /absolute/path/to/new-report \
+  --presentation-binding /absolute/path/to/saved-report/presentation-binding.json \
+  --language zh --include-english
 ```
 
-For a fresh build, use `scripts/build_report.py --local-audit` with the matching
-external evidence, an explicit output directory, and `--language zh --include-english`.
-When rebuilding the bound historical report with a newer scorer, also pass
-`--presentation-binding research/native-430-local-report.json`; this verifies
-the existing report snapshot and preserves its saved scores and evidence bytes.
-The matching binding is required for `check_report.py` as shown above.
-Any scoring change must first follow the declared correction protocol; a new
-render alone does not update scores. The public release profile and its
-publication target are separate and are not changed by this local snapshot.
+The build copies the validated binding into the new report. Check the new output
+with its matching `--presentation-binding` too. For a fresh local measurement,
+use `--local-audit` with its external evidence and an explicit output directory;
+do not borrow a previous report's binding. Any scoring change must first follow
+the declared correction protocol; rendering alone does not update scores.
+Publication remains a separate explicit action with that report's own target.
+
+The maintained synthetic example in
+`tests/test_local_audit.py::test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review`
+exercises collection, external bindings, rebuilding and packaging without real
+provider calls. It also checks changed evidence and preservation of frozen scores.
 
 Historical audit tests read their frozen scorer bytes from
 `<data-home>/scoring-snapshots/<scorer-sha256>/`; they verify the complete scorer,
