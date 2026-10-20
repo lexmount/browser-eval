@@ -489,9 +489,12 @@ def _require_page_identity_review(source, dataset, records, *, scoring_sources=N
     except ValueError as error:
         raise ValueError("Page identity review receipt changed") from error
     receipt = json.loads(path.read_text())
-    capture_path = contained_path(source, receipt["captures_path"], reject_symlinks=True)
-    if hashlib.sha256((capture_path).read_bytes()).hexdigest() != receipt["captures_sha256"]:
-        raise ValueError("Page review captures changed")
+    try:
+        capture_path = read_evidence_binding(source, {
+            "path": receipt["captures_path"], "sha256": receipt["captures_sha256"],
+        }, allow_public_view=False)
+    except ValueError as error:
+        raise ValueError("Page review captures changed") from error
     captures = json.loads(capture_path.read_text())
     _require_identity_binding_revision(source, dataset, receipt)
     annotations = receipt["attempts"]
@@ -523,9 +526,10 @@ def _require_local_review(source, dataset, records, *, review_document=None, sco
     if binding is None and review_document is None:
         return None
     if review_document is None:
-        path = contained_path(source, binding["path"], reject_symlinks=True)
-        if hashlib.sha256((path).read_bytes()).hexdigest() != binding.get("sha256"):
-            raise ValueError("Local independent review binding changed")
+        try:
+            path = read_evidence_binding(source, binding, allow_public_view=False)
+        except ValueError as error:
+            raise ValueError("Local independent review binding changed") from error
         review = json.loads(path.read_text())
     else:
         review = review_document
@@ -628,9 +632,12 @@ def prepare_reviewed_page_identities(source, before_dataset, dataset, records):
     if not binding:
         return None
     original = json.loads(read_evidence_binding(source, binding).read_text())
-    captures_path = contained_path(source, original['captures_path'], reject_symlinks=True)
-    if hashlib.sha256((captures_path).read_bytes()).hexdigest() != original['captures_sha256']:
-        raise ValueError('Page identity capture changed before rescoring')
+    try:
+        captures_path = read_evidence_binding(source, {
+            'path': original['captures_path'], 'sha256': original['captures_sha256'],
+        }, allow_public_view=False)
+    except ValueError as error:
+        raise ValueError('Page identity capture changed before rescoring') from error
     captures = json.loads(captures_path.read_text())
     cases = {case['id']: case for case in dataset['cases']}
     indexed = {row['attempt_id']: row for row in records}

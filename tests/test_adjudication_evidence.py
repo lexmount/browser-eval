@@ -9,6 +9,56 @@ from harness.record_io import canonical_json_sha256
 from lexbench_webfetch.scoring import score_attempt
 
 
+@pytest.mark.parametrize("entry", ["identity", "identity_update", "independent_review"])
+@pytest.mark.parametrize("changed", [False, True])
+def test_review_inputs_require_original_bound_bytes(tmp_path, monkeypatch, entry, changed):
+    import json
+    from harness.web_fetch import adjudication_evidence, publication_privacy
+
+    def no_public_substitute(*args):
+        raise AssertionError("Original review input must not fall back to a public projection")
+
+    monkeypatch.setattr(publication_privacy, "bound_public_view", no_public_substitute)
+
+    def save(name, value):
+        path = tmp_path / name
+        path.write_text(json.dumps(value))
+        return {"path": name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+
+    dataset = {"cases": [], "comparison": {}}
+    if entry == "independent_review":
+        (tmp_path / "results.jsonl").write_bytes(b"")
+        binding = save("review.json", {
+            "kind": "local_independent_review", "review_protocol": {"scope": "all"},
+            "reviewed_attempts": 0, "expected_attempts": 0, "attempts": [], "unresolved": 0,
+            "results_sha256": hashlib.sha256(b"").hexdigest(),
+        })
+        dataset["comparison"]["independent_review"] = binding
+        invoke = lambda: adjudication_evidence._require_local_review(tmp_path, dataset, [])
+        error = "Local independent review binding changed"
+    else:
+        binding = save("captures.json", [])
+        receipt = save("identity.json", {
+            "kind": "retrospective_page_identity_review", "provider_calls_added": 0,
+            "captures_path": binding["path"], "captures_sha256": binding["sha256"],
+            "attempts": [],
+        })
+        dataset["comparison"]["page_identity_review"] = receipt
+        if entry == "identity":
+            invoke = lambda: adjudication_evidence._require_page_identity_review(tmp_path, dataset, [])
+            error = "Page review captures changed"
+        else:
+            invoke = lambda: adjudication_evidence.prepare_reviewed_page_identities(
+                tmp_path, dataset, dataset, [])
+            error = "Page identity capture changed before rescoring"
+    if changed:
+        (tmp_path / binding["path"]).write_text("{}")
+        with pytest.raises(ValueError, match=error):
+            invoke()
+    else:
+        invoke()
+
+
 @pytest.mark.parametrize('defect', [None, 'case', 'answer', 'context', 'opinion',
                                   'original_opinion', 'original_identity'])
 @pytest.mark.parametrize('wording', ['Original explanation.', 'Quoted text: 命中词：。'])
