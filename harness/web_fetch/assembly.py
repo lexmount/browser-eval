@@ -235,9 +235,8 @@ def _selected_provider_replacement_rows(run, root, rows, receipt_path):
             raise ValueError('Invalid-call correction changed the provider binary')
         if item['category'] == 'implementation_correction':
             case = baseline_cases.get(item['case_id'])
-            if case is None or task_passed(
-                    bool(prior.get('ok')), prior.get('metrics', {}),
-                    case.get('task_kind', 'body')):
+            if (case is None or (prior.get('ok') is not False and task_passed(
+                    True, prior.get('metrics', {}), case.get('task_kind', 'body')))):
                 raise ValueError(
                     'Implementation correction baseline machine verdict is not a failure')
         seen.add(pair)
