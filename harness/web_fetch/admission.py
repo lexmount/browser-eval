@@ -6,6 +6,7 @@ import json
 import os
 import threading
 import time
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -26,6 +27,7 @@ class CaseAdmission:
         self.group = group
         self.max_parallel = max_parallel
         self.site_cooldown = site_cooldown
+        self._leases = {}
 
     def describe(self):
         return {'max_parallel': self.max_parallel, 'max_local': 1, 'max_cloud': 1,
@@ -43,11 +45,11 @@ class CaseAdmission:
                 'active': {}, 'finished_sites': {}, 'parallel_enabled': True}
             now = time.time()
             for key, item in list(state['active'].items()):
-                try:
-                    os.kill(item['pid'], 0)
-                except ProcessLookupError:
+                if not self._is_active(item):
                     state['finished_sites'][item['site']] = {'at': now, 'provider': item['provider']}
                     del state['active'][key]
+                    if item.get('lease'):
+                        (self.root / item['lease']).unlink(missing_ok=True)
             try:
                 yield state
             finally:
@@ -55,6 +57,25 @@ class CaseAdmission:
                 temporary.write_text(json.dumps(state, ensure_ascii=False, indent=2)+'\n')
                 temporary.replace(path)
                 fcntl.flock(lock, fcntl.LOCK_UN)
+
+    def _is_active(self, item):
+        # A reservation owns a kernel lock until its call exits. Unlike a PID,
+        # that identity cannot accidentally refer to a later unrelated process.
+        lease = item.get('lease')
+        if lease:
+            with (self.root / lease).open('a') as handle:
+                try:
+                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    return True
+                fcntl.flock(handle, fcntl.LOCK_UN)
+            return False
+        # State from an already running execution predating lease reservations.
+        try:
+            os.kill(item['pid'], 0)
+        except ProcessLookupError:
+            return False
+        return True
 
     def _event(self, value):
         with (self.root/'events.jsonl').open('a') as handle:
@@ -64,7 +85,7 @@ class CaseAdmission:
         host = (urlsplit(case.url).hostname or '').lower().rstrip('.')
         # Deliberately conservative: e.g. *.co.uk shares one scheduling group.
         site = '.'.join(host.split('.')[-2:])
-        key = str(os.getpid())+':'+provider.name
+        key = uuid.uuid4().hex
         queued = time.monotonic()
         while True:
             with self._state() as state:
@@ -78,10 +99,13 @@ class CaseAdmission:
                                   for item in active)
                            or cross_method_cooldown)
                 if not blocked:
-                    if key in state['active']:
-                        raise ValueError('A method has an unreleased call')
+                    lease = 'lease-' + key + '.lock'
+                    handle = (self.root / lease).open('a')
+                    fcntl.flock(handle, fcntl.LOCK_EX)
+                    self._leases[key] = handle
                     token = {'key': key, 'pid': os.getpid(), 'provider': provider.name,
-                             'case_id': case.id, 'site': site, 'group': self.group}
+                             'case_id': case.id, 'site': site, 'group': self.group,
+                             'lease': lease}
                     state['active'][key] = token
                     self._event({'event': 'admitted', **token,
                                  'queue_wait_ms': round((time.monotonic()-queued)*1000, 2),
@@ -113,6 +137,9 @@ class CaseAdmission:
                                  daemon=True, name='webfetch-admission-cleanup').start()
                 return
             del state['active'][token['key']]
+            handle = self._leases.pop(token['key'])
+            handle.close()
+            (self.root / token['lease']).unlink()
             state['finished_sites'][token['site']] = {'at': time.time(), 'provider': token['provider']}
             self._event({'event': 'released', **token})
 

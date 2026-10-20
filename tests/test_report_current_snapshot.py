@@ -14,8 +14,55 @@ from harness.web_fetch.report_i18n import localize_html
 from tests.test_report_body_scope import case, record
 
 
+def test_concurrent_report_builds_keep_status_and_language_separate(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    barrier = Barrier(2)
+    original_write = report.write
+
+    def write(out, path, *args, **kwargs):
+        if path == 'index.html':
+            barrier.wait(timeout=10)
+        return original_write(out, path, *args, **kwargs)
+
+    monkeypatch.setattr(report, 'write', write)
+    monkeypatch.setattr(report, 'write_support', lambda *args, **kwargs: None)
+    monkeypatch.setattr('harness.web_fetch.report_explainer.render_explainer', lambda *args, **kwargs: 'article')
+
+    def build(name, fixture):
+        out = tmp_path/name
+        c = case(name)
+        row = record(c)
+        if fixture:
+            row['provider_type'] = 'fixture'
+        else:
+            row['provider_type'] = 'synthetic_other'
+        (out/row['artifact_path']).parent.mkdir(parents=True)
+        (out/row['artifact_path']).write_text('output')
+        report.generate(out, {'cases': [c]}, [row], [], include_english=fixture)
+        return (out/'index.html').read_text()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(build, 'fixture', True)
+        second = pool.submit(build, 'other', False)
+        fixture_html, other_html = first.result(), second.result()
+    assert '合成示例 · 非正式评测' in fixture_html
+    assert '合成示例 · 非正式评测' not in other_html
+    assert 'href="en/index.html"' in fixture_html
+    report.write(tmp_path, 'standalone.html', 'Standalone', 'body')
+    standalone = (tmp_path/'standalone.html').read_text()
+    assert '合成示例 · 非正式评测' not in standalone
+    assert 'href="en/index.html"' in standalone
+
+
+def test_call_chain_preserves_authored_log_scope_verbatim():
+    note = '新批次启用；旧 17 条不计入本报告。'
+    result = report.local_call_chain_section({'comparison': {'call_chain_audit': {
+        'methods': [{'provider': 'fixture', 'native_log_note': note}]}}})
+    assert note in result
+
+
 def test_current_review_does_not_repeat_predecessor_scores(tmp_path, monkeypatch):
-    monkeypatch.setattr(report, "_RELIABILITY_BANNER", "")
     old, added = case('retained'), case('added')
     records = [record(old), record(added, passed=False)]
     raw = json.dumps({'provider_calls_added': 1, 'inherited_results': 1}).encode()

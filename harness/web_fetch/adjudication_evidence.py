@@ -5,9 +5,6 @@ import json
 from .publication_privacy import read_evidence_binding, evidence_excerpt_matches
 
 
-TEMPLATE = '核对已有原始返回、冻结要求和相应修正证据；当前结论见评分明细。'
-
-
 def case_hash(case):
     return hashlib.sha256(json.dumps(case, sort_keys=True, ensure_ascii=False,
                                     separators=(',', ':')).encode()).hexdigest()
@@ -125,7 +122,7 @@ def require_adjudication_evidence(source, dataset, records, review):
         record = indexed[row['attempt_id']]
         proof = row.get('adjudication_evidence', {})
         reason = proof.get('reason', '').strip()
-        if (not reason or reason == TEMPLATE or row.get('adjudication') == TEMPLATE
+        if (not reason
                 or proof.get('case_sha256') != case_hash(cases[record['case_id']])
                 or proof.get('content_sha256') != record['metrics']['content_sha256']
                 or not proof.get('rule_ids')):

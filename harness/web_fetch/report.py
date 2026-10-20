@@ -8,6 +8,9 @@ import re
 import shutil
 import statistics
 from collections import Counter, defaultdict
+from contextvars import ContextVar
+from dataclasses import dataclass
+from functools import wraps
 from pathlib import Path
 from urllib.parse import urlencode, urlsplit
 
@@ -739,7 +742,8 @@ def model_text(value,english=None):
 def rate(a,b):return pct(a/b) if b else '—'
 def section(title,body,id=''):return '<section class="section"'+(f' id="{id}"' if id else '')+f'><div class="wrap"><h2>{title}</h2>{body}</div></section>'
 def hero(title,desc):
- label='合成示例' if '合成示例 · 非正式评测' in _RELIABILITY_BANNER else '诊断运行' if '诊断运行 · 非正式评测' in _RELIABILITY_BANNER else '实测报告'
+ banner=_RENDER_CONTEXT.get().banner
+ label='合成示例' if '合成示例 · 非正式评测' in banner else '诊断运行' if '诊断运行 · 非正式评测' in banner else '实测报告'
  return f'<section class="hero"><div class="wrap"><div class="eyebrow">Web Fetch · {label}</div><h1>{title}</h1><p class="lead">{desc}</p></div></section>'
 def comparative_rows(rows, directions):
  """Mark raw-value column extrema without ranking unavailable values or ties."""
@@ -797,8 +801,22 @@ EXTRA+='''
 @media(max-width:640px){.diagnostic-fields{grid-template-columns:1fr}.diagnostic-fields dt{border-bottom:0}.log-lines{padding-left:44px}}
 '''
 
-_RELIABILITY_BANNER=''
-_ENGLISH_GENERATED=False
+@dataclass(frozen=True)
+class RenderContext:
+ banner: str = ''
+ english_generated: bool = False
+
+
+_RENDER_CONTEXT=ContextVar('webfetch_render_context',default=RenderContext())
+
+
+def _scoped_render(function):
+ @wraps(function)
+ def render(*args,**kwargs):
+  token=_RENDER_CONTEXT.set(RenderContext())
+  try:return function(*args,**kwargs)
+  finally:_RENDER_CONTEXT.reset(token)
+ return render
 
 def write(out,path,title,body,*,root_links=False):
  depth=len(Path(path).parts)-1;base='../'*depth
@@ -806,10 +824,11 @@ def write(out,path,title,body,*,root_links=False):
  if root_links:base=''
  nav=[('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('review/index.html','核验记录'),('guide/index.html','报告解读'),('adoption/index.html','方法介绍'),('reproduce/index.html','环境与复现'),('changes/index.html','变更记录'),('accounts/index.html','账号与安装')]
  brand=link(base+'index.html','Web Fetch')
- counterpart=(base+'en/'+path if _ENGLISH_GENERATED else base+'en/index.html')
+ context=_RENDER_CONTEXT.get()
+ counterpart=(base+'en/'+path if context.english_generated else base+'en/index.html')
  language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>'
  footer='所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。'
- page=f'<!doctype html><html lang="zh-CN"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css?v={hashlib.sha256((STYLE+EXTRA).encode()).hexdigest()[:16]}"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
+ page=f'<!doctype html><html lang="zh-CN"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css?v={hashlib.sha256((STYLE+EXTRA).encode()).hexdigest()[:16]}"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{context.banner}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 _RESEARCH_ROUTES=[
@@ -824,6 +843,7 @@ _RESEARCH_ROUTES=[
  ('accounts/index.html','账号与安装','Accounts and setup'),
 ]
 
+@_scoped_render
 def generate_cohort_diagnostic(out, model):
  """Render live cohort diagnostics through the maintained WebFetch components."""
  from .report_diagnostic import (
@@ -834,10 +854,7 @@ def generate_cohort_diagnostic(out, model):
   diagnostic_findings,
   diagnostic_specimen_excerpt,
  )
- global _RELIABILITY_BANNER,_ENGLISH_GENERATED
- prior=(_RELIABILITY_BANNER,_ENGLISH_GENERATED)
- _RELIABILITY_BANNER='<div class="wrap callout"><strong>实时网页诊断</strong><p>'+esc(model['scope_note'])+'</p></div>'
- _ENGLISH_GENERATED=False
+ token=_RENDER_CONTEXT.set(RenderContext('<div class="wrap callout"><strong>实时网页诊断</strong><p>'+esc(model['scope_note'])+'</p></div>'))
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  diagnostic_style='''
 #failure-inventory .table-wrap{max-height:70vh;overflow:auto;scrollbar-gutter:stable}
@@ -978,7 +995,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
   for name,title in [('methodology','评测方法'),('review','核验记录'),('reproduce','环境与复现'),('changes','变更记录'),('adoption','方法介绍'),('accounts','账号与安装')]:
    page(name+'/index.html',title,hero(title,esc(model.get('page_intros',{}).get(name,'')))+blocks(name))
   page('en/index.html','English edition','<div class="wrap"><h1>English edition not generated</h1><p>'+link('index.html','返回中文报告')+'</p></div>')
- finally:_RELIABILITY_BANNER,_ENGLISH_GENERATED=prior
+ finally:_RENDER_CONTEXT.reset(token)
 
 
 def _research_links(urls):
@@ -1983,7 +2000,7 @@ def local_call_chain_section(dataset, prefix="../"):
  if not audit:return ''
  rows=[]
  for item in audit.get('methods',[]):
-  note=re.sub(r'；旧\s*\d+\s*条不计入本报告。$', '。', item['native_log_note']).replace('新批次启用', '本轮启用')
+  note=item['native_log_note']
   rows.append(('',cell(link(prefix+'providers/'+item['provider']+'.html',provider_label(item['provider'])))+cell(esc(note))))
  intro='<p>每次调用都保存了测试程序的调用记录：何时开始、传入什么参数、何时返回，以及是否发生错误。各案例详情中的“调用方事件”展示这些记录。</p><p>“产品与依赖库日志”展示产品或底层库实际输出的运行信息。云端服务没有开放的内部日志，不会用测试程序的记录代替。下表说明各方法留下了哪些日志。</p>'
  return section('本轮保存了哪些日志',intro+table(['方法','产品与依赖库日志范围'],rows,metrics=[])+'<p>完整日志在各案例详情中查看。日志可以帮助定位问题，但没有记录的内部过程不能据此推断；日志文件存在，也不等于产品的全部内部过程都有记录。</p>','call-chain-audit')
@@ -2006,6 +2023,7 @@ def local_audit_banner(dataset):
 from .methods import with_measured_method_labels
 
 @with_measured_method_labels
+@_scoped_render
 def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None,dataset_case_ids:set[str]|None=None,frozen_scores:bool=False,english_routes=None,diagnostic_view_paths=()):
  from .publication_privacy import public_render_views
  _public_views=public_render_views(out,records)
@@ -2014,7 +2032,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  for _record in records:
   if _record['attempt_id'] in _public_views:
    _record.setdefault('provider_metadata',{})['publication_views']=_public_views[_record['attempt_id']]
- global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  if detail_attempt_ids is not None:
   if not presentation_only:
    raise ValueError('Scoped detail refresh requires presentation_only=True')
@@ -2024,7 +2041,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   if not presentation_only:raise ValueError('Scoped dataset refresh requires presentation_only=True')
   unknown=set(dataset_case_ids)-{case['id'] for case in dataset['cases']}
   if unknown:raise ValueError('Unknown dataset refresh cases: '+', '.join(sorted(unknown)))
- _ENGLISH_GENERATED=include_english
  local_snapshot=dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
  diagnostic=local_snapshot and not local_pass_rate_ranking(dataset)
  if local_snapshot and not show_local_status_banners:
@@ -2032,30 +2048,31 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  from .reliability import assess_reliability
  reliability=assess_reliability(dataset,records)
  if reliability['complete']:
-  _RELIABILITY_BANNER=''
+  reliability_banner=''
  elif (dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement'
        and dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
        and not any(reliability[key] for key in ('missing','extra','duplicates'))):
   excluded=[r for r in records if r['metrics'].get('evaluation_excluded')]
   if len(excluded)==len(reliability['unjudged']):
-   _RELIABILITY_BANNER='<div class="wrap callout">'+model_text(
+   reliability_banner='<div class="wrap callout">'+model_text(
        f'{len(excluded)} 条结果因已确认的评测环境异常统一排除比较；原始调用和输出保留。',
        f'{len(excluded)} results are excluded across all methods for a verified evaluation-environment defect; original calls and outputs are retained.')+'</div>'
   else:
-   _RELIABILITY_BANNER='<div class="wrap reliability failure" role="alert"><strong>调用已完整，部分结果无法判定</strong><span>'+esc(f'{reliability["present_calls"]} 条调用均有记录；其中 {len(reliability["unjudged"])} 条缺少足够验收证据。通过率按可判定结果计算，分母和无法判定数量分别显示。本地报告不代表完整验收或正式发布。')+'</span></div>'
+   reliability_banner='<div class="wrap reliability failure" role="alert"><strong>调用已完整，部分结果无法判定</strong><span>'+esc(f'{reliability["present_calls"]} 条调用均有记录；其中 {len(reliability["unjudged"])} 条缺少足够验收证据。通过率按可判定结果计算，分母和无法判定数量分别显示。本地报告不代表完整验收或正式发布。')+'</span></div>'
  else:
-  _RELIABILITY_BANNER='<div class="wrap reliability failure" role="alert"><strong>报告不可靠：评测未完整</strong><span>'+esc('；'.join(reliability['errors']))+'。本页排名不得用于结论或发布。</span></div>'
+  reliability_banner='<div class="wrap reliability failure" role="alert"><strong>报告不可靠：评测未完整</strong><span>'+esc('；'.join(reliability['errors']))+'。本页排名不得用于结论或发布。</span></div>'
  if not show_local_status_banners and dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release' and not any(reliability[key] for key in ('missing','extra','duplicates')):
-  _RELIABILITY_BANNER=''
+  reliability_banner=''
  if show_local_status_banners:
-  _RELIABILITY_BANNER+=local_audit_banner(dataset)
+  reliability_banner+=local_audit_banner(dataset)
  known=dataset.get('comparison',{}).get('call_chain_audit',{}).get('known_scoring_false_negatives',[])
  if known:
-  _RELIABILITY_BANNER+='<div class="wrap callout" role="alert"><strong>已确认评分问题</strong><p>'+esc(f'{len(known)}条表格结果被评分程序误判为失败。统计保留原程序判定，当前通过率不得用于产品排名；详情见调用链检查。')+'</p></div>'
+  reliability_banner+='<div class="wrap callout" role="alert"><strong>已确认评分问题</strong><p>'+esc(f'{len(known)}条表格结果被评分程序误判为失败。统计保留原程序判定，当前通过率不得用于产品排名；详情见调用链检查。')+'</p></div>'
  if records and all(row.get('provider_type') == 'fixture' for row in records):
-  _RELIABILITY_BANNER += '<div class="wrap callout" role="status"><strong>合成示例 · 非正式评测</strong><p>内容和失败均为预设场景，用于检查安装与报告功能，不代表浏览器测量结果。</p></div>'
+  reliability_banner += '<div class="wrap callout" role="status"><strong>合成示例 · 非正式评测</strong><p>内容和失败均为预设场景，用于检查安装与报告功能，不代表浏览器测量结果。</p></div>'
  elif dataset.get('comparison', {}).get('publication_state') == 'diagnostic_not_for_release':
-  _RELIABILITY_BANNER += '<div class="wrap callout" role="status"><strong>诊断运行 · 非正式评测</strong><p>本次调用用于检查所选任务和方法，不具备正式评测所需的批次认证。</p></div>'
+  reliability_banner += '<div class="wrap callout" role="status"><strong>诊断运行 · 非正式评测</strong><p>本次调用用于检查所选任务和方法，不具备正式评测所需的批次认证。</p></div>'
+ _RENDER_CONTEXT.set(RenderContext(reliability_banner,include_english))
  validate_report_ids(dataset,records)
  for path in ['assets/style.css','assets/report.js','references']:
   contained_path(out,path)
@@ -2766,7 +2783,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
   frozen_binding=(out/'presentation-binding.json').is_file()
   build_binding=' --presentation-binding /absolute/path/to/report-evidence/presentation-binding.json' if frozen_binding else ''
   check_binding=' --presentation-binding /absolute/path/to/report/presentation-binding.json' if frozen_binding else ''
-  reproduce='<p>以下命令从本轮保存的证据构建本地报告，不重新调用产品：</p><pre>uv run --frozen python scripts/build_report.py --local-audit --language '+('zh --include-english' if _ENGLISH_GENERATED else 'zh')+' --evidence /absolute/path/to/report-evidence --output /absolute/path/to/report'+build_binding+'\nuv run --frozen python scripts/check_report.py /absolute/path/to/report'+check_binding+'</pre><p>使用与本轮结果对应的证据目录。调用时的版本、配置和评分器哈希见 '+link('../local-run-contract.json','调用前冻结协议')+' 与 '+link('../execution.json','执行批次')+'。上面的构建命令读取保存的评分；修改评分规则后，应先按声明范围复评分，不能仅重建页面就称成绩已经更新。</p>'
+  reproduce='<p>以下命令从本轮保存的证据构建本地报告，不重新调用产品：</p><pre>uv run --frozen python scripts/build_report.py --local-audit --language '+('zh --include-english' if _RENDER_CONTEXT.get().english_generated else 'zh')+' --evidence /absolute/path/to/report-evidence --output /absolute/path/to/report'+build_binding+'\nuv run --frozen python scripts/check_report.py /absolute/path/to/report'+check_binding+'</pre><p>使用与本轮结果对应的证据目录。调用时的版本、配置和评分器哈希见 '+link('../local-run-contract.json','调用前冻结协议')+' 与 '+link('../execution.json','执行批次')+'。上面的构建命令读取保存的评分；修改评分规则后，应先按声明范围复评分，不能仅重建页面就称成绩已经更新。</p>'
  if local_matrix and frozen_binding:
   public_profile=json.loads((out/'presentation-binding.json').read_text())
   if public_profile.get('publication_projection'):

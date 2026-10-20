@@ -34,6 +34,14 @@ results, execution manifests, selection receipts and internal audit notes.
 Record each substantive release's issue, change, score effect, evidence and limits.
 Keep the measured dataset/results untouched for presentation-only revisions.
 
+Offline local revisions stage only their changed artifacts, receipts and current
+dataset/results. The complete revision is validated before installation. A
+per-snapshot lock and recoverable write journal restore every touched file after
+an interrupted installation; the next revision recovers an unfinished journal
+before scoring. Large unchanged captures are neither copied nor revalidated by
+this transaction. Preparing and verifying native corrections use the same
+projection, including bound same-call diagnostics and transport context.
+
 The ranking column `判分完整性` is judged calls divided by planned calls, not a
 success rate or text-completeness score. Every planned provider/case pair must
 exist exactly once and be judged. Any missing, duplicate or unjudged pair marks
@@ -677,6 +685,15 @@ receipt, including every caller retry. Each receipt binds to the pre-call contra
 Aggregation retains the exact contract bytes; report and release checks verify
 its hash, complete declared scope and per-result receipts. A retrospective audit
 of old logs cannot substitute for this pre-call proof.
+
+New contracts also freeze the deterministic answer-selection policy in
+`native_projection.py`, retaining its hash-bound source once per run. Adapters
+and saved-evidence validation share that policy. Fixed response-structure and
+transport-status branches are allowed; choosing another source after the call
+is rejected even when both fields contain identical bytes. Validation never
+executes retained source code: reproduce with the matching implementation when
+the policy hash differs. Historical declarations without this policy binding
+continue to prove field reconstruction only, not a pre-call selection rule.
 
 Resource tasks may select a declared native output: Firecrawl image/link/video
 fields, Cloudflare's generic media-element scrape, and Crawl4AI media fields.

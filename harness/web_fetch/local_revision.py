@@ -1,6 +1,10 @@
 """Validate task replacements and offline revisions of a bound local snapshot."""
 import hashlib
 import json
+import fcntl
+import shutil
+import tempfile
+from contextvars import ContextVar
 from pathlib import Path
 
 from harness.record_io import load_jsonl
@@ -11,8 +15,113 @@ from lexbench_webfetch.scoring_regressions import require_scoring_regressions
 from .scoring_revision import ALLOWED_FIELDS
 
 
+_REVISION = ContextVar('local_snapshot_revision', default=None)
+
+
+class _RevisionTransaction:
+    """Stage only changed files; validate before installation and recover interrupted commits.
+
+    The source may contain large immutable captures. They are never copied. A
+    sibling journal owns backups only for the write set, under a per-source lock.
+    """
+    def __init__(self, source):
+        self.source = source.resolve()
+        self.work = self.source.with_name('.' + self.source.name + '-revision')
+        self.updates = {}
+
+    def recover(self):
+        if not self.work.exists():
+            return
+        if self.work.is_symlink():
+            raise ValueError('Revision journal must not be a symlink')
+        marker = self.work / 'owner.json'
+        if not marker.is_file() or json.loads(marker.read_text()) != {
+                'kind': 'local_revision_transaction', 'source': str(self.source)}:
+            raise ValueError('Revision work directory is not owned by this snapshot')
+        journal = self.work / 'journal.json'
+        if journal.exists():
+            manifest = json.loads(journal.read_text())
+            for item in reversed(manifest['files']):
+                path = contained_path(self.source, item['path'], reject_symlinks=True)
+                if item['existed']:
+                    backup = self.work / 'before' / item['path']
+                    # Recovery is restartable: retain the backup until all restores finish.
+                    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as handle:
+                        temporary = Path(handle.name)
+                    try:
+                        shutil.copy2(backup, temporary)
+                        temporary.replace(path)
+                    finally:
+                        temporary.unlink(missing_ok=True)
+                else:
+                    path.unlink(missing_ok=True)
+            for relative in reversed(manifest['directories']):
+                directory = contained_path(self.source, relative, reject_symlinks=True)
+                if directory.exists() and not any(directory.iterdir()):
+                    directory.rmdir()
+        if self.work.exists():
+            shutil.rmtree(self.work)
+
+    def write(self, path, raw):
+        relative = path.relative_to(self.source).as_posix()
+        contained_path(self.source, relative, reject_symlinks=True)
+        if not self.work.exists():
+            with tempfile.TemporaryDirectory(prefix='.revision-owner-', dir=self.source.parent) as name:
+                prepared = Path(name)
+                (prepared / 'owner.json').write_text(json.dumps({
+                    'kind': 'local_revision_transaction', 'source': str(self.source)}))
+                prepared.replace(self.work)
+        target = self.work / 'after' / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(raw)
+        self.updates[relative] = target
+
+    def read(self, path):
+        return self.updates.get(path.relative_to(self.source).as_posix(), path)
+
+    def commit(self):
+        files, directories = [], []
+        for relative in self.updates:
+            path = contained_path(self.source, relative, reject_symlinks=True)
+            existed = path.exists()
+            if existed:
+                backup = self.work / 'before' / relative
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, backup)
+            parent = path.parent
+            missing = []
+            while not parent.exists():
+                missing.append(parent.relative_to(self.source).as_posix())
+                parent = parent.parent
+            for directory in reversed(missing):
+                if directory not in directories:
+                    directories.append(directory)
+            files.append({'path': relative, 'existed': existed})
+        journal = self.work / 'journal.json'
+        pending = self.work / 'journal.tmp'
+        pending.write_text(json.dumps({'files': files, 'directories': directories}))
+        pending.replace(journal)
+        try:
+            # Evidence and receipts are installed before the two current-state files.
+            for relative in sorted(self.updates, key=lambda name: name in {'dataset.json', 'results.jsonl'}):
+                target = self.source / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                self.updates[relative].replace(target)
+        except BaseException:
+            self.recover()
+            raise
+        shutil.rmtree(self.work)
+
+
 def read_bound(source, binding):
     from .publication_privacy import read_evidence_binding
+    transaction = _REVISION.get()
+    if transaction is not None and Path(source).resolve() == transaction.source:
+        path = transaction.read(transaction.source / binding['path'])
+        if path != transaction.source / binding['path']:
+            if hashlib.sha256(path.read_bytes()).hexdigest() != binding['sha256']:
+                raise ValueError('Staged revision evidence binding changed: ' + binding['path'])
+            return path
     return read_evidence_binding(source, binding)
 
 
@@ -71,7 +180,9 @@ def validate_revision_chain(source, binding, dataset=None, records=None):
     receipt = json.loads(read_bound(source, binding).read_text())
     if receipt.get('kind') == 'current_local_snapshot_authority':
         return require_current_snapshot_authority(source, receipt, dataset, records), None, None
-    outputs = {name: hashlib.sha256((source / name).read_bytes()).hexdigest()
+    transaction = _REVISION.get()
+    outputs = {name: hashlib.sha256((transaction.read(source / name) if transaction is not None
+                and source.resolve() == transaction.source else source / name).read_bytes()).hexdigest()
                for name in ('dataset.json', 'results.jsonl')}
     seen, latest_scoring = set(), None
     while True:
@@ -619,17 +730,41 @@ def compact_local_snapshot(source, binding, **options):
         temporary.cleanup()
 
 
-def _require_native_answer_correction(source, original, corrected, proof):
-    """Verify a derived answer against the same immutable native response."""
+def _project_native_correction(source, original, request):
+    """One projection path for preparing and verifying an offline correction."""
     from lexbench_webfetch.answer_projection import project_native_answer, project_native_result_fields
     from .publication_privacy import original_evidence_size
+    metadata = original.get('provider_metadata', {})
+    native = read_bound(source, request['native_response'])
+    if (request['native_response']['sha256'] != metadata.get('raw_response_sha256')
+            or original_evidence_size(source, request['native_response']) != metadata.get('raw_response_bytes')):
+        raise ValueError('Native answer correction changed its original response')
+    declaration = request['projection']
+    payload = (native.read_bytes() if declaration.get('source_format') == 'bytes'
+               else json.loads(native.read_bytes()))
+    text, fields = project_native_answer(payload, declaration)
+    diagnostic = None
+    if any(spec.get('format') == 'fetch_log_final_url'
+           for spec in declaration.get('result_fields', {}).values()):
+        diagnostic = read_bound(source, {'path': metadata['diagnostic_log_path'],
+            'sha256': metadata['diagnostic_log_sha256']}).read_bytes()
+    result_fields = (project_native_result_fields(payload, declaration,
+        request_url=original.get('url'), diagnostic=diagnostic,
+        transport_receipt=metadata.get('source_transport_receipt'))
+        if 'result_fields' in declaration else {})
+    for field in declaration.get('answer_fields', {}).values():
+        if (field.get('format') == 'html_attribute_urls'
+                and field.get('base_url') != (result_fields.get('final_url') or original['url'])):
+            raise ValueError('Native URL projection must use the verified result or request URL')
+    return native, text, fields, result_fields
+
+
+def _require_native_answer_correction(source, original, corrected, proof):
+    """Verify a derived answer against the same immutable native response."""
     if proof.get('attempt_id') != original['attempt_id']:
         raise ValueError('Native answer correction lost its attempt identity')
-    native = read_bound(source, proof['native_response'])
+    native, text, fields, result_fields = _project_native_correction(source, original, proof)
     metadata = original.get('provider_metadata', {})
-    if (proof['native_response']['sha256'] != metadata.get('raw_response_sha256')
-            or original_evidence_size(source, proof['native_response']) != metadata.get('raw_response_bytes')):
-        raise ValueError('Native answer correction changed its original response')
     before = proof['original_artifact']
     after = proof['corrected_artifact']
     if (before['path'] != original['artifact_path']
@@ -639,10 +774,6 @@ def _require_native_answer_correction(source, original, corrected, proof):
             or before['path'] == after['path']):
         raise ValueError('Native answer correction must preserve its old artifact')
     read_bound(source, before)
-    payload = json.loads(native.read_bytes())
-    text, fields = project_native_answer(payload, proof['projection'])
-    result_fields = (project_native_result_fields(payload, proof['projection'], request_url=original.get('url'))
-                     if 'result_fields' in proof['projection'] else {})
     if any(corrected.get(key) != value for key, value in result_fields.items()):
         raise ValueError('Native result context correction differs from original fields')
     after_path = read_bound(source, after)
@@ -661,9 +792,6 @@ def _require_native_answer_correction(source, original, corrected, proof):
         after_path = answer_view[0]
     if after_path.read_bytes() != text.encode('utf-8', errors='replace'):
         raise ValueError('Native answer correction differs from declared original fields')
-    for field in proof['projection'].get('answer_fields', {}).values():
-        if field.get('format') == 'html_attribute_urls' and field.get('base_url') != (result_fields.get('final_url') or original['url']):
-            raise ValueError('Native URL projection must use the verified result or request URL')
     expected_metadata = {**metadata, **fields, 'native_answer_projection': proof['projection']}
     if corrected.get('provider_metadata') != expected_metadata:
         raise ValueError('Native answer correction changed unrelated response metadata')
@@ -850,6 +978,25 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
 
 
 def revise_local_snapshot(source, configuration):
+    """Stage and validate a complete revision before installing its write set."""
+    source = Path(source).resolve()
+    lock_id = hashlib.sha256(str(source).encode()).hexdigest()[:20]
+    lock_path = Path(tempfile.gettempdir()) / ('browser-eval-local-revision-' + lock_id + '.lock')
+    with lock_path.open('a+') as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        transaction = _RevisionTransaction(source)
+        transaction.recover()
+        token = _REVISION.set(transaction)
+        try:
+            receipt = _revise_local_snapshot(source, configuration, transaction)
+            transaction.commit()
+            return receipt
+        finally:
+            _REVISION.reset(token)
+            transaction.recover()
+
+
+def _revise_local_snapshot(source, configuration, transaction):
     """Apply declared score-only changes in a separate snapshot, retaining predecessors."""
     import copy
     from datetime import datetime, timezone
@@ -922,17 +1069,10 @@ def revise_local_snapshot(source, configuration):
                   else task_passed(row['ok'], row['metrics']))
         before_verdicts[row['attempt_id']] = before
         if row['attempt_id'] in native_requests:
-            from lexbench_webfetch.answer_projection import project_native_answer, project_native_result_fields
             request = native_requests[row['attempt_id']]
-            native_path = read_bound(source, request['native_response'])
             metadata = row.get('provider_metadata', {})
-            if (request['native_response']['sha256'] != metadata.get('raw_response_sha256')
-                    or native_path.stat().st_size != metadata.get('raw_response_bytes')):
-                raise ValueError('Native correction source differs from its original response')
-            payload = json.loads(native_path.read_bytes())
-            answer, fields = project_native_answer(payload, request['projection'])
-            if 'result_fields' in request['projection']:
-                row.update(project_native_result_fields(payload, request['projection'], request_url=row.get('url')))
+            _, answer, fields, result_fields = _project_native_correction(source, row, request)
+            row.update(result_fields)
             raw = answer.encode('utf-8', errors='replace')
             original_artifact = {'path': row['artifact_path'], 'sha256': row['metrics']['content_sha256']}
             digest = hashlib.sha256(raw).hexdigest()
@@ -941,8 +1081,7 @@ def revise_local_snapshot(source, configuration):
             corrected_path = contained_path(source, new_relative, reject_symlinks=True)
             if corrected_path.exists() and corrected_path.read_bytes() != raw:
                 raise ValueError('Native correction would overwrite a different artifact')
-            corrected_path.parent.mkdir(parents=True, exist_ok=True)
-            corrected_path.write_bytes(raw)
+            transaction.write(corrected_path, raw)
             row['artifact_path'] = new_relative.as_posix()
             row['provider_metadata'] = {**metadata, **fields, 'native_answer_projection': request['projection']}
             native_proofs.append({'attempt_id': row['attempt_id'],
@@ -965,17 +1104,17 @@ def revise_local_snapshot(source, configuration):
             'input_results_sha256': input_results_sha256}
         selected.append(row['attempt_id'])
     from .local_audit import carry_reviewed_page_identities
-    identity_binding = carry_reviewed_page_identities(source, original_dataset, dataset, records)
+    identity_binding = carry_reviewed_page_identities(source, original_dataset, dataset, records,
+                                                      write_bytes=transaction.write)
     changes = [{'attempt_id': row['attempt_id'], 'before': before_verdicts[row['attempt_id']],
                 'after': task_passed(row['ok'], row['metrics'])}
                for row in records if row['attempt_id'] in before_verdicts
                and before_verdicts[row['attempt_id']] != task_passed(row['ok'], row['metrics'])]
     apply_cohort_exclusions(source, dataset, records)
-    history.mkdir(parents=True, exist_ok=False)
-    (history / 'dataset-before.json').write_bytes(dataset_bytes)
-    (history / 'results-before.jsonl').write_bytes(results_bytes)
+    transaction.write(history / 'dataset-before.json', dataset_bytes)
+    transaction.write(history / 'results-before.jsonl', results_bytes)
     def binding(path):
-        return {'path': str(path.relative_to(source)), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+        return {'path': str(path.relative_to(source)), 'sha256': hashlib.sha256(transaction.read(path).read_bytes()).hexdigest()}
     new_dataset = (json.dumps(dataset, ensure_ascii=False, indent=2) + '\n').encode()
     new_results = ''.join(json.dumps(row, ensure_ascii=True) + '\n' for row in records).encode()
     receipt = {'kind': 'local_offline_score_revision', 'provider_calls_added': 0,
@@ -995,15 +1134,12 @@ def revise_local_snapshot(source, configuration):
         'page_identity_review': identity_binding,
         'task_verdict_changes': changes, 'regression_ids': regressions, 'authority': config['authority']}
     receipt_path = history / 'receipt.json'
-    receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n')
+    transaction.write(receipt_path, (json.dumps(receipt, ensure_ascii=False, indent=2) + '\n').encode())
     if (source / 'dataset.json').read_bytes() != dataset_bytes or (source / 'results.jsonl').read_bytes() != results_bytes:
         raise ValueError('Local revision source changed during scoring')
-    (source / 'dataset.json').write_bytes(new_dataset)
-    (source / 'results.jsonl').write_bytes(new_results)
-    try:
-        require_local_revision(source, binding(receipt_path), dataset, records)
-    except BaseException:
-        (source / 'dataset.json').write_bytes(dataset_bytes)
-        (source / 'results.jsonl').write_bytes(results_bytes)
-        raise
+    transaction.write(source / 'dataset.json', new_dataset)
+    transaction.write(source / 'results.jsonl', new_results)
+    require_local_revision(source, binding(receipt_path), dataset, records)
+    if (source / 'dataset.json').read_bytes() != dataset_bytes or (source / 'results.jsonl').read_bytes() != results_bytes:
+        raise ValueError('Local revision source changed during validation')
     return receipt

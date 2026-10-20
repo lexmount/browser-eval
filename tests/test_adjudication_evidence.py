@@ -82,7 +82,7 @@ def fixture(tmp_path):
 
 
 @pytest.mark.parametrize('defect', [None, 'unknown_rule', 'false_hit', 'false_result',
-    'false_reason', 'empty_hit_claim', 'excerpt', 'verdict', 'historical_migration'])
+    'false_reason', 'empty_hit_claim', 'placeholder_reason', 'excerpt', 'verdict', 'historical_migration'])
 def test_adjudication_rejects_semantic_falsehoods_not_only_missing_text(tmp_path, defect):
     case, record, row = fixture(tmp_path)
     proof = row['adjudication_evidence']
@@ -97,6 +97,8 @@ def test_adjudication_rejects_semantic_falsehoods_not_only_missing_text(tmp_path
         proof['reason'] = row['adjudication'] = 'CAPTCHA 已命中；正文通过。'
     elif defect == 'empty_hit_claim':
         proof['reason'] = row['adjudication'] = '命中词：。因此原意见不成立。'
+    elif defect == 'placeholder_reason':
+        proof['reason'] = row['adjudication'] = '核对已有原始返回、冻结要求和相应修正证据；当前结论见评分明细。'
     elif defect == 'excerpt':
         proof['samples'][0]['text'] = 'Invented article'
     elif defect == 'verdict':

@@ -220,8 +220,24 @@ def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, mo
         local_audit.require_local_audit(source, dataset, [record])
 
 
+@pytest.mark.parametrize('timeout', [None, 0, -1, True, '45', float('nan'), float('inf')])
+def test_local_contract_rejects_invalid_deadline_before_reading_evidence(tmp_path, timeout):
+    with pytest.raises(ValueError, match='positive finite caller timeout'):
+        local_audit.require_local_execution_contract(
+            tmp_path, {}, [], {'timeout_seconds': timeout}, {})
+
+
+@pytest.mark.parametrize('field,value', [('runs', 2), ('max_failure_retries', 1)])
+def test_local_single_call_mode_rejects_rounds_and_retries(tmp_path, field, value):
+    contract = {'schema_version': 1, 'kind': 'uniform_native_local_measurement',
+                'timeout_seconds': 45, 'runs': 1, 'max_failure_retries': 0, field: value}
+    with pytest.raises(ValueError, match='Invalid uniform native'):
+        local_audit.require_local_execution_contract(tmp_path, {}, [], contract, {})
+
+
 @pytest.mark.parametrize("include_english,primary_language", [(False,"zh"), (True,"zh"), (True,"en")])
-def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp_path, monkeypatch, include_english, primary_language):
+@pytest.mark.parametrize('timeout', [45, 12.5])
+def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp_path, monkeypatch, include_english, primary_language, timeout):
     from pathlib import Path
     from harness.web_fetch.config import load_dataset
     from harness.web_fetch.providers import build_provider
@@ -252,14 +268,14 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     evidence = tmp_path / "evidence"
     records, _ = run_evaluation(output_dir=evidence, dataset_meta=dataset,
         dataset_path=inputs, cases=cases, providers=[build_provider("fixture", {"type": "fixture"})],
-        provider_config_path=config, runs=1, timeout=45, delay=0, max_failure_retries=0)
+        provider_config_path=config, runs=1, timeout=timeout, delay=0, max_failure_retries=0)
     batch = json.loads((evidence / "manifest.json").read_text())
     _write(evidence / "execution.json", {"batches": [batch]})
     _write(evidence / "local-run-contract.json", {
         "schema_version": 1, "kind": "uniform_native_local_measurement",
         "dataset_path": "evaluation/dataset.json", "dataset_sha256": _digest(canonical),
         "scoring_source_sha256": SCORING_SOURCE_SHA256, "providers": ["fixture"],
-        "runs": 1, "timeout_seconds": 45, "max_failure_retries": 0})
+        "runs": 1, "timeout_seconds": timeout, "max_failure_retries": 0})
     contract_path = evidence / "local-run-contract.json"
     contract = json.loads(contract_path.read_text())
     contract.update(provider_config_sha256=batch["provider_config_sha256"],
@@ -269,6 +285,10 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     _write(evidence / "dataset.json", dataset)
     monkeypatch.setattr(local_audit, "ROOT", tmp_path / "repo")
     assert local_audit.require_local_audit(evidence, dataset, records) is None
+    changed_contract = {**contract, 'timeout_seconds': timeout + 1}
+    with pytest.raises(ValueError, match='parameters differ'):
+        local_audit.require_local_execution_contract(
+            evidence, dataset, records, changed_contract, {'batches': [batch]})
     output = tmp_path / "report"
     build_report(evidence, output, local_audit=True, include_english=include_english)
     home = (output / "index.html").read_text()
@@ -933,11 +953,13 @@ def test_retrospective_page_review_requires_bound_receipt(tmp_path):
 
 @pytest.mark.parametrize('defect', [None, 'target_changed', 'sample_changed'])
 @pytest.mark.parametrize('implicit_identity', [False, True])
-def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defect, implicit_identity):
+@pytest.mark.parametrize('case_id', ['synthetic', 'synthetic__nested'])
+@pytest.mark.parametrize('staged', [False, True])
+def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defect, implicit_identity, case_id, staged):
     import copy
     from lexbench_webfetch.scoring import score_attempt
     body = 'Expected complete body. A second distinctive sentence describing this page.'
-    old = {'id': 'synthetic', 'url': 'https://example.test/start', 'track': 'risk_control',
+    old = {'id': case_id, 'url': 'https://example.test/start', 'track': 'risk_control',
         'task_kind': 'body', 'forbidden_any': ['CAPTCHA'],
         'page_identity_required': True, 'source_benchmark': {'risk_control': {'navigation_contract': {
             'requested_url': 'https://example.test/start', 'observed_final_url': 'https://example.test/document'}}},
@@ -948,7 +970,7 @@ def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defec
         old.pop('page_identity_required')
     current['diagnostic_any'] = current.pop('forbidden_any')
     (tmp_path/'answer.txt').write_text(body)
-    record = {'attempt_id': 'method__synthetic__r001', 'case_id': 'synthetic',
+    record = {'attempt_id': f'method__{case_id}__r001', 'case_id': case_id,
         'artifact_path': 'answer.txt', 'ok': True, 'final_url': None,
         'metrics': score_attempt(current, body.encode(), ok=True)}
     captures = [{'url': 'https://example.test/document', 'text': body}]
@@ -970,11 +992,25 @@ def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defec
     dataset = {'cases': [current], 'comparison': {}}
     prior_receipt = (tmp_path/'identity.json').read_bytes()
     if defect == 'target_changed': current['task_prompt'] = 'A new target requirement'
-    if defect:
-        with pytest.raises(ValueError):
-            local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record])
-    else:
-        local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record])
+    from harness.web_fetch.local_revision import _RevisionTransaction, _REVISION
+    transaction = _RevisionTransaction(tmp_path)
+    token = _REVISION.set(transaction) if staged else None
+    try:
+        if defect:
+            with pytest.raises(ValueError):
+                local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record],
+                    write_bytes=transaction.write if staged else None)
+        else:
+            local_audit.carry_reviewed_page_identities(tmp_path, before, dataset, [record],
+                write_bytes=transaction.write if staged else None)
+            if staged:
+                assert not (tmp_path/'local-evidence').exists()
+                transaction.commit()
+    finally:
+        if token is not None:
+            _REVISION.reset(token)
+            transaction.recover()
+    if not defect:
         assert local_audit.task_passed(record['ok'], record['metrics'])
         assert record['final_url'] is None
         local_audit._require_page_identity_review(tmp_path, dataset, [record])

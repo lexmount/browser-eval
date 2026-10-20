@@ -18,6 +18,60 @@ def test_same_site_waits_and_distinct_cloud_local_can_overlap(tmp_path):
  local.release(a);t.join(1);assert seen;cloud.release(seen[0])
  a=local.acquire(method('a'),case('one.test'));b=cloud.acquire(method('b'),case('two.test'));state=json.loads((tmp_path/'state.json').read_text());assert len(state['active'])==2;local.release(a);cloud.release(b)
 
+
+def test_same_named_calls_in_distinct_resource_groups_have_distinct_tokens(tmp_path):
+    local = CaseAdmission(tmp_path, group='local', site_cooldown=0)
+    cloud = CaseAdmission(tmp_path, group='cloud', site_cooldown=0)
+    a = local.acquire(method('shared'), case('one.test'))
+    b = cloud.acquire(method('shared'), case('two.test'))
+    assert a['key'] != b['key']
+    local.release(a)
+    assert list(json.loads((tmp_path / 'state.json').read_text())['active']) == [b['key']]
+    cloud.release(b)
+
+
+def test_unlocked_reservation_is_reclaimed_even_when_its_pid_is_alive(tmp_path):
+    import os
+    gate = CaseAdmission(tmp_path, group='local', site_cooldown=0)
+    # The old caller exited; its PID has since been reused by another process.
+    stale = {'key': 'old', 'pid': os.getpid(), 'provider': 'old',
+             'site': 'one.test', 'group': 'local', 'lease': 'lease-old.lock'}
+    (tmp_path / 'lease-old.lock').touch()
+    (tmp_path / 'state.json').write_text(json.dumps(
+        {'active': {'old': stale}, 'finished_sites': {}, 'parallel_enabled': True}))
+    with gate._state() as state:
+        assert not state['active']
+        assert state['finished_sites']['one.test']['provider'] == 'old'
+    assert not (tmp_path / 'lease-old.lock').exists()
+
+
+def test_process_exit_releases_kernel_reservation(tmp_path):
+    import subprocess
+    import sys
+    process = subprocess.Popen([sys.executable, '-c', '''
+import sys, time
+from pathlib import Path
+from types import SimpleNamespace
+from harness.web_fetch.admission import CaseAdmission
+gate = CaseAdmission(Path(sys.argv[1]), group='local', site_cooldown=0)
+gate.acquire(SimpleNamespace(name='child'), SimpleNamespace(id='one', url='https://one.test'))
+print('admitted', flush=True)
+time.sleep(60)
+''', str(tmp_path)], stdout=subprocess.PIPE, text=True)
+    try:
+        assert process.stdout.readline().strip() == 'admitted'
+        process.kill()
+        process.wait(timeout=5)
+        gate = CaseAdmission(tmp_path, group='local', site_cooldown=0)
+        with gate._state() as state:
+            assert not state['active']
+        token = gate.acquire(method('next'), case('one.test'))
+        gate.release(token)
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=5)
+
 def test_second_local_waits_and_parallel_timeout_reduces_to_serial(tmp_path):
  local=CaseAdmission(tmp_path,group='local',site_cooldown=0);cloud=CaseAdmission(tmp_path,group='cloud',site_cooldown=0)
  a=local.acquire(method('a'),case('one.test'));seen=[];t=threading.Thread(target=lambda:seen.append(local.acquire(method('b'),case('two.test'))));t.start();time.sleep(.15);assert not seen

@@ -298,6 +298,116 @@ def test_offline_native_correction_preserves_call_and_both_answers(tmp_path):
     require_local_revision(tmp_path, binding, json.loads((tmp_path/'dataset.json').read_text()), [current])
 
 
+@pytest.mark.parametrize('failure', ['validation', 'install'])
+def test_failed_native_revision_leaves_no_partial_files_and_can_retry(tmp_path, monkeypatch, failure):
+    from pathlib import Path
+    from harness.web_fetch import local_revision
+    original_validate = local_revision.require_local_revision
+    original_replace = Path.replace
+    failed = False
+
+    def validate(*args, **kwargs):
+        if failure == 'validation':
+            # The current snapshot is still untouched even at the final gate.
+            row = json.loads((tmp_path/'results.jsonl').read_text())
+            assert row['artifact_path'] == 'answer.txt'
+            assert not list(tmp_path.glob('*-native-*'))
+            raise ValueError('Injected validation rejection')
+        return original_validate(*args, **kwargs)
+
+    def replace(path, target):
+        nonlocal failed
+        if failure == 'install' and not failed and Path(target) == tmp_path/'results.jsonl':
+            failed = True
+            raise OSError('Injected installation failure')
+        return original_replace(path, target)
+
+    monkeypatch.setattr(local_revision, 'require_local_revision', validate)
+    monkeypatch.setattr(Path, 'replace', replace)
+    with pytest.raises((ValueError, OSError), match='Injected'):
+        _native_answer_revision_fixture(tmp_path)
+    assert json.loads((tmp_path/'results.jsonl').read_text())['artifact_path'] == 'answer.txt'
+    assert not list(tmp_path.glob('*-native-*'))
+    assert not (tmp_path/'local-evidence').exists()
+    assert not tmp_path.with_name('.'+tmp_path.name+'-revision').exists()
+    monkeypatch.setattr(local_revision, 'require_local_revision', original_validate)
+    monkeypatch.setattr(Path, 'replace', original_replace)
+    receipt = revise_local_snapshot(tmp_path, tmp_path/'correction.json')
+    assert receipt['provider_calls_added'] == 0
+    assert len(receipt['native_answer_corrections']) == 1
+
+
+def test_interrupted_install_is_recovered_before_next_revision(tmp_path):
+    from harness.web_fetch.local_revision import _RevisionTransaction
+    (tmp_path/'dataset.json').write_bytes(b'original')
+    transaction = _RevisionTransaction(tmp_path)
+    (transaction.work/'before').mkdir(parents=True)
+    (transaction.work/'owner.json').write_text(json.dumps({
+        'kind': 'local_revision_transaction', 'source': str(tmp_path.resolve())}))
+    (transaction.work/'before/dataset.json').write_bytes(b'original')
+    (transaction.work/'journal.json').write_text(json.dumps({
+        'files': [{'path': 'dataset.json', 'existed': True},
+                  {'path': 'partial/receipt.json', 'existed': False}],
+        'directories': ['partial']}))
+    (tmp_path/'dataset.json').write_bytes(b'incomplete')
+    (tmp_path/'partial').mkdir()
+    (tmp_path/'partial/receipt.json').write_bytes(b'partial')
+    transaction.recover()
+    assert (tmp_path/'dataset.json').read_bytes() == b'original'
+    assert not (tmp_path/'partial').exists()
+    assert not transaction.work.exists()
+
+
+@pytest.mark.parametrize('source_kind', ['diagnostic', 'transport'])
+def test_native_correction_apply_and_verify_share_same_call_url_evidence(tmp_path, source_kind):
+    from harness.web_fetch.local_revision import _require_native_answer_correction
+    original, _, _, _, _ = _native_answer_revision_fixture(tmp_path)
+    row = json.loads((tmp_path/'results.jsonl').read_text())
+    returned = 'https://returned.example.test/page'
+    native = {'path': row['provider_metadata']['raw_response_path'],
+              'sha256': row['provider_metadata']['raw_response_sha256']}
+    if source_kind == 'diagnostic':
+        raw = f'fetch request complete method=GET url={row["url"]} final_url={returned} status=200'.encode()
+        (tmp_path/'diagnostic.txt').write_bytes(raw)
+        row['provider_metadata'].update(diagnostic_log_path='diagnostic.txt',
+            diagnostic_log_sha256=hashlib.sha256(raw).hexdigest())
+        field = {'format': 'fetch_log_final_url'}
+    else:
+        row['provider_metadata']['source_transport_receipt'] = {'response_url': returned}
+        field = {'format': 'transport_response_url'}
+    (tmp_path/'results.jsonl').write_text(json.dumps(row)+'\n')
+    declaration = {'schema_version': 2, 'content_format': 'text', 'content_pointer': ['content'],
+                   'result_fields': {'final_url': field}}
+    config = json.loads((tmp_path/'correction.json').read_text())
+    config['native_answer_corrections'] = [{'attempt_id': row['attempt_id'],
+        'native_response': native, 'projection': declaration}]
+    path = tmp_path/'same-call.json'
+    path.write_text(json.dumps(config))
+    receipt = revise_local_snapshot(tmp_path, path)
+    corrected = json.loads((tmp_path/'results.jsonl').read_text())
+    assert corrected['final_url'] == returned
+    assert corrected['elapsed_ms'] == original['elapsed_ms']
+    _require_native_answer_correction(tmp_path, row, corrected, receipt['native_answer_corrections'][0])
+    corrected['final_url'] = 'https://forged.example.test/'
+    with pytest.raises(ValueError, match='context correction'):
+        _require_native_answer_correction(tmp_path, row, corrected, receipt['native_answer_corrections'][0])
+
+
+def test_native_correction_rejects_resource_base_url_before_install(tmp_path):
+    _native_answer_revision_fixture(tmp_path)
+    before = {p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()}
+    config = json.loads((tmp_path/'correction.json').read_text())
+    config['native_answer_corrections'][0]['projection'].update(schema_version=2,
+        answer_fields={'images': {'pointer': ['absent'], 'default': [],
+            'format': 'html_attribute_urls', 'base_url': 'https://forged.example.test/'}})
+    config_path = tmp_path/'wrong-base.json'
+    config_path.write_text(json.dumps(config))
+    with pytest.raises(ValueError, match='verified result or request URL'):
+        revise_local_snapshot(tmp_path, config_path)
+    after = {p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file() and p != config_path}
+    assert after == before
+
+
 @pytest.mark.parametrize('defect,message', [
     ('clock', 'physical call facts'), ('metadata', 'unrelated response metadata'),
     ('answer', 'declared original fields'), ('source', 'original response'),

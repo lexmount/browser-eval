@@ -538,9 +538,11 @@ def _require_page_identity_review(source, dataset, records, *, scoring_sources=N
         if marked:
             raise ValueError("Reviewed page identities lack a receipt")
         return
-    path = contained_path(source, binding["path"], reject_symlinks=True)
-    if _sha256(path) != binding["sha256"]:
-        raise ValueError("Page identity review receipt changed")
+    from .local_revision import read_bound
+    try:
+        path = read_bound(source, binding)
+    except ValueError as error:
+        raise ValueError("Page identity review receipt changed") from error
     receipt = json.loads(path.read_text())
     capture_path = contained_path(source, receipt["captures_path"], reject_symlinks=True)
     if _sha256(capture_path) != receipt["captures_sha256"]:
@@ -693,10 +695,11 @@ def _require_local_execution_segments(source, contract, batches, records):
             or original.get("providers") != contract["providers"]
             or original.get("dataset_sources") != contract.get("dataset_sources")
             or original.get("scoring_source_sha256") != contract["scoring_source_sha256"]
-            or original.get("runs") != 1 or original.get("timeout_seconds") != 45
+            or original.get("runs") != 1
+            or original.get("timeout_seconds") != _local_timeout_seconds(contract)
             or original.get("max_failure_retries") != 0):
         raise ValueError("Local execution changed the frozen protocol")
-    expected_policy = {"runs": 1, "timeout": 45, "delay": original["delay"],
+    expected_policy = {"runs": 1, "timeout": _local_timeout_seconds(contract), "delay": original["delay"],
                        "provider_concurrency": 1, "max_failure_retries": 0}
     if resumed.get("parameters") != expected_policy:
         raise ValueError("Local resumed execution parameters differ")
@@ -855,13 +858,25 @@ def require_complete_local_inventory(dataset: dict, records: list[dict]) -> dict
     return reliability
 
 
+def _local_timeout_seconds(contract):
+    import math
+    value = contract.get('timeout_seconds')
+    if (isinstance(value, bool) or not isinstance(value, (int, float))
+            or not math.isfinite(value) or value <= 0):
+        raise ValueError('Local measurement requires a positive finite caller timeout')
+    return value
+
+
 def require_local_execution_contract(source, dataset, records, contract, execution):
     """Shared physical-call boundary for complete cohorts and task replacements."""
     from .artifacts import verify_record_public_call_logs, record_public_call_log_bindings
     from datetime import datetime
+    timeout = _local_timeout_seconds(contract)
+    # This mode binds one authoritative physical call per method/task. Multiple
+    # rounds and retries require the certified cohort's separate lineage model.
     if (contract.get("schema_version") != 1
             or contract.get("kind") != "uniform_native_local_measurement"
-            or contract.get("runs") != 1 or contract.get("timeout_seconds") != 45
+            or contract.get("runs") != 1
             or contract.get("max_failure_retries") != 0):
         raise ValueError("Invalid uniform native local measurement contract")
     canonical = {"cases": (local_measurement_cases(contract, source)
@@ -890,7 +905,7 @@ def require_local_execution_contract(source, dataset, records, contract, executi
         if (len(ids) != len(set(ids)) or set(ids) != measured_ids
                 or batch.get("attempt_count") != len(measured_ids)):
             raise ValueError("Local measurement execution calls differ from results")
-        if (batch.get("parameters", {}).get("timeout") != 45
+        if (batch.get("parameters", {}).get("timeout") != timeout
                 or batch.get("parameters", {}).get("runs") != 1
                 or batch.get("parameters", {}).get("provider_concurrency") != 1
                 or batch.get("parameters", {}).get("max_failure_retries") != 0):
@@ -924,7 +939,7 @@ def require_local_execution_contract(source, dataset, records, contract, executi
                         <= datetime.fromisoformat(log['timing']['started_at'])
                         <= datetime.fromisoformat(log['timing']['completed_at'])
                         <= datetime.fromisoformat(record['completed_at']))
-                or log['timing'].get('deadline_budget_ms') != 45000):
+                or log['timing'].get('deadline_budget_ms') != timeout * 1000):
             raise ValueError("Local measurement call log belongs to a different result")
 
 
@@ -1063,8 +1078,11 @@ def _require_identity_binding_revision(source, dataset, receipt):
             or receipt.get('captures_sha256') != previous.get('captures_sha256')):
         raise ValueError('Page identity evidence migration changed source observations')
     annotations = []
+    prior_ids = {_canonical_sha256(case): identifier for identifier, case in old_cases.items()}
     for annotation in previous['attempts']:
-        identifier = annotation['attempt_id'].split('__')[1]
+        identifier = prior_ids.get(annotation['case_sha256'])
+        if identifier is None or identifier not in cases:
+            raise ValueError('Page identity migration has no matching prior task')
         old = old_cases[identifier]
         migrated = _hint_migrated_case(old)
         # Older compiled navigation tasks implied identity acceptance. Keep
@@ -1087,7 +1105,7 @@ def _require_identity_binding_revision(source, dataset, receipt):
         raise ValueError('Page identity migration changed an existing reviewed annotation')
 
 
-def carry_reviewed_page_identities(source, before_dataset, dataset, records):
+def carry_reviewed_page_identities(source, before_dataset, dataset, records, *, write_bytes=None):
     """Reapply retained human evidence after offline scoring; never invent a URL."""
     from .local_revision import read_bound
     binding = before_dataset.get('comparison', {}).get('page_identity_review')
@@ -1109,25 +1127,28 @@ def carry_reviewed_page_identities(source, before_dataset, dataset, records):
                        for a in original['attempts']}
         key = _canonical_sha256({'prior_receipt': binding, 'cases': {key: cases[key] for key in prior_cases}})[:16]
         directory = source / 'local-evidence/page-identity-review/rebindings' / key
-        directory.mkdir(parents=True, exist_ok=True)
+        if write_bytes is None:
+            directory.mkdir(parents=True, exist_ok=True)
+        write = write_bytes or (lambda path, raw: path.write_bytes(raw))
         old_path = directory / 'prior-cases.json'
         prior_bytes = (json.dumps(prior_cases, ensure_ascii=False, indent=2)+'\n').encode()
         if old_path.exists() and old_path.read_bytes() != prior_bytes:
             raise ValueError('Page identity migration would overwrite prior case evidence')
-        old_path.write_bytes(prior_bytes)
+        write(old_path, prior_bytes)
         receipt = {key: original[key] for key in ('kind', 'reviewed_at', 'basis', 'provider_calls_added', 'captures_path', 'captures_sha256')}
         receipt['attempts'] = [{**a, 'prior_case_sha256': a['case_sha256'],
             'case_sha256': _canonical_sha256(cases[indexed[a['attempt_id']]['case_id']])} for a in original['attempts']]
         receipt['binding_revision'] = {'kind': 'diagnostic_field_migration', 'prior_receipt': binding,
-            'prior_cases': {'path': str(old_path.relative_to(source)), 'sha256': _sha256(old_path)},
+            'prior_cases': {'path': str(old_path.relative_to(source)),
+                            'sha256': hashlib.sha256(prior_bytes).hexdigest()},
             'new_independent_review': False}
         _require_identity_binding_revision(source, dataset, receipt)
         path = directory / 'receipt.json'
         raw = (json.dumps(receipt, ensure_ascii=False, indent=2)+'\n').encode()
         if path.exists() and path.read_bytes() != raw:
             raise ValueError('Page identity migration would overwrite a prior receipt')
-        path.write_bytes(raw)
-        binding = {'path': str(path.relative_to(source)), 'sha256': _sha256(path)}
+        write(path, raw)
+        binding = {'path': str(path.relative_to(source)), 'sha256': hashlib.sha256(raw).hexdigest()}
     dataset['comparison']['page_identity_review'] = binding
     for annotation in receipt['attempts']:
         row = indexed[annotation['attempt_id']]
