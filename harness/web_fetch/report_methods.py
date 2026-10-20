@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 from .methods import method_info, method_page_model, is_browser_comparison, browser_method_label, measured_method_label
-from .report_components import tabs,cards
+from .report_components import tabs,cards,measurement_presentation
 from .report_interfaces import render_interfaces
 from .report_capabilities import render_capabilities
 from .report_pricing import render_pricing
@@ -63,7 +63,8 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
                 '<p>输入为任务定义与超时预算，输出为预设的内容或错误。完整输出见该方法的结果详情。</p>',
                 'interface-' + name)
         return body
-    native=(out/'dataset.json').is_file() and json.loads((out/'dataset.json').read_text()).get('comparison',{}).get('kind')=='uniform_native_local_measurement'
+    dataset=json.loads((out/'dataset.json').read_text()) if (out/'dataset.json').is_file() else {}
+    native=measurement_presentation(dataset).native_outputs
     if not authored and not native:
         body=hero('本轮方法与接口','以下内容来自本轮结果记录与适配器契约。')
         anchors={'method-guide-pricing'}
@@ -97,12 +98,11 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
         from .methods import native_browser_engine, browser_method_registry
         engine=native_browser_engine(name)
         kind,desc,url=PROFILES.get(name,PROFILES.get(engine,('测试适配器','本地可重复测试实现。','https://example.com')))
-        if engine and engine!=name:url=browser_method_registry()[name].get('source_url',url)
         r=next(r for r in records if r['provider']==name);info=method_info(r['provider_type'])
+        url=browser_method_registry().get(name,{}).get('source_url',info.get('source_url',url))
         if native:
             model=method_page_model(name,name,[row for row in records if row['provider']==name])
             desc=model['contract']
-            if name=='moli-webfetch':url='https://github.com/lexmount/moli'
             info={**info,'output':'产品原生返回；保留实际输出与日志','freshness':'缓存与等待选项见本轮固定配置'}
         intro.append(('',cell(link('../providers/'+name+'.html',display_name(name)))+cell(kind)+cell(desc)+cell(esc(info['output']))+cell(esc(info['freshness']))+cell(link(url,'文档 / 源码 ↗'))))
     for item in counts:

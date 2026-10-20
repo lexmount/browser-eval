@@ -53,3 +53,13 @@ def test_binding_parser_reports_caller_field():
 def test_valid_binding_shape_does_not_bypass_path_safety(tmp_path):
     with pytest.raises(ValueError):
         privacy.read_evidence_binding(tmp_path, {'path': '../outside.txt', 'sha256': 'a' * 64})
+
+
+def test_bound_reader_rejects_symlink_even_when_digest_matches(tmp_path):
+    original = tmp_path / 'original.txt'
+    original.write_bytes(b'correct bytes')
+    alias = tmp_path / 'alias.txt'
+    alias.symlink_to(original)
+    binding = {'path': alias.name, 'sha256': hashlib.sha256(b'correct bytes').hexdigest()}
+    with pytest.raises(ValueError):
+        privacy.read_evidence_binding(tmp_path, binding, allow_public_view=False)

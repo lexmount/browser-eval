@@ -1107,7 +1107,15 @@ complete record requirements. `source_location` records the independent observat
 it is not an implicit DOM selector. HTML exclusions apply before text matching;
 plain-text outputs need explicit textual exclusions where roles otherwise disappear.
 
-`local_revision.revise_local_snapshot` only rescores a separate saved snapshot.
+The following are Python maintenance APIs, invoked explicitly from a Python
+script with `uv run --frozen python <script.py>`; they do not have dedicated CLI
+commands. Import them from `harness.web_fetch.local_revision` or
+`harness.web_fetch.publication_privacy` as named below. Their arguments are
+caller-supplied evidence paths, bindings and correction configuration, not values
+inferred from the latest report. Use them only for an authorized correction or
+history reduction.
+
+`local_revision.revise_local_snapshot(source, configuration)` only rescores a separate saved snapshot.
 Changed contracts require `rule_revision: true`. Its receipt binds the predecessor,
 selected complete method/task scope, regression IDs, source hashes, explicit contract
 changes, actual scoring time and verdict changes. Physical output bytes, call identities,
@@ -1121,6 +1129,10 @@ For explicitly requested history reduction,
 `local_revision.compact_local_snapshot(source, binding, **options)` validates the
 bound revision chain, installs a current-only authority and returns its path/hash
 binding. It retains the current measured evidence; it is not a report renderer.
+The lower-level `local_revision.compact_revision_authority(source, binding, ...)`
+returns a validated current-state authority document. It does not install that
+document or remove history; callers must persist and bind it before discarding
+superseded files. Prefer `compact_local_snapshot` for the complete operation.
 For a public metadata copy,
 `publication_privacy.project_host_metadata_files(files, host_prefixes, **options)`
 accepts a relative-path-to-bytes mapping and explicit host prefixes, returning a
@@ -1258,7 +1270,13 @@ If the complete compressed report still exceeds a deployment's artifact capacity
 use `--parts-directory <new-directory>` to prepare a main archive and capacity-bound
 data attachments. The preparation gate checks their combined evidence, links and
 hashes. Publish the attachments, bind each exact committed version with
-`bind_data_parts`, and pass `--parts-manifest <directory>/parts.json` when publishing
+the Python API `harness.web_fetch.report_package.bind_data_parts(archive,
+plan_path, publications)`, and pass `--parts-manifest <directory>/parts.json` when publishing
 the main report. Ordinary publication rejects unresolved or mismatched attachments.
 Keep the main profile's `data_publications` registry aligned with that bound plan;
 main and data artifacts must use the same profile-bound service.
+Invoke that API from a maintenance script with `uv run --frozen python <script.py>`;
+there is no separate bind command. `archive` and `plan_path` are `Path` objects
+for the prepared main archive and parts manifest; `publications` maps each part
+identifier to its committed publication receipt. This step binds existing uploads;
+it does not upload attachments.

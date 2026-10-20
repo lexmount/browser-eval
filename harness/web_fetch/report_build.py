@@ -5,7 +5,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl
 from harness.reporting.assets import copy_bound_assets
 
 from .artifacts import (
@@ -108,13 +108,13 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
             from .storage import data_home
             selected = source or contained_path(data_home(), binding['path'])
             if (not selected.is_file() or selected.is_symlink()
-                    or hashlib.sha256(selected.read_bytes()).hexdigest() != binding['sha256']):
+                    or file_sha256(selected) != binding['sha256']):
                 raise ValueError('Diagnostic instance input differs from its profile binding')
             source = selected
     if source is None:
         raise ValueError('Diagnostic instance needs evidence or a bound diagnostic_input')
     source, output = source.resolve(), output.resolve()
-    input_sha256 = hashlib.sha256(source.read_bytes()).hexdigest() if source.is_file() else None
+    input_sha256 = file_sha256(source) if source.is_file() else None
     if source == output or source.is_relative_to(output) or output.is_relative_to(source) or output.exists():
         raise ValueError("Diagnostic build requires a new output outside its evidence")
     template = resolve_template("webfetch")
@@ -413,9 +413,9 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     speed_batches=[]
     if speed_root.exists():
         speed=json.loads((speed_root/'speed-comparison.json').read_text())
-        if speed.get('bindings',{}).get('dataset_sha256') != hashlib.sha256((speed_root/'dataset.json').read_bytes()).hexdigest():
+        if speed.get('bindings',{}).get('dataset_sha256') != file_sha256(speed_root/'dataset.json'):
             raise ValueError('Speed comparison dataset binding mismatch')
-        if speed.get('bindings',{}).get('results_sha256') != hashlib.sha256((speed_root/'results.jsonl').read_bytes()).hexdigest():
+        if speed.get('bindings',{}).get('results_sha256') != file_sha256(speed_root/'results.jsonl'):
             raise ValueError('Speed comparison result binding mismatch')
         speed_dataset=json.loads((speed_root/'dataset.json').read_text())
         speed_records=load_jsonl(speed_root/'results.jsonl')
@@ -426,7 +426,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             verify_record_private_artifacts(speed_root, row)
             verify_record_public_call_logs(speed_root, row)
             raw=contained_path(speed_root,row['artifact_path'])
-            if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
+            if file_sha256(raw)!=row['metrics']['content_sha256']:
                 raise ValueError('Speed cohort output integrity failure: '+row['attempt_id'])
     resource_root=source/'resource-cohort'
     if resource_root.exists():
@@ -499,7 +499,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             verify_record_private_artifacts(source, r)
             path = Path(r['artifact_path'])
             raw = contained_path(source,path)
-            if hashlib.sha256(raw.read_bytes()).hexdigest() != r['metrics']['content_sha256']:
+            if file_sha256(raw) != r['metrics']['content_sha256']:
                 raise ValueError(f'Output integrity failure: {path}')
             target = staging/path; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(raw, target)
@@ -510,21 +510,21 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 meta.pop('local_report_complete_diagnostic_links', None)
             if meta.get('rendered_html_path'):
                 html_source = contained_path(source, meta['rendered_html_path'])
-                if hashlib.sha256(html_source.read_bytes()).hexdigest() != meta.get('rendered_html_sha256'):
+                if file_sha256(html_source) != meta.get('rendered_html_sha256'):
                     raise ValueError('Rendered HTML integrity failure: ' + r['attempt_id'])
                 html_target = contained_path(staging, meta['rendered_html_path'])
                 html_target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(html_source, html_target)
             if meta.get('raw_stdout_path'):
                 binary_source = contained_path(source, meta['raw_stdout_path'])
-                if hashlib.sha256(binary_source.read_bytes()).hexdigest() != meta.get('raw_stdout_sha256'):
+                if file_sha256(binary_source) != meta.get('raw_stdout_sha256'):
                     raise ValueError('Raw stdout integrity failure: ' + r['attempt_id'])
                 binary_target = contained_path(staging, meta['raw_stdout_path'])
                 binary_target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(binary_source, binary_target)
             for file in r.get('provider_metadata', {}).get('file_evaluation', {}).get('files', []):
                 binary = contained_path(source, file['artifact_path'])
-                if hashlib.sha256(binary.read_bytes()).hexdigest() != file['sha256']:
+                if file_sha256(binary) != file['sha256']:
                     raise ValueError('File output integrity failure: '+r['attempt_id'])
                 target_file = contained_path(staging, file['artifact_path'])
                 target_file.parent.mkdir(parents=True, exist_ok=True)
@@ -542,7 +542,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_text(safe_log, encoding="utf-8")
                 meta["public_debug_log_path"] = public_log
-                meta["public_debug_log_sha256"] = hashlib.sha256(destination.read_bytes()).hexdigest()
+                meta["public_debug_log_sha256"] = file_sha256(destination)
             if local_audit and meta.get("raw_response_path"):
                 from .runner import _public_text
                 response_source = contained_path(source, meta["raw_response_path"])
@@ -552,7 +552,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_text(_public_text(response_text, limit=len(response_text)) or "", encoding="utf-8")
                 meta["public_response_path"] = public_response
-                meta["public_response_sha256"] = hashlib.sha256(destination.read_bytes()).hexdigest()
+                meta["public_response_sha256"] = file_sha256(destination)
             for binding in record_public_call_log_bindings(r):
                 log_source = verify_public_call_log(source, binding)
                 call_log = json.loads(log_source.read_text())
@@ -561,7 +561,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 call_output_target = contained_path(staging, call_output['path'])
                 call_output_target.parent.mkdir(parents=True, exist_ok=True)
                 if call_output_target.exists():
-                    if hashlib.sha256(call_output_target.read_bytes()).hexdigest() != call_output['sha256']:
+                    if file_sha256(call_output_target) != call_output['sha256']:
                         raise ValueError('Public call-log output collision: ' + call_output['path'])
                 else:
                     shutil.copy2(call_output_source, call_output_target)
@@ -655,7 +655,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             for relative, expected_hash in nested_assets.items():
                 existing = contained_path(staging, relative, reject_symlinks=True)
                 if existing.exists():
-                    if not existing.is_file() or hashlib.sha256(existing.read_bytes()).hexdigest() != expected_hash:
+                    if not existing.is_file() or file_sha256(existing) != expected_hash:
                         raise ValueError('Conflicting interpretation evidence: ' + relative)
                 else:
                     missing_assets[relative] = expected_hash
@@ -689,7 +689,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 archived = contained_path(source, relative)
                 if not archived.is_file() or archived.is_symlink():
                     raise ValueError('Archived result review is missing or unsafe')
-                actual = hashlib.sha256(archived.read_bytes()).hexdigest()
+                actual = file_sha256(archived)
                 if not expected or actual != expected:
                     raise ValueError('Archived result review hash does not match scoring receipt')
                 target = staging/relative
@@ -707,7 +707,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                     raise ValueError('Provider replacement scope entry is invalid')
                 bound = contained_path(source, item['path'], reject_symlinks=True)
                 if (not bound.is_file()
-                        or hashlib.sha256(bound.read_bytes()).hexdigest() != item['sha256']):
+                        or file_sha256(bound) != item['sha256']):
                     raise ValueError('Provider replacement scope receipt changed')
                 target = contained_path(staging, item['path'], reject_symlinks=True)
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -730,18 +730,42 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if dataset.get("comparison", {}).get("kind") == "uniform_native_local_measurement":
             shutil.copy2(source / "local-run-contract.json", staging / "local-run-contract.json")
             if (source/"providers.json").is_file():
-                # Publish only an explicit allowlist from the already validated frozen config.
-                config=json.loads((source/'providers.json').read_text())['providers']
-                allowed={'wait_until','block_private_networks','max_bytes','max_age','proxy','formats','only_main_content','extract_depth','include_images','text_verbosity','max_age_hours','include_resource_links','rich_links_limit','document_max_bytes','min_interval_seconds','log_level','retain_complete_diagnostic_log','max_diagnostic_bytes','uniform_native_parameters','dns_mode'}
-                public_options={name:{k:v for k,v in options.items() if k in allowed} for name,options in config.items()}
-                (staging/'frozen-method-options.json').write_text(json.dumps({'schema_version':1,'provider_config_sha256':hashlib.sha256((source/'providers.json').read_bytes()).hexdigest(),'providers':public_options},ensure_ascii=False,indent=2))
+                from .report import NATIVE_OPTION_LABELS, require_public_method_options
+                config_bytes = contained_path(source, 'providers.json', reject_symlinks=True).read_bytes()
+                config_hash = hashlib.sha256(config_bytes).hexdigest()
+                contract = json.loads((source / 'local-run-contract.json').read_text())
+                if config_hash != contract.get('provider_config_sha256'):
+                    raise ValueError('Frozen option configuration differs from the local run contract')
+                config = json.loads(config_bytes)['providers']
+                methods = sorted({row['provider'] for row in records})
+                public_options = {name: {key: value for key, value in config[name].items()
+                                         if key in NATIVE_OPTION_LABELS} for name in methods}
+                public_config = {'providers': public_options,
+                    'projection': 'allowlisted_method_options',
+                    'original_provider_config_sha256': config_hash}
+                public_bytes = (json.dumps(public_config, ensure_ascii=False, indent=2) + '\n').encode()
+                require_public_method_options(public_options)
+                relative = 'local-evidence/public-method-options.json'
+                target = staging / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(public_bytes)
+                options = {'schema_version': 2, 'provider_config_sha256': config_hash,
+                    'source_config': {'path': relative, 'sha256': hashlib.sha256(public_bytes).hexdigest()},
+                    'case_ids': sorted({row['case_id'] for row in records}),
+                    'result_count': len(records), 'providers': public_options,
+                    'scope_title': '本次调用保存的固定选项',
+                    'scope_title_en': 'Recorded options for these calls',
+                    'scope_description': '仅展示本报告调用配置中明确设置的公开选项；未列出的参数不代表关闭。原始配置私下保留，公开副本仅包含允许展示的字段。',
+                    'scope_description_en': 'Only explicitly configured public options for this report are shown; omitted parameters do not mean disabled. The original configuration remains private; this public copy contains only allowed fields.'}
+                (staging / 'frozen-method-options.json').write_text(
+                    json.dumps(options, ensure_ascii=False, indent=2) + '\n')
             from harness.reporting.templates import resolve_template
             (staging / "report-manifest.json").write_text(json.dumps({
                 "schema_version": 1, "template": resolve_template("webfetch"),
                 "evidence_state": "local_measurement", "certified": False,
                 "languages": ["zh", "en"] if include_english else ["zh"], "provider_calls_added": 0,
-                "dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
-                "results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
+                "dataset_sha256": file_sha256(source / "dataset.json"),
+                "results_sha256": file_sha256(source / "results.jsonl"),
                 "presentation": {"show_local_status_banners": show_local_status_banners},
             }, ensure_ascii=False, indent=2))
         from .report_reading import copy_archived_reading
@@ -754,8 +778,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         from harness.reporting.templates import resolve_template
         from harness.report_languages import generated_languages
         template_manifest = {'schema_version': 1, 'template': None if diagnostic_preview else resolve_template('webfetch'),
-            'dataset_sha256': hashlib.sha256((staging/'dataset.json').read_bytes()).hexdigest(),
-            'results_sha256': hashlib.sha256((staging/'results.jsonl').read_bytes()).hexdigest(),
+            'dataset_sha256': file_sha256(staging/'dataset.json'),
+            'results_sha256': file_sha256(staging/'results.jsonl'),
             'generated_languages': generated_languages(staging)}
         if dataset.get('comparison', {}).get('kind') == 'uniform_native_local_measurement':
             template_manifest.update(evidence_state='local_measurement', certified=False,
@@ -798,11 +822,10 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
         'score_summaries_json_sha256': 'score-summaries.json',
     }
     for binding, filename in expected_files.items():
-        actual = hashlib.sha256(contained_path(source, filename).read_bytes()).hexdigest()
+        actual = file_sha256(contained_path(source, filename))
         if bindings.get(binding) != actual:
             raise ValueError(f'WebMainBench anomaly review {binding} mismatch')
-    if bindings.get('results_jsonl_sha256') != hashlib.sha256(
-            prior_results_path(source).read_bytes()).hexdigest():
+    if bindings.get('results_jsonl_sha256') != file_sha256(prior_results_path(source)):
         raise ValueError('WebMainBench anomaly review results_jsonl_sha256 mismatch')
     if (bindings.get('source_dataset_sha256') != dataset.get('source_dataset_sha256')
             or bindings.get('sample_manifest_sha256') != dataset.get('sample_manifest_sha256')):
@@ -810,7 +833,7 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
     retest_sha = receipt.get('diagnostic_evidence', {}).get('moli_origin_retest_summary_sha256')
     if retest_sha:
         retest_path = contained_path(source, 'latency-diagnostic/failure-retest/summary.json')
-        if not retest_path.is_file() or hashlib.sha256(retest_path.read_bytes()).hexdigest() != retest_sha:
+        if not retest_path.is_file() or file_sha256(retest_path) != retest_sha:
             raise ValueError('Moli origin-failure retest is not bound to the anomaly review')
     scope = receipt.get('scope', {})
     triggered = receipt.get('triggered_attempt_ids')
@@ -864,8 +887,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     latency_diagnostic = load_latency_diagnostic(source, dataset, records, manifests)
     review_path = source / 'result-review.json'
     review = json.loads(review_path.read_text()) if review_path.is_file() else None
-    if review is not None and review.get('bindings', {}).get('results_jsonl_sha256') != hashlib.sha256(
-            prior_results_path(source).read_bytes()).hexdigest():
+    if review is not None and review.get('bindings', {}).get('results_jsonl_sha256') != file_sha256(prior_results_path(source)):
         raise ValueError('WebMainBench result review is not bound to preserved scored evidence')
     research_path = Path(__file__).resolve().parents[2] / 'research/public-web-benchmarks.json'
     research = json.loads(research_path.read_text(encoding='utf-8'))
@@ -891,7 +913,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     }:
         raise ValueError('WebMainBench provider/case matrix mismatch')
     parent = data_home() / 'public-benchmarks/webmainbench-545/WebMainBench_545.jsonl'
-    if not parent.is_file() or hashlib.sha256(parent.read_bytes()).hexdigest() != dataset['source_dataset_sha256']:
+    if not parent.is_file() or file_sha256(parent) != dataset['source_dataset_sha256']:
         raise ValueError('Frozen WebMainBench parent dataset is unavailable or differs from the bound source hash')
     parent_rows = load_jsonl(parent, skip_blank=True)
     source_html = {row['track_id']: row['html'] for row in parent_rows if row['track_id'] in case_ids}
@@ -937,7 +959,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
                 shutil.copy2(contained_path(source / 'correction-source', name), target)
         for row in records:
             artifact = contained_path(staging, row['artifact_path'])
-            if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
+            if file_sha256(artifact) != row['output_sha256']:
                 raise ValueError('WebMainBench output integrity failure: ' + row['attempt_id'])
         if latency_diagnostic is not None:
             (staging / 'latency-diagnostic.json').write_text(
@@ -1229,7 +1251,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             or corpus_hash != summary['source_sha256']
             or corpus_hash != profile['source_dataset_sha256']):
         raise ValueError('WCXB source, certificate, summary and profile disagree')
-    evaluator_hash = hashlib.sha256(contained_path(corpus, 'evaluate.py').read_bytes()).hexdigest()
+    evaluator_hash = file_sha256(contained_path(corpus, 'evaluate.py'))
     if evaluator_hash != profile['official_evaluator_sha256'] or summary.get('official_evaluator_sha256') != evaluator_hash:
         raise ValueError('WCXB official evaluator differs from the certified profile')
     if [x['provider'] for x in certificate['providers']] != list(WCXB_PROVIDERS) or profile['providers'] != list(WCXB_PROVIDERS):
@@ -1245,7 +1267,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     correction_root = source / 'latency-correction'
     correction_receipt = correction_root / 'receipt.json'
     if (not correction_receipt.is_file()
-            or hashlib.sha256(correction_receipt.read_bytes()).hexdigest()
+            or file_sha256(correction_receipt)
             != profile.get('latency_correction_receipt_sha256')):
         raise ValueError('WCXB full-scope latency correction is missing or differs from profile')
     _, corrected_calls = load_full_paired_latency(correction_root, profile, case_ids)
@@ -1253,7 +1275,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     if (correction_certificate.get('kind') != 'certified_wcxb_paired_latency'
             or correction_certificate.get('complete') is not True
             or correction_certificate.get('receipt_sha256')
-            != hashlib.sha256(correction_receipt.read_bytes()).hexdigest()):
+            != file_sha256(correction_receipt)):
         raise ValueError('WCXB corrected timing is not certified')
     if any(
         abs(row['total_elapsed_ms'] - corrected_calls[row['case_id'],
@@ -1264,7 +1286,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     optional_root = source / 'optional-ui-4017'
     optional_receipt = optional_root / 'receipt.json'
     if (not optional_receipt.is_file() or optional_receipt.is_symlink()
-            or hashlib.sha256(optional_receipt.read_bytes()).hexdigest()
+            or file_sha256(optional_receipt)
             != profile.get('optional_ui_receipt_sha256')):
         raise ValueError('WCXB optional UI-stripping evidence is missing or differs from profile')
     optional = json.loads(optional_receipt.read_text())
@@ -1278,7 +1300,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         for ext, key in (('md', 'output_sha256'), ('stderr', 'stderr_sha256')):
             artifact = optional_root / f'{name}.{ext}'
             if (not artifact.is_file() or artifact.is_symlink()
-                    or hashlib.sha256(artifact.read_bytes()).hexdigest() != optional['builds'][name][key]):
+                    or file_sha256(artifact) != optional['builds'][name][key]):
                 raise ValueError('WCXB optional UI-stripping artifact changed: ' + artifact.name)
     if len(rows) != len(records) * len(WCXB_PROVIDERS) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in WCXB_PROVIDERS for c in case_ids}:
         raise ValueError('WCXB score matrix is incomplete')
@@ -1315,9 +1337,9 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             provider = batch['provider']
             run_dir = source / provider
             results_file = run_dir / 'results.jsonl'
-            if hashlib.sha256(results_file.read_bytes()).hexdigest() != batch['results_sha256']:
+            if file_sha256(results_file) != batch['results_sha256']:
                 raise ValueError('WCXB results changed: ' + provider)
-            if hashlib.sha256((run_dir / 'physical-attempts.jsonl').read_bytes()).hexdigest() != summary['providers'][provider]['physical_attempts_sha256']:
+            if file_sha256(run_dir / 'physical-attempts.jsonl') != summary['providers'][provider]['physical_attempts_sha256']:
                 raise ValueError('WCXB physical attempts changed: ' + provider)
             manifest = json.loads((run_dir / 'execution.json').read_text())
             if manifest['run_id'] != batch['run_id'] or manifest['source_dataset_sha256'] != corpus_hash:
@@ -1328,7 +1350,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 raise ValueError('WCXB provider results incomplete: ' + provider)
             for row in raw_rows:
                 artifact = contained_path(run_dir, row['artifact_path'])
-                if artifact.is_symlink() or hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
+                if artifact.is_symlink() or file_sha256(artifact) != row['output_sha256']:
                     raise ValueError('WCXB output changed: ' + row['attempt_id'])
                 target = staging / 'artifacts' / provider / f'{row["track_id"]}.txt'
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -1336,7 +1358,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             for scored in (r for r in rows if r['provider'] == provider):
                 for retry in scored.get('retry_failures', []):
                     artifact = contained_path(source, retry['artifact_path'])
-                    if artifact.is_symlink() or hashlib.sha256(artifact.read_bytes()).hexdigest() != retry['output_sha256']:
+                    if artifact.is_symlink() or file_sha256(artifact) != retry['output_sha256']:
                         raise ValueError('WCXB retained retry artifact changed: ' + scored['attempt_id'])
                     target = contained_path(staging, retry['artifact_path'])
                     target.parent.mkdir(parents=True, exist_ok=True)
@@ -1375,7 +1397,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             }
             target = evidence_root / f'{case_id}.json'
             target.write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
-            evidence_hashes[case_id] = hashlib.sha256(target.read_bytes()).hexdigest()
+            evidence_hashes[case_id] = file_sha256(target)
         review_file = staging / 'research/wcxb-representative-review.json'
         if review_file.is_file():
             review = json.loads(review_file.read_text())
@@ -1443,11 +1465,11 @@ def validate_local_presentation(output: Path, binding_path: Path):
         expected = binding.get(key)
         manifest_key = 'dataset_sha256' if name == 'dataset.json' else key
         if (not expected or manifest.get(manifest_key) != expected
-                or hashlib.sha256(contained_path(output, name).read_bytes()).hexdigest() != expected):
+                or file_sha256(contained_path(output, name)) != expected):
             raise ValueError('Presentation input binding changed: ' + name)
     for item in binding.get('evidence_bindings', []):
         path = contained_path(output, item['path'], reject_symlinks=True)
-        if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
+        if file_sha256(path) != item['sha256']:
             raise ValueError('Presentation evidence binding changed: ' + item['path'])
     if binding.get('publication_projection'):
         from .publication_privacy import require_host_metadata_projection
@@ -1552,7 +1574,7 @@ def _presentation_detail_scope(records, selected, manifest, renderer_sha256):
 
 def _current_template_refresh(output, binding, manifest):
     """Select all current pages only after their authority has been validated."""
-    current = hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest()
+    current = file_sha256(Path(__file__).with_name('report.py'))
     if manifest.get('presentation_refresh', {}).get('renderer_sha256') == current:
         return False
     revision = binding.get('offline_revision')
@@ -1578,7 +1600,7 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
         from .adjudication_evidence import require_adjudication_evidence, require_current_review_state
         review_path = contained_path(output, 'result-review.json', reject_symlinks=True)
         if not any(item.get('path') == 'result-review.json'
-                   and item.get('sha256') == hashlib.sha256(review_path.read_bytes()).hexdigest()
+                   and item.get('sha256') == file_sha256(review_path)
                    for item in binding.get('evidence_bindings', [])):
             raise ValueError('Review refresh requires a hash-bound result review')
         review = json.loads(review_path.read_text())
@@ -1592,7 +1614,7 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
         detail_attempt_ids |= revised_attempt_ids
         detail_attempt_ids = _presentation_detail_scope(
             records, detail_attempt_ids, manifest,
-            hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest())
+            file_sha256(Path(__file__).with_name('report.py')))
         refresh_all_current_pages = _current_template_refresh(output, binding, manifest)
         if refresh_all_current_pages:
             dataset_case_ids = {case['id'] for case in dataset['cases']}
@@ -1654,7 +1676,7 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
             'provider_calls_added': 0, 'scores_changed': False,
             'scoring_git_revision': binding.get('measured_scoring_git_revision'),
             'scoring_source_sha256': binding['measured_scoring_source_sha256'],
-            'renderer_sha256': hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest(),
+            'renderer_sha256': file_sha256(Path(__file__).with_name('report.py')),
             'changed_routes': sorted(set(changed) | set(manifest.get('presentation_refresh', {}).get('changed_routes', []))),
             **({'revised_attempt_ids': sorted(revised_attempt_ids),
                 'revised_case_ids': sorted(dataset_case_ids),

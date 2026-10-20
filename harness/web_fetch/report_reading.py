@@ -1,5 +1,6 @@
 """An explicitly supplied historical article, separate from current measurements."""
 import hashlib
+from harness.record_io import file_sha256
 import json
 import re
 import shutil
@@ -73,7 +74,7 @@ def copy_archived_reading(source: Path, out: Path) -> None:
     data = json.loads(manifest.read_text())
     for item in [*data["languages"].values(), *([data["translations"]] if data.get("translations") else [])]:
         origin = contained_path(source, item["path"])
-        if origin.is_symlink() or hashlib.sha256(origin.read_bytes()).hexdigest() != item["sha256"]:
+        if origin.is_symlink() or file_sha256(origin) != item["sha256"]:
             raise ValueError("Archived article content differs from its manifest")
         target = contained_path(out, item["path"])
         target.parent.mkdir(parents=True, exist_ok=True)

@@ -1,8 +1,7 @@
 """Fail-closed validation for explicitly non-publishable local audit bundles."""
-import hashlib
 import json
 from pathlib import Path
-from harness.record_io import canonical_json_sha256
+from harness.record_io import file_sha256, canonical_json_sha256
 
 from lexbench_webfetch.metrics import task_passed
 from .reference_inputs import input_tree
@@ -11,10 +10,6 @@ from . import adjudication_evidence, local_execution_contract
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_NAME = "local-audit-manifest.json"
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _repository_file(relative: str) -> Path:
@@ -73,7 +68,7 @@ def _source_evidence_inventory(dataset: dict) -> list[dict]:
             rows.append({
                 "case_id": case_id,
                 "path": "evaluation/sources/" + path.relative_to(source_root).as_posix(),
-                "sha256": _sha256(path),
+                "sha256": file_sha256(path),
                 "bytes": path.stat().st_size,
                 "purpose": purposes.get(path.name, "independent source evidence"),
             })
@@ -84,7 +79,7 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
     """Verify committed source evidence and scoring controls as exact inventories."""
     bindings = receipt.get("repository_evidence", {})
     source_path = _repository_file(bindings.get("source_manifest_path"))
-    if _sha256(source_path) != bindings.get("source_manifest_sha256"):
+    if file_sha256(source_path) != bindings.get("source_manifest_sha256"):
         raise ValueError("Repository source evidence manifest changed")
     source_manifest = json.loads(source_path.read_text(encoding="utf-8"))
     if (source_manifest.get("schema_version") != 1
@@ -104,7 +99,7 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
         raise ValueError("Repository source evidence scope is inconsistent")
 
     scoring_path = _repository_file(bindings.get("scoring_revision_path"))
-    if _sha256(scoring_path) != bindings.get("scoring_revision_sha256"):
+    if file_sha256(scoring_path) != bindings.get("scoring_revision_sha256"):
         raise ValueError("Scoring revision receipt changed")
     scoring = json.loads(scoring_path.read_text(encoding="utf-8"))
     if (scoring.get("schema_version") != 1
@@ -187,7 +182,7 @@ def audit_file_inventory(source: Path) -> list[dict]:
             continue
         rows.append({
             "path": path.relative_to(source).as_posix(),
-            "sha256": _sha256(path),
+            "sha256": file_sha256(path),
             "bytes": path.stat().st_size,
         })
     return rows
@@ -201,7 +196,7 @@ def local_audit_manifest(source: Path) -> dict:
         path = contained_path(source, name)
         if not path.is_file() or path.is_symlink():
             raise ValueError("Local audit required file is missing or unsafe: " + name)
-        bindings[name] = _sha256(path)
+        bindings[name] = file_sha256(path)
     return {
         "schema_version": 1,
         "kind": "complete_local_audit_inventory",
@@ -217,7 +212,7 @@ def _require_manifest(source: Path, receipt: dict) -> dict:
     if relative != MANIFEST_NAME or not expected:
         raise ValueError("Local audit receipt does not bind the complete manifest")
     path = contained_path(source, relative)
-    if not path.is_file() or path.is_symlink() or _sha256(path) != expected:
+    if not path.is_file() or path.is_symlink() or file_sha256(path) != expected:
         raise ValueError("Local audit manifest is missing, unsafe, or changed")
     manifest = json.loads(path.read_text(encoding="utf-8"))
     if manifest.get("schema_version") != 1:
@@ -236,7 +231,7 @@ def _require_review(source: Path, dataset: dict, records: list[dict],
                     receipt: dict, manifest: dict) -> dict:
     path = contained_path(source, "result-review.json")
     expected_review = receipt.get("evidence", {}).get("result_review_sha256")
-    if not expected_review or _sha256(path) != expected_review:
+    if not expected_review or file_sha256(path) != expected_review:
         raise ValueError("Local audit result review changed")
     review = json.loads(path.read_text(encoding="utf-8"))
     if review.get("schema_version") != 1:
@@ -279,7 +274,7 @@ def _require_review(source: Path, dataset: dict, records: list[dict],
     for relative, expected in review_contract.get("bound_receipts", {}).items():
         evidence_path = contained_path(source, relative)
         if (not evidence_path.is_file() or evidence_path.is_symlink()
-                or _sha256(evidence_path) != expected):
+                or file_sha256(evidence_path) != expected):
             raise ValueError("Local audit review receipt changed: " + relative)
     return review
 
@@ -416,7 +411,7 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
     """Validate a new complete local matrix without claiming independent review."""
     contract = json.loads(contained_path(source, "local-run-contract.json").read_text())
     execution = json.loads(contained_path(source, "execution.json").read_text())
-    if dataset.get("comparison", {}).get("local_run_contract_sha256") != _sha256(source / "local-run-contract.json"):
+    if dataset.get("comparison", {}).get("local_run_contract_sha256") != file_sha256(source / "local-run-contract.json"):
         raise ValueError("Local measurement pre-call contract changed")
     _require_local_scoring_revision(source, contract, records)
     local_execution_contract.require_local_execution_contract(source, dataset, records, contract, execution)
@@ -443,12 +438,12 @@ def require_local_audit(source: Path, dataset: dict, records: list[dict]) -> dic
     bindings = receipt.get("bindings", {})
     for name, key in (("dataset.json", "dataset_sha256"),
                       ("results.jsonl", "results_sha256")):
-        if _sha256(contained_path(source, name)) != bindings.get(key):
+        if file_sha256(contained_path(source, name)) != bindings.get(key):
             raise ValueError("Local audit receipt binding mismatch: " + name)
     _require_repository_bindings(dataset, receipt)
     manifest = _require_manifest(source, receipt)
     for name in ("dataset.json", "results.jsonl", "result-review.json"):
-        if manifest.get("bindings", {}).get(name) != _sha256(contained_path(source, name)):
+        if manifest.get("bindings", {}).get(name) != file_sha256(contained_path(source, name)):
             raise ValueError("Local audit manifest binding mismatch: " + name)
     _require_lineage(source, receipt)
     return _require_review(source, dataset, records, receipt, manifest)

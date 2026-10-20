@@ -114,6 +114,21 @@ def test_unknown_legacy_plan_is_rejected(execution):
         require_legacy_execution_segments(root, contract, batches, records, **legacy_inputs())
 
 
+@pytest.mark.parametrize('field,value', [
+    ('runs', 2), ('max_failure_retries', 1), ('provider_concurrency', 2),
+])
+def test_retained_schema_one_cannot_adopt_a_different_execution_policy(execution, field, value):
+    root, contract, batches, records = copy.deepcopy(execution)
+    binding = contract['execution_plans']['resumed']
+    plan = json.loads((root/binding['path']).read_text())
+    plan['parameters'][field] = value
+    rebound = bind(root, 'changed-policy.json', plan)
+    rebound['configuration'] = binding['configuration']
+    contract['execution_plans']['resumed'] = rebound
+    with pytest.raises(ValueError, match='resumed execution parameters differ'):
+        require_legacy_execution_segments(root, contract, batches, records, **legacy_inputs())
+
+
 def test_fresh_cohort_validates_without_legacy_plan_decoder(tmp_path, monkeypatch):
     from harness.web_fetch.config import load_dataset
     from harness.web_fetch.providers import build_provider

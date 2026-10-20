@@ -146,3 +146,23 @@ def test_browser_use_resume_preserves_unicode_in_attempt_records(tmp_path):
            'error': '文本\u2028段落\u2029结束'}
     path.write_text(json.dumps(row, ensure_ascii=False) + '\n')
     assert _load_completed_attempts(path, 'fixture') == {('fixture', 'fixture', 1, 1): row}
+
+
+@pytest.mark.parametrize('content', [b'', bytes(range(256)) * 12000])
+def test_file_digest_matches_protocol_bytes_without_whole_file_reads(tmp_path, monkeypatch, content):
+    from pathlib import Path
+    from harness.record_io import file_sha256
+    path = tmp_path / 'large-evidence.bin'
+    path.write_bytes(content)
+    expected = hashlib.sha256(content).hexdigest()
+    def forbid_whole_file_read(*args, **kwargs):
+        pytest.fail('File hashing should not allocate another full artifact copy')
+    monkeypatch.setattr(Path, 'read_bytes', forbid_whole_file_read)
+    assert file_sha256(path) == expected
+    assert file_sha256(str(path)) == expected
+
+
+def test_file_digest_preserves_missing_file_error(tmp_path):
+    from harness.record_io import file_sha256
+    with pytest.raises(FileNotFoundError):
+        file_sha256(tmp_path / 'missing')

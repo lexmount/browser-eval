@@ -339,3 +339,16 @@ class MeasuredInterfaceIdentityTests(unittest.TestCase):
    self.assertIn(flag,output['interface']['entry'])
    self.assertNotIn('/private/local-script.js',str(output))
    if name=='obscura':self.assertNotIn('--dump',str(output['interface']['request']))
+def test_measurement_display_policy_does_not_grant_certification():
+ from harness.web_fetch.report_components import measurement_presentation
+ from harness.web_fetch.report import local_audit_banner
+ ordinary={'comparison':{'kind':'other_measurement'}}
+ assert not measurement_presentation(ordinary).native_outputs
+ local={'comparison':{'kind':'uniform_native_local_measurement',
+                      'publication_state':'local_audit_only_not_for_release'}}
+ policy=measurement_presentation(local)
+ assert policy.native_outputs and policy.all_call_latency and policy.explain_unjudged
+ assert 'data-evidence-state="local_measurement"' in local_audit_banner(local)
+ assert '不可用于排名' in local_audit_banner(local)
+ local['comparison']['presentation']={'ranking':'saved_task_pass_rate'}
+ assert 'data-ranking-scope="saved-task-pass-rate"' in local_audit_banner(local)

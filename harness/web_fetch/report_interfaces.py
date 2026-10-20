@@ -4,6 +4,7 @@ import re
 from html import escape
 from lexbench_webfetch.paths import contained_path
 from .methods import native_browser_engine, browser_method_registry, browser_method_label
+from .report_components import measurement_presentation
 
 URL='https://example.com/'
 HEADLESS_ACCESS={
@@ -394,8 +395,9 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
 def render_interfaces(out,records):
  from .artifacts import record_public_call_log_bindings, verify_public_call_log
  dataset_path=out/"dataset.json"
- comparison=json.loads(dataset_path.read_text()).get("comparison",{}) if dataset_path.is_file() else {}
- native_default=comparison.get("kind")=="uniform_native_local_measurement"
+ dataset=json.loads(dataset_path.read_text()) if dataset_path.is_file() else {}
+ comparison=dataset.get("comparison",{})
+ native_default=measurement_presentation(dataset).native_outputs
  def pre(value):return '<pre>'+escape(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2))+'</pre>'
  def fields(rows):return '<dl class="interface-fields">'+''.join('<div><dt><code>'+escape(k)+'</code> <small>'+escape(t)+'</small></dt><dd>'+escape(d)+'</dd></div>' for k,t,d in rows)+'</dl>'
  measured={r['provider'] for r in records}

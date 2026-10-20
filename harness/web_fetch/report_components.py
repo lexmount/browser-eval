@@ -1,6 +1,28 @@
 """Small, shared presentation components; never change measured results."""
 from html import escape
 import json
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class MeasurementPresentation:
+    """Presentation choices only; execution and release gates validate the protocol."""
+
+    native_outputs: bool = False
+    all_call_latency: bool = False
+    explain_unjudged: bool = False
+
+
+_MEASUREMENT_PRESENTATIONS = {
+    "uniform_native_local_measurement": MeasurementPresentation(
+        native_outputs=True, all_call_latency=True, explain_unjudged=True),
+}
+
+
+def measurement_presentation(dataset):
+    """Resolve cohort display behavior without spreading kind checks across pages."""
+    return _MEASUREMENT_PRESENTATIONS.get(
+        dataset.get("comparison", {}).get("kind"), MeasurementPresentation())
 
 
 def reference_text(case):

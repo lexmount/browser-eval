@@ -7,7 +7,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from harness.record_io import canonical_json_sha256, load_jsonl
+from harness.record_io import file_sha256, canonical_json_sha256, load_jsonl
 
 from .cohort_exclusions import require_cohort_exclusions
 from lexbench_webfetch.paths import contained_path
@@ -231,8 +231,8 @@ def validate_revision_chain(source, binding, dataset=None, records=None):
     if receipt.get('kind') == 'current_local_snapshot_authority':
         return require_current_snapshot_authority(source, receipt, dataset, records), None, None
     RevisionStep.from_mapping(receipt)
-    outputs = {name: hashlib.sha256(read_evidence_binding(source, {
-        'path': name, 'sha256': receipt[key]}).read_bytes()).hexdigest()
+    outputs = {name: file_sha256(read_evidence_binding(source, {
+        'path': name, 'sha256': receipt[key]}))
         for name, key in [('dataset.json', 'output_dataset_sha256'),
                           ('results.jsonl', 'output_results_sha256')]}
     seen, latest_scoring = set(), None
@@ -331,7 +331,7 @@ def _compact_diagnostic_projections(source, records, private_manifest, *, public
             raise ValueError('Private diagnostic manifest must not be a symlink')
         document = json.loads(manifest_path.read_text())
         if (document.get('kind') != 'current_private_originals'
-                or document.get('results_sha256') != hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()):
+                or document.get('results_sha256') != file_sha256(source/'results.jsonl')):
             raise ValueError('Private originals do not bind current results')
         private = {(item['relative_path'], item['sha256']): item for item in document['bindings']}
     proofs = []
@@ -459,8 +459,8 @@ def _compact_revision_authority(source, binding, dataset, records, validated, *,
     result = {'kind': 'current_local_snapshot_authority', 'schema_version': 1,
         'provider_calls_added': 0, 'validation_scope': 'current_state_only',
         'history_validated_before_compaction': True,
-        'dataset_sha256': hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
-        'results_sha256': hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest(),
+        'dataset_sha256': file_sha256(source/'dataset.json'),
+        'results_sha256': file_sha256(source/'results.jsonl'),
         'correction_authorities': list(causes.values()),
         'current_reference_authorities': list(reference_authorities),
         'diagnostic_projections': (_diagnostics if _diagnostics is not None else
@@ -469,12 +469,12 @@ def _compact_revision_authority(source, binding, dataset, records, validated, *,
     review = dataset.get('comparison', {}).get('independent_review')
     if review is None and (source/'result-review.json').is_file():
         review = {'path': 'result-review.json',
-                  'sha256': hashlib.sha256((source/'result-review.json').read_bytes()).hexdigest()}
+                  'sha256': file_sha256(source/'result-review.json')}
     if review is not None:
         result['current_review'] = review
     if (source/'execution.json').is_file():
         result['current_execution'] = {'path': 'execution.json',
-            'sha256': hashlib.sha256((source/'execution.json').read_bytes()).hexdigest()}
+            'sha256': file_sha256(source/'execution.json')}
     expected = require_current_snapshot_authority(source, result, dataset, records)
     if expected != sources:
         raise ValueError('Compaction changed actual scoring source identities')
@@ -823,7 +823,7 @@ def _require_native_answer_correction(source, original, corrected, proof):
     if any(corrected.get(key) != value for key, value in result_fields.items()):
         raise ValueError('Native result context correction differs from original fields')
     after_path = read_evidence_binding(source, after)
-    if hashlib.sha256(native.read_bytes()).hexdigest() != proof['native_response']['sha256']:
+    if file_sha256(native) != proof['native_response']['sha256']:
         # A disclosed native public view projects public answer bytes. Compare
         # its explicitly paired answer view even while private scoring bytes
         # are temporarily restored; neither view reconstructs the original.
@@ -1074,7 +1074,7 @@ def _revise_local_snapshot(source, configuration, transaction):
     if not additional <= {row['attempt_id'] for row in records}:
         raise ValueError('Local revision has an invalid additional rescoring scope')
     revision_key = (input_results_sha256[:16] + '-' +
-                    hashlib.sha256(configuration.read_bytes()).hexdigest()[:16])
+                    file_sha256(configuration)[:16])
     history = source / 'local-evidence/offline-revisions' / revision_key
     if history.exists():
         raise ValueError('Local revision already exists; preserve the prior receipt')
@@ -1157,7 +1157,7 @@ def _revise_local_snapshot(source, configuration, transaction):
     transaction.write(history / 'dataset-before.json', dataset_bytes)
     transaction.write(history / 'results-before.jsonl', results_bytes)
     def binding(path):
-        return {'path': str(path.relative_to(source)), 'sha256': hashlib.sha256(transaction.read(path).read_bytes()).hexdigest()}
+        return {'path': str(path.relative_to(source)), 'sha256': file_sha256(transaction.read(path))}
     new_dataset = (json.dumps(dataset, ensure_ascii=False, indent=2) + '\n').encode()
     new_results = ''.join(json.dumps(row, ensure_ascii=True) + '\n' for row in records).encode()
     receipt = {'kind': 'local_offline_score_revision', 'provider_calls_added': 0,

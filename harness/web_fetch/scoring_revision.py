@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-from harness.record_io import parse_jsonl
+from harness.record_io import file_sha256, parse_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     homepage_prompt_anchor_correction,
@@ -239,7 +239,7 @@ def _revise_unlocked(
         "input_dataset_sha256": hashlib.sha256(before_dataset).hexdigest(),
         "input_results_sha256": hashlib.sha256(before_results).hexdigest(),
         "output_dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest(),
-        "output_results_sha256": hashlib.sha256(results_path.read_bytes()).hexdigest(),
+        "output_results_sha256": file_sha256(results_path),
         **(
             {"input_scoring_source_sha256": input_scoring_source_sha256s[0]}
             if len(input_scoring_source_sha256s) == 1
@@ -280,14 +280,14 @@ def rebind_report_interpretation(source: Path, binding: dict, *, implementation_
     if set(binding) != {'path', 'sha256'}:
         raise ValueError('Invalid report interpretation binding')
     asset = contained_path(source, binding['path'], reject_symlinks=True)
-    if hashlib.sha256(asset.read_bytes()).hexdigest() != binding['sha256']:
+    if file_sha256(asset) != binding['sha256']:
         raise ValueError('Report interpretation content hash mismatch')
     if implementation_binding is not None:
         if (set(implementation_binding) != {'path', 'sha256'}
                 or implementation_binding['path'] != 'implementation-provenance.json'):
             raise ValueError('Invalid implementation provenance binding')
         implementation = contained_path(source, implementation_binding['path'], reject_symlinks=True)
-        if hashlib.sha256(implementation.read_bytes()).hexdigest() != implementation_binding['sha256']:
+        if file_sha256(implementation) != implementation_binding['sha256']:
             raise ValueError('Implementation provenance content hash mismatch')
     dataset_path = contained_path(source, 'dataset.json')
     before = dataset_path.read_bytes()
@@ -296,7 +296,7 @@ def rebind_report_interpretation(source: Path, binding: dict, *, implementation_
     if implementation_binding is not None:
         dataset['comparison']['implementation_provenance'] = implementation_binding
     after = (json.dumps(dataset, ensure_ascii=False, indent=2)+'\n').encode()
-    results_hash = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
+    results_hash = file_sha256(source/'results.jsonl')
     receipt = {'kind': 'report_interpretation_binding_revision', 'provider_calls': 0,
                'input_results_sha256': results_hash, 'output_results_sha256': results_hash}
     receipt['bound_asset_fields'] = ['report_interpretation'] + (

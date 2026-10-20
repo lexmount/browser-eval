@@ -140,8 +140,3 @@ class CaseAdmission:
             (self.root / token['lease']).unlink()
             state['finished_sites'][token['site']] = {'at': time.time(), 'provider': token['provider']}
             self._event({'event': 'released', **token})
-
-    def set_serial(self, reason):
-        with self._state() as state:
-            state['parallel_enabled'] = False
-            self._event({'event': 'reduce_to_serial', 'reason': reason})

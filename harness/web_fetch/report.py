@@ -27,6 +27,7 @@ from .report_components import (
  examples,
  metric_guide,
  metric_legend,
+ measurement_presentation,
  reference_label,
  reference_status,
  reference_text,
@@ -2013,7 +2014,7 @@ def local_pass_rate_ranking(dataset):
 def local_audit_banner(dataset):
  if dataset.get('comparison',{}).get('publication_state')!='local_audit_only_not_for_release':
   return ''
- if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+ if measurement_presentation(dataset).native_outputs:
   if local_pass_rate_ranking(dataset):
    return '<p class="wrap source-note" data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate">'+model_text('按本次所列任务的通过率排序；未完成仓库认证流程。测试日期和核验范围见详情。','Ordered by pass rate on the listed tasks; repository certification is incomplete. See details for test dates and verification scope.')+'</p>'
   note='已有复核记录；覆盖和裁定依据见核验页面。' if dataset['comparison'].get('independent_review') else '结果为机器判定，未进行独立人工审核。'
@@ -2049,7 +2050,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  reliability=assess_reliability(dataset,records)
  if reliability['complete']:
   reliability_banner=''
- elif (dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement'
+ elif (measurement_presentation(dataset).explain_unjudged
        and dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
        and not any(reliability[key] for key in ('missing','extra','duplicates'))):
   excluded=[r for r in records if r['metrics'].get('evaluation_excluded')]
@@ -2129,7 +2130,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   home+=result_ledger_section(out,records)
   low=[r for r in records if not r['metrics'].get('evaluation_excluded') and succeeded(r,cases[r['case_id']]) and cases[r['case_id']].get('ground_truth_main_content') and r['metrics'].get('word_precision') is not None and r['metrics']['word_precision']<.3]
   home+=section('通过结果的内容诊断',f'<p>{len(low)} 条通过结果的参考词精确率低于 30%。此比例用于定位检查对象，不是统一失败线；通过不保证干净正文，正文参考的范围和时间也会影响该指标。</p>','coverage-quality')
- if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+ if measurement_presentation(dataset).all_call_latency:
   home+=section('同一任务集合的全部调用耗时',overview_all_call_latency(records,cases),'all-call-latency')
  home+=section(f'{track_label} 类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
@@ -2202,7 +2203,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   body+='<p class="actions">'+link('../analysis/index.html#inspect?query='+c['id'],'查看各方法执行结果 →')+'</p>'
   write(out,'datasets/'+c['id']+'.html',c['name'],body)
  for name,rs in byprovider.items():
-  write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks,native_default=dataset.get("comparison",{}).get("kind")=="uniform_native_local_measurement"))
+  write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks,native_default=measurement_presentation(dataset).native_outputs))
  detail_records=([r for r in records if r['attempt_id'] in (detail_attempt_ids or set())] if presentation_only else records)
  for r in detail_records:
   c=cases[r['case_id']];m=r['metrics'];ref=reference_text(c)
@@ -2622,6 +2623,23 @@ def write_review_page(out,records):
 
 NATIVE_OPTION_LABELS={'wait_until':'页面完成条件','block_private_networks':'阻止访问私网','max_bytes':'返回内容上限（字节）','max_age':'缓存最长年龄','proxy':'代理选择','formats':'请求输出格式','only_main_content':'只取主要正文','extract_depth':'提取深度','include_images':'包含图片','text_verbosity':'正文详细程度','max_age_hours':'缓存最长年龄（小时）','include_resource_links':'包含资源链接','rich_links_limit':'具名链接数量上限','document_max_bytes':'文档大小上限（字节）','min_interval_seconds':'调用间隔（秒）','log_level':'日志级别','retain_complete_diagnostic_log':'完整保存诊断日志','max_diagnostic_bytes':'日志保存上限（字节）','uniform_native_parameters':'使用统一固定原生选项','dns_mode':'域名解析方式'}
 
+def require_public_method_options(configuration):
+ """Reject private values even when their option name is displayable."""
+ from urllib.parse import urlsplit
+ from .publication_privacy import publication_risk
+ def contains_url_credentials(value):
+  if isinstance(value,dict):return any(contains_url_credentials(v) for v in value.values())
+  if isinstance(value,list):return any(contains_url_credentials(v) for v in value)
+  if isinstance(value,str):
+   try:
+    url=urlsplit(value)
+    return url.username is not None or url.password is not None
+   except ValueError:
+    return True
+  return False
+ if publication_risk(json.dumps(configuration).encode()) or contains_url_credentials(configuration):
+  raise ValueError('Frozen public options contain unsafe values')
+
 def load_frozen_method_options(out,records):
  """Bind displayed controls to their actual configuration and call scope."""
  from .publication_privacy import read_evidence_binding
@@ -2629,12 +2647,23 @@ def load_frozen_method_options(out,records):
  if document.get('schema_version')!=2 or not document.get('source_config'):
   raise ValueError('Frozen option display requires a bound configuration and call scope')
  binding=document['source_config']
- configuration=json.loads(read_evidence_binding(out,binding).read_text())['providers']
+ source_config=json.loads(read_evidence_binding(out,binding).read_text())
+ configuration=source_config['providers']
+ config_hash=binding['sha256']
+ if source_config.get('projection'):
+  require_public_method_options(configuration)
+  if source_config['projection']!='allowlisted_method_options':
+   raise ValueError('Unknown frozen option configuration projection')
+  config_hash=source_config.get('original_provider_config_sha256')
+  contract=json.loads((out/'local-run-contract.json').read_text())
+  if (not config_hash or config_hash!=contract.get('provider_config_sha256')
+      or any(key not in NATIVE_OPTION_LABELS for options in configuration.values() for key in options)):
+   raise ValueError('Public option configuration differs from its original call binding')
  identifiers=document.get('case_ids',[])
  selected=[row for row in records if row['case_id'] in identifiers]
  providers=document.get('providers',{})
  if (not identifiers or len(identifiers)!=len(set(identifiers)) or not providers
-     or document.get('provider_config_sha256')!=binding['sha256']
+     or document.get('provider_config_sha256')!=config_hash
      or document.get('result_count')!=len(selected)
      or len(selected)!=len(identifiers)*len(providers)
      or {(r['provider'],r['case_id']) for r in selected}
@@ -2643,7 +2672,7 @@ def load_frozen_method_options(out,records):
             ('scope_title','scope_title_en','scope_description','scope_description_en'))):
   raise ValueError('Frozen option display scope differs from saved calls')
  for name,options in providers.items():
-  if (name not in configuration or not options
+  if (name not in configuration or not isinstance(options,dict)
       or any(key not in NATIVE_OPTION_LABELS or key not in configuration[name]
              or type(configuration[name][key]) is not type(value)
              or configuration[name][key]!=value for key,value in options.items())):
@@ -2653,7 +2682,7 @@ def load_frozen_method_options(out,records):
 
 def write_support(out,records,manifests,*,authored_interpretation=True):
  dataset=json.loads((out/'dataset.json').read_text()) if (out/'dataset.json').is_file() else {}
- local_matrix=(out/'dataset.json').is_file() and json.loads((out/'dataset.json').read_text()).get('comparison',{}).get('kind')=='uniform_native_local_measurement'
+ local_matrix=measurement_presentation(dataset).native_outputs
  headless=is_headless_cohort(records)
  from .report_components import task_contract_guide
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')

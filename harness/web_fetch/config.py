@@ -18,6 +18,7 @@ from .retrieval_hints import (
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_FAILURE_RETRIES = 1
+DEFAULT_CALL_TIMEOUT_SECONDS = 45
 
 
 def nonnegative_int(value: str) -> int:

@@ -7,6 +7,7 @@ every aggregation/publication boundary; they are never projected into a report.
 from __future__ import annotations
 
 import hashlib
+from harness.record_io import file_sha256
 import json
 import shutil
 from pathlib import Path
@@ -261,7 +262,7 @@ def verify_private_binding(root: Path, binding: dict[str, Any]) -> Path:
     stat = path.stat()
     if stat.st_size != normalized["bytes"]:
         raise ValueError("Private artifact byte size changed: " + normalized["path"])
-    if hashlib.sha256(path.read_bytes()).hexdigest() != normalized["sha256"]:
+    if file_sha256(path) != normalized["sha256"]:
         raise ValueError("Private artifact hash changed: " + normalized["path"])
     return path
 
@@ -336,7 +337,7 @@ def verify_record_artifacts(root: Path, record: dict[str, Any], *, native_cases=
                 or len(digest) != 64 or any(char not in '0123456789abcdef' for char in digest)):
             raise ValueError('Incomplete artifact binding: ' + str(record.get('attempt_id')))
         source = contained_path(root, relative, reject_symlinks=True)
-        if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+        if not source.is_file() or file_sha256(source) != digest:
             raise ValueError('Artifact differs from its result binding: ' + relative)
     verify_record_public_call_logs(root, record)
     from harness.web_fetch.native_routes import verify_saved_native_answer
@@ -353,7 +354,7 @@ def materialize_bound_artifacts(output: Path, source_root: Path, records: list[d
         for relative, digest in artifact_bindings(record):
             source = contained_path(source_root, relative, reject_symlinks=True)
             target = contained_path(output, relative, reject_symlinks=True)
-            if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+            if target.exists() and file_sha256(target) != digest:
                 raise ValueError('Aggregate artifact collision: ' + relative)
             if relative in copies and copies[relative][2] != digest:
                 raise ValueError('Aggregate artifact collision: ' + relative)
@@ -363,7 +364,7 @@ def materialize_bound_artifacts(output: Path, source_root: Path, records: list[d
         target.parent.mkdir(parents=True, exist_ok=True)
         if not target.exists():
             shutil.copy2(source, target)
-        if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+        if file_sha256(target) != digest:
             raise ValueError('Copied artifact changed: ' + str(target.relative_to(output)))
     for record in records:
         verify_record_public_call_logs(output, record)
@@ -383,16 +384,16 @@ def materialize_reference_checks(output: Path, source: Path, batches: list[dict]
                 or relative != f'reference-checks/observations-{digest}.json'):
             raise ValueError('Reference check has an invalid evidence binding')
         path = contained_path(source, relative, reject_symlinks=True)
-        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+        if not path.is_file() or file_sha256(path) != digest:
             raise ValueError('Reference check evidence differs from its certificate')
         target = contained_path(output, relative, reject_symlinks=True)
         if target.exists():
-            if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+            if not target.is_file() or file_sha256(target) != digest:
                 raise ValueError('Conflicting reference check evidence')
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)
-        if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+        if file_sha256(target) != digest:
             raise ValueError('Copied reference check evidence changed')
 
 
@@ -423,14 +424,14 @@ def materialize_task_references(output: Path, trees: dict[str, Path], case_ids: 
         for path in files:
             target = contained_path(destination, path.relative_to(root.resolve()),
                                     reject_symlinks=True)
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            digest = file_sha256(path)
             if target.exists():
-                if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                if not target.is_file() or file_sha256(target) != digest:
                     raise ValueError('Conflicting task reference: ' + str(target))
             else:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, target)
-            if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+            if file_sha256(target) != digest:
                 raise ValueError('Copied task reference changed: ' + str(target))
 
 
@@ -475,6 +476,6 @@ def copy_cohort_evidence(source, target, dataset, records, batches, *,
 
     for record in records:
         for relative, digest in artifact_bindings(record):
-            if hashlib.sha256(contained_path(target, relative, reject_symlinks=True).read_bytes()).hexdigest() != digest:
+            if file_sha256(contained_path(target, relative, reject_symlinks=True)) != digest:
                 raise ValueError('Copied comparison artifact changed: ' + relative)
         verify_record_public_call_logs(target, record)

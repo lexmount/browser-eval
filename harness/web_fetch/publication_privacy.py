@@ -1,5 +1,6 @@
 """Project public evidence and execution metadata without changing measurements."""
 import hashlib
+from harness.record_io import file_sha256
 import html
 import json
 import re
@@ -936,10 +937,10 @@ def read_evidence_binding(source, binding, *, allow_public_view=True):
     if staged is not None and Path(source).resolve() == staged[0]:
         proposed = staged[1](path)
         if proposed != path:
-            if not proposed.is_file() or hashlib.sha256(proposed.read_bytes()).hexdigest() != identity.sha256:
+            if not proposed.is_file() or file_sha256(proposed) != identity.sha256:
                 raise ValueError('Staged revision evidence binding changed: ' + identity.path)
             return proposed
-    if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == identity.sha256:
+    if path.is_file() and file_sha256(path) == identity.sha256:
         return path
     public = bound_public_view(source, binding) if allow_public_view else None
     if public is None:
@@ -950,7 +951,7 @@ def read_evidence_binding(source, binding, *, allow_public_view=True):
 def original_evidence_size(source, binding):
     """Return verified original size, or its explicitly recorded private size."""
     path = read_evidence_binding(source, binding)
-    if hashlib.sha256(path.read_bytes()).hexdigest() == binding['sha256']:
+    if file_sha256(path) == binding['sha256']:
         return path.stat().st_size
     public = bound_public_view(source, binding)
     if public is None:
@@ -1006,7 +1007,7 @@ def require_public_evidence_view_inventory(source, binding, records):
         if identity in wanted and receipt['role'] == 'scored_answer':
             alias = contained_path(source, identity[0], reject_symlinks=True)
             if (not alias.is_file()
-                    or hashlib.sha256(alias.read_bytes()).hexdigest() != receipt['published_sha256']):
+                    or file_sha256(alias) != receipt['published_sha256']):
                 raise ValueError('Displayed answer differs from its declared public view')
     if not wanted <= identities:
         raise ValueError('Public evidence view inventory omits current evidence')

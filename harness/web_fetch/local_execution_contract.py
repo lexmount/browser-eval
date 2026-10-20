@@ -2,12 +2,17 @@
 import hashlib
 import json
 from pathlib import Path
+from types import MappingProxyType
 
 from harness.record_io import canonical_json_sha256
 from lexbench_webfetch.paths import contained_path
 from .reference_inputs import read_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[2]
+# Frozen schema-1 semantics, not defaults for a future multi-round protocol.
+LOCAL_SCHEMA1_PARAMETERS = MappingProxyType({
+    "runs": 1, "max_failure_retries": 0, "provider_concurrency": 1,
+})
 
 
 def _require_local_batch_segments(batch):
@@ -152,8 +157,8 @@ def require_local_execution_contract(source, dataset, records, contract, executi
     # rounds and retries require the certified cohort's separate lineage model.
     if (contract.get("schema_version") != 1
             or contract.get("kind") != "uniform_native_local_measurement"
-            or contract.get("runs") != 1
-            or contract.get("max_failure_retries") != 0):
+            or contract.get("runs") != LOCAL_SCHEMA1_PARAMETERS["runs"]
+            or contract.get("max_failure_retries") != LOCAL_SCHEMA1_PARAMETERS["max_failure_retries"]):
         raise ValueError("Invalid uniform native local measurement contract")
     canonical = {"cases": (local_measurement_cases(contract, source)
                               if contract.get("dataset_storage") == "evidence"
@@ -163,7 +168,8 @@ def require_local_execution_contract(source, dataset, records, contract, executi
     expected = {(p, c["id"]) for p in contract["providers"] for c in canonical["cases"]}
     if (len(records) != len(expected)
             or {(r["provider"], r["case_id"]) for r in records} != expected
-            or any(r["run"] != 1 or r.get("provider_metadata", {}).get("retry") for r in records)):
+            or any(r["run"] != LOCAL_SCHEMA1_PARAMETERS["runs"]
+                   or r.get("provider_metadata", {}).get("retry") for r in records)):
         raise ValueError("Local measurement matrix is incomplete or has retries")
     if len(execution["batches"]) != len(contract["providers"]):
         raise ValueError("Local measurement execution scope differs")
@@ -186,9 +192,8 @@ def require_local_execution_contract(source, dataset, records, contract, executi
                 or batch.get("attempt_count") != len(measured_ids)):
             raise ValueError("Local measurement execution calls differ from results")
         if (batch.get("parameters", {}).get("timeout") != timeout
-                or batch.get("parameters", {}).get("runs") != 1
-                or batch.get("parameters", {}).get("provider_concurrency") != 1
-                or batch.get("parameters", {}).get("max_failure_retries") != 0):
+                or any(batch.get("parameters", {}).get(key) != value
+                       for key, value in LOCAL_SCHEMA1_PARAMETERS.items())):
             raise ValueError("Local measurement execution parameters differ")
     if contract.get("runner_inputs"):
         _require_local_runner_inputs(source, contract, execution, records)

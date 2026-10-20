@@ -43,7 +43,10 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
     frozen = evidence / "local-evidence/input-dataset.json"
     dataset_digest = write(frozen, dataset)
     config = {name: {"type": "fixture", "fail_cases": ["task-0"]} for name in methods}
-    config_path = tmp_path / "providers.json"
+    # Keep one default-only method and one explicit public control. Private
+    # configuration fields must never be copied into the generated report.
+    config[methods[0]].update(max_bytes=12345, api_key="synthetic-private-credential")
+    config_path = evidence / "providers.json"
     config_digest = write(config_path, {"providers": config})
     _, loaded = load_dataset(frozen)
     records, batches = [], []
@@ -88,6 +91,46 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
     for prefix in ("", "en/"):
         assert len(list((output / prefix / "attempts").glob("*.html"))) == len(saved)
     assert (output / "local-evidence/input-dataset.json").read_bytes() == frozen.read_bytes()
+    from harness.web_fetch.report import load_frozen_method_options
+    options = load_frozen_method_options(output, saved)
+    assert options["schema_version"] == 2
+    assert options["providers"][methods[0]] == {"max_bytes": 12345}
+    assert options["providers"][methods[-1]] == {}
+    assert options["result_count"] == len(saved)
+    assert options["provider_config_sha256"] == config_digest
+    projected = (output / options["source_config"]["path"]).read_bytes()
+    assert hashlib.sha256(projected).hexdigest() == options["source_config"]["sha256"]
+    assert json.loads(projected)["original_provider_config_sha256"] == config_digest
+    assert not (output / "providers.json").exists()
+    for path in output.rglob("*"):
+        if path.is_file():
+            assert b"synthetic-private-credential" not in path.read_bytes()
+    for prefix in ("", "en/"):
+        assert "12345" in (output / prefix / "reproduce/index.html").read_text()
+    if case_count == 5:
+        from harness.web_fetch.report_build import build_report
+        from harness.web_fetch.report_package import build as package_report
+        from harness.web_fetch.publication_check import check as check_package
+        binding_path = tmp_path / "presentation-binding.json"
+        write(binding_path, {
+            "comparison_kind": "uniform_native_local_measurement",
+            "result_count": len(saved), "case_count": case_count, "providers": methods,
+            "frozen_dataset_sha256": hashlib.sha256((output / "dataset.json").read_bytes()).hexdigest(),
+            "results_sha256": hashlib.sha256((output / "results.jsonl").read_bytes()).hexdigest(),
+            "measured_scoring_source_sha256": SCORING_SOURCE_SHA256,
+            "evidence_bindings": [{"path": name,
+                "sha256": hashlib.sha256((output / name).read_bytes()).hexdigest()}
+                for name in ("local-run-contract.json", "execution.json",
+                             "frozen-method-options.json", options["source_config"]["path"])],
+        })
+        rebuilt = tmp_path / "rebuilt"
+        build_report(output, rebuilt, local_audit=True, presentation_binding=binding_path,
+                     language="en", include_english=True)
+        assert load_frozen_method_options(rebuilt, saved) == options
+        assert (rebuilt / options["source_config"]["path"]).read_bytes() == projected
+        archive = tmp_path / "frozen-report.zip"
+        package_report(rebuilt, archive, presentation_binding=binding_path)
+        check_package(archive, rebuilt, presentation_binding=binding_path)
     # Language entry normalization must not hide changes to ordinary links.
     from bs4 import BeautifulSoup
     from harness.web_fetch.report_check import check

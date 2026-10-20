@@ -21,7 +21,7 @@ from harness.web_fetch import (
     webmainbench_runner,
 )
 from harness.web_fetch.reference_inputs import read_dataset_bytes
-from harness.web_fetch.config import add_failure_retry_argument
+from harness.web_fetch.config import DEFAULT_CALL_TIMEOUT_SECONDS, add_failure_retry_argument
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -147,7 +147,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--providers", required=True)
     parser.add_argument("--case-ids", required=True)
     parser.add_argument("--workers", type=int, default=1)
-    parser.add_argument("--timeout", type=float, default=45,
+    parser.add_argument("--timeout", type=float, default=DEFAULT_CALL_TIMEOUT_SECONDS,
                         help="Per-call deadline passed to the shared runner")
     add_failure_retry_argument(parser)
     parser.add_argument("--call-order", choices=("provider", "case-alternating"), default="provider")

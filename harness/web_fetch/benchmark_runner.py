@@ -8,7 +8,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from .artifacts import materialize_bound_artifacts, materialize_task_references
-from .config import load_dataset, load_provider_config, load_runtime_env, add_failure_retry_argument
+from .config import (
+    DEFAULT_CALL_TIMEOUT_SECONDS, load_dataset, load_provider_config,
+    load_runtime_env, add_failure_retry_argument,
+)
 from .providers import build_provider
 from .reference_inputs import input_tree
 from .report_build import build_report
@@ -34,7 +37,7 @@ def main(argv=None):
     parser.add_argument('--call-order', choices=('provider', 'case-alternating'), default='provider',
                         help='Run serially by task with alternating method order, or use provider batches')
     parser.add_argument('--runs',type=int,default=1)
-    parser.add_argument('--timeout', type=float, default=45,
+    parser.add_argument('--timeout', type=float, default=DEFAULT_CALL_TIMEOUT_SECONDS,
                         help='Positive per-call deadline in seconds, retained in execution evidence')
     add_failure_retry_argument(parser)
     args=parser.parse_args(argv)

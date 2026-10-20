@@ -1,7 +1,8 @@
 """Declared native input and route contracts, independent of URLs and answers."""
 import json
 from dataclasses import dataclass
-from harness.record_io import canonical_json_sha256
+from harness.record_io import canonical_json_sha256, file_sha256
+from .config import DEFAULT_CALL_TIMEOUT_SECONDS
 
 from .native_projection import (
     SCORE_ANSWER_FIELDS, require_native_projection_schema, require_native_answer_projection,
@@ -100,7 +101,7 @@ def declared_input_media_kind(case, *, required=True):
 
 # Native parameter values come from the immutable provider configuration and its
 # pinned implementation, not a case URL, expected text, or provider outcome.
-def native_route_cell(provider, case, *, timeout_seconds=45):
+def native_route_cell(provider, case, *, timeout_seconds=DEFAULT_CALL_TIMEOUT_SECONDS):
     media = declared_input_media_kind(case)
     kind, track = case.task_kind, case.track
     key = (provider.name, track, kind, media)
@@ -170,7 +171,7 @@ class NativeRouteLedger:
     before the cohort. Actual arguments are checked before transport. No
     response, URL pattern, or expected answer selects a route.
     """
-    def __init__(self, cases, providers, *, timeout_seconds=45):
+    def __init__(self, cases, providers, *, timeout_seconds=DEFAULT_CALL_TIMEOUT_SECONDS):
         from datetime import datetime, timezone
         import threading
         self.timeout_seconds = timeout_seconds
@@ -316,7 +317,7 @@ def verify_native_route_contract(source, manifest, dataset, records):
         policy = cell.get('answer_selection_policy')
         if policy is not None:
             policy_path = contained_path(source, policy['source_path'], reject_symlinks=True)
-            if hashlib.sha256(policy_path.read_bytes()).hexdigest() != policy.get('source_sha256'):
+            if file_sha256(policy_path) != policy.get('source_sha256'):
                 raise ValueError('Frozen native answer policy source changed')
     cases = {c['id']: c for c in dataset['cases']}
     inventory = {c['case_id']: c for c in doc['cases']}
@@ -420,7 +421,6 @@ def verify_native_execution_manifests(source, manifests, dataset, records):
 
 def materialize_native_route_contracts(output, source, manifests):
     """Copy hash-bound frozen contracts, deduplicating multiple cohort roots."""
-    import hashlib
     import re
     import shutil
     from lexbench_webfetch.paths import contained_path
@@ -437,7 +437,7 @@ def materialize_native_route_contracts(output, source, manifests):
         if relative not in {'native-route-contract.json', 'native-route-contracts/'+digest+'.json'}:
             raise ValueError('Invalid native route contract path')
         path = contained_path(source, relative, reject_symlinks=True)
-        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+        if not path.is_file() or file_sha256(path) != digest:
             raise ValueError('Native route contract bytes changed')
         document = json.loads(path.read_bytes())
         for cell in document.get('cells', []):
@@ -450,23 +450,23 @@ def materialize_native_route_contracts(output, source, manifests):
                     or policy_relative != 'native-answer-policies/'+policy_digest+'.py'):
                 raise ValueError('Invalid native answer policy source binding')
             origin = contained_path(source, policy_relative, reject_symlinks=True)
-            if hashlib.sha256(origin.read_bytes()).hexdigest() != policy_digest:
+            if file_sha256(origin) != policy_digest:
                 raise ValueError('Frozen native answer policy source changed')
             destination = contained_path(output, policy_relative, reject_symlinks=True)
             destination.parent.mkdir(parents=True, exist_ok=True)
             if not destination.exists():
                 shutil.copy2(origin, destination)
-            if hashlib.sha256(destination.read_bytes()).hexdigest() != policy_digest:
+            if file_sha256(destination) != policy_digest:
                 raise ValueError('Copied native answer policy source changed')
         target_relative = 'native-route-contracts/'+digest+'.json'
         target = contained_path(output, target_relative, reject_symlinks=True)
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
-            if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+            if not target.is_file() or file_sha256(target) != digest:
                 raise ValueError('Conflicting native route contract bytes')
         else:
             shutil.copy2(path, target)
-        if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+        if file_sha256(target) != digest:
             raise ValueError('Copied native route contract bytes changed')
         manifest['native_route_contract'] = {'path': target_relative, 'sha256': digest}
 

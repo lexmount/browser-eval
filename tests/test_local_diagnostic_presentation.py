@@ -248,3 +248,34 @@ def test_displayed_native_options_require_actual_configuration_and_call_scope(tm
             load_frozen_method_options(tmp_path, rows)
     else:
         assert load_frozen_method_options(tmp_path, rows)['result_count'] == 1
+
+
+@pytest.mark.parametrize('defect', [None, 'original_hash', 'unsafe_value', 'unknown_key', 'projection_kind', 'changed_bytes'])
+def test_public_method_option_projection_keeps_private_config_identity(tmp_path, defect):
+    import hashlib
+    import json
+    from harness.web_fetch.report import load_frozen_method_options
+    original_hash = 'a' * 64
+    (tmp_path/'local-run-contract.json').write_text(json.dumps({'provider_config_sha256': original_hash}))
+    config = {'providers': {'fixture': {'max_bytes': 100}},
+              'projection': 'allowlisted_method_options',
+              'original_provider_config_sha256': original_hash}
+    if defect == 'original_hash': config['original_provider_config_sha256'] = 'b' * 64
+    elif defect == 'unsafe_value': config['providers']['fixture']['proxy'] = 'https://user:password@example.invalid'
+    elif defect == 'unknown_key': config['providers']['fixture']['api_key'] = 'private'
+    elif defect == 'projection_kind': config['projection'] = 'unverified'
+    path = tmp_path/'public-options.json'
+    path.write_text(json.dumps(config))
+    document = {'schema_version': 2, 'source_config': {'path': path.name,
+                'sha256': hashlib.sha256(path.read_bytes()).hexdigest()},
+                'provider_config_sha256': original_hash,
+                'case_ids': ['a'], 'result_count': 1, 'providers': config['providers'],
+                'scope_title': '选项', 'scope_title_en': 'Options',
+                'scope_description': '仅这次调用。', 'scope_description_en': 'Only this call.'}
+    (tmp_path/'frozen-method-options.json').write_text(json.dumps(document))
+    if defect == 'changed_bytes': path.write_text('{}')
+    rows = [{'provider': 'fixture', 'case_id': 'a'}]
+    if defect:
+        with pytest.raises(ValueError): load_frozen_method_options(tmp_path, rows)
+    else:
+        assert load_frozen_method_options(tmp_path, rows)['providers'] == config['providers']

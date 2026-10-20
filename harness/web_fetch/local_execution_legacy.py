@@ -3,11 +3,17 @@
 The original/resumed/admitted plan names and worker-path migration describe
 historical calls. New cohorts use the ordinary execution contract instead;
 this module neither creates plans nor changes stored records.
+
+Delete this decoder only after no supported frozen presentation or current
+authority binds an execution_plans receipt, and their validation entry points
+and historical negative controls have been retired together. A new cohort's
+lack of such plans alone does not establish that historical evidence is unused.
 """
-import hashlib
+from harness.record_io import file_sha256
 import json
 
 from lexbench_webfetch.paths import contained_path
+from .local_execution_contract import LOCAL_SCHEMA1_PARAMETERS
 
 
 def require_execution_lineage(
@@ -33,7 +39,7 @@ def require_legacy_execution_segments(
     correction = json.loads(correction_path.read_text()) if correction_path.is_file() else None
     def read(binding, *, json_lines=False):
         path = contained_path(source, binding["path"], reject_symlinks=True)
-        if hashlib.sha256(path.read_bytes()).hexdigest() != binding["sha256"]:
+        if file_sha256(path) != binding["sha256"]:
             raise ValueError("Local execution evidence binding changed")
         if json_lines:
             return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
@@ -48,12 +54,12 @@ def require_legacy_execution_segments(
             or original.get("providers") != contract["providers"]
             or original.get("dataset_sources") != contract.get("dataset_sources")
             or original.get("scoring_source_sha256") != contract["scoring_source_sha256"]
-            or original.get("runs") != 1
+            or original.get("runs") != LOCAL_SCHEMA1_PARAMETERS["runs"]
             or original.get("timeout_seconds") != timeout_seconds
-            or original.get("max_failure_retries") != 0):
+            or original.get("max_failure_retries") != LOCAL_SCHEMA1_PARAMETERS["max_failure_retries"]):
         raise ValueError("Local execution changed the frozen protocol")
-    expected_policy = {"runs": 1, "timeout": timeout_seconds, "delay": original["delay"],
-                       "provider_concurrency": 1, "max_failure_retries": 0}
+    expected_policy = {**LOCAL_SCHEMA1_PARAMETERS, "timeout": timeout_seconds,
+                       "delay": original["delay"]}
     if resumed.get("parameters") != expected_policy:
         raise ValueError("Local resumed execution parameters differ")
     configs = {key: read(plans[key]["configuration"]) for key in plans}

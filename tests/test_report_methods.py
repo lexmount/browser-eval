@@ -6,6 +6,26 @@ from harness.web_fetch.methods import METHOD_REGISTRY, method_info, method_page_
 from harness.web_fetch.report_i18n import translate_text
 
 class AdoptionTests(unittest.TestCase):
+ def test_source_link_follows_method_type_and_registered_participant(self):
+  import json,tempfile
+  from pathlib import Path
+  from harness.web_fetch.report_methods import render_methods
+  from harness.web_fetch.report import hero,section,table,cell,link,esc
+  with tempfile.TemporaryDirectory() as tmp:
+   out=Path(tmp)
+   (out/'dataset.json').write_text(json.dumps({
+       'comparison':{'kind':'uniform_native_local_measurement'}}))
+   records=[{'provider':'renamed-moli','provider_type':'moli_webfetch',
+             'provider_metadata':{}}]
+   def render():
+    return render_methods(out,records,hero=hero,section=section,
+                          table=table,cell=cell,link=link,esc=esc)
+   body=render()
+   self.assertIn('href="https://github.com/lexmount/moli"',body)
+   with patch('harness.web_fetch.methods.browser_method_registry',return_value={
+       'renamed-moli':{'source_url':'https://example.org/build-source'}}):
+    self.assertIn('href="https://example.org/build-source"',render())
+
  def test_missing_run_configuration_does_not_imply_default_or_unpaid_execution(self):
   for provider_type in ('custom_adapter', 'fixture', 'cowagent_builtin'):
    model=method_page_model('custom','Custom',[

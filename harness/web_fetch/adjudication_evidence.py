@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.metrics import task_passed
 from .local_execution_contract import local_measurement_call_sha256
-from harness.record_io import canonical_json_sha256
+from harness.record_io import file_sha256, canonical_json_sha256
 
 from .publication_privacy import read_evidence_binding, evidence_excerpt_matches
 
@@ -576,7 +576,7 @@ def _require_local_review(source, dataset, records, *, review_document=None, sco
             or review.get("review_protocol", {}).get("scope") != "all"
             or review.get("reviewed_attempts") != len(records)
             or review.get("expected_attempts") != len(records)
-            or review.get("results_sha256") != hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest()
+            or review.get("results_sha256") != file_sha256(source / "results.jsonl")
             or len(indexed) != len(rows) or set(indexed) != set(expected)):
         raise ValueError("Local independent review scope differs")
     unresolved = 0
