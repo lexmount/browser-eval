@@ -11,6 +11,9 @@ from .base import Provider
 
 class FixtureProvider(Provider):
     """Deterministic provider used to verify a fresh installation offline."""
+    def native_route(self, case):
+        return 'fixture', 'synthetic_fixture', ['content', 'title', 'final_url']
+
 
     def _result(self, **kwargs):
         result = ProviderResult(**kwargs)

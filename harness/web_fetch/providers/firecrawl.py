@@ -15,6 +15,11 @@ from .http_client import inner_timeout_budget, request
 
 
 class FirecrawlProvider(Provider):
+    def native_route(self, case):
+        fields = (['data.rawBase64'] if case.task_kind == 'file' else
+                  ['data.markdown', 'data.links', 'data.images', 'data.videos', 'data.video'])
+        return 'http', '/v2/scrape', fields + ['data.metadata.title', 'data.metadata.url']
+
     _PROXY_MAX_CREDITS = {"basic": 1, "enhanced": 1, "auto": 1}
     _VIDEO_FORMAT_CREDITS = 5
 

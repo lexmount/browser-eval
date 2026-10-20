@@ -77,6 +77,10 @@ def terminate_owned_process_tree(process):
 
 
 class Provider(ABC):
+    def native_route(self, case):
+        """Declare native transport, interface and candidate answer fields."""
+        raise ValueError('Unsupported fixed-native interface: ' + self.type)
+
     def __init__(self, name: str, config: dict[str, Any]):
         self.name = name
         self.config = config

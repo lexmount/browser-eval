@@ -21,6 +21,12 @@ from .runtime_identity import validate_runtime_identity
 
 class SubprocessJsonlProvider(Provider):
     """Invoke a persistent repository-native worker over line-delimited JSON."""
+    def native_route(self, case):
+        if self.type not in {'subprocess_jsonl', 'cowagent_builtin'}:
+            return super().native_route(case)
+        return 'jsonl', 'native_worker_command', [
+            'content', 'metadata.links', 'metadata.images', 'metadata.videos',
+            'metadata.media', 'metadata.extras', 'files', 'title', 'final_url']
 
     _RUNTIME_CONTRACTS = {
         "cowagent_builtin": {

@@ -154,6 +154,12 @@ def _family_wait_until(config, track):
 
 
 class MoliWebFetchProvider(Provider):
+    def native_route(self, case):
+        interface = _route_for_case(case, native_default=True)
+        fields = (['original_bytes'] if interface in {'raw_file', 'native_document_bytes'}
+                  else ['stdout', 'diagnostic.main_document_url'])
+        return 'cli', interface, fields
+
     def __init__(self, name, config):
         super().__init__(name, config)
         self._process_lock = threading.Lock()

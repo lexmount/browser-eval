@@ -57,6 +57,9 @@ def _public_url_error(value: object) -> dict[str, object]:
 
 
 class ExaContentsProvider(Provider):
+    def native_route(self, case):
+        return 'http', '/contents', ['results[].text', 'results[].extras', 'results[].title', 'results[].url']
+
     def native_http_arguments(self, case, timeout):
         body = {'urls': [case.url], 'text': {'verbosity': self.config.get('text_verbosity', 'full')},
                 'maxAgeHours': int(self.config.get('max_age_hours', 0))}

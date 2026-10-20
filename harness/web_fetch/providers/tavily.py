@@ -29,6 +29,9 @@ def _public_failure_errors(values: list[object]) -> list[str]:
 
 
 class TavilyExtractProvider(Provider):
+    def native_route(self, case):
+        return 'http', '/extract', ['results[].raw_content', 'results[].images', 'images', 'results[].url']
+
     def native_http_arguments(self, case, timeout):
         body = {'urls': [case.url], 'extract_depth': self.config.get('extract_depth', 'advanced'),
                 'format': 'markdown', 'include_images': bool(self.config.get('include_images', False))}

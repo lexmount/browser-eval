@@ -217,6 +217,9 @@ def _interface_error(*, response_status: int,
 
 
 class CloudflareMarkdownProvider(Provider):
+    def native_route(self, case):
+        return 'http', self.native_http_interface(case), ['result', 'meta.title', 'meta.finalUrl']
+
     def native_http_interface(self, case):
         return ('/content' if self.type == 'cloudflare_content' else '/scrape'
                 if case.task_kind == 'resource' and case.track in {'image', 'video'} else '/markdown')
@@ -700,6 +703,7 @@ class CloudflareMarkdownProvider(Provider):
 
 
 class CloudflareContentProvider(Provider):
+    native_route = CloudflareMarkdownProvider.native_route
     native_http_interface = CloudflareMarkdownProvider.native_http_interface
     native_http_arguments = CloudflareMarkdownProvider.native_http_arguments
     _http_arguments = CloudflareMarkdownProvider._http_arguments

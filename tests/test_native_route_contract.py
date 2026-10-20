@@ -868,3 +868,17 @@ def test_synthetic_all_provider_route_declarations_match_frozen_baseline():
     from pathlib import Path
     expected = json.loads((Path(__file__).parent / 'fixtures/native-route-baseline.json').read_text())
     assert _synthetic_route_baseline() == expected
+
+
+@pytest.mark.parametrize('config', [
+    {'type': 'http'},
+    {'type': 'subprocess_jsonl', 'method_type': 'unregistered-worker'},
+])
+def test_route_declaration_does_not_admit_unsupported_native_types(config):
+    from harness.web_fetch.providers.base import build_provider
+    from harness.web_fetch.native_routes import native_route_cell
+    provider = build_provider('unsupported', config)
+    case = SimpleNamespace(track='web', task_kind='body',
+                           source_benchmark={'input_media_kind': 'html_page'})
+    with pytest.raises(ValueError, match='Unsupported fixed-native interface'):
+        native_route_cell(provider, case)

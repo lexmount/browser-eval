@@ -40,35 +40,8 @@ def native_route_cell(provider, case):
     kind, track = case.task_kind, case.track
     key = (provider.name, track, kind, media)
     config, method = provider.config, provider.type
+    transport, interface, fields = provider.native_route(case)
     endpoint = None
-    if method == 'moli_webfetch':
-        from .providers.moli import _route_for_case
-        transport = 'cli'
-        interface = _route_for_case(case, native_default=True)
-        fields = (['original_bytes'] if interface in {'raw_file', 'native_document_bytes'}
-                  else ['stdout', 'diagnostic.main_document_url'])
-    elif method in {'firecrawl', 'tavily_extract', 'exa_contents', 'cloudflare_markdown', 'cloudflare_content'}:
-        transport = 'http'
-        if method == 'firecrawl':
-            interface = '/v2/scrape'
-            fields = ['data.rawBase64'] if kind == 'file' else ['data.markdown', 'data.links', 'data.images', 'data.videos', 'data.video']
-            fields += ['data.metadata.title', 'data.metadata.url']
-        elif method == 'tavily_extract':
-            interface = '/extract'
-            fields = ['results[].raw_content', 'results[].images', 'images', 'results[].url']
-        elif method == 'exa_contents':
-            interface = '/contents'
-            fields = ['results[].text', 'results[].extras', 'results[].title', 'results[].url']
-        else:
-            interface = provider.native_http_interface(case)
-            fields = ['result', 'meta.title', 'meta.finalUrl']
-    elif method in {'subprocess_jsonl', 'cowagent_builtin'}:
-        transport, interface = 'jsonl', 'native_worker_command'
-        fields = ['content', 'metadata.links', 'metadata.images', 'metadata.videos', 'metadata.media', 'metadata.extras', 'files', 'title', 'final_url']
-    elif method == 'fixture':
-        transport, interface, fields = 'fixture', 'synthetic_fixture', ['content', 'title', 'final_url']
-    else:
-        raise ValueError('Unsupported fixed-native interface: ' + method)
     if transport == 'http':
         endpoint, _ = provider.native_http_arguments(case, 45)
     from .native_projection import native_projection_policy
