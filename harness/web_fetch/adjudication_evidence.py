@@ -444,7 +444,7 @@ def _require_current_retained_reviews(source, dataset, records, review, receipt)
 
 def score_reviewed_page_identity(source, case, record, annotation, captures, *, historical_scoring_source=None):
     """Apply a bound retrospective content correspondence, never a native URL."""
-    from lexbench_webfetch.metrics import normalize_for_match, task_measured
+    from lexbench_webfetch.metrics import normalize_for_match
     from lexbench_webfetch.scoring import score_attempt, _same_page_url, SCORING_SOURCE_SHA256
 
     if (annotation.get("attempt_id") != record["attempt_id"]
@@ -462,7 +462,7 @@ def score_reviewed_page_identity(source, case, record, annotation, captures, *, 
         previous_metrics=record["metrics"], status_code=record.get("status_code"),
         title=record.get("title"), final_url=record.get("final_url"),
     )
-    if not historical and (task_measured(original_metrics)
+    if not historical and (not original_metrics.get("page_identity_required")
             or original_metrics.get("page_identity_status") != "unavailable"):
         raise ValueError("Page review may only fill an unavailable page identity")
     capture = captures[annotation["capture_index"]]

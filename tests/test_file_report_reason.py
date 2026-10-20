@@ -22,10 +22,10 @@ class FileReportReasonTests(unittest.TestCase):
         from harness.web_fetch.report import failure_category, result_label
         row={'ok':True,'metrics':{'request_ok':True,'page_identity_required':True,
                                 'page_identity_status':'unavailable'}}
-        self.assertEqual(result_label(row,{}),'无法判定')
+        self.assertEqual(result_label(row,{}),'未通过')
         self.assertIn('最终网页身份',reason(row,{}))
         self.assertNotIn('原文件',reason(row,{}))
-        self.assertIn('无法判定',failure_category(row,{}))
+        self.assertIn('身份',failure_category(row,{}))
 
     def test_shared_evidence_lines_preserve_complete_exact_matches(self):
         from harness.web_fetch.report import _exact_evidence_lines, _normalized_evidence_lines
@@ -43,12 +43,22 @@ class FileReportReasonTests(unittest.TestCase):
         rows=[{'provider':'p','case_id':'a','ok':True,'elapsed_ms':1,
                'metrics':{'content_pass':True}},
               {'provider':'p','case_id':'b','ok':True,'elapsed_ms':1,
-               'metrics':{'page_identity_required':True,'page_identity_status':'unavailable'}}]
+               'metrics':{'rule_review_status':'unresolved'}}]
         rendered=overall_ranking(rows,cases)
         self.assertIn('无法判定',rendered)
         self.assertIn('1/1',rendered)
         self.assertIn('可判定数',rendered)
         self.assertNotIn('每题计一次通过或失败',rendered)
+
+    def test_required_identity_failure_stays_in_the_planned_denominator(self):
+        from harness.web_fetch.report import overall_ranking
+        cases = {key: {'id': key, 'track': 'web'} for key in ('a', 'b')}
+        rows = [{'provider': 'p', 'case_id': key, 'ok': True, 'elapsed_ms': 1,
+                 'metrics': ({'content_pass': True} if key == 'a' else
+                    {'page_identity_required': True, 'page_identity_status': 'unavailable'})}
+                for key in cases]
+        self.assertIn('1/2', overall_ranking(rows, cases))
+
 
 
 class BoundedAnchorEvidenceTests(unittest.TestCase):

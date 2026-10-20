@@ -1568,6 +1568,8 @@ def failure_category(r,c):
  if r['metrics'].get('evaluation_excluded'):return '评测环境异常：统一排除比较'
  if not measured(r,c):return '无法判定：最终网页身份缺少证据' if r['metrics'].get('page_identity_required') and r['metrics'].get('page_identity_status')=='unavailable' else '未测：缺少验收证据'
  if succeeded(r,c):return '—'
+ if r['metrics'].get('page_identity_required') and r['metrics'].get('page_identity_status') != 'verified':
+  return '最终网页身份未核实'
  # Classification describes an already failed result; hints never veto success.
  metrics=r['metrics']
  if (r.get('ok',False) and metrics.get('request_ok',True)
@@ -1658,6 +1660,8 @@ def reason(r,c):
  if c.get('task_kind')=='structure':
   from .report_components import list_rule_description
   return f"检出 {r['metrics'].get('named_entry_count',0)} 个具名详情入口。"+list_rule_description(c)
+ if r['metrics'].get('page_identity_required') and r['metrics'].get('page_identity_status') != 'verified':
+  return '未通过：最终网页身份缺少证据，保留在计划任务分母中。'
  if c.get('task_kind')=='file':return '已返回原始文件，格式特征、长度及目标 SHA-256 校验通过。' if succeeded(r,c) else '没有返回可核对的原始文件；文字或重复输入地址不算文件。'
  if c.get('task_kind')=='resource':
   missing=[x['id'] for x in r['metrics'].get('resource_results',[]) if not x['pass']]

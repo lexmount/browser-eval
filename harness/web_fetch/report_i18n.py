@@ -37,6 +37,8 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "最终网页身份未核实": "Final page identity is not verified",
+    "未通过：最终网页身份缺少证据，保留在计划任务分母中。": "Failed: final page identity lacks evidence; this result remains in the planned task denominator.",
     "仓库内测试适配器；只用于确定性回归测试。": "Repository test adapter; used only for deterministic regression tests.",
     "不需要账号或环境变量。": "No account or environment variables required.",
     "先检查请求与返回内容，再逐项检查本例声明的稳定文字、正文覆盖与组合规则；诊断文字只显示命中情况。": "Check the request and returned content, then apply the declared stable text, body coverage and composite requirements. Diagnostic text reports matches without changing the verdict.",
