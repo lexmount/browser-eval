@@ -7,7 +7,7 @@ from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
 from ..native_projection import native_answer_projection
 from .base import Provider
-from .http_client import inner_timeout_budget, request
+from .http_client import request
 
 
 # Exa's per-URL failure envelope contains free-form JSON.  Publish only the
@@ -71,24 +71,23 @@ class ExaContentsProvider(Provider):
         return (str(self.config.get('base_url', 'https://api.exa.ai')).rstrip('/') + '/contents',
                 self.native_http_options(body, {'x-api-key': str(self.config.get('api_key', ''))}, timeout))
 
+    def diagnostic_http_arguments(self, case, timeout):
+        endpoint, arguments = self.native_http_arguments(case, timeout)
+        body = arguments['json_body']
+        body['livecrawlTimeout'] = min(int(self.config.get('livecrawl_timeout_ms', 15_000)),
+                                       max(1, int(timeout * 1000)))
+        if case.acceptance_contract.get('schema') == 'named_link':
+            body.setdefault('extras', {})['richLinks'] = int(self.config.get('rich_links_limit', 100))
+        return endpoint, arguments
+
     def validate(self) -> list[str]:
         return [] if self.config.get("api_key") else ["api_key"]
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
-        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
-        livecrawl_timeout_ms = min(
-            int(self.config.get("livecrawl_timeout_ms", 15_000)),
-            max(1, int(http_timeout * 1000)),
-        )
-        endpoint, arguments = self.native_http_arguments(case, http_timeout)
+        http_timeout = self.http_timeout_budget(timeout)
+        endpoint, arguments = self.request_arguments(case, http_timeout)
         request_body = arguments['json_body']
-        if not self.config.get("uniform_native_parameters"):
-            # Diagnostic calls keep the documented service deadline inside the
-            # HTTP budget, plus the task's explicit named-link output contract.
-            request_body['livecrawlTimeout'] = livecrawl_timeout_ms
-            if case.acceptance_contract.get("schema") == "named_link":
-                request_body.setdefault('extras', {})['richLinks'] = int(self.config.get("rich_links_limit", 100))
         response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
@@ -147,7 +146,7 @@ class ExaContentsProvider(Provider):
                 "request_id": payload.get("requestId"),
                 "url_status": public_status,
                 "url_error": public_url_error,
-                "livecrawl_timeout_ms": None if self.config.get("uniform_native_parameters") else livecrawl_timeout_ms,
+                "livecrawl_timeout_ms": request_body.get('livecrawlTimeout'),
                 "cost_dollars": (
                     cost
                     if isinstance(cost, (int, float))

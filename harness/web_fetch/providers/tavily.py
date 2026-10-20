@@ -7,7 +7,7 @@ from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
 from ..native_projection import native_answer_projection
 from .base import Provider
-from .http_client import inner_timeout_budget, request
+from .http_client import request
 
 
 # Tavily's failed_results entries are free-form.  Keep the useful public API
@@ -38,22 +38,21 @@ class TavilyExtractProvider(Provider):
         return (str(self.config.get('base_url', 'https://api.tavily.com')).rstrip('/') + '/extract',
                 self.native_http_options(body, {'Authorization': 'Bearer '+str(self.config.get('api_key', ''))}, timeout))
 
+    def diagnostic_http_arguments(self, case, timeout):
+        endpoint, arguments = self.native_http_arguments(case, timeout)
+        extract_timeout = min(float(self.config.get('extract_timeout_seconds', 60.0)), timeout, 60.0)
+        if extract_timeout >= 1.0:
+            arguments['json_body']['timeout'] = round(extract_timeout, 3)
+        return endpoint, arguments
+
     def validate(self) -> list[str]:
         return [] if self.config.get("api_key") else ["api_key"]
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
-        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
-        configured_extract_timeout = float(
-            self.config.get("extract_timeout_seconds", 60.0)
-        )
-        extract_timeout = min(configured_extract_timeout, http_timeout, 60.0)
-        endpoint, arguments = self.native_http_arguments(case, http_timeout)
+        http_timeout = self.http_timeout_budget(timeout)
+        endpoint, arguments = self.request_arguments(case, http_timeout)
         request_body = arguments['json_body']
-        # Diagnostic calls bound the service timeout; native calls retain the
-        # same declared API defaults used by the pre-call route contract.
-        if extract_timeout >= 1.0 and not self.config.get("uniform_native_parameters"):
-            request_body["timeout"] = round(extract_timeout, 3)
         response = self.native_http_request(case, request, endpoint, native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()

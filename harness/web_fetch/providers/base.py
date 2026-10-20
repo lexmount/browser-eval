@@ -85,10 +85,18 @@ class Provider(ABC):
         self.name = name
         self.config = config
         self.type = str(config.get("type", name))
+        from functools import partial
+        from .http_client import inner_timeout_budget
+        self._native_mode = bool(config.get('uniform_native_parameters'))
+        self.http_timeout_budget = partial(inner_timeout_budget, native_default=self._native_mode)
+        self.request_arguments = (self._native_request_arguments if self._native_mode
+                                  else self.diagnostic_http_arguments)
 
     def check_native_call(self, case: EvalCase) -> None:
         """Permit native task outputs, never case-specific retrieval assistance."""
-        if not self.config.get("uniform_native_parameters"):
+        if bool(self.config.get('uniform_native_parameters')) != self._native_mode:
+            raise ValueError('Native execution mode changed after provider initialization')
+        if not self._native_mode:
             return
         if case.retrieval_hints and not (case.track == "dynamic" and case.retrieval_hints == {"version": 3, "mode": "native"}):
             raise ValueError("fixed native calls prohibit per-case retrieval hints")
@@ -114,7 +122,9 @@ class Provider(ABC):
         to the contract frozen before the cohort.
         """
         ledger = native_route_ledger
-        if self.config.get('uniform_native_parameters'):
+        if bool(self.config.get('uniform_native_parameters')) != self._native_mode:
+            raise ValueError('Native execution mode changed after provider initialization')
+        if self._native_mode:
             native_endpoint, native_arguments = self.native_http_arguments(case, kwargs.get('timeout'))
             if endpoint != native_endpoint or kwargs != native_arguments:
                 if ledger is not None:
@@ -129,6 +139,13 @@ class Provider(ABC):
 
     def native_http_arguments(self, case, timeout):
         raise ValueError('Provider has no fixed-native HTTP request builder')
+
+    def _native_request_arguments(self, case, timeout):
+        # Retain one canonical builder for both freeze and transport checks.
+        return self.native_http_arguments(case, timeout)
+
+    def diagnostic_http_arguments(self, case, timeout):
+        return self.native_http_arguments(case, timeout)
 
     def native_http_options(self, body, headers, timeout):
         return {'method': 'POST', 'json_body': body, 'headers': headers,

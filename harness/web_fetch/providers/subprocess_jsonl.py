@@ -67,6 +67,8 @@ class SubprocessJsonlProvider(Provider):
     def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
         self.type = str(config.get("method_type") or self.type)
+        self.worker_request = (self._native_worker_request if self._native_mode
+                               else self._diagnostic_worker_request)
         self._process: subprocess.Popen[str] | None = None
         self._stdout_queue: queue.Queue[str | None] = queue.Queue()
         self._stderr_lock = threading.Condition()
@@ -213,11 +215,30 @@ class SubprocessJsonlProvider(Provider):
                 **({'input_media_kind': media} if media is not None else {}), 'retrieval_plan': None,
                 'retrieval_mode': 'native_default' if case.track == 'dynamic' else 'declared_plan'}
 
+    def _native_worker_request(self, case, timeout, diagnostic_path, input_media, retrieval_plan):
+        return self.native_worker_request(case, timeout, diagnostic_path)
+
+    def _diagnostic_worker_request(self, case, timeout, diagnostic_path, input_media, retrieval_plan):
+        return {
+            "url": case.url,
+            "log_level": self.config.get("log_level"),
+            "diagnostic_path": diagnostic_path,
+            "timeout_seconds": timeout,
+            "uniform_native_parameters": False,
+            "max_bytes": int(self.config.get("max_bytes", 20_000_000)),
+            "dns_mode": self.config.get("dns_mode", "system"),
+            "task_kind": case.task_kind,
+            "track": case.track,
+            **({"input_media_kind": input_media} if input_media is not None else {}),
+            "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
+            "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
+        }
+
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
         from ..native_routes import declared_input_media_kind
         input_media = declared_input_media_kind(case, required=bool(
-            self.config.get("uniform_native_parameters") and case.track == "document"))
+            self._native_mode and case.track == "document"))
         answer_begin = time.perf_counter()
         try:
             retrieval_plan = plan_for_case(case)
@@ -238,22 +259,9 @@ class SubprocessJsonlProvider(Provider):
             # consumed by the reader before _start returns.
             stderr_cursor = (0, 0)
         assert process.stdin is not None and process.stdout is not None
-        request = {
-            "url": case.url,
-            "log_level": self.config.get("log_level"),
-            "diagnostic_path": str(self._active_diagnostics.path) if self._active_diagnostics else None,
-            "timeout_seconds": timeout,
-            "uniform_native_parameters": bool(self.config.get("uniform_native_parameters")),
-            "max_bytes": int(self.config.get("max_bytes", 20_000_000)),
-            "dns_mode": self.config.get("dns_mode", "system"),
-            "task_kind": case.task_kind,
-            "track": case.track,
-            **({"input_media_kind": input_media} if input_media is not None else {}),
-            "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
-            "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
-        }
-        if self.config.get('uniform_native_parameters'):
-            request = self.native_worker_request(case, timeout, request['diagnostic_path'])
+        request = self.worker_request(case, timeout,
+            str(self._active_diagnostics.path) if self._active_diagnostics else None,
+            input_media, retrieval_plan)
         if native_route_ledger is not None:
             from harness.record_io import canonical_json_sha256
             projected = {**request, 'url': '<input-url>',

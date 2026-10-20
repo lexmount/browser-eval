@@ -11,7 +11,7 @@ from harness.web_fetch.models import ProviderResult
 from ..retrieval_hints import plan_for_case, native_default_case
 from ..native_projection import native_answer_projection
 from .base import Provider
-from .http_client import inner_timeout_budget, request
+from .http_client import request
 
 
 class FirecrawlProvider(Provider):
@@ -36,6 +36,11 @@ class FirecrawlProvider(Provider):
         headers = {'Authorization': 'Bearer '+str(self.config['api_key'])} if self.config.get('api_key') else {}
         return (str(self.config.get('base_url', 'https://api.firecrawl.dev')).rstrip('/') + '/v2/scrape',
                 self.native_http_options(body, headers, timeout))
+
+    def diagnostic_http_arguments(self, case, timeout):
+        endpoint, arguments = self.native_http_arguments(case, timeout)
+        arguments['json_body']['timeout'] = min(int(timeout * 1000), 300_000)
+        return endpoint, arguments
 
     def validate(self) -> list[str]:
         if "only_main_content" in self.config and not isinstance(self.config["only_main_content"], bool):
@@ -115,7 +120,7 @@ class FirecrawlProvider(Provider):
                 "Firecrawl capacity_credits_per_call is below the configured proxy bound"
             )
         try:
-            http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
+            http_timeout = self.http_timeout_budget(timeout)
         except ValueError as error:
             raise ValueError("invalid Firecrawl capacity preflight timeout") from error
         base_url = str(self.config.get("base_url", "https://api.firecrawl.dev")).rstrip("/")
@@ -154,7 +159,7 @@ class FirecrawlProvider(Provider):
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
         try:
-            http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
+            http_timeout = self.http_timeout_budget(timeout)
         except ValueError:
             return ProviderResult(
                 False,
@@ -172,10 +177,8 @@ class FirecrawlProvider(Provider):
             )
         file_route = case.task_kind == "file"
         native_video_route = case.track == "video" and case.task_kind == "resource"
-        endpoint, arguments = self.native_http_arguments(case, http_timeout)
+        endpoint, arguments = self.request_arguments(case, http_timeout)
         request_body = arguments['json_body']
-        if not self.config.get("uniform_native_parameters"):
-            request_body['timeout'] = service_timeout_ms
         route = "v2_scrape_raw_base64" if file_route else "v2_scrape"
         wait_metadata = None
         dynamic_wait_strategy = None

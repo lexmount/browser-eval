@@ -900,3 +900,36 @@ def test_explicit_ledgers_do_not_replace_each_others_provider_state(tmp_path):
     provider.native_http_request(cases[0], Mock(), endpoint,
                                  native_route_ledger=second, **arguments)
     assert second.calls
+
+
+@pytest.mark.parametrize('method,field', [
+    ('firecrawl', 'timeout'), ('tavily_extract', 'timeout'), ('exa_contents', 'livecrawlTimeout'),
+])
+@pytest.mark.parametrize('native', [True, False])
+def test_initialized_request_mode_owns_service_timeout(method, field, native):
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.providers.base import build_provider
+    provider = build_provider('method', {'type': method, 'uniform_native_parameters': native})
+    case = EvalCase('case', 'Case', 'https://input.example.test', 'control', [])
+    _, arguments = provider.request_arguments(case, provider.http_timeout_budget(45))
+    assert (field not in arguments['json_body']) is native
+    assert arguments['json_body']['urls' if method != 'firecrawl' else 'url'] == (
+        [case.url] if method != 'firecrawl' else case.url)
+
+
+@pytest.mark.parametrize('initial_mode', [True, False])
+def test_provider_mode_cannot_be_changed_after_initialization(initial_mode):
+    from unittest.mock import Mock
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.providers.base import build_provider
+    provider = build_provider('method', {'type': 'tavily_extract',
+                                        'uniform_native_parameters': initial_mode})
+    case = EvalCase('case', 'Case', 'https://input.example.test', 'control', [])
+    endpoint, arguments = provider.native_http_arguments(case, 45)
+    provider.config['uniform_native_parameters'] = not initial_mode
+    callback = Mock()
+    with pytest.raises(ValueError, match='execution mode changed'):
+        provider.native_http_request(case, callback, endpoint, **arguments)
+    with pytest.raises(ValueError, match='execution mode changed'):
+        provider.fetch(case, 45)
+    callback.assert_not_called()
