@@ -1020,10 +1020,12 @@ def rescore_evaluation(
             raise ValueError(f"run contains case absent from dataset: {record['case_id']}")
         artifact = contained_path(run_dir,record["artifact_path"])
         previous_deadline = bool(record.get("metrics", {}).get("deadline_overrun"))
+        from .artifacts import file_scoring_metadata
         record["metrics"] = score_attempt(
             case, artifact.read_bytes(), ok=bool(record.get("ok")),
             title=record.get('title'), final_url=record.get('final_url'),
-            metadata=record.get("provider_metadata", {}), previous_metrics=record["metrics"],
+            metadata=file_scoring_metadata(case, record.get("provider_metadata", {}), run_dir),
+            previous_metrics=record["metrics"],
             list_reference=load_list_reference(case, dataset_path.parent),
             status_code=record.get('status_code'),
         )

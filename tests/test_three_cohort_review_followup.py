@@ -145,13 +145,13 @@ def test_legacy_page_text_rules_cannot_take_evidence_from_metadata(rule):
         assert score_attempt(case,content.encode(),ok=True,title=title)['content_pass'] is expected
 
 
-def test_explicit_title_fact_and_body_scope_are_independent_requirements():
+def test_required_body_facts_and_body_scope_cannot_be_supplied_by_title_metadata():
     from lexbench_webfetch.body_coverage import body_requirements
     text='Required body paragraph explains independent visible source content and complete record ownership.'
     case={'url':'https://example.test/article','task_kind':'body',
           'required_facts':[{'id':'title','alternatives':['Exact page title']}],
           'body_requirements':body_requirements(text)}
-    for content,title,expected in [(text,'Exact page title',True),
-                                   (text,'Wrong title',False),
-                                   ('Other text','Exact page title',False)]:
+    for content,title,expected in [(text+'\nExact page title','Wrong title',True),
+                                   (text,'Exact page title',False),
+                                   ('Exact page title','Exact page title',False)]:
         assert score_attempt(case,content.encode(),ok=True,title=title)['content_pass'] is expected

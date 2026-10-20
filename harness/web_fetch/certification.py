@@ -193,6 +193,11 @@ def main(argv: list[str] | None = None) -> None:
     known = {case["id"] for case in dataset["cases"]}
     if set(case_ids) - known:
         parser.error("Unknown case IDs: " + ", ".join(sorted(set(case_ids) - known)))
+    unresolved = sorted(case["id"] for case in dataset["cases"]
+                        if case["id"] in case_ids
+                        and (case.get("rule_review") or {}).get("status") == "unresolved")
+    if unresolved and not args.diagnostic:
+        parser.error("Formal cohorts require resolved acceptance rules: " + ", ".join(unresolved))
     if args.output.exists() or args.work_root.exists():
         parser.error("Output and work root must both be new immutable paths")
 

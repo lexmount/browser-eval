@@ -559,12 +559,12 @@ class ScoringTests(unittest.TestCase):
         self.assertTrue(complete["stable_task_pass"])
         self.assertTrue(task_passed(True, complete))
 
-    def test_source_title_is_answer_evidence_without_inflating_body_length(self):
+    def test_source_title_cannot_supply_required_body_facts(self):
         c=case(required_facts=[{'id':'title','alternatives':['Exact page title']},
                               {'id':'body','alternatives':['Body fact']}],
                min_content_chars=20)
         measured=score_attempt(c,b'Body fact',ok=True,title='Exact page title')
-        self.assertEqual(measured['fact_coverage'],1)
+        self.assertEqual(measured['fact_coverage'],.5)
         self.assertEqual(measured['content_chars'],len('Body fact'))
         self.assertEqual(measured['title_chars'],len('Exact page title'))
         self.assertFalse(measured['length_pass'])
@@ -624,8 +624,9 @@ class ScoringTests(unittest.TestCase):
         self.assertEqual((mapping, previous, metadata), original)
         self.assertEqual(first["content_sha256"], hashlib.sha256(b"Alpha\r\nBeta").hexdigest())
         self.assertEqual(first["content_chars"], len("Alpha\r\nBeta"))
-        for key in previous:
+        for key in previous.keys() - {"raw_file_pass"}:
             self.assertEqual(first[key], previous[key])
+        self.assertNotIn("raw_file_pass", first)
 
     def test_text_coverage_is_declared_groups_not_alternatives_or_word_f1(self):
         c = case(required_facts=[{"id": "a", "alternatives": ["Alpha", "Another Alpha"]},
@@ -864,7 +865,7 @@ class ScoringTests(unittest.TestCase):
         self.assertFalse(task_passed(True, measured))
         for key in old.keys() - {"raw_file_pass"}:
             self.assertNotIn(key, measured)
-        self.assertTrue(measured["raw_file_pass"])
+        self.assertNotIn("raw_file_pass", measured)
 
     def test_legacy_list_verification_is_shared_not_just_shape(self):
         c = case(task_kind="structure", source_benchmark=legacy_benchmark())
@@ -1139,7 +1140,7 @@ class ScoringPipelineTests(unittest.TestCase):
                 rescore_content.rescore(self.run, case_ids={"web"})
         self.assertEqual(path.read_bytes(), concurrent)
 
-    def test_both_rescores_retain_external_file_evidence_and_original_deadline(self):
+    def test_both_rescores_refresh_file_verdict_and_retain_external_identity_and_deadline(self):
         records, _ = self.live()
         original = next(r for r in records if r["case_id"] == "file")
         original["metrics"].update(raw_file_pass=True, raw_file_sha256="independently-verified-file",
@@ -1148,6 +1149,7 @@ class ScoringPipelineTests(unittest.TestCase):
         rescored, summary = runner.rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset,
                                                      dataset_path=self.path, cases=self.cases)
         file_row = next(r for r in rescored if r["case_id"] == "file")
+        original["metrics"]["raw_file_pass"] = False
         self.assertEqual(file_row, original)
         self.assertEqual(summary["cases"]["file"]["task_pass_rate"], 0)
         rescore_content.rescore(self.run, case_ids={"file"})
@@ -1155,6 +1157,30 @@ class ScoringPipelineTests(unittest.TestCase):
         file_row = next(r for r in script_rows if r["case_id"] == "file")
         self.assertEqual(file_row["metrics"], original["metrics"])
         self.assertEqual(summarize(script_rows)["cases"]["file"]["task_pass_rate"], 0)
+
+    def test_both_rescores_check_current_file_hash_rules_against_retained_bytes(self):
+        raw = b'\x89PNG\r\n\x1a\n' + b'x' * 32
+        self.cases = [case(id='file', task_kind='file', source_verification={
+            'mime': 'image/png', 'file_sha256': hashlib.sha256(raw).hexdigest()})]
+        self.dataset['cases'] = [asdict(c) for c in self.cases]
+        self.path.write_text(json.dumps(self.dataset))
+        self.provider.fetch.side_effect = lambda c, timeout: ProviderResult(
+            ok=True, content='file attached', files=[{'data': raw}])
+        original, _ = self.live()
+        self.assertTrue(original[0]['metrics']['raw_file_pass'])
+        revised = replace(self.cases[0], source_verification={
+            'mime': 'image/png', 'file_sha256': hashlib.sha256(raw + b'other').hexdigest()})
+        self.cases = [revised]
+        self.dataset['cases'] = [asdict(revised)]
+        rescored, _ = runner.rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset,
+            dataset_path=self.path, cases=self.cases)
+        self.assertFalse(rescored[0]['metrics']['raw_file_pass'])
+        self.assertEqual(rescored[0]['provider_metadata'], original[0]['provider_metadata'])
+        (self.run / 'dataset.json').write_text(json.dumps(self.dataset))
+        rescore_content.rescore(self.run)
+        row = json.loads((self.run / 'results.jsonl').read_text().strip())
+        self.assertFalse(row['metrics']['raw_file_pass'])
+        self.assertEqual(row['provider_metadata'], original[0]['provider_metadata'])
 
     def test_both_rescores_verify_every_declared_evidence_before_writes(self):
         records, _ = self.live()

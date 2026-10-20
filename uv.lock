@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -354,7 +354,7 @@ requires-dist = [
     { name = "jieba", marker = "extra == 'webmainbench-eval'", specifier = "==0.42.1" },
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
-    { name = "lexbench-webfetch", git = "https://github.com/lexmount/lexbench-webfetch.git?rev=84c177d97da3b82567d9881e377aa728929cf129" },
+    { name = "lexbench-webfetch", git = "https://github.com/lexmount/lexbench-webfetch.git?rev=51e11917c5b00e1629a1f27c0500391371fc387a" },
     { name = "markdown", marker = "extra == 'webmainbench-eval'", specifier = ">=3.7,<4" },
     { name = "openai", marker = "extra == 'webmainbench-eval'", specifier = ">=2.8,<4" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
@@ -1932,8 +1932,8 @@ wheels = [
 
 [[package]]
 name = "lexbench-webfetch"
-version = "0.2.0"
-source = { git = "https://github.com/lexmount/lexbench-webfetch.git?rev=84c177d97da3b82567d9881e377aa728929cf129#84c177d97da3b82567d9881e377aa728929cf129" }
+version = "0.3.0"
+source = { git = "https://github.com/lexmount/lexbench-webfetch.git?rev=51e11917c5b00e1629a1f27c0500391371fc387a#51e11917c5b00e1629a1f27c0500391371fc387a" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "soupsieve" },
@@ -3849,7 +3849,7 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7a/97/5a3609c4f8d58b039179648e62dd220f89864f56f7357f5d4f45c29eb2cc/scipy-1.17.1.tar.gz", hash = "sha256:95d8e012d8cb8816c226aef832200b1d45109ed4464303e997c5b13122b297c0", size = 30573822, upload-time = "2026-02-23T00:26:24.851Z" }
 wheels = [
@@ -3924,7 +3924,7 @@ resolution-markers = [
     "python_full_version == '3.12.*'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" } },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7e/74/66de6258867beb2ef08f35f9f2ac017a52cacd5081714d239ff1a442d458/scipy-1.18.1.tar.gz", hash = "sha256:52c4b7422442aba924d03ad4019852b08a92e64ea187b933135687bfe2747307", size = 30781235, upload-time = "2026-08-21T23:28:50.599Z" }
 wheels = [
