@@ -7,10 +7,31 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from contextvars import ContextVar
 from copy import deepcopy
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from threading import Lock
 from urllib.parse import unquote_plus
+
+
+@dataclass(frozen=True)
+class EvidenceBinding:
+    """Validated identity of bound bytes; parsing never rewrites saved JSON."""
+
+    path: str
+    sha256: str
+
+    @classmethod
+    def from_mapping(cls, value, *, field='evidence_binding'):
+        if not isinstance(value, dict):
+            raise ValueError(field + ' must be an object')
+        path = value.get('path')
+        if not isinstance(path, str) or not path.strip():
+            raise ValueError(field + '.path must be a nonempty string')
+        digest = value.get('sha256')
+        if not isinstance(digest, str) or re.fullmatch('[0-9a-f]{64}', digest) is None:
+            raise ValueError(field + '.sha256 must be a lowercase SHA-256 digest')
+        return cls(path=path, sha256=digest)
 
 
 _STAGED_EVIDENCE = ContextVar('webfetch_staged_evidence', default=None)
@@ -909,19 +930,20 @@ def read_evidence_binding(source, binding, *, allow_public_view=True):
     staged-write and hash checks.
     """
     from lexbench_webfetch.paths import contained_path
-    path = contained_path(source, binding['path'], reject_symlinks=True)
+    identity = EvidenceBinding.from_mapping(binding)
+    path = contained_path(source, identity.path, reject_symlinks=True)
     staged = _STAGED_EVIDENCE.get()
     if staged is not None and Path(source).resolve() == staged[0]:
         proposed = staged[1](path)
         if proposed != path:
-            if not proposed.is_file() or hashlib.sha256(proposed.read_bytes()).hexdigest() != binding.get('sha256'):
-                raise ValueError('Staged revision evidence binding changed: ' + binding['path'])
+            if not proposed.is_file() or hashlib.sha256(proposed.read_bytes()).hexdigest() != identity.sha256:
+                raise ValueError('Staged revision evidence binding changed: ' + identity.path)
             return proposed
-    if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == binding.get('sha256'):
+    if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == identity.sha256:
         return path
     public = bound_public_view(source, binding) if allow_public_view else None
     if public is None:
-        raise ValueError('Local revision evidence binding changed: ' + binding['path'])
+        raise ValueError('Local revision evidence binding changed: ' + identity.path)
     return public[0]
 
 
