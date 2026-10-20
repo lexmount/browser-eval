@@ -9,6 +9,67 @@ from harness.record_io import canonical_json_sha256
 from lexbench_webfetch.scoring import score_attempt
 
 
+@pytest.mark.parametrize("field,value", [
+    ("captures_path", None), ("captures_path", []),
+    ("captures_sha256", None), ("captures_sha256", 42),
+    ("attempts", None), ("attempts", {}),
+    ("attempts[0]", "invalid"),
+    ("attempts[0].attempt_id", None), ("attempts[0].case_sha256", []),
+    ("attempts[0].call_sha256", None), ("attempts[0].content_sha256", False),
+    ("attempts[0].capture_index", True), ("attempts[0].capture_index", -1),
+    ("attempts[0].capture_index", 99), ("attempts[0].matching_samples", {}),
+    ("attempts[0].corresponding_url", None),
+])
+def test_identity_update_reports_malformed_receipt_field_without_writes(tmp_path, field, value):
+    import json
+    import re
+    from harness.web_fetch.adjudication_evidence import prepare_reviewed_page_identities
+
+    captures = tmp_path / "captures.json"
+    captures.write_text('[{"url":"https://example.test/","text":"source"}]')
+    receipt = {
+        "kind": "retrospective_page_identity_review", "provider_calls_added": 0,
+        "captures_path": captures.name,
+        "captures_sha256": hashlib.sha256(captures.read_bytes()).hexdigest(),
+        "attempts": [{
+            "attempt_id": "a", "case_sha256": "case", "call_sha256": "call",
+            "content_sha256": "answer", "capture_index": 0, "capture_sha256": "capture",
+            "corresponding_url": "https://example.test/", "reviewed_at": "2026-10-20",
+            "basis": "retrospective_content_correspondence", "matching_samples": [],
+        }],
+    }
+    if field.startswith("attempts[0]."):
+        receipt["attempts"][0][field.split(".")[1]] = value
+    elif field == "attempts[0]":
+        receipt["attempts"][0] = value
+    elif value is None:
+        receipt.pop(field)
+    else:
+        receipt[field] = value
+    path = tmp_path / "review.json"
+    path.write_text(json.dumps(receipt))
+    binding = {"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    dataset = {"cases": [], "comparison": {"page_identity_review": binding}}
+    unchanged = json.dumps(dataset)
+    files = {item.name: item.read_bytes() for item in tmp_path.iterdir()}
+    with pytest.raises(ValueError, match=re.escape("page_identity_review." + field)):
+        prepare_reviewed_page_identities(tmp_path, dataset, dataset, [])
+    assert json.dumps(dataset) == unchanged
+    assert {item.name: item.read_bytes() for item in tmp_path.iterdir()} == files
+
+
+def test_identity_receipt_parsed_fields_are_immutable():
+    from dataclasses import FrozenInstanceError
+    from harness.web_fetch.adjudication_evidence import PageIdentityReviewInputs
+    document = {"captures_path": "captures.json", "captures_sha256": "digest", "attempts": []}
+    parsed = PageIdentityReviewInputs.parse(document)
+    document["captures_path"] = "changed.json"
+    assert parsed.captures_path == "captures.json"
+    assert parsed.attempts == ()
+    with pytest.raises(FrozenInstanceError):
+        parsed.captures_path = "changed.json"
+
+
 @pytest.mark.parametrize("entry", ["identity", "identity_update", "independent_review"])
 @pytest.mark.parametrize("changed", [False, True])
 def test_review_inputs_require_original_bound_bytes(tmp_path, monkeypatch, entry, changed):

@@ -489,13 +489,15 @@ def _require_page_identity_review(source, dataset, records, *, scoring_sources=N
     except ValueError as error:
         raise ValueError("Page identity review receipt changed") from error
     receipt = json.loads(path.read_text())
+    inputs = PageIdentityReviewInputs.parse(receipt)
     try:
         capture_path = read_evidence_binding(source, {
-            "path": receipt["captures_path"], "sha256": receipt["captures_sha256"],
+            "path": inputs.captures_path, "sha256": inputs.captures_sha256,
         }, allow_public_view=False)
     except ValueError as error:
         raise ValueError("Page review captures changed") from error
     captures = json.loads(capture_path.read_text())
+    inputs.require_captures(captures)
     _require_identity_binding_revision(source, dataset, receipt)
     annotations = receipt["attempts"]
     if (receipt.get("kind") != "retrospective_page_identity_review"
@@ -622,6 +624,76 @@ class ReviewedPageIdentityUpdates:
     metrics_by_attempt: dict
 
 
+@dataclass(frozen=True)
+class PageIdentityAnnotationInput:
+    attempt_id: str
+    case_sha256: str
+    call_sha256: str
+    content_sha256: str
+    capture_index: int
+
+
+@dataclass(frozen=True)
+class PageIdentityReviewInputs:
+    """Typed receipt inputs; retain the original JSON separately for its hashes."""
+    captures_path: str
+    captures_sha256: str
+    attempts: tuple[PageIdentityAnnotationInput, ...]
+
+    @classmethod
+    def parse(cls, document):
+        if not isinstance(document, dict):
+            raise ValueError("page_identity_review must be an object")
+
+        def text(value, key, location):
+            item = value.get(key)
+            if not isinstance(item, str) or not item.strip():
+                raise ValueError(f"{location}.{key} must be nonempty text")
+            return item
+
+        location = "page_identity_review"
+        path = text(document, "captures_path", location)
+        digest = text(document, "captures_sha256", location)
+        rows = document.get("attempts")
+        if not isinstance(rows, list):
+            raise ValueError(f"{location}.attempts must be a list")
+        parsed, seen = [], set()
+        for index, row in enumerate(rows):
+            field = f"{location}.attempts[{index}]"
+            if not isinstance(row, dict):
+                raise ValueError(f"{field} must be an object")
+            values = [text(row, key, field) for key in
+                      ("attempt_id", "case_sha256", "call_sha256", "content_sha256")]
+            if values[0] in seen:
+                raise ValueError(f"{field}.attempt_id must be unique")
+            seen.add(values[0])
+            capture_index = row.get("capture_index")
+            if type(capture_index) is not int or capture_index < 0:
+                raise ValueError(f"{field}.capture_index must be a nonnegative integer")
+            for key in ("capture_sha256", "corresponding_url", "basis", "reviewed_at"):
+                text(row, key, field)
+            samples = row.get("matching_samples")
+            if not isinstance(samples, list) or any(not isinstance(item, str) for item in samples):
+                raise ValueError(f"{field}.matching_samples must be a list of text")
+            parsed.append(PageIdentityAnnotationInput(*values, capture_index))
+        return cls(path, digest, tuple(parsed))
+
+    def require_captures(self, captures):
+        if not isinstance(captures, list):
+            raise ValueError("page_identity_review.captures must be a list")
+        for index, annotation in enumerate(self.attempts):
+            if annotation.capture_index >= len(captures):
+                raise ValueError(
+                    f"page_identity_review.attempts[{index}].capture_index is outside captures")
+            capture = captures[annotation.capture_index]
+            location = f"page_identity_review.captures[{annotation.capture_index}]"
+            if not isinstance(capture, dict):
+                raise ValueError(f"{location} must be an object")
+            for key in ("url", "text"):
+                if not isinstance(capture.get(key), str):
+                    raise ValueError(f"{location}.{key} must be text")
+
+
 def prepare_reviewed_page_identities(source, before_dataset, dataset, records):
     """Validate and return unchanged identity evidence without mutating inputs.
 
@@ -632,22 +704,24 @@ def prepare_reviewed_page_identities(source, before_dataset, dataset, records):
     if not binding:
         return None
     original = json.loads(read_evidence_binding(source, binding).read_text())
+    inputs = PageIdentityReviewInputs.parse(original)
     try:
         captures_path = read_evidence_binding(source, {
-            'path': original['captures_path'], 'sha256': original['captures_sha256'],
+            'path': inputs.captures_path, 'sha256': inputs.captures_sha256,
         }, allow_public_view=False)
     except ValueError as error:
         raise ValueError('Page identity capture changed before rescoring') from error
     captures = json.loads(captures_path.read_text())
+    inputs.require_captures(captures)
     cases = {case['id']: case for case in dataset['cases']}
     indexed = {row['attempt_id']: row for row in records}
     receipt = original
-    for annotation in receipt['attempts']:
-        row = indexed.get(annotation['attempt_id'])
+    for annotation in inputs.attempts:
+        row = indexed.get(annotation.attempt_id)
         case = cases.get(row['case_id']) if row is not None else None
-        if (case is None or annotation['case_sha256'] != canonical_json_sha256(case)
-                or annotation['call_sha256'] != local_measurement_call_sha256(row)
-                or annotation['content_sha256'] != row['metrics']['content_sha256']):
+        if (case is None or annotation.case_sha256 != canonical_json_sha256(case)
+                or annotation.call_sha256 != local_measurement_call_sha256(row)
+                or annotation.content_sha256 != row['metrics']['content_sha256']):
             raise ValueError('Changed page identity review inputs require a new explicit review')
     metrics_by_attempt = {}
     for annotation in receipt['attempts']:
