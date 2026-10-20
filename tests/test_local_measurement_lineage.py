@@ -1,4 +1,5 @@
 """Frozen inputs and physical calls must survive report assembly unchanged."""
+from harness.web_fetch import local_execution_contract
 import copy
 import hashlib
 import json
@@ -37,20 +38,20 @@ def test_unknown_verdict_can_be_shown_locally_without_becoming_publishable():
 
 
 def test_multiple_frozen_sources_preserve_order_and_reject_changes(tmp_path, monkeypatch):
-    monkeypatch.setattr(local_audit, 'ROOT', tmp_path)
+    monkeypatch.setattr(local_execution_contract, 'ROOT', tmp_path)
     a = bind(tmp_path, 'first.json', {'cases': [{'id': 'a'}, {'id': 'b'}]})
     b = bind(tmp_path, 'second.json', {'cases': [{'id': 'c'}]})
     contract = {'dataset_sources': [a, b]}
-    assert local_audit.local_measurement_cases(contract) == [{'id': 'a'}, {'id': 'b'}, {'id': 'c'}]
+    assert local_execution_contract.local_measurement_cases(contract) == [{'id': 'a'}, {'id': 'b'}, {'id': 'c'}]
     for selection in [['b', 'a'], ['a', 'a'], ['missing']]:
         changed = copy.deepcopy(contract)
         changed['dataset_sources'][0]['case_ids'] = selection
         with pytest.raises(ValueError):
-            local_audit.local_measurement_cases(changed)
+            local_execution_contract.local_measurement_cases(changed)
     changed = copy.deepcopy(contract)
     changed['dataset_sources'].append(a)
     with pytest.raises(ValueError):
-        local_audit.local_measurement_cases(changed)
+        local_execution_contract.local_measurement_cases(changed)
     bind(tmp_path, 'second.json', {'cases': [{'id': 'changed'}]})
     with pytest.raises(ValueError):
-        local_audit.local_measurement_cases(contract)
+        local_execution_contract.local_measurement_cases(contract)

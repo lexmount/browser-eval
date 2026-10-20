@@ -1,3 +1,4 @@
+from harness.web_fetch import adjudication_evidence, local_execution_contract
 import hashlib
 import json
 
@@ -224,7 +225,7 @@ def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, mo
 @pytest.mark.parametrize('timeout', [None, 0, -1, True, '45', float('nan'), float('inf')])
 def test_local_contract_rejects_invalid_deadline_before_reading_evidence(tmp_path, timeout):
     with pytest.raises(ValueError, match='positive finite caller timeout'):
-        local_audit.require_local_execution_contract(
+        local_execution_contract.require_local_execution_contract(
             tmp_path, {}, [], {'timeout_seconds': timeout}, {})
 
 
@@ -233,7 +234,7 @@ def test_local_single_call_mode_rejects_rounds_and_retries(tmp_path, field, valu
     contract = {'schema_version': 1, 'kind': 'uniform_native_local_measurement',
                 'timeout_seconds': 45, 'runs': 1, 'max_failure_retries': 0, field: value}
     with pytest.raises(ValueError, match='Invalid uniform native'):
-        local_audit.require_local_execution_contract(tmp_path, {}, [], contract, {})
+        local_execution_contract.require_local_execution_contract(tmp_path, {}, [], contract, {})
 
 
 @pytest.mark.parametrize("include_english,primary_language", [(False,"zh"), (True,"zh"), (True,"en")])
@@ -284,11 +285,11 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     _write(contract_path, contract)
     dataset["comparison"]["local_run_contract_sha256"] = _digest(contract_path)
     _write(evidence / "dataset.json", dataset)
-    monkeypatch.setattr(local_audit, "ROOT", tmp_path / "repo")
+    monkeypatch.setattr(local_execution_contract, "ROOT", tmp_path / "repo")
     assert local_audit.require_local_audit(evidence, dataset, records) is None
     changed_contract = {**contract, 'timeout_seconds': timeout + 1}
     with pytest.raises(ValueError, match='parameters differ'):
-        local_audit.require_local_execution_contract(
+        local_execution_contract.require_local_execution_contract(
             evidence, dataset, records, changed_contract, {'batches': [batch]})
     output = tmp_path / "report"
     build_report(evidence, output, local_audit=True, include_english=include_english)
@@ -634,15 +635,15 @@ def test_resumed_local_segments_reject_repeated_calls_and_policy_changes():
     second = {**policy, "attempt_ids": ["two"], "attempt_count": 1}
     batch = {**policy, "attempt_ids": ["one", "two"], "attempt_count": 2,
              "segments": [first, second]}
-    local_audit._require_local_batch_segments(batch)
+    local_execution_contract._require_local_batch_segments(batch)
     duplicate = copy.deepcopy(batch)
     duplicate["segments"][1]["attempt_ids"] = ["one"]
     with pytest.raises(ValueError, match="repeat or omit"):
-        local_audit._require_local_batch_segments(duplicate)
+        local_execution_contract._require_local_batch_segments(duplicate)
     changed = copy.deepcopy(batch)
     changed["segments"][1]["parameters"] = {"timeout": 90}
     with pytest.raises(ValueError, match="parameters differ"):
-        local_audit._require_local_batch_segments(changed)
+        local_execution_contract._require_local_batch_segments(changed)
 
 
 def test_local_call_chain_section_discloses_real_log_gaps_and_escapes_text():
@@ -693,7 +694,7 @@ def test_local_score_correction_preserves_call_facts_and_original_contract(tmp_p
                'original_scoring_source_sha256': 'old',
                'corrected_scoring_source_sha256': SCORING_SOURCE_SHA256,
                'original_call_config_sha256': 'config', 'original_results_sha256': 'original',
-               'call_identities': {'a': local_audit.local_measurement_call_sha256(record)}}
+               'call_identities': {'a': local_execution_contract.local_measurement_call_sha256(record)}}
     from lexbench_webfetch.scoring_regressions import build_correction_provenance
     receipt["provenance"] = build_correction_provenance(
         "structured-extraction", "Equivalent Markdown bullets must retain their named records.",
@@ -730,7 +731,7 @@ def test_local_runtime_variants_bind_every_method_without_rewriting_manifests():
                 "runtime_source_sha256_by_provider": {"first": "a" * 64, "second": "b" * 64}}
     batches = [{"providers": [{"name": name}], "runtime_source_sha256": value}
                for name, value in contract["runtime_source_sha256_by_provider"].items()]
-    local_audit._require_local_method_bindings(contract, batches, "runtime_source_sha256")
+    local_execution_contract._require_local_method_bindings(contract, batches, "runtime_source_sha256")
     for mutation in ("wrong_hash", "duplicate", "missing", "extra_binding"):
         c, b = copy.deepcopy(contract), copy.deepcopy(batches)
         if mutation == "wrong_hash": b[1]["runtime_source_sha256"] = "c" * 64
@@ -738,11 +739,11 @@ def test_local_runtime_variants_bind_every_method_without_rewriting_manifests():
         if mutation == "missing": b.pop()
         if mutation == "extra_binding": c["runtime_source_sha256_by_provider"]["other"] = "c" * 64
         with pytest.raises(ValueError):
-            local_audit._require_local_method_bindings(c, b, "runtime_source_sha256")
+            local_execution_contract._require_local_method_bindings(c, b, "runtime_source_sha256")
     legacy = {"providers": ["first"], "runtime_source_sha256": "a" * 64}
-    local_audit._require_local_method_bindings(legacy, batches[:1], "runtime_source_sha256")
+    local_execution_contract._require_local_method_bindings(legacy, batches[:1], "runtime_source_sha256")
     with pytest.raises(ValueError):
-        local_audit._require_local_method_bindings({**legacy, "runtime_source_sha256": "b" * 64}, batches[:1], "runtime_source_sha256")
+        local_execution_contract._require_local_method_bindings({**legacy, "runtime_source_sha256": "b" * 64}, batches[:1], "runtime_source_sha256")
 
 
 def test_terminal_logs_are_separate_from_caller_events_and_not_excerpted():
@@ -784,7 +785,7 @@ def test_local_configuration_variants_preserve_old_batches_and_reject_mismatches
                 "provider_config_sha256_by_provider": {"first": "a" * 64, "second": "b" * 64}}
     batches = [{"providers": [{"name": name}], "provider_config_sha256": value}
                for name, value in contract["provider_config_sha256_by_provider"].items()]
-    local_audit._require_local_method_bindings(contract, batches, "provider_config_sha256")
+    local_execution_contract._require_local_method_bindings(contract, batches, "provider_config_sha256")
     for mutation in ("wrong_hash", "duplicate", "missing", "extra_binding", "invalid_hash"):
         c, b = copy.deepcopy(contract), copy.deepcopy(batches)
         if mutation == "wrong_hash": b[1]["provider_config_sha256"] = "c" * 64
@@ -793,11 +794,11 @@ def test_local_configuration_variants_preserve_old_batches_and_reject_mismatches
         if mutation == "extra_binding": c["provider_config_sha256_by_provider"]["other"] = "c" * 64
         if mutation == "invalid_hash": c["provider_config_sha256_by_provider"]["first"] = "invalid"
         with pytest.raises(ValueError):
-            local_audit._require_local_method_bindings(c, b, "provider_config_sha256")
+            local_execution_contract._require_local_method_bindings(c, b, "provider_config_sha256")
     legacy = {"providers": ["first"], "provider_config_sha256": "a" * 64}
-    local_audit._require_local_method_bindings(legacy, batches[:1], "provider_config_sha256")
+    local_execution_contract._require_local_method_bindings(legacy, batches[:1], "provider_config_sha256")
     with pytest.raises(ValueError):
-        local_audit._require_local_method_bindings({**legacy, "provider_config_sha256": "b" * 64}, batches[:1], "provider_config_sha256")
+        local_execution_contract._require_local_method_bindings({**legacy, "provider_config_sha256": "b" * 64}, batches[:1], "provider_config_sha256")
 
 
 def test_worker_protocol_response_is_not_a_runtime_log():
@@ -822,31 +823,31 @@ def test_local_offline_projection_keeps_native_url_and_call_facts(tmp_path, retu
     corrected["metrics"]["score"] = 1
     native = tmp_path / "native.json"
     _write(native, {"data": {"url": corrected["final_url"]}})
-    receipt = {"original_call_identities": {"a": local_audit.local_measurement_call_sha256(original)},
-               "call_identities": {"a": local_audit.local_measurement_call_sha256(corrected)},
+    receipt = {"original_call_identities": {"a": local_execution_contract.local_measurement_call_sha256(original)},
+               "call_identities": {"a": local_execution_contract.local_measurement_call_sha256(corrected)},
                "field_projections": {"a": {"final_url": {"path": "native.json", "sha256": _digest(native),
                    "json_pointer": ["data", "url"], "original_value": original["final_url"]}}}}
     path = tmp_path / "local-evidence/scoring-correction.json"
     _write(path, receipt)
-    local_audit._require_local_record_correction(tmp_path, original, corrected)
+    local_execution_contract._require_local_record_correction(tmp_path, original, corrected)
     changed = copy.deepcopy(corrected)
     changed["elapsed_ms"] = 1
-    receipt["call_identities"]["a"] = local_audit.local_measurement_call_sha256(changed)
+    receipt["call_identities"]["a"] = local_execution_contract.local_measurement_call_sha256(changed)
     _write(path, receipt)
     with pytest.raises(ValueError, match="measured call facts"):
-        local_audit._require_local_record_correction(tmp_path, original, changed)
-    _write(path, {**receipt, "call_identities": {"a": local_audit.local_measurement_call_sha256(corrected)}})
+        local_execution_contract._require_local_record_correction(tmp_path, original, changed)
+    _write(path, {**receipt, "call_identities": {"a": local_execution_contract.local_measurement_call_sha256(corrected)}})
     _write(native, {"data": {"url": "https://example.test/wrong"}})
     with pytest.raises(ValueError):
-        local_audit._require_local_record_correction(tmp_path, original, corrected)
+        local_execution_contract._require_local_record_correction(tmp_path, original, corrected)
     # Missing is not the same as an explicitly returned JSON null.
     for payload in ({'data': {}}, {}):
         _write(native, payload)
-        receipt['call_identities']['a'] = local_audit.local_measurement_call_sha256(corrected)
+        receipt['call_identities']['a'] = local_execution_contract.local_measurement_call_sha256(corrected)
         receipt['field_projections']['a']['final_url']['sha256'] = _digest(native)
         _write(path, receipt)
         with pytest.raises(ValueError, match='field is missing'):
-            local_audit._require_local_record_correction(tmp_path, original, corrected)
+            local_execution_contract._require_local_record_correction(tmp_path, original, corrected)
 
 
 def test_local_review_retains_deferred_failure_and_rejects_wrong_coverage(tmp_path):
@@ -863,18 +864,18 @@ def test_local_review_retains_deferred_failure_and_rejects_wrong_coverage(tmp_pa
     def bind(value):
         _write(path, value)
         return {"comparison": {"independent_review": {"path": "review.json", "sha256": _digest(path)}}}
-    assert local_audit._require_local_review(tmp_path, bind(review), [record])["unresolved"] == 1
+    assert adjudication_evidence._require_local_review(tmp_path, bind(review), [record])["unresolved"] == 1
     changed = copy.deepcopy(review)
     changed["attempts"][0]["final_verdict"] = "pass"
     with pytest.raises(ValueError, match="scored evidence"):
-        local_audit._require_local_review(tmp_path, bind(changed), [record])
+        adjudication_evidence._require_local_review(tmp_path, bind(changed), [record])
     changed = copy.deepcopy(review)
     changed["attempts"].append(changed["attempts"][0])
     with pytest.raises(ValueError, match="scope differs"):
-        local_audit._require_local_review(tmp_path, bind(changed), [record])
+        adjudication_evidence._require_local_review(tmp_path, bind(changed), [record])
     changed = {**review, "unresolved": 0}
     with pytest.raises(ValueError, match="unresolved count"):
-        local_audit._require_local_review(tmp_path, bind(changed), [record])
+        adjudication_evidence._require_local_review(tmp_path, bind(changed), [record])
 
 
 def test_local_review_banner_distinguishes_reviewed_and_original_measurements():
@@ -907,7 +908,7 @@ def test_retrospective_page_review_preserves_call_and_checks_other_requirements(
     captures = [{'url': 'https://example.test/document', 'text': body}]
     annotation = {'attempt_id': record['attempt_id'],
                   'case_sha256': canonical_json_sha256(case),
-                  'call_sha256': local_audit.local_measurement_call_sha256(record),
+                  'call_sha256': local_execution_contract.local_measurement_call_sha256(record),
                   'content_sha256': record['metrics']['content_sha256'],
                   'basis': 'retrospective_content_correspondence', 'reviewed_at': '2026-10-13',
                   'capture_index': 0, 'capture_sha256': canonical_json_sha256(captures[0]),
@@ -915,21 +916,21 @@ def test_retrospective_page_review_preserves_call_and_checks_other_requirements(
                   'matching_samples': ['Expected complete body.',
                       'A second distinctive sentence describing this page.']}
     before = copy.deepcopy(record)
-    scored = local_audit.score_reviewed_page_identity(tmp_path, case, record, annotation, captures)
+    scored = adjudication_evidence.score_reviewed_page_identity(tmp_path, case, record, annotation, captures)
     assert record == before and record['final_url'] is None
     assert task_passed(True, scored)
     assert scored['page_identity_basis'] == 'retrospective_content_correspondence'
     # Two substantial matches establish correspondence; additional true short
     # labels do not invalidate them and cannot replace either long match.
     with_short = {**annotation, 'matching_samples': annotation['matching_samples'] + ['body']}
-    assert task_passed(True, local_audit.score_reviewed_page_identity(tmp_path, case, record, with_short, captures))
+    assert task_passed(True, adjudication_evidence.score_reviewed_page_identity(tmp_path, case, record, with_short, captures))
     with pytest.raises(ValueError, match='substantive text'):
-        local_audit.score_reviewed_page_identity(tmp_path, case, record,
+        adjudication_evidence.score_reviewed_page_identity(tmp_path, case, record,
             {**annotation, 'matching_samples': [annotation['matching_samples'][0], 'body']}, captures)
     for samples in ([' ' * 20, ' ' * 21], ['.' * 20, '!' * 21],
                     ['Expected complete body.', '**Expected complete body.**']):
         with pytest.raises(ValueError, match='substantive text'):
-            local_audit.score_reviewed_page_identity(tmp_path, case, record,
+            adjudication_evidence.score_reviewed_page_identity(tmp_path, case, record,
                                                     {**annotation, 'matching_samples': samples}, captures)
     for field, value, message in (
         ('content_sha256', 'wrong', 'binding'),
@@ -938,24 +939,24 @@ def test_retrospective_page_review_preserves_call_and_checks_other_requirements(
     ):
         bad = {**annotation, field: value}
         with pytest.raises(ValueError, match=message):
-            local_audit.score_reviewed_page_identity(tmp_path, case, record, bad, captures)
+            adjudication_evidence.score_reviewed_page_identity(tmp_path, case, record, bad, captures)
     wrong = [{'url': 'https://example.test/other', 'text': body}]
     bad = {**annotation, 'corresponding_url': wrong[0]['url'],
            'capture_sha256': canonical_json_sha256(wrong[0])}
     with pytest.raises(ValueError, match='URL requirement'):
-        local_audit.score_reviewed_page_identity(tmp_path, case, record, bad, wrong)
+        adjudication_evidence.score_reviewed_page_identity(tmp_path, case, record, bad, wrong)
     # A reviewed page identity must never excuse missing required content.
     missing = copy.deepcopy(case)
     missing['acceptance_contract']['stable_text_anchors'].append(
         {'id': 'missing', 'alternatives': ['A required fact that was not returned']})
     bad = {**annotation, 'case_sha256': canonical_json_sha256(missing)}
     with pytest.raises(ValueError, match='unavailable page identity'):
-        local_audit.score_reviewed_page_identity(tmp_path, missing, record, bad, captures)
+        adjudication_evidence.score_reviewed_page_identity(tmp_path, missing, record, bad, captures)
 
 
 def test_retrospective_page_review_requires_bound_receipt(tmp_path):
     with pytest.raises(ValueError, match='lack a receipt'):
-        local_audit._require_page_identity_review(tmp_path, {}, [
+        adjudication_evidence._require_page_identity_review(tmp_path, {}, [
             {'attempt_id': 'synthetic', 'metrics': {
                 'page_identity_basis': 'retrospective_content_correspondence'}}])
 
@@ -983,7 +984,7 @@ def test_offline_rescore_reuses_only_unchanged_identity_inputs(tmp_path, defect,
         return {'path': name, 'sha256': _digest(tmp_path/name)}
     capture = save('captures.json', captures)
     annotation = {'attempt_id': record['attempt_id'], 'case_sha256': canonical_json_sha256(old),
-        'call_sha256': local_audit.local_measurement_call_sha256(record),
+        'call_sha256': local_execution_contract.local_measurement_call_sha256(record),
         'content_sha256': record['metrics']['content_sha256'], 'basis': 'retrospective_content_correspondence',
         'reviewed_at': '2026-10-13', 'capture_index': 0,
         'capture_sha256': canonical_json_sha256(captures[0]), 'corresponding_url': captures[0]['url'],
@@ -1003,11 +1004,11 @@ def test_offline_rescore_reuses_only_unchanged_identity_inputs(tmp_path, defect,
     unchanged_dataset, unchanged_record = deepcopy(dataset), deepcopy(record)
     if defect:
         with pytest.raises(ValueError):
-            local_audit.prepare_reviewed_page_identities(tmp_path, before, dataset, [record])
+            adjudication_evidence.prepare_reviewed_page_identities(tmp_path, before, dataset, [record])
         assert dataset == unchanged_dataset
         assert record == unchanged_record
     else:
-        updates = local_audit.prepare_reviewed_page_identities(tmp_path, before, dataset, [record])
+        updates = adjudication_evidence.prepare_reviewed_page_identities(tmp_path, before, dataset, [record])
         assert updates.binding == receipt
         assert dataset == unchanged_dataset
         assert record == unchanged_record
@@ -1017,18 +1018,18 @@ def test_offline_rescore_reuses_only_unchanged_identity_inputs(tmp_path, defect,
     if not defect:
         assert local_audit.task_passed(record['ok'], record['metrics'])
         assert record['final_url'] is None
-        local_audit._require_page_identity_review(tmp_path, dataset, [record])
+        adjudication_evidence._require_page_identity_review(tmp_path, dataset, [record])
         record['metrics']['scoring_source_sha256'] = 'historical-source'
         sources = {record['attempt_id']: 'historical-source'}
-        local_audit._require_page_identity_review(tmp_path, dataset, [record], scoring_sources=sources)
+        adjudication_evidence._require_page_identity_review(tmp_path, dataset, [record], scoring_sources=sources)
         with pytest.raises(ValueError, match='shared scorer'):
-            local_audit._require_page_identity_review(tmp_path, dataset, [record])
+            adjudication_evidence._require_page_identity_review(tmp_path, dataset, [record])
         with pytest.raises(ValueError, match='scoring source'):
-            local_audit._require_page_identity_review(tmp_path, dataset, [record],
+            adjudication_evidence._require_page_identity_review(tmp_path, dataset, [record],
                 scoring_sources={record['attempt_id']: 'other-source'})
         record['metrics']['content_chars'] += 1
         with pytest.raises(ValueError, match='shared scorer'):
-            local_audit._require_page_identity_review(tmp_path, dataset, [record], scoring_sources=sources)
+            adjudication_evidence._require_page_identity_review(tmp_path, dataset, [record], scoring_sources=sources)
     assert (tmp_path/'identity.json').read_bytes() == prior_receipt
 
 
@@ -1062,9 +1063,9 @@ def test_saved_legacy_identity_migration_is_read_only_and_hash_bound(tmp_path, i
     if defect == 'review_changed': receipt['attempts'][0]['reviewed_at'] = 'new opinion'
     if defect:
         with pytest.raises(ValueError):
-            local_audit._require_identity_binding_revision(tmp_path, {'cases': [current]}, receipt)
+            adjudication_evidence._require_identity_binding_revision(tmp_path, {'cases': [current]}, receipt)
     else:
-        local_audit._require_identity_binding_revision(tmp_path, {'cases': [current]}, receipt)
+        adjudication_evidence._require_identity_binding_revision(tmp_path, {'cases': [current]}, receipt)
     assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == before
 
 

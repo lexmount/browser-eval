@@ -1,11 +1,12 @@
 """Retained execution plans remain strict without entering new cohort validation."""
+from harness.web_fetch import local_execution_contract
 import copy
 import hashlib
 import json
 
 import pytest
 
-from harness.web_fetch import local_audit, local_execution_legacy
+from harness.web_fetch import local_execution_legacy
 from harness.web_fetch.local_execution_legacy import require_legacy_execution_segments
 
 
@@ -19,7 +20,7 @@ def bind(root, name, value, *, lines=False):
 
 def legacy_inputs():
     return {'cases': [{'id': c} for c in 'abc'], 'timeout_seconds': 45,
-            'validate_record_correction': local_audit._require_local_record_correction}
+            'validate_record_correction': local_execution_contract._require_local_record_correction}
 
 
 @pytest.fixture
@@ -139,9 +140,9 @@ def test_fresh_cohort_validates_without_legacy_plan_decoder(tmp_path, monkeypatc
                 'runs': 1, 'timeout_seconds': 12.5, 'max_failure_retries': 0,
                 'runtime_source_sha256': batch['runtime_source_sha256'],
                 'provider_config_sha256': config_binding['sha256']}
-    monkeypatch.setattr(local_audit, 'ROOT', tmp_path)
-    local_audit.require_local_execution_contract(output, dataset, records, contract, {'batches': [batch]})
+    monkeypatch.setattr(local_execution_contract, 'ROOT', tmp_path)
+    local_execution_contract.require_local_execution_contract(output, dataset, records, contract, {'batches': [batch]})
     changed = copy.deepcopy(batch)
     changed['runtime_source_sha256'] = '0' * 64
     with pytest.raises(ValueError, match='execution runtime differs'):
-        local_audit.require_local_execution_contract(output, dataset, records, contract, {'batches': [changed]})
+        local_execution_contract.require_local_execution_contract(output, dataset, records, contract, {'batches': [changed]})

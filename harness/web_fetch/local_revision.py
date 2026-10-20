@@ -156,7 +156,7 @@ def require_local_task_replacement(source, binding, dataset, records):
         raise ValueError('Task replacement altered an inherited or newly measured result')
     if any(r['metrics'].get('evaluation_excluded') for r in calls):
         raise ValueError('Replacement task cannot be excluded after seeing its results')
-    from .local_audit import require_local_execution_contract
+    from .local_execution_contract import require_local_execution_contract
     if not receipt.get('execution_contract') or not receipt.get('cohort_execution'):
         raise ValueError('Task replacement requires its complete execution contract')
     contract = json.loads(read_evidence_binding(source, receipt['execution_contract']).read_text())
@@ -454,7 +454,7 @@ def require_current_task_replacement(source, receipt, dataset, records):
             read_evidence_binding(source, capture)
     contract = json.loads(read_evidence_binding(source, scope['execution_contract']).read_text())
     execution = json.loads(read_evidence_binding(source, scope['execution']).read_text())
-    from .local_audit import local_measurement_cases, require_local_execution_contract
+    from .local_execution_contract import local_measurement_cases, require_local_execution_contract
     frozen = local_measurement_cases(contract, source)
     current = {case['id']: case for case in dataset['cases']}
     if {case['id'] for case in frozen} != {scope['added_case_id']}:
@@ -534,7 +534,7 @@ def require_current_snapshot_authority(source, receipt, dataset, records):
         from .native_routes import verify_native_execution_manifests
         verify_native_execution_manifests(source, json.loads(execution.read_text())['batches'],
                                          dataset, records)
-    from .local_audit import _require_local_review
+    from .adjudication_evidence import _require_local_review
     review = receipt.get('current_review')
     declared = dataset.get('comparison', {}).get('independent_review')
     if declared is not None and declared != review:
@@ -963,7 +963,7 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
                    and verdicts[row['attempt_id']] != task_passed(row['ok'], row['metrics'])]
     if transitions != receipt['task_verdict_changes']:
         raise ValueError('Local revision verdict transitions differ from input proof')
-    from .local_audit import _require_page_identity_review
+    from .adjudication_evidence import _require_page_identity_review
     _require_page_identity_review(source, dataset, records, scoring_sources=expected_scoring)
     require_cohort_exclusions(source, dataset, records)
     return expected_scoring, before_dataset, previous
@@ -1094,7 +1094,7 @@ def _revise_local_snapshot(source, configuration, transaction):
             'rule_revision': bool(config.get('rule_revision')),
             'input_results_sha256': input_results_sha256}
         selected.append(row['attempt_id'])
-    from .local_audit import prepare_reviewed_page_identities
+    from .adjudication_evidence import prepare_reviewed_page_identities
     identity_updates = prepare_reviewed_page_identities(source, original_dataset, dataset, records)
     identity_binding = identity_updates.binding if identity_updates else None
     if identity_updates:

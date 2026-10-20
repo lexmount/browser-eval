@@ -1,5 +1,10 @@
 """Require inspectable task and answer evidence when a verdict overrides review."""
 import json
+import hashlib
+from dataclasses import dataclass
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.metrics import task_passed
+from .local_execution_contract import local_measurement_call_sha256
 from harness.record_io import canonical_json_sha256
 
 from .publication_privacy import read_evidence_binding, evidence_excerpt_matches
@@ -169,7 +174,6 @@ def require_current_review_state(records, review):
 
 def _require_supplemental_reviews(source, dataset, records, review):
     """Bind newly reviewed answers without rewriting inherited opinions."""
-    from .publication_privacy import read_evidence_binding
     fresh = {r['attempt_id'] for r in review.get('attempts', [])
              if r.get('review_origin') == 'fresh'}
     if not review.get('supplemental_reviews'):
@@ -236,8 +240,6 @@ def _require_supplemental_reviews(source, dataset, records, review):
     return seen
 
 
-
-
 def require_retained_reviews(source, dataset, records, review):
     """Retain actual old opinions only when their decision inputs still suffice.
 
@@ -252,7 +254,6 @@ def require_retained_reviews(source, dataset, records, review):
         if retained:
             raise ValueError('Retained reviews require their original evidence')
         return set()
-    from .publication_privacy import read_evidence_binding
     from .result_review import review_input_identity
     from harness.record_io import load_jsonl
     receipt = json.loads(read_evidence_binding(source, binding).read_text())
@@ -315,7 +316,6 @@ def require_retained_reviews(source, dataset, records, review):
 def compact_retained_review_dependencies(source, dataset, records, review):
     """Keep actual reused opinions and decision identities, not old matrices."""
     require_retained_reviews(source, dataset, records, review)
-    from .publication_privacy import read_evidence_binding
     from .result_review import review_input_identity
     receipt = json.loads(read_evidence_binding(source, review['retained_reviews']).read_text())
     if receipt.get('kind') == 'current_retained_review_dependencies':
@@ -406,3 +406,250 @@ def _require_current_retained_reviews(source, dataset, records, review, receipt)
             or fresh + len(rows) != len(review['attempts'])):
         raise ValueError('Fresh and compact retained review counts differ')
     return retained
+
+
+def score_reviewed_page_identity(source, case, record, annotation, captures, *, historical_scoring_source=None):
+    """Apply a bound retrospective content correspondence, never a native URL."""
+    from lexbench_webfetch.metrics import normalize_for_match, task_measured
+    from lexbench_webfetch.scoring import score_attempt, _same_page_url, SCORING_SOURCE_SHA256
+
+    if (annotation.get("attempt_id") != record["attempt_id"]
+            or annotation.get("case_sha256") != canonical_json_sha256(case)
+            or annotation.get("call_sha256") != local_measurement_call_sha256(record)
+            or annotation.get("content_sha256") != record["metrics"]["content_sha256"]
+            or record.get("final_url") is not None
+            or annotation.get("basis") != "retrospective_content_correspondence"
+            or not annotation.get("reviewed_at")):
+        raise ValueError("Page review lost its case, answer or physical call binding")
+    historical = historical_scoring_source is not None and historical_scoring_source != SCORING_SOURCE_SHA256
+    original_metrics = None if historical else score_attempt(
+        case, contained_path(source, record["artifact_path"]).read_bytes(),
+        ok=record["ok"], metadata=record.get("provider_metadata"),
+        previous_metrics=record["metrics"], status_code=record.get("status_code"),
+        title=record.get("title"), final_url=record.get("final_url"),
+    )
+    if not historical and (task_measured(original_metrics)
+            or original_metrics.get("page_identity_status") != "unavailable"):
+        raise ValueError("Page review may only fill an unavailable page identity")
+    capture = captures[annotation["capture_index"]]
+    corresponding_url = annotation["corresponding_url"]
+    if (capture.get("url") != corresponding_url
+            or canonical_json_sha256(capture) != annotation.get("capture_sha256")):
+        raise ValueError("Page review capture binding differs")
+    answer = contained_path(source, record["artifact_path"]).read_bytes()
+    if hashlib.sha256(answer).hexdigest() != annotation["content_sha256"]:
+        raise ValueError("Page review answer changed")
+    samples = annotation.get("matching_samples", [])
+    saved = normalize_for_match(answer.decode("utf-8"))
+    observed = normalize_for_match(capture["text"])
+    normalized = [normalize_for_match(value).strip() for value in samples if isinstance(value, str)]
+    strong_samples = {value for value in normalized if sum(char.isalnum() for char in value) >= 20}
+    if (len(normalized) != len(samples) or len(strong_samples) < 2
+            or any(not any(char.isalnum() for char in value)
+                   or value not in saved or value not in observed for value in normalized)):
+        raise ValueError("Page review needs matching substantive text in both bodies")
+    navigation = (case.get("source_benchmark", {}).get("risk_control", {})
+                  .get("navigation_contract", {}))
+    acceptable = [navigation.get("requested_url"), navigation.get("observed_final_url")]
+    if not any(value and _same_page_url(corresponding_url, value) for value in acceptable):
+        raise ValueError("Reviewed page does not satisfy the frozen URL requirement")
+    if historical:
+        # The revision chain already hash-verifies these historical results.
+        # Validate their review evidence without replaying a different scorer
+        # and pretending its metrics were produced by the historical version.
+        metrics = record['metrics']
+        if (metrics.get('scoring_source_sha256') != historical_scoring_source
+                or metrics.get('page_identity_required') is not True
+                or metrics.get('page_identity_status') != 'verified'
+                or metrics.get('final_url_consistent') is not True
+                or metrics.get('content_chars') != len(answer.decode('utf-8'))
+                or metrics.get('page_identity_review_sha256') != canonical_json_sha256(annotation)):
+            raise ValueError('Reviewed result differs from its bound historical shared scorer')
+        return dict(metrics)
+    metrics = score_attempt(
+        case, answer, ok=record["ok"], metadata=record.get("provider_metadata"),
+        previous_metrics=record["metrics"], status_code=record.get("status_code"),
+        title=record.get("title"), final_url=corresponding_url,
+    )
+    metrics["page_identity_basis"] = "retrospective_content_correspondence"
+    metrics["page_identity_review_sha256"] = canonical_json_sha256(annotation)
+    return metrics
+
+
+def _require_page_identity_review(source, dataset, records, *, scoring_sources=None):
+    binding = dataset.get("comparison", {}).get("page_identity_review")
+    marked = {r["attempt_id"] for r in records
+              if r["metrics"].get("page_identity_basis") == "retrospective_content_correspondence"}
+    if binding is None:
+        if marked:
+            raise ValueError("Reviewed page identities lack a receipt")
+        return
+    try:
+        path = read_evidence_binding(source, binding)
+    except ValueError as error:
+        raise ValueError("Page identity review receipt changed") from error
+    receipt = json.loads(path.read_text())
+    capture_path = contained_path(source, receipt["captures_path"], reject_symlinks=True)
+    if hashlib.sha256((capture_path).read_bytes()).hexdigest() != receipt["captures_sha256"]:
+        raise ValueError("Page review captures changed")
+    captures = json.loads(capture_path.read_text())
+    _require_identity_binding_revision(source, dataset, receipt)
+    annotations = receipt["attempts"]
+    if (receipt.get("kind") != "retrospective_page_identity_review"
+            or receipt.get("provider_calls_added") != 0
+            or len(annotations) != len(marked)
+            or {a["attempt_id"] for a in annotations} != marked):
+        raise ValueError("Page review scope differs from annotated results")
+    cases = {case["id"]: case for case in dataset["cases"]}
+    indexed = {r["attempt_id"]: r for r in records}
+    for annotation in annotations:
+        record = indexed[annotation["attempt_id"]]
+        declared = None
+        if scoring_sources is not None:
+            declared = scoring_sources.get(record["attempt_id"])
+            if not declared or record["metrics"].get("scoring_source_sha256") != declared:
+                raise ValueError("Reviewed result lost its revision scoring source")
+        expected = score_reviewed_page_identity(
+            source, cases[record["case_id"]], record, annotation, captures,
+            historical_scoring_source=declared)
+        if expected != record["metrics"]:
+            raise ValueError("Reviewed result differs from the shared scorer")
+
+
+def _require_local_review(source, dataset, records, *, review_document=None, scoring_sources=None):
+    """Bind optional full independent review without certifying local evidence."""
+    _require_page_identity_review(source, dataset, records, scoring_sources=scoring_sources)
+    binding = dataset.get("comparison", {}).get("independent_review")
+    if binding is None and review_document is None:
+        return None
+    if review_document is None:
+        path = contained_path(source, binding["path"], reject_symlinks=True)
+        if hashlib.sha256((path).read_bytes()).hexdigest() != binding.get("sha256"):
+            raise ValueError("Local independent review binding changed")
+        review = json.loads(path.read_text())
+    else:
+        review = review_document
+    rows = review.get("attempts", [])
+    indexed = {row["attempt_id"]: row for row in rows}
+    expected = {row["attempt_id"]: row for row in records}
+    if (review.get("kind") != "local_independent_review"
+            or review.get("review_protocol", {}).get("scope") != "all"
+            or review.get("reviewed_attempts") != len(records)
+            or review.get("expected_attempts") != len(records)
+            or review.get("results_sha256") != hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest()
+            or len(indexed) != len(rows) or set(indexed) != set(expected)):
+        raise ValueError("Local independent review scope differs")
+    unresolved = 0
+    from lexbench_webfetch.metrics import task_measured
+    for identifier, row in indexed.items():
+        record = expected[identifier]
+        verdict = ("unavailable" if not task_measured(record["metrics"]) else
+                   "pass" if task_passed(record["ok"], record["metrics"]) else "fail")
+        if (row.get("content_sha256") != record["metrics"]["content_sha256"]
+                or row.get("current_verdict") != verdict
+                or row.get("agent_verdict") not in {"pass", "fail", "insufficient"}
+                or row.get("final_verdict") not in {verdict, None}):
+            raise ValueError("Local review differs from scored evidence")
+        if row.get("final_verdict") is None:
+            unresolved += 1
+            if row.get("status") != "deferred_unadjudicated":
+                raise ValueError("Local unresolved review lacks explicit deferral")
+    if review.get("unresolved") != unresolved:
+        raise ValueError("Local review unresolved count differs")
+    require_adjudication_evidence(source, dataset, records, review)
+    return review
+
+
+def _legacy_diagnostic_migrated_case(case):
+    """Decode the exact task transition in retained legacy review receipts."""
+    import copy
+    result = copy.deepcopy(case)
+    hints = result.pop('forbidden_any', [])
+    if hints:
+        result['diagnostic_any'] = list(dict.fromkeys(result.get('diagnostic_any', []) + hints))
+    result.pop('acceptance_policy_version', None)
+    return result
+
+
+def _require_identity_binding_revision(source, dataset, receipt):
+    """Verify a saved migration receipt; never create a new migrated review."""
+    migration = receipt.get('binding_revision')
+    if not migration:
+        return
+    previous = json.loads(read_evidence_binding(source, migration['prior_receipt']).read_text())
+    old_cases = json.loads(read_evidence_binding(source, migration['prior_cases']).read_text())
+    cases = {case['id']: case for case in dataset['cases']}
+    if (migration.get('kind') != 'diagnostic_field_migration'
+            or migration.get('new_independent_review') is not False
+            or receipt.get('captures_path') != previous.get('captures_path')
+            or receipt.get('captures_sha256') != previous.get('captures_sha256')):
+        raise ValueError('Page identity evidence migration changed source observations')
+    annotations = []
+    prior_ids = {canonical_json_sha256(case): identifier for identifier, case in old_cases.items()}
+    for annotation in previous['attempts']:
+        identifier = prior_ids.get(annotation['case_sha256'])
+        if identifier is None or identifier not in cases:
+            raise ValueError('Page identity migration has no matching prior task')
+        old = old_cases[identifier]
+        migrated = _legacy_diagnostic_migrated_case(old)
+        # Older compiled navigation tasks implied identity acceptance. Keep
+        # that requirement explicit when adopting the diagnostic default.
+        if (cases[identifier].get('page_identity_required') is True
+                and 'page_identity_required' not in old):
+            navigation = old.get('source_benchmark', {}).get('risk_control', {}).get('navigation_contract', {})
+            dynamic_identity = (old.get('track') == 'dynamic' and old.get('evaluation_url')
+                                and old.get('expected_final_url') and old.get('target_language')
+                                and old.get('target_region'))
+            if ((old.get('track') == 'risk_control' and navigation.get('requested_url')
+                 and navigation.get('observed_final_url')) or dynamic_identity):
+                migrated['page_identity_required'] = True
+        if (annotation['case_sha256'] != canonical_json_sha256(old)
+                or migrated != cases[identifier]):
+            raise ValueError('Page identity migration changed its target contract')
+        annotations.append({**annotation, 'prior_case_sha256': annotation['case_sha256'],
+                            'case_sha256': canonical_json_sha256(cases[identifier])})
+    if receipt['attempts'] != annotations:
+        raise ValueError('Page identity migration changed an existing reviewed annotation')
+
+
+@dataclass(frozen=True)
+class ReviewedPageIdentityUpdates:
+    binding: dict
+    metrics_by_attempt: dict
+
+
+def prepare_reviewed_page_identities(source, before_dataset, dataset, records):
+    """Validate and return unchanged identity evidence without mutating inputs.
+
+    Old migration receipts remain read-only inputs to the legacy verifier.
+    Changed task, answer or physical-call inputs require a new explicit review.
+    """
+    binding = before_dataset.get('comparison', {}).get('page_identity_review')
+    if not binding:
+        return None
+    original = json.loads(read_evidence_binding(source, binding).read_text())
+    captures_path = contained_path(source, original['captures_path'], reject_symlinks=True)
+    if hashlib.sha256((captures_path).read_bytes()).hexdigest() != original['captures_sha256']:
+        raise ValueError('Page identity capture changed before rescoring')
+    captures = json.loads(captures_path.read_text())
+    cases = {case['id']: case for case in dataset['cases']}
+    indexed = {row['attempt_id']: row for row in records}
+    receipt = original
+    for annotation in receipt['attempts']:
+        row = indexed.get(annotation['attempt_id'])
+        case = cases.get(row['case_id']) if row is not None else None
+        if (case is None or annotation['case_sha256'] != canonical_json_sha256(case)
+                or annotation['call_sha256'] != local_measurement_call_sha256(row)
+                or annotation['content_sha256'] != row['metrics']['content_sha256']):
+            raise ValueError('Changed page identity review inputs require a new explicit review')
+    metrics_by_attempt = {}
+    for annotation in receipt['attempts']:
+        row = indexed[annotation['attempt_id']]
+        metrics_by_attempt[row['attempt_id']] = score_reviewed_page_identity(
+            source, cases[row['case_id']], row, annotation, captures)
+    proposed_dataset = {**dataset, 'comparison': {
+        **dataset.get('comparison', {}), 'page_identity_review': binding}}
+    proposed_records = [{**row, 'metrics': metrics_by_attempt.get(row['attempt_id'], row['metrics'])}
+                        for row in records]
+    _require_page_identity_review(source, proposed_dataset, proposed_records)
+    return ReviewedPageIdentityUpdates(dict(binding), metrics_by_attempt)
