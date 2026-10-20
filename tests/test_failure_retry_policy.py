@@ -6,17 +6,17 @@ import pytest
 from harness.web_fetch.cli import build_parser
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
-from harness.web_fetch.providers.base import Provider
+from harness.web_fetch.providers.fixture import FixtureProvider
 from harness.web_fetch.runner import run_evaluation
 
 
-class Responses(Provider):
+class Responses(FixtureProvider):
     def __init__(self, answers, *, native=False):
         super().__init__('custom-method', {'type': 'fixture', 'uniform_native_parameters': native})
         self.answers = iter(answers)
         self.calls = 0
 
-    def fetch(self, case, timeout):
+    def fetch(self, case, timeout, *, native_route_ledger=None):
         self.calls += 1
         result = next(self.answers)
         if self.config['uniform_native_parameters']:

@@ -28,11 +28,16 @@ class NativeFixture(Provider):
         from harness.web_fetch.providers.moli import MoliWebFetchProvider
         return MoliWebFetchProvider.native_cli_command(self, case)
 
-    def fetch(self, case, timeout):
+    def native_route(self, case):
+        from harness.web_fetch.providers.moli import MoliWebFetchProvider
+        return MoliWebFetchProvider.native_route(self, case)
+
+    def fetch(self, case, timeout, *, native_route_ledger=None):
         command = self.native_cli_command(case)
         self.capture_native_request(case, transport='cli', interface='dynamic_native_markdown' if case.track=='dynamic' else 'ordinary_markdown',
             parameters={'argv': ['<native-binary>', *command[1:-1], '<input-url>'],
-                        'binary_sha256': self.config['expected_binary_sha256']})
+                        'binary_sha256': self.config['expected_binary_sha256']},
+            native_route_ledger=native_route_ledger)
         diagnostic = (self.name + "/" + case.id + " debug\n").encode()
         metadata = {
             "route": "dynamic_native_markdown" if case.track == "dynamic" else "ordinary_markdown",
