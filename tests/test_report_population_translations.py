@@ -94,3 +94,38 @@ def test_interface_timeout_uses_supplied_evidence_and_translates_arbitrary_value
     else:
         assert f"{budget:g}-second outer deadline" in english
     assert "45-second" not in english
+
+
+@pytest.mark.parametrize("budget", [None, 12.5, 60])
+def test_native_capability_budget_is_declared_not_assumed(tmp_path, budget):
+    import json
+    from harness.web_fetch.report_capabilities import render_capabilities
+    from harness.web_fetch.report import table, cell, link
+    (tmp_path / 'adoption').mkdir()
+    comparison = {} if budget is None else {'timeout_seconds': budget}
+    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [], 'comparison': comparison}))
+    rows = [{'provider': 'moli', 'provider_metadata': {'output_contract': 'markdown'}}]
+    chinese = render_capabilities(tmp_path, ['moli'], table=table, cell=cell, link=link, records=rows)
+    english = localize_html(chinese, PurePosixPath('adoption/index.html'))
+    assert ('Outer budget not recorded.' if budget is None else f'Outer budget: {budget:g} seconds.') in english
+    assert '45 秒' not in chinese
+
+
+def test_nonuniform_interface_uses_saved_request_instead_of_registered_example(tmp_path, monkeypatch):
+    import json
+    from harness.web_fetch.report_interfaces import render_interfaces
+    (tmp_path / 'adoption').mkdir()
+    (tmp_path / 'answer.txt').write_text('saved output')
+    call = tmp_path / 'call.json'
+    call.write_text(json.dumps({'request': {'timeout_seconds': 7, 'url': 'https://example.test/actual'}}))
+    monkeypatch.setattr('harness.web_fetch.artifacts.record_public_call_log_bindings', lambda row: [{'path': 'call.json'}])
+    monkeypatch.setattr('harness.web_fetch.artifacts.verify_public_call_log', lambda root, binding: call)
+    row = {'provider': 'tavily', 'provider_type': 'tavily', 'case_id': 'one', 'attempt_id': 'saved',
+           'artifact_path': 'answer.txt', 'provider_metadata': {}, 'ok': True}
+    html = render_interfaces(tmp_path, [row])
+    saved = json.loads((tmp_path / 'adoption/interfaces/tavily.json').read_text())
+    assert saved['interface']['request'] == json.loads(call.read_text())['request']
+    assert saved['interface']['params'] == []
+    assert '本轮保存的调用字段' in html
+    assert '40.5 秒' not in saved['interface']['notes']
+    assert '登记示例' in html

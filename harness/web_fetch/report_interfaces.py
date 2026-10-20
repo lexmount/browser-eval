@@ -406,10 +406,10 @@ def render_interfaces(out,records):
  for i,name in enumerate(names):
   r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
   s=method_spec(name,r,timeout_seconds=comparison.get("timeout_seconds"))
-  if r and native_default:
-   bindings=record_public_call_log_bindings(r)
-   if not bindings:
-    raise ValueError("Measured native interface requires a saved call log: "+name)
+  bindings=record_public_call_log_bindings(r) if r else []
+  if r and native_default and not bindings:
+   raise ValueError("Measured native interface requires a saved call log: "+name)
+  if bindings:
    request=json.loads(verify_public_call_log(out,bindings[-1]).read_text())["request"]
    from .methods import method_page_model
    model=method_page_model(name,name,[x for x in records if x["provider"]==name])
@@ -426,7 +426,9 @@ def render_interfaces(out,records):
   if access:
    body+='<h3>账号与获取入口</h3><p>'+escape(access['account'])+'</p><p>'+escape(access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+escape(label)+'</a>' for label,url in access['links'])+'</p><p class="source-note">实际版本和接口见运行记录；下方链接指向官方说明。</p>'
   sample_label='本轮输出节选 · 统一记录' if r else '本轮未执行'
-  body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+('<h4>本轮保存的调用字段</h4>' if r and native_default else '<h4>调用输入示例</h4>')+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
+  body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+('<h4>本轮保存的调用字段</h4>' if bindings else '<h4>调用输入示例</h4>')+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
   measured_link='<a href="../attempts/'+escape(r['attempt_id'])+'.html">该次完整输出与判定 →</a>' if r else '未纳入本轮；参数说明为仓库登记模式，不计入本轮结果'
-  body+='<p>'+escape(s['notes'])+'</p><p class="source-note">核对实现：<code>'+escape(s['source'])+'</code> · '+measured_link+' · <a href="interfaces/'+name+'.json">示例 JSON</a></p></details>'
+  from .report_components import bilingual_text
+  example_note='' if bindings else bilingual_text('以下接口说明与数值属于仓库登记示例，不是这次调用的请求记录。', 'The following interface descriptions and values are registered examples, not this call’s request record.')
+  body+='<p>'+example_note+escape(s['notes'])+'</p><p class="source-note">核对实现：<code>'+escape(s['source'])+'</code> · '+measured_link+' · <a href="interfaces/'+name+'.json">示例 JSON</a></p></details>'
  return body
