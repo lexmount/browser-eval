@@ -12,6 +12,10 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from types import MappingProxyType
+
+# Compare against this immutable declaration; store a fresh dict in each case.
+NATIVE_RETRIEVAL_HINTS = MappingProxyType({'version': 3, 'mode': 'native'})
 
 _WAIT_UNTIL = {"domcontentloaded", "load", "networkidle"}
 _COMPLETION_KEYS = {"selector", "minimum_count", "timeout_ms", "delay_ms"}
@@ -88,7 +92,7 @@ def native_fetch_dataset(dataset: dict) -> dict:
     result = deepcopy(dataset)
     for case in result['cases']:
         if case.get('track') == 'dynamic':
-            case['retrieval_hints'] = {'version': 3, 'mode': 'native'}
+            case['retrieval_hints'] = dict(NATIVE_RETRIEVAL_HINTS)
         elif case.get('retrieval_hints'):
             raise ValueError('Native retrieval hints are only valid for dynamic cases: ' + case['id'])
     result.setdefault('comparison', {})['retrieval_mode'] = 'native_task_family_completion'
@@ -113,7 +117,7 @@ def historical_native_fetch_dataset(dataset: dict) -> dict:
                     'Native fetch cannot discard declared retrieval hints: ' + case['id']
                 )
         if case.get('track') == 'dynamic':
-            case.setdefault('retrieval_hints', {'version': 3, 'mode': 'native'})
+            case.setdefault('retrieval_hints', dict(NATIVE_RETRIEVAL_HINTS))
     result.setdefault('comparison', {})['retrieval_mode'] = 'native_default_completion'
     return result
 
@@ -546,7 +550,7 @@ def native_contract_for_case(case: Any) -> NativeRetrievalContract | None:
 def native_default_case(case: Any) -> bool:
     """Stable acceptance contracts permit a URL-only provider-default route."""
     get = case.get if isinstance(case, dict) else lambda key, default=None: getattr(case, key, default)
-    if get("track", "web") != "dynamic" or get("retrieval_hints") not in (None, {}, {"version": 3, "mode": "native"}):
+    if get("track", "web") != "dynamic" or get("retrieval_hints") not in (None, {}, NATIVE_RETRIEVAL_HINTS):
         return False
     contract = get("acceptance_contract")
     if not contract:

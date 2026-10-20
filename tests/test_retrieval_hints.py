@@ -478,3 +478,20 @@ def test_registered_contract_from_an_installed_module(tmp_path, monkeypatch, cor
     else:
         contract = owner.native_contract_for_case(case)
         assert contract.selector == ".quote" and contract.minimum_count == 10
+
+
+@pytest.mark.parametrize('builder_name', ['native_fetch_dataset', 'historical_native_fetch_dataset'])
+def test_native_marker_is_immutable_but_each_dataset_case_owns_a_dictionary(builder_name):
+    from harness.web_fetch import retrieval_hints
+    marker = retrieval_hints.NATIVE_RETRIEVAL_HINTS
+    with pytest.raises(TypeError):
+        marker['mode'] = 'changed'
+    source = {'cases': [{'id': name, 'track': 'dynamic'} for name in ('one', 'two')]}
+    selected = getattr(retrieval_hints, builder_name)(source)
+    first, second = [case['retrieval_hints'] for case in selected['cases']]
+    assert type(first) is dict and type(second) is dict
+    assert first == second == marker
+    first['mode'] = 'changed'
+    assert second == marker == {'version': 3, 'mode': 'native'}
+    assert all('retrieval_hints' not in case for case in source['cases'])
+    assert json.loads(json.dumps(selected)) == selected

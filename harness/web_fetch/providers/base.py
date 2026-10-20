@@ -9,6 +9,7 @@ from typing import Any
 
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
+from ..retrieval_hints import NATIVE_RETRIEVAL_HINTS
 
 
 def terminate_owned_process_tree(process):
@@ -98,7 +99,7 @@ class Provider(ABC):
             raise ValueError('Native execution mode changed after provider initialization')
         if not self._native_mode:
             return
-        if case.retrieval_hints and not (case.track == "dynamic" and case.retrieval_hints == {"version": 3, "mode": "native"}):
+        if case.retrieval_hints and not (case.track == "dynamic" and case.retrieval_hints == NATIVE_RETRIEVAL_HINTS):
             raise ValueError("fixed native calls prohibit per-case retrieval hints")
         if case.track not in {"web", "dynamic", "challenge", "risk_control", "document", "image", "video", "file"}:
             raise ValueError("fixed native calls require a declared task route")

@@ -20,7 +20,7 @@ from ..native_projection import main_document_url_from_fetch_log as _diagnostic_
 
 from lexbench_webfetch.models import EvalCase, TRACKS
 from harness.web_fetch.models import ProviderResult
-from ..retrieval_hints import native_contract_for_case, plan_for_case
+from ..retrieval_hints import NATIVE_RETRIEVAL_HINTS, native_contract_for_case, plan_for_case
 from lexbench_webfetch.paths import validate_http_url
 from ..native_projection import native_answer_projection
 from .base import Provider, terminate_owned_process_tree
@@ -313,7 +313,7 @@ class MoliWebFetchProvider(Provider):
     def native_cli_command(self, case):
         route = _route_for_case(case, native_default=True)
         argv = [str(self.config.get('binary', 'moli')), 'fetch']
-        native_dynamic = case.track == 'dynamic' and case.retrieval_hints == {'version': 3, 'mode': 'native'}
+        native_dynamic = case.track == 'dynamic' and case.retrieval_hints == NATIVE_RETRIEVAL_HINTS
         if route not in {'raw_file', 'native_document_bytes'}:
             wait = _family_wait_until(self.config, case.track)
             argv += ['--dump', 'html' if case.task_kind == 'resource' else 'markdown', '--wait-until', wait]
@@ -387,7 +387,7 @@ class MoliWebFetchProvider(Provider):
                 case.track == "dynamic"
                 and isinstance(case.retrieval_hints, dict)
                 and case.retrieval_hints.get("version") == 3
-                and case.retrieval_hints != {"version": 3, "mode": "native"}
+                and case.retrieval_hints != NATIVE_RETRIEVAL_HINTS
             ):
                 raise ValueError(
                     f"{case.id}: Moli native dynamic tasks require one family marker"
@@ -426,7 +426,7 @@ class MoliWebFetchProvider(Provider):
         track_waits = self.config.get("wait_until_by_track", {})
         native_dynamic_task = (
             case.track == "dynamic"
-            and case.retrieval_hints == {"version": 3, "mode": "native"}
+            and case.retrieval_hints == NATIVE_RETRIEVAL_HINTS
         )
         wait_option = "--" + self.config.get("wait_option", "wait-until")
         timeout_ms = str(max(1, int(inner_timeout_budget(timeout) * 1000)))
