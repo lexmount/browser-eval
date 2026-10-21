@@ -8,12 +8,13 @@ import unicodedata
 from .core import factual_evidence
 
 LEGACY_CONTAMINATION_RULE = "simpleqa-name-in-url-or-title/1"
-CONTAMINATION_RULE = "benchmark-name-or-question-with-evaluation-fields/2"
+EVALUATION_FIELDS_RULE = "benchmark-name-or-question-with-evaluation-fields/2"
+CONTAMINATION_RULE = "question-with-evaluation-or-dataset-viewer-structure/3"
 
 
 def is_benchmark_page(result, *, case=None, rule=CONTAMINATION_RULE):
     """Exclude named mirrors or the exact question accompanied by evaluation fields."""
-    if rule not in (LEGACY_CONTAMINATION_RULE, CONTAMINATION_RULE):
+    if rule not in (LEGACY_CONTAMINATION_RULE, EVALUATION_FIELDS_RULE, CONTAMINATION_RULE):
         raise ValueError("Unsupported factual contamination rule")
     identity = result.get("url", "") + " " + result.get("title", "")
     if re.search(r"simple[\s_\-]*qa", identity, re.IGNORECASE):
@@ -26,9 +27,23 @@ def is_benchmark_page(result, *, case=None, rule=CONTAMINATION_RULE):
     question = compact(case.get("query", ""))
     if not question or question not in compact(text):
         return False
-    return bool(re.search(
+    evaluation_fields = bool(re.search(
         r"\b(?:ground[\s_\-]*truth|reference[\s_\-]*answers?|gold[\s_\-]*(?:answers?|labels?)|model[\s_\-]*(?:answers?|responses?)|grader[\s_\-]*(?:responses?|results?)|is[\s_\-]*correct)\b",
         text, re.IGNORECASE))
+    if rule == EVALUATION_FIELDS_RULE:
+        return evaluation_fields
+    dataset_viewer = bool(
+        re.search(r"subsets\s+and\s+splits", text, re.I)
+        and re.search(r"select\s+\*\s+from\s+[\"`]?train\b", text, re.I)
+    )
+    validation_log = bool(
+        re.search(r"hidden[\s_]+log", text, re.I)
+        and re.search(r"answer\s+validation\s+failed", text, re.I)
+        and re.search(r"expected\s*:", text, re.I)
+        and re.search(r"received\s*:", text, re.I)
+    )
+    named_benchmark = bool(re.search(r"simple[\s_\-]*qa|super[\s_\-]*gpqa", text, re.I))
+    return evaluation_fields or dataset_viewer or validation_log or named_benchmark
 
 
 def factual_sensitivity(case, results, *, rule=CONTAMINATION_RULE):

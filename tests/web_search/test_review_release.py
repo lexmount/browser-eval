@@ -83,12 +83,14 @@ def test_review_release_counts_failures_and_retains_opinions(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "defect", ["counts", "missing-output", "raw-identity", "open-finding", "stale-decision"]
+    "defect", ["counts", "missing-output", "raw-identity", "open-count", "open-finding", "stale-decision"]
 )
 def test_partial_or_unsupported_review_never_enters_release(tmp_path, defect):
     report, evidence = audited_fixture(tmp_path)
     profile, rows = check(report, return_data=True)
-    if defect == "counts":
+    if defect == "open-count":
+        evidence["open_issue_count"] = 1
+    elif defect == "counts":
         evidence["output_reviewed"] += 1
     elif defect == "missing-output":
         evidence["cases"][0]["output_reviews"].pop()
