@@ -85,7 +85,7 @@ def test_complete_human_input_scores_all_zero_and_empty_cases_without_dropping_t
         import_annotations(p, rows, submission)
     submission["reviewed_case_ids"] = packet["plan"]["case_ids"]
     submission["judge"] = {"kind": "model", "name": "fake"}
-    with pytest.raises(ValueError, match="model judges are disabled"):
+    with pytest.raises(ValueError, match="complete frozen prompts and calls"):
         import_annotations(p, rows, submission)
 
 
@@ -110,3 +110,36 @@ def test_annotation_export_escapes_source_markup_and_never_prelabels(tmp_path):
     payload = json.loads(soup.select_one("#packet").string)
     assert "labels" not in payload
     assert payload["blind_candidate_packets"][0]["query"] == p["cases"][0]["query"]
+
+
+def test_frozen_model_labels_require_exact_candidate_coverage_and_quotes():
+    from harness.web_search.relevance import candidate_packet, JUDGE_PROMPT, parse_judgments, verify_provenance
+    import json
+    import copy
+    profile, rows = all_case_fixture()
+    packet, rankings = candidate_packet(profile, rows)
+    calls, labels = [], {}
+    for p in packet["blind_candidate_packets"]:
+        items = [{"candidate_id": c["candidate_id"], "grade": 3, "reason": "Directly useful", "evidence": c["url"]} for c in p["candidates"]]
+        response = {"model": "test-model", "choices": [{"message": {"content": json.dumps({"judgments": items})}}]}
+        request = {"model": "test-model", "temperature": 0, "messages": [{"role": "system", "content": JUDGE_PROMPT}, {"role": "user", "content": json.dumps(p, ensure_ascii=False, sort_keys=True)}]}
+        calls.append({"case_id": p["case_id"], "request": request, "response": response})
+        labels[p["case_id"]] = {x["candidate_id"]: x["grade"] for x in items}
+    evidence = {**packet, "provider_rankings": rankings, "labels": labels, "judge": {"kind": "model", "name": "test-model", "prompt": JUDGE_PROMPT, "calls": calls}}
+    verify_provenance(profile, rows, evidence)
+    from harness.web_search.comparison import comparison_data
+    display_profile = dict(profile, methods=[dict(m, label=m["id"]) for m in profile["methods"]])
+    data = comparison_data(display_profile, rows, relevance=evidence, detail_link=lambda r: "result.html")
+    graded = [item for case in data["cases"] for output in case["outputs"].values() for item in output["items"]]
+    assert graded and all(item["grade"] == 3 and item["grade_reason"] == "Directly useful" and item["grade_evidence"] for item in graded)
+    scored = score(profile, rows, evidence["plan"], labels)
+    assert any(x["success"] == 1 for x in scored)
+    assert any(x["success"] == 0 for x in scored)
+    bad = copy.deepcopy(evidence)
+    case = next(c for c in packet["blind_candidate_packets"] if c["candidates"])
+    bad["labels"][case["case_id"]][case["candidates"][0]["candidate_id"]] = 0
+    with pytest.raises(ValueError, match="disagree"):
+        verify_provenance(profile, rows, bad)
+    response = {"choices": [{"message": {"content": json.dumps({"judgments": [{"candidate_id": c["candidate_id"], "grade": 3, "reason": "reason", "evidence": "invented supporting quote"} for c in case["candidates"]]})}}]}
+    with pytest.raises(ValueError, match="exact quote"):
+        parse_judgments(case, response)

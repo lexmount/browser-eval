@@ -945,6 +945,12 @@ def build(
                 [t("Metric", "指标"), t("Value", "数值")],
                 [cells([label, fmt(r["metrics"][key])]) for key, label in metric_labels],
             )
+            if relevance_data and cid in relevance_data["labels"]:
+                per_query = next(x for x in relevance_scores if x["case_id"] == cid and x["method"] == r["method"])
+                detail += '<section data-case-relevance><h2>' + t("Preview relevance", "结果预览相关性") + '</h2><p>' + esc(relevance_data["judge"]["name"]) + '</p>'
+                detail += table(["nDCG@5", "Precision@5", "Success@5"], [cells([f'{per_query["ndcg"]:.3f}', f'{per_query["precision"]:.1%}', str(int(per_query["success"]))])])
+                detail += '<a href="../relevance-judgments.json">' + t("Complete scoring input and output", "完整评分输入与输出") + '</a></section>'
+
             detail += (
                 "<h2>"
                 + t("Exact error", "原始错误")
@@ -2452,7 +2458,7 @@ def relevance_panel(profile, scored, evidence, zh):
         for method in methods:
             stats = summaries[method["id"]]
             rows.append(cells([esc(search_category(family, zh)), esc(method["label"]),
-                               str(stats["n"]), f'{stats["ndcg"]:.3f}', f'{stats["precision"]:.1%}']))
+                               str(stats["n"]), f'{stats["ndcg"]:.3f}', f'{stats["precision"]:.1%}', f'{stats["success"]:.1%}']))
     overall = relevance_summary(scored, [m["id"] for m in methods])
     bars = '<div class="metric-bars">' + ''.join(
         '<div class="item"><strong>' + esc(m["label"]) + '</strong><span class="track"><span class="fill" style="width:'
@@ -2460,7 +2466,7 @@ def relevance_panel(profile, scored, evidence, zh):
         + f'{overall[m["id"]]["ndcg"]:.3f}' + '</small></div>' for m in methods
     ) + '</div>'
     audit = evidence["judge"]
-    return ('<section class="specimen" data-relevance><h3>'
+    panel = ('<section class="specimen" data-relevance><h3>'
             + ((f"Human relevance labels: all {len(evidence['plan']['case_ids'])} in-house queries") if not zh else f"自建题库相关性：全量 {len(evidence['plan']['case_ids'])} 题人工标注")
             + '</h3>' + bars
             + '<p>' + (("All in-house queries use the same fixed human labels and scoring rules. nDCG@5 rewards useful pages near the top; Precision@5 counts pages graded at least 2 among five slots. Labels use the pooled URL, title and snippet with source-page inspection when needed. "
@@ -2468,13 +2474,21 @@ def relevance_panel(profile, scored, evidence, zh):
                        if not zh else "全部自建题目按同一套固定人工标注计算。nDCG@5 重视有用结果是否排在前面，Precision@5 是前五个位置中至少达到 2 分的比例。标注查看网址、标题和摘要，必要时核对原网页。题型："
                        + "、".join(f"{search_category(family, True)} {sum(r['family']==family for r in scored)//len(methods)} 题" for family in families) + "。")
             + '</p>'
-            + table(["Category" if not zh else "题型", "Provider" if not zh else "服务", "N", "nDCG@5", "Precision@5"], rows)
+            + table(["Category" if not zh else "题型", "Provider" if not zh else "服务", "N", "nDCG@5", "Precision@5", "Success@5"], rows)
             + '<p class="muted">'
             + (f"Human annotator: {esc(audit['name'])}. Scoring makes no model calls. Empty responses, missing result slots and all-zero candidate pools remain in the denominator."
                if not zh else f"人工标注者：{esc(audit['name'])}。评分不调用模型。空结果、不足 5 条和全部候选均无关的题目，都保留在分母中。")
             + '</p><a href="relevance-judgments.json">'
             + ("Scoring evidence" if not zh else "查看逐项评分证据")
             + '</a></section>')
+
+    explanation = ("Success@5 是前五条至少出现一条 3 分结果的题目比例。" if zh else "Success@5 is the fraction of queries with at least one grade-3 result in the top five.")
+    panel = panel.replace('</h3>', '</h3><p>' + explanation + '</p>', 1)
+    if audit["kind"] == "model":
+        panel = panel.replace("Human relevance labels", "Model preview relevance labels").replace("题人工标注", "题模型评分").replace("fixed human labels", "frozen model labels").replace("固定人工标注", "固定模型标注").replace("with source-page inspection when needed", "without source-page inspection").replace("必要时核对原网页", "未读取原网页正文")
+        panel = panel.replace(f"Human annotator: {esc(audit['name'])}. Scoring makes no model calls.", f"Judge: {esc(audit['name'])}. The model labels previews; metric calculation reuses frozen labels. A fresh model run may differ.")
+        panel = panel.replace(f"人工标注者：{esc(audit['name'])}。评分不调用模型。", f"裁判：{esc(audit['name'])}。模型判断预览相关性，程序根据保存的分数计算指标；重新调用模型可能产生变化。这是模型评测，不是人工金标或网页全文正确性验证。")
+    return panel
 
 
 def factual_panel(profile, selected, zh):

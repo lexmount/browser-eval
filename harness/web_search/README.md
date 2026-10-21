@@ -114,9 +114,18 @@ in that browser and exports a complete JSON file. It does not call a model or
 pre-fill grades.
 
 Pass the completed file to the normal build with `--relevance`. Import verifies
-the frozen packet, every query and candidate, and the named human annotator. Model
-judges and sampled in-house label sets are rejected. Fixed labels produce nDCG@5
+the frozen packet, every query and candidate, and the named annotator. Explicitly
+authorized model runs bind exact prompts, requests, responses and quoted evidence.
+Sampled in-house label sets are rejected. Fixed labels produce nDCG@5
 and Precision@5 deterministically. Duplicate URLs earn no additional credit;
 missing slots count toward the five-slot denominator. A query with no relevant
 pooled candidate receives zero nDCG and precision and stays in the population.
 Known-URL discovery and site constraints remain separate diagnostics.
+
+For explicitly authorized model annotations, run `scripts/judge_search_relevance.py`
+with `--report`, `--output`, `--model` and `--base-url`. Supply the credential through
+`SEARCH_JUDGE_API_KEY`; do not put credentials in CLI arguments. The runner freezes
+its contract, retains each response, resumes completed queries and refuses changed
+inputs. Import its `relevance.json` through the existing report `--relevance` option.
+Model annotations are labeled separately from human annotations. The rubric uses
+0–3 grades, with nDCG@5, Precision@5 (grade ≥2), and Success@5 (at least one grade 3).
