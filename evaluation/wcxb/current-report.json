@@ -58,5 +58,14 @@
   "candidate_binary_sha256": "ba5e80975886f3135098146acec6941cee6d4bc65109d2e576db9dfc1e1c0ade",
   "release_binary_sha256": "522f752f30397f3b77910736c4ff76f2bdf4cd1a62a2bd14332bbccc97ce26dc",
   "latency_correction_receipt_sha256": "701799a5af8fea1ad02f4f4650c695390d2c6571eb69bda115392160e4e34681",
-  "optional_ui_receipt_sha256": "6bb78355ec3343c532023dbc0ba809f41554e74874932b6f95581b87f25d7a81"
+  "optional_ui_receipt_sha256": "6bb78355ec3343c532023dbc0ba809f41554e74874932b6f95581b87f25d7a81",
+  "paired_comparison": {
+    "baseline": "moli",
+    "candidate": "moli-pr643"
+  },
+  "participants": {
+    "moli-pr643": {
+      "label": "Moli candidate · 384d1d2a"
+    }
+  }
 }

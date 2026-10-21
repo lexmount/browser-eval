@@ -154,11 +154,16 @@ def assemble_profile_dataset(
     declared_profile = definition.get("profile")
     if profile_path_override is None and not declared_profile:
         raise ValueError("Dataset assembly requires an external report profile")
-    profile_path = contained_path(
-        repository,
-        profile_path_override if profile_path_override is not None else declared_profile,
-        reject_symlinks=True,
-    )
+    if profile_path_override is None:
+        profile_path = contained_path(repository, declared_profile, reject_symlinks=True)
+        reproduction_profile = str(declared_profile)
+    else:
+        from .safety import reject_evidence_symlinks
+        profile_path = (profile_path_override if profile_path_override.is_absolute()
+                        else repository / profile_path_override)
+        reject_evidence_symlinks(profile_path)
+        reproduction_profile = (profile_path.relative_to(repository).as_posix()
+                                if profile_path.is_relative_to(repository) else profile_path.name)
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
     inventory = profile.get("case_inventory")
     if not isinstance(inventory, dict) or not inventory:
@@ -234,7 +239,7 @@ def assemble_profile_dataset(
         "publication_state": "pre_call_frozen",
         "input_sources": input_sources,
         "reference_binding_mode": profile["reference_binding_mode"],
-        "reproduction_profile": str(profile_path_override or declared_profile),
+        "reproduction_profile": reproduction_profile,
         "report_output": profile["report_output"],
     }
     review_scope = profile.get("independent_result_review_scope")

@@ -262,6 +262,7 @@ def create_report_inputs(tmp_path, *, english_source=True):
     original = load_jsonl(cohort['evidence_root'] / 'wcxb-scores.jsonl')
     profile = json.loads(cohort['profile_path'].read_bytes())
     profile.update(source_repository='https://example.invalid/synthetic', source_commit='a' * 40,
+                   paired_comparison={'baseline':'moli','candidate':'moli-pr643'},
                    candidate_source_commit='b' * 40,
                    versions={provider: 'synthetic' for provider in PROVIDERS})
     root = tmp_path / 'report'

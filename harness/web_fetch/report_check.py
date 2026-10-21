@@ -309,14 +309,10 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         profile_path = (
             (repository / profile).resolve() if not profile.is_absolute() else profile.resolve()
         )
-        if not profile_path.is_relative_to((repository / "evaluation").resolve()):
-            raise ValueError("--profile must stay under evaluation/")
     if (root / "wcxb-score-summary.json").is_file():
-        if profile_path and profile_path != repository / "evaluation/wcxb/current-report.json":
-            raise ValueError("WCXB report requires its own current profile")
         from harness.web_fetch.wcxb_report_check import check as check_wcxb
 
-        check_wcxb(root, authority_root=repository)
+        check_wcxb(root, authority_root=repository, profile_path=profile_path)
         return None
     if profile_path:
         require_current_report_profile(root, profile_path)

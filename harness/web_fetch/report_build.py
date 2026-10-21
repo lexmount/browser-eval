@@ -1226,8 +1226,17 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     from harness.web_fetch.wcxb_dataset import validate_manifest
-    from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
+    from harness.web_fetch.webmainbench_runner import load_wcxb_source
     source, output = source.resolve(), output.resolve()
+    providers = profile['providers']
+    if not providers or len(set(providers)) != len(providers):
+        raise ValueError('WCXB participant registry must be nonempty and unique')
+    for provider in providers:
+        safe_identifier(provider)
+    comparison = profile.get('paired_comparison') or {}
+    baseline, candidate_id = comparison.get('baseline'), comparison.get('candidate')
+    if comparison and (baseline == candidate_id or {baseline,candidate_id} - set(providers)):
+        raise ValueError('WCXB paired comparison must name two registered participants')
     from harness.reporting.assets import load_bound_content
     report_content = load_bound_content(
         source / "report-assets", content_binding,
@@ -1255,55 +1264,60 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     evaluator_hash = file_sha256(contained_path(corpus, 'evaluate.py'))
     if evaluator_hash != profile['official_evaluator_sha256'] or summary.get('official_evaluator_sha256') != evaluator_hash:
         raise ValueError('WCXB official evaluator differs from the certified profile')
-    if [x['provider'] for x in certificate['providers']] != list(WCXB_PROVIDERS) or profile['providers'] != list(WCXB_PROVIDERS):
+    if [x['provider'] for x in certificate['providers']] != providers:
         raise ValueError('WCXB participant registry differs from the certificate')
-    candidate = next(x for x in certificate['providers'] if x['provider'] == 'moli-pr643')
-    if candidate['identity'].get('binary_sha256') != profile['candidate_binary_sha256']:
-        raise ValueError('WCXB candidate binary differs from the current report profile')
-    released = next(x for x in certificate['providers'] if x['provider'] == 'moli')
-    if released['identity'].get('binary_sha256') != profile['release_binary_sha256']:
-        raise ValueError('WCXB released Moli binary differs from the current report profile')
+    if comparison:
+        candidate = next(x for x in certificate['providers'] if x['provider'] == candidate_id)
+        if candidate['identity'].get('binary_sha256') != profile['candidate_binary_sha256']:
+            raise ValueError('WCXB candidate binary differs from the current report profile')
+        released = next(x for x in certificate['providers'] if x['provider'] == baseline)
+        if released['identity'].get('binary_sha256') != profile['release_binary_sha256']:
+            raise ValueError('WCXB baseline binary differs from the current report profile')
     rows = load_jsonl(source / 'wcxb-scores.jsonl', skip_blank=True)
     case_ids = {r['track_id'] for r in records}
-    correction_root = source / 'latency-correction'
-    correction_receipt = correction_root / 'receipt.json'
-    if (not correction_receipt.is_file()
-            or file_sha256(correction_receipt)
-            != profile.get('latency_correction_receipt_sha256')):
-        raise ValueError('WCXB full-scope latency correction is missing or differs from profile')
-    _, corrected_calls = load_full_paired_latency(correction_root, profile, case_ids)
-    correction_certificate = json.loads((correction_root / 'certification.json').read_text())
-    if (correction_certificate.get('kind') != 'certified_wcxb_paired_latency'
-            or correction_certificate.get('complete') is not True
-            or correction_certificate.get('receipt_sha256')
-            != file_sha256(correction_receipt)):
-        raise ValueError('WCXB corrected timing is not certified')
-    if any(
-        abs(row['total_elapsed_ms'] - corrected_calls[row['case_id'],
-            'release' if row['provider'] == 'moli' else 'pr']['elapsed_ms']) > .01
-        for row in rows if row['provider'] in ('moli', 'moli-pr643')
-    ):
-        raise ValueError('WCXB reported Moli latency differs from the selected paired round')
-    optional_root = source / 'optional-ui-4017'
-    optional_receipt = optional_root / 'receipt.json'
-    if (not optional_receipt.is_file() or optional_receipt.is_symlink()
-            or file_sha256(optional_receipt)
-            != profile.get('optional_ui_receipt_sha256')):
-        raise ValueError('WCXB optional UI-stripping evidence is missing or differs from profile')
-    optional = json.loads(optional_receipt.read_text())
-    if (optional.get('case_id') != '4017' or optional.get('source_sha256') != corpus_hash
-            or optional.get('builds', {}).get('release', {}).get('binary_sha256') != profile['release_binary_sha256']
-            or optional.get('builds', {}).get('candidate', {}).get('binary_sha256') != profile['candidate_binary_sha256']
-            or optional['builds']['release']['description_present']
-            or not optional['builds']['candidate']['description_present']):
-        raise ValueError('WCXB optional UI-stripping comparison does not bind both builds')
-    for name in ('release', 'candidate'):
-        for ext, key in (('md', 'output_sha256'), ('stderr', 'stderr_sha256')):
-            artifact = optional_root / f'{name}.{ext}'
-            if (not artifact.is_file() or artifact.is_symlink()
-                    or file_sha256(artifact) != optional['builds'][name][key]):
-                raise ValueError('WCXB optional UI-stripping artifact changed: ' + artifact.name)
-    if len(rows) != len(records) * len(WCXB_PROVIDERS) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in WCXB_PROVIDERS for c in case_ids}:
+    if profile.get('latency_correction_receipt_sha256'):
+        if not comparison:
+            raise ValueError('WCXB corrected timing requires declared comparison participants')
+        correction_root = source / 'latency-correction'
+        correction_receipt = correction_root / 'receipt.json'
+        if (not correction_receipt.is_file()
+                or file_sha256(correction_receipt)
+                != profile.get('latency_correction_receipt_sha256')):
+            raise ValueError('WCXB full-scope latency correction is missing or differs from profile')
+        _, corrected_calls = load_full_paired_latency(correction_root, profile, case_ids)
+        correction_certificate = json.loads((correction_root / 'certification.json').read_text())
+        if (correction_certificate.get('kind') != 'certified_wcxb_paired_latency'
+                or correction_certificate.get('complete') is not True
+                or correction_certificate.get('receipt_sha256')
+                != file_sha256(correction_receipt)):
+            raise ValueError('WCXB corrected timing is not certified')
+        if any(
+            abs(row['total_elapsed_ms'] - corrected_calls[row['case_id'],
+                'release' if row['provider'] == baseline else 'pr']['elapsed_ms']) > .01
+            for row in rows if row['provider'] in (baseline,candidate_id)
+        ):
+            raise ValueError('WCXB reported paired latency differs from the selected paired round')
+    if profile.get('optional_ui_receipt_sha256'):
+        optional_root = source / 'optional-ui-4017'
+        optional_receipt = optional_root / 'receipt.json'
+        if (not optional_receipt.is_file() or optional_receipt.is_symlink()
+                or file_sha256(optional_receipt)
+                != profile.get('optional_ui_receipt_sha256')):
+            raise ValueError('WCXB optional UI-stripping evidence is missing or differs from profile')
+        optional = json.loads(optional_receipt.read_text())
+        if (optional.get('case_id') != '4017' or optional.get('source_sha256') != corpus_hash
+                or optional.get('builds', {}).get('release', {}).get('binary_sha256') != profile['release_binary_sha256']
+                or optional.get('builds', {}).get('candidate', {}).get('binary_sha256') != profile['candidate_binary_sha256']
+                or optional['builds']['release']['description_present']
+                or not optional['builds']['candidate']['description_present']):
+            raise ValueError('WCXB optional UI-stripping comparison does not bind both builds')
+        for name in ('release', 'candidate'):
+            for ext, key in (('md', 'output_sha256'), ('stderr', 'stderr_sha256')):
+                artifact = optional_root / f'{name}.{ext}'
+                if (not artifact.is_file() or artifact.is_symlink()
+                        or file_sha256(artifact) != optional['builds'][name][key]):
+                    raise ValueError('WCXB optional UI-stripping artifact changed: ' + artifact.name)
+    if len(rows) != len(records) * len(providers) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in providers for c in case_ids}:
         raise ValueError('WCXB score matrix is incomplete')
     if output.exists() and not (output / '.generated-report').is_file():
         raise ValueError('Refusing to replace an unmarked report')
@@ -1314,12 +1328,14 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             shutil.copy2(source / name, staging / name)
         shutil.copy2(sample_path, staging / 'sample-manifest.json')
         (staging / 'research').mkdir()
-        (staging / 'research/wcxb-full-paired-latency').mkdir()
-        for name in ('receipt.json', 'certification.json', 'calls.jsonl'):
-            shutil.copy2(correction_root / name, staging / 'research/wcxb-full-paired-latency' / name)
-        (staging / 'research/wcxb-optional-ui-4017').mkdir()
-        for name in ('receipt.json', 'release.md', 'candidate.md', 'release.stderr', 'candidate.stderr'):
-            shutil.copy2(optional_root / name, staging / 'research/wcxb-optional-ui-4017' / name)
+        if profile.get('latency_correction_receipt_sha256'):
+            (staging / 'research/wcxb-full-paired-latency').mkdir()
+            for name in ('receipt.json', 'certification.json', 'calls.jsonl'):
+                shutil.copy2(correction_root / name, staging / 'research/wcxb-full-paired-latency' / name)
+        if profile.get('optional_ui_receipt_sha256'):
+            (staging / 'research/wcxb-optional-ui-4017').mkdir()
+            for name in ('receipt.json', 'release.md', 'candidate.md', 'release.stderr', 'candidate.stderr'):
+                shutil.copy2(optional_root / name, staging / 'research/wcxb-optional-ui-4017' / name)
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/report-changes.json',
                      staging / 'research/report-changes.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json',
@@ -1385,7 +1401,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             case_id = record['track_id']
             outputs = {}
             retries = {}
-            for provider in WCXB_PROVIDERS:
+            for provider in providers:
                 outputs[provider] = (staging / 'artifacts' / provider / f'{case_id}.txt').read_text(encoding='utf-8')
                 retries[provider] = [
                     {**retry, 'output': contained_path(staging, retry['artifact_path']).read_text(encoding='utf-8')}
@@ -1409,7 +1425,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 raise ValueError('WCXB representative review scope differs from measured matrix')
             for case_review in review['cases']:
                 case_id = case_review['case_id']
-                if case_id not in rows_by_case or not set(case_review['outputs']) <= set(WCXB_PROVIDERS):
+                if case_id not in rows_by_case or not set(case_review['outputs']) <= set(providers):
                     raise ValueError('WCXB review case or method inventory differs')
                 evidence = json.loads((evidence_root / f'{case_id}.json').read_text())
                 if (hashlib.sha256(evidence['source_html'].encode()).hexdigest() != case_review['source_html_sha256']

@@ -55,19 +55,18 @@ def adoption_counts(data,names):
 def _implementation_scope(records, *, section, table, cell, esc):
     from .reliability import implementation_inventory
     from .report import model_text
-    inventories = {name: counts for name, counts in implementation_inventory(records).items()
-                   if len(counts) > 1}
+    inventories = implementation_inventory(records)
     if not inventories:
         return ""
     rows = [("", cell(esc(name)) + cell("<code>" + esc(fingerprint) + "</code>") + cell(str(count)))
             for name, counts in sorted(inventories.items())
             for fingerprint, count in counts.items()]
     explanation = model_text(
-        "这些方法的最终结果包含多个程序版本。允许保留已通过的结果、只重跑失败部分，再统一评分。表中列出各版本采用的结果数；累计成绩不代表某一个版本独立跑完整套任务。",
-        "These methods combine retained results and reruns from multiple executable builds. Passed results may be retained while failures are rerun, then the complete selected population is rescored. Counts below identify each build's selected results; the cumulative score is not a full run by one build.")
+        "表中列出每个方法采用的结果数及其版本依据。unknown 表示未记录版本；reported-version 表示仅记录了版本名称，未核验二进制。多个版本合并的累计成绩不代表某一个版本独立跑完整套任务。",
+        "Every selected result is counted below. unknown means no version was recorded; reported-version identifies a recorded version label without a verified binary. When several builds are combined, the cumulative score is not a complete run by any single build.")
     return section(model_text("局部重跑与结果来源", "Partial reruns and result provenance"),
                    "<p>" + explanation + "</p>" + table(
-                       [model_text("方法", "Method"), "SHA-256", model_text("采用结果数", "Selected results")],
+                       [model_text("方法", "Method"), model_text("版本依据", "Version evidence"), model_text("采用结果数", "Selected results")],
                        rows, metrics=[]), "implementation-scope")
 
 

@@ -11,9 +11,12 @@ def implementation_inventory(records: list[dict]) -> dict[str, dict[str, int]]:
     implementations = {}
     for row in records:
         fingerprint = (row.get("provider_metadata") or {}).get("binary_sha256")
-        if fingerprint:
-            counts = implementations.setdefault(row.get("provider"), {})
-            counts[fingerprint] = counts.get(fingerprint, 0) + 1
+        if not fingerprint:
+            metadata = row.get("provider_metadata") or {}
+            version = metadata.get("reported_version") or metadata.get("browser_version")
+            fingerprint = "reported-version:" + str(version) if version else "unknown"
+        counts = implementations.setdefault(row.get("provider"), {})
+        counts[fingerprint] = counts.get(fingerprint, 0) + 1
     return {provider: dict(sorted(counts.items()))
             for provider, counts in implementations.items()}
 

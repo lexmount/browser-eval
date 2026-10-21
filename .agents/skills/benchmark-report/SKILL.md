@@ -17,6 +17,13 @@ do not choose a historical article from provider names or task-family guesses.
 Without a content binding, render the maintained data-derived explanation.
 Prove reuse through the public build and check entries with a different external
 task/method inventory, not only by searching for old numbers in source code.
+Exercise assembly and packaging with that external profile as well. Participant
+IDs, labels, interfaces and comparison roles come from the instance registry;
+a new cohort must not inherit a historical method's account or timing claims.
+Disclose declared literal, fact, body-region, record, resource and identity checks
+separately. A task instruction is not a full-text reference. Preserve frozen
+verdicts while exposing passes without verified page identity, blocked-page
+markers and unexpected resource URLs as diagnostics.
 
 An explicitly requested diagnostic report may be delivered separately from a certified benchmark release. Use the diagnostic build/check entry, label its evidence state and certification gaps on every page, preserve saved scores and outputs, and do not publish rankings or upgrade certification. It does not waive any certified-release reference or review gate. Presentation fixes add no provider calls. Update only the owning code, relevant instructions and demonstrated regression scenarios; do not mechanically modify every skill or copy report-specific conclusions into instructions.
 

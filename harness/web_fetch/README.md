@@ -189,15 +189,15 @@ originals, binds any public redaction and runs the maintained release checks.
 
 ### Report instances
 
-Live WebFetch reports are data instances, not renderer subclasses. An instance's
-`evaluation/<instance>/current-report.json` binds its complete `cohort_plan`,
+Live WebFetch reports are data instances, not renderer subclasses. A diagnostic instance's
+external profile binds its complete `cohort_plan`,
 implementation, external `diagnostic_input` (data-home-relative path and SHA-256),
 and publication target. The input manifest owns cohort evidence paths, reviewed
 findings, explanatory prose and examples. It does not contain rendering code.
 
 ```bash
-uv run --frozen python scripts/build_report.py --profile evaluation/<instance>/current-report.json --output <new-report-directory>
-uv run --frozen python scripts/check_diagnostic_report.py <new-report-directory> --profile evaluation/<instance>/current-report.json
+uv run --frozen python scripts/build_report.py --profile /absolute/instance/profile.json --output <new-report-directory>
+uv run --frozen python scripts/check_diagnostic_report.py <new-report-directory> --profile /absolute/instance/profile.json
 ```
 
 Set `BROWSER_EVAL_DATA_HOME` when the external evidence uses a nondefault root.

@@ -14,6 +14,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
+from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.record_io import load_jsonl
 from harness.report_languages import localized_report_routes, visible_numbers
 from harness.reporting.presentation import check_presentation
@@ -117,43 +118,56 @@ def require_analysis_controls(html: str | BeautifulSoup, result_count: int) -> B
 
 
 def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
-                                paired_latency: dict, lang: str, *, scores: list[dict]) -> BeautifulSoup:
+                                paired_latency: dict | None, lang: str, *, scores: list[dict], comparison: dict | None = None) -> BeautifulSoup:
     """Keep the version comparison readable and its timing caveat beside the table."""
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
     core = soup.select_one('#wcxb-core')
-    contexts = soup.select('#moli-latency-context')
-    changes = soup.select('#moli-change')
-    require(core is not None and len(contexts) == len(changes) == 1,
-            'Home Moli comparison or timing context is missing or duplicated')
-    context = contexts[0]
-    require(core.find_parent('section') == context.find_parent('section'),
-            'Moli timing context must be beside the core comparison')
-    require(core.find_next(id='moli-latency-context') == context,
-            'Moli timing context must follow the core comparison')
-    release = summary['providers']['moli']['mean_latency_ms']
-    candidate = summary['providers']['moli-pr643']['mean_latency_ms']
-    required = (f'{release:,.0f} ms', f'{candidate:,.0f} ms',
-                f'{paired_latency["paired_delta_mean_ms"]:+.1f} ms')
-    context_text = context.get_text(' ', strip=True)
-    require(all(value in context_text for value in required),
-            'Home timing context disagrees with measured evidence')
-    require(('交叉顺序' if lang == 'zh' else 'balanced same-window') in context_text
-            and (f'{summary["case_count"]} 页' if lang == 'zh' else f'{summary["case_count"]} pages') in context_text,
-            'Home timing context does not identify the corrected population')
-    require(context.select_one('a[href$="guide/index.html"]') is not None,
-            'Home timing context does not link to the analysis')
+    contexts = soup.select('#paired-latency-context')
+    changes = soup.select('#configuration-change')
+    require(core is not None, 'Home core comparison is missing')
+    if comparison == {}:
+        require(not changes and not contexts, 'Home has an undeclared paired comparison')
+        return soup
+    require(len(changes) == 1, 'Home configuration comparison is missing or duplicated')
+    baseline, candidate = changes[0].get('data-baseline'), changes[0].get('data-candidate')
+    require(baseline != candidate and {baseline,candidate} <= set(summary['providers']),
+            'Home comparison does not identify two registered participants')
+    if comparison is not None:
+        require((baseline,candidate) == (comparison['baseline'],comparison['candidate']),
+                'Home comparison differs from its declared participants')
+    if paired_latency is None:
+        require(not contexts, 'Home claims a same-window comparison without timing evidence')
+    else:
+        require(len(contexts) == 1, 'Paired timing context is missing or duplicated')
+        context = contexts[0]
+        require(core.find_parent('section') == context.find_parent('section'),
+                'Paired timing context must be beside the core comparison')
+        require(core.find_next(id='paired-latency-context') == context,
+                'Paired timing context must follow the core comparison')
+        release = summary['providers'][baseline]['mean_latency_ms']
+        candidate_latency = summary['providers'][candidate]['mean_latency_ms']
+        required = (f'{release:,.0f} ms', f'{candidate_latency:,.0f} ms',
+                    f'{paired_latency["paired_delta_mean_ms"]:+.1f} ms')
+        context_text = context.get_text(' ', strip=True)
+        require(all(value in context_text for value in required),
+                'Home timing context disagrees with measured evidence')
+        require(('交叉顺序' if lang == 'zh' else 'balanced same-window') in context_text
+                and (f'{summary["case_count"]} 页' if lang == 'zh' else f'{summary["case_count"]} pages') in context_text,
+                'Home timing context does not identify the corrected population')
+        require(context.select_one('a[href$="guide/index.html"]') is not None,
+                'Home timing context does not link to the analysis')
     change = changes[0]
     change_text = change.get_text(' ', strip=True)
     require(len(change_text) <= (330 if lang == 'zh' else 700),
-            'Home Moli change summary is too long; move detail to the interpretation page')
+            'Home configuration change summary is too long; move detail to the interpretation page')
     require(len(change.select('p')) == 2 and change.select_one('a[href*="cases/"]')
             and change.select_one('a[href$="guide/index.html"]'),
-            'Home Moli change summary lacks concise evidence links')
+            'Home configuration change summary lacks concise evidence links')
     by_case = {}
     for row in scores:
         if row.get('quality_eligible', True):
             by_case.setdefault(row['case_id'], {})[row['provider']] = row['f1']
-    deltas = [values['moli-pr643'] - values['moli'] for values in by_case.values()]
+    deltas = [values[candidate] - values[baseline] for values in by_case.values()]
     expected = {'higher': sum(value > 1e-10 for value in deltas),
                 'lower': sum(value < -1e-10 for value in deltas),
                 'equal': sum(abs(value) <= 1e-10 for value in deltas)}
@@ -166,27 +180,29 @@ def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
                 'Home comparison links to a case outside the selected evidence')
     require(('逐页 F1 的平均' if lang == 'zh' else 'page-level F1 values') in change_text,
             'Home comparison omits the page-level F1 definition')
-    precision_delta = ((summary['providers']['moli-pr643']['quality_precision']
-                        - summary['providers']['moli']['quality_precision']) * 100)
-    recall_delta = ((summary['providers']['moli-pr643']['quality_recall']
-                     - summary['providers']['moli']['quality_recall']) * 100)
-    f1_delta = ((summary['providers']['moli-pr643']['quality_f1']
-                 - summary['providers']['moli']['quality_f1']) * 100)
+    precision_delta = ((summary['providers'][candidate]['quality_precision']
+                        - summary['providers'][baseline]['quality_precision']) * 100)
+    recall_delta = ((summary['providers'][candidate]['quality_recall']
+                     - summary['providers'][baseline]['quality_recall']) * 100)
+    f1_delta = ((summary['providers'][candidate]['quality_f1']
+                 - summary['providers'][baseline]['quality_f1']) * 100)
     require(all(f'{value:+.4f}' in change_text
                 for value in (precision_delta, recall_delta, f1_delta)),
-            'Home Moli change summary disagrees with aggregate deltas')
+            'Home configuration change summary disagrees with aggregate deltas')
     require(not any(f'{summary["providers"][provider]["quality_f1"] * 100:.4f}%'
-                    in change_text for provider in ('moli', 'moli-pr643')),
-            'Home Moli change summary repeats exact table values')
+                    in change_text for provider in (baseline,candidate)),
+            'Home configuration change summary repeats exact table values')
     return soup
 
 
 def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
-                                 providers: list[str], lang: str) -> BeautifulSoup:
+                                 providers: list[str], lang: str, *, repair_analysis: bool = True) -> BeautifulSoup:
     """A guide must work as a standalone explanation, with traceable examples."""
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
     anchors = ('guide-results', 'guide-score', 'guide-cases', 'guide-repair', 'guide-methods',
                'guide-timing', 'guide-conclusion')
+    if not repair_analysis:
+        anchors = tuple(anchor for anchor in anchors if anchor != 'guide-repair')
     toc = soup.select_one('nav.essay-toc')
     require(toc is not None and all(soup.select_one(f'#{anchor}') is not None
                                      and toc.select_one(f'a[href="#{anchor}"]') is not None
@@ -207,48 +223,53 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
                 f'Guide overview disagrees with {provider} evidence')
     specimen = soup.select_one('#guide-cases')
     require(specimen is not None, 'Guide lacks a direct source-example entry')
-    repair = soup.select_one('#guide-repair')
-    images = ('code-block.png', 'description.png', 'adjacent-code.png')
-    require(repair is not None and len(repair.select('.repair-case')) == len(images),
-            'Guide must explain each Moli repair in its own figure')
-    for case, image in zip(repair.select('.repair-case'), images):
-        graphic = case.select_one('figure img')
-        require(graphic is not None and graphic.get('src') == f'assets/wcxb-repair/{image}'
-                and len(graphic.get('alt', '')) >= 30
-                and len(case.select('figcaption span')) == 3
-                and len(case.select('.repair-samples > div')) == 3
-                and case.select_one('.repair-mechanism a[href*="github.com/lexmount/moli/blob/384d1d2a/"]'),
-                f'Guide repair figure {image} lacks its image, code samples or current source')
-        captions = [node.get_text(' ', strip=True) for node in case.select('figcaption span')]
-        scope = case.select_one('.repair-scope')
-        require('1.1.8' in captions[1] and '384d1d2a' in captions[2] and scope is not None,
-                'Guide figure does not compare the tagged release with current PR')
-        if image == 'description.png':
-            mode = '可选 UI 清理' if lang == 'zh' else 'optional UI stripping'
-            require(all(mode in caption for caption in captions[1:]),
-                    'Optional stripping captions omit the measured mode')
-    require('tsfunction identity(arg: number)' in repair.select('.repair-case')[0].get_text(' ', strip=True)
-            and '<details' in repair.select('.repair-case')[1].select_one('.repair-samples').get_text(' ', strip=True)
-            and 'namestring' in repair.select('.repair-case')[2].get_text(' ', strip=True)
-            and 'gap-2' in repair.select('.repair-case')[2].get_text(' ', strip=True),
-            'Guide figures lack source-backed examples')
-    guide_text = soup.get_text(' ', strip=True)
-    require(('98.45%' in guide_text and '100%' in guide_text
-             and ('CSS' in guide_text or 'css' in guide_text)),
-            'Guide omits the measured adjacent-code score change or CSS-spacing limit')
-    require(all(repair.select_one(f'a[href$="cases/{case}.html#{provider}"]')
-                for case, provider in (('5412', 'moli'), ('5412', 'moli-pr643'),
-                                       ('5458', 'moli'), ('5458', 'moli-pr643'), ('4017', 'moli'))),
-            'Guide repair explanation lacks measured case evidence')
-    require(all(repair.select_one(f'a[href="research/wcxb-optional-ui-4017/{name}"]')
-                for name in ('release.md', 'candidate.md', 'receipt.json')),
-            'Guide optional-feature claim lacks the actual paired outputs')
+    if repair_analysis:
+        repair = soup.select_one('#guide-repair')
+        images = ('code-block.png', 'description.png', 'adjacent-code.png')
+        require(repair is not None and len(repair.select('.repair-case')) == len(images),
+                'Guide must explain each Moli repair in its own figure')
+        for case, image in zip(repair.select('.repair-case'), images):
+            graphic = case.select_one('figure img')
+            require(graphic is not None and graphic.get('src') == f'assets/wcxb-repair/{image}'
+                    and len(graphic.get('alt', '')) >= 30
+                    and len(case.select('figcaption span')) == 3
+                    and len(case.select('.repair-samples > div')) == 3
+                    and case.select_one('.repair-mechanism a[href*="github.com/lexmount/moli/blob/384d1d2a/"]'),
+                    f'Guide repair figure {image} lacks its image, code samples or current source')
+            captions = [node.get_text(' ', strip=True) for node in case.select('figcaption span')]
+            scope = case.select_one('.repair-scope')
+            require('1.1.8' in captions[1] and '384d1d2a' in captions[2] and scope is not None,
+                    'Guide figure does not compare the tagged release with current PR')
+            if image == 'description.png':
+                mode = '可选 UI 清理' if lang == 'zh' else 'optional UI stripping'
+                require(all(mode in caption for caption in captions[1:]),
+                        'Optional stripping captions omit the measured mode')
+        require('tsfunction identity(arg: number)' in repair.select('.repair-case')[0].get_text(' ', strip=True)
+                and '<details' in repair.select('.repair-case')[1].select_one('.repair-samples').get_text(' ', strip=True)
+                and 'namestring' in repair.select('.repair-case')[2].get_text(' ', strip=True)
+                and 'gap-2' in repair.select('.repair-case')[2].get_text(' ', strip=True),
+                'Guide figures lack source-backed examples')
+        guide_text = soup.get_text(' ', strip=True)
+        require(('98.45%' in guide_text and '100%' in guide_text
+                 and ('CSS' in guide_text or 'css' in guide_text)),
+                'Guide omits the measured adjacent-code score change or CSS-spacing limit')
+        require(all(repair.select_one(f'a[href$="cases/{case}.html#{provider}"]')
+                    for case, provider in (('5412', 'moli'), ('5412', 'moli-pr643'),
+                                           ('5458', 'moli'), ('5458', 'moli-pr643'), ('4017', 'moli'))),
+                'Guide repair explanation lacks measured case evidence')
+        require(all(repair.select_one(f'a[href="research/wcxb-optional-ui-4017/{name}"]')
+                    for name in ('release.md', 'candidate.md', 'receipt.json')),
+                'Guide optional-feature claim lacks the actual paired outputs')
     require(soup.select_one('#guide-methods table') is not None
             and len(soup.select('#guide-methods tbody tr')) == len(providers),
             'Guide does not diagnose every measured configuration')
-    require(soup.select_one('#guide-timing a[href="research/wcxb-full-paired-latency/calls.jsonl"]') is not None
-            and soup.select_one('#guide-timing a[href="research/wcxb-full-paired-latency/certification.json"]') is not None,
-            'Guide timing is missing full-scope certified paired evidence')
+    if repair_analysis:
+        require(soup.select_one('#guide-timing a[href="research/wcxb-full-paired-latency/calls.jsonl"]') is not None
+                and soup.select_one('#guide-timing a[href="research/wcxb-full-paired-latency/certification.json"]') is not None,
+                'Guide timing is missing full-scope certified paired evidence')
+    else:
+        require(specimen.select_one('a[href*="cases/"]') is not None,
+                'Guide lacks inspectable source/reference/output evidence')
     require(len(soup.select_one('#guide-conclusion').get_text(' ', strip=True)) > 200,
             'Guide conclusion lacks a substantive finding')
     return soup
@@ -275,17 +296,21 @@ def check_bound_interpretation(root: Path, binding: dict) -> None:
             raise ValueError('WCXB interpretation differs from bound content: ' + language)
 
 
-def check(root: Path, *, authority_root: Path | None = None) -> None:
+def check(root: Path, *, authority_root: Path | None = None, profile_path: Path | None = None) -> None:
     root = root.resolve()
     repository = (authority_root or ROOT).resolve()
-    profile_path = repository / "evaluation/wcxb/current-report.json"
+    profile_path = profile_path or repository / "evaluation/wcxb/current-report.json"
     if not profile_path.is_file():
         raise ValueError("WCXB release authority is missing; pass --authority-root pointing to the repository")
-    profile = json.loads((repository / 'evaluation/wcxb/current-report.json').read_text())
+    reject_evidence_symlinks(profile_path)
+    profile = json.loads(profile_path.read_text())
+    comparison = profile.get('paired_comparison') or {}
+    baseline, candidate_id = comparison.get('baseline'), comparison.get('candidate')
+    repair_analysis = bool(profile.get('optional_ui_receipt_sha256'))
     from .wcxb_publication import inventory
     inventory(root, profile)
-    binding_path = contained_path(repository, 'evaluation/wcxb/report-content-binding.json',
-                                  reject_symlinks=True)
+    binding_path = profile_path.with_name('report-content-binding.json')
+    reject_evidence_symlinks(binding_path)
     check_bound_interpretation(root, json.loads(binding_path.read_bytes()))
     sample_file = root / 'sample-manifest.json'
     sample = json.loads(sample_file.read_text())
@@ -303,52 +328,59 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     case_ids = {row['file_id'] for row in sample['cases']}
     excluded = {row['file_id'] for row in sample.get('exclusions', [])}
     qualified = case_ids - excluded
-    require(len(case_ids) == profile['case_count'] == 504, 'WCXB case count differs')
+    require(len(case_ids) == profile['case_count'], 'WCXB case count differs')
     require(len(scores) == len(case_ids) * len(providers), 'WCXB score count differs')
-    require(summary['quality_case_count'] == profile['primary_quality_case_count'] == sample['primary_quality_case_count'] == 504, 'WCXB quality denominator differs')
+    require(summary['quality_case_count'] == profile['primary_quality_case_count'] == sample['primary_quality_case_count'], 'WCXB quality denominator differs')
     require(summary['exclusions'] == sample.get('exclusions', []) == [], 'WCXB current cohort contains excluded cases')
     require(summary['benchmark'] == sample['dataset_id'] == certificate['benchmark'], 'WCXB certified dataset identity differs')
     require({(r['provider'], r['case_id']) for r in scores} == {(p, c) for p in providers for c in case_ids}, 'WCXB method-case matrix differs')
     require([r['provider'] for r in certificate['providers']] == providers, 'WCXB certificate participants differ')
-    candidate = next(r for r in certificate['providers'] if r['provider'] == 'moli-pr643')
-    require(candidate['identity'].get('binary_sha256') == profile['candidate_binary_sha256'],
-            'WCXB candidate binary differs from the current report profile')
-    released = next(r for r in certificate['providers'] if r['provider'] == 'moli')
-    require(released['identity'].get('binary_sha256') == profile['release_binary_sha256'],
-            'WCXB released Moli binary differs from the current report profile')
-    optional_root = root / 'research/wcxb-optional-ui-4017'
-    optional_receipt = optional_root / 'receipt.json'
-    require(optional_receipt.is_file() and not optional_receipt.is_symlink()
-            and digest(optional_receipt) == profile['optional_ui_receipt_sha256'],
-            'WCXB optional UI-stripping evidence differs from current profile')
-    optional = json.loads(optional_receipt.read_text())
-    for name, binary_hash in (('release', profile['release_binary_sha256']),
-                              ('candidate', profile['candidate_binary_sha256'])):
-        build = optional['builds'][name]
-        artifact = optional_root / f'{name}.md'
-        require(build['binary_sha256'] == binary_hash and build['returncode'] == 0
-                and artifact.is_file() and not artifact.is_symlink()
-                and digest(artifact) == build['output_sha256'],
-                'WCXB optional UI-stripping output is not bound to its binary')
-    require(not optional['builds']['release']['description_present']
-            and optional['builds']['candidate']['description_present'],
-            'WCXB optional UI-stripping finding is not supported')
+    if comparison:
+        require(baseline != candidate_id and {baseline,candidate_id} <= set(providers),
+                'WCXB paired comparison names invalid participants')
+        candidate = next(r for r in certificate['providers'] if r['provider'] == candidate_id)
+        require(candidate['identity'].get('binary_sha256') == profile['candidate_binary_sha256'],
+                'WCXB candidate binary differs from the current report profile')
+        released = next(r for r in certificate['providers'] if r['provider'] == baseline)
+        require(released['identity'].get('binary_sha256') == profile['release_binary_sha256'],
+                'WCXB released Moli binary differs from the current report profile')
+    if repair_analysis:
+        optional_root = root / 'research/wcxb-optional-ui-4017'
+        optional_receipt = optional_root / 'receipt.json'
+        require(optional_receipt.is_file() and not optional_receipt.is_symlink()
+                and digest(optional_receipt) == profile['optional_ui_receipt_sha256'],
+                'WCXB optional UI-stripping evidence differs from current profile')
+        optional = json.loads(optional_receipt.read_text())
+        for name, binary_hash in (('release', profile['release_binary_sha256']),
+                                  ('candidate', profile['candidate_binary_sha256'])):
+            build = optional['builds'][name]
+            artifact = optional_root / f'{name}.md'
+            require(build['binary_sha256'] == binary_hash and build['returncode'] == 0
+                    and artifact.is_file() and not artifact.is_symlink()
+                    and digest(artifact) == build['output_sha256'],
+                    'WCXB optional UI-stripping output is not bound to its binary')
+        require(not optional['builds']['release']['description_present']
+                and optional['builds']['candidate']['description_present'],
+                'WCXB optional UI-stripping finding is not supported')
     from harness.web_fetch.wcxb_latency import (
         load_full_paired_latency,
         summarize_full_paired_latency,
     )
-    _, selected_latency = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, case_ids)
-    paired_latency = summarize_full_paired_latency(selected_latency, case_ids)
-    for provider, method in (('moli', 'release'), ('moli-pr643', 'pr')):
-        values = sorted(selected_latency[case_id, method]['elapsed_ms'] for case_id in case_ids)
-        position = (len(values) - 1) * .95
-        low = int(position)
-        p95 = values[low] + (values[min(low + 1, len(values) - 1)] - values[low]) * (position - low)
-        measured = summary['providers'][provider]
-        require(abs(measured['mean_latency_ms'] - paired_latency[method]['mean_ms']) < .01
-                and abs(measured['p50_latency_ms'] - paired_latency[method]['p50_ms']) < .01
-                and abs(measured['p95_latency_ms'] - p95) < .01,
-                'WCXB Moli timing summary differs from certified full paired evidence')
+    paired_latency = None
+    if profile.get('latency_correction_receipt_sha256'):
+        require(bool(comparison), 'WCXB corrected timing has no declared participants')
+        _, selected_latency = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, case_ids)
+        paired_latency = summarize_full_paired_latency(selected_latency, case_ids)
+        for provider, method in ((baseline, 'release'), (candidate_id, 'pr')):
+            values = sorted(selected_latency[case_id, method]['elapsed_ms'] for case_id in case_ids)
+            position = (len(values) - 1) * .95
+            low = int(position)
+            p95 = values[low] + (values[min(low + 1, len(values) - 1)] - values[low]) * (position - low)
+            measured = summary['providers'][provider]
+            require(abs(measured['mean_latency_ms'] - paired_latency[method]['mean_ms']) < .01
+                    and abs(measured['p50_latency_ms'] - paired_latency[method]['p50_ms']) < .01
+                    and abs(measured['p95_latency_ms'] - p95) < .01,
+                    'WCXB Moli timing summary differs from certified full paired evidence')
     evidence_hashes = json.loads((root / 'evidence-manifest.json').read_text())
     require(set(evidence_hashes) == case_ids, 'WCXB evidence inventory differs')
     by_case = {}
@@ -401,24 +433,25 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
                 require(all(f'data-case="{case}"' not in html for case in excluded), 'Invalid references entered result inventory')
             if route == 'guide/index.html':
                 guide = BeautifulSoup(html, 'html.parser')
-                require_guide_interpretation(guide, summary, providers, lang)
-                for image in ('code-block.png', 'description.png', 'adjacent-code.png'):
-                    asset = root / 'assets/wcxb-repair' / image
-                    require(asset.is_file() and asset.read_bytes()[:8] == b'\x89PNG\r\n\x1a\n',
-                            f'Repair graphic missing or invalid: {image}')
-                headings = {node.get_text(' ', strip=True) for node in guide.select('h2')}
-                require(('Obscura 为什么分数更高' if lang == 'zh' else 'Why Obscura scores higher') in headings,
-                        'Obscura content analysis is missing')
-                require(('Moli 两版耗时' if lang == 'zh' else 'Moli latency') in headings,
-                        'Paired Moli latency analysis is missing')
-                require(guide.select_one('a[href="research/wcxb-full-paired-latency/calls.jsonl"]') is not None,
-                        'Paired latency evidence link is missing')
-                require(guide.select_one('a[href$="cases/4461.html#obscura"]') is not None,
-                        'Obscura boundary counterexample is missing')
+                require_guide_interpretation(guide, summary, providers, lang, repair_analysis=repair_analysis)
+                if repair_analysis:
+                    for image in ('code-block.png', 'description.png', 'adjacent-code.png'):
+                        asset = root / 'assets/wcxb-repair' / image
+                        require(asset.is_file() and asset.read_bytes()[:8] == b'\x89PNG\r\n\x1a\n',
+                                f'Repair graphic missing or invalid: {image}')
+                    headings = {node.get_text(' ', strip=True) for node in guide.select('h2')}
+                    require(('Obscura 为什么分数更高' if lang == 'zh' else 'Why Obscura scores higher') in headings,
+                            'Obscura content analysis is missing')
+                    require(('Moli 两版耗时' if lang == 'zh' else 'Moli latency') in headings,
+                            'Paired Moli latency analysis is missing')
+                    require(guide.select_one('a[href="research/wcxb-full-paired-latency/calls.jsonl"]') is not None,
+                            'Paired latency evidence link is missing')
+                    require(guide.select_one('a[href$="cases/4461.html#obscura"]') is not None,
+                            'Obscura boundary counterexample is missing')
             if route in ('index.html', 'datasets/index.html'):
                 check_presentation(html)
                 if route == 'index.html':
-                    require_home_interpretation(html, summary, paired_latency, lang, scores=scores)
+                    require_home_interpretation(html, summary, paired_latency, lang, scores=scores, comparison=comparison)
                     require('id="home-type"' in html, 'Page-type filter missing')
                     require('官方全量 F1' not in html and 'Official full F1' not in html, 'Invalid full-reference score remains visible')
                     first_card = BeautifulSoup(html, 'html.parser').select_one('.lead-grid .panel')
@@ -474,26 +507,27 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     # Negative controls ensure the semantic contract rejects missing or wrong highlights.
     home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
     winner = home.select_one('#wcxb-core .comparison-winner')
-    require(winner is not None, 'No numeric winner for negative control')
-    winner.unwrap()
-    try:
-        check_presentation(home)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError('A missing comparison highlight was accepted')
+    if winner is not None:
+        winner.unwrap()
+        try:
+            check_presentation(home)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('A missing comparison highlight was accepted')
     home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
-    first = home.select_one('#wcxb-core .comparison-winner').find_parent('td')
-    metric = first['data-metric']
-    other = next(cell for cell in home.select('#wcxb-core td[data-metric]')
-                 if cell['data-metric'] == metric and cell is not first)
-    other.append(BeautifulSoup('<strong class="comparison-winner">wrong</strong>', 'html.parser'))
-    try:
-        check_presentation(home)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError('An incorrect comparison highlight was accepted')
+    if len(providers) > 1:
+        first = home.select_one('#wcxb-core td[data-metric]')
+        metric = first['data-metric']
+        other = next(cell for cell in home.select('#wcxb-core td[data-metric]')
+                     if cell['data-metric'] == metric and cell is not first)
+        other.append(BeautifulSoup('<strong class="comparison-winner">wrong</strong>', 'html.parser'))
+        try:
+            check_presentation(home)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('An incorrect comparison highlight was accepted')
     analysis = require_analysis_controls((root / 'analysis/index.html').read_text(), len(qualified) * len(providers))
     analysis.select_one('#diagnosis-dialog [data-diagnosis-link]').decompose()
     try:
@@ -513,108 +547,111 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
         pass
     else:
         raise AssertionError('A duplicate result summary was accepted')
-    for lang, prefix in language_pairs:
-        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
-        captions = guide.select('#guide-repair .repair-case')[1].select('figcaption span')
-        captions[1].string = 'Moli 1.1.8'
-        try:
-            require_guide_interpretation(guide, summary, providers, lang)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError(f'A {lang} optional-feature caption without its mode was accepted')
+    if repair_analysis:
+        for lang, prefix in language_pairs:
+            guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+            captions = guide.select('#guide-repair .repair-case')[1].select('figcaption span')
+            captions[1].string = 'Moli 1.1.8'
+            try:
+                require_guide_interpretation(guide, summary, providers, lang, repair_analysis=repair_analysis)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f'A {lang} optional-feature caption without its mode was accepted')
     guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
     guide.select_one('#guide-results tbody tr').decompose()
     try:
-        require_guide_interpretation(guide, summary, providers, 'zh')
+        require_guide_interpretation(guide, summary, providers, 'zh', repair_analysis=repair_analysis)
     except ValueError:
         pass
     else:
         raise AssertionError('A guide with a missing measured method was accepted')
+    if repair_analysis:
+        guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
+        guide.select_one('#guide-repair a[href$="cases/5458.html#moli-pr643"]').decompose()
+        try:
+            require_guide_interpretation(guide, summary, providers, 'zh', repair_analysis=repair_analysis)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('A guide with broken worked evidence was accepted')
+        for lang, prefix in language_pairs:
+            guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+            guide.select_one('#guide-repair .repair-case').decompose()
+            try:
+                require_guide_interpretation(guide, summary, providers, lang, repair_analysis=repair_analysis)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f'A {lang} guide missing a repair diagram was accepted')
+            guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+            guide.select_one('#guide-repair figure img').decompose()
+            try:
+                require_guide_interpretation(guide, summary, providers, lang, repair_analysis=repair_analysis)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f'A {lang} guide missing a repair image was accepted')
+            guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+            guide.select('#guide-repair .repair-case')[2].select('figcaption span')[1].string = (
+                '正式版 1.1.7' if lang == 'zh' else 'Release 1.1.7')
+            try:
+                require_guide_interpretation(guide, summary, providers, lang, repair_analysis=repair_analysis)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f'A {lang} guide mislabeled the tagged release')
+            guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+            for node in guide.find_all(string=lambda value: value and 'gap-2' in value):
+                node.replace_with(node.replace('gap-2', ''))
+            try:
+                require_guide_interpretation(guide, summary, providers, lang, repair_analysis=repair_analysis)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f'A {lang} guide missing the CSS-spacing limit was accepted')
     guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
-    guide.select_one('#guide-repair a[href$="cases/5458.html#moli-pr643"]').decompose()
-    try:
-        require_guide_interpretation(guide, summary, providers, 'zh')
-    except ValueError:
-        pass
-    else:
-        raise AssertionError('A guide with broken worked evidence was accepted')
-    for lang, prefix in language_pairs:
-        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
-        guide.select_one('#guide-repair .repair-case').decompose()
+    if guide.select_one('#guide-results .comparison-winner') is not None:
+        guide.select_one('#guide-results .comparison-winner').unwrap()
         try:
-            require_guide_interpretation(guide, summary, providers, lang)
+            require_guide_interpretation(guide, summary, providers, 'zh', repair_analysis=repair_analysis)
         except ValueError:
             pass
         else:
-            raise AssertionError(f'A {lang} guide missing a repair diagram was accepted')
-        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
-        guide.select_one('#guide-repair figure img').decompose()
+            raise AssertionError('A guide without a winning-column highlight was accepted')
+    if paired_latency is not None:
+        home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
+        home.select_one('#paired-latency-context').decompose()
         try:
-            require_guide_interpretation(guide, summary, providers, lang)
+            require_home_interpretation(home, summary, paired_latency, 'zh', scores=scores)
         except ValueError:
             pass
         else:
-            raise AssertionError(f'A {lang} guide missing a repair image was accepted')
-        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
-        guide.select('#guide-repair .repair-case')[2].select('figcaption span')[1].string = (
-            '正式版 1.1.7' if lang == 'zh' else 'Release 1.1.7')
-        try:
-            require_guide_interpretation(guide, summary, providers, lang)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError(f'A {lang} guide mislabeled the tagged release')
-        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
-        for node in guide.find_all(string=lambda value: value and 'gap-2' in value):
-            node.replace_with(node.replace('gap-2', ''))
-        try:
-            require_guide_interpretation(guide, summary, providers, lang)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError(f'A {lang} guide missing the CSS-spacing limit was accepted')
-    guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
-    guide.select_one('#guide-results .comparison-winner').unwrap()
-    try:
-        require_guide_interpretation(guide, summary, providers, 'zh')
-    except ValueError:
-        pass
-    else:
-        raise AssertionError('A guide without a winning-column highlight was accepted')
-    home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
-    home.select_one('#moli-latency-context').decompose()
-    try:
-        require_home_interpretation(home, summary, paired_latency, 'zh', scores=scores)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError('A home page without adjacent timing context was accepted')
-    with tempfile.TemporaryDirectory(prefix='wcxb-latency-negative-') as directory:
-        invalid = Path(directory)
-        evidence = root / 'research/wcxb-full-paired-latency'
-        shutil.copy2(evidence / 'receipt.json', invalid / 'receipt.json')
-        shutil.copy2(evidence / 'calls.jsonl', invalid / 'calls.jsonl')
-        calls = (invalid / 'calls.jsonl').read_bytes()
-        (invalid / 'calls.jsonl').write_bytes(calls.rsplit(b'\n', 2)[0] + b'\n')
-        try:
-            load_full_paired_latency(invalid, profile, case_ids)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError('An incomplete paired latency cohort was accepted')
-        (invalid / 'calls.jsonl').write_bytes(calls)
-        receipt = json.loads((invalid / 'receipt.json').read_text())
-        receipt['binary_sha256']['pr'] = '0' * 64
-        (invalid / 'receipt.json').write_text(json.dumps(receipt))
-        try:
-            load_full_paired_latency(invalid, profile, case_ids)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError('A wrong paired binary identity was accepted')
+            raise AssertionError('A home page without adjacent timing context was accepted')
+        with tempfile.TemporaryDirectory(prefix='wcxb-latency-negative-') as directory:
+            invalid = Path(directory)
+            evidence = root / 'research/wcxb-full-paired-latency'
+            shutil.copy2(evidence / 'receipt.json', invalid / 'receipt.json')
+            shutil.copy2(evidence / 'calls.jsonl', invalid / 'calls.jsonl')
+            calls = (invalid / 'calls.jsonl').read_bytes()
+            (invalid / 'calls.jsonl').write_bytes(calls.rsplit(b'\n', 2)[0] + b'\n')
+            try:
+                load_full_paired_latency(invalid, profile, case_ids)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError('An incomplete paired latency cohort was accepted')
+            (invalid / 'calls.jsonl').write_bytes(calls)
+            receipt = json.loads((invalid / 'receipt.json').read_text())
+            receipt['binary_sha256']['pr'] = '0' * 64
+            (invalid / 'receipt.json').write_text(json.dumps(receipt))
+            try:
+                load_full_paired_latency(invalid, profile, case_ids)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError('A wrong paired binary identity was accepted')
     require((root / 'assets/style.css').is_file() and (root / 'assets/report.js').is_file(), 'WCXB report assets missing')
-    require(len([path for path in root.rglob('*') if path.is_file()]) < 2000, 'WCXB report tree unexpectedly large')
     print(f'PASS: WCXB {len(case_ids)}-case, {len(providers)}-method, declared-language evidence and route inventory')
 
 
@@ -622,8 +659,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('report', type=Path)
     parser.add_argument('--authority-root', type=Path)
+    parser.add_argument('--profile', type=Path)
     args = parser.parse_args()
-    check(args.report, authority_root=args.authority_root)
+    check(args.report, authority_root=args.authority_root, profile_path=args.profile)
 
 
 def binary_from_env(path: Path) -> str:

@@ -58,6 +58,25 @@ Browser Use and Browser Trajectory Replay accept an instance profile at each bou
 Git. Select a new output directory; changing participants, sample size or report
 content does not require another renderer or command script.
 
+The native Web Fetch report also accepts an external profile. Bind the frozen
+dataset, complete participant matrix, execution settings and evidence hashes in
+that profile. Put report prose in the evidence tree and bind it through
+`comparison.report_interpretation`; a report refresh does not require changing
+Python strings. The normal build and check retain certification and review gates.
+The diagnostic build is a separate evidence state and does not certify results.
+
+```sh
+uv run --frozen python scripts/build_report.py \
+  --profile /absolute/instance/profile.json \
+  --evidence /absolute/instance/evidence --output /absolute/instance/report
+uv run --frozen python scripts/check_report.py \
+  /absolute/instance/report --profile /absolute/instance/profile.json
+```
+
+A profile stored outside Git has the same validation rules as a repository profile.
+Repository defaults select the maintained published report; they are optional
+convenience paths, not a requirement to commit new report instances.
+
 Browser Use profiles register models, browser labels and measurement controls.
 `task_selection.path` and `task_selection.sha256` bind the selection file; its hash
 must match `selection_sha256`. The selection declares its own `metadata.tier_counts`.
@@ -118,12 +137,18 @@ replay build/package targets also accept `REVIEW`, and packaging accepts `ARCHIV
 and `ATTESTATION`. Packaging creates a local archive and does not publish it.
 
 For WCXB, select a profile-bound evidence directory and a fresh output with
-`scripts/build_report.py --profile evaluation/wcxb/current-report.json`. Run
+`scripts/build_report.py --profile /absolute/instance/profile.json`. Keep its
+`report-content-binding.json` beside the profile. `providers` declares the matrix;
+`participants` can supply labels, bilingual routes, interface examples and account
+requirements. An optional `paired_comparison` names `baseline` and `candidate`
+participants. A declared timing correction still requires complete paired evidence;
+ordinary cohorts do not inherit another report’s timing or optional-feature claims. Run
 `scripts/check_report.py` with that profile and `scripts/check_wcxb_visual.py`
 against the output. The existing publication entry point also supports local
 packaging without credentials or a network upload:
 
 ```sh
 uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only \
+  --profile /absolute/instance/profile.json \
   --source /absolute/instance/report --work /absolute/instance/package
 ```

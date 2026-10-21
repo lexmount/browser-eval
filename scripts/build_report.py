@@ -16,7 +16,7 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence',type=Path)
     parser.add_argument('--profile',type=Path,
-                        help='current-report profile under evaluation/; requires an explicit output unless the profile declares report_output')
+                        help='report profile in the repository or external storage; requires an explicit output unless the profile declares report_output')
     parser.add_argument('--public-benchmark-research',type=Path)
     parser.add_argument('--output',type=Path)
     add_language_argument(parser)
@@ -58,8 +58,6 @@ if __name__ == '__main__':
 
     if args.profile:
         args.profile=(ROOT/args.profile).resolve() if not args.profile.is_absolute() else args.profile.resolve()
-        if not args.profile.is_relative_to((ROOT/'evaluation').resolve()):
-            parser.error('--profile must stay under evaluation/')
         if json.loads(args.profile.read_text()).get('variant') == 'diagnostic-cohorts':
             args.diagnostic_cohorts=True
     if args.diagnostic_cohorts:

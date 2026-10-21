@@ -26,9 +26,21 @@ def file_scoring_metadata(case, metadata: dict, source: Path) -> dict:
 
     case = case if isinstance(case, dict) else vars(case)
     evaluation = metadata.get("file_evaluation")
-    if case.get("task_kind") != "file" or not isinstance(evaluation, dict):
+    if case.get("task_kind") != "file":
         return metadata
+    # No delivered-file claim is a normal failed delivery. A malformed saved
+    # claim is corrupted evidence, not a new provider failure or a stale score.
+    if "file_evaluation" not in metadata:
+        return metadata
+    if not isinstance(evaluation, dict):
+        raise ValueError("Delivered file evaluation must be an object")
     delivered = evaluation.get("files", [])
+    if not isinstance(delivered, list):
+        raise ValueError("Delivered files must be a list")
+    for item in delivered:
+        if (not isinstance(item, dict) or not isinstance(item.get("artifact_path"), str)
+                or not item["artifact_path"] or not isinstance(item.get("sha256"), str)):
+            raise ValueError("Delivered file requires an artifact_path and sha256 binding")
     payloads = []
     for item in delivered:
         raw = contained_path(source, item["artifact_path"], reject_symlinks=True).read_bytes()
@@ -36,7 +48,9 @@ def file_scoring_metadata(case, metadata: dict, source: Path) -> dict:
             raise ValueError("Delivered file integrity failure: " + item["artifact_path"])
         payloads.append(raw)
     current = evaluate_files(case, payloads)
-    current["files"] = [{**old, **new} for old, new in zip(delivered, current["files"])]
+    if len(current["files"]) != len(delivered):
+        raise ValueError("Delivered file evaluation changed the file count")
+    current["files"] = [{**old, **new} for old, new in zip(delivered, current["files"], strict=True)]
     return {**metadata, "file_evaluation": current}
 
 

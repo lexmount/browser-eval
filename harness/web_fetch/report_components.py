@@ -521,3 +521,90 @@ def sources_panel():
         ('<a href="https://mozilla.github.io/pdf.js/">PDF.js</a>','直接 PDF 与嵌入文档阅读器案例。'),
         ('<a href="https://github.com/mdn/learning-area">MDN 媒体示例</a>','图片和视频入口案例。'),
     ])
+
+
+def acceptance_scope(cases, records):
+    """Describe frozen requirements and saved outcomes without changing either."""
+    from collections import Counter, defaultdict
+    from urllib.parse import urlsplit
+    from lexbench_webfetch.metrics import task_passed
+
+    families = defaultdict(Counter)
+    affiliated = []
+    for case in cases.values():
+        counts = families[case.get('track', 'web')]
+        contract = case.get('acceptance_contract') or {}
+        counts['tasks'] += 1
+        for key, present in {
+            'identity': case.get('page_identity_required', False),
+            'literal': bool(case.get('expected_any') or contract.get('stable_text_anchors')),
+            'facts': bool(case.get('required_facts')),
+            'body_regions': bool((case.get('body_requirements') or {}).get('regions')),
+            'records': bool(contract.get('minimum_records', 0)),
+            'resources': bool(case.get('expected_resources')),
+            'full_reference': bool(case.get('ground_truth_main_content') and case.get('content_score_applicable', True)),
+            'short_length_floor': case.get('min_content_chars', 1) <= 1,
+        }.items():
+            counts[key] += bool(present)
+        url = urlsplit(case.get('url', ''))
+        if url.hostname == 'github.com' and (url.path.rstrip('/') == '/lexmount/moli' or url.path.startswith('/lexmount/moli/')):
+            # The benchmark maintainer and this evaluated repository share an
+            # organization. The frozen task remains in the original population.
+            affiliated.append(case['id'])
+    methods = defaultdict(Counter)
+    for row in records:
+        case = cases[row['case_id']]
+        metrics = row.get('metrics') or {}
+        counts = methods[row['provider']]
+        counts['results'] += 1
+        passed = task_passed(row['ok'], metrics, case.get('task_kind', 'body'))
+        counts['passes'] += passed
+        counts['identity_verified'] += metrics.get('page_identity_status') == 'verified'
+        counts['unverified_identity_passes'] += bool(passed and metrics.get('page_identity_status') != 'verified')
+        counts['blocked_diagnostics'] += bool(metrics.get('blocked_page') or metrics.get('stable_blocked_page'))
+        if case.get('expected_resources'):
+            counts['resource_results'] += 1
+            counts['unexpected_resources'] += len(metrics.get('unexpected_resource_urls') or [])
+            precision = metrics.get('resource_precision')
+            if isinstance(precision, (int, float)) and not isinstance(precision, bool):
+                counts['resource_precision_sum'] += precision
+                counts['resource_precision_count'] += 1
+    return {'families': dict(families), 'methods': dict(methods), 'affiliated_cases': affiliated}
+
+
+def render_acceptance_scope(cases, records):
+    from .report import model_text as h, section, table, cell, esc, pct, provider_label, link
+    scope = acceptance_scope(cases, records)
+    fields = ('tasks', 'identity', 'literal', 'facts', 'body_regions', 'records', 'resources', 'full_reference', 'short_length_floor')
+    rows = [('', cell(esc(track)) + ''.join(cell(str(counts[key])) for key in fields))
+            for track, counts in sorted(scope['families'].items())]
+    body = '<p>' + h(
+        '下表统计每类冻结任务声明了哪些要求。一题可以使用多项要求。固定文字、事实组和列表结构分别列出；没有正文范围或全文参考的任务，不据此声称测过完整正文质量。',
+        'The table counts requirements declared by frozen tasks. A task may use several checks. Literal text, fact groups and record structure are separate; tasks without body regions or a full reference do not establish full-body quality.') + '</p>'
+    body += table([h('任务类别', 'Task family'), h('任务数', 'Tasks'), h('要求页身份', 'Identity required'),
+                   h('固定文字', 'Literal text'), h('事实组', 'Fact groups'), h('正文范围', 'Body regions'),
+                   h('记录结构', 'Records'), h('资源目标', 'Resource targets'), h('全文参考', 'Full reference'), h('长度下限≤1', 'Minimum length ≤1')], rows, metrics=[])
+    rows = []
+    for name, counts in sorted(scope['methods'].items()):
+        unverified = counts['unverified_identity_passes']
+        passes = counts['passes']
+        precision = (counts['resource_precision_sum'] / counts['resource_precision_count']
+                     if counts['resource_precision_count'] else None)
+        values = (str(counts['results']), str(passes), str(counts['identity_verified']),
+                  str(unverified) + '/' + str(passes) + ' (' + pct(unverified / passes if passes else None) + ')',
+                  str(counts['blocked_diagnostics']), str(counts['resource_results']),
+                  str(counts['unexpected_resources']), pct(precision))
+        rows.append(('', cell(esc(provider_label(name))) + ''.join(cell(value) for value in values)))
+    body += '<p>' + h(
+        '通过但未核验页身份的结果仍按原合同计分，表中以全部通过结果为分母列出比例。拦截提示仅作诊断。资源多余地址数和平均精确率按资源任务统计；召回合同不会因此增加事后门槛。语言默认比较主标签，只有任务声明 exact 时才要求地区标签完全一致。',
+        'Passes without verified page identity retain their frozen verdicts; their share uses all passes as its denominator. Blocked-page markers are diagnostic. Unexpected URLs and mean precision describe resource tasks without adding a new recall threshold. Language checks compare the primary tag unless a task declares exact regional matching.') + '</p>'
+    body += table([h('方法', 'Method'), h('结果数', 'Results'), h('通过数', 'Passes'),
+                   h('身份已核验', 'Identity verified'), h('通过但身份未核验 / 全部通过', 'Unverified identity passes / all passes'),
+                   h('拦截提示', 'Blocked markers'), h('资源结果数', 'Resource results'),
+                   h('多余资源地址数', 'Unexpected resource URLs'), h('平均资源精确率', 'Mean resource precision')], rows, metrics=[])
+    if scope['affiliated_cases']:
+        body += '<p>' + h('利益关系：以下任务涉及评测维护方同一组织下的产品仓库；保留原任务和原分母。',
+                         'Affiliation: these tasks concern a product repository in the benchmark maintainer’s organization. The original tasks and denominator are retained.') + ' ' + ' · '.join(
+                             link('../datasets/' + identifier + '.html', esc(identifier))
+                             for identifier in scope['affiliated_cases']) + '</p>'
+    return section(h('验收覆盖与诊断范围', 'Acceptance coverage and diagnostics'), body, 'acceptance-scope')

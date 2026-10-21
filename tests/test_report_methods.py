@@ -195,4 +195,8 @@ def test_method_guide_discloses_retained_success_and_repaired_failure_builds(tmp
     assert '累计成绩不代表某一个版本' in body
     single = render_methods(tmp_path, records[:2], hero=hero, section=section,
                             table=table, cell=cell, link=link, esc=esc)
-    assert 'implementation-scope' not in single
+    assert 'implementation-scope' in single
+    assert 'retained-build' in single and '>2<' in single
+    unknown = render_methods(tmp_path, [{'provider': 'cloud', 'provider_type': 'fixture'}],
+                             hero=hero, section=section, table=table, cell=cell, link=link, esc=esc)
+    assert 'unknown' in unknown and '>1<' in unknown

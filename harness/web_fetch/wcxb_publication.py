@@ -57,12 +57,12 @@ def inventory(report: Path, profile: dict) -> dict[str, str]:
     return {**expected, INVENTORY: actual[INVENTORY]}
 
 
-def package(source: Path, archive: Path, receipt: Path, *, authority_root: Path) -> dict:
+def package(source: Path, archive: Path, receipt: Path, *, authority_root: Path, profile_path: Path | None = None) -> dict:
     from harness.reporting.links import check as check_links
     from harness.web_fetch.wcxb_report_check import check as check_report
 
-    profile_path = authority_root / 'evaluation/wcxb/current-report.json'
-    binding_path = authority_root / 'evaluation/wcxb/report-content-binding.json'
+    profile_path = profile_path or authority_root / 'evaluation/wcxb/current-report.json'
+    binding_path = profile_path.with_name('report-content-binding.json')
     reject_evidence_symlinks(profile_path)
     reject_evidence_symlinks(binding_path)
     profile = json.loads(profile_path.read_bytes())
@@ -71,7 +71,7 @@ def package(source: Path, archive: Path, receipt: Path, *, authority_root: Path)
 
     def validate():
         inventory(source, profile)
-        check_report(source, authority_root=authority_root)
+        check_report(source, authority_root=authority_root, profile_path=profile_path)
         check_links(source)
 
     def attest(staged):
@@ -200,14 +200,17 @@ def main(argv=None, *, root: Path | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--authority-root', type=Path, default=root or Path.cwd())
     parser.add_argument('--source', type=Path)
+    parser.add_argument('--profile', type=Path, help='external WCXB instance profile for local packaging')
     parser.add_argument('--package-only', action='store_true', help='validate and create a local archive without publishing')
     parser.add_argument('--work', type=Path, default=data_home() / 'publication')
     args = parser.parse_args(argv)
     authority = args.authority_root.absolute()
+    if args.profile and not args.package_only:
+        parser.error('--profile currently requires --package-only')
     if args.package_only:
         archive, receipt = args.work / 'wcxb-current.zip', args.work / 'wcxb-package.json'
         proof = package(args.source or authority / 'reports/wcxb', archive, receipt,
-                        authority_root=authority)
+                        authority_root=authority, profile_path=args.profile)
         print(json.dumps({'archive': str(archive), 'archive_sha256': proof['archive_sha256'],
                           'files': len(proof['files'])}))
         return
