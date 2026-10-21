@@ -10,6 +10,7 @@ import tempfile
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
@@ -52,11 +53,16 @@ class ReportShape(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
-        self.tags[tag] += 1
+        if not (tag == 'script' and 'data-report-language-entry' in values):
+            self.tags[tag] += 1
         if values.get('id'):
             self.ids.add(values['id'])
         if tag == 'a' and values.get('href'):
-            self.links[re.sub(r'^en/', '', values['href'])] += 1
+            href = urlsplit(values['href'])
+            query = [(key, value) for key, value in parse_qsl(href.query, keep_blank_values=True)
+                     if href.netloc or href.scheme or key != 'report-language']
+            path = re.sub(r'^en/', '', href.path) if not href.netloc else href.path
+            self.links[urlunsplit((href.scheme, href.netloc, path, urlencode(query), href.fragment))] += 1
         for name in ('value', 'data-provider', 'data-case', 'data-result',
                      'data-diagnosis', 'data-page-type', 'data-sort', 'data-core-sort'):
             if name in values:
@@ -655,7 +661,8 @@ def check_visual(root: Path, browser_binary: str) -> None:
                                     errors = []
                                     page.on('pageerror', lambda error: errors.append(str(error)))
                                     prefix = 'en/' if lang == 'en' else ''
-                                    page.goto(f'{origin}/{prefix}{route}',
+                                    language_query = '?report-language=zh' if lang == 'zh' and route == 'index.html' else ''
+                                    page.goto(f'{origin}/{prefix}{route}{language_query}',
                                               wait_until='networkidle')
                                     if not page.locator('link[rel="stylesheet"]').evaluate('(node) => Boolean(node.sheet)'):
                                         raise ValueError(f'Report stylesheet did not load: {lang} {route}')
@@ -738,7 +745,7 @@ def check_visual(root: Path, browser_binary: str) -> None:
                                             if f'cases/{case_id}.html' not in page.url:
                                                 raise ValueError('Nested result link does not open the case')
                                             page.locator('header a').first.click()
-                                            if not page.url.endswith('/index.html'):
+                                            if urlsplit(page.url).path != urlsplit(f'{origin}/{prefix}index.html').path:
                                                 raise ValueError('Nested result cannot return to the report root')
                                     if route.startswith('cases/') and not dark:
                                         page.locator('.hero .source a').click()

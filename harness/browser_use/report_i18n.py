@@ -28,6 +28,10 @@ NAV = (
 
 
 TEXT = {
+    "全部参评配置在同一张表和任务矩阵中比较；失败结果可打开诊断和证据。": "All configurations appear in one comparison and task matrix; failed results open their diagnosis and evidence.",
+    "全部配置中通过数最高": "Highest pass count across all configurations",
+    "全部配置中通过率最高": "Highest pass rate across all configurations",
+    "修正验收合同，通过独立预检后重跑全部参评配置。": "Correct the acceptance contract, complete independent preflight checks, then rerun every configuration.",
     "OpenAI、Anthropic、Google DeepMind、THUDM / ChatGLM、Browser Use。原版 Mind2Web、Online-Mind2Web 与 Mind2Web 2 的任务和评分器不同，不能合并到同一成绩表。": "OpenAI, Anthropic, Google DeepMind, THUDM / ChatGLM and Browser Use. Original Mind2Web, Online-Mind2Web and Mind2Web 2 use different tasks and evaluators; their scores cannot be combined in one table.",
     "修复日志": "Fix log",
     "配置": "Configuration",
@@ -2326,8 +2330,15 @@ def _header(source: PurePosixPath, english: PurePosixPath) -> str:
     )
 
 
+def bilingual_text(zh: str, en: str) -> str:
+    """Keep dynamic interface text and its English form beside the same values."""
+    return f'<span data-report-en="{html.escape(en, quote=True)}">{html.escape(zh)}</span>'
+
+
 def localize_html(page: str, source: PurePosixPath) -> str:
     english = PurePosixPath("en") / source
+    page = re.sub(r'<span data-report-en="([^"]*)">[^<]*</span>',
+                  lambda match: html.escape(html.unescape(match[1])), page)
     page = page.replace('<html lang="zh-CN">', '<html lang="en">', 1)
     page = re.sub(
         r"<title>(.*?) · Browser Use 评测</title>",

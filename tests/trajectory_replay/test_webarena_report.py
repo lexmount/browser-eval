@@ -167,14 +167,14 @@ def test_complete_three_method_report_builds_one_unified_matrix(
     assert manifest["browser_count"] == 2
     assert manifest["method_count"] == len(methods)
     assert manifest["logical_results"] == len(methods)
-    assert manifest["routes"] == 20 + 2 * extra_methods
+    assert manifest["routes"] == 24 + 2 * extra_methods
     assert "36/36" not in (output / "index.html").read_text()
     assert "fixes.html" not in (output / "index.html").read_text()
     chinese_home = (output / "index.html").read_text()
     english_home = (output / "en/index.html").read_text()
-    assert "Playwright 重放器与浏览器的组合" in chinese_home
-    assert "Playwright-adapter–browser configurations" in english_home
-    assert "没有调用 CowAgent BrowserTool" in chinese_home
+    assert "历史配置没有声明执行后端" in chinese_home
+    assert "historical profile does not declare an execution backend" in english_home
+    assert "没有 Agent 决策或模型调用" in chinese_home
     assert "本轮没有记录进程级 CPU、内存和网络采样" in chinese_home
     assert "CPU 时间" not in chinese_home
     assert "平均内存" not in chinese_home
@@ -205,7 +205,7 @@ def test_complete_three_method_report_builds_one_unified_matrix(
         check_report(output)
     environment_path.write_text(original_environment)
     assert not (output / "diagnostics.html").exists()
-    assert check_report(output)["html_pages"] == 20 + 2 * extra_methods
+    assert check_report(output)["html_pages"] == 24 + 2 * extra_methods
     # Byte-identical links must not bypass the publication boundary.
     linked_report = tmp_path / "linked-report"
     linked_report.symlink_to(output, target_is_directory=True)
@@ -220,9 +220,16 @@ def test_complete_three_method_report_builds_one_unified_matrix(
             check_report(output)
         artifact.unlink()
         retained.rename(artifact)
-    assert check_report(output)["html_pages"] == 20 + 2 * extra_methods
+    assert check_report(output)["html_pages"] == 24 + 2 * extra_methods
     home = output / "index.html"
     original_home = home.read_text()
+    for language_prefix in ("", "en/"):
+        for route in ("index.html", "environment.html", "results.html"):
+            rendered = (output / language_prefix / route).read_text()
+            assert "All six methods" not in rendered
+            assert "六种方法" not in rendered
+            assert "Playwright" not in rendered
+    assert "execution backend" in (output / "en/index.html").read_text()
     home.write_text(original_home.replace(profile["measurement_notes"]["zh"], ""))
     with pytest.raises(ValueError, match="measurement context"):
         check_report(output)
@@ -234,7 +241,7 @@ def test_complete_three_method_report_builds_one_unified_matrix(
     )
     assert manifest["languages"] == ["zh"]
     assert manifest["english_status"] == "not_generated"
-    assert manifest["routes"] == 11 + extra_methods
+    assert manifest["routes"] == 13 + extra_methods
     english_notice = (output / "en/index.html").read_text()
     assert '英文报告未生成' in english_notice
     assert 'new URL("en/",b.href)' in english_notice
@@ -244,7 +251,7 @@ def test_complete_three_method_report_builds_one_unified_matrix(
         'class="language" href="../en/index.html"'
         in (output / "result/chromium-29.html").read_text()
     )
-    assert check_report(output)["html_pages"] == 11 + extra_methods
+    assert check_report(output)["html_pages"] == 13 + extra_methods
     manifest_path = output / "report-manifest.json"
     changed = json.loads(manifest_path.read_text())
     changed["browser_count"] += 1
@@ -1394,3 +1401,15 @@ def test_missing_submission_is_located_at_trigger_without_calling_it_a_failed_ac
     assert "提交请求未出现" not in zh and "未出现的请求" not in zh
     assert "Network acceptance not satisfied" in en and "Required network match" in en
     assert "request absent" not in en and "Missing required request" not in en
+
+
+def test_supplemental_requests_keep_unavailable_url_and_observed_version():
+    from harness.trajectory_replay.webarena_report import _supplemental_diagnostic_html
+    diagnostic = {'observations': [{'method': 'release', 'version': 'OtherBrowser 9',
+        'observations': [{'delay': 0, 'state': {'httpReads': [
+            {'status': 503, 'error': 'Read failed before a URL was recorded'},
+            {'url': '/observed-endpoint', 'status': 200}]}}]}]}
+    html = _supplemental_diagnostic_html(diagnostic, 'en')
+    assert 'OtherBrowser 9' in html and 'Moli 1.1.8' not in html
+    assert 'Not recorded' in html and '/observed-endpoint' in html
+    assert 'Read failed before a URL was recorded' in html

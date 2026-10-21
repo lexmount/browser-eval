@@ -12,6 +12,7 @@
       "wcxb_profile": "evaluation/wcxb/current-report.json",
       "wcxb_build": "uv run --frozen python scripts/build_report.py --profile evaluation/wcxb/current-report.json --evidence /absolute/path --output reports/wcxb",
       "wcxb_check": "make wcxb-release-check",
+      "wcxb_package": "uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only --source /absolute/new-report --work /absolute/package",
       "tests": "tests/test_headless_report.py",
       "variants": ["certified", "wcxb", "local-audit", "diagnostic-cohorts"],
       "diagnostic_build": "make webfetch-diagnostic-report DIAGNOSTIC_PROFILE=evaluation/live-webfetch/current-report.json OUTPUT=/absolute/new-output",
@@ -23,18 +24,22 @@
     "trajectory-replay": {
       "renderer": "harness/trajectory_replay/webarena_report.py",
       "entrypoint": "scripts/build_webarena_replay_report.py",
-      "profile": "evaluation/trajectory-replay/webarena-verified-full/current-report.json",
-      "build": "make trajectory-replay-report EVIDENCE=/absolute/path/results.json",
-      "check": "make trajectory-replay-release-check",
-      "tests": "tests/trajectory_replay/test_webarena_report.py"
+      "profile": "evaluation/trajectory-replay/webarena-verified/current-run.json",
+      "build": "uv run --frozen python scripts/build_webarena_replay_report.py --profile /absolute/instance-profile.json --results /absolute/results.json --review /absolute/review.json --output /absolute/new-report",
+      "check": "uv run --frozen python scripts/check_webarena_replay_report.py /absolute/new-report --profile /absolute/instance-profile.json",
+      "tests": "tests/trajectory_replay/test_webarena_report.py",
+      "example_profile": "evaluation/trajectory-replay/webarena-verified-full/current-comparison.json",
+      "example": "https://artifact-site.lexmount.cn/s/EFLrNgujgsVc?version=ver_c0f0693e9c08401bb4d2b88393234e55",
+      "package": "uv run --frozen python scripts/package_webarena_replay_artifact_site.py --report /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/results.json --review /absolute/review.json --output /absolute/package.zip --attestation /absolute/attestation.json --visual-receipt /absolute/visual.json"
     },
     "browser-use": {
       "renderer": "harness/browser_use/report.py",
       "entrypoint": "scripts/build_browser_use_report.py",
       "profile": "evaluation/browser-use/current-report.json",
-      "build": "make browser-use-report EVIDENCE=/absolute/path",
-      "check": "make browser-use-release-check EVIDENCE=/absolute/path",
-      "tests": "tests/browser_use/test_report.py"
+      "build": "uv run --frozen python scripts/build_browser_use_report.py --profile /absolute/instance-profile.json --evidence /absolute/evidence --output /absolute/new-report",
+      "check": "uv run --frozen python scripts/check_browser_use_report.py /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/evidence --require-complete",
+      "tests": "tests/browser_use/test_report.py",
+      "package": "uv run --frozen python scripts/package_browser_use_artifact_hub.py --report /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/evidence --output /absolute/package.zip --attestation /absolute/attestation.json --visual-receipt /absolute/visual.json"
     }
   }
 }

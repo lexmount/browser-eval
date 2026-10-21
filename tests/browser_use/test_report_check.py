@@ -125,7 +125,7 @@ def test_complete_check_rejects_unbound_review_before_evidence(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "relative", ["../outside.json", "/tmp/review.json", "research/linked.json"]
+    "relative", ["../outside.json", "research/linked.json"]
 )
 def test_complete_check_rejects_escaping_or_linked_review(tmp_path, relative):
     root = tmp_path / "authority"
@@ -166,3 +166,29 @@ def test_linked_authority_profile_is_rejected(tmp_path):
             require_complete=False,
             authority_root=root,
         )
+
+
+def test_external_profile_and_bound_review_do_not_use_default_authority(tmp_path, monkeypatch):
+    root = tmp_path / 'authority'
+    source = tmp_path / 'external-review.json'
+    source.write_text('{}')
+    profile = authority(root, failure_cause_review={
+        'required_for_publication': True, 'source_path': str(source),
+        'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest()})
+    import harness.browser_use.report as renderer
+    for name in ('ENGINE_LABELS', 'MODEL_LABELS', 'BASELINE_ENGINE'):
+        monkeypatch.setattr(renderer, name, getattr(renderer, name))
+    external = tmp_path / 'instance.json'
+    external.write_bytes(profile.read_bytes())
+    (profile.parent / 'webarena-verified-pilot.json').write_text('{}')
+    profile.unlink()
+    def evidence_boundary(_paths):
+        raise LookupError('bound external inputs reached')
+    monkeypatch.setattr(checker, '_load_evidence_bundles', evidence_boundary)
+    with pytest.raises(LookupError, match='external inputs reached'):
+        checker.check(tmp_path / 'report', tmp_path / 'evidence', None,
+                      require_complete=True, profile_path=external, authority_root=root)
+    source.write_text('{"changed":true}')
+    with pytest.raises(ValueError, match='bound to the failure-cause review'):
+        checker.check(tmp_path / 'report', tmp_path / 'evidence', None,
+                      require_complete=True, profile_path=external, authority_root=root)

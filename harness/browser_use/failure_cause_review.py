@@ -17,6 +17,20 @@ def sha256(path: Path) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
+def review_path(profile: dict[str, Any], *, authority_root: Path | None = None) -> Path:
+    """Resolve an explicitly bound external review or a repository-relative review."""
+    from lexbench_webfetch.paths import contained_path
+
+    from harness.web_fetch.safety import unlinked_path
+    value = (profile.get("failure_cause_review") or {}).get("source_path")
+    if value is None:
+        value = "research/browser-use-failure-cause-review.json"
+    path = Path(value)
+    if path.is_absolute():
+        return unlinked_path(path)
+    return contained_path(authority_root or Path(__file__).parents[2], value, reject_symlinks=True)
+
+
 def load_failure_cause_review(path: Path = DEFAULT_REVIEW_PATH) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
 

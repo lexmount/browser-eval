@@ -49,3 +49,23 @@ def test_localized_number_spacing_does_not_change_measurements():
     wrong.feed("<p>99 tasks, 103 calls, 31/100, 1,599 items, 80%</p>")
     with pytest.raises(ValueError, match="value differs"):
         require_bilingual_shape(zh, wrong, "index.html")
+
+
+def test_bilingual_navigation_keeps_filters_and_normalizes_language_selection():
+    zh, en, broken = ReportShape(), ReportShape(), ReportShape()
+    zh.feed('<a href="index.html?report-language=zh&amp;filter=fail#results">中文</a>')
+    en.feed('<a href="en/index.html?filter=fail#results">English</a>')
+    broken.feed('<a href="en/index.html?filter=pass#results">English</a>')
+    require_bilingual_shape(zh, en, "cases/example.html")
+    with pytest.raises(ValueError, match="bilingual"):
+        require_bilingual_shape(zh, broken, "cases/example.html")
+
+
+def test_primary_language_entry_script_does_not_change_report_content_shape():
+    zh, en, broken = ReportShape(), ReportShape(), ReportShape()
+    zh.feed('<p>100</p><script data-report-language-entry>location.replace("en/")</script>')
+    en.feed('<p>100</p>')
+    broken.feed('<p>100</p><script>unexpected()</script>')
+    require_bilingual_shape(zh, en, "index.html")
+    with pytest.raises(ValueError, match="bilingual"):
+        require_bilingual_shape(zh, broken, "index.html")

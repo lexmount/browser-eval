@@ -223,10 +223,15 @@ def load_pilot(path: str | Path) -> PilotSelection:
     if len(ids) != len(set(ids)):
         raise ValueError("pilot task IDs must be unique")
     counts = {tier: sum(task.tier == tier for task in tasks) for tier in TIER_COUNTS}
-    if counts != TIER_COUNTS:
-        raise ValueError(f"pilot tier counts must be {TIER_COUNTS}, got {counts}")
-    if metadata.get("tier_counts") != TIER_COUNTS:
-        raise ValueError("selection metadata tier_counts must match the frozen tier counts")
+    declared = metadata.get("tier_counts")
+    if (not isinstance(declared, dict) or set(declared) != set(TIER_COUNTS)
+            or any(type(value) is not int or value < 0 for value in declared.values())
+            or sum(declared.values()) == 0):
+        raise ValueError("selection metadata must declare nonnegative tier counts")
+    if counts != declared:
+        raise ValueError(
+            f"pilot tier counts must match the frozen declaration {declared}, got {counts}"
+        )
     for task in tasks:
         low, high = TIER_BOUNDS[task.tier]
         if task.estimated_min_steps < low or (high is not None and task.estimated_min_steps > high):
@@ -320,3 +325,24 @@ def validate_against_official(
                 f"{expected_task_type_counts}, got {dict(task_type_counts)}"
             )
     return resolved
+
+
+def report_selection_path(
+    profile: dict, explicit: Path | None = None, *, authority_root: Path | None = None
+) -> Path:
+    """Use the same frozen selection in report construction and packaging."""
+    from lexbench_webfetch.paths import contained_path
+
+    from harness.web_fetch.safety import unlinked_path
+    binding = profile.get("task_selection") or {}
+    value = explicit or binding.get("path") or "evaluation/browser-use/webarena-verified-pilot.json"
+    path = Path(value)
+    root = authority_root or Path(__file__).parents[2]
+    path = (unlinked_path(path) if path.is_absolute() else
+            contained_path(root, str(path), reject_symlinks=True))
+    if binding and (
+        _sha256(path) != binding.get("sha256")
+        or binding["sha256"] != profile.get("selection_sha256")
+    ):
+        raise ValueError("report selection differs from its instance profile")
+    return path

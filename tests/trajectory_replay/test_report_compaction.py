@@ -54,3 +54,47 @@ def test_compaction_preserves_logical_routes_under_file_limit(tmp_path: Path) ->
         "task_routes": 1,
         "result_routes": 1,
     }
+
+
+def test_bilingual_compaction_preserves_language_links_and_evidence(tmp_path):
+    import pytest
+    source = tmp_path / 'source'
+    for prefix in ('', 'en/'):
+        root = source / prefix
+        (root / 'task').mkdir(parents=True)
+        (root / 'result').mkdir()
+        (root / 'index.html').write_text('<a href="result/browser-1.html">Result</a>')
+        (root / 'task/1.html').write_text('<a href="../result/browser-1.html">Result</a>')
+        switch = '../../result/browser-1.html' if prefix else '../en/result/browser-1.html'
+        asset = '../../assets/report.css' if prefix else '../assets/report.css'
+        (root / 'result/browser-1.html').write_text(
+            f'<a class="language" href="{switch}">Switch</a><link href="{asset}">'
+            '<a href="../task/1.html">Task</a>')
+    (source / 'assets').mkdir()
+    (source / 'assets/app.js').write_text('window.ready=true')
+    (source / 'assets/report.css').write_text('body{color:black}')
+    (source / 'data/evidence').mkdir(parents=True)
+    (source / 'data/trajectory').mkdir()
+    (source / 'data/evidence/browser-1.json').write_text('{"task_id":1,"score":0}')
+    (source / 'data/trajectory/browser-1.json').write_text('{"actions":["click"]}')
+    (source / 'report-manifest.json').write_text(json.dumps({
+        'languages': ['zh', 'en'], 'task_count': 1, 'logical_results': 1}))
+    output = tmp_path / 'compact'
+    compact_report(source, output)
+    validate_compact_report(output, max_files=200, source=source)
+    english = json.loads((output / 'en/pages/result-01.json').read_text())['browser-1']
+    chinese = json.loads((output / 'pages/result-01.json').read_text())['browser-1']
+    assert 'href="../result.html?key=browser-1"' in english
+    assert 'href="../assets/report.css"' in english
+    assert 'href="en/result.html?key=browser-1"' in chinese
+    assert '<html lang="en"' in (output / 'en/evidence-raw.html').read_text()
+    evidence = output / 'data/evidence-01.json'
+    original = evidence.read_bytes()
+    evidence.write_text('{"browser-1":{"score":1}}')
+    with pytest.raises(ValueError, match='evidence differs'):
+        validate_compact_report(output, max_files=200, source=source)
+    evidence.write_bytes(original)
+    page = output / 'en/pages/result-01.json'
+    page.write_text(json.dumps({'browser-1': '<p>Missing task and evidence</p>'}))
+    with pytest.raises(ValueError, match='pages differ'):
+        validate_compact_report(output, max_files=200, source=source)

@@ -975,7 +975,7 @@ def _use_single_model_profile(monkeypatch) -> None:
     monkeypatch.setattr(
         report_module,
         "load_failure_cause_review",
-        lambda: {
+        lambda *_args: {
             "schema": "lex_browser_use_layered_failure_cause_review/2",
             "cohorts": {},
         },
@@ -1375,12 +1375,12 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     assert "90 题 Browser Use 完整结果" in home_text
     assert "90 题核心指标" in home_text
     assert "首次成功与重试恢复" not in home_text
-    assert "Chromium 780×437/493、Moli 1920×1080" in home_text
-    assert "不是统一视口下的资源效率结论" in home_text
-    assert "共同成功子集也保留了历史视口差异" in home_text
+    assert "Chromium 780×437/493、Moli 1920×1080" not in home_text
+    assert "不能视为统一视口下的资源效率结论" in home_text
+    assert "共同成功子集仍保留各配置记录的运行环境" in home_text
     english_home = localize_html(home_text, PurePosixPath("index.html"))
-    assert "not resource efficiency at a common viewport" in english_home
-    assert "common-success subset also retains the historical viewport differences" in english_home
+    assert "resource efficiency at a common viewport" in english_home
+    assert "common-success subset retains each configuration" in english_home
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
     assert "ContainerManager.start(reset=True)" in methodology_text
@@ -1501,7 +1501,7 @@ def test_joint_report_builds_two_model_by_two_browser_matrix(tmp_path: Path, mon
     monkeypatch.setattr(
         report_module,
         "load_failure_cause_review",
-        lambda: {
+        lambda *_args: {
             "schema": "lex_browser_use_layered_failure_cause_review/2",
             "cohorts": {},
         },

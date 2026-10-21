@@ -28,3 +28,9 @@ def resolve_template(track, *, root=ROOT):
             raise ValueError("Report template needs a version-pinned example")
         result["example"] = f"{host}/s/{slug}?version={version}"
     return {"track": track, **result}
+
+
+def template_identity(track):
+    """Record the maintained owner without borrowing an example's report inputs."""
+    template = resolve_template(track)
+    return {key: template[key] for key in ("track", "renderer", "entrypoint")}

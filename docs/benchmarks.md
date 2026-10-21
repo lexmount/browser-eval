@@ -50,3 +50,80 @@ The four initial LexBench suites preserve the original catalogs and source-input
 Change task requirements in LexBench, freeze a new dataset/catalog/manifest version there, and select that version in a new experiment profile. Fix execution defects in Browser Eval and scoring defects in LexBench; keep accepted/rejected scenario controls with their owner. Preserve prior measurements and apply corrections across the declared affected scope.
 
 The retained `harness/lexbench/` module concerns historical headless-browser comparisons. It is unrelated to the `lexbench-webfetch` input package and remains an execution/report adapter.
+
+## Report instances
+
+Each report track uses its maintained build, check and package entry points.
+Browser Use and Browser Trajectory Replay accept an instance profile at each boundary. Keep the profile and measured evidence outside
+Git. Select a new output directory; changing participants, sample size or report
+content does not require another renderer or command script.
+
+Browser Use profiles register models, browser labels and measurement controls.
+`task_selection.path` and `task_selection.sha256` bind the selection file; its hash
+must match `selection_sha256`. The selection declares its own `metadata.tier_counts`.
+`official_dataset.path` and `official_dataset.sha256` can bind the exact historical
+official task file, matching `official_data_checksum` and the recorded calls.
+This allows rebuilding an older measurement after the installed benchmark has
+changed. `failure_cause_review.source_path` may name an external, hash-bound review.
+Keep original attempts and task contracts unchanged.
+
+```sh
+uv run --frozen python scripts/build_browser_use_report.py \
+  --profile /absolute/instance/profile.json \
+  --evidence /absolute/model-evidence --output /absolute/instance/report
+uv run --frozen python scripts/check_browser_use_report.py \
+  /absolute/instance/report --profile /absolute/instance/profile.json \
+  --evidence /absolute/model-evidence --require-complete
+uv run --frozen python scripts/package_browser_use_artifact_hub.py \
+  --report /absolute/instance/report --profile /absolute/instance/profile.json \
+  --evidence /absolute/model-evidence --output /absolute/instance/report.zip \
+  --attestation /absolute/instance/attestation.json \
+  --visual-receipt /absolute/instance/visual.json
+```
+
+Repeat `--evidence` for additional model cohorts. The renderer derives comparison
+counts and failure examples from the selected results. Missing task-type or
+execution metadata stays unavailable; it is never inferred from historical IDs.
+
+Trajectory Replay profiles bind the dataset, participant registry, execution
+protocol and reference validity. The failure review must bind the exact saved
+results. Without an authored content binding, the maintained renderer generates
+an interpretation from the current results, including complete failure
+distributions and specimen links. An optional authored interpretation uses
+`--content`, `--content-bindings` and `--interpretation-audit`; these inputs must
+belong to the selected evidence.
+
+```sh
+uv run --frozen python scripts/build_webarena_replay_report.py \
+  --profile /absolute/instance/profile.json --results /absolute/results.json \
+  --review /absolute/failure-review.json --output /absolute/instance/report
+uv run --frozen python scripts/check_webarena_replay_report.py \
+  /absolute/instance/report --profile /absolute/instance/profile.json
+uv run --frozen python scripts/package_webarena_replay_artifact_site.py \
+  --report /absolute/instance/report --profile /absolute/instance/profile.json \
+  --evidence /absolute/results.json --review /absolute/failure-review.json \
+  --output /absolute/instance/report.zip \
+  --attestation /absolute/instance/attestation.json \
+  --visual-receipt /absolute/instance/visual.json
+```
+
+Both packers run integrity, link and browser checks before installing an archive.
+The replay packer automatically uses the existing compact representation above
+its file-count limit. It verifies every task/result page and evidence payload
+against the uncompressed report, then exercises exported routes in every saved
+language. Compression preserves all logical results and physical-call evidence.
+
+The Make targets accept `PROFILE`, `OUTPUT` and `VISUAL_RECEIPT` for these tracks;
+replay build/package targets also accept `REVIEW`, and packaging accepts `ARCHIVE`
+and `ATTESTATION`. Packaging creates a local archive and does not publish it.
+
+For WCXB, select a profile-bound evidence directory and a fresh output with
+`scripts/build_report.py --profile evaluation/wcxb/current-report.json`. Run
+`scripts/check_report.py` with that profile and `scripts/check_wcxb_visual.py`
+against the output. The existing publication entry point also supports local
+packaging without credentials or a network upload:
+
+```sh
+uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only \
+  --source /absolute/instance/report --work /absolute/instance/package
+```

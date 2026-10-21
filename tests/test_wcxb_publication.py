@@ -202,3 +202,15 @@ def test_profile_binding_interruption_resumes_without_another_commit(report, mon
     journals = list(kwargs['work'].glob('wcxb-update-*.json'))
     assert len(journals) == 1
     assert json.loads(journals[0].read_bytes())['verified'] is True
+
+
+def test_package_only_cli_never_publishes_or_loads_credentials(report, monkeypatch, capsys):
+    paths, _profile, checks = report
+    monkeypatch.setattr(release, 'publish', lambda **_kwargs: pytest.fail('package-only published'))
+    release.main(['--package-only', '--authority-root', str(paths['authority_root']),
+                  '--source', str(paths['source']), '--work', str(paths['work'])])
+    result = json.loads(capsys.readouterr().out)
+    assert result['files'] == 2
+    assert (paths['work'] / 'wcxb-current.zip').is_file()
+    assert (paths['work'] / 'wcxb-package.json').is_file()
+    assert [item[0] for item in checks] == ['semantic', 'links']

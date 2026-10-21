@@ -312,9 +312,12 @@ def check(report: Path, receipt: Path) -> None:
                         route_page.locator("article.interpretation h1").wait_for()
                         article_nav = route_page.locator("nav a[data-report-interpretation]")
                         assert article_nav.get_attribute("aria-current") == "page"
-                    route_page.locator('nav a[href$="index.html"]').first.click()
+                    route_page.locator('nav a[href*="index.html"]').first.click()
                     route_page.wait_for_url(
-                        f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/index.html"
+                        re.compile(
+                            re.escape(f"{hosted_origin}/api/preview/replay~fixture/index.html")
+                            + r"(?:\?.*)?$"
+                        )
                     )
                     route_page.locator("h1").wait_for()
                     _check_hosted_resources(route_page, hosted_origin, "index.html")

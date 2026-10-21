@@ -156,6 +156,7 @@ def test_track_package_uses_frozen_gates_and_preserves_previous_release(
     current = authority / autonomous.PROFILE
     current.parent.mkdir(parents=True)
     current.write_text('{}')
+    (current.parent / "webarena-verified-pilot.json").write_text("{}")
     (authority / 'research').mkdir()
     dataset = tmp_path / 'dataset.json'
     dataset.write_text('{}')

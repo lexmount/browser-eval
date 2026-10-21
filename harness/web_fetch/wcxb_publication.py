@@ -200,9 +200,17 @@ def main(argv=None, *, root: Path | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--authority-root', type=Path, default=root or Path.cwd())
     parser.add_argument('--source', type=Path)
+    parser.add_argument('--package-only', action='store_true', help='validate and create a local archive without publishing')
     parser.add_argument('--work', type=Path, default=data_home() / 'publication')
     args = parser.parse_args(argv)
     authority = args.authority_root.absolute()
+    if args.package_only:
+        archive, receipt = args.work / 'wcxb-current.zip', args.work / 'wcxb-package.json'
+        proof = package(args.source or authority / 'reports/wcxb', archive, receipt,
+                        authority_root=authority)
+        print(json.dumps({'archive': str(archive), 'archive_sha256': proof['archive_sha256'],
+                          'files': len(proof['files'])}))
+        return
     print(json.dumps(publish(source=args.source or authority / 'reports/wcxb',
                              authority_root=authority, work=args.work), ensure_ascii=False))
 
