@@ -7,6 +7,8 @@ Unjudged URLs are not irrelevant documents. Provider scores are not judgments.
 import hashlib
 import json
 import math
+import os
+import tempfile
 import re
 import statistics
 import unicodedata
@@ -362,7 +364,19 @@ def verify_bundle(root, bindings):
 def write_json(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as stream:
+        temporary = Path(stream.name)
+        try:
+            stream.write(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+    try:
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
     return {"path": path.name, "sha256": digest(path.read_bytes())}
 
 

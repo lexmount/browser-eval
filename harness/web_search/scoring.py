@@ -1,16 +1,64 @@
 """Explicit, evidence-backed identity corrections without repeating provider calls."""
 
 from copy import deepcopy
+import json
+from pathlib import Path
 
-from .core import canonical_url, evaluate, validate_profile
+from .core import canonical_url, evaluate, validate_profile, normalize
+from .answer_rules import match_reference_answer
+
+
+def validate_regressions(record):
+    """Execute paired controls before accepting correction provenance."""
+    registry = json.loads((Path(__file__).resolve().parents[2] / "evaluation/web-search/scoring-regressions.json").read_text())
+    ids = record.get("regression_ids")
+    if not record.get("root_cause") or not isinstance(ids, list) or not ids or any(not isinstance(i, str) for i in ids) or len(ids) != len(set(ids)):
+        raise ValueError("Correction requires cause and unique regression provenance")
+    for identity in ids:
+        if identity not in registry:
+            raise ValueError("Unknown scoring regression: " + str(identity))
+        controls = registry[identity]
+        if {c["expected"] for c in controls} != {True, False}:
+            raise ValueError("Scoring regression requires paired positive and negative controls")
+        for control in controls:
+            if control["kind"] == "answer":
+                actual = match_reference_answer(control["answer"], control["text"])
+            elif control["kind"] == "anchor":
+                actual = bool(evaluate(control["case"], normalize({"results": [{"url": control["url"]}]}))["anchor_hit_5"])
+            elif control["kind"] == "qualification":
+                actual = _qualified(control["item"])
+            elif control["kind"] == "equivalence":
+                actual = _equivalent(control["left"], control["right"])
+            else:
+                raise ValueError("Unsupported scoring regression control")
+            if actual != control["expected"]:
+                raise ValueError("Scoring regression failed: " + identity)
+
+
+def _qualified(item):
+    anchors, sources = item.get("anchors", []), item.get("sources", [])
+    observed = set()
+    for source in sources:
+        if source.get("title") and source.get("excerpt") and source.get("verified_at"):
+            observed.add(source["url"])
+            if source.get("observation_kind") == "direct_official_source_http" and source.get("http_status") == 200:
+                observed.add(source.get("final_url"))
+            if source.get("observation_kind") == "official_publisher_canonical_link":
+                observed.add(source.get("qualifying_link"))
+    return bool(anchors and sources and item.get("qualification")) and all(a.startswith("https://") and a in observed for a in anchors)
+
+
+def _equivalent(a, b):
+    if a.get("error") or b.get("error"):
+        return False
+    return bool(any(a.get(k) and b.get(k) and canonical_url(a[k]) == canonical_url(b[k]) for k in ("final", "canonical")) or (a.get("text_sha256") and a["text_sha256"] == b.get("text_sha256")))
 
 
 def apply_report_revision(profile, rows, revision):
     """Add independently observed reference annotations to immutable saved calls."""
     if revision.get("schema") != "web-search-assessment-revision/1":
         raise ValueError("Unsupported assessment revision")
-    if not revision.get("root_cause") or not revision.get("regression_ids"):
-        raise ValueError("Assessment revision needs cause and regression provenance")
+    validate_regressions(revision)
     if revision.get("provider_calls") != 0:
         raise ValueError("An annotation revision cannot introduce provider calls")
     revised = deepcopy(profile)
@@ -23,18 +71,8 @@ def apply_report_revision(profile, rows, revision):
         seen.add(cid)
         if cases[cid].get("anchors"):
             raise ValueError("Additional annotations cannot replace existing anchors")
-        anchors, sources = item.get("anchors", []), item.get("sources", [])
-        if not anchors or not sources or not item.get("qualification"):
-            raise ValueError("An annotation requires independent source qualification")
-        observed = set()
-        for source in sources:
-            if source.get("title") and source.get("excerpt") and source.get("verified_at"):
-                observed.add(source["url"])
-                if source.get("observation_kind") == "direct_official_source_http" and source.get("http_status") == 200:
-                    observed.add(source.get("final_url"))
-                if source.get("observation_kind") == "official_publisher_canonical_link":
-                    observed.add(source.get("qualifying_link"))
-        if any(not a.startswith("https://") or a not in observed for a in anchors):
+        anchors = item.get("anchors", [])
+        if not _qualified(item):
             raise ValueError("Unqualified source anchor")
         cases[cid]["anchors"] = anchors
         cases[cid]["reference_annotation"] = item
@@ -54,8 +92,7 @@ def apply_report_revision(profile, rows, revision):
 
 
 def apply_identity_correction(profile, rows, correction):
-    if not correction.get("root_cause") or not correction.get("regression_ids"):
-        raise ValueError("A scoring correction requires cause and regression provenance")
+    validate_regressions(correction)
     observations = {x["url"]: x for x in correction["observations"]}
     revised = deepcopy(profile)
     cases = {c["id"]: c for c in revised["cases"]}
@@ -63,14 +100,7 @@ def apply_identity_correction(profile, rows, correction):
         case = cases[cid]
         for alias, target in aliases.items():
             a, b = observations[alias], observations[target]
-            if a.get("error") or b.get("error"):
-                raise ValueError("Failed source identity observation")
-            same_destination = any(
-                a.get(k) and b.get(k) and canonical_url(a[k]) == canonical_url(b[k])
-                for k in ("final", "canonical")
-            )
-            same_text = a.get("text_sha256") and a["text_sha256"] == b.get("text_sha256")
-            if not (same_destination or same_text):
+            if not _equivalent(a, b):
                 raise ValueError("Unproven equivalent page")
             if target not in case.get("anchors", []):
                 raise ValueError("Correction must retain the original known target")

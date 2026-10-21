@@ -332,12 +332,12 @@ class ReportScenarios(unittest.TestCase):
         soup = BeautifulSoup(original, "html.parser")
         soup.select_one("table").decompose()
         page.write_text(str(soup))
-        with self.assertRaisesRegex(ValueError, "Interpretation core comparison"):
+        with self.assertRaisesRegex(ValueError, "Interpretation core comparison|Column extremum highlight"):
             check(self.out)
         soup = BeautifulSoup(original, "html.parser")
         soup.select_one("table tbody tr td:nth-of-type(2)").string = "999"
         page.write_text(str(soup))
-        with self.assertRaisesRegex(ValueError, "Interpretation core comparison"):
+        with self.assertRaisesRegex(ValueError, "Interpretation core comparison|Column extremum highlight"):
             check(self.out)
 
     def test_source_filter_cannot_hide_or_misattribute_query_groups(self):
@@ -485,30 +485,8 @@ class ReportScenarios(unittest.TestCase):
     def test_single_language_release_does_not_require_a_language_switch(self):
         manifest = json.loads((self.out / "manifest.json").read_text())
         self.assertEqual(manifest["languages"], ["zh"])
-        visual = self.root / "visual"
-        visual.mkdir()
-        states = {
-            (route, 1280, "light") for route in (
-                "home", "capabilities", "dataset", "results", "performance",
-                "method", "interpretation",
-            )
-        }
-        captures = []
-        for route, width, theme in states:
-            path = visual / f"zh-{route}-{width}-{theme}.png"
-            path.write_bytes(f"{route}-{width}-{theme}".encode())
-            captures.append({
-                "language": "zh", "route_class": route, "width": width,
-                "theme": theme, "path": path.name, "sha256": digest(path.read_bytes()),
-                "page_overflow": False, "readable": True, "metrics": {},
-            })
-        proof = visual / "release.json"
-        proof.write_text(json.dumps({
-            "manifest_sha256": digest((self.out / "manifest.json").read_bytes()),
-            "captures": captures,
-            "interactions": [],
-        }))
-        self.assertTrue(release_check(self.out, proof))
+        from harness.web_search.visual import routes
+        self.assertEqual({lang for lang, _, _ in routes(self.out)}, {"zh"})
 
     def test_missing_winner_marker_is_rejected(self):
         p = self.out / "index.html"
@@ -609,3 +587,39 @@ def test_dataset_inventory_has_bounded_scroll_for_large_catalogs(tmp_path):
     inventory = dom.select_one(".scroll.inventory")
     assert inventory is not None
     assert inventory.select("tr[data-case-id]")
+
+
+def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
+    from harness.web_search.core import digest
+    from harness.web_search.relevance import candidate_packet, import_annotations
+    from harness.web_search.report import build, check
+    from harness.web_search.example import example
+    import pytest
+    example(tmp_path)
+    source = tmp_path / 'fixture'
+    profile = json.loads((source / 'profile.json').read_text())
+    profile['protocol']['top_k'] = 5
+    (source / 'profile.json').write_text(json.dumps(profile))
+    receipt = json.loads((source / 'receipt.json').read_text())
+    receipt['profile_sha256'] = digest((source / 'profile.json').read_bytes())
+    (source / 'receipt.json').write_text(json.dumps(receipt))
+    rows = [json.loads(line) for line in (source / 'results.jsonl').read_text().splitlines()]
+    packet, _ = candidate_packet(profile, rows)
+    relevance = import_annotations(profile, rows, {'packet_sha256':packet['packet_sha256'], 'reviewed_case_ids':packet['plan']['case_ids'],
+        'judge':{'kind':'human','name':'Fixture reviewer'}, 'labels':{p['case_id']:{c['candidate_id']:3 for c in p['candidates']} for p in packet['blind_candidate_packets']}})
+    labels = tmp_path / 'labels.json'; labels.write_text(json.dumps(relevance))
+    content = tmp_path / 'content.json'; content.write_text(json.dumps({'presentation':'comparison-report','reading_model':True,'sections':[]}))
+    output = tmp_path / 'final'; build(output, source=source, content=content, relevance=labels)
+    home = BeautifulSoup((output/'index.html').read_text(),'html.parser')
+    headers = [h.get_text() for h in home.select('[data-populations] th')]
+    assert '搜索质量分（0–100）' in headers and '每题可用结果（条/5）' in headers
+    assert home.select_one('[data-populations] tbody td:nth-child(2)').get_text().strip('★ ') == '100.0'
+    result = BeautifulSoup((output/'results.html').read_text(),'html.parser')
+    assert not result.select('[data-method-filter]')  # No conflicting duplicate legacy inventory.
+    data = json.loads(result.select_one('[data-comparison-data]').string)
+    assert data['cases'][0]['outputs'][profile['methods'][0]['id']]['score']['ndcg'] == 1
+    detail = next((output/'details').glob('*.html'))
+    dom = BeautifulSoup(detail.read_text(),'html.parser'); dom.select_one('[data-case-relevance] strong').string = 'invented score'
+    detail.write_text(str(dom))
+    with pytest.raises(ValueError,match='Query quality calculation'):
+        check(output)

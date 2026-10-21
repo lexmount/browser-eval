@@ -27,7 +27,8 @@ class IdentityScenarios(unittest.TestCase):
 
     def test_correction_preserves_calls_and_rejects_unproven_equivalence(self):
         root = Path(__file__).resolve().parents[2]
-        profile = json.loads((root / "evaluation/web-search/current-report.json").read_text())
+        from harness.web_search.profiles import load_profile
+        profile = load_profile()
         correction = json.loads(
             (root / "evaluation/web-search/identity-correction.json").read_text()
         )
@@ -54,3 +55,15 @@ class IdentityScenarios(unittest.TestCase):
         correction["aliases"]["public-ki07"] = {wrong: target}
         with self.assertRaisesRegex(ValueError, "Unproven"):
             apply_identity_correction(profile, [row], correction)
+
+
+def test_correction_provenance_executes_paired_controls_and_rejects_unknown_ids():
+    from harness.web_search.scoring import validate_regressions
+    root = Path(__file__).resolve().parents[2]
+    registry = json.loads((root/'evaluation/web-search/scoring-regressions.json').read_text())
+    validate_regressions({'root_cause':'fixture','regression_ids':list(registry)})
+    import pytest
+    with pytest.raises(ValueError, match='Unknown'):
+        validate_regressions({'root_cause':'fixture','regression_ids':['invented-control']})
+    with pytest.raises(ValueError, match='unique'):
+        validate_regressions({'root_cause':'fixture','regression_ids':[next(iter(registry))]*2})

@@ -1,7 +1,6 @@
 """Search scenarios: constraints, missing judgments, costs and evidence integrity."""
 
 import copy
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -190,7 +189,8 @@ class SearchScenarios(unittest.TestCase):
         )
 
     def test_profile_rejects_duplicate_cases_and_oversize_deepseek_query(self):
-        profile = json.loads(Path("evaluation/web-search/current-report.json").read_text())
+        from harness.web_search.profiles import load_profile
+        profile = load_profile()
         validate_profile(profile)
         bad = copy.deepcopy(profile)
         bad["cases"].append(bad["cases"][0])
@@ -202,7 +202,8 @@ class SearchScenarios(unittest.TestCase):
             validate_profile(bad)
 
     def test_publisher_sample_can_preserve_a_long_query(self):
-        profile = json.loads(Path("evaluation/web-search/current-report.json").read_text())
+        from harness.web_search.profiles import load_profile
+        profile = load_profile()
         profile["protocol"]["preserve_publisher_queries"] = True
         profile["cases"][0]["query"] = "x" * 325
         validate_profile(profile)
@@ -212,7 +213,8 @@ class SearchScenarios(unittest.TestCase):
             validate_profile(bad)
 
     def test_profile_rejects_invalid_reference_urls_before_calls(self):
-        profile = json.loads(Path("evaluation/web-search/current-report.json").read_text())
+        from harness.web_search.profiles import load_profile
+        profile = load_profile()
         profile["cases"][0]["reference_urls"] = ["brokenhttps://example.org"]
         with self.assertRaisesRegex(ValueError, "HTTP"):
             validate_profile(profile)

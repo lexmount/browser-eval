@@ -1,6 +1,8 @@
 # Web Search API evaluation
 
-This track compares native search responses before an answering model is added. The headline comparison selects the shared core SERP layer: Lexmount Search, DeepSeek Search with `need_content=false`, and Bocha Web Search with `summary=false`. DeepSeek content and Bocha summary remain paired option experiments rather than extra competitors. Every configuration receives the same intent and five-result budget through its documented controls. The current report keeps two independent benchmarks: all 149 scenario queries and all 831 unchanged SimpleQA Verified questions that fit the shared API query limit. The public benchmark scope was frozen before calls and is not sampled by outcome.
+This track compares native search responses before an answering model is added. The current comparison uses Lexmount Search, DeepSeek Search with `need_content=true`, and Bocha Web Search with `summary=true`. All three receive the same query intent and a five-result budget. Search-result relevance uses their shared titles and snippets; additional summaries and page bodies are evaluated separately. The two benchmark populations remain separate: 149 scenario queries and 831 unchanged SimpleQA Verified questions that fit the shared API query limit.
+
+`evaluation/web-search/current.json` selects the current methods and pins the source profiles by hash. It contains no copied queries. The collector expands this selection into a new frozen profile with its own hash. `search-api-modes.json` preserves the hash-bound historical collection input, including its original publication snapshot and method inventory. Rebuilding that cohort uses its original bytes and receipt; the unused duplicate profile has been removed. Live publication state belongs only to `publication-target.json`; the formal release gate checks its selected methods and source bindings against the report.
 
 ## Run a comparison
 
@@ -8,7 +10,7 @@ Put `LEXMOUNT_SEARCH_API_KEY`, `DEEPSEEK_API_KEY`, and `BOCHA_API_KEY` in the re
 
 ```sh
 uv run --frozen python scripts/run_certified_benchmark.py web-search \
-  --profile evaluation/web-search/current-report.json \
+  --profile evaluation/web-search/current.json \
   --output "$HOME/.browser-eval/web-search/new-run"
 uv run --frozen python scripts/build_search_report.py \
   --source "$HOME/.browser-eval/web-search/new-run" \
@@ -26,7 +28,7 @@ Reference responses are captured before and after collection, with immutable has
 - Domain fraction tests host boundaries, excluding suffix lookalikes. Empty responses have no domain fraction; list fill and error counts remain visible.
 - Duplicate fraction uses conservative URL normalization. Semantic query parameters are preserved.
 - Factual probes match published supporting URLs and reference-answer cues. A versioned assessment revision interprets explicit accepted ranges and alternatives from the published answer; historical literal metrics remain reproducible from unchanged collection profiles. Preview fields and all delivered text are evaluated separately. Source matching is not whole-web recall; phrase presence is not semantic correctness. A separate diagnostic excludes explicitly named benchmark mirrors without promoting later results.
-- Historical model-judged preview relevance is retained for reproduction only. Do not pass `--relevance` for the current report. Current quality checks use no model judge.
+- The complete 149-query scenario set uses one frozen set of pooled relevance labels. Human labels are the default; an explicitly authorized model judge is supported with retained prompts, raw responses and exact evidence references. The 831 public factual queries use deterministic source and answer-text checks.
 - Snippet, summary and content lengths count Unicode characters. Text quantity does not establish correctness or source faithfulness.
 - Client wall time includes request setup, network transfer, response bytes and any declared retry. Mean, median and nearest-rank P95 share each declared cohort's complete query population. Successful nonempty calls are reported separately. Serial latency does not measure throughput or an SLA.
 - Prices remain in their native currencies. Empty DeepSeek successes are free under its published rule. Transport failures have unknown billing. Lexmount cost stays unavailable until pricing is supplied. Estimates are not invoices and exclude downstream models and extra fetches.
@@ -39,7 +41,7 @@ For a sourced API capability comparison without benchmark scores, use the same
 builder with `--reference-content /absolute/content.json --language zh`. The
 `web-search-reference/1` input supplies bilingual sections, tables, request
 specimens and HTTPS sources; optional artifacts carry relative paths and SHA-256
-bindings. The renderer produces both language editions. Its ordinary `--check`
+bindings. The renderer follows the selected report language; English is generated only when selected or explicitly requested. Its ordinary `--check`
 rejects changed capability cells, missing qualifications, altered specimens,
 broken citations, missing editions and artifact hash mismatches. The runnable
 synthetic input is `fixture()` in `tests/web_search/test_reference_report.py`.
@@ -92,7 +94,7 @@ collection windows; the pause is not API latency.
 
 ## Three-provider presentation and annotation revisions
 
-External report content selects `presentation: comparison-report`, `comparison_methods`, optional `comparison_labels`, and three explicit `metric_populations` (`overall`, `factual`, `scenario`). The builder validates complete original runs before projecting the selected methods. Missing method-query cells fail closed. An `assessment_revision` adds independently qualified reference pages and versions answer matching without new provider calls. It retains original profiles, changed metrics and source observations. Added references must be identified independently of provider outputs; describe their observation date and scope accurately.
+External report content selects `presentation: comparison-report`, `comparison_methods`, optional `comparison_labels`, and explicit `metric_populations`. With `independent_benchmarks`, benchmark-root populations partition all cases; auxiliary diagnostic groups may overlap. The builder validates complete original runs before projecting the selected methods. Missing method-query cells fail closed. An `assessment_revision` adds independently qualified reference pages and versions answer matching without new provider calls. It retains original profiles, changed metrics and source observations. Added references must be identified independently of provider outputs; describe their observation date and scope accurately.
 
 The original SimpleQA Verified task measures closed-book model answers using a model grader. This report's source-hit, reciprocal-rank and lexical-cue checks are retrieval adaptations, not official benchmark accuracy. The frozen source version, input-length selection and adapted metrics belong on the dataset and methodology pages.
 

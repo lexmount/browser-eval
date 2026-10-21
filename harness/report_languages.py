@@ -46,8 +46,11 @@ def add_language_argument(parser, *, default=None) -> None:
 
 
 def language_metadata_path(root: Path) -> Path:
-    path = root / "report-languages.json"
-    return path if path.is_file() else root / "report-manifest.json"
+    for name in ("report-languages.json", "report-manifest.json", "manifest.json"):
+        path = root / name
+        if path.is_file():
+            return path
+    return root / "report-manifest.json"
 
 
 def primary_report_language(root: Path, *, default: str | None = None) -> str:

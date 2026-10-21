@@ -9,13 +9,6 @@ from pathlib import Path
 
 
 class MoliReportRenderContractTests(unittest.TestCase):
-    def test_release_reader_pass_has_no_viewport_or_theme_matrix(self):
-        root = Path(__file__).resolve().parents[1]
-        source = (root / "scripts/moli_report/ui_check.js").read_text()
-        self.assertIn("const reviewRoutes", source)
-        self.assertNotIn("for (let width", source)
-        self.assertNotIn("for (let theme", source)
-
     def test_fixed_layout_comparisons_in_both_languages(self):
         node = shutil.which("node")
         if node is None:

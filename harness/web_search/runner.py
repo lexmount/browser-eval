@@ -11,8 +11,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.web_fetch.config import ROOT, load_runtime_env
+from harness.record_io import read_completed_records
 
 from .core import digest, evaluate, normalize, request_body, request_cost, validate_profile, write_json
+from .profiles import CURRENT_PROFILE, load_profile_bytes
 
 
 def http_call(url, body=None, header=None, timeout=20):
@@ -50,9 +52,19 @@ def http_call(url, body=None, header=None, timeout=20):
         else:
             command += ["--location", "--max-redirs", "5"]
         start = time.perf_counter()
-        call = subprocess.run(
-            command, input=config, text=True, capture_output=True, timeout=timeout + 5
-        )
+        try:
+            call = subprocess.run(
+                command, input=config, text=True, capture_output=True, timeout=timeout + 5
+            )
+        except subprocess.TimeoutExpired:
+            return {
+                "http_status": 0,
+                "elapsed_ms": (time.perf_counter() - start) * 1000,
+                "ttfb_ms": None,
+                "transport_exit": 28,
+                "transport_error": "Client subprocess exceeded total timeout",
+                "network": None,
+            }, output.read_bytes() if output.exists() else b""
         elapsed = (time.perf_counter() - start) * 1000
         fields = call.stdout.split()
         raw = output.read_bytes() if output.exists() else b""
@@ -116,9 +128,22 @@ def reference_available(profile, url, receipt, raw):
     )
 
 
+def validate_resume_implementation(output, contract):
+    """Reject code drift before reference requests, file mutations or provider calls."""
+    for name, sha in contract["implementation"].items():
+        if digest((output / "implementation" / name).read_bytes()) != sha:
+            raise ValueError("Original collection implementation changed")
+    current = {
+        str(p.relative_to(ROOT)): digest(p.read_bytes())
+        for p in (ROOT / "harness/web_search").glob("*.py")
+    }
+    if current != contract["implementation"]:
+        raise ValueError("Resume requires the same live collection implementation; start a new cohort")
+
+
 def prepare_resume(profile_path, output):
     """Resume only an unchanged, interrupted matrix; preserve every displaced byte."""
-    profile_bytes = profile_path.read_bytes()
+    profile_bytes = load_profile_bytes(profile_path)
     profile = json.loads(profile_bytes)
     if (output / "profile.json").read_bytes() != profile_bytes:
         raise ValueError("Resume requires the exact frozen profile")
@@ -127,17 +152,9 @@ def prepare_resume(profile_path, output):
     contract = json.loads((output / "run-contract.json").read_text())
     if contract["profile_sha256"] != digest(profile_bytes):
         raise ValueError("Frozen profile binding changed")
-    for name, sha in contract["implementation"].items():
-        if digest((output / "implementation" / name).read_bytes()) != sha:
-            raise ValueError("Original collection implementation changed")
+    validate_resume_implementation(output, contract)
     raw = (output / "results.jsonl").read_bytes()
-    rows = []
-    for index, line in enumerate(raw.splitlines()):
-        try:
-            rows.append(json.loads(line))
-        except ValueError:
-            if index != len(raw.splitlines()) - 1:
-                raise ValueError("Corrupt result before the interrupted tail")
+    rows = read_completed_records(output / "results.jsonl")
     expected = {(m["id"], r) for m in profile["methods"] for r in range(profile["protocol"]["rounds"])}
     by_case = {c["id"]: [] for c in profile["cases"]}
     for row in rows:
@@ -186,7 +203,7 @@ def prepare_resume(profile_path, output):
 
 
 def run(profile_path, output, diagnostic=False, resume=False):
-    profile_bytes = profile_path.read_bytes()
+    profile_bytes = load_profile_bytes(profile_path)
     profile = json.loads(profile_bytes)
     validate_profile(profile)
     load_runtime_env()
@@ -205,6 +222,7 @@ def run(profile_path, output, diagnostic=False, resume=False):
         original_contract = json.loads((output / "run-contract.json").read_text())
         if original_contract["diagnostic"] != diagnostic:
             raise ValueError("Resume cannot change certification mode")
+        validate_resume_implementation(output, original_contract)
         # Validate current sources before changing saved evidence.
         before = json.loads((output / "references-before.json").read_text())
         phase = "resume-precheck-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
@@ -390,7 +408,7 @@ def reference_changes(profile, before, after):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--profile", type=Path, default=ROOT / "evaluation/web-search/current-report.json"
+        "--profile", type=Path, default=CURRENT_PROFILE
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--diagnostic", action="store_true")
