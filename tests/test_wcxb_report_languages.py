@@ -112,6 +112,7 @@ def test_wcxb_instance_counts_versions_and_interfaces_follow_selected_evidence(t
     profile['providers'] = list(providers)
     identities['moli']['reported_version'] = '2.3.4'
     profile['candidate_source_commit'] = 'abcdef12' + '0' * 32
+    profile['max_failure_retries'] = 3
     generate_wcxb(root, rows, summary, truth, identities, profile, content, include_english=True)
     for prefix, count_text in [('', f'{len(providers)} 种配置'), ('en/', f'{len(providers)} configurations')]:
         home = BeautifulSoup((root / prefix / 'index.html').read_text(), 'html.parser')
@@ -129,3 +130,15 @@ def test_wcxb_instance_counts_versions_and_interfaces_follow_selected_evidence(t
         interfaces = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(), 'html.parser').select_one('pre').get_text()
         assert 'kitesurf:' not in interfaces
         assert ('chromium:' in interfaces) == ('chromium' in providers)
+        from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
+        from harness.web_fetch.wcxb_report_check import require_home_interpretation
+        _, calls = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, set(truth))
+        paired = summarize_full_paired_latency(calls, set(truth))
+        lang = 'zh' if not prefix else 'en'
+        html = (root / prefix / 'index.html').read_text()
+        checked = require_home_interpretation(html, summary, paired, lang, scores=rows)
+        checked.select_one('[data-f1-relation="higher"]')['data-count'] = '99'
+        with pytest.raises(ValueError, match='counts differ'):
+            require_home_interpretation(checked, summary, paired, lang, scores=rows)
+        assert ('最多重试 3 次' if lang == 'zh' else 'up to 3 retries') in method
+        assert 'cases/5458.html' not in html

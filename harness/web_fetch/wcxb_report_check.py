@@ -117,7 +117,7 @@ def require_analysis_controls(html: str | BeautifulSoup, result_count: int) -> B
 
 
 def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
-                                paired_latency: dict, lang: str) -> BeautifulSoup:
+                                paired_latency: dict, lang: str, *, scores: list[dict]) -> BeautifulSoup:
     """Keep the version comparison readable and its timing caveat beside the table."""
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
     core = soup.select_one('#wcxb-core')
@@ -138,7 +138,7 @@ def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
     require(all(value in context_text for value in required),
             'Home timing context disagrees with measured evidence')
     require(('交叉顺序' if lang == 'zh' else 'balanced same-window') in context_text
-            and ('504 页' if lang == 'zh' else '504 pages') in context_text,
+            and (f'{summary["case_count"]} 页' if lang == 'zh' else f'{summary["case_count"]} pages') in context_text,
             'Home timing context does not identify the corrected population')
     require(context.select_one('a[href$="guide/index.html"]') is not None,
             'Home timing context does not link to the analysis')
@@ -146,15 +146,26 @@ def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
     change_text = change.get_text(' ', strip=True)
     require(len(change_text) <= (330 if lang == 'zh' else 700),
             'Home Moli change summary is too long; move detail to the interpretation page')
-    require(len(change.select('p')) == 2 and change.select_one('a[href$="cases/5458.html"]')
+    require(len(change.select('p')) == 2 and change.select_one('a[href*="cases/"]')
             and change.select_one('a[href$="guide/index.html"]'),
             'Home Moli change summary lacks concise evidence links')
-    required_change = (('5412、5413', '5411、5458', '逐页 F1 的平均', '内联 HTML 标签名')
-                       if lang == 'zh' else
-                       ('5412 and 5413', '5411 and 5458', 'page-level F1 values',
-                        'inline HTML tag names'))
-    require(all(marker in change_text for marker in required_change),
-            'Home Moli change summary does not explain recall/F1 divergence')
+    by_case = {}
+    for row in scores:
+        if row.get('quality_eligible', True):
+            by_case.setdefault(row['case_id'], {})[row['provider']] = row['f1']
+    deltas = [values['moli-pr643'] - values['moli'] for values in by_case.values()]
+    expected = {'higher': sum(value > 1e-10 for value in deltas),
+                'lower': sum(value < -1e-10 for value in deltas),
+                'equal': sum(abs(value) <= 1e-10 for value in deltas)}
+    actual = {node['data-f1-relation']: int(node['data-count'])
+              for node in change.select('[data-f1-relation][data-count]')}
+    require(actual == expected and sum(actual.values()) == summary['quality_case_count'],
+            'Home page-level change counts differ from scored evidence')
+    for node in change.select('a[href*="cases/"]'):
+        require(Path(urlsplit(node['href']).path).stem in by_case,
+                'Home comparison links to a case outside the selected evidence')
+    require(('逐页 F1 的平均' if lang == 'zh' else 'page-level F1 values') in change_text,
+            'Home comparison omits the page-level F1 definition')
     precision_delta = ((summary['providers']['moli-pr643']['quality_precision']
                         - summary['providers']['moli']['quality_precision']) * 100)
     recall_delta = ((summary['providers']['moli-pr643']['quality_recall']
@@ -407,7 +418,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
             if route in ('index.html', 'datasets/index.html'):
                 check_presentation(html)
                 if route == 'index.html':
-                    require_home_interpretation(html, summary, paired_latency, lang)
+                    require_home_interpretation(html, summary, paired_latency, lang, scores=scores)
                     require('id="home-type"' in html, 'Page-type filter missing')
                     require('官方全量 F1' not in html and 'Official full F1' not in html, 'Invalid full-reference score remains visible')
                     first_card = BeautifulSoup(html, 'html.parser').select_one('.lead-grid .panel')
@@ -574,7 +585,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
     home.select_one('#moli-latency-context').decompose()
     try:
-        require_home_interpretation(home, summary, paired_latency, 'zh')
+        require_home_interpretation(home, summary, paired_latency, 'zh', scores=scores)
     except ValueError:
         pass
     else:
