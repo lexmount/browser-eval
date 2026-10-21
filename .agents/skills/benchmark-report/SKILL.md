@@ -82,9 +82,10 @@ evidence before uploading, bind immutable published versions, and include the
 attachment archives and target registry in the main publication snapshot. Keep
 one report entry and all evidence; reject unresolved or changed data attachments.
 
-For the current Web Search contract, relevance labels must cover every in-house
-case and come from a named human annotator. Export the blind candidate pool with
-`build_search_report.py --output REPORT --export-annotations NEW_DIRECTORY`, then
-import the completed file through `--relevance`. Do not substitute nonempty
-responses, URL identity checks, or model judgments for relevance labels. Keep
-empty queries and all-zero candidate pools in the deterministic score population.
+Web Search relevance labels cover every in-house case with the same frozen rubric.
+Use named human annotations by default. When the user explicitly selects a model
+judge, use `scripts/judge_search_relevance.py` and retain the exact model, prompt,
+blind inputs, raw responses and quoted scoring evidence. Label the result as model
+preview relevance rather than human gold judgments. Both routes import through
+`--relevance`; neither may substitute nonempty responses or URL checks for labels.
+Keep empty queries and all-zero pools in the score population.
