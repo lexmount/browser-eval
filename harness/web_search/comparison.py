@@ -104,8 +104,9 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
     labels = (relevance or {}).get("labels", {})
     judgments = {}
     for call in (relevance or {}).get("judge", {}).get("calls", []):
-        content = call["response"]["choices"][0]["message"]["content"]
-        judgments[call["case_id"]] = {x["candidate_id"]: x for x in json.loads(content)["judgments"]}
+        from .relevance import parse_judgments
+        packet = json.loads(call["request"]["messages"][1]["content"])
+        judgments[call["case_id"]] = {x["candidate_id"]: x for x in parse_judgments(packet, call["response"])}
     cases = []
     for case in profile["cases"]:
         outputs = {}

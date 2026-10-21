@@ -187,6 +187,21 @@ class ReportScenarios(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Preview relevance panel"):
             check(self.out)
 
+    def test_quality_definitions_precede_results_and_are_bound(self):
+        content = self.root / "definitions.json"
+        content.write_text(json.dumps({"reading_model": True, "presentation": "comparison-report", "reading_sections": [], "sections": [
+            {"page": "quality-definitions", "title": {"zh": "分数的含义", "en": "Grade definitions"}, "paragraphs": [{"zh": "三分表示直接满足", "en": "Three means directly useful"}]},
+            {"page": "quality", "title": {"zh": "结果解释", "en": "Result interpretation"}, "paragraphs": [{"zh": "检查实际结果", "en": "Inspect actual results"}]}
+        ]}))
+        build(self.out, source=self.root / "fixture", content=content)
+        self.assertTrue(check(self.out))
+        page = self.out / "quality.html"
+        text = page.read_text()
+        self.assertLess(text.index("分数的含义"), text.index("结果解释"))
+        page.write_text(text.replace("三分表示直接满足", "错误定义"))
+        with self.assertRaisesRegex(ValueError, "bound content"):
+            check(self.out)
+
     def combined_fixture(self):
         import shutil
 

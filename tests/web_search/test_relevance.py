@@ -127,6 +127,10 @@ def test_frozen_model_labels_require_exact_candidate_coverage_and_quotes():
         labels[p["case_id"]] = {x["candidate_id"]: x["grade"] for x in items}
     evidence = {**packet, "provider_rankings": rankings, "labels": labels, "judge": {"kind": "model", "name": "test-model", "prompt": JUDGE_PROMPT, "calls": calls}}
     verify_provenance(profile, rows, evidence)
+    inconsistent = copy.deepcopy(evidence)
+    inconsistent["judge"]["configuration"] = {"extra_params": {"enable_thinking": False}}
+    with pytest.raises(ValueError, match="configuration differs"):
+        verify_provenance(profile, rows, inconsistent)
     from harness.web_search.comparison import comparison_data
     display_profile = dict(profile, methods=[dict(m, label=m["id"]) for m in profile["methods"]])
     data = comparison_data(display_profile, rows, relevance=evidence, detail_link=lambda r: "result.html")
@@ -143,3 +147,19 @@ def test_frozen_model_labels_require_exact_candidate_coverage_and_quotes():
     response = {"choices": [{"message": {"content": json.dumps({"judgments": [{"candidate_id": c["candidate_id"], "grade": 3, "reason": "reason", "evidence": "invented supporting quote"} for c in case["candidates"]]})}}]}
     with pytest.raises(ValueError, match="exact quote"):
         parse_judgments(case, response)
+
+
+
+
+def test_model_evidence_reference_displays_exact_original_not_generated_quote():
+    import json
+    from harness.web_search.relevance import parse_judgments
+    candidate = {"candidate_id": "x", "url": "https://example.org/", "previews": [{"title": "Title", "snippet": "原文（标点和空格不改）"}]}
+    packet = {"candidates": [candidate]}
+    judgment = {"candidate_id": "x", "grade": 2, "reason": "partial", "evidence": {"field": "snippet", "preview_index": 0}}
+    def response(item):
+        return {"choices": [{"message": {"content": json.dumps({"judgments": [item]})}}]}
+    assert parse_judgments(packet, response(judgment))[0]["evidence"] == candidate["previews"][0]["snippet"]
+    judgment["evidence"]["preview_index"] = 1
+    with pytest.raises(ValueError, match="does not identify"):
+        parse_judgments(packet, response(judgment))

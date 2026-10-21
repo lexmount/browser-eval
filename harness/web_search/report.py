@@ -723,6 +723,7 @@ def build(
                     if authored.get("interface_example_case_id"):
                         chapter_body += interface_example(profile, selected, authored["interface_example_case_id"], zh)
                 if chapter_key == "quality":
+                    chapter_body += authored_sections(authored, "quality-definitions", lang, rows=selected)
                     if relevance_scores:
                         chapter_body += relevance_panel(profile, relevance_scores, relevance_data, zh)
                     chapter_body += factual_panel(profile, selected, zh)
@@ -949,7 +950,7 @@ def build(
                 per_query = next(x for x in relevance_scores if x["case_id"] == cid and x["method"] == r["method"])
                 detail += '<section data-case-relevance><h2>' + t("Preview relevance", "结果预览相关性") + '</h2><p>' + esc(relevance_data["judge"]["name"]) + '</p>'
                 detail += table(["nDCG@5", "Precision@5", "Success@5"], [cells([f'{per_query["ndcg"]:.3f}', f'{per_query["precision"]:.1%}', str(int(per_query["success"]))])])
-                detail += '<a href="../relevance-judgments.json">' + t("Complete scoring input and output", "完整评分输入与输出") + '</a></section>'
+                detail += '<a href="relevance-judgments.json">' + t("Complete scoring input and output", "完整评分输入与输出") + '</a></section>'
 
             detail += (
                 "<h2>"
@@ -1342,7 +1343,8 @@ def check(output, *, return_data=False):
                 ) + (
                     authored_sections(authored, key + "-lead", lang, rows=score_rows)
                     if name in ("capabilities.html", "quality.html", "cost.html") else ""
-                ) + authored_sections(authored, key, lang, rows=score_rows)
+                ) + (authored_sections(authored, "quality-definitions", lang, rows=score_rows)
+                     if name == "quality.html" else "") + authored_sections(authored, key, lang, rows=score_rows)
                 if name == "index.html" and authored.get("presentation") != "comparison-report":
                     chapters = manifest["reading_sections"]
                     if [s["data-reading"] for s in soup.select("[data-reading]")] != [
