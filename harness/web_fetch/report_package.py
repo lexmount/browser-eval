@@ -129,6 +129,8 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
     footprint_projections = []
     source_paths = sorted(path for path in source.rglob("*") if path.is_file())
     source_names = {path.relative_to(source).as_posix() for path in source_paths}
+    if "publication-privacy.json" in source_names:
+        raise ValueError("Publication source contains a reserved generated file: publication-privacy.json")
     source_file_count = sum(path.name != ".generated-report" for path in source_paths)
     logical_route_count = sum(path.suffix == ".html" for path in source_paths)
 

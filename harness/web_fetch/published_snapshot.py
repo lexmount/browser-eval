@@ -149,6 +149,10 @@ def build_snapshot_audit(source, output, *, profile):
         shutil.rmtree(staging / 'en', ignore_errors=True)
         history = staging / 'audit/history'
         history.mkdir(parents=True)
+        historical_privacy=None
+        if (staging/'publication-privacy.json').is_file():
+            shutil.move(staging/'publication-privacy.json',history/'publication-privacy.json')
+            historical_privacy={'path':'audit/history/publication-privacy.json','sha256':file_sha256(history/'publication-privacy.json')}
         for name in ('dataset.json', 'results.jsonl', 'result-review.json'):
             if (staging / name).is_file():
                 shutil.copy2(staging / name, history / name)
@@ -180,6 +184,8 @@ def build_snapshot_audit(source, output, *, profile):
             'total_attempts': len(records), 'projected_scoring_inputs': receipt['projected_scoring_inputs'],
             'recovered_originals': receipt['recovered_originals'],
             'figure': 'audit/scoring-explained.png'}
+        if historical_privacy:
+            comparison['score_audit']['historical_privacy']=historical_privacy
         (staging / 'dataset.json').write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n')
         shutil.copy2(inputs['results'], staging / 'results.jsonl')
         batches = json.loads((staging / 'execution.json').read_text())['batches']
@@ -214,6 +220,7 @@ def check_snapshot_audit(root):
     rows = load_jsonl(root/'results.jsonl')
     binding = dataset['comparison']['score_audit']
     audit = json.loads(_bound(root, binding).read_text())
+    if binding.get('historical_privacy'):_bound(root,binding['historical_privacy'])
     check_saved_result_summary(root, dataset, rows)
     for relative in ['index.html','guide/index.html','audit/index.html','analysis/index.html']:
         soup = BeautifulSoup((root/relative).read_text(), 'html.parser')
@@ -254,7 +261,10 @@ def read_snapshot_public_file(root, binding):
     observed = file_sha256(path)
     if observed == binding['sha256']:
         return path
-    privacy = json.loads(contained_path(root, 'publication-privacy.json').read_text())
+    dataset=json.loads(contained_path(root,'dataset.json').read_text())
+    historical=dataset.get('comparison',{}).get('score_audit',{}).get('historical_privacy')
+    privacy_path=_bound(root,historical) if historical else contained_path(root,'publication-privacy.json')
+    privacy = json.loads(privacy_path.read_text())
     proof = next((item for item in privacy['files'] if item['path'] == binding['path']), {})
     if (proof.get('original_sha256') != binding['sha256']
             or proof.get('published_sha256') != observed
@@ -276,8 +286,8 @@ def check_snapshot_visual(root, receipt):
     routes=['index.html','guide/index.html','audit/index.html','analysis/index.html',
             'datasets/index.html','methodology/index.html','review/index.html',
             'changes/index.html','adoption/index.html','reproduce/index.html','accounts/index.html','en/index.html']
-    for folder in ['cases','providers']:
-        pages=sorted((root/folder).glob('*.html'))
+    for folder in ['datasets','providers']:
+        pages=sorted(p for p in (root/folder).glob('*.html') if p.name!='index.html')
         if pages:routes.append(pages[0].relative_to(root).as_posix())
     for passed in [False,True]:
         row=next(r for r in rows if task_passed(r['ok'],r['metrics'],cases[r['case_id']].get('task_kind','body')) is passed)
@@ -309,10 +319,12 @@ def check_snapshot_visual(root, receipt):
                 if button.count():
                     button.evaluate('(b)=>{for(let e=b.parentElement;e;e=e.parentElement)if(e.tagName==="DETAILS")e.open=true}')
                     button.click();page.locator('dialog[open]').wait_for()
-                    if not page.locator('dialog[open]').inner_text().strip():raise ValueError('Empty evidence dialog')
+                    page.wait_for_function('''() => {const d=document.querySelector('dialog[open]');return d && [...d.querySelectorAll('pre[data-file],pre[data-evidence-file]')].every(p=>p.dataset.loaded==='1') && (d.querySelector('textarea')?.value.length>0 || [...d.querySelectorAll('pre')].some(p=>p.textContent.trim().length>0))}''')
+                    page.screenshot(path=str(receipt.parent/('detail-'+route.split('/')[-1]+'.png')),full_page=False)
                     page.keyboard.press('Escape')
                     if page.locator('dialog[open]').count():raise ValueError('Evidence dialog did not close')
-                    interactions.append({'route':route,'open_close':'passed'})
+                    page.wait_for_function('(id)=>document.activeElement?.dataset.callLogOpen===id',arg=button.get_attribute('data-call-log-open'))
+                    interactions.append({'route':route,'load_open_close_focus':'passed'})
                 page.locator('header a[href]').first.click();page.wait_for_load_state('networkidle')
                 if not page.url.endswith('/index.html'):raise ValueError('Nested report navigation failed')
         browser.close()

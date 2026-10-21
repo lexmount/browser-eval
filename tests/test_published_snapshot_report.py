@@ -32,6 +32,7 @@ def example(root):
     (source/'dataset.json').write_text(json.dumps(dataset))
     (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
     (source/'execution.json').write_text(json.dumps({'batches':[{'timeout_seconds':5,'attempt_ids':[row['attempt_id'] for row in rows]}]}))
+    (source/'publication-privacy.json').write_text(json.dumps({'files':[]}))
     result,receipt=score_published_snapshot(source,dataset)
     manifest={'files':{p.relative_to(source).as_posix():{'sha256':file_sha256(p)} for p in source.rglob('*') if p.is_file()}}
     def save(name,value):
@@ -74,6 +75,12 @@ def test_saved_matrix_keeps_native_routes_and_inspectable_review(tmp_path):
     from harness.web_fetch.report_package import validate_release
     with pytest.raises(ValueError,match='require --snapshot-audit'):validate_release(out)
     assert validate_release(out,snapshot_audit=True) is False
+    assert not (out/'publication-privacy.json').exists()
+    assert (out/'audit/history/publication-privacy.json').is_file()
+    from harness.web_fetch.report_package import build
+    from harness.web_fetch.publication_check import check
+    archive=tmp_path/'report.zip';build(out,archive,snapshot_audit=True)
+    check(archive,out,snapshot_audit=True)
     for path in ['index.html','guide/index.html','datasets/index.html','analysis/index.html','attempts/chromium__complete__r001.html','attempts/chromium__missing__r001.html','en/index.html']:
         assert (out/path).is_file()
     assert {p.relative_to(source):p.read_bytes() for p in source.rglob('*') if p.is_file()}==before
