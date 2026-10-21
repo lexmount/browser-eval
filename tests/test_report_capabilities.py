@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from harness.web_fetch.report import table, cell, link
 from harness.web_fetch.report_methods import PROFILES
-from harness.web_fetch.report_capabilities import CAPABILITIES, CHECKED_AT, SOURCES, render_capabilities
+from harness.web_fetch.report_capabilities import CAPABILITIES, SOURCES, render_capabilities
 from harness.web_fetch.report_interfaces import SPECS
 
 
@@ -17,7 +17,9 @@ class CapabilityTests(unittest.TestCase):
                 {'id':'body','url':'https://example.com/','track':'web','task_kind':'body'},
                 {'id':'pdf','url':'https://example.com/a.pdf','track':'document','task_kind':'body'}]}))
             names=['moli','lightpanda','obscura','chromium','kitesurf']
+            original_sources = dict(SOURCES)
             claims=task_capabilities(out,names,[{'provider_metadata':{'output_contract':'readable_document_text'}}])
+            self.assertEqual(SOURCES, original_sources)
             self.assertEqual(claims['moli']['document']['status'],'有限支持')
             self.assertIn('直接 PDF/DOCX 未提供可读正文',claims['moli']['document']['detail'])
             for name in ('lightpanda','obscura','kitesurf'):
@@ -74,7 +76,9 @@ class CapabilityTests(unittest.TestCase):
         self.assertIn('不是读取已有 PDF', CAPABILITIES['cloudflare-markdown']['notes'])
 
     def test_current_capability_page_matches_the_certified_routes(self):
-        self.assertEqual(CHECKED_AT, '2026-09-11')
+        from harness.web_fetch.methods import report_method_catalog
+        for source in report_method_catalog()['sources'].values():
+            self.assertRegex(source['checked_at'], r'^\d{4}-\d{2}-\d{2}$')
         self.assertIn('advanced + markdown', CAPABILITIES['tavily']['tested'])
         self.assertNotIn('basic + markdown', CAPABILITIES['tavily']['tested'])
         self.assertIn('text.verbosity=full', CAPABILITIES['exa']['tested'])
@@ -91,7 +95,8 @@ class CapabilityTests(unittest.TestCase):
 
     def test_moli_document_capabilities_never_credit_external_parsing(self):
         for name in ('moli-1.0.6', 'moli', 'moli-1.1.3', 'moli-1.1.11'):
-            row = CAPABILITIES[name]
+            from harness.web_fetch.methods import report_method
+            row = report_method(name, {"provider_metadata": {"engine": "moli"}})["capabilities"]
             self.assertIn('原生 Markdown 接口直接交付', row['notes'])
             self.assertIn('不再外部解析', row['notes'])
             self.assertNotIn('评测在同一次预算内解析', row['notes'])

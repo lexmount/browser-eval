@@ -340,7 +340,8 @@ def current_browser_article_model(out, cases, records, binding):
         examples.append({'row': row, 'explanation': item['explanation'],
                          'evidence': browser_example_evidence(out,cases[row['case_id']],row,focus=item.get('focus'),reference_focus=item.get('reference_focus'))})
     stats = {}
-    from .report_interfaces import method_provenance, method_version
+    from .report_interfaces import method_provenance
+    from .methods import method_version
     provenance = method_provenance(out)
     for name in providers:
         rows = [indexed[name, cid] for cid in cases]

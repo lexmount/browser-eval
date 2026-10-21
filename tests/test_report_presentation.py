@@ -131,7 +131,7 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('1/1 · 复核记录',row)
   self.assertNotIn('已核验',row)
  def test_headless_access_covers_every_method_and_lists_setup_variables(self):
-  self.assertEqual(set(HEADLESS_ACCESS),{'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','moli-1.1.11','moli-pr643','chromium'})
+  self.assertEqual(set(HEADLESS_ACCESS),{'kitesurf','lightpanda','obscura','moli','chromium'})
   for access in HEADLESS_ACCESS.values():
    self.assertTrue(access['env_vars'])
    self.assertTrue(access['links'])
@@ -172,10 +172,12 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('rawBase64',firecrawl)
   self.assertNotIn('Exa、Tavily、Firecrawl',builtin)
   self.assertIn('渲染 DOM',chromium)
-  self.assertIn('node-html-markdown 2.0.0',chromium)
+  self.assertIn('node-html-markdown',chromium)
+  self.assertNotIn('2.0.0',chromium)
   moli=provider_configuration('moli',[{'provider_type':'headless_markdown','provider_metadata':{'extractor':'node-html-markdown','output_contract':'markdown'}}],default)
   self.assertNotIn('Chromium',moli)
-  self.assertIn('node-html-markdown 2.0.0',moli)
+  self.assertIn('node-html-markdown',moli)
+  self.assertNotIn('2.0.0',moli)
  def test_dynamic_cohort_copy_has_english_translations(self):
   from harness.web_fetch.report_i18n import translate_text
   self.assertEqual(translate_text('90 个案例 · 12 种方法 · 4类分榜与一个综合通过率总榜。'),
@@ -326,7 +328,7 @@ class MeasuredInterfaceIdentityTests(unittest.TestCase):
   old={'provider':'moli-1.0.6','provider_type':'headless_markdown','provider_metadata':{'reported_version':'moli 1.0.6'}}
   output=self.render([old],'moli-1.0.6')
   self.assertIn('1.0.6',output['access']['links'][0][1])
-  self.assertEqual(output['interface'],json.loads(json.dumps(SPECS['moli-1.0.6'])))
+  self.assertEqual(output['interface'],json.loads(json.dumps(SPECS['moli'])))
  def test_unknown_or_mixed_generic_versions_do_not_invent_a_release(self):
   rows=[{'provider':'moli','provider_metadata':{'reported_version':'moli '+v}} for v in ('1.1.14','1.1.15')]
   for records in ([],rows):

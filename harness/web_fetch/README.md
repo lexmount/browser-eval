@@ -1280,3 +1280,30 @@ there is no separate bind command. `archive` and `plan_path` are `Path` objects
 for the prepared main archive and parts manifest; `publications` maps each part
 identifier to its committed publication receipt. This step binds existing uploads;
 it does not upload attachments.
+
+## Report method metadata
+
+`data/report-methods.json` is the shared, packaged catalog for product labels,
+method profiles, adapter contracts, interface examples, access requirements,
+and capability sources. Keep Chinese and English author text together as
+`{"zh": "...", "en": "..."}`. A versioned execution participant resolves to its
+recorded engine or the engine in `configs/providers.headless.json`; adding a
+release of an existing engine does not require another catalog entry.
+
+Saved `reported_version` takes precedence over hash-bound implementation
+provenance and other recorded version fields. A native engine's four-part CDP
+compatibility version is not an executable release. Missing metadata remains
+unavailable; an unregistered method retains its outputs and explicitly reports
+missing descriptive metadata instead of crashing the report.
+
+Interface requests in this catalog are labeled examples. Saved public call logs
+own measured request fields; frozen run contracts own budgets and method scope.
+Do not copy a cohort's task count, timing, or result conclusion into product
+metadata. Source verification dates belong to each source entry, not to a global
+report date. The catalog supplies translations to all report views, so do not
+copy those same translations into the legacy page translation maps.
+
+Historical WCXB and WebMainBench entry points remain supported. The legacy
+75 + 25 audit reader validates its explicitly selected frozen evidence contract;
+new matrices use `uniform_native_local_measurement`. These are not unused code
+merely because their contracts describe older evidence.

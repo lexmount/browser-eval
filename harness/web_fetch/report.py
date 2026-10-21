@@ -36,15 +36,16 @@ from .report_components import (
  tabs,
  task_instruction,
 )
-from .report_interfaces import HEADLESS_ACCESS, method_access, method_version, method_provenance
+from .report_interfaces import method_access, method_provenance
 from .report_methods import PROFILES, adoption_counts
+from .methods import report_method, method_version
 from .report_resources import render_resource_comparison
 from .report_style import STYLE
 from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.safety import safe_href, validate_report_ids
 from .webmainbench_diagnostics import ERROR_PAGE
 
-PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-pr643':'Moli 1.1.7 · PR #643','moli-1.1.11':'Moli 1.1.11'}
+
 
 
 def format_wcxb_conditional_latency(value: float | None) -> str:
@@ -272,7 +273,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
   changes_en=f"All six configurations completed {case_count} calls. Quality displays use only {quality_count} references qualified before calls, or {visible_count:,} results. End-to-end latency retains all {case_count} calls per method so slow or failed calls are not removed after measurement."
   changes=f'<div class="hero"><h1>{esc(x["changes"])}</h1><p>{"当前报告的结果、分母和证据范围。" if lang=="zh" else "Current result, denominator and evidence scope."}</p></div><section class="panel"><h2>{"有效参考与完整调用" if lang=="zh" else "Qualified references and all calls"}</h2><p>{changes_zh if lang=="zh" else changes_en}</p><p><a href="research/report-changes.json">{"结构化变更记录" if lang=="zh" else "Structured change record"}</a></p></section>'
   page(lang,'changes/index.html',x['changes'],changes)
-  account_rows=''.join(f'<tr><td>{esc(p)}</td><td>{esc("、".join(HEADLESS_ACCESS[p]["env_vars"]))}</td><td>{esc(HEADLESS_ACCESS[p]["account"] if lang=="zh" else ("Cloudflare Browser Run account and API token required." if p=="kitesurf" else "No provider account or API key required."))}</td><td>'+''.join(f'<a href="{esc("https://github.com/lexmount/moli/releases/tag/v1.1.8" if p=="moli" else url)}">{esc(("Moli 1.1.8 正式发布" if p=="moli" else label) if lang=="zh" else ("Moli 1.1.8 official release" if p=="moli" else "Official source"))}</a> ' for label,url in HEADLESS_ACCESS[p]['links'])+'</td></tr>' for p in providers)
+  account_rows=''.join(f'<tr><td>{esc(p)}</td><td>{esc("、".join(method_access(p,[])["env_vars"]))}</td><td>{esc(method_access(p,[])["account"] if lang=="zh" else ("Cloudflare Browser Run account and API token required." if p=="kitesurf" else "No provider account or API key required."))}</td><td>'+''.join(f'<a href="{esc("https://github.com/lexmount/moli/releases/tag/v1.1.8" if p=="moli" else url)}">{esc(("Moli 1.1.8 正式发布" if p=="moli" else label) if lang=="zh" else ("Moli 1.1.8 official release" if p=="moli" else "Official source"))}</a> ' for label,url in method_access(p,[])['links'])+'</td></tr>' for p in providers)
   accounts=f'<div class="hero"><h1>{esc(x["accounts"])}</h1><p>{"只有 Kitesurf 需要 Cloudflare 账号凭据；本地配置值不进入报告。" if lang=="zh" else "Only Kitesurf needs Cloudflare account credentials; local values are not published."}</p></div><section class="panel"><div class="scroll"><table><thead><tr><th>{esc(x["provider"])}</th><th>{"环境变量" if lang=="zh" else "Environment variables"}</th><th>{"账号要求" if lang=="zh" else "Account requirement"}</th><th>{"官方入口" if lang=="zh" else "Official source"}</th></tr></thead><tbody>{account_rows}</tbody></table></div></section>'
   page(lang,'accounts/index.html',x['accounts'],accounts)
   repro=f'<div class="hero"><h1>{esc(x["repro"])}</h1><p>{"版本和来源由本轮认证记录固定。" if lang=="zh" else "Versions and source are bound by this cohort certificate."}</p></div><section class="panel"><p>WCXB v1.0 test · {case_count} × {len(providers)} · SHA-256 <code>{summary["source_sha256"]}</code></p><p>{esc(x["source"])}: <a href="{source_repository}/tree/{source_commit}">GitHub {source_commit[:7]}</a> · <a href="sample-manifest.json">{"完整 test 清单" if lang=="zh" else "Full test manifest"}</a> · <a href="certification.json">certification.json</a> · <a href="wcxb-score-summary.json">score summary JSON</a></p><div class="scroll"><table><thead><tr><th>{esc(x["provider"])}</th><th>{esc(x["version"])}</th><th>{"路线" if lang=="zh" else "Route"}</th><th>SHA-256</th></tr></thead><tbody>{versions}</tbody></table></div><pre>uv run --frozen python scripts/run_certified_benchmark.py wcxb --dataset &lt;WCXB source&gt; --sample-manifest evaluation/public-wcxb-test-qualified.json --output-root &lt;new evidence dir&gt; --env-file .env\nuv run --frozen python scripts/score_wcxb_results.py --source &lt;WCXB source&gt; --sample-manifest evaluation/public-wcxb-test-qualified.json --evidence-root &lt;certified evidence dir&gt;\nuv run --frozen python scripts/build_report.py --evidence &lt;certified evidence dir&gt; --wcxb-source &lt;WCXB source&gt; --output reports/webfetch</pre><p class="small muted">{esc(x["no_review"])}</p></section>'
@@ -305,8 +306,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  from harness.report_languages import write_language_contract
  write_language_contract(out, include_english=include_english)
 def provider_label(name):
- from .methods import measured_method_label
- return measured_method_label(name,PROVIDER_LABELS.get(name,browser_method_label(name)))
+ return browser_method_label(name)
 def case_track_label(case):
  family=report_family(case)
  if family in {'web_media','media_file'}:return REPORT_FAMILIES[family]
@@ -2675,7 +2675,24 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
  methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档题验收可读正文；网页媒体题验收指定资源地址或登记文字；直接媒体文件题验收图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。文档正文必须由参评方法交付为可读文字；直接媒体文件任务到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%。所有位置一次性做全局容量分配；同一返回片段实例只能计入一个位置，位置排列顺序不影响结论。若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。直接媒体文件任务必须有字节验收，资源 URL 不等于文件。</p>')
  if (out/'resource-cohort/resource-comparison.json').is_file():
-  methodology+=section('资源测量边界','<p>CPU、内存和网络使用独立的 20 题同窗队列，不回填历史正确率调用。每次调用在受限的 Linux 容器中运行，使用 cgroup v2 累计 CPU、独立网络命名空间累计收发字节，并以 50 ms 采样内存与瞬时速率。容器固定为 2 个逻辑 CPU、2 GiB 内存和 512 个 PID；宿主控制器与容器启停不计入。</p><p>资源主表纳入预先确定的全部任务，包括失败调用，统计容器内调用进程、浏览器与转换过程的消耗；同时列出各方法通过数。各方法成功调用另作条件统计，共同通过的任务仅作诊断。Kitesurf 的远端 CPU、内存和上游流量不可见，因此不进入资源表。缺少任一资源字段、非 Linux/cgroup v2、镜像或二进制身份变化、并发不为 1，都会阻断资源包构建。</p><p>CPU 与网络总量来自累计计数；内存峰值和速率分位数依赖 50 ms 采样，可能遗漏更短的尖峰。报告分别呈现 CPU、内存、网络和任务通过率，不合成总分。</p>')
+  resource_summary=json.loads((out/'resource-cohort/resource-comparison.json').read_text())
+  resource_environment=resource_summary.get('environment',{})
+  resource_parameters=[
+   ('任务数',len(resource_summary.get('planned_cases',[]))),
+   ('方法数',len(resource_summary.get('providers',[]))),
+   ('CPU',resource_environment.get('cpus','—')),
+   ('Memory',resource_environment.get('memory','—')),
+   ('PID limit',resource_environment.get('pids_limit','—')),
+   ('Sampling interval (ms)',resource_environment.get('sample_interval_ms','—')),
+  ]
+  methodology+=section('资源测量边界','<p>'+model_text(
+   'CPU、内存和网络来自独立的资源测量队列。主表统计预先确定的全部调用，包含失败；各方法成功调用另作条件统计，共同通过子集只作诊断。',
+   'CPU, memory and network measurements come from a separate resource cohort. The primary table includes all predeclared calls, including failures; successful-call distributions are conditional and the common-pass subset is diagnostic only.')+'</p>'
+   +table(['参数','值'],[('',cell(esc(key))+cell(esc(value))) for key,value in resource_parameters],metrics=[])
+   +'<p>'+model_text(
+    '累计计数用于 CPU 与网络总量；内存峰值和速率分位数受实际采样间隔限制，可能遗漏更短的尖峰。环境身份、统计范围与排除项见资源证据。',
+    'Cumulative counters provide CPU and network totals. Memory peaks and rate percentiles depend on the recorded sampling interval and may miss shorter peaks. The resource evidence identifies the environment, scope and exclusions.')+' '
+   +link('../resource-cohort/resource-comparison.json','资源测量证据')+'</p>')
  if (out/'scoring-revisions.json').exists():
   revision_links=[link('../scoring-revisions.json','评分规则修订收据')]
   if (out/'reference-revisions.json').exists():revision_links.append(link('../reference-revisions.json','参考答案修订收据'))
@@ -2827,7 +2844,13 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
    official='<br>'.join(link(url,label) for label,url in access['links'])
    variables='<br>'.join('<code>'+esc(value)+'</code>' for value in access['env_vars'])
    access_rows.append(('',cell(provider_label(name))+cell(esc(access['account']))+cell(official)+cell(variables)+cell(esc(access['configuration']))))
-  account_intro='只有 Kitesurf 的账户级 Cloudflare Browser Run 路线需要供应商账号与凭据；其余方法是本地二进制，不需要账号，但仍需安装并明确指定可执行文件。'
+  hosted=[provider_label(name) for name in sorted({r['provider'] for r in records})
+          if report_method(name).get('access',{}).get('type')=='hosted']
+  account_intro=model_text('账号与安装要求来自本轮方法登记资料；未登记的要求明确标注。',
+                           'Account and installation requirements come from the participating method registrations; missing requirements are marked.')
+  if hosted:
+   account_intro+=' '+model_text('需要供应商账号的方法：','Methods requiring a provider account: ')+esc('、'.join(hosted))
+
   account_body=hero('账号与安装',account_intro)
   account_body+=section('本轮方法清单','<p>这里列的是完成本报告所需的全部外部准备：账号、官方获取入口和变量名称。变量值、本机路径、登录会话、Cookie 和 Token 均不进入报告。</p>'+table(['方法','账号要求','官方获取入口','变量名称','本轮配置'],access_rows,cls='accounts-table',metrics=[]))
   account_body+=section('公开内容边界','<p class="callout success"><b>报告只公开复现所需的名称和入口，不公开凭据值。</b> 发布门禁会扫描 HTML、JSON、下载文件和逐次输出中的常见 Token、私钥、Authorization 值与用户目录路径；第三方原始 HTML 中命中密钥形态的片段单独脱敏，计分输出保持逐字节不变。扫描结果和脱敏文件哈希随发布包保存。</p>')
@@ -3564,7 +3587,7 @@ flowchart LR
   for name in names:
    example=next((r for r in records if r['provider']==name and r['ok']),next(r for r in records if r['provider']==name))
    entry,input_route,output_route=routes[name]
-   official=PROFILES[name][2]
+   official=report_method(name).get('source_url','')
    interface_rows.append(('',cell(link('../providers/'+name+'.html',labels[name]))+cell(esc(entry))+cell(esc(input_route))+cell(esc(output_route))+cell(link('../attempts/'+example['attempt_id']+'.html',h('查看实际输入、返回和逐项评分','Actual input, output and component scores')))+cell(link(official,h('官方获取入口','Official source')))))
   adoption+=section(h('本轮输入、输出与实例','Run inputs, outputs and examples'),'<p>'+h('这里列的是公开集冻结 HTML 的实际路线，不是原 URL 的实时抓取接口。实例链接对应存档调用；账号字段只展示变量名和占位符。','These are the frozen-HTML routes used for this public benchmark, not live fetching of original URLs. Example links open archived calls; account fields show variable names or placeholders only.')+'</p>'+table([h('方法','Method'),h('接口 / 程序','Interface / program'),h('本轮输入','Run input'),h('本轮输出','Run output'),h('真实调用实例','Archived call example'),h('官方来源','Official source')],interface_rows,cls='wide-prose-table',metrics=[]))
   if research:
@@ -3613,7 +3636,7 @@ flowchart LR
 
   account_rows=[]
   for name in names:
-   access=HEADLESS_ACCESS[name]
+   access=method_access(name,[])
    account_rows.append(('',cell(labels[name])+cell(esc(access['account']))+cell('<br>'.join('<code>'+esc(v)+'</code>' for v in access['env_vars']))+cell('<br>'.join(link(url,label) for label,url in access['links']))))
   accounts=hero(h('账号与安装','Accounts and setup'),h('只有 Kitesurf 的 Cloudflare 路线需要账号凭据；报告不公开值。','Only the Kitesurf Cloudflare route needs account credentials; values are never published.'))
   accounts+=section(h('配置','Configuration'),table([h('方法','Method'),h('账号','Account'),h('变量','Variables'),h('官方入口','Official source')],account_rows,cls='accounts-table',metrics=[]))

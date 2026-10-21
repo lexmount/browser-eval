@@ -134,7 +134,7 @@ def build_summary(dataset: dict, records: list[dict], batches: list[dict]) -> di
         ),
         "sampling_limit": (
             "CPU and network totals come from cumulative container counters. Memory and sampled "
-            "CPU/rate percentiles use 50 ms Docker/cgroup samples, so shorter-lived peaks can be "
+            f"CPU/rate percentiles use {environments[0]['sample_interval_ms']} ms Docker/cgroup samples, so shorter-lived peaks can be "
             "missed."
         ),
         "environment": {key: environments[0].get(key) for key in (

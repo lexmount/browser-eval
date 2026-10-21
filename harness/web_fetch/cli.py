@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .accounts import print_account_checklist
-from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope, add_failure_retry_argument
+from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope, add_failure_retry_argument, DEFAULT_CALL_TIMEOUT_SECONDS
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.models import TASK_KINDS
 from .providers import build_provider
@@ -119,7 +119,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--task-kind", choices=TASK_KINDS,
                      help="Select one task kind; intersects with --case-ids")
     run.add_argument("--runs", type=int, default=1)
-    run.add_argument("--timeout", type=float, default=45)
+    run.add_argument("--timeout", type=float, default=DEFAULT_CALL_TIMEOUT_SECONDS)
     run.add_argument("--delay", type=float, default=0.5)
     run.add_argument(
         "--provider-concurrency",

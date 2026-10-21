@@ -9,7 +9,7 @@ from harness.web_fetch.report_interfaces import HEADLESS_ACCESS, SPECS, render_i
 class HeadlessAccessTests(unittest.TestCase):
     def test_all_measured_engines_have_account_and_official_sources(self):
         self.assertEqual(set(HEADLESS_ACCESS),
-                         {'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','moli-1.1.11','moli-pr643','chromium'})
+                         {'kitesurf','lightpanda','obscura','moli','chromium'})
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'adoption').mkdir()
@@ -48,7 +48,7 @@ class HeadlessAccessTests(unittest.TestCase):
         self.assertEqual(SPECS['chromium']['request']['wait_until'], 'load')
 
     def test_executable_version_is_not_replaced_by_cdp_compatibility_version(self):
-        from harness.web_fetch.report_interfaces import method_version
+        from harness.web_fetch.methods import method_version
         for name,version,compat in [('moli','1.1.15','145.0.0.0'),('lightpanda','1.0.0','124.0.6367.29'),('obscura','0.2.4','145.0.0.0')]:
             row={'provider':name,'provider_metadata':{'binary_sha256':'hash','browser_version':compat}}
             self.assertEqual(method_version(row,{'hash':{'version':version}}),version)

@@ -20,11 +20,13 @@ class AdoptionTests(unittest.TestCase):
    def render():
     return render_methods(out,records,hero=hero,section=section,
                           table=table,cell=cell,link=link,esc=esc)
-   body=render()
+   with patch('harness.web_fetch.report_methods.render_interfaces',return_value=''):
+    body=render()
    self.assertIn('href="https://github.com/lexmount/moli"',body)
    with patch('harness.web_fetch.methods.browser_method_registry',return_value={
        'renamed-moli':{'source_url':'https://example.org/build-source'}}):
-    self.assertIn('href="https://example.org/build-source"',render())
+    with patch('harness.web_fetch.report_methods.render_interfaces',return_value=''):
+     self.assertIn('href="https://example.org/build-source"',render())
 
  def test_missing_run_configuration_does_not_imply_default_or_unpaid_execution(self):
   for provider_type in ('custom_adapter', 'fixture', 'cowagent_builtin'):

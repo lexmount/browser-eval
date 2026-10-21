@@ -35,9 +35,11 @@ class AccountRegistryTest(unittest.TestCase):
         self.assertNotIn("Browserbase Fetch", names)
         self.assertIn("Moli WebFetch", names)
 
-    def test_report_registry_fails_closed_for_unknown_method(self) -> None:
-        with self.assertRaisesRegex(ValueError, "unknown-method"):
-            report_access_registry({"unknown-method"})
+    def test_report_registry_discloses_unknown_method(self) -> None:
+        rows = report_access_registry({"unknown-method"})
+        self.assertEqual(rows[0]['provider'], 'unknown-method')
+        self.assertIn('Not registered', rows[0]['steps'])
+        self.assertEqual(rows[0]['env_vars'], [])
 
     def test_local_source_methods_document_their_runtime_commands(self) -> None:
         self.assertEqual(

@@ -233,3 +233,14 @@ def test_resource_release_checks_populations_measurements_and_unique_highlights(
     else:
         with pytest.raises(ValueError):
             check_resource_presentation(str(soup),summary)
+
+
+def test_resource_sampling_note_follows_recorded_interval(runs):
+    _, resource, records = runs
+    dataset = json.loads((resource / 'dataset.json').read_text())
+    batches = json.loads((resource / 'execution.json').read_text())['batches']
+    for row in records:
+        row['provider_metadata']['resource_environment']['sample_interval_ms'] = 125
+    summary = build_summary(dataset, records, batches)
+    assert '125 ms' in summary['sampling_limit']
+    assert '50 ms' not in summary['sampling_limit']

@@ -227,96 +227,15 @@ ACCOUNT_REGISTRY: list[dict[str, Any]] = [
     },
 ]
 
-REPORT_PROVIDER_ACCOUNT_IDS = {
-    "cloudflare-markdown": "cloudflare-browser-rendering",
-    "exa": "exa",
-    "firecrawl": "firecrawl",
-    "lexmount-cn": "lexmount-cn",
-    "lexmount-global": "lexmount-global",
-    "tavily": "tavily",
-}
+from .methods import report_method_catalog, report_method
 
-REPORT_LOCAL_ACCESS: dict[str, dict[str, Any]] = {
-    "fixture": {
-        "provider": "Fixture 测试适配器",
-        "registration_url": "https://github.com/lexmount/browser-eval",
-        "key_url": "https://github.com/lexmount/browser-eval",
-        "env_vars": [],
-        "steps": "仓库内测试适配器；只用于确定性回归测试。",
-        "free_note": "不需要账号或环境变量。",
-    },
-    "moli": {
-        "provider": "Moli 1.1.5",
-        "registration_url": "https://github.com/lexmount/moli/releases/tag/v1.1.5",
-        "key_url": "https://github.com/lexmount/moli/releases/tag/v1.1.5",
-        "env_vars": ["MOLI_BINARY"],
-        "steps": "安装并固定官方 v1.1.5 二进制；不需要供应商账号或 API Key。",
-        "free_note": "本地 CLI。",
-    },
-    "moli-1.1.7": {
-        "provider": "Moli 1.1.7",
-        "registration_url": "https://github.com/lexmount/moli/releases/tag/v1.1.7",
-        "key_url": "https://github.com/lexmount/moli/releases/tag/v1.1.7",
-        "env_vars": ["MOLI_1_1_7_BINARY"],
-        "steps": "安装并固定官方 v1.1.7 二进制；不需要供应商账号或 API Key。",
-        "free_note": "本地 CLI。",
-    },
-    "moli-1.1.11": {
-        "provider": "Moli 1.1.11",
-        "registration_url": "https://github.com/lexmount/moli/releases/tag/v1.1.11",
-        "key_url": "https://github.com/lexmount/moli/releases/tag/v1.1.11",
-        "env_vars": ["MOLI_1_1_11_BINARY"],
-        "steps": "安装并固定官方 v1.1.11 二进制；不需要供应商账号或 API Key。",
-        "free_note": "本地 CLI。",
-    },
-    "moli-webfetch": {
-        "provider": "Moli WebFetch",
-        "registration_url": "https://github.com/lexmount/moli/tree/main/skills/moli-webfetch",
-        "key_url": "https://github.com/lexmount/moli/releases",
-        "env_vars": ["MOLI_BINARY"],
-        "steps": "安装并固定本轮 Moli 可执行文件；不需要供应商账号或 API Key。",
-        "free_note": "本地 CLI；二进制路径和版本属于运行证据。",
-    },
-    "cowagent-built-in": {
-        "provider": "CowAgent 内置 Web Fetch",
-        "registration_url": "https://github.com/zhayujie/CowAgent",
-        "key_url": "https://github.com/zhayujie/CowAgent",
-        "env_vars": ["COWAGENT_REPO", "COWAGENT_BENCHMARK_WORKSPACE"],
-        "steps": "检出并固定 CowAgent 源码，配置仓库路径和隔离工作目录；不需要供应商 API Key。",
-        "free_note": "本地项目内置实现。",
-    },
-    "openclaw-built-in": {
-        "provider": "OpenClaw 内置 Web Fetch",
-        "registration_url": "https://github.com/openclaw/openclaw",
-        "key_url": "https://github.com/openclaw/openclaw/blob/main/docs/tools/web-fetch.md",
-        "env_vars": ["OPENCLAW_REPO", "OPENCLAW_NODE", "OPENCLAW_PNPM"],
-        "steps": "检出并固定 OpenClaw 源码、Node 与 pnpm；本轮关闭 Firecrawl 回退。",
-        "free_note": "本地项目内置实现；不需要云端抓取 Key。",
-    },
-    "deepseek-harness-built-in": {
-        "provider": "DeepSeek Harness 内置 Web Fetch",
-        "registration_url": "https://github.com/deepseek-ai/deepseek-harness",
-        "key_url": "https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/web",
-        "env_vars": ["DEEPSEEK_HARNESS_REPO", "OPENCLAW_NODE", "DEEPSEEK_PNPM"],
-        "steps": "检出并固定 DeepSeek Harness 源码、Node、pnpm 与构建依赖；本轮不调用聊天模型。",
-        "free_note": "本地项目内置实现；不需要模型 API Key。",
-    },
-    "langchain-webbase": {
-        "provider": "LangChain WebBaseLoader",
-        "registration_url": "https://reference.langchain.com/python/langchain-community/document_loaders/web_base/WebBaseLoader",
-        "key_url": "https://python.langchain.com/docs/how_to/document_loader_web/",
-        "env_vars": ["OSS_PYTHON"],
-        "steps": "使用仓库冻结的 Python 环境运行；OSS_PYTHON 只在显式覆盖 worker 解释器时设置。",
-        "free_note": "本地开源库；不需要供应商账号。",
-    },
-    "crawl4ai": {
-        "provider": "Crawl4AI",
-        "registration_url": "https://github.com/unclecode/crawl4ai",
-        "key_url": "https://docs.crawl4ai.com/core/installation/",
-        "env_vars": ["OSS_PYTHON"],
-        "steps": "使用仓库冻结的 Python 环境及匹配的浏览器运行；OSS_PYTHON 只在显式覆盖 worker 解释器时设置。",
-        "free_note": "本地开源库；不需要供应商账号。",
-    },
+REPORT_PROVIDER_ACCOUNT_IDS = {
+    name: item['account_id'] for name, item in report_method_catalog()['methods'].items()
+    if item.get('account_id')
+}
+REPORT_LOCAL_ACCESS = {
+    name: item['account'] for name, item in report_method_catalog()['methods'].items()
+    if item.get('account')
 }
 
 
@@ -340,7 +259,15 @@ def report_access_registry(
         elif provider in fixture_providers:
             rows.append({**REPORT_LOCAL_ACCESS["fixture"], "provider": provider})
         else:
-            missing.append(provider)
+            registered = report_method(provider)
+            access = registered.get('access', {})
+            rows.append({
+                'provider': provider, 'registration_url': registered.get('source_url', ''),
+                'key_url': registered.get('source_url', ''),
+                'env_vars': access.get('env_vars', []),
+                'steps': access.get('configuration', '未登记 / Not registered'),
+                'free_note': access.get('account', 'Account requirements have not been registered.'),
+            })
     if missing:
         raise ValueError(f"missing report access metadata for providers: {', '.join(missing)}")
     return rows
