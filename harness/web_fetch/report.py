@@ -861,12 +861,14 @@ def write(out,path,title,body,*,root_links=False):
   identifier=Path(path).stem
   reviewed=next((item for item in context.score_audit['changes'] if item['attempt_id']==identifier),None)
   if reviewed:
-   body+=section('评分复核','<div data-score-audit><p>'+esc(reviewed['reason'])+'</p><dl class="diagnostic-fields"><dt>验收要求</dt><dd>'+esc(reviewed['requirement'])+'</dd><dt>实际返回</dt><dd>'+esc(reviewed['actual'])+'</dd><dt>处理结果</dt><dd>'+esc(reviewed['treatment'])+'</dd></dl><p>'+link('../audit/index.html#'+identifier,'查看旧判定、修复和来源证据')+'</p></div>')
+   body+=section('验收依据','<div data-score-audit><dl class="diagnostic-fields"><dt>验收要求</dt><dd>'+esc(reviewed['requirement'])+'</dd><dt>实际返回</dt><dd>'+esc(reviewed['actual'])+'</dd></dl><p>'+link('../audit/index.html#'+identifier,'查看来源与判定依据')+'</p></div>')
  counterpart=(base+'en/'+path if context.english_generated else base+'en/index.html')
  language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>'
  footer='所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。'
+ evidence_attr=' data-evidence-state="published_snapshot_score_audit"' if context.score_audit else ''
+ if context.score_audit:footer=link(base+'methodology/index.html','评测方法')+' · '+link(base+'changes/index.html','版本记录')
  banner=context.banner.replace('href="audit/index.html"','href="'+base+'audit/index.html"')
- page=f'<!doctype html><html lang="zh-CN"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css?v={hashlib.sha256((STYLE+EXTRA).encode()).hexdigest()[:16]}"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{banner}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
+ page=f'<!doctype html><html lang="zh-CN"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css?v={hashlib.sha256((STYLE+EXTRA).encode()).hexdigest()[:16]}"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main{evidence_attr}>{banner}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 _RESEARCH_ROUTES=[
@@ -2116,8 +2118,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   reliability_banner += '<div class="wrap callout" role="status"><strong>合成示例 · 非正式评测</strong><p>内容和失败均为预设场景，用于检查安装与报告功能，不代表浏览器测量结果。</p></div>'
  elif dataset.get('comparison', {}).get('publication_state') == 'diagnostic_not_for_release':
   reliability_banner += '<div class="wrap callout" role="status"><strong>诊断运行 · 非正式评测</strong><p>本次调用用于检查所选任务和方法，不具备正式评测所需的批次认证。</p></div>'
- if score_binding:
-  reliability_banner+='<div class="wrap callout" role="status" data-evidence-state="published_snapshot_score_audit"><strong>保存输出的评分复核</strong><p>'+esc(f'沿用原报告的任务与调用；没有新增浏览器调用。{score_binding["projected_scoring_inputs"]} 条使用公开脱敏副本重算，{score_binding["recovered_originals"]} 条使用按原哈希恢复的输出。逐项审查 {score_binding["reviewed_attempts"]}/{score_binding["total_attempts"]} 条判定变化，其他结果未作本轮逐项审查。')+'</p><p>'+link('audit/index.html','查看变化原因、逐题证据和脱敏影响')+'</p></div>'
  _RENDER_CONTEXT.set(RenderContext(reliability_banner,include_english,score_audit))
  validate_report_ids(dataset,records)
  for path in ['assets/style.css','assets/report.js','references']:
@@ -2770,6 +2770,9 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  from .report_components import render_acceptance_scope
  if dataset.get('cases'):
   methodology+=render_acceptance_scope({case['id']:case for case in dataset['cases']},records)
+ score_binding=dataset.get('comparison',{}).get('score_audit')
+ if score_binding:
+  methodology+=section('数据范围','<div data-scoring-input-scope><p>'+esc(f'本报告使用原有 {score_binding["total_attempts"]} 条调用记录和耗时，没有新增浏览器调用。其中 {score_binding["projected_scoring_inputs"]} 条评分输入为公开脱敏副本，{score_binding["recovered_originals"]} 条为按原哈希恢复的输出。逐项核对范围为 {score_binding["reviewed_attempts"]}/{score_binding["total_attempts"]} 条判定变化。')+'</p><p>'+link('../audit/index.html','输入差异与逐题验收记录')+'</p></div>')
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','浏览器版本与二进制来源')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else [])+([('request-status-corrections.json','请求状态纠正收据')] if (out/'request-status-corrections.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'
@@ -4370,7 +4373,7 @@ def render_score_audit(out, audit, binding):
   rows.append((' data-audit-summary-provider="'+esc(item['provider'])+'"',cell(esc(provider_label(item['provider'])))+cell(str(item['published_passes']))+cell(str(item['historical_passes']))+cell(str(item['initial_rescore_passes']))+cell(str(item['corrected_passes']))+cell(str(item['total']))))
  body=hero(audit['title'],audit['summary'])
  body+=section('判定变化来自哪里','<figure><a href="../'+esc(binding['figure'])+'"><img src="../'+esc(binding['figure'])+'" alt="对同一份保存输出核对正文术语、文字和链接格式、卡片字段归属，以及原始与公开副本哈希" style="width:100%;height:auto"></a><figcaption>'+esc(audit['figure_caption'])+'</figcaption></figure>')
- body+=section('沿用同一批任务重新计算','<p>'+esc(audit['metric_note'])+'</p>'+table(['方法','原页面汇总','按旧规则核对旧记录','修复前重算','修复后重算','题数'],rows,id='score-audit-comparison',metrics=[]))
+ body+=section('版本结果对照','<p>'+esc(audit['metric_note'])+'</p>'+table(['方法','原页面汇总','按旧规则核对旧记录','修复前重算','修复后重算','题数'],rows,id='score-audit-comparison',metrics=[]))
  body+=section(esc(audit['focus_heading']), '<p>'+esc(audit['focus_summary'])+'</p>')
  inventory=[]
  for item in audit['changes']:
@@ -4394,4 +4397,4 @@ def render_score_audit(out, audit, binding):
  body+=section('每条变化的依据',''.join(details))
  body+=section('审查范围','<p>'+esc(audit['review_scope'])+'</p><p>'+link('score-changes.json','下载逐条复核记录')+' · '+link('scoring-inputs.json','下载原始与公开评分输入哈希')+'</p>')
  write(out,'audit/index.html',audit['title'],body)
- write(out,'review/index.html','评分复核记录',hero('评分复核记录','旧判定、规则修正与公开副本影响分别保留。')+section('本版核查','<p>'+esc(audit['review_scope'])+'</p><p>'+esc(audit['summary'])+'</p><p>'+link('../audit/index.html','逐条原因、原文与验收规则')+'</p>'))
+ write(out,'review/index.html','核验记录',hero('核验记录','逐题验收依据与数据来源。')+section('核验范围','<p>'+esc(audit['review_scope'])+'</p><p>'+esc(audit['summary'])+'</p><p>'+link('../audit/index.html','逐条原因、原文与验收规则')+'</p>'))

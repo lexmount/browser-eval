@@ -226,6 +226,11 @@ def check_snapshot_audit(root):
         soup = BeautifulSoup((root/relative).read_text(), 'html.parser')
         if not soup.select_one('[data-evidence-state="published_snapshot_score_audit"]'):
             raise ValueError('Snapshot report lost its evidence disclosure: '+relative)
+    methodology = BeautifulSoup((root/'methodology/index.html').read_text(), 'html.parser')
+    scope = methodology.select_one('[data-scoring-input-scope]')
+    expected_scope = [binding[key] for key in ['total_attempts','projected_scoring_inputs','recovered_originals','reviewed_attempts']]
+    if scope is None or any(str(value) not in scope.get_text() for value in expected_scope):
+        raise ValueError('Snapshot report lost its scoring input scope')
     audit_html = BeautifulSoup((root/'audit/index.html').read_text(), 'html.parser')
     from .report_explainer import check_current_browser_article
     from harness.reporting.presentation import check_presentation

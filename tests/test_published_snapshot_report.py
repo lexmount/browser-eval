@@ -92,6 +92,16 @@ def test_saved_matrix_keeps_native_routes_and_inspectable_review(tmp_path,recove
     for path in ['index.html','guide/index.html','datasets/index.html','analysis/index.html','attempts/chromium__complete__r001.html','attempts/chromium__missing__r001.html','en/index.html']:
         assert (out/path).is_file()
     assert {p.relative_to(source):p.read_bytes() for p in source.rglob('*') if p.is_file()}==before
+    from bs4 import BeautifulSoup
+    for route in ['index.html','guide/index.html','analysis/index.html','audit/index.html']:
+        page=BeautifulSoup((out/route).read_text(),'html.parser')
+        assert page.select_one('main[data-evidence-state]') is not None
+        assert not page.select('[role="status"][data-evidence-state]')
+        assert '保存输出的评分复核' not in page.get_text()
+    method=out/'methodology/index.html';original=method.read_text()
+    method.write_text(original.replace('data-scoring-input-scope','data-removed-scope'))
+    with pytest.raises(ValueError,match='lost its scoring input scope'):check_snapshot_audit(out)
+    method.write_text(original)
     detail=out/'attempts/chromium__complete__r001.html';detail.write_text(detail.read_text().replace('data-score-audit','data-deleted-audit'))
     with pytest.raises(ValueError,match='lost its audit explanation'):check_snapshot_audit(out)
 
