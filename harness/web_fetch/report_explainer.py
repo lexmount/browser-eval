@@ -804,7 +804,7 @@ def _render_current_browser_article(out, cases, records, binding):
     for figure in figures_by_section['conclusion']:parts['conclusions'].insert(1,figure)
     if previous:
         both=sum(new[cid] and old[cid] for cid in cases);neither=sum(not new[cid] and not old[cid] for cid in cases)
-        changes=[('两版都通过',both),('修复版变为通过',gains),('修复版变为失败',losses),('两版都失败',neither)]
+        changes=[('两种配置都通过',both),('仅'+label(primary)+'通过',gains),('仅'+label(previous)+'通过',losses),('两种配置都失败',neither)]
         append_html(parts['conclusions'],'<figure class="m-figure" data-reading-version="'+escape(primary)+'"><h3>同一批题的两版结果 · '+str(model['cases'])+' 题</h3><div class="m-verdict-grid">'+''.join('<div data-version-relation="'+str(i)+'" data-count="'+str(count)+'"><h4>'+title+'</h4><div class="m-duel"><b>'+str(count)+'</b><small>题</small></div></div>' for i,(title,count) in enumerate(changes))+'</div><figcaption>同一验收标准，所有任务都保留在对照中；变化是在线调用的实际结果，不单独证明代码因果。</figcaption></figure>')
     chapters=[('scope','01 这次测什么',['scope']),('results','02 通过率、耗时与资源',['result-decomposition','all-latency','timing-boundary','successful-latency','resources']),('method','03 测试方法与实例',['scoring','examples']),('configuration','04 浏览器与测试配置',['interfaces']),('failures','05 失败任务与正文缺失',['body-quality','failure-summary']+['browser-'+name for name in order]),('conclusion','06 结论与适用范围',['conclusions'])]
     toc='<nav class="m-toc" aria-label="报告解读目录" data-reading-contents="1">'+''.join('<a href="#reading-'+anchor+'">'+title+'</a>' for anchor,title,_ in chapters)+'</nav>'
