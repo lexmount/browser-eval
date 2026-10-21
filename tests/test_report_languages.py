@@ -11,6 +11,24 @@ from harness.report_languages import (
 )
 
 
+@pytest.fixture(autouse=True)
+def isolated_language_config(tmp_path, monkeypatch):
+    monkeypatch.setattr("harness.report_languages.REPORT_LANGUAGE_ENV_FILE", tmp_path / ".env")
+
+
+def test_local_language_setting_and_process_override(tmp_path, monkeypatch):
+    from harness.report_languages import configured_report_language, resolve_report_language
+    monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
+    assert configured_report_language() == "en"
+    (tmp_path / ".env").write_text("BROWSER_EVAL_REPORT_LANGUAGE=zh\n")
+    assert configured_report_language() == "zh"
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+    assert configured_report_language() == "en"
+    assert resolve_report_language(tmp_path, "zh") == "zh"
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "invalid")
+    assert resolve_report_language(tmp_path, "zh") == "zh"
+
+
 @pytest.mark.parametrize("supported", [("en", "zh"), ("zh",)])
 @pytest.mark.parametrize("saved", [None, "en", "zh", "legacy"])
 @pytest.mark.parametrize("requested", [None, "en", "zh"])
@@ -137,6 +155,9 @@ def test_environment_changes_new_report_default_without_overriding_saved_choice(
     select_report_language(tmp_path, "zh")
     monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
     assert primary_report_language(tmp_path) == "zh"
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "invalid")
+    from harness.report_languages import resolve_report_language
+    assert resolve_report_language(tmp_path) == "zh"
 
 
 def test_invalid_environment_language_fails_early(tmp_path, monkeypatch):

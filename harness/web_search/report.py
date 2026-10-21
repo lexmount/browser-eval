@@ -1688,7 +1688,8 @@ def main(argv=None):
         language = args.language
         if language is None and (args.output / "manifest.json").exists():
             language = json.loads((args.output / "manifest.json").read_text())["primary_language"]
-        print(build_reference(args.output, args.reference_content, language or "en"))
+        from harness.report_languages import configured_report_language
+        print(build_reference(args.output, args.reference_content, language or configured_report_language()))
         return
     if args.release_check:
         release_check(args.output, args.release_check)
