@@ -1,0 +1,95 @@
+{
+  "schema": "web-search/1",
+  "title": "One additional exact community query from the supplied Arcadia screenshot",
+  "publication": {
+    "host": "https://artifact-site.lexmount.cn",
+    "state": "new-private-artifact",
+    "slug": null,
+    "expected_version": null
+  },
+  "protocol": {
+    "top_k": 10,
+    "rounds": 3,
+    "score_round": 0,
+    "concurrency": 1,
+    "server_timeout_ms": 10000,
+    "client_timeout_s": 20,
+    "interval_s": 0.3,
+    "retry": false,
+    "order": "rotate methods by case and round",
+    "latency": "Client wall time to complete response bytes; all calls and nonempty successes reported separately",
+    "quality": "First preselected round; known-page hit@5/@10 and reciprocal rank; not full-web recall",
+    "review": "No independent result review; machine checks only",
+    "reference": "Before/after complete publisher responses verify declared target identity; volatile HTML bytes may differ. No source-body scoring.",
+    "cost": "List-price estimate in native currency; unknown Lexmount price remains unavailable; not an invoice",
+    "reference_timeout_s": 30,
+    "reference_scope": "identity",
+    "execution_location": "Same macOS client in Asia/Shanghai time zone; provider localization defaults; upstream geographic routing not controlled"
+  },
+  "methods": [
+    {
+      "id": "lexmount",
+      "label": "Lexmount Search",
+      "adapter": "lexmount",
+      "endpoint": "https://webfetch.local.lexmount.net/v1/search",
+      "key_env": "LEXMOUNT_SEARCH_API_KEY",
+      "currency": "CNY",
+      "price_per_1000": null,
+      "price_source": "Product pricing not set in supplied requirements",
+      "price_checked": "2026-10-20",
+      "billing": "unknown"
+    },
+    {
+      "id": "deepseek",
+      "label": "DeepSeek Search + content",
+      "adapter": "deepseek",
+      "endpoint": "https://api.deepseek.com/v1/tools/search",
+      "key_env": "DEEPSEEK_API_KEY",
+      "currency": "CNY",
+      "price_per_1000": 5,
+      "price_source": "https://api-docs.deepseek.com/zh-cn/guides/search/",
+      "price_checked": "2026-10-20",
+      "billing": "http-200-nonempty"
+    }
+  ],
+  "cases": [
+    {
+      "id": "arcadia-homelab-original",
+      "family": "web",
+      "category": "community_original",
+      "language": "zh",
+      "query": "个人博客 Homelab NixOS",
+      "anchors": [],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "provenance_kind": "community_exact",
+      "intent": "Find independent personal blogs discussing Homelab and NixOS.",
+      "derivation": "Exact visible query in user-supplied screenshot 3; no inferred relevance labels or expected pages.",
+      "source_image_sha256": "c751c85b3c961f129a3b3d863a5a99150d09617acc223e8d0348e14b8e725aea"
+    }
+  ],
+  "reference_revision": {
+    "id": "search-reference-1",
+    "root_cause": "A paper lookup targets the paper across arXiv formats; a repository lookup targets the official repository including files. Exact landing-page equality is too narrow. Other tasks keep exact known-page anchors.",
+    "scope": "All methods for declared paper and repository tasks; frozen diagnostic preflight remains unchanged",
+    "regressions": [
+      "tests.web_search.test_search.ReferenceIdentityScenarios.test_paper_formats_match_declared_paper_but_citations_do_not",
+      "tests.web_search.test_search.ReferenceIdentityScenarios.test_declared_repository_accepts_files_but_not_forks_or_lookalikes",
+      "tests.web_search.test_search.ReferenceIdentityScenarios.test_reference_url_without_entity_contract_stays_exact"
+    ]
+  },
+  "collection_revision": {
+    "id": "search-collection-2",
+    "root_cause": "HTTP 200 can precede a truncated body; reference availability now also requires a successful transfer. Reference timeout is separate from API timing.",
+    "scope": "Entire declared two-method, 24-query, three-round cohort rerun; previous calls preserved outside Git",
+    "regressions": [
+      "tests.web_search.test_runner.ReferenceCaptureScenarios.test_http_200_with_incomplete_transfer_is_not_qualified"
+    ],
+    "supersedes_data_home_relative": "web-search/20261020-matched"
+  },
+  "cohort_revision": {
+    "reason": "Expand from 24 to 120 preregistered queries; public query catalog and exact community queries added. New complete matrix; previous pilot retained separately.",
+    "public_catalog_commit": "7714e86b1b8d7b943037c38b04d4f6ba65566d5b",
+    "public_catalog_sha256": "90ed45dae3a4604664102eede1470e1a1ab1cdca0c54f279113c94ec55c64231"
+  },
+  "reference_checks": {}
+}

@@ -1,0 +1,75 @@
+{
+  "base_url": "https://artifact-site.lexmount.cn",
+  "slug": "W3MxzlJuPRl6",
+  "url": "https://artifact-site.lexmount.cn/s/W3MxzlJuPRl6",
+  "versionId": "ver_ea325d46a4f04cfea2c8d2fb618636bd",
+  "visibility": "private",
+  "previous_version": "ver_0cf0f00b6261495e88e2bded36368699",
+  "archive_sha256": "6a0b3ea86ed240f29246daa5e3ff9a9bf8c640d30a3be354e8da9140dac5cd7e",
+  "schema": "web-search-publication/1",
+  "published_at": "2026-10-21",
+  "report_kind": "three-provider-top-five-comparison",
+  "cases": 980,
+  "logical_results": 2940,
+  "physical_calls": 2944,
+  "superseded_physical_calls": 89,
+  "quality_judge": "none",
+  "bindings": {
+    "primary_profile": {
+      "path": "evaluation/web-search/search-api-modes.json",
+      "sha256": "a1cd39a6c3ba49a792590da317d53153e8aea0a303b63ed6ca04414d250e8877"
+    },
+    "primary_receipt": {
+      "path": "web-search/20261020-search-api-matched-modes/receipt.json",
+      "sha256": "e01a0d76c820131b937f5b5ebc621301ed0c58c340ca94994c594426acf2cfd9"
+    },
+    "simpleqa_profile": {
+      "path": "evaluation/web-search/simpleqa-verified.json",
+      "sha256": "ad08ff7adf29acdffe28e49179a14f92ec28d3af2fe79ffbc05d721da2d0f74b"
+    },
+    "simpleqa_receipt": {
+      "path": "web-search/20261020-search-api-simpleqa-verified/receipt.json",
+      "sha256": "6a680b8fa3b58d8cfb25ce124288fae4d6a5680492f29167ae3a23eb9fff88e7"
+    },
+    "report_manifest": {
+      "path": "web-search/20261021-search-api-three-provider-report/report/manifest.json",
+      "sha256": "3e3590a20c162a3cc4041690028a1002df35ee587c0250e57c141da6171f16a2"
+    },
+    "content": {
+      "path": "web-search/20261021-search-api-three-provider-report/reader-content.json",
+      "sha256": "b653137decc351ee903adc8e208aa89c378d0e5080033f2602d96f55234ae89a"
+    },
+    "visual_acceptance": {
+      "path": "web-search/20261021-search-api-three-provider-report/visual/release.json",
+      "sha256": "e643460634e4da73d041f091fd494be9d7daf32c57951ddfa4e7070578260bba"
+    },
+    "delivery_index": {
+      "path": "web-search/20261021-search-api-three-provider-report/delivery/delivery-index.json",
+      "sha256": "351653bec51b1ec381fbe40596d24a0999053e3b5ad338b8615f1a6d5615ec71"
+    },
+    "reference_additions": {
+      "path": "web-search/20261021-search-api-three-provider-report/scenario-additions.json",
+      "sha256": "44b63a8f1251ebbf24d259a49f621813ddaeb034ac11fd4b7d28fc6c1376e118"
+    }
+  },
+  "cohort_inputs": [
+    {
+      "id": "primary",
+      "source": "web-search/20261020-search-api-matched-modes"
+    },
+    {
+      "id": "simpleqa",
+      "source": "web-search/20261020-search-api-simpleqa-verified"
+    }
+  ],
+  "populations": {
+    "overall": 980,
+    "factual": 831,
+    "scenario": 60
+  },
+  "methods": [
+    "lexmount",
+    "deepseek-content",
+    "bocha-summary"
+  ]
+}

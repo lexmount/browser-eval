@@ -32,8 +32,8 @@ Choose checks from the changed surface:
 | --- | --- |
 | Metric value or comparison logic | Unit test the semantic contract and independently recompute affected derived values |
 | Table markup or emphasis | Render representative directional, tied, missing, and observational rows |
-| Navigation or drill-down | Check every top-level route and one representative result-to-evidence path |
-| CSS, layout, or responsive behavior | Visually inspect affected page types at desktop and narrow viewport widths |
+| Navigation or drill-down | Deterministically check all routes and links; render every top-level page once |
+| CSS, layout, or responsive behavior | Run shared component coverage; visually inspect only the affected page types at one representative width |
 | Text-only wording | Factual and terminology review; no visual sweep unless wrapping or hierarchy changes |
 | Release metadata only | Binding and destination check only |
 

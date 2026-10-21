@@ -20,14 +20,14 @@ an older report.
 
 ## Report languages
 
-The Web Fetch CLI defaults to English. `run --language zh` generates Chinese only; `report <run> --language en` rebuilds both editions and opens English. A rebuild without `--language` keeps the saved choice, including Chinese-only reports created by older versions.
+The Web Fetch CLI falls back to English. `BROWSER_EVAL_REPORT_LANGUAGE=zh` changes the environment default, and `--language` overrides it. A rebuild without `--language` keeps the saved choice.
 
 | Builder | Language selection |
 | --- | --- |
-| `browser-harness-eval run`, `report`, `rescore` | `--language en` or `--language zh`; new runs default to English |
-| `scripts/build_report.py`: standard Web Fetch, local audit, WCXB, WebMainBench sample, research companion | `--language en` or `--language zh`; default English |
-| `scripts/build_browser_use_report.py` | `--language en` or `--language zh`; default English |
-| `scripts/build_webarena_replay_report.py` | `--language en` or `--language zh`; default English |
+| `browser-harness-eval run`, `report`, `rescore` | `--language en` or `--language zh`; fallback English, environment configurable |
+| `scripts/build_report.py`: standard Web Fetch, local audit, WCXB, WebMainBench sample, research companion | `--language en` or `--language zh`; fallback English, environment configurable |
+| `scripts/build_browser_use_report.py` | `--language en` or `--language zh`; fallback English, environment configurable |
+| `scripts/build_webarena_replay_report.py` | `--language en` or `--language zh`; fallback English, environment configurable |
 | Complete 545-case WebMainBench and diagnostic-cohort reports | Chinese-only content; omitted language keeps the historical Chinese default; explicit `en` is rejected |
 | Curated replay example, public WebArena recording report and catalog | Chinese-only renderers; no language option |
 
@@ -35,7 +35,7 @@ Builders keep the saved language when rebuilding without `--language`. Make foll
 
 English builds retain a Chinese edition so readers can switch languages. Chinese-only builds show a notice at the English entry. These choices affect report text and navigation, not scores, timings or saved evidence. Task names, source quotations, responses and logs stay in their original language.
 
-Upload the entire report directory, including `en/`, assets and evidence. The report root opens the selected language; Chinese links remain usable when English is the default. Serve the directory over HTTP for evidence that loads on demand.
+Upload the entire report directory, including the English notice or explicitly generated edition, assets and evidence. The report root opens the selected language. Serve the directory over HTTP for evidence that loads on demand.
 
 Only `en` and `zh` are supported. Unsupported codes fail before a run starts or an existing report is replaced. Browser or operating-system language does not silently change a report. To add a language, extend the owning renderer's translation catalog and route, value and evidence-link checks; see [contributing](../CONTRIBUTING.md).
 

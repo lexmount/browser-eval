@@ -1,0 +1,107 @@
+{
+  "schema": "web-search-identity-correction/1",
+  "verified_at": "2026-10-20",
+  "root_cause": "Exact URL matching missed publisher-confirmed equivalent pages with tracking parameters, host aliases or redirects. Only observed equivalences are accepted; related pages and other versions remain distinct.",
+  "regression_ids": [
+    "verified-equivalent-url-hits",
+    "undeclared-query-change-misses",
+    "unverified-host-alias-misses",
+    "different-page-proof-rejected"
+  ],
+  "aliases": {
+    "public-ki02": {
+      "https://peps.python.org/pep-0703/?_bhlid=037c2b8fb27c1b01ff6bf620589c8093ae1d1de6": "https://peps.python.org/pep-0703/"
+    },
+    "public-sm02": {
+      "https://www.man7.org/linux/man-pages/man7/inotify.7.html": "https://man7.org/linux/man-pages/man7/inotify.7.html"
+    },
+    "cn-07": {
+      "https://cn.vuejs.org/guide/essentials/computed": "https://cn.vuejs.org/guide/essentials/computed.html"
+    },
+    "public-sm08": {
+      "https://developer.mozilla.org/docs/Web/HTTP/Guides/CSP": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP"
+    }
+  },
+  "observations": [
+    {
+      "url": "https://peps.python.org/pep-0703/",
+      "final": "https://peps.python.org/pep-0703/",
+      "title": "PEP 703 – Making the Global Interpreter Lock Optional in CPython | peps.python.org",
+      "canonical": "https://peps.python.org/pep-0703/",
+      "text_sha256": "ee629d6bff0101e325e28013c36274a7fd5f3dbcbab521b45a27f8a37bc983e8",
+      "text_start": "PEP 703 – Making the Global Interpreter Lock Optional in CPython PEP 703 – Making the Global Interpreter Lock Optional in CPython Author : Sam Gross <colesbury at gmail.com> Sponsor : Łukasz Langa <lukasz at python.org> Discussions-To : Discourse thr"
+    },
+    {
+      "url": "https://peps.python.org/pep-0703/?_bhlid=037c2b8fb27c1b01ff6bf620589c8093ae1d1de6",
+      "final": "https://peps.python.org/pep-0703/?_bhlid=037c2b8fb27c1b01ff6bf620589c8093ae1d1de6",
+      "title": "PEP 703 – Making the Global Interpreter Lock Optional in CPython | peps.python.org",
+      "canonical": "https://peps.python.org/pep-0703/",
+      "text_sha256": "ee629d6bff0101e325e28013c36274a7fd5f3dbcbab521b45a27f8a37bc983e8",
+      "text_start": "PEP 703 – Making the Global Interpreter Lock Optional in CPython PEP 703 – Making the Global Interpreter Lock Optional in CPython Author : Sam Gross <colesbury at gmail.com> Sponsor : Łukasz Langa <lukasz at python.org> Discussions-To : Discourse thr"
+    },
+    {
+      "url": "https://man7.org/linux/man-pages/man7/inotify.7.html",
+      "final": "https://man7.org/linux/man-pages/man7/inotify.7.html",
+      "title": "inotify(7) - Linux manual page",
+      "canonical": null,
+      "text_sha256": "b05511ec08993ccc1bc86c0d2a490914d01974b9d88c782962342d343907dff7",
+      "text_start": "man7.org > Linux > man-pages Linux/UNIX system programming training inotify(7) — Linux manual page NAME | DESCRIPTION | STANDARDS | HISTORY | NOTES | BUGS | EXAMPLES | SEE ALSO | COLOPHON inotify (7)           Miscellaneous Information Manual inotify"
+    },
+    {
+      "url": "https://www.man7.org/linux/man-pages/man7/inotify.7.html",
+      "final": "https://www.man7.org/linux/man-pages/man7/inotify.7.html",
+      "title": "inotify(7) - Linux manual page",
+      "canonical": null,
+      "text_sha256": "b05511ec08993ccc1bc86c0d2a490914d01974b9d88c782962342d343907dff7",
+      "text_start": "man7.org > Linux > man-pages Linux/UNIX system programming training inotify(7) — Linux manual page NAME | DESCRIPTION | STANDARDS | HISTORY | NOTES | BUGS | EXAMPLES | SEE ALSO | COLOPHON inotify (7)           Miscellaneous Information Manual inotify"
+    },
+    {
+      "url": "https://cn.vuejs.org/guide/essentials/computed.html",
+      "final": "https://cn.vuejs.org/guide/essentials/computed",
+      "title": "计算属性 | Vue.js",
+      "canonical": null,
+      "text_sha256": "d80b6b3167dc55176df7d976b89c204a0cc2806c76fb05a2859ebf43b8b64796",
+      "text_start": "Are you an LLM? You can read better optimized documentation at /guide/essentials/computed.md for this page in Markdown format 计算属性 ​ 基础示例 ​ 模板中的表达式虽然方便，但也只能用来做简单的操作。如果在模板中写太多逻辑，会让模板变得臃肿，难以维护。比如说，我们有这样一个包含嵌套数组的对象： js export default { data () { return "
+    },
+    {
+      "url": "https://cn.vuejs.org/guide/essentials/computed",
+      "final": "https://cn.vuejs.org/guide/essentials/computed",
+      "title": "计算属性 | Vue.js",
+      "canonical": null,
+      "text_sha256": "d80b6b3167dc55176df7d976b89c204a0cc2806c76fb05a2859ebf43b8b64796",
+      "text_start": "Are you an LLM? You can read better optimized documentation at /guide/essentials/computed.md for this page in Markdown format 计算属性 ​ 基础示例 ​ 模板中的表达式虽然方便，但也只能用来做简单的操作。如果在模板中写太多逻辑，会让模板变得臃肿，难以维护。比如说，我们有这样一个包含嵌套数组的对象： js export default { data () { return "
+    },
+    {
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP",
+      "final": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP",
+      "title": "Content Security Policy (CSP) - HTTP | MDN",
+      "canonical": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP",
+      "text_sha256": "9cf7532768989d0eef7925b497903a919b88d8b109c0a2bcb0756e3f3fe90522",
+      "text_start": "Content Security Policy (CSP) Content Security Policy (CSP) is a feature that helps to prevent or minimize the risk of certain types of security threats. It consists of a series of instructions from a website to a browser, which instruct the browser "
+    },
+    {
+      "url": "https://developer.mozilla.org/docs/Web/HTTP/Guides/CSP",
+      "final": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP",
+      "title": "Content Security Policy (CSP) - HTTP | MDN",
+      "canonical": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP",
+      "text_sha256": "9cf7532768989d0eef7925b497903a919b88d8b109c0a2bcb0756e3f3fe90522",
+      "text_start": "Content Security Policy (CSP) Content Security Policy (CSP) is a feature that helps to prevent or minimize the risk of certain types of security threats. It consists of a series of instructions from a website to a browser, which instruct the browser "
+    },
+    {
+      "url": "https://sre.google/sre-book/handling-overload/",
+      "final": "https://sre.google/sre-book/handling-overload/",
+      "title": "Google SRE: Load Balancing with Client Side Throttling",
+      "canonical": "https://sre.google/sre-book/handling-overload/",
+      "text_sha256": "0bf8f7d15333c6ae1ef6cb45c6e0cfccfc4674d98a20bd351c99b443a872e262",
+      "text_start": "Chapter 21 - Handling Overload Table of Contents Foreword Preface Part I - Introduction 1. Introduction 2. The Production Environment at Google, from the Viewpoint of an SRE Part II - Principles 3. Embracing Risk 4. Service Level Objectives 5. Elimin"
+    },
+    {
+      "url": "https://sre.google/resources/book-update/handling-overload/",
+      "final": "https://sre.google/resources/book-update/handling-overload/",
+      "title": "Google SRE: SRE approach to handling traffic load balancing",
+      "canonical": "https://sre.google/resources/book-update/handling-overload/",
+      "text_sha256": "0e878b51338463fffffb1e8f4b7422d04a2035d6c608d9a0f1aeb4984eb08815",
+      "text_start": "21. Handling Overload Read Handling Overload from the SRE Book. Publications SRE Workbook: Chapter 11 - Managing Load Using load shedding to survive a success disaster Talks/Videos Load-Shedding: Overview of Different Methodologies"
+    }
+  ]
+}
