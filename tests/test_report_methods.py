@@ -216,3 +216,35 @@ def test_bound_external_method_registry_is_scoped_to_its_report(tmp_path):
     (tmp_path/'dataset.json').write_text(json.dumps(dataset))
     assert render(tmp_path,{'external-case':{'id':'external-case'}},[]) == 'rendered'
     assert native_browser_engine('external-build') is None
+
+
+def test_new_participant_interface_and_access_are_bound_data(tmp_path):
+    import json
+    from harness.web_fetch.methods import with_measured_method_labels
+    from harness.web_fetch.report_interfaces import render_interfaces
+    (tmp_path/'answer.txt').write_text('A complete saved answer')
+    (tmp_path/'adoption').mkdir()
+    contract={'entry':'Future CLI v9 fetch URL','auth':'No account',
+              'params':[['url','string','Target page']],
+              'fields':[['body','string','Returned text']],
+              'request':{'url':'https://example.test/'},
+              'source':'harness/web_fetch/providers/headless_worker.py',
+              'notes':'Explicit instance contract.'}
+    access={'account':'No account','configuration':'Set FUTURE_BINARY.',
+            'env_vars':['FUTURE_BINARY'],'links':[['Source','https://example.test/install']]}
+    dataset={'comparison':{'method_registry':{'future-version':{
+        'engine':'moli','label':'Future participant','report_interface':contract,
+        'report_access':access}}}}
+    rows=[{'provider':'future-version','provider_type':'headless_markdown',
+           'provider_metadata':{'reported_version':'future 9.0.0'},
+           'case_id':'example','attempt_id':'future__example',
+           'artifact_path':'answer.txt','ok':True}]
+    @with_measured_method_labels
+    def render(out, definition, records):
+        return render_interfaces(out,records)
+    html=render(tmp_path,dataset,rows)
+    output=json.loads((tmp_path/'adoption/interfaces/future-version.json').read_text())
+    assert output['interface']==contract and output['access']==access
+    assert 'Future CLI v9 fetch URL' in html
+    assert 'MOLI_BINARY' not in json.dumps(output)
+    assert '1.1.5' not in json.dumps(output)

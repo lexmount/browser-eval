@@ -33,7 +33,7 @@
     },
     "list_contracts": {
       "path": "evaluation/risk-control/list-contracts.json",
-      "sha256": "f263be741c90c24801e4449fb238e5957ab9bf60c5a7b843f1b72e32899caaeb"
+      "sha256": "a566fb13328bd1a88b189b5a49fb7b3565a8d037c22aaa19c2b86087cbbe0881"
     },
     "body_contracts": {
       "path": "evaluation/risk-control/body-contracts.json",

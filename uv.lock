@@ -354,7 +354,7 @@ requires-dist = [
     { name = "jieba", marker = "extra == 'webmainbench-eval'", specifier = "==0.42.1" },
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
-    { name = "lexbench-webfetch", git = "https://github.com/lexmount/lexbench-webfetch.git?rev=4d73ada2fa1305fab61f0c9d222f7a315361281c" },
+    { name = "lexbench-webfetch", git = "https://github.com/lexmount/lexbench-webfetch.git?rev=27fb1908e297e431c913124842badbbd3b254f5f" },
     { name = "markdown", marker = "extra == 'webmainbench-eval'", specifier = ">=3.7,<4" },
     { name = "openai", marker = "extra == 'webmainbench-eval'", specifier = ">=2.8,<4" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
@@ -1933,7 +1933,7 @@ wheels = [
 [[package]]
 name = "lexbench-webfetch"
 version = "0.3.0"
-source = { git = "https://github.com/lexmount/lexbench-webfetch.git?rev=4d73ada2fa1305fab61f0c9d222f7a315361281c#4d73ada2fa1305fab61f0c9d222f7a315361281c" }
+source = { git = "https://github.com/lexmount/lexbench-webfetch.git?rev=27fb1908e297e431c913124842badbbd3b254f5f#27fb1908e297e431c913124842badbbd3b254f5f" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "soupsieve" },

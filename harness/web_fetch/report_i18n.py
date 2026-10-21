@@ -37,6 +37,16 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    '计分定义': 'Scoring definitions',
+    '评分输入来源': 'Scoring input sources',
+    '按哈希恢复': 'Recovered by hash',
+    '公开脱敏副本': 'Public redacted copies',
+    '原定义＋当前评分器': 'Original definitions + current scorer',
+    '修订定义＋当前评分器': 'Revised definitions + current scorer',
+    '数据集：': 'Dataset:',
+    '定义版本：': 'Definition revision:',
+    '原始定义数据集：': 'Original definition dataset:',
+    "安装与来源": "Source and installation",
     "最终网页身份未核实": "Final page identity is not verified",
     "未通过：最终网页身份缺少证据，保留在计划任务分母中。": "Failed: final page identity lacks evidence; this result remains in the planned task denominator.",
     "仓库内测试适配器；只用于确定性回归测试。": "Repository test adapter; used only for deterministic regression tests.",

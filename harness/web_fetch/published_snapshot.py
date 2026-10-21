@@ -20,6 +20,21 @@ def _bound(root, binding):
     return path
 
 
+def _check_annotation_version(dataset, baseline, revision, digest):
+    binding = dataset.get('definition_revision', {})
+    if (binding.get('id') != revision.get('id') or binding.get('sha256') != digest
+            or binding.get('path') != 'audit/annotation-definition.json'
+            or binding.get('parent_dataset_id') != baseline.get('id')
+            or dataset.get('id') == baseline.get('id')):
+        raise ValueError('Annotation revision requires a distinct, bound dataset identity')
+    cases = {case['id']: case for case in dataset['cases']}
+    for change in revision['changes']:
+        case = cases.get(change['case_id'], {})
+        if (any(case.get(key) != value for key,value in change['set'].items())
+                or any(key in case for key in change['remove'])):
+            raise ValueError('Report differs from its annotation version: '+change['case_id'])
+
+
 def validate_snapshot_audit(source, profile_path):
     """Validate the full matrix, immutable calls and every score-bearing view."""
     source, profile_path = Path(source).resolve(), Path(profile_path).resolve()
@@ -42,6 +57,10 @@ def validate_snapshot_audit(source, profile_path):
     baseline = json.loads(contained_path(source, 'dataset.json').read_text())
     previous = load_jsonl(contained_path(source, 'results.jsonl'))
     dataset = json.loads(inputs['dataset'].read_text())
+    if 'annotation_revision' in inputs:
+        if dataset.get('definition_revision',{}).get('parent_dataset_sha256') != file_sha256(source/'dataset.json'):
+            raise ValueError('Annotation revision has a different report parent')
+        _check_annotation_version(dataset, baseline, json.loads(inputs['annotation_revision'].read_text()), file_sha256(inputs['annotation_revision']))
     records = load_jsonl(inputs['results'])
     receipt = json.loads(inputs['receipt'].read_text())
     audit = json.loads(inputs['review'].read_text())
@@ -166,6 +185,8 @@ def build_snapshot_audit(source, output, *, profile):
         (staging / 'archived-reading.json').unlink(missing_ok=True)
         for key, name in [('historical_verdicts','historical-verdicts.json'), ('initial_results','initial-results.jsonl'), ('receipt','scoring-inputs.json'), ('review','score-changes.json'), ('figure','scoring-explained.png'), ('interpretation','interpretation.json')]:
             shutil.copy2(inputs[key], staging / 'audit' / name)
+        if 'annotation_revision' in inputs:
+            shutil.copy2(inputs['annotation_revision'], staging/'audit/annotation-definition.json')
         if 'release_history' in inputs:
             (staging/'report-assets').mkdir(exist_ok=True)
             shutil.copy2(inputs['release_history'],staging/'report-assets/report-changes.json')
@@ -218,6 +239,12 @@ def check_snapshot_audit(root):
             raise ValueError('Snapshot audit input changed: '+name)
     dataset = json.loads((root/'dataset.json').read_text())
     rows = load_jsonl(root/'results.jsonl')
+    if dataset.get('definition_revision'):
+        revision_path=_bound(root,dataset['definition_revision'])
+        historical=root/'audit/history/dataset.json'
+        if dataset['definition_revision'].get('parent_dataset_sha256') != file_sha256(historical):
+            raise ValueError('Annotation revision has a different report parent')
+        _check_annotation_version(dataset,json.loads(historical.read_text()),json.loads(revision_path.read_text()),file_sha256(revision_path))
     binding = dataset['comparison']['score_audit']
     audit = json.loads(_bound(root, binding).read_text())
     if binding.get('historical_privacy'):_bound(root,binding['historical_privacy'])
@@ -239,8 +266,9 @@ def check_snapshot_audit(root):
         check_presentation((root/route).read_text())
     for item in audit['providers']:
         element = audit_html.select_one('[data-audit-summary-provider="'+item['provider']+'"]')
-        expected = [str(item[key]) for key in ['published_passes','historical_passes','initial_rescore_passes','corrected_passes','total']]
-        if element is None or [cell.get_text(' ',strip=True) for cell in element.select('td')][-5:] != expected:
+        fields=['published_passes','historical_passes','initial_rescore_passes']+(['original_definition_passes'] if 'original_definition_passes' in item else [])+['corrected_passes','total']
+        expected = [str(item[key]) for key in fields]
+        if element is None or [cell.get_text(' ',strip=True) for cell in element.select('td')][-len(fields):] != expected:
             raise ValueError('Snapshot audit rendered comparison differs: '+item['provider'])
     cases = {case['id']:case for case in dataset['cases']}
     indexed = {row['attempt_id']:row for row in rows}

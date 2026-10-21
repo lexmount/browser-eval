@@ -141,3 +141,35 @@ def test_snapshot_package_uses_the_shared_publisher_without_certification(tmp_pa
     with pytest.raises(ValueError,match='require --snapshot-audit'):publish(config,transport=transport)
     result=publish(replace(config,snapshot_audit=True),transport=transport)
     assert result['visibility']=='private' and result['url']=='https://example.test/s/new-audit'
+
+
+@pytest.mark.parametrize('defect',[None,'same-id','different-rule','different-parent'])
+def test_annotation_version_is_distinct_and_matches_report_rules(tmp_path,defect):
+    source,profile=example(tmp_path);config=json.loads(profile.read_text())
+    dataset_path=tmp_path/config['inputs']['dataset']['path'];dataset=json.loads(dataset_path.read_text())
+    parent=dataset['id'];dataset['id']=parent+'--annotation-v2'
+    dataset['cases'][0]['diagnostic_any']=['source terminology']
+    revision={'id':'annotation-v2','changes':[{'case_id':'complete','set':{'diagnostic_any':['source terminology']},'remove':[]}]}
+    revision_path=tmp_path/'annotation.json';revision_path.write_text(json.dumps(revision))
+    config['inputs']['annotation_revision']={'path':revision_path.name,'sha256':file_sha256(revision_path)}
+    dataset['definition_revision']={'id':'annotation-v2','path':'audit/annotation-definition.json',
+        'sha256':file_sha256(revision_path),'parent_dataset_id':parent,
+        'parent_dataset_sha256':file_sha256(source/'dataset.json')}
+    if defect=='same-id':dataset['id']=parent
+    elif defect=='different-rule':dataset['cases'][0]['diagnostic_any']=['unbound terminology']
+    elif defect=='different-parent':dataset['definition_revision']['parent_dataset_sha256']='0'*64
+    dataset_path.write_text(json.dumps(dataset));config['inputs']['dataset']['sha256']=file_sha256(dataset_path)
+    receipt=tmp_path/config['inputs']['receipt']['path'];data=json.loads(receipt.read_text())
+    data['corrected_dataset_sha256']=canonical_json_sha256(dataset);receipt.write_text(json.dumps(data));config['inputs']['receipt']['sha256']=file_sha256(receipt)
+    article=tmp_path/config['inputs']['interpretation']['path'];data=json.loads(article.read_text())
+    rows=[json.loads(line) for line in (tmp_path/config['inputs']['results']['path']).read_text().splitlines()]
+    data['evidence_sha256']=canonical_json_sha256(_headless_article_input({c['id']:c for c in dataset['cases']},rows,['chromium']))
+    article.write_text(json.dumps(data));config['inputs']['interpretation']['sha256']=file_sha256(article);profile.write_text(json.dumps(config))
+    output=tmp_path/'versioned-report'
+    if defect:
+        with pytest.raises(ValueError,match='Annotation revision|annotation version'):build_snapshot_audit(source,output,profile=profile)
+        assert not output.exists()
+    else:
+        build_snapshot_audit(source,output,profile=profile)
+        assert '2 saved calls' in check_snapshot_audit(output)
+        assert (output/'audit/annotation-definition.json').read_bytes()==revision_path.read_bytes()

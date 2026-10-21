@@ -12,6 +12,8 @@ Read the repository's `AGENTS.md` first. Project rules override this general ski
 Before writing report HTML, resolve the track through `scripts/report_template.py`. Inspect the maintained implementation and its pinned example. Reuse that implementation and its release checks; a different cohort or diagnostic evidence state calls for a data adapter or explicit mode. If no track fits, create the smallest reusable renderer with a synthetic runnable example and behavioral checks, then register it in `configs/report-templates.json`. Improve the owning template and this skill from demonstrated gaps, without embedding run-specific prose or copying old measurements. A report must carry the selected template identity and input hashes so its release check can detect a bypass.
 
 Derive bilingual counts, budgets and method labels from the selected inputs.
+Bind cohort-specific access and interface documentation in the participant registry;
+reuse engine-level adapter contracts instead of adding per-version renderer tables.
 Keep report-specific prose and its translations in explicitly bound content;
 do not choose a historical article from provider names or task-family guesses.
 Without a content binding, render the maintained data-derived explanation.

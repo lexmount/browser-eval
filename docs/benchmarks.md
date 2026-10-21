@@ -182,3 +182,17 @@ Publish through `scripts/publish_artifact_hub.py --snapshot-audit` with a separa
 publication target, receipt and operation journal. Use `--create` for a new report
 and set visibility explicitly. A later update uses that report's own site and
 expected version. Keep the original report's target unchanged.
+
+### Participant interface metadata
+
+A report can bind participant documentation through
+`comparison.method_registry`. Each participant selects its execution `engine`
+and label. Optional `report_access` contains `account`, `configuration`,
+`env_vars` and `links`; optional `report_interface` contains `entry`, `auth`,
+`params`, `fields`, `request`, `source` and `notes`. These objects follow the
+shared interface renderer's existing format. Use them for cohort-specific
+instructions and examples. Measured version fields and binary hashes remain
+part of each saved call; a participant name is not a version receipt.
+
+Shared adapter documentation describes interfaces by engine. Adding a version
+or renaming a participant requires data changes, without another renderer entry.

@@ -52,7 +52,7 @@ class CapabilityTests(unittest.TestCase):
         self.assertTrue(SOURCES['moli-release'][1].endswith('/releases/tag/v1.1.4'))
 
     def test_all_evaluated_interfaces_have_scoped_evidence(self):
-        self.assertEqual(set(PROFILES), set(CAPABILITIES))
+        self.assertTrue(set(PROFILES) <= set(CAPABILITIES))
         for name, row in CAPABILITIES.items():
             self.assertTrue(row['scope'], name)
             self.assertTrue(row['tested'], name)

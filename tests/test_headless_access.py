@@ -8,8 +8,10 @@ from harness.web_fetch.report_interfaces import HEADLESS_ACCESS, SPECS, render_i
 
 class HeadlessAccessTests(unittest.TestCase):
     def test_all_measured_engines_have_account_and_official_sources(self):
-        self.assertEqual(set(HEADLESS_ACCESS),
-                         {'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','moli-1.1.11','moli-pr643','chromium'})
+        from harness.web_fetch.methods import browser_method_registry
+        from harness.web_fetch.report_interfaces import method_access
+        for name in browser_method_registry():
+            self.assertTrue(method_access(name, [])['links'])
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'adoption').mkdir()
@@ -56,7 +58,8 @@ class HeadlessAccessTests(unittest.TestCase):
             row['provider_metadata']['reported_version']=version
             self.assertEqual(method_version(row),version)
         self.assertEqual(method_version({'provider':'chromium','provider_metadata':{'browser_version':'155.0.8059.39'}}),'155.0.8059.39')
-        self.assertEqual(method_version({'provider':'kitesurf','provider_metadata':{'browser_version':'145.0.0.0'}}),'Beta · 托管后端版本未公开')
+        self.assertIsNone(method_version({'provider':'kitesurf','provider_metadata':{'browser_version':'145.0.0.0'}}))
+        self.assertEqual(method_version({'provider':'kitesurf','provider_metadata':{'reported_version':'service-build-9'}}),'service-build-9')
 
 
 if __name__ == '__main__':

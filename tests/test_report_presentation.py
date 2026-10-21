@@ -1,9 +1,8 @@
 import tempfile
-import json
 from pathlib import Path
 import unittest
 from harness.web_fetch.report import EXTRA,active_tracks,failure_category,filter_controls,case_attrs,failure_filters,overall_ranking,overview_matched_latency,provider_configuration,review_cell,table,write
-from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
+from harness.web_fetch.report_interfaces import SPECS
 from harness.web_fetch.report_style import STYLE
 
 class ReportRevisionTests(unittest.TestCase):
@@ -97,7 +96,8 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertEqual(failure_category(self.row(metrics={'content_pass':True}),{}),'—')
  def test_all_interfaces(self):
   from harness.web_fetch.report_methods import PROFILES
-  self.assertEqual(set(SPECS),set(PROFILES))
+  from harness.web_fetch.report_interfaces import method_spec
+  for name in PROFILES:self.assertTrue(method_spec(name,None)['entry'])
   self.assertTrue({'kitesurf','lightpanda','obscura','moli','chromium'} <= set(SPECS))
   for s in SPECS.values():
    self.assertTrue(s['params'] and s['fields'] and s['request'] and s['source'])
@@ -131,8 +131,10 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('1/1 · 复核记录',row)
   self.assertNotIn('已核验',row)
  def test_headless_access_covers_every_method_and_lists_setup_variables(self):
-  self.assertEqual(set(HEADLESS_ACCESS),{'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','moli-1.1.11','moli-pr643','chromium'})
-  for access in HEADLESS_ACCESS.values():
+  from harness.web_fetch.report_interfaces import method_access
+  from harness.web_fetch.methods import browser_method_registry
+  for name in browser_method_registry():
+   access=method_access(name,[])
    self.assertTrue(access['env_vars'])
    self.assertTrue(access['links'])
  def test_language_toggle_uses_one_shared_report_tree(self):
@@ -320,13 +322,15 @@ class MeasuredInterfaceIdentityTests(unittest.TestCase):
  def test_generic_moli_uses_observed_release_and_task_adapter(self):
   record={'provider':'moli','provider_type':'moli_webfetch','provider_metadata':{'reported_version':'moli 1.1.15'}}
   output=self.render([record]);access=output['access']
-  self.assertIn('/tag/v1.1.15',access['links'][0][1])
+  self.assertIn('github.com/lexmount/moli',access['links'][0][1])
+  self.assertNotIn('/tag/',access['links'][0][1])
   self.assertNotIn('1.1.5',str(access))
   self.assertEqual(output['interface']['source'],'harness/web_fetch/providers/moli.py')
   old={'provider':'moli-1.0.6','provider_type':'headless_markdown','provider_metadata':{'reported_version':'moli 1.0.6'}}
   output=self.render([old],'moli-1.0.6')
-  self.assertIn('1.0.6',output['access']['links'][0][1])
-  self.assertEqual(output['interface'],json.loads(json.dumps(SPECS['moli-1.0.6'])))
+  self.assertEqual(output['access']['env_vars'],['MOLI_1_0_6_BINARY'])
+  self.assertIn('1.0.6',output['interface']['entry'])
+  self.assertNotIn('1.1.5',str(output['interface']))
  def test_unknown_or_mixed_generic_versions_do_not_invent_a_release(self):
   rows=[{'provider':'moli','provider_metadata':{'reported_version':'moli '+v}} for v in ('1.1.14','1.1.15')]
   for records in ([],rows):

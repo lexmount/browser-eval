@@ -18,7 +18,7 @@ from harness.record_io import load_jsonl
 
 from .accounts import report_access_registry
 from .failure_diagnosis import diagnose
-from .methods import ROUTE_LABELS, method_page_model, is_browser_comparison, browser_method_label
+from .methods import ROUTE_LABELS, method_page_model, is_browser_comparison, browser_method_label, browser_method_registry, native_browser_engine
 from lexbench_webfetch.metrics import percentile, task_measured, task_passed
 from harness.web_fetch.models import REPORT_FAMILIES, execution_id, report_family
 from lexbench_webfetch.models import TRACKS
@@ -44,7 +44,6 @@ from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.safety import safe_href, validate_report_ids
 from .webmainbench_diagnostics import ERROR_PAGE
 
-PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-pr643':'Moli 1.1.7 · PR #643','moli-1.1.11':'Moli 1.1.11'}
 
 
 def format_wcxb_conditional_latency(value: float | None) -> str:
@@ -330,7 +329,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
 
 def provider_label(name):
  from .methods import measured_method_label
- return measured_method_label(name,PROVIDER_LABELS.get(name,browser_method_label(name)))
+ return measured_method_label(name,browser_method_label(name))
 def case_track_label(case):
  family=report_family(case)
  if family in {'web_media','media_file'}:return REPORT_FAMILIES[family]
@@ -2777,6 +2776,15 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  score_binding=dataset.get('comparison',{}).get('score_audit')
  if score_binding:
   methodology+=section('数据范围','<div data-scoring-input-scope><p>'+esc(f'本报告使用原有 {score_binding["total_attempts"]} 条调用记录和耗时，没有新增浏览器调用。其中 {score_binding["projected_scoring_inputs"]} 条评分输入为公开脱敏副本，{score_binding["recovered_originals"]} 条为按原哈希恢复的输出。逐项核对范围为 {score_binding["reviewed_attempts"]}/{score_binding["total_attempts"]} 条判定变化。')+'</p><p>'+link('../audit/index.html','输入差异与逐题验收记录')+'</p></div>')
+  input_rows=[]
+  for name in sorted({row['provider'] for row in records}):
+   selected=[row for row in records if row['provider']==name]
+   counts=Counter(row.get('scoring',{}).get('artifact_view','original') for row in selected)
+   input_rows.append(('',cell(esc(provider_label(name)))+cell(str(counts['original']))+cell(str(counts['recovered_original']))+cell(str(counts['published_projection']))+cell(str(len(selected)))))
+  methodology+=section('评分输入来源',table(['方法','原始输出','按哈希恢复','公开脱敏副本','合计'],input_rows,metrics=[]))
+ revision=dataset.get('definition_revision')
+ if revision:
+  methodology+=section('计分定义','<p>数据集：<code class="break">'+esc(dataset['id'])+'</code></p><p>定义版本：'+link('../'+revision['path'],revision['id'])+' · SHA-256：<code class="break">'+esc(revision['sha256'])+'</code></p><p>原始定义数据集：<code class="break">'+esc(revision['parent_dataset_id'])+'</code> · SHA-256：<code class="break">'+esc(revision['parent_dataset_sha256'])+'</code></p>')
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','浏览器版本与二进制来源')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else [])+([('request-status-corrections.json','请求状态纠正收据')] if (out/'request-status-corrections.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'
@@ -2890,7 +2898,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
    access=method_access(name,records)
    official='<br>'.join(link(url,label) for label,url in access['links'])
    variables='<br>'.join('<code>'+esc(value)+'</code>' for value in access['env_vars'])
-   access_rows.append(('',cell(provider_label(name))+cell(esc(access['account']))+cell(official)+cell(variables)+cell(esc(access['configuration']))))
+   access_rows.append(('',cell(provider_label(name))+cell(esc(access['account']))+cell(official)+cell(variables)+cell(model_text(access['configuration'],access.get('configuration_en')))))
   account_intro='只有 Kitesurf 的账户级 Cloudflare Browser Run 路线需要供应商账号与凭据；其余方法是本地二进制，不需要账号，但仍需安装并明确指定可执行文件。'
   account_body=hero('账号与安装',account_intro)
   account_body+=section('本轮方法清单','<p>这里列的是完成本报告所需的全部外部准备：账号、官方获取入口和变量名称。变量值、本机路径、登录会话、Cookie 和 Token 均不进入报告。</p>'+table(['方法','账号要求','官方获取入口','变量名称','本轮配置'],access_rows,cls='accounts-table',metrics=[]))
@@ -3628,7 +3636,7 @@ flowchart LR
   for name in names:
    example=next((r for r in records if r['provider']==name and r['ok']),next(r for r in records if r['provider']==name))
    entry,input_route,output_route=routes[name]
-   official=PROFILES[name][2]
+   official=browser_method_registry().get(name,{}).get('source_url',PROFILES.get(name,PROFILES[native_browser_engine(name) or name])[2])
    interface_rows.append(('',cell(link('../providers/'+name+'.html',labels[name]))+cell(esc(entry))+cell(esc(input_route))+cell(esc(output_route))+cell(link('../attempts/'+example['attempt_id']+'.html',h('查看实际输入、返回和逐项评分','Actual input, output and component scores')))+cell(link(official,h('官方获取入口','Official source')))))
   adoption+=section(h('本轮输入、输出与实例','Run inputs, outputs and examples'),'<p>'+h('这里列的是公开集冻结 HTML 的实际路线，不是原 URL 的实时抓取接口。实例链接对应存档调用；账号字段只展示变量名和占位符。','These are the frozen-HTML routes used for this public benchmark, not live fetching of original URLs. Example links open archived calls; account fields show variable names or placeholders only.')+'</p>'+table([h('方法','Method'),h('接口 / 程序','Interface / program'),h('本轮输入','Run input'),h('本轮输出','Run output'),h('真实调用实例','Archived call example'),h('官方来源','Official source')],interface_rows,cls='wide-prose-table',metrics=[]))
   if research:
@@ -3677,7 +3685,7 @@ flowchart LR
 
   account_rows=[]
   for name in names:
-   access=HEADLESS_ACCESS[name]
+   access=method_access(name,records)
    account_rows.append(('',cell(labels[name])+cell(esc(access['account']))+cell('<br>'.join('<code>'+esc(v)+'</code>' for v in access['env_vars']))+cell('<br>'.join(link(url,label) for label,url in access['links']))))
   accounts=hero(h('账号与安装','Accounts and setup'),h('只有 Kitesurf 的 Cloudflare 路线需要账号凭据；报告不公开值。','Only the Kitesurf Cloudflare route needs account credentials; values are never published.'))
   accounts+=section(h('配置','Configuration'),table([h('方法','Method'),h('账号','Account'),h('变量','Variables'),h('官方入口','Official source')],account_rows,cls='accounts-table',metrics=[]))
@@ -4374,10 +4382,10 @@ def render_score_audit(out, audit, binding):
  def verdict(value):return '通过' if value else '失败'
  rows=[]
  for item in audit['providers']:
-  rows.append((' data-audit-summary-provider="'+esc(item['provider'])+'"',cell(esc(provider_label(item['provider'])))+cell(str(item['published_passes']))+cell(str(item['historical_passes']))+cell(str(item['initial_rescore_passes']))+cell(str(item['corrected_passes']))+cell(str(item['total']))))
+  rows.append((' data-audit-summary-provider="'+esc(item['provider'])+'"',cell(esc(provider_label(item['provider'])))+cell(str(item['published_passes']))+cell(str(item['historical_passes']))+cell(str(item['initial_rescore_passes']))+(cell(str(item['original_definition_passes'])) if 'original_definition_passes' in item else '')+cell(str(item['corrected_passes']))+cell(str(item['total']))))
  body=hero(audit['title'],audit['summary'])
  body+=section('判定变化来自哪里','<figure><a href="../'+esc(binding['figure'])+'"><img src="../'+esc(binding['figure'])+'" alt="对同一份保存输出核对正文术语、文字和链接格式、卡片字段归属，以及原始与公开副本哈希" style="width:100%;height:auto"></a><figcaption>'+esc(audit['figure_caption'])+'</figcaption></figure>')
- body+=section('版本结果对照','<p>'+esc(audit['metric_note'])+'</p>'+table(['方法','原页面汇总','按旧规则核对旧记录','修复前重算','修复后重算','题数'],rows,id='score-audit-comparison',metrics=[]))
+ body+=section('版本结果对照','<p>'+esc(audit['metric_note'])+'</p>'+table(['方法','原页面汇总','按旧规则核对旧记录','修复前重算']+(['原定义＋当前评分器'] if all('original_definition_passes' in item for item in audit['providers']) else [])+['修订定义＋当前评分器','题数'],rows,id='score-audit-comparison',metrics=[]))
  body+=section(esc(audit['focus_heading']), '<p>'+esc(audit['focus_summary'])+'</p>')
  inventory=[]
  for item in audit['changes']:
