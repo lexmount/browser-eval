@@ -1321,6 +1321,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
             {
                 "protocol": {
                     "cowagent_commit": "abc123",
+                    "max_task_executions": 3,
                     "model": "gpt-5.6-sol",
                     "reasoning_effort": "low",
                 },
@@ -1387,10 +1388,15 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     assert "192.168.5.2" in methodology_text
     assert "不含点击序列" in methodology_text
     assert "计划与实际对照" in methodology_text
-    assert "不能视为浏览器是唯一变量的实验" in methodology_text
+    assert "每题执行上限：3" in methodology_text
+    assert "冻结配置及实际执行记录" in methodology_text
+    assert "下一轮轨迹重放" not in methodology_text
+    assert "678 个候选" not in methodology_text
+    assert "Mac 上可以继续扩展哪些实例" not in methodology_text
     assert "只替换浏览器</td>" not in methodology_text
     english_methodology = localize_html(methodology_text, PurePosixPath("methodology/index.html"))
-    assert "the browser was not the only experimental variable" in english_methodology
+    assert "frozen configuration and recorded executions" in english_methodology
+    assert "execution limit per task: 3" in english_methodology
     for name in (
         "changes/index.html",
         "datasets/index.html",

@@ -2880,10 +2880,6 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
 
     from .report_i18n import bilingual_text
     include_english = includes_english(language, include_english)
-    mac_expansion = json.loads(
-        (RESEARCH_ROOT / "webarena-mac-expansion.json").read_text(encoding="utf-8")
-    )
-    mac_counts = mac_expansion["official_counts"]
     profile_path = profile_path or Path("evaluation/browser-use/current-report.json")
     if profile_path.is_symlink():
         raise ValueError("Symlinked report profile is forbidden")
@@ -3212,23 +3208,14 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             )
             + '<p class="page-links">'
             + "".join(
-                f'<a href="results/{model_id}-{engine}-44.html#trajectory">查看 {_e(MODEL_LABELS[model_id])} · {_e(ENGINE_LABELS[engine])} 自主轨迹示例</a>'
+                f'<a href="results/{model_id}-{engine}-{example_id}.html#trajectory">查看 {_e(MODEL_LABELS[model_id])} · {_e(ENGINE_LABELS[engine])} 自主轨迹示例</a>'
                 for model_id in MODEL_LABELS
                 for engine in ENGINE_LABELS
-                if (model_id, engine, 44) in by_attempt
+                for example_id in [next((int(task["task_id"]) for task in tasks
+                                         if (model_id, engine, int(task["task_id"])) in by_attempt), None)]
+                if example_id is not None
             )
             + '<a href="reproduce/">核对镜像与运行身份</a></p>',
-        )
-        methodology += _section(
-            "Mac 上可以继续扩展哪些实例",
-            f"<p>下一轮轨迹重放固定使用本报告当前 {task_count} 题，不扩充任务范围。若未来另行扩充 Browser Use 评测，当前四个已实跑站点可预检 {mac_counts['current_four_sites_single_site']} 个单站任务；计入只依赖这四站的跨站任务后，共有 {mac_counts['current_four_sites_including_cross_site']} 个候选，其中 hard 子集 {mac_counts['current_four_sites_hard_including_cross_site']} 个。</p>"
-            + _table(
-                ["环境", "Apple Silicon Mac 状态", "完整集单站题", "hard 单站题", "约束"],
-                mac_expansion["environments"],
-                caption="Wikipedia 与 Map 的容量来自官方环境说明；状态中的“实跑”只指本项目已有执行证据。",
-            )
-            + '<p class="callout"><strong>最小扩展方案：</strong>先从四个已验证站点的 678 个候选中做可完成性预检和分层抽样；Wikipedia、Map 等大数据环境后置。这样扩容不会先引入新的部署变量。</p>'
-            '<p class="page-links"><a href="https://github.com/ServiceNow/webarena-verified">官方任务集与安装说明</a><a href="https://servicenow.github.io/webarena-verified/dev/environments/">官方环境容量说明</a></p>',
         )
         methodology += _section(
             "固定协议",
@@ -3236,15 +3223,19 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 ["项目", "规则"],
                 [
                     ["Agent / 模型", Safe(bilingual_text(f"CowAgent；{model}；推理强度 {reasoning_effort}", f"CowAgent; {model}; reasoning effort {reasoning_effort}"))],
-                    ["计划与实际对照", "计划固定任务、数据、模型、提示和资源上限，仅替换浏览器；历史执行的视口实际不一致，不能视为浏览器是唯一变量的实验"],
-                    ["结果口径", "每题×浏览器一个最终逻辑结果；二元通过率；逐题配对"],
+                    ["计划与实际对照", Safe(bilingual_text("模型、提示、工具、资源和执行环境以冻结配置及实际执行记录为准。", "Model, prompt, tool, resource and environment controls follow the frozen configuration and recorded executions."))],
+                    ["结果口径", Safe(bilingual_text("每题×模型×浏览器一个最终逻辑结果；二元通过率；逐题配对。", "One retained logical result per task, model and browser; binary acceptance and task-paired comparison."))],
                     [
                         "执行上限",
-                        "代码最多允许两次执行；本报告按冻结运行协议选取正式结果，实际执行耗时和模型用量累计",
+                        Safe(bilingual_text(
+                            f"冻结协议的每题执行上限：{protocol.get('max_task_executions') or profile.get('max_task_executions') or '未记录'}；实际执行耗时和模型用量累计。",
+                            f"Frozen execution limit per task: {protocol.get('max_task_executions') or profile.get('max_task_executions') or 'not recorded'}; execution latency and model usage are cumulative.")),
                     ],
                     [
                         "排除",
-                        "不纳入无法稳定验收的实时任务；本轮排除需大型数据卷的 Wikipedia / Map",
+                        Safe(bilingual_text(
+                            "只报告冻结任务清单及其验收合同覆盖的任务。",
+                            "Only tasks and acceptance contracts in the frozen selection are reported.")),
                     ],
                     ["裁判", "官方程序化 evaluator；无 LLM judge；人工不得改分"],
                 ],
@@ -3290,7 +3281,9 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         )
         analysis += _section(
             f"同题全配置对比：完整 {len(tasks)} 题",
-            "<p>每行是一道预注册任务，四列分别对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。</p>"
+            "<p>" + bilingual_text(
+                f"每行是一道预注册任务，{len(MODEL_LABELS) * len(ENGINE_LABELS)} 列对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。",
+                f"Each row is a registered task, with {len(MODEL_LABELS) * len(ENGINE_LABELS)} columns for model-by-browser configurations. Filter for disagreement, all-pass or all-fail tasks.") + "</p>"
             + _same_task_comparison(tasks, attempts),
         ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
         analysis += _section(
