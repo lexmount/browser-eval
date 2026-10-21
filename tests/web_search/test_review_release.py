@@ -56,12 +56,15 @@ def audited_fixture(tmp_path):
     return report, evidence
 
 
-def test_review_release_counts_failures_and_retains_opinions(tmp_path):
+@pytest.mark.parametrize("layout", [None, "comparison-report"])
+def test_review_release_counts_failures_and_retains_opinions(tmp_path, layout):
     _, evidence = audited_fixture(tmp_path)
     path = tmp_path / "review.json"
     review.save(path, evidence)
     out = tmp_path / "released"
-    build(out, source=tmp_path / "fixture", review=path)
+    content = tmp_path / "content.json"
+    content.write_text(json.dumps({"presentation": layout}))
+    build(out, source=tmp_path / "fixture", review=path, content=content)
     assert check(out)
     soup = BeautifulSoup((out / "index.html").read_text(), "html.parser")
     assert "4/4" in soup.select_one("[data-review-coverage]").get_text()

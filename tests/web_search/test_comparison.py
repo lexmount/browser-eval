@@ -24,12 +24,13 @@ def test_scoped_acceptance_keeps_unlabelled_and_missing_unknown():
     assert acceptance(p["cases"][0], rows[0]) is True
     assert acceptance(p["cases"][0], rows[1]) is False
     assert acceptance(p["cases"][1], rows[3]) is False
-    assert acceptance(p["cases"][1], rows[3], "answer") is True
+    # Frozen metrics can be stale; factual checks use the delivered evidence.
+    assert acceptance(p["cases"][1], rows[3], "answer") is False
     assert acceptance(p["cases"][2], rows[6]) is None
     assert acceptance(p["cases"][0], None) is None
     assert acceptance(p["cases"][0], rows[0], "answer") is None
     assert acceptance(p["cases"][0], rows[0], "primary") is True
-    assert acceptance(p["cases"][1], rows[3], "primary") is True
+    assert acceptance(p["cases"][1], rows[3], "primary") is False
     assert acceptance(p["cases"][2], rows[6], "primary") is None
 
 

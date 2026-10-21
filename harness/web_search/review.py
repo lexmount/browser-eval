@@ -876,7 +876,7 @@ def render_summary(evidence, zh=True):
     }
     body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + ("全部发现已完成裁决，未处理项：0。" if zh else "All findings adjudicated; unresolved: 0.") + "</p><ul>"
     for key, value in sorted(counts.items()):
-        body += f"<li>{labels[key][0 if zh else 1]}：{value}</li>"
+        body += f"<li>{labels[key][0 if zh else 1]}：{value}" + (" 条发现" if zh else " findings") + "</li>"
     body += (
         "</ul><p>"
         + (
@@ -921,6 +921,12 @@ def render_detail(evidence, row_id, zh=True):
             + ("Codex 独立审查" if zh else "Independent Codex review")
             + "</h2>"
         )
+        decision = evidence["adjudications"].get(case["case_id"] + ":dataset", {})
+        if decision.get("quality_excluded"):
+            body += '<p class="notice" data-reference-quarantine>' + (
+                "本题已从三家质量汇总共同隔离。下方保留原题和原始检查值；耗时与费用仍计入全体。"
+                if zh else "This query is quarantined from every method’s quality summary. Original inputs and diagnostics remain below; latency and cost remain included."
+            ) + " " + escape(decision["reason"]) + '</p>'
         body += (
             "<p>"
             + escape(opinion["reason"])
