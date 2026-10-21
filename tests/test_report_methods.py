@@ -200,3 +200,19 @@ def test_method_guide_discloses_retained_success_and_repaired_failure_builds(tmp
     unknown = render_methods(tmp_path, [{'provider': 'cloud', 'provider_type': 'fixture'}],
                              hero=hero, section=section, table=table, cell=cell, link=link, esc=esc)
     assert 'unknown' in unknown and '>1<' in unknown
+
+
+def test_bound_external_method_registry_is_scoped_to_its_report(tmp_path):
+    from harness.web_fetch.methods import with_measured_method_labels, native_browser_engine, browser_method_label, browser_method_registry
+    @with_measured_method_labels
+    def render(out,dataset,records):
+        assert native_browser_engine('external-build') == 'moli'
+        assert browser_method_label('external-build') == 'External Moli build'
+        assert browser_method_registry()['external-build']['source_url'] == 'https://example.test/build'
+        return 'rendered'
+    dataset={'comparison':{'method_registry':{'external-build':{'engine':'moli','label':'External Moli build','source_url':'https://example.test/build'}}}}
+    assert render(tmp_path,dataset,[]) == 'rendered'
+    import json
+    (tmp_path/'dataset.json').write_text(json.dumps(dataset))
+    assert render(tmp_path,{'external-case':{'id':'external-case'}},[]) == 'rendered'
+    assert native_browser_engine('external-build') is None

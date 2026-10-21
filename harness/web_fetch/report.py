@@ -641,8 +641,12 @@ def run_log_section(out,record,output):
   path=contained_path(out,binding['path'])
   if not path.is_file():continue
   raw=path.read_bytes();observed=hashlib.sha256(raw).hexdigest()
-  if binding.get('sha256') and binding['sha256']!=observed:raise ValueError(f'Call log hash mismatch: {record["attempt_id"]}')
-  if binding.get('bytes') is not None and binding['bytes']!=len(raw):raise ValueError(f'Call log size mismatch: {record["attempt_id"]}')
+  if _RENDER_CONTEXT.get().score_audit:
+   from .published_snapshot import read_snapshot_public_file
+   read_snapshot_public_file(out,binding)
+  else:
+   if binding.get('sha256') and binding['sha256']!=observed:raise ValueError(f'Call log hash mismatch: {record["attempt_id"]}')
+   if binding.get('bytes') is not None and binding['bytes']!=len(raw):raise ValueError(f'Call log size mismatch: {record["attempt_id"]}')
   try:payload=json.loads(raw)
   except (UnicodeDecodeError,json.JSONDecodeError):payload={}
   logs.append({'label':label,'path':binding['path'],'sha256':observed,
@@ -747,6 +751,8 @@ def run_log_section(out,record,output):
               f'（{diagnostic_size:,} 字节 · SHA-256：<code class="break">{esc(diagnostic_sha)}</code> · 截断：{diagnostic_truncated}）')
  if not raw_record:raw_record='这次历史调用没有可下载的原始记录'
  evidence_identity_note=(model_text('评分原件私下保留；公开下载隐藏目录或敏感值，校验记录分别标明原件与公开副本。','Scoring originals remain private; public downloads hide paths or sensitive values and bind original/public identities separately.') if any(view.get('redactions') for view in metadata.get('publication_views',{}).values()) else '原始输出保持调用后保存的字节。')
+ if record.get('scoring',{}).get('mode')=='published_snapshot_rescore':
+  evidence_identity_note='本次只重新评分。调用日志保留原调用信息；本次评分输入及其原始、公开哈希在实际输出处分别列出。'
  return (f'<section class="section" id="run-log"><div class="wrap"><h2>运行日志与证据</h2>'
          f'<dl class="diagnostic-fields">{fields}</dl>{runtime_error}'
          f'<details class="technical-details"><summary>查看完整运行字段</summary><dl class="diagnostic-fields">{full_fields}</dl></details>'
@@ -830,6 +836,7 @@ EXTRA+='''
 class RenderContext:
  banner: str = ''
  english_generated: bool = False
+ score_audit: dict | None = None
 
 
 _RENDER_CONTEXT=ContextVar('webfetch_render_context',default=RenderContext())
@@ -850,10 +857,16 @@ def write(out,path,title,body,*,root_links=False):
  nav=[('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('review/index.html','核验记录'),('guide/index.html','报告解读'),('adoption/index.html','方法介绍'),('reproduce/index.html','环境与复现'),('changes/index.html','变更记录'),('accounts/index.html','账号与安装')]
  brand=link(base+'index.html','Web Fetch')
  context=_RENDER_CONTEXT.get()
+ if context.score_audit and path.startswith('attempts/'):
+  identifier=Path(path).stem
+  reviewed=next((item for item in context.score_audit['changes'] if item['attempt_id']==identifier),None)
+  if reviewed:
+   body+=section('评分复核','<div data-score-audit><p>'+esc(reviewed['reason'])+'</p><dl class="diagnostic-fields"><dt>验收要求</dt><dd>'+esc(reviewed['requirement'])+'</dd><dt>实际返回</dt><dd>'+esc(reviewed['actual'])+'</dd><dt>处理结果</dt><dd>'+esc(reviewed['treatment'])+'</dd></dl><p>'+link('../audit/index.html#'+identifier,'查看旧判定、修复和来源证据')+'</p></div>')
  counterpart=(base+'en/'+path if context.english_generated else base+'en/index.html')
  language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>'
  footer='所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。'
- page=f'<!doctype html><html lang="zh-CN"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css?v={hashlib.sha256((STYLE+EXTRA).encode()).hexdigest()[:16]}"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{context.banner}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
+ banner=context.banner.replace('href="audit/index.html"','href="'+base+'audit/index.html"')
+ page=f'<!doctype html><html lang="zh-CN"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css?v={hashlib.sha256((STYLE+EXTRA).encode()).hexdigest()[:16]}"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{banner}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 _RESEARCH_ROUTES=[
@@ -2071,7 +2084,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   unknown=set(dataset_case_ids)-{case['id'] for case in dataset['cases']}
   if unknown:raise ValueError('Unknown dataset refresh cases: '+', '.join(sorted(unknown)))
  local_snapshot=dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
- diagnostic=local_snapshot and not local_pass_rate_ranking(dataset)
+ score_binding=dataset.get('comparison',{}).get('score_audit')
+ score_audit=json.loads(contained_path(out,score_binding['path']).read_text()) if score_binding else None
+ diagnostic=bool(score_audit) or (local_snapshot and not local_pass_rate_ranking(dataset))
  if local_snapshot and not show_local_status_banners:
   raise ValueError('Uncertified local diagnostic status cannot be hidden')
  from .reliability import assess_reliability
@@ -2101,7 +2116,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   reliability_banner += '<div class="wrap callout" role="status"><strong>合成示例 · 非正式评测</strong><p>内容和失败均为预设场景，用于检查安装与报告功能，不代表浏览器测量结果。</p></div>'
  elif dataset.get('comparison', {}).get('publication_state') == 'diagnostic_not_for_release':
   reliability_banner += '<div class="wrap callout" role="status"><strong>诊断运行 · 非正式评测</strong><p>本次调用用于检查所选任务和方法，不具备正式评测所需的批次认证。</p></div>'
- _RENDER_CONTEXT.set(RenderContext(reliability_banner,include_english))
+ if score_binding:
+  reliability_banner+='<div class="wrap callout" role="status" data-evidence-state="published_snapshot_score_audit"><strong>保存输出的评分复核</strong><p>'+esc(f'沿用原报告的任务与调用；没有新增浏览器调用。{score_binding["projected_scoring_inputs"]} 条使用公开脱敏副本重算，{score_binding["recovered_originals"]} 条使用按原哈希恢复的输出。逐项审查 {score_binding["reviewed_attempts"]}/{score_binding["total_attempts"]} 条判定变化，其他结果未作本轮逐项审查。')+'</p><p>'+link('audit/index.html','查看变化原因、逐题证据和脱敏影响')+'</p></div>'
+ _RENDER_CONTEXT.set(RenderContext(reliability_banner,include_english,score_audit))
  validate_report_ids(dataset,records)
  for path in ['assets/style.css','assets/report.js','references']:
   contained_path(out,path)
@@ -2125,6 +2142,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  for track,label in tracks:
   cards+=overview_card(records,cases,track,label,names,diagnostic=diagnostic)
  description=(f'{len(cases)} 个案例 · {len(names)} 种方法 · 本地未认证诊断快照。' if diagnostic else f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
+ if score_audit:
+  description=f'{len(cases)} 个案例 · {len(names)} 种方法 · 沿用原报告的任务范围、调用和指标定义。'
  if local_pass_rate_ranking(dataset):
   description=model_text(f'{len(cases)} 个案例 · {len(names)} 种方法 · 按本轮任务通过率排序。',f'{len(cases)} cases · {len(names)} methods · Ordered by task pass rate for this sample.')
  home='<div class="home-page">'+hero('Web Fetch 评测报告',description)
@@ -2424,6 +2443,11 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   if answer_view and answer_view['original_sha256']!=answer_view['published_sha256']:
    output_note=(f'{len(output):,} 字符 · '+link('../'+answer_view['path'],'下载公开副本','Download public view')+' · '+link('../'+answer_view['receipt'],'查看脱敏记录','View redaction record')+
                 '<br>'+model_text('目录或敏感值已隐藏；成绩来自评分原件。原件与公开副本的校验值见运行字段。','Paths or sensitive values are hidden; scores come from the original. Original/public hashes are listed in the run fields.'))
+  if r.get('scoring',{}).get('mode')=='published_snapshot_rescore':
+   view=r['scoring']['artifact_view']
+   view_label={'original':'与原哈希相同的保存输出','recovered_original':'按原哈希恢复的输出（本页展示公开副本）','published_projection':'公开脱敏副本'}[view]
+   output_note=f'{len(output):,} 字符 · 本次评分输入：'+esc(view_label)+' · '+link('../'+r['artifact_path'],'下载公开输出')
+   output_note+='<br>原始调用输出 SHA-256：<code class="break">'+esc(r['scoring']['original_content_sha256'])+'</code><br>本次评分输入 SHA-256：<code class="break">'+esc(r['scoring']['scored_content_sha256'])+'</code>'
   if readable_output(output)!=output:output_note+=' · 控制字节在页面中显示为 \\xNN'
   actual_body=(corruption+f'<pre data-kind="output">{esc(readable_output(output))}</pre>' if output else
                f'<div class="call-log-empty">{esc(empty_output_reason(r,c,output))}</div>')
@@ -2507,6 +2531,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  comparison=section('方法组合对比','<p class="source-note">按同一任务逐项比较，不用各方法不同的成功样本拼接结论。成功与失败均沿用主榜的程序判定；点击方法可查看标准答案、实际返回和原因。</p>'+method_comparisons(cases,bycase,names),'method-comparison')
  write(out,'analysis/index.html','结果分析',hero('结果分析','先比较方法在同一任务上的成败组合，再筛选全部执行记录。')+comparison+section('全部执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',provider_label(r['provider'])))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table',cls='all-method-results')))
  write_support(out,records,manifests,authored_interpretation=authored_interpretation)
+ if score_audit:
+  render_score_audit(out,score_audit,score_binding)
  from .report_changes import render_changes
  if records and all(row.get('provider_type') == 'fixture' for row in records):
   write(out,'changes/index.html','示例说明',hero('合成示例','本报告由本地测试适配器生成。没有正式评测发布记录。'))
@@ -4334,3 +4360,38 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
         "schema_version": 1, "report": "webmainbench-545-full", "languages": ["zh"],
         "case_count": 545, "provider_count": len(providers), "result_count": len(records),
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def render_score_audit(out, audit, binding):
+ """Explain changed decisions from one bound review, beside native results."""
+ def verdict(value):return '通过' if value else '失败'
+ rows=[]
+ for item in audit['providers']:
+  rows.append((' data-audit-summary-provider="'+esc(item['provider'])+'"',cell(esc(provider_label(item['provider'])))+cell(str(item['published_passes']))+cell(str(item['historical_passes']))+cell(str(item['initial_rescore_passes']))+cell(str(item['corrected_passes']))+cell(str(item['total']))))
+ body=hero(audit['title'],audit['summary'])
+ body+=section('判定变化来自哪里','<figure><a href="../'+esc(binding['figure'])+'"><img src="../'+esc(binding['figure'])+'" alt="对同一份保存输出核对正文术语、文字和链接格式、卡片字段归属，以及原始与公开副本哈希" style="width:100%;height:auto"></a><figcaption>'+esc(audit['figure_caption'])+'</figcaption></figure>')
+ body+=section('沿用同一批任务重新计算','<p>'+esc(audit['metric_note'])+'</p>'+table(['方法','原页面汇总','按旧规则核对旧记录','修复前重算','修复后重算','题数'],rows,id='score-audit-comparison',metrics=[]))
+ body+=section(esc(audit['focus_heading']), '<p>'+esc(audit['focus_summary'])+'</p>')
+ inventory=[]
+ for item in audit['changes']:
+  identifier=item['attempt_id']
+  inventory.append(('',cell(esc(item['provider']))+cell(esc(item['case_id']))+cell(verdict(item['historical_pass']))+cell(verdict(item['initial_rescore_pass']))+cell(verdict(item['after_fix_pass']))+cell(esc(item['classification']))+cell(link('#'+identifier,'原因与证据'))))
+ controls='<label>筛选方法 <select id="audit-provider" onchange="document.querySelectorAll(\'[data-audit-provider]\').forEach(r=>r.hidden=this.value!==\'\'&&r.dataset.auditProvider!==this.value)"><option value="">全部方法</option>'+''.join('<option value="'+esc(item['provider'])+'">'+esc(provider_label(item['provider']))+'</option>' for item in audit['providers'])+'</select></label>'
+ markup=table(['方法','题目','旧判定','修复前','修复后','原因分类','证据'],inventory,metrics=[])
+ # Keep paragraphs in the evidence sections, outside the fixed-height inventory.
+ from bs4 import BeautifulSoup
+ document=BeautifulSoup(markup,'html.parser')
+ for element,item in zip(document.select('tbody tr'),audit['changes']):element['data-audit-provider']=item['provider']
+ body+=section('逐项判定',controls+'<div style="max-height:60vh;overflow:auto">'+str(document)+'</div>')
+ body+=section('脱敏副本的影响','<p>'+esc(audit['privacy_summary'])+'</p>'+''.join('<p>'+esc(text)+'</p>' for text in audit['privacy_findings']))
+ details=[]
+ for item in audit['changes']:
+  identifier=item['attempt_id']
+  facts=''.join('<dt>'+label+'</dt><dd>'+esc(item[key])+'</dd>' for key,label in [('requirement','验收要求'),('actual','实际返回'),('reason','变化原因'),('treatment','处理结果'),('source_scope','来源范围')])
+  evidence=' · '.join(link('../'+('audit/history/' if evidence.get('historical') else '')+evidence['path'],evidence.get('label') or evidence['path']) for evidence in item.get('evidence',[]))
+  quotations=''.join('<h4>'+esc(quote['label'])+'</h4><pre dir="auto">'+esc(quote['text'])+'</pre>' for quote in item.get('quotes',[]))
+  details.append('<article id="'+esc(identifier)+'" class="panel"><h3>'+esc(item['provider']+' · '+item['case_id'])+'</h3><p>'+esc(item['classification'])+' · '+verdict(item['historical_pass'])+' → '+verdict(item['initial_rescore_pass'])+' → '+verdict(item['after_fix_pass'])+'</p><dl class="diagnostic-fields">'+facts+'</dl><details><summary>原文、规则与实际输出片段</summary>'+quotations+'<p>'+evidence+'</p></details><p>'+link('../attempts/'+identifier+'.html','完整结果、实际输出和调用日志')+'</p></article>')
+ body+=section('每条变化的依据',''.join(details))
+ body+=section('审查范围','<p>'+esc(audit['review_scope'])+'</p><p>'+link('score-changes.json','下载逐条复核记录')+' · '+link('scoring-inputs.json','下载原始与公开评分输入哈希')+'</p>')
+ write(out,'audit/index.html',audit['title'],body)
+ write(out,'review/index.html','评分复核记录',hero('评分复核记录','旧判定、规则修正与公开副本影响分别保留。')+section('本版核查','<p>'+esc(audit['review_scope'])+'</p><p>'+esc(audit['summary'])+'</p><p>'+link('../audit/index.html','逐条原因、原文与验收规则')+'</p>'))

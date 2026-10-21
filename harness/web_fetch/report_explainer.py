@@ -406,7 +406,12 @@ def _offline_browser_article(body, out, cases, model):
         payload = '<h3>完整实际返回</h3><pre data-standalone-output="'+escape(name)+'">'+escape(raw)+'</pre>'
         payload += '<h3>结果与评分</h3><pre>'+escape(json.dumps({key:row[key] for key in ('attempt_id','provider','case_id','run_id','started_at','elapsed_ms','ok','status_code','error_type','metrics') if key in row},ensure_ascii=False,indent=2))+'</pre>'
         for binding in record_public_call_log_bindings(row):
-            log = verify_public_call_log(out,binding).read_text()
+            snapshot = json.loads((out/'dataset.json').read_text()).get('comparison',{}).get('score_audit') if (out/'dataset.json').is_file() else None
+            if snapshot:
+                from .published_snapshot import read_snapshot_public_file
+                log = read_snapshot_public_file(out,binding).read_text()
+            else:
+                log = verify_public_call_log(out,binding).read_text()
             payload += '<h3>调用日志</h3><pre>'+escape(log)+'</pre>'
         evidence('../attempts/'+row['attempt_id']+'.html', 'offline-result-'+row['attempt_id'],
                  '完整结果与调用证据 · '+name, payload)

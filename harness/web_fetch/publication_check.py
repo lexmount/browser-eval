@@ -38,9 +38,9 @@ def scored_output_hash(row: dict) -> str:
     return expected
 
 
-def check(archive, source, overlay=None, *, presentation_binding=None, external_archives=None, allow_pending_external=False):
+def check(archive, source, overlay=None, *, presentation_binding=None, external_archives=None, allow_pending_external=False, snapshot_audit=False):
     from .report_package import validate_release, DATA_ATTACHMENT_HTML
-    validate_release(source, presentation_binding=presentation_binding)
+    validate_release(source, presentation_binding=presentation_binding, snapshot_audit=snapshot_audit)
     source_files = evidence_tree_identity(source)
     physical = archive_inventory(archive)
     if overlay:
@@ -327,5 +327,6 @@ def main(*, root: Path | None = None):
     parser.add_argument("source", nargs="?", type=Path, default=root / "reports/webfetch")
     parser.add_argument("overlay", nargs="?", type=Path)
     parser.add_argument("--presentation-binding", type=Path)
+    parser.add_argument("--snapshot-audit",action="store_true")
     args = parser.parse_args()
-    check(args.archive, args.source, args.overlay, presentation_binding=args.presentation_binding)
+    check(args.archive, args.source, args.overlay, presentation_binding=args.presentation_binding,snapshot_audit=args.snapshot_audit)

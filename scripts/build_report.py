@@ -58,6 +58,13 @@ if __name__ == '__main__':
 
     if args.profile:
         args.profile=(ROOT/args.profile).resolve() if not args.profile.is_absolute() else args.profile.resolve()
+        if json.loads(args.profile.read_text()).get('variant') == 'published-snapshot-audit':
+            if not args.evidence or not args.output or args.local_audit or args.wcxb or args.include_english:
+                parser.error('snapshot audit requires a separate --evidence, --output and bound --profile')
+            requested_language(args.output, supported=('zh',))
+            from harness.web_fetch.published_snapshot import build_snapshot_audit
+            print(build_snapshot_audit(args.evidence, args.output, profile=args.profile))
+            raise SystemExit(0)
         if json.loads(args.profile.read_text()).get('variant') == 'diagnostic-cohorts':
             args.diagnostic_cohorts=True
     if args.diagnostic_cohorts:

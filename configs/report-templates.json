@@ -14,12 +14,25 @@
       "wcxb_check": "make wcxb-release-check",
       "wcxb_package": "uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only --source /absolute/new-report --work /absolute/package",
       "tests": "tests/test_headless_report.py",
-      "variants": ["certified", "wcxb", "local-audit", "diagnostic-cohorts"],
+      "variants": [
+        "certified",
+        "wcxb",
+        "local-audit",
+        "diagnostic-cohorts",
+        "published-snapshot-audit"
+      ],
       "diagnostic_build": "make webfetch-diagnostic-report DIAGNOSTIC_PROFILE=evaluation/live-webfetch/current-report.json OUTPUT=/absolute/new-output",
       "diagnostic_profile": "evaluation/live-webfetch/current-report.json",
       "diagnostic_check": "uv run --frozen python scripts/check_diagnostic_report.py /absolute/output --profile evaluation/live-webfetch/current-report.json",
       "diagnostic_example": "tests/test_report_templates.py:diagnostic_example",
-      "diagnostic_example_check": "uv run --frozen python -m unittest tests.test_report_templates"
+      "diagnostic_example_check": "uv run --frozen python -m unittest tests.test_report_templates",
+      "snapshot_audit_build": "uv run --frozen python scripts/build_report.py --profile /absolute/profile.json --evidence /absolute/published-snapshot --output /absolute/new-report --language zh",
+      "snapshot_audit_check": "uv run --frozen python scripts/check_report.py /absolute/new-report --profile /absolute/profile.json",
+      "snapshot_audit_tests": "tests/test_published_snapshot_rescoring.py",
+      "snapshot_audit_example": "tests/test_published_snapshot_report.py:example",
+      "snapshot_audit_example_check": "uv run --frozen python -m pytest tests/test_published_snapshot_report.py tests/test_published_snapshot_rescoring.py",
+      "snapshot_audit_release_check": "uv run --frozen python scripts/check_report.py /absolute/new-report --profile /absolute/profile.json --visual-receipt /absolute/private/visual.json",
+      "snapshot_audit_package": "uv run --frozen python scripts/package_artifact_hub.py /absolute/new-report /absolute/package.zip --snapshot-audit"
     },
     "trajectory-replay": {
       "renderer": "harness/trajectory_replay/webarena_report.py",

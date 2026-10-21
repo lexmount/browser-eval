@@ -9,7 +9,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl
 from harness.report_languages import check_language_contract, generated_languages, visible_numbers
 from harness.reporting.article_assets import ArticleAssetParity
 from harness.reporting.presentation import check_presentation
@@ -309,6 +309,11 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         profile_path = (
             (repository / profile).resolve() if not profile.is_absolute() else profile.resolve()
         )
+    if (root / 'report-manifest.json').is_file() and json.loads((root / 'report-manifest.json').read_text()).get('evidence_state') == 'published_snapshot_score_audit':
+        from .published_snapshot import check_snapshot_audit
+        if profile_path and file_sha256(profile_path) != json.loads((root / 'report-manifest.json').read_text()).get('profile_sha256'):
+            raise ValueError('Snapshot audit profile changed')
+        return check_snapshot_audit(root)
     if (root / "wcxb-score-summary.json").is_file():
         from harness.web_fetch.wcxb_report_check import check as check_wcxb
 
@@ -781,7 +786,11 @@ def main(argv=None, *, authority_root: Path | None = None):
     parser.add_argument('--source-dataset', type=Path)
     parser.add_argument("--authority-root", type=Path, default=authority_root or Path.cwd())
     parser.add_argument("--presentation-binding", type=Path)
+    parser.add_argument("--visual-receipt",type=Path,help="Full snapshot-audit browser checks; save receipt outside the report")
     args = parser.parse_args(argv)
+    if args.visual_receipt:
+        from .published_snapshot import check_snapshot_visual
+        print(check_snapshot_visual(args.root,args.visual_receipt))
     result = check(args.root, authority_root=args.authority_root, profile=args.profile, presentation_binding=args.presentation_binding, source_dataset=args.source_dataset)
     if result is not None:
         print(result)

@@ -35,6 +35,7 @@ ALLOWED_FIELDS = {
     "acceptance_contract",
     "composite_acceptance",
     "forbidden_any",
+    "diagnostic_any",
     "expected_resources",
     "resource_output_contract",
     "task_prompt",

@@ -98,3 +98,14 @@ message. Reproject retained full responses without new product calls when only
 this selection changed; missing historical envelopes require fresh calls across
 the full declared correction scope before claiming revised benchmark scores.
 Reruns of unchanged compiled acceptance-contract tasks freeze the existing executable dataset. They do not require recovering historical qualification raw files or repeating admission review. Source qualification is part of task authoring and reference/rule correction, not a prerequisite for every provider-version comparison. Preserve historical receipts without applying their evidence-file requirements to a new execution protocol.
+
+A published-snapshot score audit uses the maintained Web Fetch profile adapter,
+not a copied renderer. Bind the complete original export, full historical matrix,
+initial and corrected scores, per-input original/public/scored hashes, and every
+changed decision. Preserve collection facts and timing. Evaluate a suspected
+privacy effect with the historical scorer on the same public bytes; a redaction
+receipt by itself does not establish causation. Keep source-backed annotation
+corrections and executable regression provenance together. Reuse the native
+report's routes, interpretation schema, structured history and packer, and run its
+explicit snapshot audit browser gate before packaging. The catalog provides the
+runnable example and commands. Store instance evidence and prose outside Git.

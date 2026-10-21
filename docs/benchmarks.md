@@ -152,3 +152,28 @@ uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only \
   --profile /absolute/instance/profile.json \
   --source /absolute/instance/report --work /absolute/instance/package
 ```
+
+### Re-score a published snapshot
+
+A `published-snapshot-audit` profile rebuilds a saved Web Fetch report through the
+current renderer. Bind its complete exported file manifest, original and corrected
+results, historical verdicts, initial recomputation, scoring receipt, review,
+interpretation and diagram under `inputs`. An optional bound `method_registry`
+provides historical participant IDs, engines and labels; `release_history` supplies
+the report's structured history. Keep these instance files outside Git.
+
+`score_published_snapshot` verifies the full task-by-method matrix, preserves call
+identities and timing, and computes scores without contacting providers. It accepts
+an exact hash-verified recovered original, otherwise identifies a privacy-projected
+input separately. A projected file alone is not evidence that redaction changed a
+verdict. Compare the old scorer on the same bytes before assigning that cause.
+
+Build with `scripts/build_report.py --profile <profile> --evidence <snapshot>
+--output <new-report> --language zh`. This historical format supports Chinese and
+provides an English not-generated notice. Check with `scripts/check_report.py
+<new-report> --profile <profile> --visual-receipt <private-receipt>`, then package
+through `scripts/package_artifact_hub.py <new-report> <package.zip> --snapshot-audit`.
+Run these Python entries through `uv run --frozen python`. The mode retains the
+original routes and metric populations and labels the new report as a saved-input
+audit; it does not certify new calls or replace the original release. The ordinary
+packaging path rejects this evidence state without the explicit audit flag.

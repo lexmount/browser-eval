@@ -24,7 +24,10 @@ _CORRECTABLE_CASE_FIELDS = {
     "acceptance_contract",
     "composite_acceptance",
     "forbidden_any",
+    "diagnostic_any",
     "mutable_body_policy",
+    "expected_resources",
+    "resource_output_contract",
 }
 
 _RERUN_ONLY_CASE_FIELDS = {

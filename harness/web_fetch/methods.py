@@ -11,7 +11,7 @@ from typing import Any
 
 
 @lru_cache(maxsize=1)
-def browser_method_registry():
+def _execution_browser_method_registry():
     """Use the execution registry for release and source-build participants."""
     path = Path(__file__).resolve().parents[2] / "configs/providers.headless.json"
     if not path.is_file():
@@ -25,6 +25,14 @@ def browser_method_registry():
                 return {}
             raise
     return json.loads(path.read_text())["providers"]
+
+
+_REPORT_METHODS = ContextVar("webfetch_report_methods", default={})
+
+
+def browser_method_registry():
+    """Use a bound report registry while rendering historical or external methods."""
+    return {**_execution_browser_method_registry(), **_REPORT_METHODS.get()}
 
 
 def native_browser_engine(name):
@@ -48,46 +56,58 @@ def with_measured_method_labels(render):
     """Scope Moli version labels to the actual report's hash-bound binaries."""
     @wraps(render)
     def wrapped(out, dataset, records, *args, **kwargs):
-        path = Path(out) / "implementation-provenance.json"
-        provenance = json.loads(path.read_text()) if path.is_file() else {}
-        identities = {
-            item["binary_sha256"]: item["version"]
-            for item in provenance.get("implementations", [])
-            if item.get("version") and item.get("binary_sha256")
-        }
-        labels = {}
-        for name in {r["provider"] for r in records}:
-            if native_browser_engine(name) != "moli":
-                continue
-            subset = [r for r in records if r["provider"] == name]
-            versions = [
-                identities.get(r.get("provider_metadata", {}).get("binary_sha256"))
-                for r in subset
-            ]
-            if versions and all(versions):
-                counts = Counter(versions)
-                if len(counts) == 1:
-                    labels[name] = "Moli " + next(iter(counts))
-                else:
-                    releases = [
-                        match.group(1) if (match := re.match(r"^(\d+\.\d+\.\d+)", version)) else None
-                        for version in counts
-                    ]
-                    if None not in releases and len(set(releases)) == 1:
-                        release = releases[0]
-                        configured = browser_method_registry().get(name, {}).get("label", "")
-                        qualifier = "（候选版）" if "candidate" in configured.lower() else ""
-                        labels[name] = f"Moli {release}{qualifier}"
-                    else:
-                        labels[name] = "Moli 多构建结果（" + "；".join(
-                            f"{count} 例 {version}" for version, count in sorted(counts.items())
-                        ) + "）"
-        token = _MEASURED_LABELS.set(labels)
+        comparison = dataset.get("comparison")
+        saved = Path(out) / "dataset.json"
+        if comparison is None and saved.is_file():
+            comparison = json.loads(saved.read_text()).get("comparison", {})
+        registry_token = _REPORT_METHODS.set((comparison or {}).get("method_registry", _REPORT_METHODS.get()))
         try:
-            return render(out, dataset, records, *args, **kwargs)
+            return _render_with_labels(render, out, dataset, records, *args, **kwargs)
         finally:
-            _MEASURED_LABELS.reset(token)
+            _REPORT_METHODS.reset(registry_token)
     return wrapped
+
+
+def _render_with_labels(render, out, dataset, records, *args, **kwargs):
+    path = Path(out) / "implementation-provenance.json"
+    provenance = json.loads(path.read_text()) if path.is_file() else {}
+    identities = {
+        item["binary_sha256"]: item["version"]
+        for item in provenance.get("implementations", [])
+        if item.get("version") and item.get("binary_sha256")
+    }
+    labels = {}
+    for name in {r["provider"] for r in records}:
+        if native_browser_engine(name) != "moli":
+            continue
+        subset = [r for r in records if r["provider"] == name]
+        versions = [
+            identities.get(r.get("provider_metadata", {}).get("binary_sha256"))
+            for r in subset
+        ]
+        if versions and all(versions):
+            counts = Counter(versions)
+            if len(counts) == 1:
+                labels[name] = "Moli " + next(iter(counts))
+            else:
+                releases = [
+                    match.group(1) if (match := re.match(r"^(\d+\.\d+\.\d+)", version)) else None
+                    for version in counts
+                ]
+                if None not in releases and len(set(releases)) == 1:
+                    release = releases[0]
+                    configured = browser_method_registry().get(name, {}).get("label", "")
+                    qualifier = "（候选版）" if "candidate" in configured.lower() else ""
+                    labels[name] = f"Moli {release}{qualifier}"
+                else:
+                    labels[name] = "Moli 多构建结果（" + "；".join(
+                        f"{count} 例 {version}" for version, count in sorted(counts.items())
+                    ) + "）"
+    token = _MEASURED_LABELS.set(labels)
+    try:
+        return render(out, dataset, records, *args, **kwargs)
+    finally:
+        _MEASURED_LABELS.reset(token)
 
 
 METHOD_REGISTRY: dict[str, dict[str, Any]] = {
