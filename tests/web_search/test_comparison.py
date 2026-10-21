@@ -30,7 +30,7 @@ def test_scoped_acceptance_keeps_unlabelled_and_missing_unknown():
     assert acceptance(p["cases"][0], rows[0], "answer") is None
     assert acceptance(p["cases"][0], rows[0], "primary") is True
     assert acceptance(p["cases"][1], rows[3], "primary") is True
-    assert acceptance(p["cases"][2], rows[6], "primary") is True
+    assert acceptance(p["cases"][2], rows[6], "primary") is None
 
 
 @pytest.mark.parametrize("base,other,expected", [
@@ -130,3 +130,22 @@ def test_source_home_directory_preview_preserves_original():
     source = 'Traceback File /Users/example/project/file.py:4 error'
     assert _preview(source, 320) == 'Traceback File [source path] error'
     assert '/Users/example/' in source
+
+
+def test_reader_can_inspect_reference_answer_urls_and_site_without_opening_raw_json():
+    p, rows = matrix()
+    p["cases"][0]["domains"] = ["example.org"]
+    data = comparison_data(p, rows)
+    assert data["cases"][0]["criteria"]["urls"] == ["https://example.org/"]
+    assert data["cases"][0]["criteria"]["domains"] == ["example.org"]
+    assert data["cases"][1]["criteria"]["answer"] == "Ada"
+    assert data["cases"][1]["criteria"]["urls"] == ["https://example.org/ada"]
+    assert data["cases"][0]["outputs"]["a"]["items"][0]["site_match"] is True
+
+
+def test_empty_result_is_site_failure_only_when_query_restricts_sites():
+    row = {"results": [], "metrics": {"result_count": 0}}
+    assert acceptance({"domains": ["example.org"]}, row, "site") is False
+    assert acceptance({}, row, "site") is None
+    assert acceptance({}, row, "primary") is None
+    assert acceptance({}, row, "availability") is False
