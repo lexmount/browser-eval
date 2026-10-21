@@ -97,7 +97,8 @@ def test_saved_matrix_keeps_native_routes_and_inspectable_review(tmp_path,recove
         page=BeautifulSoup((out/route).read_text(),'html.parser')
         assert page.select_one('main[data-evidence-state]') is not None
         assert not page.select('[role="status"][data-evidence-state]')
-        assert '保存输出的评分复核' not in page.get_text()
+        for unwanted in ['保存输出的评分复核','本地未认证诊断结果','任务判定汇总（非排名）']:
+            assert unwanted not in page.get_text()
     method=out/'methodology/index.html';original=method.read_text()
     method.write_text(original.replace('data-scoring-input-scope','data-removed-scope'))
     with pytest.raises(ValueError,match='lost its scoring input scope'):check_snapshot_audit(out)
