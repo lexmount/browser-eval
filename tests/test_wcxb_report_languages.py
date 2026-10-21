@@ -125,6 +125,12 @@ def test_wcxb_instance_counts_versions_and_interfaces_follow_selected_evidence(t
             assert '六种配置' not in text
             assert 'five browsers' not in text
             assert '五款浏览器' not in text
+            if not prefix:
+                from harness.web_fetch.wcxb_report_check import ReportShape, require_bilingual_shape
+                zh, en = ReportShape(), ReportShape()
+                zh.feed(text)
+                en.feed((root / 'en' / route).read_text())
+                require_bilingual_shape(zh, en, route)
         method = (root / prefix / 'methodology/index.html').read_text()
         assert 'Kitesurf receives' not in method
         interfaces = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(), 'html.parser').select_one('pre').get_text()
