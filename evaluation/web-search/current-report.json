@@ -5,7 +5,7 @@
     "host": "https://artifact-site.lexmount.cn",
     "state": "update-private-artifact",
     "slug": "W3MxzlJuPRl6",
-    "expected_version": "ver_f5a6b8253cf240998915e60a75087817"
+    "expected_version": "ver_cd19ebc7531d4ee09868c48987c0b3b6"
   },
   "protocol": {
     "top_k": 5,

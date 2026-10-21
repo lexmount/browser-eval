@@ -28,6 +28,9 @@ def test_scoped_acceptance_keeps_unlabelled_and_missing_unknown():
     assert acceptance(p["cases"][2], rows[6]) is None
     assert acceptance(p["cases"][0], None) is None
     assert acceptance(p["cases"][0], rows[0], "answer") is None
+    assert acceptance(p["cases"][0], rows[0], "primary") is True
+    assert acceptance(p["cases"][1], rows[3], "primary") is True
+    assert acceptance(p["cases"][2], rows[6], "primary") is True
 
 
 @pytest.mark.parametrize("base,other,expected", [
@@ -94,8 +97,9 @@ def test_reader_labels_state_what_was_found_and_full_summary_scope():
     assert "上方的题库、题目、检查项目、方法和命中状态会同步筛选这里" in page
 
 
-def test_declared_population_filters_are_shared_and_exact():
+def test_benchmark_and_task_type_filters_are_separate():
     p, rows = matrix()
+    p["cases"][0]["domains"] = ["example.org"]
     p["comparison_populations"] = [
         {"id": "overall", "label": {"en": "Overall", "zh": "总体"}, "case_ids": ["target", "fact", "probe"]},
         {"id": "factual", "label": {"en": "Factual", "zh": "事实"}, "case_ids": ["fact"]},
@@ -103,12 +107,19 @@ def test_declared_population_filters_are_shared_and_exact():
     ]
     page = render_comparison(p, rows, True)
     dom = BeautifulSoup(page, "html.parser")
-    assert [o.text for o in dom.select("[data-output-cohort] option")] == ["总体 · 3", "事实 · 1", "参考 · 1"]
-    assert len(dom.select("[data-output-cohort]")) == 1
-    assert page.index("data-output-cohort") < page.index("<h2>")
+    assert [o.text for o in dom.select("[data-output-benchmark] option")] == [
+        "两套评测 · 3", "自建场景集 · 2", "SimpleQA 检索诊断 · 1"
+    ]
+    assert [o.text for o in dom.select("[data-output-check] option")] == [
+        "全部题型", "目标网页发现", "指定网站约束", "开放探索可用性", "事实证据"
+    ]
+    assert page.index("data-output-benchmark") < page.index("<h2>")
     assert dom.select_one("[data-relation-prev]") and dom.select_one("[data-relation-next]")
     data = json.loads(dom.select_one("[data-comparison-data]").string)
     assert data["populations"][2]["case_ids"] == ["target"]
+    assert data["cases"][0]["benchmark"] == "custom"
+    assert data["cases"][0]["check_types"] == ["target", "site"]
+    assert data["cases"][1]["benchmark"] == "factual"
     p["comparison_populations"][2]["case_ids"] = ["missing"]
     with pytest.raises(ValueError, match="unknown tasks"):
         comparison_data(p, rows)

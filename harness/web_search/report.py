@@ -1858,7 +1858,7 @@ def cohort_summary(profile, rows, zh):
             )
     return (
         "<section data-cohort-summary><h2>"
-        + t("One evaluation, with query-group breakdowns", "一份总评测，按题目分项查看")
+        + t("Independent benchmarks, with separate collection cohorts", "两套评测，按采集批次分别查看")
         + "</h2><p>"
         + t(
             f"{len(profile['cases'])} queries and {len(rows)} calls from {len(groups)} separately collected complete batches. The rows below preserve each collection separately; do not infer a new same-window speed trial from their combined count. Target-page hits are calculated only for queries with declared targets.",

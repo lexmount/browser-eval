@@ -2,10 +2,10 @@
   "base_url": "https://artifact-site.lexmount.cn",
   "slug": "W3MxzlJuPRl6",
   "url": "https://artifact-site.lexmount.cn/s/W3MxzlJuPRl6",
-  "versionId": "ver_ea325d46a4f04cfea2c8d2fb618636bd",
+  "versionId": "ver_cd19ebc7531d4ee09868c48987c0b3b6",
   "visibility": "private",
-  "previous_version": "ver_0cf0f00b6261495e88e2bded36368699",
-  "archive_sha256": "6a0b3ea86ed240f29246daa5e3ff9a9bf8c640d30a3be354e8da9140dac5cd7e",
+  "previous_version": "ver_ea325d46a4f04cfea2c8d2fb618636bd",
+  "archive_sha256": "06f62da706b164a35197516f9bd5815225eaa4b0249188729fae8d593d4cd0fd",
   "schema": "web-search-publication/1",
   "published_at": "2026-10-21",
   "report_kind": "three-provider-top-five-comparison",
@@ -33,19 +33,19 @@
     },
     "report_manifest": {
       "path": "web-search/20261021-search-api-three-provider-report/report/manifest.json",
-      "sha256": "3e3590a20c162a3cc4041690028a1002df35ee587c0250e57c141da6171f16a2"
+      "sha256": "afd32939e8df59a13e10204f1f6bbbd9bab82197cc261a651c2b4d1448734f93"
     },
     "content": {
       "path": "web-search/20261021-search-api-three-provider-report/reader-content.json",
       "sha256": "b653137decc351ee903adc8e208aa89c378d0e5080033f2602d96f55234ae89a"
     },
     "visual_acceptance": {
-      "path": "web-search/20261021-search-api-three-provider-report/visual/release.json",
-      "sha256": "e643460634e4da73d041f091fd494be9d7daf32c57951ddfa4e7070578260bba"
+      "path": "web-search/20261021-search-api-three-provider-report/visual-final/release.json",
+      "sha256": "2709fc726946d455fa738630643a01659a406ab798b407fb7793c4e8cac540e1"
     },
     "delivery_index": {
-      "path": "web-search/20261021-search-api-three-provider-report/delivery/delivery-index.json",
-      "sha256": "351653bec51b1ec381fbe40596d24a0999053e3b5ad338b8615f1a6d5615ec71"
+      "path": "web-search/20261021-search-api-three-provider-report/delivery-final/delivery-index.json",
+      "sha256": "1d7ffc0e32199201673a41f79bdd683b0c604ae86a0b9d103aa9c783cce52b2b"
     },
     "reference_additions": {
       "path": "web-search/20261021-search-api-three-provider-report/scenario-additions.json",
