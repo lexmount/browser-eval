@@ -2,10 +2,10 @@
   "base_url": "https://artifact-site.lexmount.cn",
   "slug": "W3MxzlJuPRl6",
   "url": "https://artifact-site.lexmount.cn/s/W3MxzlJuPRl6",
-  "versionId": "ver_cd19ebc7531d4ee09868c48987c0b3b6",
+  "versionId": "ver_7444ae3c231a4646b8937ee9960b039e",
   "visibility": "private",
-  "previous_version": "ver_ea325d46a4f04cfea2c8d2fb618636bd",
-  "archive_sha256": "06f62da706b164a35197516f9bd5815225eaa4b0249188729fae8d593d4cd0fd",
+  "previous_version": "ver_cd19ebc7531d4ee09868c48987c0b3b6",
+  "archive_sha256": "705de1e0eb2534a3bdbc5e2b39931fec7907ac745b1ae582ae7c93f31e3017eb",
   "schema": "web-search-publication/1",
   "published_at": "2026-10-21",
   "report_kind": "three-provider-top-five-comparison",
@@ -13,7 +13,7 @@
   "logical_results": 2940,
   "physical_calls": 2944,
   "superseded_physical_calls": 89,
-  "quality_judge": "none",
+  "quality_judge": "Aliyun/deepseek-v4.1-flash-1017",
   "bindings": {
     "primary_profile": {
       "path": "evaluation/web-search/search-api-modes.json",
@@ -32,24 +32,28 @@
       "sha256": "6a680b8fa3b58d8cfb25ce124288fae4d6a5680492f29167ae3a23eb9fff88e7"
     },
     "report_manifest": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_cd19ebc7531d4ee09868c48987c0b3b6/manifest.json",
-      "sha256": "afd32939e8df59a13e10204f1f6bbbd9bab82197cc261a651c2b4d1448734f93"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_7444ae3c231a4646b8937ee9960b039e/manifest.json",
+      "sha256": "02b4c7ef3d77c57f4d2049ba6c21bb0ed664cd02693caa977c6e225d47286d07"
     },
     "content": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_cd19ebc7531d4ee09868c48987c0b3b6/reader-content.json",
-      "sha256": "b653137decc351ee903adc8e208aa89c378d0e5080033f2602d96f55234ae89a"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_7444ae3c231a4646b8937ee9960b039e/reader-content.json",
+      "sha256": "9be0380f5bf234228a320320d277eeb52eb169db8d647539ce42ae4c2afc8d87"
     },
     "visual_acceptance": {
-      "path": "web-search/20261021-search-api-three-provider-report/visual-final/release.json",
-      "sha256": "2709fc726946d455fa738630643a01659a406ab798b407fb7793c4e8cac540e1"
+      "path": "web-search/20261021-search-api-three-provider-report/visual-current/release.json",
+      "sha256": "fba6492eb73b8a78a0293fdf769cf3028e4e26ab53e58185aa8db9291cff139a"
     },
     "delivery_index": {
-      "path": "web-search/20261021-search-api-three-provider-report/delivery-final/delivery-index.json",
-      "sha256": "1d7ffc0e32199201673a41f79bdd683b0c604ae86a0b9d103aa9c783cce52b2b"
+      "path": "web-search/20261021-search-api-three-provider-report/delivery-model-relevance/delivery-index.json",
+      "sha256": "b7ea1ebcc9c5f9493e8de30a52a82d40d3430c584c71fe5ac95f2cda3cbf6702"
     },
     "reference_additions": {
       "path": "web-search/20261021-search-api-three-provider-report/scenario-additions.json",
       "sha256": "44b63a8f1251ebbf24d259a49f621813ddaeb034ac11fd4b7d28fc6c1376e118"
+    },
+    "relevance": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_7444ae3c231a4646b8937ee9960b039e/relevance.json",
+      "sha256": "4204169ef91cd968bdf29585baa977b3425a1cf9ff3a6bb557e1532ec365379b"
     }
   },
   "cohort_inputs": [
@@ -63,13 +67,26 @@
     }
   ],
   "populations": {
-    "overall": 980,
+    "custom": 149,
     "factual": 831,
-    "scenario": 60
+    "target_page_diagnostic": 60
   },
   "methods": [
     "lexmount",
     "deepseek-content",
     "bocha-summary"
-  ]
+  ],
+  "quality_annotation": {
+    "queries": 149,
+    "candidates": 2046,
+    "grades": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "scope": "preview-relevance",
+    "temperature": 0,
+    "enable_thinking": false
+  }
 }
