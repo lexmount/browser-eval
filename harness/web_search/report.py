@@ -663,10 +663,6 @@ def build(
         summary = aggregate(selected)
         physical = aggregate(rows)
         body = table(headers, core, True)
-        if review_data:
-            body += '<p data-review-coverage><a href="review.html">' + t(
-                f"Codex reviewed {review_data['case_reviewed']}/{review_data['case_total']} queries and {review_data['output_reviewed']}/{review_data['output_total']} outputs",
-                f"Codex 已审查 {review_data['case_reviewed']}/{review_data['case_total']} 题、{review_data['output_reviewed']}/{review_data['output_total']} 份接口输出") + '</a></p>'
 
         body += cohort_summary(profile, rows, zh)
         body += authored_sections(authored, "summary", lang)
@@ -818,6 +814,10 @@ def build(
                     chapter_body += cost_panel(profile, rows, zh)
                 chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
                 page(chapter_key + ".html", chapter_title, chapter_body)
+        if review_data:
+            body += '<p data-review-coverage><a href="review.html">' + t(
+                f"Codex reviewed {review_data['case_reviewed']}/{review_data['case_total']} queries and {review_data['output_reviewed']}/{review_data['output_total']} outputs",
+                f"Codex 已审查 {review_data['case_reviewed']}/{review_data['case_total']} 题、{review_data['output_reviewed']}/{review_data['output_total']} 份接口输出") + '</a></p>'
         page(
             "index.html",
             authored.get("title", {}).get(lang)
@@ -2033,8 +2033,8 @@ def cohort_summary(profile, rows, zh):
         + t("Independent benchmarks, with separate collection cohorts", "两套评测，按采集批次分别查看")
         + "</h2><p>"
         + t(
-            f"{len(profile['cases'])} queries and {len(rows)} calls from {len(groups)} separately collected complete batches. The rows below preserve each collection separately; do not infer a new same-window speed trial from their combined count. Target-page hits are calculated only for queries with declared targets.",
-            f"共 {len(profile['cases'])} 道题、{len(rows)} 次调用，来自 {len(groups)} 批完整实测。下表分别保留各批次耗时，不把合计调用数当成一轮同时段测速；目标页命中只统计有预定目标的题目。",
+            f"{len(profile['cases'])} queries and {len(rows)} final logical results, from {sum(len(r.get('attempts') or [r]) for r in rows)} physical requests including retries, across {len(groups)} complete collection batches. The table preserves each batch separately; the combined count is not a new same-window speed trial.",
+            f"共 {len(profile['cases'])} 道题、{len(rows)} 份最终结果；含重试的实际请求为 {sum(len(r.get('attempts') or [r]) for r in rows)} 次，来自 {len(groups)} 批完整实测。下表分别保留各批次耗时，合并数量不代表重新进行了一轮同时段测速。",
         )
         + "</p>"
         + table(
@@ -2042,8 +2042,8 @@ def cohort_summary(profile, rows, zh):
                 t("Query group", "分项"),
                 t("Method", "接口"),
                 t("Queries/provider", "每家题数"),
-                t("Calls", "调用数"),
-                t("Nonempty/calls", "非空/调用数"),
+                t("Final results", "最终结果数"),
+                t("Nonempty/final results", "非空结果数/最终结果数"),
                 t("Mean returned count", "平均返回条数"),
                 t("Mean ms", "平均 ms"),
                 "P50 ms",
@@ -2091,10 +2091,10 @@ def fairness_table(profile, rows, zh):
         + table(
             [
                 t("Provider", "接口"),
-                t("Calls", "调用数"),
-                t("Requested count × calls", "请求条数 × 调用次数"),
-                t("Returned count × calls", "返回条数 × 调用次数"),
-                t("Mean results/call", "平均返回条数/次"),
+                t("Final results", "最终结果数"),
+                t("Requested limit × tasks", "请求上限（条 × 任务数）"),
+                t("Returned items × tasks", "返回数量（条 × 任务数）"),
+                t("Mean items per task", "每个任务平均返回条数"),
             ],
             entries,
         )

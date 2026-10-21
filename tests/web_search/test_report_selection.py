@@ -213,3 +213,20 @@ def test_reference_quarantine_is_common_and_never_removes_latency_or_cost():
         assert text[3] == "500.00"
         assert text[-1] == "0.02 元"
     assert "全部 2 题" in soup.select_one("[data-quality-exclusions]").get_text()
+
+
+def test_collection_description_separates_retries_from_logical_results(tmp_path):
+    from harness.web_search.report import check, cohort_summary, fairness_table
+    example(tmp_path)
+    profile, rows = check(tmp_path / "report", return_data=True)
+    profile["report_cohorts"] = [{"id": "batch", "label": {"zh": "测试批次", "en": "Test batch"}, "case_ids": [c["id"] for c in profile["cases"]]}]
+    for row in rows:
+        row["cohort"] = "batch"
+    rows[0]["attempts"] = [{"http_status": 503}, {"http_status": 200}]
+    page = BeautifulSoup(cohort_summary(profile, rows, True), "html.parser")
+    assert "4 份最终结果" in page.get_text()
+    assert "实际请求为 5 次" in page.get_text()
+    assert "最终结果数" in page.select_one("thead").get_text()
+    budget = BeautifulSoup(fairness_table(profile, rows, True), "html.parser")
+    assert "请求上限（条 × 任务数）" in budget.get_text()
+    assert "调用次数" not in budget.get_text()
