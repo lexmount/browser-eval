@@ -149,3 +149,31 @@ def test_empty_result_is_site_failure_only_when_query_restricts_sites():
     assert acceptance({}, row, "site") is None
     assert acceptance({}, row, "primary") is None
     assert acceptance({}, row, "availability") is False
+
+
+def test_human_relevance_is_the_primary_quality_check_when_complete_labels_exist():
+    import hashlib
+    from harness.web_search.core import canonical_url
+    p, rows = matrix()
+    case = p["cases"][0]
+    cid = hashlib.sha256((case["id"] + "\0" + canonical_url(rows[0]["results"][0]["url"])).encode()).hexdigest()[:12]
+    evidence = {"labels": {case["id"]: {cid: 2}}}
+    data = comparison_data(p, rows, relevance=evidence)
+    # Provider b misses the preselected URL metric in this fixture, but its page
+    # has the same frozen human relevance label as the other providers.
+    out = data["cases"][0]["outputs"]["b"]
+    assert out["source"] is False
+    assert out["primary"] is True
+    assert out["quality"] is True
+    assert out["items"][0]["grade"] == 2
+    assert data["cases"][2]["outputs"]["a"]["quality"] is None
+
+
+def test_answer_beyond_body_excerpt_does_not_highlight_unmatched_preview():
+    p, rows = matrix()
+    row = rows[3]
+    row["results"][0]["content"] = "unrelated text " * 100 + " Ada"
+    item = comparison_data(p, rows)["cases"][1]["outputs"]["a"]["items"][0]
+    assert item["answer_fields"]["content"] is False
+    assert item["answer_outside_preview"] is True
+    assert "Ada" not in item["content"]

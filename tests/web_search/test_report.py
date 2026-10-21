@@ -155,7 +155,6 @@ class ReportScenarios(unittest.TestCase):
         self.assertTrue(check(self.out))
 
     def test_preview_quality_panel_is_bound_to_scored_candidates(self):
-        import hashlib
 
         source = self.root / "fixture"
         profile_path = source / "profile.json"
@@ -166,17 +165,15 @@ class ReportScenarios(unittest.TestCase):
         receipt = json.loads(receipt_path.read_text())
         receipt["profile_sha256"] = digest(profile_path.read_bytes())
         receipt_path.write_text(json.dumps(receipt))
-        case = profile["cases"][0]
-        url = case["anchors"][0]
-        from harness.web_search.core import canonical_url
-        candidate = hashlib.sha256((case["id"] + "\0" + canonical_url(url)).encode()).hexdigest()[:12]
-        evidence = {
-            "plan": {"cutoff": 5, "case_ids": [case["id"]]},
-            "labels": {case["id"]: {candidate: 3}},
-            "judge": {"model": "fixture"},
-            "blind_candidate_packets": [{"case_id": case["id"], "candidates": [{"candidate_id": candidate, "url": url}]}],
-            "provider_rankings": {case["id"]: {m["id"]: [candidate] for m in profile["methods"]}},
-        }
+        from harness.web_search.relevance import candidate_packet, import_annotations
+        measured = [json.loads(line) for line in (source / "results.jsonl").read_text().splitlines()]
+        packet, _ = candidate_packet(profile, measured)
+        submission = {"packet_sha256": packet["packet_sha256"],
+                      "judge": {"kind": "human", "name": "Fixture reviewer"},
+                      "reviewed_case_ids": packet["plan"]["case_ids"],
+                      "labels": {c["case_id"]: {x["candidate_id"]: 3 for x in c["candidates"]}
+                                 for c in packet["blind_candidate_packets"]}}
+        evidence = import_annotations(profile, measured, submission)
         relevance = self.root / "relevance.json"
         relevance.write_text(json.dumps(evidence))
         content = self.root / "reading.json"
@@ -571,3 +568,29 @@ class RepeatedLatencyScenarios(unittest.TestCase):
         self.assertEqual(data[1][3], "100.00")
         self.assertIn("miss: 1", data[0][-1])
         self.assertIn("unknown: 1", data[1][-1])
+
+
+def test_interface_specimen_keeps_every_method_and_full_results():
+    from harness.web_search.report import interface_example
+    import pytest
+    p = {"cases": [{"id": "q", "query": "One common question"}],
+         "methods": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}]}
+    rows = [{"case_id": "q", "method": m["id"], "request": {"count": 5},
+             "results": [{"url": "https://example.org/", "summary": "full" * 1000}],
+             "evidence": {"path": m["id"] + ".json"}} for m in p["methods"]]
+    html = interface_example(p, rows, "q", True)
+    soup = BeautifulSoup(html, "html.parser")
+    assert [x["data-interface-method"] for x in soup.select("[data-interface-method]")] == ["a", "b"]
+    assert html.count("full" * 1000) == 2
+    assert len(soup.select("[data-evidence]")) == 2
+    with pytest.raises(ValueError, match="every method"):
+        interface_example(p, rows[:1], "q", True)
+
+
+def test_dataset_inventory_has_bounded_scroll_for_large_catalogs(tmp_path):
+    from harness.web_search.example import example
+    output = example(tmp_path).parent
+    dom = BeautifulSoup((output / "dataset.html").read_text(), "html.parser")
+    inventory = dom.select_one(".scroll.inventory")
+    assert inventory is not None
+    assert inventory.select("tr[data-case-id]")

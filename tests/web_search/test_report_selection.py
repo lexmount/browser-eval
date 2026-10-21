@@ -182,3 +182,14 @@ def test_headline_subgroups_show_actual_quality_counts_and_ranks():
     assert [x.get_text().replace('★ ', '') for x in scenario[0].select('td')][1:3] == ['1/1 · 100.0%', '0.500']
     assert len(soup.select('[data-population="overall"] th')) == 6
     assert len(soup.select('[data-population="factual"] th')) == 7
+    independent = {"independent_benchmarks": True, "metric_populations": [
+        dict(groups[2], id="custom", benchmark_root=True),
+        dict(groups[1], benchmark_root=True), groups[2]]}
+    home = BeautifulSoup(population_summary(profile, rows, independent, False), "html.parser")
+    assert [node["data-population"] for node in home.select("[data-population]")] == ["custom", "factual"]
+    from harness.web_search.report import interpretation_summary_table
+    interpretation = BeautifulSoup(interpretation_summary_table(profile, rows, False, independent), "html.parser")
+    assert [node["data-population"] for node in interpretation.select("[data-population]")] == ["custom", "factual"]
+    assert "2/2" not in interpretation.get_text()
+    detail = BeautifulSoup(population_summary(profile, rows, independent, False, diagnostics=True), "html.parser")
+    assert [node["data-population"] for node in detail.select("[data-population]")] == ["scenario"]

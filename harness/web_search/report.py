@@ -76,7 +76,7 @@ def fmt(value):
     return "—" if value is None else f"{value:,.2f}"
 
 
-def table(headers, rows, sortable=False):
+def table(headers, rows, sortable=False, *, bounded=False):
     head = "".join(
         f'<th><button data-sort-column="{i}">{esc(h)} ↕</button></th>'
         if sortable and i
@@ -84,7 +84,7 @@ def table(headers, rows, sortable=False):
         for i, h in enumerate(headers)
     )
     return (
-        '<div class="scroll" tabindex="0"><table'
+        ('<div class="scroll inventory" tabindex="0"><table' if bounded else '<div class="scroll" tabindex="0"><table')
         + (' class="compact"' if len(headers) == 2 else "")
         + "><thead><tr>"
         + head
@@ -363,6 +363,9 @@ def build(
     selected = [r for r in rows if r["round"] == profile["protocol"]["score_round"]]
     relevance_data = json.loads(relevance.read_text()) if relevance else None
     if relevance_data:
+        if "plan" not in relevance_data:
+            from .relevance import import_annotations
+            relevance_data = import_annotations(profile, selected, relevance_data)
         verify_provenance(profile, selected, relevance_data)
     relevance_scores = (
         score_relevance(profile, selected, relevance_data["plan"], relevance_data["labels"])
@@ -389,7 +392,7 @@ def build(
         bundle.append({"path": "factual-sensitivity.json", "sha256": digest((output / "factual-sensitivity.json").read_bytes())})
     if relevance_data:
         target = output / "relevance-judgments.json"
-        target.write_bytes(relevance.read_bytes())
+        target.write_text(json.dumps(relevance_data, ensure_ascii=False, indent=2), encoding="utf-8")
         bundle.append({"path": target.name, "sha256": digest(target.read_bytes())})
     notice = ROOT / "evaluation/web-search/NOTICE.txt"
     notice_target = output / "query-catalog-license.txt"
@@ -717,7 +720,11 @@ def build(
                 chapter_body = authored_sections(authored, chapter_key + "-lead", lang, rows=selected)
                 if chapter_key == "capabilities":
                     chapter_body += capability_map(profile, selected, zh)
+                    if authored.get("interface_example_case_id"):
+                        chapter_body += interface_example(profile, selected, authored["interface_example_case_id"], zh)
                 if chapter_key == "quality":
+                    if relevance_scores:
+                        chapter_body += relevance_panel(profile, relevance_scores, relevance_data, zh)
                     chapter_body += factual_panel(profile, selected, zh)
                     chapter_body += scenario_panel(profile, selected, authored, zh)
                 chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
@@ -818,6 +825,7 @@ def build(
                     )
                     for s, c in zip(ds, profile["cases"], strict=True)
                 ],
+                bounded=True,
             ),
         )
         inventory = []
@@ -1023,7 +1031,7 @@ def build(
         page(
             "results.html",
             t("Saved result inventory", "逐项结果"),
-            (render_result_comparison(profile, selected, zh, prefix=prefix, site_prefix=site_prefix, content=authored) if authored.get("presentation") == "comparison-report" else "")
+            (render_result_comparison(profile, selected, zh, prefix=prefix, site_prefix=site_prefix, content=authored, relevance=relevance_data) if authored.get("presentation") == "comparison-report" else "")
             + origin_filter(profile, zh)
             + cohort_filter(profile, zh)
             + controls
@@ -1093,7 +1101,7 @@ def build(
             assessment_revision=assessment_revision,
             evidence_redactions=redactions,
             billing_corrections=billing_corrections,
-            relevance_sha256=digest(relevance.read_bytes()) if relevance else None,
+            relevance_sha256=digest((output / "relevance-judgments.json").read_bytes()) if relevance_data else None,
             result_storage="raw-response",
             rows=[
                 {
@@ -1118,7 +1126,7 @@ def build(
     return output / "index.html"
 
 
-def check(output):
+def check(output, *, return_data=False):
     manifest = json.loads((output / "manifest.json").read_text())
     if manifest.get("schema") == "web-search-reference/1":
         return check_reference(output)
@@ -1465,6 +1473,11 @@ def check(output):
                 for cell, value in zip(cells_at, values, strict=True):
                     if ("win" in cell.get("class", [])) != (best is not None and value == best):
                         raise ValueError("Missing or incorrect unique winner marker")
+        if route.endswith("capabilities.html") and manifest.get("authored", {}).get("interface_example_case_id"):
+            cid = manifest["authored"]["interface_example_case_id"]
+            example = soup.select_one("[data-interface-case]")
+            if example is None or example["data-interface-case"] != cid or [n["data-interface-method"] for n in example.select("[data-interface-method]")] != [m["id"] for m in manifest["profile"]["methods"]]:
+                raise ValueError("Interface example must show the same query for every method")
         if "details/" in route and (
             len(soup.select("[data-summary]")) != 1
             or not soup.select("[data-error]")
@@ -1484,6 +1497,9 @@ def check(output):
                 raise ValueError("Broken evidence/navigation target: " + href)
         if "/Users/" in str(soup):
             raise ValueError("Private data in report")
+    if return_data:
+        selected = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+        return manifest["profile"], selected
     return True
 
 
@@ -1663,7 +1679,9 @@ def main(argv=None):
         help="Build a sourced API reference comparison, without benchmark scores",
     )
     parser.add_argument("--identity-correction", type=Path)
-    parser.add_argument("--relevance", type=Path, help="Bound blind preview-relevance judgments")
+    parser.add_argument("--relevance", type=Path, help="Complete human relevance annotations for every in-house query")
+    parser.add_argument("--export-annotations", type=Path, metavar="DESTINATION",
+                        help="Prepare full in-house human annotations from an existing checked report")
     parser.add_argument("--site-prefix", default="")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--language", choices=["en", "zh"], default=None)
@@ -1673,6 +1691,13 @@ def main(argv=None):
     parser.add_argument("--export-delivery", type=Path, metavar="DESTINATION",
                         help="Export the checked report into lossless case shards for bounded-file hosts")
     args = parser.parse_args(argv)
+    if args.export_annotations:
+        if args.source or args.cohort or args.reference_content:
+            parser.error("Annotation export consumes an existing report")
+        from .relevance import export_annotations
+        profile, selected = check(args.output, return_data=True)
+        print(export_annotations(profile, selected, args.export_annotations))
+        return
     if args.export_delivery:
         if args.source or args.cohort or args.reference_content:
             parser.error("Delivery export consumes an existing report, not build inputs")
@@ -2299,6 +2324,8 @@ def provenance_table(profile, zh):
 
 def interpretation_summary_table(profile, selected, zh, content=None):
     content = content or {}
+    if content.get("independent_benchmarks"):
+        return population_summary(profile, selected, content, zh)
     selected = scoped_overview_rows(profile, selected, content)
     profile = dict(profile, methods=scoped_overview_methods(profile, content), cases=[c for c in profile["cases"] if c["id"] in {r["case_id"] for r in selected}])
     stats = aggregate(selected)
@@ -2391,6 +2418,27 @@ def capability_map(profile, selected, zh):
     return ''.join(output)
 
 
+def interface_example(profile, rows, case_id, zh):
+    """Show the same query's complete native requests and response links for every method."""
+    case = next((c for c in profile["cases"] if c["id"] == case_id), None)
+    if case is None:
+        raise ValueError("Interface example query is missing")
+    indexed = {r["method"]: r for r in rows if r["case_id"] == case_id}
+    body = '<section data-interface-case="' + esc(case_id) + '"><h2>' + (
+        '同一道题的完整请求与返回' if zh else 'One query: complete requests and responses'
+    ) + '</h2><p>' + esc(case["query"]) + '</p>'
+    for method in profile["methods"]:
+        if method["id"] not in indexed:
+            raise ValueError("Interface example must include every method")
+        row = indexed[method["id"]]
+        body += '<article class="specimen" data-interface-method="' + esc(method["id"]) + '"><h3>' + esc(method["label"]) + '</h3>'
+        body += '<p>' + (f'返回 {len(row["results"])} 条结果' if zh else f'{len(row["results"])} results returned') + '</p>'
+        body += '<details><summary>' + ('完整请求参数' if zh else 'Complete request parameters') + '</summary><pre>' + esc(json.dumps(row.get("request", {}), ensure_ascii=False, indent=2)) + '</pre></details>'
+        body += '<details><summary>' + ('全部搜索结果' if zh else 'All search results') + '</summary><pre>' + esc(json.dumps(row["results"], ensure_ascii=False, indent=2)) + '</pre></details>'
+        body += '<button data-evidence="' + esc(row["evidence"]["path"]) + '">' + ('打开原始响应' if zh else 'Open native response') + '</button></article>'
+    return body + '</section>'
+
+
 def relevance_panel(profile, scored, evidence, zh):
     """Explain and visualize judged preview relevance without conflating it with recall."""
     if not scored:
@@ -2412,22 +2460,18 @@ def relevance_panel(profile, scored, evidence, zh):
         + f'{overall[m["id"]]["ndcg"]:.3f}' + '</small></div>' for m in methods
     ) + '</div>'
     audit = evidence["judge"]
-    crosscheck = evidence.get("crosscheck_labels", {})
-    agreement = sum(grade == evidence["labels"][case_id][candidate_id]
-                    for case_id, grades in crosscheck.items() for candidate_id, grade in grades.items())
-    crosscheck_total = sum(len(grades) for grades in crosscheck.values())
     return ('<section class="specimen" data-relevance><h3>'
-            + ((f"Search-preview relevance: {len(evidence['plan']['case_ids'])} blind-judged queries") if not zh else f"搜索结果预览相关性：{len(evidence['plan']['case_ids'])} 题匿名评分")
+            + ((f"Human relevance labels: all {len(evidence['plan']['case_ids'])} in-house queries") if not zh else f"自建题库相关性：全量 {len(evidence['plan']['case_ids'])} 题人工标注")
             + '</h3>' + bars
-            + '<p>' + (("The overall bars describe this selected sample; the category table is the decision view. nDCG@5 rewards useful pages near the top; Precision@5 counts pages graded at least 2 among five slots. Both use URL, title and snippet only. "
+            + '<p>' + (("All in-house queries use the same fixed human labels and scoring rules. nDCG@5 rewards useful pages near the top; Precision@5 counts pages graded at least 2 among five slots. Labels use the pooled URL, title and snippet with source-page inspection when needed. "
                         + ", ".join(f"{search_category(family, False)}: {sum(r['family']==family for r in scored)//len(methods)}" for family in families) + ".")
-                       if not zh else "上图汇总本次选定样本；判断具体场景请看下表。nDCG@5 重视有用结果是否排在前面，Precision@5 是前五个位置中至少达到 2 分的比例。评分只看网址、标题和摘要。题型："
+                       if not zh else "全部自建题目按同一套固定人工标注计算。nDCG@5 重视有用结果是否排在前面，Precision@5 是前五个位置中至少达到 2 分的比例。标注查看网址、标题和摘要，必要时核对原网页。题型："
                        + "、".join(f"{search_category(family, True)} {sum(r['family']==family for r in scored)//len(methods)} 题" for family in families) + "。")
             + '</p>'
             + table(["Category" if not zh else "题型", "Provider" if not zh else "服务", "N", "nDCG@5", "Precision@5"], rows)
             + '<p class="muted">'
-            + (f"Blind scorer: {esc(audit['model'])}. A separate Codex spot check of {len(crosscheck)} queries agreed exactly on {agreement}/{crosscheck_total} candidate grades. These are model judgments, not independent human relevance labels, page-body checks or answer accuracy."
-               if not zh else f"匿名评分使用 {esc(audit['model'])}；另由 Codex 抽查 {len(crosscheck)} 题、{crosscheck_total} 个候选结果，完全同分 {agreement} 个。两轮都是模型判断，不能当作独立人工相关性标注、网页全文核验或答案准确率。")
+            + (f"Human annotator: {esc(audit['name'])}. Scoring makes no model calls. Empty responses, missing result slots and all-zero candidate pools remain in the denominator."
+               if not zh else f"人工标注者：{esc(audit['name'])}。评分不调用模型。空结果、不足 5 条和全部候选均无关的题目，都保留在分母中。")
             + '</p><a href="relevance-judgments.json">'
             + ("Scoring evidence" if not zh else "查看逐项评分证据")
             + '</a></section>')
@@ -2876,7 +2920,7 @@ def metric_populations(profile, content):
     return populations
 
 
-def population_summary(profile, selected, content, zh):
+def population_summary(profile, selected, content, zh, *, diagnostics=False):
     lang = "zh" if zh else "en"
     independent = content.get("independent_benchmarks")
     heading = (("两套评测，分别报告" if zh else "Two benchmarks, reported separately")
@@ -2888,8 +2932,13 @@ def population_summary(profile, selected, content, zh):
             if independent else
             ("总体包含每道查询一次；分题组是总体的子集，不相加。非空指至少返回一条可用结果。平均、P50（中位数）和 P95（95% 的查询耗时不超过此值）均包含失败和重试等待。费用为本题组全部调用的可核算费用，未定价显示 —。"
              if zh else "Overall counts every query once. Subgroups overlap with overall and must not be added. Nonempty means at least one usable result. Mean, P50 (median) and P95 (95% of queries finish within this duration) include failures and retry waits. Cost totals billable calls; unset prices show —."))
+    if diagnostics:
+        heading = "参考网址与指定网站：辅助检查" if zh else "Reference URLs and requested sites: diagnostics"
+        note = "下列检查只解释具体网址与域名的发现情况，题目可重叠；统一相关性评分仍覆盖完整自建题库。" if zh else "These overlapping subsets diagnose URL and domain discovery. Uniform relevance scoring covers the complete in-house set."
     body = '<section data-populations><h2>' + heading + '</h2><p class="population-note">' + note + '</p>'
     for population in metric_populations(profile, content):
+        if independent and bool(population.get("benchmark_root")) == diagnostics:
+            continue
         ids = set(population['case_ids'])
         subset = [r for r in selected if r['case_id'] in ids]
         stats = aggregate(subset)
@@ -2963,13 +3012,15 @@ def population_summary(profile, selected, content, zh):
     return body + '</section>'
 
 
-def render_result_comparison(profile, selected, zh, *, prefix="", site_prefix="", content=None):
+def render_result_comparison(profile, selected, zh, *, prefix="", site_prefix="", content=None, relevance=None):
     from .comparison import render_comparison
     profile = dict(profile, comparison_populations=metric_populations(profile, content or {}))
-    return render_comparison(profile, selected, zh, detail_link=lambda row: posixpath.join(site_prefix, prefix, "details", row["id"] + ".html"))
+    return render_comparison(profile, selected, zh, relevance=relevance, detail_link=lambda row: posixpath.join(site_prefix, prefix, "details", row["id"] + ".html"))
 
 
 def scenario_panel(profile, selected, content, zh):
+    if content.get("independent_benchmarks"):
+        return '<section data-scenario>' + population_summary(profile, selected, content, zh, diagnostics=True) + '</section>'
     population = next((p for p in metric_populations(profile, content) if p["id"] == "scenario"), None)
     if population is None:
         return ""

@@ -32,11 +32,11 @@
       "sha256": "6a680b8fa3b58d8cfb25ce124288fae4d6a5680492f29167ae3a23eb9fff88e7"
     },
     "report_manifest": {
-      "path": "web-search/20261021-search-api-three-provider-report/report/manifest.json",
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_cd19ebc7531d4ee09868c48987c0b3b6/manifest.json",
       "sha256": "afd32939e8df59a13e10204f1f6bbbd9bab82197cc261a651c2b4d1448734f93"
     },
     "content": {
-      "path": "web-search/20261021-search-api-three-provider-report/reader-content.json",
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_cd19ebc7531d4ee09868c48987c0b3b6/reader-content.json",
       "sha256": "b653137decc351ee903adc8e208aa89c378d0e5080033f2602d96f55234ae89a"
     },
     "visual_acceptance": {
