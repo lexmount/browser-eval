@@ -712,6 +712,15 @@ def issue_inventory(evidence):
     return result
 
 
+def factual_quality_exclusions(evidence):
+    """One reviewed reference exclusion applies to every participant, never latency."""
+    return sorted(
+        key.removesuffix(":dataset")
+        for key, decision in (evidence or {}).get("adjudications", {}).items()
+        if key.endswith(":dataset") and decision.get("quality_excluded") is True
+    )
+
+
 def validate_public_review(profile, rows, evidence):
     """Reject invented counts, changed answers and unfinished adjudications."""
     if (
@@ -821,6 +830,14 @@ def validate_public_review(profile, rows, evidence):
             or not decision.get("evidence", "").strip()
         ):
             raise ValueError("Independent review has an unresolved or stale decision")
+    factual_ids = {c["id"] for c in profile["cases"] if "reference_answer" in c}
+    for key, decision in decisions.items():
+        if decision.get("quality_excluded") is True and (
+            not key.endswith(":dataset")
+            or key.removesuffix(":dataset") not in factual_ids
+            or decision["resolution"] != "quarantined"
+        ):
+            raise ValueError("Quality exclusion needs an adjudicated factual reference defect")
     return True
 
 
@@ -853,7 +870,7 @@ def render_summary(evidence, zh=True):
     labels = {
         "fixed": ("已修正", "Corrected"),
         "provider-limitation": ("接口输出问题", "Provider limitations"),
-        "reference-limitation": ("参考资料核验边界", "Reference verification limits"),
+        "reference-limitation": ("参考资料不足或冲突", "Reference verification limits"),
         "no-change": ("核查后保持原结果", "No change"),
         "quarantined": ("隔离诊断", "Quarantined"),
     }
@@ -863,12 +880,27 @@ def render_summary(evidence, zh=True):
     body += (
         "</ul><p>"
         + (
-            "审查覆盖全部接口输出，包括空结果和失败。审查完成不表示接口通过；每条发现均保留处理结论和证据。"
+            "审查覆盖全部接口输出，包括空结果和失败。接口表现按评分规则另行计算；每条审查发现均附处理结论和证据。"
             if zh
             else "Review covers every output, including empty and failed calls. Reviewed does not mean passed. Every finding retains its decision and evidence."
         )
         + "</p>"
     )
+    from html import escape
+    reference_cases = [c for c in evidence["cases"] if c["dataset_review"]["status"] == "issue"]
+    if reference_cases:
+        body += '<h3>' + ("参考答案与题意核查" if zh else "Reference and question decisions") + '</h3><div class="scroll inventory"><table><thead><tr>'
+        for label in (("题目", "处理", "依据") if zh else ("Query", "Decision", "Basis")):
+            body += '<th>' + label + '</th>'
+        body += '</tr></thead><tbody>'
+        for case in reference_cases:
+            decision = evidence["adjudications"][case["case_id"] + ":dataset"]
+            target = "details/" + case["output_reviews"][0]["row_id"] + ".html"
+            label = labels[decision["resolution"]][0 if zh else 1]
+            if decision.get("quality_excluded"):
+                label = "三家共同隔离质量统计" if zh else "Excluded from every method’s quality denominator"
+            body += '<tr><td><a href="' + escape(target) + '">' + escape(case["case_id"]) + '</a></td><td>' + escape(label) + '</td><td>' + escape(decision["reason"]) + '</td></tr>'
+        body += '</tbody></table></div>'
     body += (
         '<p><a href="independent-review.json">'
         + ("下载完整审查记录" if zh else "Complete review record")
@@ -898,13 +930,43 @@ def render_detail(evidence, row_id, zh=True):
             + escape(opinion["evidence"])
             + "</p>"
         )
+        if case["dataset_review"]["status"] == "issue":
+            from urllib.parse import urlsplit
+
+            body += (
+                "<h3>"
+                + ("参考答案核查" if zh else "Reference review")
+                + "</h3><p>"
+                + escape(case["dataset_review"]["reason"])
+                + "</p>"
+            )
+            for source in case["dataset_review"]["source_checks"]:
+                url = source["url"]
+                label = escape(url)
+                if urlsplit(url).scheme in ("https", "http"):
+                    label = '<a href="' + escape(url, quote=True) + '">' + label + "</a>"
+                body += (
+                    "<p>"
+                    + label
+                    + "</p><blockquote>"
+                    + escape(source["excerpt"])
+                    + "</blockquote><p>"
+                    + escape(source["assessment"])
+                    + "</p>"
+                )
         relevant = {
             key: value
             for key, value in issue_inventory(evidence).items()
             if key.startswith(case["case_id"] + ":")
             and (
                 ":dataset" in key
-                or ":finding:" in key
+                or (
+                    ":finding:" in key
+                    and (
+                        not value.get("affected_output_ids")
+                        or opinion["output_id"] in value["affected_output_ids"]
+                    )
+                )
                 or key.endswith(":output:" + opinion["output_id"])
             )
         }

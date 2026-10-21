@@ -288,7 +288,9 @@ def _judge_retryable(status, error_type):
     )
 
 
-def validate_model_evidence(evidence):
+def validate_model_evidence(evidence, *, _depth=0):
+    if _depth > 8:
+        raise ValueError("Judge inheritance chain is too deep")
     judge = evidence["judge"]
     calls = judge.get("calls", [])
     packets = evidence["blind_candidate_packets"]
@@ -309,7 +311,23 @@ def validate_model_evidence(evidence):
         ).hexdigest()
     ):
         raise ValueError("Explicit source requirements differ from the frozen judge contract")
-    strict = configuration.get("receipt_schema") == 2
+    strict_receipts = configuration.get("receipt_schema") in (2, 3)
+    inherited = {}
+    if configuration.get("receipt_schema") == 3:
+        predecessor = judge["predecessor"]
+        if hashlib.sha256(json.dumps(predecessor, ensure_ascii=False, sort_keys=True).encode()).hexdigest() != configuration.get("predecessor_sha256"):
+            raise ValueError("Inherited judge evidence changed")
+        validate_model_evidence(predecessor, _depth=_depth + 1)
+        old_configuration = predecessor["judge"].get("configuration", {})
+        if any(configuration.get(k) != old_configuration.get(k) for k in ("base_url", "request_headers")):
+            raise ValueError("Inherited judge transport configuration changed")
+        selected = judge.get("inherited_case_ids", [])
+        if len(selected) != len(set(selected)) or not set(selected).issubset(p["case_id"] for p in packets):
+            raise ValueError("Invalid inherited judge case inventory")
+        inherited = {c["case_id"]: c for c in predecessor["judge"]["calls"] if c["case_id"] in selected}
+        if set(inherited) != set(selected):
+            raise ValueError("Inherited judge calls are missing")
+    strict = strict_receipts
     if any("attempts" in call for call in calls) and not strict:
         raise ValueError("Physical judge attempts require their complete frozen configuration")
     if strict and not all(
@@ -326,6 +344,9 @@ def validate_model_evidence(evidence):
     if strict and configuration["attempt_limit"] != 3:
         raise ValueError("Model judge attempt limit differs from the supported policy")
     for packet, call in zip(packets, calls, strict=True):
+        strict = strict_receipts and packet["case_id"] not in inherited
+        if packet["case_id"] in inherited and call != inherited[packet["case_id"]]:
+            raise ValueError("Inherited judge call differs from its original evidence")
         if call.get("case_id") != packet["case_id"]:
             raise ValueError("Model judge call identity differs from the candidate packet")
         request = call["request"]
@@ -411,6 +432,8 @@ def judge_main(argv=None):
     parser.add_argument("--model", required=True)
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--token-env", default="SEARCH_JUDGE_API_KEY")
+    parser.add_argument("--reuse-evidence", type=Path,
+                        help="Reuse byte-equivalent prior requests; call only changed judge inputs")
     parser.add_argument(
         "--workers",
         type=int,
@@ -461,11 +484,14 @@ def judge_main(argv=None):
 
     profile, rows = check(args.report, return_data=True, evidence_only=True)
     source_requirements = (
-        json.loads(args.source_requirements.read_text()) if args.source_requirements else None
+        json.loads(args.source_requirements.read_text()) if args.source_requirements else {}
     )
     packet, rankings = candidate_packet(profile, rows, source_requirements)
     if source_requirements is not None:
         packet["source_requirements"] = source_requirements
+    predecessor = json.loads(args.reuse_evidence.read_bytes()) if args.reuse_evidence else None
+    if predecessor:
+        verify_provenance(profile, rows, predecessor)
     args.output.mkdir(parents=True, exist_ok=True)
     contract = {
         "packet_sha256": packet["packet_sha256"],
@@ -486,6 +512,14 @@ def judge_main(argv=None):
     if args.disable_thinking:
         contract["extra_params"] = {"enable_thinking": False}
         contract["request_headers"] = {"x-bf-passthrough-extra-params": "true"}
+    if predecessor:
+        contract.update(receipt_schema=3, predecessor_sha256=hashlib.sha256(
+            json.dumps(predecessor, ensure_ascii=False, sort_keys=True).encode()).hexdigest())
+        previous_configuration = predecessor["judge"].get("configuration", {})
+        if any(contract.get(k) != previous_configuration.get(k) for k in ("base_url", "request_headers")):
+            raise ValueError("Inherited judge transport configuration changed")
+    inherited_calls = {call["case_id"]: call for call in predecessor["judge"]["calls"]} if predecessor else {}
+    reused_case_ids = set()
     binding = args.output / "contract.json"
     if binding.exists() and json.loads(binding.read_text()) != contract:
         raise ValueError("Existing judge run has different inputs or configuration")
@@ -508,6 +542,14 @@ def judge_main(argv=None):
         }
         if args.disable_thinking:
             request["extra_params"] = {"enable_thinking": False}
+        previous = inherited_calls.get(p["case_id"])
+        if previous and previous["request"] == request:
+            if path.exists() and json.loads(path.read_text()) != previous:
+                raise ValueError("Saved inherited judge call changed")
+            path.write_text(json.dumps(previous, ensure_ascii=False, indent=2))
+            parse_judgments(p, previous["response"])
+            reused_case_ids.add(p["case_id"])
+            return previous
         if path.exists():
             saved = json.loads(path.read_text())
             if saved["request"] != request:
@@ -642,6 +684,8 @@ def judge_main(argv=None):
             "calls": calls,
         },
     }
+    if predecessor:
+        evidence["judge"].update(predecessor=predecessor, inherited_case_ids=sorted(reused_case_ids))
     verify_provenance(profile, rows, evidence)
     score(profile, rows, evidence["plan"], evidence["labels"])
     (args.output / "relevance.json").write_text(json.dumps(evidence, ensure_ascii=False, indent=2))

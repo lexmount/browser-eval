@@ -1,7 +1,9 @@
 """A leaked answer must not improve retrieval evidence or move a later hit up."""
 import unittest
 
-from harness.web_search.evidence_quality import factual_sensitivity, is_benchmark_page
+from harness.web_search.evidence_quality import (
+    LEGACY_CONTAMINATION_RULE, factual_sensitivity, is_benchmark_page,
+)
 
 
 class FactualSensitivityScenarios(unittest.TestCase):
@@ -29,3 +31,15 @@ class FactualSensitivityScenarios(unittest.TestCase):
             {"url": "https://source.org/a", "snippet": "Ada"},
         ]
         self.assertEqual(factual_sensitivity(case, rows)["metrics"]["labeled_source_hit_5"], 0)
+
+    def test_exact_question_with_evaluation_fields_is_not_source_evidence(self):
+        case = {"query": "Who wrote the analytical engine notes?", "reference_answer": "Ada", "reference_urls": []}
+        dump = {"url": "https://github.com/example/results", "content": 'Who wrote the analytical engine notes? ground_truth: Ada; model_answer: Ada'}
+        article = {"url": "https://history.org/article", "snippet": "Who wrote the analytical engine notes? Ada wrote them."}
+        result = factual_sensitivity(case, [dump, article])
+        self.assertEqual(result["excluded_ranks"], [1])
+        self.assertEqual(result["metrics"]["answer_in_preview_5"], 1)
+        self.assertFalse(is_benchmark_page(article, case=case))
+        self.assertFalse(is_benchmark_page({"url": "https://huggingface.co/model", "content": "ground_truth labels for another question"}, case=case))
+        self.assertEqual(factual_sensitivity(case, [dump], rule=LEGACY_CONTAMINATION_RULE)["excluded_ranks"], [])
+        self.assertEqual(factual_sensitivity(case, [dump])["metrics"]["answer_in_preview_5"], 0)

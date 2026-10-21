@@ -193,3 +193,23 @@ def test_headline_subgroups_show_actual_quality_counts_and_ranks():
     assert "2/2" not in interpretation.get_text()
     detail = BeautifulSoup(population_summary(profile, rows, independent, False, diagnostics=True), "html.parser")
     assert [node["data-population"] for node in detail.select("[data-population]")] == ["scenario"]
+
+
+def test_reference_quarantine_is_common_and_never_removes_latency_or_cost():
+    from harness.web_search.core import evaluate
+    from harness.web_search.report import population_summary
+    cases = [{"id": key, "query": key, "reference_answer": "42", "reference_urls": ["https://source.org/answer"]} for key in ("sound", "wrong")]
+    profile = {"cases": cases, "methods": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}], "protocol": {"top_k": 5}, "factual_quality_exclusions": ["wrong"]}
+    rows = []
+    for method in ("a", "b"):
+        for case in cases:
+            results = [{"url": "https://source.org/answer", "title": "Source", "snippet": "42", "summary": "", "content": ""}]
+            rows.append({"method": method, "case_id": case["id"], "http_status": 200, "error": None, "elapsed_ms": 100 if case["id"] == "sound" else 900, "cost": .01, "results": results, "metrics": evaluate(case, results)})
+    content = {"independent_benchmarks": True, "metric_populations": [{"id": "factual", "benchmark_root": True, "label": {"en": "Factual", "zh": "事实题"}, "case_ids": ["sound", "wrong"]}]}
+    soup = BeautifulSoup(population_summary(profile, rows, content, True), "html.parser")
+    for row in soup.select("tbody tr"):
+        text = [cell.get_text().replace("★ ", "") for cell in row.select("td")]
+        assert text[1:3] == ["1/1 · 100.0%", "1/1 · 100.0%"]
+        assert text[3] == "500.00"
+        assert text[-1] == "0.02 元"
+    assert "全部 2 题" in soup.select_one("[data-quality-exclusions]").get_text()

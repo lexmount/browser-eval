@@ -100,6 +100,9 @@ def test_every_physical_attempt_is_bound_and_success_resume_never_calls(run_judg
 
     monkeypatch.setattr(urllib.request, "urlopen", transport)
     run_judge()
+    input_packet = json.loads(json.loads(requests[-1].data)["messages"][1]["content"])
+    assert "example.org" not in json.dumps(input_packet)
+    assert all("source_eligible" in c for c in input_packet["candidates"])
     evidence = json.loads((run_judge.output / "relevance.json").read_text())
     attempts = evidence["judge"]["calls"][0]["attempts"]
     assert [a["status"] for a in attempts] == [429, 200]
@@ -266,3 +269,96 @@ def test_loopback_http_is_usable_for_local_transport_tests(run_judge, monkeypatc
     monkeypatch.setattr(urllib.request, "urlopen", lambda request, **kw: Response(answer(request)))
     run_judge(["--base-url", base])
     assert (run_judge.output / "relevance.json").is_file()
+
+
+def test_correction_reuses_identical_inputs_and_calls_only_changed_cases(
+    run_judge, monkeypatch, tmp_path
+):
+    from harness.web_search import report
+
+    profile, rows = report.check(None)
+    profile["cases"].append(dict(profile["cases"][0], id="unchanged"))
+    rows.append(dict(rows[0], case_id="unchanged"))
+    requests = []
+
+    def transport(request, **kwargs):
+        requests.append(request)
+        return Response(answer(request))
+
+    monkeypatch.setattr(urllib.request, "urlopen", transport)
+    rules = tmp_path / "source-rules.json"
+    rules.write_text("{}")
+    run_judge(["--source-requirements", str(rules)])
+    assert len(requests) == 2
+    prior = run_judge.output / "relevance.json"
+    # Exercise a genuine legacy receipt shape without inventing physical attempts.
+    previous = json.loads(prior.read_text())
+    previous["judge"]["configuration"].pop("receipt_schema")
+    for call in previous["judge"]["calls"]:
+        del call["attempts"]
+    validate_model_evidence(previous)
+    prior.write_text(json.dumps(previous))
+    changed = tmp_path / "changed-rules.json"
+    changed.write_text(json.dumps({"q": {"domains": ["required.invalid"]}}))
+    output = tmp_path / "corrected"
+    run_judge(
+        [
+            "--output",
+            str(output),
+            "--reuse-evidence",
+            str(prior),
+            "--source-requirements",
+            str(changed),
+        ]
+    )
+    assert len(requests) == 3  # one changed source-policy input, not both queries
+    evidence = json.loads((output / "relevance.json").read_text())
+    assert evidence["judge"]["inherited_case_ids"] == ["unchanged"]
+    assert (
+        next(c for c in evidence["judge"]["calls"] if c["case_id"] == "unchanged")
+        == previous["judge"]["calls"][1]
+    )
+    assert evidence["labels"]["q"] == {
+        candidate["candidate_id"]: 0
+        for candidate in evidence["blind_candidate_packets"][0]["candidates"]
+    }
+    validate_model_evidence(evidence)
+    run_judge(
+        [
+            "--output",
+            str(output),
+            "--reuse-evidence",
+            str(prior),
+            "--source-requirements",
+            str(changed),
+        ]
+    )
+    assert len(requests) == 3
+    bad = copy.deepcopy(evidence)
+    bad["judge"]["predecessor"]["judge"]["calls"][0]["response"]["model"] = "fabricated"
+    with pytest.raises(ValueError, match="Inherited judge evidence changed"):
+        validate_model_evidence(bad)
+    bad = copy.deepcopy(evidence)
+    inherited = next(c for c in bad["judge"]["calls"] if c["case_id"] == "unchanged")
+    inherited["elapsed_ms"] = -1
+    with pytest.raises(ValueError, match="differs from its original"):
+        validate_model_evidence(bad)
+
+    bad = copy.deepcopy(evidence)
+    bad["judge"]["inherited_case_ids"].append("q")
+    with pytest.raises(ValueError, match="differs from its original"):
+        validate_model_evidence(bad)
+    with pytest.raises(ValueError, match="transport configuration changed"):
+        run_judge(
+            [
+                "--output",
+                str(tmp_path / "wrong-transport"),
+                "--reuse-evidence",
+                str(prior),
+                "--base-url",
+                "https://another.invalid/v1",
+                "--source-requirements",
+                str(changed),
+            ]
+        )
+    assert len(requests) == 3
