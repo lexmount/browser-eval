@@ -34,6 +34,8 @@ def routes(report: Path) -> list[tuple[str, str, str]]:
     if standalone:
         chapters += [('capabilities', 'capabilities.html'), ('quality', 'quality.html'),
                      ('cost', 'cost.html')]
+    if manifest.get('independent_review_sha256'):
+        chapters += [('review', 'review.html')]
     languages = manifest.get('languages') or [manifest['primary_language']]
     result = [(lang, name, (lang + '/' if lang != manifest['primary_language'] else '') + route)
               for lang in languages for name, route in chapters]

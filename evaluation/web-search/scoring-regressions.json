@@ -199,5 +199,77 @@
       "text": "A collision",
       "expected": false
     }
+  ],
+  "official-source-alternative-domain": [
+    {
+      "kind": "source",
+      "case": {
+        "id": "source-control",
+        "family": "web",
+        "query": "Protocol official documentation",
+        "domains": [
+          "official.example"
+        ]
+      },
+      "requirements": {
+        "domains": [
+          "official.example"
+        ],
+        "url_prefixes": [
+          "https://github.com/official/"
+        ]
+      },
+      "url": "https://github.com/official/spec/",
+      "expected": true
+    },
+    {
+      "kind": "source",
+      "case": {
+        "id": "source-control",
+        "family": "web",
+        "query": "Protocol official documentation",
+        "domains": [
+          "official.example"
+        ]
+      },
+      "requirements": {
+        "domains": [
+          "official.example"
+        ],
+        "url_prefixes": [
+          "https://github.com/official/"
+        ]
+      },
+      "url": "https://github.com/unrelated/spec/",
+      "expected": false
+    }
+  ],
+  "diagnostic-domain-versus-required-site": [
+    {
+      "kind": "source",
+      "case": {
+        "id": "domain-control",
+        "family": "web",
+        "query": "Domain control",
+        "domains": [
+          "wanted.example"
+        ]
+      },
+      "url": "https://another.example/answer",
+      "expected": true
+    },
+    {
+      "kind": "source",
+      "case": {
+        "id": "domain-control",
+        "family": "site",
+        "query": "Domain control",
+        "domains": [
+          "wanted.example"
+        ]
+      },
+      "url": "https://another.example/answer",
+      "expected": false
+    }
   ]
 }

@@ -216,3 +216,67 @@ def test_empty_selected_field_can_evidence_absence_but_not_positive_relevance():
     assert parse_judgments(packet,response(0))[0]['evidence_empty'] is True
     with pytest.raises(ValueError,match='exact quote'):
         parse_judgments(packet,response(3))
+
+
+def test_official_repository_is_not_blocked_by_a_diagnostic_target_domain():
+    from harness.web_search.relevance import candidate_packet
+
+    profile, rows = all_case_fixture()
+    profile["cases"][0].update(family="web", domains=["official.example"])
+    for row in rows:
+        if row["case_id"] == "question":
+            row["results"] = [
+                dict(
+                    url="https://github.com/official/spec/README.md",
+                    title="Official spec",
+                    snippet="Protocol definition",
+                ),
+                dict(
+                    url="https://github.com/unrelated/spec/README.md",
+                    title="Copied spec",
+                    snippet="Protocol definition",
+                ),
+            ]
+    requirement = {
+        "question": {
+            "domains": ["official.example"],
+            "url_prefixes": ["https://github.com/official/"],
+        }
+    }
+    packet, _ = candidate_packet(profile, rows, requirement)
+    candidates = {
+        c["url"]: c["source_eligible"] for c in packet["blind_candidate_packets"][0]["candidates"]
+    }
+    assert candidates["https://github.com/official/spec/README.md"] is True
+    assert candidates["https://github.com/unrelated/spec/README.md"] is False
+    # Old judgments retain the original policy and remain verifiable.
+    old, _ = candidate_packet(
+        profile, rows, requirement, source_policy="legacy-domain-intersection/1"
+    )
+    assert all(not c["source_eligible"] for c in old["blind_candidate_packets"][0]["candidates"])
+
+
+def test_web_diagnostic_domain_does_not_become_an_unrequested_source_constraint():
+    from harness.web_search.relevance import candidate_packet
+
+    profile, rows = all_case_fixture()
+    profile["cases"][0].update(family="web", domains=["unrequested.example"])
+    packet, _ = candidate_packet(profile, rows, {})
+    assert all(c["source_eligible"] for c in packet["blind_candidate_packets"][0]["candidates"])
+    profile["cases"][0]["family"] = "site"
+    packet, _ = candidate_packet(profile, rows, {})
+    assert all(not c["source_eligible"] for c in packet["blind_candidate_packets"][0]["candidates"])
+
+
+def test_source_correction_regressions_execute_through_current_packet_owner():
+    from harness.web_search.scoring import validate_regressions
+
+    validate_regressions(
+        {
+            "root_cause": "Diagnostic domains incorrectly excluded official alternatives",
+            "regression_ids": [
+                "official-source-alternative-domain",
+                "diagnostic-domain-versus-required-site",
+            ],
+        }
+    )
