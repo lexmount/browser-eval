@@ -131,7 +131,8 @@
         ]
       },
       "browser_cohort_role": "companion",
-      "interface_method": "moli-webfetch"
+      "interface_method": "moli-webfetch",
+      "task_mode_provider_type": "headless_markdown"
     },
     "cowagent_builtin": {
       "endpoint": {

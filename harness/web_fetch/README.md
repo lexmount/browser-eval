@@ -1373,3 +1373,8 @@ parameter descriptions, and validate allowed values, patterns and finite numbers
 The `kind` field is a report grouping (native browser or adapter), not a complete
 product taxonomy. It does not select transport or credentials. Keep these concerns
 in their existing execution and access owners rather than duplicating them.
+
+An adapter may declare `task_mode_provider_type` when its planned task modes
+use an existing execution selector contract under a different transport name.
+For example, the Moli WebFetch transport uses the native Markdown task-mode
+contract. This mapping does not override recorded output routes or waits.

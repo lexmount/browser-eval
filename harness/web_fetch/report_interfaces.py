@@ -158,7 +158,8 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
                if metadata_matches(case_metadata,rule['case_equals'])),None)
     measured=indexed.get((provider,case_id))
     provider_type=(measured or selected[provider] or {}).get('provider_type') or browser_method_registry().get(provider,{}).get('type','headless_markdown')
-    mode=output_mode_for_case(engine, provider_type, SimpleNamespace(
+    selector_type=report_method_catalog()['adapters'].get(provider_type,{}).get('task_mode_provider_type',provider_type)
+    mode=output_mode_for_case(engine, selector_type, SimpleNamespace(
      **{**case_metadata, 'url': case.get('url', '')}))
     if records is not None:
      meta=(measured or {}).get('provider_metadata') or {}
