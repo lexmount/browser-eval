@@ -205,6 +205,8 @@ def main(argv=None, *, root: Path | None = None) -> None:
     parser.add_argument('--work', type=Path, default=data_home() / 'publication')
     args = parser.parse_args(argv)
     authority = args.authority_root.absolute()
+    if args.profile and not args.package_only:
+        parser.error('--profile currently requires --package-only')
     if args.package_only:
         archive, receipt = args.work / 'wcxb-current.zip', args.work / 'wcxb-package.json'
         proof = package(args.source or authority / 'reports/wcxb', archive, receipt,

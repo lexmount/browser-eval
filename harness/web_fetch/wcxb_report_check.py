@@ -246,6 +246,8 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
             'Guide differs from verified bound interpretation')
     anchors = ('guide-results', 'guide-score', 'guide-cases', 'guide-methods',
                'guide-timing', 'guide-conclusion')
+    if not repair_analysis:
+        anchors = tuple(anchor for anchor in anchors if anchor != 'guide-repair')
     toc = soup.select_one('nav.essay-toc')
     require(toc is not None and all(soup.select_one(f'#{anchor}') is not None
                                      and toc.select_one(f'a[href="#{anchor}"]') is not None
