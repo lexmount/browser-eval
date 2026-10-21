@@ -131,3 +131,49 @@ its contract, retains each response, resumes completed queries and refuses chang
 inputs. Import its `relevance.json` through the existing report `--relevance` option.
 Model annotations are labeled separately from human annotations. The rubric uses
 0–3 grades, with nDCG@5, Precision@5 (grade ≥2), and Success@5 (at least one grade 3).
+
+
+## Independent result audit
+
+Independent audit is a separate, explicitly requested stage. Freeze all current
+cases and outputs before reviewers see prior scores:
+
+```sh
+uv run --frozen python scripts/review_search_results.py freeze \
+  --report /absolute/report --output /absolute/new-review
+```
+
+The default backend uses independent Codex app agents. Each agent receives only
+its hash-bound anonymous packets and the saved review schema. The parent accepts
+an agent result only after receiving that agent's actual completion notification:
+
+```sh
+uv run --frozen python scripts/review_search_results.py accept \
+  --review /absolute/review --packet 0001 --result /absolute/result.json \
+  --reviewer-id /root/assigned-reviewer
+uv run --frozen python scripts/review_search_results.py collect \
+  --review /absolute/review --require-complete
+```
+
+A separately selected, account-supported CLI model can use `freeze --model ID`
+and `run --review /absolute/review --workers 4`. An unavailable model or a failed
+job earns no review coverage. Successful packets are reused on resume; input
+changes are rejected. Frozen inputs survive rebuilding the original report.
+
+Coverage counts questions, method outputs and pooled relevance candidates
+separately. Every question and output, including empties and errors, requires a
+review record. Factual reference answers require independent source checks.
+Long document checks cover delivered structure and the query-relevant passages
+in complete saved bodies; review coverage is not a claim that every unrelated
+sentence in every returned document has been fact-checked. Provider limitations,
+dataset defects and scoring defects remain distinct findings. Completed review
+and successful provider output are different states; findings require explicit
+disposition before the final audited report is released.
+
+A formal reviewed release passes `--review /absolute/review-evidence.json` to
+`build_search_report.py`. It must contain all case/output/candidate opinions and
+an adjudication for every dataset issue, output issue and finding. Each decision
+binds the original opinion hash, its resolution, reason and evidence. Provider
+limitations are recorded separately from corrected evaluation defects. The build
+rejects partial coverage, changed reviewer opinions, unmatched outputs and open
+findings; the release check also verifies rendered summary and detail evidence.

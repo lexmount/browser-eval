@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 from bs4 import BeautifulSoup
 
 from harness.web_fetch.config import ROOT
+from harness.record_io import same_json_record
 from harness.reporting.presentation import check_presentation
 
 from .core import (
@@ -26,6 +27,7 @@ from .core import (
     in_domain,
     normalize,
     request_cost,
+    request_body,
     validate_profile,
     verify_bundle,
     write_json,
@@ -150,6 +152,9 @@ def load_run(source):
     profile = json.loads((source / "profile.json").read_text())
     validate_profile(profile)
     receipt = json.loads((source / "receipt.json").read_text())
+    synthetic = receipt.get("synthetic") is True and receipt.get("certified") is False
+    if receipt.get("synthetic") is True and not synthetic:
+        raise ValueError("Synthetic evidence cannot be certified")
     if digest((source / "profile.json").read_bytes()) != receipt["profile_sha256"]:
         raise ValueError("Profile hash mismatch")
     raw = (source / "results.jsonl").read_bytes()
@@ -212,7 +217,18 @@ def load_run(source):
         ):
             raise ValueError("Incomplete or failed identity reference scope")
     bycase = {c["id"]: c for c in profile["cases"]}
+    bymethod = {m["id"]: m for m in profile["methods"]}
     for r in rows:
+        method = bymethod[r["method"]]
+        expected_request = request_body(method["adapter"], bycase[r["case_id"]], profile["protocol"], method.get("output_options"))
+        if "request" not in r:
+            if not synthetic:
+                raise ValueError("Measured result lacks its frozen request contract")
+        elif not same_json_record(r["request"], expected_request):
+            raise ValueError("Measured request differs from the frozen profile contract")
+        for attempt in r.get("attempts", []):
+            if "request" in attempt and not same_json_record(attempt["request"], expected_request):
+                raise ValueError("Physical attempt request differs from the frozen profile contract")
         if r["id"] != f"{r['case_id']}-{r['method']}-r{r['round']}":
             raise ValueError("Unsafe call identity")
         attempts = r.get("attempts")
@@ -360,6 +376,7 @@ def build(
     include_english=False,
     correction=None,
     relevance=None,
+    review=None,
     site_prefix="",
     cohorts=(),
 ):
@@ -412,6 +429,11 @@ def build(
     languages = ["zh", "en"] if include_english or language == "en" else ["zh"]
     routes = []
     selected = [r for r in rows if r["round"] == profile["protocol"]["score_round"]]
+    review_data = json.loads(review.read_text()) if review else None
+    if review is not None:
+        from .review import validate_public_review
+        validate_public_review(profile, selected, review_data)
+        write_json(output / "independent-review.json", review_data)
     relevance_data = json.loads(relevance.read_text()) if relevance else None
     if relevance_data:
         if "plan" not in relevance_data:
@@ -436,6 +458,8 @@ def build(
             payloads[r["id"]] = {}
     diagnostics = operational(rows, payloads)
     bundle = []
+    if review_data:
+        bundle.append({"path": "independent-review.json", "sha256": digest((output / "independent-review.json").read_bytes())})
     factual_cases = {c["id"]: c for c in profile["cases"] if "reference_answer" in c}
     if factual_cases:
         sensitivity = {r["id"]: factual_sensitivity(factual_cases[r["case_id"]], r["results"]) for r in selected if r["case_id"] in factual_cases}
@@ -501,6 +525,8 @@ def build(
                    ("performance.html", t("Performance and cost", "性能与成本")),
                    ("research.html", t("Methods and FAQ", "方法与问答")),
                    ("interpretation.html", t("Decisions", "结论与决策"))]
+        if review_data:
+            nav.append(("review.html", t("Review", "独立审查")))
         state = (
             t(
                 ("Measured API evaluation · frozen model relevance labels and deterministic metrics." if relevance_data and relevance_data["judge"]["kind"] == "model" else "Measured API evaluation · human relevance labels and deterministic metrics." if relevance_data else "Measured API evaluation · automated target checks, no relevance labels."),
@@ -624,6 +650,11 @@ def build(
         summary = aggregate(selected)
         physical = aggregate(rows)
         body = table(headers, core, True)
+        if review_data:
+            body += '<p data-review-coverage><a href="review.html">' + t(
+                f"Codex reviewed {review_data['case_reviewed']}/{review_data['case_total']} queries and {review_data['output_reviewed']}/{review_data['output_total']} outputs",
+                f"Codex 已审查 {review_data['case_reviewed']}/{review_data['case_total']} 题、{review_data['output_reviewed']}/{review_data['output_total']} 份接口输出") + '</a></p>'
+
         body += cohort_summary(profile, rows, zh)
         body += authored_sections(authored, "summary", lang)
         if receipt.get("reference_capture_issues"):
@@ -965,6 +996,9 @@ def build(
                 detail += esc(", ".join(c["identity_aliases"])) + "</p>"
             if query_relevance:
                 reason_label = t("Useful results: ", "可用结果：") + str(query_relevance["useful"]) + f"/{cutoff}"
+            if review_data:
+                from .review import render_detail
+                detail += render_detail(review_data, r["id"], zh)
             diagnosis = reason_label
             detail += "<p>" + diagnosis + "</p>"
             detail += (
@@ -1139,6 +1173,9 @@ def build(
             + performance_view(profile, diagnostics, zh, evidence_prefix="../" if prefix else "")
             + ('<p class="lede"><a href="cost.html">' + t("Open the complete cost calculation", "查看完整成本计算") + "</a></p>" if authored.get("presentation") == "comparison-report" else ""),
         )
+        if review_data:
+            from .review import render_summary
+            page("review.html", t("Independent result review", "独立审查结果"), render_summary(review_data, zh))
     write_json(
         output / "manifest.json",
         dict(
@@ -1155,6 +1192,9 @@ def build(
             assessment_revision=assessment_revision,
             evidence_redactions=redactions,
             billing_corrections=billing_corrections,
+            independent_review_sha256=digest((output / "independent-review.json").read_bytes()) if review_data else None,
+            report_assessment={"relevance": relevance_data.get("judge") if relevance_data else None,
+                               "independent_review_scope": "all" if review_data else None},
             relevance_sha256=digest((output / "relevance-judgments.json").read_bytes()) if relevance_data else None,
             result_storage="raw-response",
             rows=[
@@ -1228,6 +1268,31 @@ def check(output, *, return_data=False, evidence_only=False):
             ):
                 raise ValueError("Result receipt disagrees with raw response")
             row["results"] = results
+    if manifest.get("independent_review_sha256"):
+        from .review import validate_public_review, render_detail, render_summary
+        review_path = output / "independent-review.json"
+        if digest(review_path.read_bytes()) != manifest["independent_review_sha256"]:
+            raise ValueError("Independent review evidence hash mismatch")
+        review_data = json.loads(review_path.read_bytes())
+        validate_public_review(manifest["profile"], manifest["rows"], review_data)
+        for lang in manifest["languages"]:
+            prefix = "" if lang == primary else lang + "/"
+            if prefix + "review.html" not in manifest["routes"]:
+                raise ValueError("Independent review page is missing")
+            soup = BeautifulSoup((output / (prefix + "index.html")).read_text(), "html.parser")
+            if not soup.select_one("[data-review-coverage]"):
+                raise ValueError("Independent review coverage is absent from the summary")
+            review_page = BeautifulSoup((output / (prefix + "review.html")).read_text(), "html.parser")
+            expected = BeautifulSoup(render_summary(review_data, lang == "zh"), "html.parser")
+            actual = review_page.select_one("[data-independent-review]")
+            if actual is None or actual.get_text() != expected.get_text():
+                raise ValueError("Independent review summary differs from the accepted evidence")
+            for row in manifest["rows"]:
+                detail = BeautifulSoup((output / (prefix + "details/" + row["id"] + ".html")).read_text(), "html.parser")
+                expected = BeautifulSoup(render_detail(review_data, row["id"], lang == "zh"), "html.parser")
+                actual = detail.select("[data-independent-opinion]")
+                if len(actual) != 1 or actual[0].get_text() != expected.get_text():
+                    raise ValueError("Independent review detail differs from accepted evidence")
     factual_cases = {
         case["id"]: case for case in manifest["profile"]["cases"]
         if case.get("reference_answer")
@@ -1758,6 +1823,7 @@ def main(argv=None):
         help="Build a sourced API reference comparison, without benchmark scores",
     )
     parser.add_argument("--identity-correction", type=Path)
+    parser.add_argument("--review", type=Path, help="Complete independent review with adjudications")
     parser.add_argument("--relevance", type=Path, help="Complete human relevance annotations for every in-house query")
     parser.add_argument("--export-annotations", type=Path, metavar="DESTINATION",
                         help="Prepare full in-house human annotations from an existing checked report")
@@ -1811,6 +1877,7 @@ def main(argv=None):
             content=args.content,
             correction=args.identity_correction,
             relevance=args.relevance,
+            review=args.review,
             site_prefix=args.site_prefix,
             cohorts=[
                 (value.split("=", 1)[0], Path(value.split("=", 1)[1])) for value in args.cohort

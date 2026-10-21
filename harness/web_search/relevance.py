@@ -77,7 +77,7 @@ def verify_provenance(profile, rows, evidence):
     """Make public candidate packets and rank mappings agree with measured outputs."""
     judge = evidence.get("judge", {})
     if judge.get("kind") == "model":
-        frozen, _ = candidate_packet(profile, rows, evidence.get("source_requirements"))
+        frozen, _ = candidate_packet(profile, rows, evidence.get("source_requirements"), source_policy=evidence.get("source_policy", "legacy-domain-intersection/1"))
         if evidence["blind_candidate_packets"] != frozen["blind_candidate_packets"]:
             raise ValueError("Model candidate text differs from frozen search outputs")
         validate_model_evidence(evidence)
@@ -119,8 +119,10 @@ def verify_provenance(profile, rows, evidence):
         raise ValueError("Cross-check grades are invalid")
 
 
-def candidate_packet(profile, rows, source_requirements=None):
+def candidate_packet(profile, rows, source_requirements=None, *, source_policy="explicit-source/2"):
     """Pool every in-house query without method names, rankings or generated grades."""
+    if source_policy not in ("legacy-domain-intersection/1", "explicit-source/2"):
+        raise ValueError("Unsupported relevance source policy")
     case_ids = [c["id"] for c in profile["cases"] if "reference_answer" not in c]
     cutoff = profile["protocol"]["top_k"]
     indexed = {(r["case_id"], r["method"]): r for r in rows}
@@ -152,7 +154,10 @@ def candidate_packet(profile, rows, source_requirements=None):
             constraint = source_requirements.get(cid, {})
             for candidate in pool.values():
                 url = candidate["url"]
-                domain_ok = not case.get("domains") or any(in_domain(url, d) for d in case["domains"])
+                # Diagnostic target domains are not mandatory for ordinary web
+                # queries. Explicit official-source alternatives must remain valid.
+                restrict_domain = source_policy == "legacy-domain-intersection/1" or case["family"] == "site"
+                domain_ok = not restrict_domain or not case.get("domains") or any(in_domain(url, d) for d in case["domains"])
                 official_ok = not constraint or any(in_domain(url, d) for d in constraint.get("domains", [])) or any(url.startswith(prefix) for prefix in constraint.get("url_prefixes", []))
                 candidate["source_eligible"] = domain_ok and official_ok
         for candidate in pool.values():
@@ -166,6 +171,8 @@ def candidate_packet(profile, rows, source_requirements=None):
     blind = {"schema": "web-search-human-annotation/1", "plan": {
         "scope": "all_custom", "cutoff": cutoff, "case_ids": case_ids},
         "blind_candidate_packets": packets}
+    if source_requirements is not None and source_policy != "legacy-domain-intersection/1":
+        blind["source_policy"] = source_policy
     blind["packet_sha256"] = hashlib.sha256(json.dumps(blind, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     return blind, rankings
 

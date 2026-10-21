@@ -25,6 +25,15 @@ def validate_regressions(record):
                 actual = match_reference_answer(control["answer"], control["text"])
             elif control["kind"] == "anchor":
                 actual = bool(evaluate(control["case"], normalize({"results": [{"url": control["url"]}]}))["anchor_hit_5"])
+            elif control["kind"] == "source":
+                from .relevance import candidate_packet
+                case = control["case"]
+                packet, _ = candidate_packet(
+                    {"cases": [case], "methods": [{"id": "control"}], "protocol": {"top_k": 5}},
+                    [{"case_id": case["id"], "method": "control", "results": [{"url": control["url"]}]}],
+                    {case["id"]: control.get("requirements", {})},
+                )
+                actual = packet["blind_candidate_packets"][0]["candidates"][0]["source_eligible"]
             elif control["kind"] == "qualification":
                 actual = _qualified(control["item"])
             elif control["kind"] == "equivalence":
