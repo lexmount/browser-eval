@@ -10,13 +10,18 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 SUPPORTED_REPORT_LANGUAGES = ("en", "zh")
 REPORT_PAGE_MARKER = '<meta name="browser-eval-report" content="1">'
 REPORT_LANGUAGE_ENV = "BROWSER_EVAL_REPORT_LANGUAGE"
+REPORT_LANGUAGE_ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 
 
 def configured_report_language(
     *, supported: tuple[str, ...] = SUPPORTED_REPORT_LANGUAGES
 ) -> str:
     """Return the environment-selected language, or the public English default."""
+    from dotenv import dotenv_values
+
     configured = os.environ.get(REPORT_LANGUAGE_ENV)
+    if configured is None:
+        configured = dotenv_values(REPORT_LANGUAGE_ENV_FILE).get(REPORT_LANGUAGE_ENV)
     selected = configured.strip().lower() if configured else "en"
     if selected not in supported:
         if configured:
@@ -48,8 +53,9 @@ def language_metadata_path(root: Path) -> Path:
 def primary_report_language(root: Path, *, default: str | None = None) -> str:
     path = language_metadata_path(root)
     value = json.loads(path.read_text()) if path.is_file() else {}
-    fallback = default or configured_report_language()
-    language = value.get("primary_language", "zh" if value else fallback)
+    language = value.get("primary_language", "zh") if value else (
+        default or configured_report_language()
+    )
     if language not in SUPPORTED_REPORT_LANGUAGES:
         raise ValueError("Unsupported primary report language; choose en or zh")
     return language
@@ -58,8 +64,12 @@ def primary_report_language(root: Path, *, default: str | None = None) -> str:
 def resolve_report_language(root: Path, language: str | None = None, *,
                             supported: tuple[str, ...] = SUPPORTED_REPORT_LANGUAGES) -> str:
     """Prefer explicit choice, then saved choice, then the renderer's default."""
-    fallback = configured_report_language(supported=supported)
-    selected = language if language is not None else primary_report_language(root, default=fallback)
+    if language is not None:
+        selected = language
+    elif language_metadata_path(root).is_file():
+        selected = primary_report_language(root)
+    else:
+        selected = configured_report_language(supported=supported)
     if selected not in supported:
         raise ValueError(f"This report supports only {', '.join(supported)}; requested {selected}")
     return selected
