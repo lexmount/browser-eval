@@ -108,3 +108,16 @@ class CurrentProfileScenarios(unittest.TestCase):
         self.save_target()
         with self.assertRaisesRegex(ValueError, "target profile"):
             publication_authority(self.manifest, self.entry, root=self.root)
+
+
+    def test_full_review_requirement_cannot_be_dropped_at_formal_release(self):
+        self.selection['independent_result_review_scope'] = 'all'
+        self.entry.write_text(json.dumps(self.selection))
+        resolved = json.loads(load_profile_bytes(self.entry, root=self.root))
+        self.assertEqual(resolved['independent_result_review_scope'], 'all')
+        with self.assertRaisesRegex(ValueError, 'complete independent'):
+            publication_authority(self.manifest, self.entry, root=self.root)
+        self.manifest['profile']['independent_result_review_scope'] = 'all'
+        self.manifest['independent_review_sha256'] = 'bound-review'
+        self.manifest['report_assessment'] = {'independent_review_scope': 'all'}
+        self.assertEqual(publication_authority(self.manifest, self.entry, root=self.root)['slug'], 'search')

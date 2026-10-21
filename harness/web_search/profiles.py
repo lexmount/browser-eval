@@ -40,6 +40,8 @@ def current_selection(path=CURRENT_PROFILE, *, root=ROOT):
     selection = json.loads(Path(path).read_bytes())
     if selection.get("schema") != "web-search-current/1":
         raise ValueError("Unsupported current search selection")
+    if selection.get("independent_result_review_scope") not in (None, "all"):
+        raise ValueError("Unsupported independent Search review scope")
     profile = _bound(root, selection["profile"])
     ids = selection["methods"]
     available = {m["id"]: m for m in profile["methods"]}
@@ -67,6 +69,8 @@ def load_profile_bytes(path=CURRENT_PROFILE, *, root=ROOT):
     profile["title"] = selection["title"]
     profile["protocol"]["comparison"] = "Current selected methods; one declared result per query and method."
     profile["publication"] = {"authority": selection["publication_target"]}
+    if selection.get("independent_result_review_scope"):
+        profile["independent_result_review_scope"] = selection["independent_result_review_scope"]
     profile["current_selection"] = {"sha256": digest(raw), "profile": selection["profile"], "methods": selection["methods"]}
     validate_profile(profile)
     return (json.dumps(profile, ensure_ascii=False, indent=2) + "\n").encode()
@@ -79,6 +83,12 @@ def load_profile(path=CURRENT_PROFILE, *, root=ROOT):
 def publication_authority(manifest, path=CURRENT_PROFILE, *, root=ROOT):
     """Bind a formal release to the current participants, inputs and live target."""
     selection = current_selection(path, root=root)
+    if selection.get("independent_result_review_scope") == "all" and (
+        manifest["profile"].get("independent_result_review_scope") != "all"
+        or not manifest.get("independent_review_sha256")
+        or (manifest.get("report_assessment") or {}).get("independent_review_scope") != "all"
+    ):
+        raise ValueError("Current Search release requires complete independent result review")
     target = json.loads(_inside(root, selection["publication_target"]).read_bytes())
     host = urlsplit(target["base_url"])
     if host.scheme != "https" or not host.netloc or host.username or host.password or host.path not in ("", "/"):

@@ -66,7 +66,7 @@ SCRIPT = """
 document.querySelector('[data-theme]').onclick=()=>{document.body.className=document.body.className==='dark'?'light':'dark'};
 document.querySelectorAll('[data-sort-column]').forEach(b=>b.onclick=()=>{let t=b.closest('table'),i=+b.dataset.sortColumn,asc=b.parentElement.getAttribute('aria-sort')!=='ascending';t.querySelectorAll('th').forEach(x=>x.removeAttribute('aria-sort'));b.parentElement.setAttribute('aria-sort',asc?'ascending':'descending');let rows=[...t.tBodies[0].rows];rows.sort((a,b)=>{let x=a.cells[i].dataset.value,y=b.cells[i].dataset.value;if(x==='')return y===''?0:1;if(y==='')return -1;return (Number(x)-Number(y))*(asc?1:-1)});rows.forEach(r=>t.tBodies[0].append(r))});
 let pf=document.querySelector('[data-population-filter]');let f=document.querySelector('[data-filter]'),q=document.querySelector('[data-query]'),g=document.querySelector('[data-cohort-filter]'),o=document.querySelector('[data-origin-filter]'),m=document.querySelector('[data-method-filter]');function filter(){document.querySelectorAll('[data-row]').forEach(r=>{r.hidden=(pf&&pf.value!=='all'&&!JSON.parse(pf.selectedOptions[0].dataset.caseIds||'[]').includes(r.dataset.caseId))||(f&&f.value!=='all'&&r.dataset.state!==f.value)||(g&&g.value!=='all'&&r.dataset.cohort!==g.value)||(o&&o.value!=='all'&&r.dataset.origin!==o.value)||(m&&m.value!=='all'&&r.dataset.method!==m.value)||(q&&!r.textContent.toLowerCase().includes(q.value.toLowerCase()))})}if(pf)pf.onchange=filter;if(f)f.onchange=filter;if(q)q.oninput=filter;if(g)g.onchange=filter;if(o)o.onchange=filter;if(m)m.onchange=filter;filter();
-document.querySelectorAll('[data-evidence]').forEach(b=>b.onclick=async()=>{let d=document.querySelector('dialog');d.querySelector('a').hidden=true;d.querySelector('pre').textContent='…';d.showModal();try{let r=await fetch(b.dataset.evidence);if(!r.ok)throw Error('HTTP '+r.status);let text=await r.text();try{let v=JSON.parse(text);if(b.dataset.result!==undefined)v=v.results[Number(b.dataset.result)];text=JSON.stringify(v,null,2)}catch{}d.querySelector('pre').textContent=text}catch(e){d.querySelector('pre').textContent=String(e)}});
+document.querySelectorAll('[data-evidence]').forEach(b=>b.onclick=async()=>{let d=document.querySelector('dialog');d.querySelector('a').hidden=true;d.querySelector('pre').textContent='…';d.showModal();try{let r=await fetch(b.dataset.evidence);if(!r.ok)throw Error('HTTP '+r.status);let text=await r.text();if(b.dataset.result!==undefined){let v=JSON.parse(text),items=v?.results??v?.data?.webPages?.value,index=Number(b.dataset.result);if(!/^[0-9]+$/.test(b.dataset.result)||!Number.isSafeInteger(index)||!Array.isArray(items)||index>=items.length)throw Error('Selected result is missing or invalid');let item=items[index];if(!item||typeof item!=='object'||Array.isArray(item)||!Object.keys(item).length)throw Error('Selected result is missing or invalid');text=JSON.stringify(item,null,2)}else{try{text=JSON.stringify(JSON.parse(text),null,2)}catch{}}d.querySelector('pre').textContent=text}catch(e){d.querySelector('pre').textContent=String(e)}});
 document.querySelectorAll('[data-diagnosis]').forEach(b=>b.onclick=()=>{let d=document.querySelector('dialog');d.querySelector('pre').textContent=b.dataset.diagnosis;let a=d.querySelector('a');a.hidden=false;a.href=b.dataset.detail;d.showModal()});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 if(document.querySelector('.mermaid')&&innerWidth>700){let s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js';s.integrity='sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I';s.crossOrigin='anonymous';s.onload=async()=>{mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'neutral'});for(let [i,n] of [...document.querySelectorAll('.mermaid')].entries()){try{let r=await mermaid.render('search-flow-'+i,n.textContent);n.innerHTML=r.svg;n.hidden=false;n.previousElementSibling.hidden=true}catch{}}};document.head.appendChild(s)}
@@ -366,6 +366,18 @@ def _check_report_languages(output, manifest):
         raise ValueError("Generated English report must not retain an unavailable notice")
 
 
+
+def assessment_profile(profile, relevance, review):
+    """Describe current assessment without rewriting historical collection metadata."""
+    from .review import factual_quality_exclusions
+    protocol = dict(profile["protocol"])
+    exclusions = factual_quality_exclusions(review)
+    if relevance:
+        protocol["quality"] = "Frozen pooled title/snippet relevance grades (0..3); deterministic aggregation. See report_assessment for judge provenance."
+    if review:
+        protocol["review"] = "Complete independent Codex result review with per-output opinions and finding adjudications."
+    return dict(profile, protocol=protocol, **({"independent_result_review_scope": "all", "factual_quality_exclusions": exclusions} if review else {}))
+
 def build(
     output,
     *,
@@ -440,6 +452,7 @@ def build(
             from .relevance import import_annotations
             relevance_data = import_annotations(profile, selected, relevance_data)
         verify_provenance(profile, selected, relevance_data)
+    profile = assessment_profile(profile, relevance_data, review_data)
     relevance_scores = (
         score_relevance(profile, selected, relevance_data["plan"], relevance_data["labels"])
         if relevance_data else None
@@ -1023,7 +1036,7 @@ def build(
                 ]
             if "reference_answer" in c:
                 sensitivity = factual_sensitivity(c, r["results"])
-                detail += '<p>' + t("Post-hoc benchmark-mirror exclusion; blanked ranks: ", "事后题库镜像排除；留空的位置：") + esc(str(sensitivity["excluded_ranks"])) + '</p>'
+                detail += '<p>' + t("Post-hoc benchmark-mirror exclusion; blanked ranks: ", "事后评测数据排除；留空的位置：") + esc(str(sensitivity["excluded_ranks"])) + '</p>'
                 detail += table([t("After mirror exclusion", "排除镜像后"), t("Value", "数值")], [cells([t("Answer in preview", "短摘要／标题出现答案"), str(sensitivity["metrics"]["answer_in_preview_5"])]), cells([t("Answer in all text", "全部文字出现答案"), str(sensitivity["metrics"]["answer_in_delivered_text_5"])])])
             detail += table(
                 [t("Metric", "指标"), t("Value", "数值")],
@@ -1175,7 +1188,7 @@ def build(
         )
         if review_data:
             from .review import render_summary
-            page("review.html", t("Independent result review", "独立审查结果"), render_summary(review_data, zh))
+            page("review.html", t("Independent result review", "独立审查结果"), render_summary(review_data, zh) + authored_sections(authored, "review", lang, rows=selected))
     write_json(
         output / "manifest.json",
         dict(
@@ -1193,8 +1206,9 @@ def build(
             evidence_redactions=redactions,
             billing_corrections=billing_corrections,
             independent_review_sha256=digest((output / "independent-review.json").read_bytes()) if review_data else None,
-            report_assessment={"relevance": relevance_data.get("judge") if relevance_data else None,
-                               "independent_review_scope": "all" if review_data else None},
+            report_assessment={"relevance": {key: relevance_data["judge"][key] for key in ("kind", "name")} if relevance_data else None,
+                               "independent_review_scope": "all" if review_data else None,
+                               "collection_protocol_sha256": digest(json.dumps(collection_profile["protocol"], sort_keys=True).encode())},
             relevance_sha256=digest((output / "relevance-judgments.json").read_bytes()) if relevance_data else None,
             result_storage="raw-response",
             rows=[
@@ -1249,6 +1263,16 @@ def check(output, *, return_data=False, evidence_only=False):
         if digest(relevance_path.read_bytes()) != manifest["relevance_sha256"]:
             raise ValueError("Relevance judgments hash mismatch")
         relevance_data = json.loads(relevance_path.read_text())
+    review_data = json.loads((output / "independent-review.json").read_text()) if manifest.get("independent_review_sha256") else None
+    if manifest.get("report_assessment") is not None:
+        expected_assessment = {
+            "relevance": {key: relevance_data["judge"][key] for key in ("kind", "name")} if relevance_data else None,
+            "independent_review_scope": "all" if manifest.get("independent_review_sha256") else None,
+            "collection_protocol_sha256": digest(json.dumps(manifest["collection_profile"]["protocol"], sort_keys=True).encode()),
+        }
+        if (manifest["report_assessment"] != expected_assessment
+                or assessment_profile(manifest["profile"], relevance_data, review_data) != manifest["profile"]):
+            raise ValueError("Current assessment metadata contradicts its evidence")
     payloads = {}
     for row in manifest["rows"]:
         try:
@@ -1299,15 +1323,12 @@ def check(output, *, return_data=False, evidence_only=False):
     }
     if factual_cases:
         sensitivity_path = output / "factual-sensitivity.json"
+        sensitivity = json.loads(sensitivity_path.read_text())
         expected_sensitivity = {
-            row["id"]: factual_sensitivity(factual_cases[row["case_id"]], row["results"])
+            row["id"]: factual_sensitivity(factual_cases[row["case_id"]], row["results"], rule=sensitivity.get("rule"))
             for row in manifest["rows"] if row["case_id"] in factual_cases
         }
-        sensitivity = json.loads(sensitivity_path.read_text())
-        if (
-            sensitivity.get("rule") != CONTAMINATION_RULE
-            or sensitivity.get("results") != expected_sensitivity
-        ):
+        if sensitivity.get("results") != expected_sensitivity:
             raise ValueError("Factual sensitivity disagrees with preserved responses")
     groups = manifest["profile"].get("report_cohorts", [])
     if groups:
@@ -1414,12 +1435,16 @@ def check(output, *, return_data=False, evidence_only=False):
             from .scoring import apply_report_revision
             revised, _, _ = apply_report_revision(revised, [], manifest["assessment_revision"]["contract"])
         revised, _ = project_comparison(revised, [], manifest.get("authored") or {})
+        if manifest.get("report_assessment"):
+            revised = assessment_profile(revised, relevance_data, review_data)
         if revised != manifest["profile"]:
             raise ValueError("Scoring revision profile mismatch")
     elif manifest.get("assessment_revision"):
         from .scoring import apply_report_revision
         revised, _, _ = apply_report_revision(manifest["collection_profile"], [], manifest["assessment_revision"]["contract"])
         revised, _ = project_comparison(revised, [], manifest.get("authored") or {})
+        if manifest.get("report_assessment"):
+            revised = assessment_profile(revised, relevance_data, review_data)
         if revised != manifest["profile"]:
             raise ValueError("Assessment revision profile mismatch")
     if manifest.get("diagnostics") != expected_diagnostics:
@@ -1444,6 +1469,7 @@ def check(output, *, return_data=False, evidence_only=False):
                 "capabilities.html": "capabilities",
                 "quality.html": "quality",
                 "cost.html": "cost",
+                "review.html": "review",
             }.get(name)
             if key:
                 score_rows = [
@@ -2685,7 +2711,8 @@ def relevance_panel(profile, scored, evidence, zh):
 
 
 def factual_panel(profile, selected, zh):
-    cases = {c['id']: c for c in profile['cases'] if 'reference_answer' in c}
+    excluded = set(profile.get('factual_quality_exclusions', []))
+    cases = {c['id']: c for c in profile['cases'] if 'reference_answer' in c and c['id'] not in excluded}
     if not cases:
         return ''
     projected = bool(profile.get("comparison_selection") or profile.get("current_selection"))
@@ -2717,11 +2744,13 @@ def factual_panel(profile, selected, zh):
         if zh else
         'A source hit means at least one published supporting URL appears in the top five. MRR averages reciprocal first-hit rank: 1 for rank one, 0.5 for rank two and zero for a miss. Answer cues use only shared titles and snippets. Failures, empties and short lists remain in the population.'
     ) + '</p>' + table(
-        ['基础接口', '题数', '找到标注来源', '来源排名 MRR', '短摘要含答案：原始', '剔除提到 SimpleQA 的网页后'] if zh else
+        ['基础接口', '题数', '找到标注来源', '来源排名 MRR', '短摘要含答案：原始', '剔除题库与模型答题记录后'] if zh else
         ['API', 'Queries', 'Given webpage retrieved', 'First-source reciprocal rank', 'Answer text: raw', 'Answer text: dataset mentions excluded'], rendered)
     if projected:
         body = body.replace('答案线索只检查三家共有的标题与短摘要。', '答案线索检查各家前五条实际交付的标题、短摘要、长摘要和正文。').replace('Answer cues use only shared titles and snippets.', 'Answer cues use every delivered title, snippet, summary and body in the top five.').replace('基础接口</th>', '方法</th>').replace('Basic API</th>', 'Method</th>').replace('短摘要含答案：原始', '搜索文字含答案：原始').replace('Preview answer: raw', 'Delivered answer cue: raw')
-    body += '<p>' + ('这项过滤是事后诊断：网址或标题含 SimpleQA（包括空格、连字符和下划线变体）的结果不参与答案检查，原位置留空，不补搜。只识别显式题库镜像，不能证明已排除所有转载；原始值同时保留。' if zh else 'Mirror exclusion is a post-hoc diagnostic. Results naming SimpleQA in their URL or title, including spacing/hyphen/underscore variants, are blanked without refilling or compacting ranks. This detects explicit mirrors, not every possible reproduction; raw values remain visible.') + '</p>'
+    body += '<p>' + ('这项过滤是事后诊断：网址或标题出现 SimpleQA，或交付文本同时包含完整原题和 ground truth、model answer 等评测字段时，该结果不参与答案检查；原位置留空，不补搜。检查采用固定文字规则，原始数值同时保留。' if zh else 'Contamination exclusion is a post-hoc deterministic diagnostic. Results naming SimpleQA in their URL/title, or containing the complete question together with ground-truth/model-answer evaluation fields, are blanked without refilling or compacting ranks. Original values remain visible.') + '</p>'
+    if excluded:
+        body += '<p data-quality-exclusions>' + (f'独立审查隔离了 {len(excluded)} 道参考答案错误或题意存在实质歧义的题，三家使用同一质量分母 {len(cases)}；全部题仍计入性能与费用。原题、原始响应和原始检查数值保留在逐题详情。' if zh else f'Independent reference review excluded {len(excluded)} defective or materially ambiguous questions from all methods’ quality metrics, leaving {len(cases)} common queries. All queries remain in latency and cost; original inputs, responses and diagnostics remain inspectable.') + '</p>'
     extra = []
     for enabled in ([] if projected else profile['methods']):
         options = enabled.get('output_options', {})
@@ -3149,6 +3178,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         if independent and bool(population.get("benchmark_root")) == diagnostics:
             continue
         ids = set(population['case_ids'])
+        quality_ids = ids - set(profile.get('factual_quality_exclusions', []))
         subset = [r for r in selected if r['case_id'] in ids]
         stats = aggregate(subset)
         kind = population.get('metric_kind', population['id'])
@@ -3166,7 +3196,8 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                 q = quality_stats[method['id']]
                 measures = [q['ndcg'] * 100, q['precision'] * profile['protocol']['top_k'], sum(r['success'] for r in relevance_scores if r['case_id'] in ids and r['method'] == method['id'])]
             elif kind == 'factual':
-                measures = [sum(r['metrics']['labeled_source_hit_5'] for r in group), sum(factual_sensitivity(cases[r['case_id']], r['results'])['metrics']['answer_in_delivered_text_5'] for r in group)]
+                quality_group = [r for r in group if r['case_id'] in quality_ids]
+                measures = [sum(r['metrics']['labeled_source_hit_5'] for r in quality_group), sum(factual_sensitivity(cases[r['case_id']], r['results'])['metrics']['answer_in_delivered_text_5'] for r in quality_group)]
             elif kind == 'scenario':
                 hit_key = 'anchor_hit_5' if profile['protocol']['top_k'] == 5 else 'anchor_hit_10'
                 if any(r['metrics'].get(hit_key) is None or r['metrics'].get('reciprocal_rank') is None for r in group):
@@ -3203,7 +3234,8 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                 elif ranked and i == 3:
                     label = f'{int(value)}/{len(ids)}'
                 elif i == 1 or (kind == 'factual' and i == 2):
-                    label = f'{int(value)}/{len(ids)}' + (f' · {value / len(ids):.1%}' if quality else '')
+                    denominator = len(quality_ids) if kind == 'factual' else len(ids)
+                    label = (f'{int(value)}/{denominator}' + (f' · {value / denominator:.1%}' if quality else '')) if denominator else '—'
                 elif kind == 'scenario' and i == 2:
                     label = f'{value:.3f}'
                 else:
@@ -3222,7 +3254,9 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             headings = ['搜索质量分（0–100）', '每题可用结果（条/5）', '有直接满足结果的题数'] if zh else ['Ranking quality (0–100)', 'Useful results per query (/5)', 'Queries with a direct match']
             body += '<p><a href="quality.html">' + ('质量分 = nDCG@5 × 100 · 查看等级和计算方法' if zh else 'Quality = nDCG@5 × 100 · Inspect grades and calculation') + '</a></p>'
         elif kind == 'factual':
-            body += '<p class="population-note">' + ('检查前五条结果：是否搜到题库给定的网址，以及交付文字是否包含参考答案。答案文字检查跳过网址或标题提到 SimpleQA 的网页，避免把题库转载当作搜索能力。' if zh else 'Source found: a published supporting URL appears in the top five. Answer cue: allowed reference-answer text appears in delivered text after excluding explicit dataset mirrors; this is not semantic accuracy.') + '</p>'
+            if quality_ids != ids:
+                body += '<p data-quality-exclusions>' + (f'质量检查使用审查后 {len(quality_ids)} 题，三家同范围；{len(ids) - len(quality_ids)} 道参考缺陷题从质量分母共同隔离。耗时和费用仍覆盖全部 {len(ids)} 题。' if zh else f'Quality uses {len(quality_ids)} reviewed-reference queries for every method; {len(ids) - len(quality_ids)} defective references are quarantined. Latency and cost retain all {len(ids)} queries.') + '</p>'
+            body += '<p class="population-note">' + ('检查前五条结果：是否搜到题库给定的网址，以及交付文字是否包含参考答案。答案文字检查剔除明确的题库转载和包含原题及评测字段的模型答题记录。' if zh else 'Source found: a published supporting URL appears in the top five. Answer cue: allowed reference-answer text appears in delivered text after excluding explicit dataset mirrors; this is not semantic accuracy.') + '</p>'
             headings = ['搜到题库给定网页的题数', '搜索文字含参考答案的题数'] if zh else ['Published source found', 'Answer cue (mirrors excluded)']
         elif kind == 'scenario':
             body += '<p class="population-note">' + ('目标命中：前五条找到参考页面。MRR 衡量首个目标位置，第一条得 1、第二条得 0.5、未找到得 0，再对全部题取平均；越高表示目标越靠前。' if zh else 'Target found: a reference page appears in the top five. MRR averages reciprocal first-target rank: 1 for first, 0.5 for second, and 0 for a miss. Higher means targets appear earlier.') + '</p>'

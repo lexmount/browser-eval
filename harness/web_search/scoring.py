@@ -25,6 +25,9 @@ def validate_regressions(record):
                 actual = match_reference_answer(control["answer"], control["text"])
             elif control["kind"] == "anchor":
                 actual = bool(evaluate(control["case"], normalize({"results": [{"url": control["url"]}]}))["anchor_hit_5"])
+            elif control["kind"] == "benchmark_page":
+                from .evidence_quality import is_benchmark_page
+                actual = is_benchmark_page(control["result"], case=control["case"])
             elif control["kind"] == "source":
                 from .relevance import candidate_packet
                 case = control["case"]

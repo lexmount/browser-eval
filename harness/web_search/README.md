@@ -177,3 +177,14 @@ binds the original opinion hash, its resolution, reason and evidence. Provider
 limitations are recorded separately from corrected evaluation defects. The build
 rejects partial coverage, changed reviewer opinions, unmatched outputs and open
 findings; the release check also verifies rendered summary and detail evidence.
+
+A source-rule correction can pass `--reuse-evidence /absolute/relevance.json` to
+the judge entry point. It revalidates the predecessor and reuses a call only when
+its complete request is unchanged. Changed inputs receive new physical receipts;
+the resulting evidence retains the predecessor and identifies every inherited
+case. Transport or model configuration changes cannot silently reuse old calls.
+
+A completed independent reference review may quarantine a defective factual query
+from every participant’s quality denominator. The original task, response and
+metrics remain inspectable; all-call latency and cost retain the entire cohort.
+Each exclusion must bind a dataset finding and an explicit adjudication.

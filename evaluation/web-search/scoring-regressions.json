@@ -271,5 +271,40 @@
       "url": "https://another.example/answer",
       "expected": false
     }
+  ],
+  "factual-evaluation-trace-contamination": [
+    {
+      "kind": "benchmark_page",
+      "case": {
+        "query": "Which observatory opened in the year 1927?"
+      },
+      "result": {
+        "url": "https://github.com/researcher/results/blob/main/output.json",
+        "content": "Which observatory opened in the year 1927?\\n ground_truth: Observatory A; model_answer: Observatory B; is_correct: false"
+      },
+      "expected": true
+    },
+    {
+      "kind": "benchmark_page",
+      "case": {
+        "query": "Which observatory opened in the year 1927?"
+      },
+      "result": {
+        "url": "https://museum.example/history",
+        "content": "Which observatory opened in the year 1927? The observatory opened that year according to our archive."
+      },
+      "expected": false
+    },
+    {
+      "kind": "benchmark_page",
+      "case": {
+        "query": "Which observatory opened in the year 1927?"
+      },
+      "result": {
+        "url": "https://huggingface.co/research/model-card",
+        "content": "This model was trained using ground truth data. It is not about the observatory."
+      },
+      "expected": false
+    }
   ]
 }
