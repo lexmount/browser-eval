@@ -110,7 +110,7 @@ def test_wcxb_instance_counts_versions_and_interfaces_follow_selected_evidence(t
     rows = [row for row in rows if row['provider'] in providers]
     summary['providers'] = {p: summary['providers'][p] for p in providers}
     profile['providers'] = list(providers)
-    identities['moli']['reported_version'] = '2.3.4'
+    identities['moli']['reported_version'] = 'moli 2.3.4'
     profile['candidate_source_commit'] = 'abcdef12' + '0' * 32
     profile['max_failure_retries'] = 3
     generate_wcxb(root, rows, summary, truth, identities, profile, content, include_english=True)
@@ -118,6 +118,7 @@ def test_wcxb_instance_counts_versions_and_interfaces_follow_selected_evidence(t
         home = BeautifulSoup((root / prefix / 'index.html').read_text(), 'html.parser')
         assert count_text in home.select_one('h1').get_text()
         assert 'Moli 2.3.4' in home.get_text()
+        assert 'Moli moli' not in home.get_text()
         assert 'abcdef12' in home.get_text()
         for route in ('index.html', 'methodology/index.html', 'datasets/index.html', 'changes/index.html'):
             text = (root / prefix / route).read_text()

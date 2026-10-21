@@ -141,8 +141,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  def type_label(lang,value):return type_labels.get(value,value) if lang=='zh' else value
  def browser_label(provider):
   if provider=='moli-pr643':return 'Moli candidate · '+str(profile.get('candidate_source_commit') or '')[:8]
-  if provider=='moli':return 'Moli '+str(identities[provider].get('reported_version') or profile['versions'][provider])
-  version=identities[provider].get('reported_version') or ''
+  version=str(identities[provider].get('reported_version') or profile['versions'].get(provider) or '')
   match=re.search(r'\d+(?:\.\d+)+',version)
   number=(match.group(0).split('.')[0] if provider=='chromium' else match.group(0)) if match else ''
   return provider.capitalize()+(' '+number if number else '')
