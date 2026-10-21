@@ -1,0 +1,91 @@
+{
+  "schema": "web-search-assets/1",
+  "data_home": "BROWSER_EVAL_DATA_HOME or ~/.browser-eval",
+  "publication_target": "evaluation/web-search/publication-target.json",
+  "files": [
+    {
+      "path": "web-search/20261020-v1/reader-content.json",
+      "sha256": "515e971e18b3d87bcdbcc02c6dcd34f11a9d4fe648854ef287ef255992f30b02"
+    },
+    {
+      "path": "web-search/20261020-v1/reader-report/manifest.json",
+      "sha256": "ba2ec90fe59118e91cce8ed6206b2903ed88e86442ef5121b887bd37df883e60"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/bocha-ai-esg-request.json",
+      "sha256": "a84c1660c1b5287bcda29f5d68c1646e755af3f9f5c5b19c10364bf59ecc16aa"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/bocha-ai-esg-response.json",
+      "sha256": "033cd00ffa7a74d970c682a3df5ca6e4010bf1664d2833ebbb882b178aca3a3a"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/bocha-ai-request.json",
+      "sha256": "57c564c80fd0090e2c324af67246cd43630345ed0a1763b3f361407ddf0feb16"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/bocha-ai-response.json",
+      "sha256": "9316e77e68a8f9b8c262b6c4674b793b1ae3590cbec9ac0c0bccd3f642ee0e85"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/bocha-web-esg-request.json",
+      "sha256": "df4acf4902ae9bebf6fb335ce373baf8285d2b9a193bd80429b430ad6dafff71"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/bocha-web-esg-response.json",
+      "sha256": "aa15ce8fab393dde9b926caf68a1f409e03d46d3e8b66ec5f77bf8c2c77564ab"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/bocha-web-request.json",
+      "sha256": "01f2e87756e786089afeebd5bae3d277e14d5a87634df7f66ef98d9a9a8b0a71"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/bocha-web-response.json",
+      "sha256": "6968208082b5744f1b82adaab5bd38cd706ecbcf89169321635383bfdec6ccc9"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/esg-request.json",
+      "sha256": "639370ff008a3e328a49322ec61fd6b02275f2c0c4016d03bf585c5de88d86bf"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/esg-response.json",
+      "sha256": "a49072931d245a3408e78acc8bed750c9b93e6150d566121472c35d8106fb10e"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/palace-request.json",
+      "sha256": "cc397777692776276a88a4438acd3b311870e07a89769e3e557a58d245f7a69b"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/palace-response.json",
+      "sha256": "4d6599f5ed1c984aa3cf7e02a3bec228f5154ea5c2c8e6f1f42ccabb9c2b7623"
+    },
+    {
+      "path": "web-search/20261020-v1/interface-research/source.json",
+      "sha256": "1d5d89a7d751f1cef490baf6a0afcf0bdb5636347054364bae778a15230299ef"
+    },
+    {
+      "path": "web-search/20261020-expanded-120/profile.json",
+      "sha256": "537cbfe360df8a3cac6ed1afc7d08837f8195de9a8ac5dc834cd8d6d0b4a08e2"
+    },
+    {
+      "path": "web-search/20261020-expanded-120/receipt.json",
+      "sha256": "3264449659a16c17b45293c36e8951e8c13a37c2df10ad6c7982aa32a68f7881"
+    },
+    {
+      "path": "web-search/20261020-social-28/profile.json",
+      "sha256": "9d6241102df4f6cf137e50914b9d72097cdf9c4bc59f3b9eececd149f77f3361"
+    },
+    {
+      "path": "web-search/20261020-social-28/receipt.json",
+      "sha256": "d60d70b5ef337533d43c3792f0454af1120898e0180340372dd922330e1aaac7"
+    },
+    {
+      "path": "web-search/20261020-community-original/profile.json",
+      "sha256": "9b4b54743822bc52c5ae45494ba1de7116d9668d15a540222da3e585d831cd4f"
+    },
+    {
+      "path": "web-search/20261020-community-original/receipt.json",
+      "sha256": "1b6973cc322747a46aa96b42924cff9cf19b3ded45d984eb1dffd9398652ac98"
+    }
+  ]
+}

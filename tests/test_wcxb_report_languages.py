@@ -40,6 +40,7 @@ def test_wcxb_language_output_and_every_language_link(tmp_path, include_english)
 def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include_english):
     from harness.web_fetch import report_build
 
+    monkeypatch.delenv('BROWSER_EVAL_REPORT_LANGUAGE', raising=False)
     captured = []
     monkeypatch.setattr(report_build, 'build_wcxb_report',
                         lambda *args, **kwargs: captured.append(kwargs) or tmp_path / 'index.html')

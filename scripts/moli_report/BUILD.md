@@ -20,7 +20,7 @@ uv run --frozen python scripts/moli_report/build.py \
 uv run --frozen python scripts/moli_report/verify.py --site /tmp/moli-report-release --release
 ```
 
-The default build generates Chinese pages and charts only. Add `--include-english` to generate English explicitly. `report-languages.json` records the editions used by verification, packaging and browser checks. Without English, both English entry paths show a notice with a return link. Translation sources remain available for manual generation.
+The public builder falls back to English. Set `BROWSER_EVAL_REPORT_LANGUAGE=zh` or pass `--language zh` for a Chinese-only build; `--include-english` keeps both editions when Chinese is primary. `report-languages.json` records the editions used by verification, packaging and browser checks. Without English, both English entry paths show a notice with a return link. Translation sources remain available for manual generation.
 
 Choose a new output directory for each build; the builder does not delete existing output. `--vendor-dir` selects the retained Mermaid distribution and license. Their hashes are checked before copying. The profile supplies its location under the data home; no vendored executable or measured output is committed here.
 
@@ -48,7 +48,7 @@ The four 1.1.9 resource configurations are release builds bound by `resource_bui
 
 The static verifier checks score/evidence bindings, resource populations and percentages, fixed-case log links, charts, rendering for the generated editions, unique resource extrema and negative controls. Its implementation is `harness/lexbench/verification.py`; the JavaScript rendering contract is an installed resource under `harness/lexbench/assets/`, also exercised by `tests/test_moli_report_render_contract.py`. Importing the verifier does not parse command arguments or read evidence. `--release --profile /path/to/profile.json` selects the authoritative method and binary bindings explicitly; an installed distribution requires this option when the repository profile is unavailable. `verify_evidence(site)` checks saved evidence and its negative controls; the full `verify(site)` command additionally runs the rendering contract and remains the release check.
 
-For full release verification, serve the build with a static HTTP server and run `ui_check.js` with `MOLI_REPORT_SITE`, `MOLI_REPORT_ORIGIN`, and `MOLI_REPORT_SHOTS`. `LEXBENCH_NODE_MODULES` selects the provisioned Playwright installation. The browser check covers route classes, themes, widths, evidence dialogs and keyboard navigation. Run it after resource measurement to avoid contaminating the measurement host.
+For release verification, serve the build with a static HTTP server and run `ui_check.js` with `MOLI_REPORT_SITE`, `MOLI_REPORT_ORIGIN`, and `MOLI_REPORT_SHOTS`. `LEXBENCH_NODE_MODULES` selects the provisioned Playwright installation. The browser pass reviews each top-level page once at the standard desktop width. Renderer tests cover responsive and theme behavior; generation-time tests cover details, filters, dialogs and keyboard navigation. Run the reader pass after resource measurement to avoid contaminating the measurement host.
 
 Publish only after the complete requested method matrix and release checks pass, using the existing bound Artifact Site target and its freshly read remote version. Preserve binary identity, raw trials and previous report versions.
 

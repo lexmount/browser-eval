@@ -1,0 +1,2409 @@
+{
+  "schema": "web-search/1",
+  "title": "Search API baseline and content-option comparison — complete 149-query scope",
+  "publication": {
+    "host": "https://artifact-site.lexmount.cn",
+    "state": "update-private-artifact",
+    "slug": "W3MxzlJuPRl6",
+    "expected_version": "ver_19a9434a8bd84230807f10620e771a70"
+  },
+  "protocol": {
+    "top_k": 5,
+    "rounds": 1,
+    "score_round": 0,
+    "concurrency": 1,
+    "server_timeout_ms": 10000,
+    "client_timeout_s": 20,
+    "interval_s": 0.3,
+    "retry": true,
+    "order": "rotate methods by case",
+    "latency": "One logical result per query and provider; end-to-end elapsed time includes a single retry after transport, HTTP, or invalid-response failure",
+    "quality": "Deterministic declared-target and site-constraint checks; no model judge. Public labeled evidence evaluated separately.",
+    "review": "No independent result review; machine checks only",
+    "reference": "Before/after complete publisher responses verify declared target identity; volatile HTML bytes may differ. No source-body scoring.",
+    "cost": "Cumulative list-price estimate over physical calls; unknown Lexmount price remains unavailable; not an invoice",
+    "reference_timeout_s": 30,
+    "reference_scope": "identity",
+    "execution_location": "Same macOS client in Asia/Shanghai time zone; provider localization defaults; upstream geographic routing not controlled",
+    "as_of": "2026-10-20",
+    "comparison": "All 149 queries, five modes in rotating serial order. Baseline: Lexmount native, DeepSeek need_content=false, Bocha summary=false. Optional-output comparisons use same-query paired differences, not historical run differences."
+  },
+  "methods": [
+    {
+      "id": "lexmount",
+      "label": "Lexmount Search",
+      "adapter": "lexmount",
+      "endpoint": "https://webfetch.local.lexmount.net/v1/search",
+      "key_env": "LEXMOUNT_SEARCH_API_KEY",
+      "currency": "CNY",
+      "price_per_1000": null,
+      "price_source": "Product pricing not set in supplied requirements",
+      "price_checked": "2026-10-20",
+      "billing": "unknown"
+    },
+    {
+      "id": "deepseek",
+      "label": "DeepSeek Search",
+      "adapter": "deepseek",
+      "endpoint": "https://api.deepseek.com/v1/tools/search",
+      "key_env": "DEEPSEEK_API_KEY",
+      "currency": "CNY",
+      "price_per_1000": 5,
+      "price_source": "https://api-docs.deepseek.com/zh-cn/guides/search/",
+      "price_checked": "2026-10-20",
+      "billing": "http-200-nonempty",
+      "output_options": {
+        "need_content": false
+      }
+    },
+    {
+      "id": "bocha",
+      "label": "Bocha Web Search",
+      "adapter": "bocha",
+      "endpoint": "https://api.bochaai.com/v1/web-search",
+      "key_env": "BOCHA_API_KEY",
+      "currency": "CNY",
+      "price_per_1000": 36,
+      "price_source": "https://market.aliyun.com/detail/cmgj00071702.html",
+      "price_checked": "2026-10-20",
+      "billing": "http-200",
+      "output_options": {
+        "summary": false
+      }
+    },
+    {
+      "id": "deepseek-content",
+      "label": "DeepSeek Search + content",
+      "adapter": "deepseek",
+      "endpoint": "https://api.deepseek.com/v1/tools/search",
+      "key_env": "DEEPSEEK_API_KEY",
+      "currency": "CNY",
+      "price_per_1000": 5,
+      "price_source": "https://api-docs.deepseek.com/zh-cn/guides/search/",
+      "price_checked": "2026-10-20",
+      "billing": "http-200-nonempty",
+      "output_options": {
+        "need_content": true
+      }
+    },
+    {
+      "id": "bocha-summary",
+      "label": "Bocha Web Search + summary",
+      "adapter": "bocha",
+      "endpoint": "https://api.bochaai.com/v1/web-search",
+      "key_env": "BOCHA_API_KEY",
+      "currency": "CNY",
+      "price_per_1000": 36,
+      "price_source": "https://market.aliyun.com/detail/cmgj00071702.html",
+      "price_checked": "2026-10-20",
+      "billing": "http-200",
+      "output_options": {
+        "summary": true
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "ds-price-zh",
+      "family": "web",
+      "language": "zh",
+      "query": "DeepSeek Search API 价格 空结果 是否收费",
+      "anchors": [
+        "https://api-docs.deepseek.com/zh-cn/guides/search/"
+      ],
+      "origin": "https://x.com/Mileson07/status/2112394138054279679",
+      "derivation": "New query from reported per-task billing concern",
+      "provenance_kind": "community_derived",
+      "category": "web"
+    },
+    {
+      "id": "ds-price-en",
+      "family": "web",
+      "language": "en",
+      "query": "DeepSeek search fetch API pricing count need_content",
+      "anchors": [
+        "https://api-docs.deepseek.com/guides/search/"
+      ],
+      "origin": "https://x.com/ethereaglehq/status/2112397029393736153",
+      "derivation": "New query from billing discussion",
+      "provenance_kind": "community_derived",
+      "category": "web"
+    },
+    {
+      "id": "ds-schema",
+      "family": "web",
+      "language": "en",
+      "query": "DeepSeek search API rerank_score authority summary schema",
+      "anchors": [
+        "https://api-docs.deepseek.com/api/search/"
+      ],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "derivation": "New query testing official specification discovery",
+      "provenance_kind": "community_derived",
+      "category": "web"
+    },
+    {
+      "id": "tavily-price",
+      "family": "web",
+      "language": "en",
+      "query": "Tavily basic advanced search API credits pricing",
+      "anchors": [
+        "https://docs.tavily.com/documentation/api-credits"
+      ],
+      "origin": "https://x.com/ai_fengshou/status/2112382046328807921",
+      "derivation": "New query testing a price-comparison claim",
+      "provenance_kind": "community_derived",
+      "category": "web"
+    },
+    {
+      "id": "gemini-original",
+      "family": "web",
+      "language": "en",
+      "query": "find out who Gemini cites for your query",
+      "anchors": [
+        "https://suganthan.com/blog/gemini-citations/"
+      ],
+      "origin": "https://suganthan.com/blog/deepseek-search-api/",
+      "derivation": "Exact published query; known original page, not an exhaustive relevance judgment; top 10 differs from author count=50",
+      "provenance_kind": "community_exact",
+      "category": "web"
+    },
+    {
+      "id": "fanout-original",
+      "family": "web",
+      "language": "en",
+      "query": "ChatGPT fan-out queries Chrome extension",
+      "anchors": [
+        "https://suganthan.com/blog/fanoutfox/"
+      ],
+      "origin": "https://suganthan.com/blog/deepseek-search-api/",
+      "derivation": "Exact published query; known creator page; top 10 differs from author count=50; caller localization left at default",
+      "provenance_kind": "community_exact",
+      "category": "web"
+    },
+    {
+      "id": "kubernetes-probe",
+      "family": "web",
+      "language": "zh",
+      "query": "Kubernetes Deployment 滚动更新 maxSurge maxUnavailable 官方文档",
+      "anchors": [
+        "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+        "https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/deployment/"
+      ],
+      "origin": "authored-control",
+      "provenance_kind": "curated",
+      "category": "web"
+    },
+    {
+      "id": "ranking-benchmark",
+      "family": "web",
+      "language": "en",
+      "query": "Artificial Analysis Search Index methodology fixed answer model",
+      "anchors": [
+        "https://artificialanalysis.ai/methodology/search-api"
+      ],
+      "origin": "https://x.com/IMG_5955/status/2112392830878732564",
+      "derivation": "New query to verify benchmark methodology rather than social ranking",
+      "provenance_kind": "community_derived",
+      "category": "web"
+    },
+    {
+      "id": "freshstack",
+      "family": "web",
+      "language": "en",
+      "query": "FreshStack Building Realistic Benchmarks technical documents",
+      "anchors": [
+        "https://arxiv.org/abs/2504.13128",
+        "https://fresh-stack.github.io/"
+      ],
+      "origin": "https://arxiv.org/abs/2504.13128",
+      "paper_ids": [
+        "2504.13128"
+      ],
+      "provenance_kind": "curated",
+      "category": "web"
+    },
+    {
+      "id": "bright",
+      "family": "web",
+      "language": "en",
+      "query": "BRIGHT reasoning intensive retrieval benchmark",
+      "anchors": [
+        "https://arxiv.org/abs/2407.12883"
+      ],
+      "origin": "https://arxiv.org/abs/2407.12883",
+      "paper_ids": [
+        "2407.12883"
+      ],
+      "provenance_kind": "curated",
+      "category": "web"
+    },
+    {
+      "id": "mcp-source",
+      "family": "web",
+      "language": "zh",
+      "query": "Model Context Protocol 官方规范 文档",
+      "anchors": [],
+      "domains": [
+        "modelcontextprotocol.io"
+      ],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "derivation": "New first-party-source probe; domain presence is not relevance",
+      "provenance_kind": "community_derived",
+      "category": "web"
+    },
+    {
+      "id": "python-source",
+      "family": "web",
+      "language": "zh",
+      "query": "Python asyncio TaskGroup 官方文档 异常处理",
+      "anchors": [
+        "https://docs.python.org/3/library/asyncio-task.html"
+      ],
+      "origin": "authored-control",
+      "provenance_kind": "curated",
+      "category": "web"
+    },
+    {
+      "id": "wechat-probe",
+      "family": "site",
+      "language": "zh",
+      "query": "DeepSeek site:mp.weixin.qq.com",
+      "anchors": [],
+      "domains": [
+        "mp.weixin.qq.com"
+      ],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "derivation": "Authored topic query from reported WeChat coverage gap; not a reproduced original query",
+      "provenance_kind": "community_derived",
+      "category": "site"
+    },
+    {
+      "id": "v2ex-probe",
+      "family": "site",
+      "language": "zh",
+      "query": "DeepSeek API site:v2ex.com",
+      "anchors": [],
+      "domains": [
+        "v2ex.com"
+      ],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "derivation": "Authored domain constraint probe; no index-wide coverage claim",
+      "provenance_kind": "community_derived",
+      "category": "site"
+    },
+    {
+      "id": "reddit-probe",
+      "family": "site",
+      "language": "en",
+      "query": "DeepSeek search API site:reddit.com",
+      "anchors": [],
+      "domains": [
+        "reddit.com"
+      ],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "derivation": "Authored community search probe",
+      "provenance_kind": "community_derived",
+      "category": "site"
+    },
+    {
+      "id": "youtube-probe",
+      "family": "site",
+      "language": "en",
+      "query": "Andrej Karpathy neural networks site:youtube.com",
+      "anchors": [],
+      "domains": [
+        "youtube.com"
+      ],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "derivation": "Authored video discovery probe",
+      "provenance_kind": "community_derived",
+      "category": "site"
+    },
+    {
+      "id": "douyin-probe",
+      "family": "site",
+      "language": "zh",
+      "query": "DeepSeek 使用教程 site:douyin.com",
+      "anchors": [],
+      "domains": [
+        "douyin.com"
+      ],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "derivation": "Authored video discovery probe; content length is not transcript accuracy",
+      "provenance_kind": "community_derived",
+      "category": "site"
+    },
+    {
+      "id": "sspai-probe",
+      "family": "site",
+      "language": "zh",
+      "query": "DeepSeek site:sspai.com",
+      "anchors": [],
+      "domains": [
+        "sspai.com"
+      ],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "derivation": "Authored independent-publisher probe",
+      "provenance_kind": "community_derived",
+      "category": "site"
+    },
+    {
+      "id": "arxiv-bright",
+      "family": "vertical",
+      "language": "en",
+      "query": "BRIGHT A Realistic and Challenging Benchmark for Reasoning-Intensive Retrieval",
+      "source": "arxiv",
+      "domains": [
+        "arxiv.org"
+      ],
+      "anchors": [
+        "https://arxiv.org/abs/2407.12883"
+      ],
+      "origin": "https://arxiv.org/abs/2407.12883",
+      "paper_ids": [
+        "2407.12883"
+      ],
+      "provenance_kind": "curated",
+      "category": "vertical"
+    },
+    {
+      "id": "arxiv-freshstack",
+      "family": "vertical",
+      "language": "en",
+      "query": "FreshStack Building Realistic Benchmarks for Evaluating Retrieval on Technical Documents",
+      "source": "arxiv",
+      "domains": [
+        "arxiv.org"
+      ],
+      "anchors": [
+        "https://arxiv.org/abs/2504.13128"
+      ],
+      "origin": "https://arxiv.org/abs/2504.13128",
+      "paper_ids": [
+        "2504.13128"
+      ],
+      "provenance_kind": "curated",
+      "category": "vertical"
+    },
+    {
+      "id": "github-harness",
+      "family": "vertical",
+      "language": "en",
+      "query": "deepseek-harness",
+      "source": "github",
+      "domains": [
+        "github.com"
+      ],
+      "anchors": [
+        "https://github.com/deepseek-ai/deepseek-harness"
+      ],
+      "origin": "https://github.com/deepseek-ai/deepseek-harness",
+      "repositories": [
+        "deepseek-ai/deepseek-harness"
+      ],
+      "provenance_kind": "curated",
+      "category": "vertical"
+    },
+    {
+      "id": "github-search-evals",
+      "family": "vertical",
+      "language": "en",
+      "query": "tavily-search-evals",
+      "source": "github",
+      "domains": [
+        "github.com"
+      ],
+      "anchors": [
+        "https://github.com/tavily-ai/tavily-search-evals"
+      ],
+      "origin": "https://github.com/tavily-ai/tavily-search-evals",
+      "repositories": [
+        "tavily-ai/tavily-search-evals"
+      ],
+      "provenance_kind": "curated",
+      "category": "vertical"
+    },
+    {
+      "id": "bilibili-tutorial",
+      "family": "vertical",
+      "language": "zh",
+      "query": "DeepSeek 使用教程",
+      "source": "bilibili",
+      "domains": [
+        "bilibili.com"
+      ],
+      "anchors": [],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "derivation": "Authored native vertical vs site-filter route probe",
+      "provenance_kind": "community_derived",
+      "category": "vertical"
+    },
+    {
+      "id": "wechat-native",
+      "family": "vertical",
+      "language": "zh",
+      "query": "DeepSeek",
+      "source": "sogou_weixin",
+      "domains": [
+        "mp.weixin.qq.com"
+      ],
+      "anchors": [],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "derivation": "Authored native vertical vs site-filter route probe; unresolved redirect URLs reported separately",
+      "provenance_kind": "community_derived",
+      "category": "vertical"
+    },
+    {
+      "id": "public-ki01",
+      "family": "web",
+      "category": "known_item",
+      "language": "en",
+      "query": "official RFC for HTTP semantics published as 9110",
+      "anchors": [
+        "https://www.rfc-editor.org/rfc/rfc9110.html"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "KI01",
+      "intent": "Find the canonical RFC 9110 document, not a summary or repost.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ki02",
+      "family": "web",
+      "category": "known_item",
+      "language": "en",
+      "query": "Python proposal to make the global interpreter lock optional PEP",
+      "anchors": [
+        "https://peps.python.org/pep-0703/"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "KI02",
+      "intent": "Find PEP 703 on the official Python PEP site.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ki03",
+      "family": "web",
+      "category": "known_item",
+      "language": "en",
+      "query": "Rich Sutton essay arguing general methods that scale with computation beat hand-built knowledge",
+      "anchors": [
+        "http://www.incompleteideas.net/IncIdeas/BitterLesson.html"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "KI03",
+      "intent": "Find Rich Sutton's essay The Bitter Lesson.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ki04",
+      "family": "web",
+      "category": "known_item",
+      "language": "en",
+      "query": "SQLite documentation explaining isolation between separate database connections",
+      "anchors": [
+        "https://www.sqlite.org/isolation.html"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "KI04",
+      "intent": "Find SQLite's canonical isolation documentation.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ki05",
+      "family": "web",
+      "category": "known_item",
+      "language": "en",
+      "query": "W3C Web Content Accessibility Guidelines 2.2 recommendation",
+      "anchors": [
+        "https://www.w3.org/TR/WCAG22/"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "KI05",
+      "intent": "Find the W3C Recommendation for WCAG 2.2.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ki06",
+      "family": "web",
+      "category": "known_item",
+      "language": "en",
+      "query": "BurntSushi ripgrep source repository",
+      "anchors": [
+        "https://github.com/BurntSushi/ripgrep"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "KI06",
+      "intent": "Find the canonical ripgrep repository owned by BurntSushi.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments",
+      "repositories": [
+        "burntsushi/ripgrep"
+      ]
+    },
+    {
+      "id": "public-ki07",
+      "family": "web",
+      "category": "known_item",
+      "language": "en",
+      "query": "Google site reliability engineering book chapter about handling overload",
+      "anchors": [
+        "https://sre.google/sre-book/handling-overload/"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "KI07",
+      "intent": "Find the Handling Overload chapter of Google's SRE book.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ki08",
+      "family": "web",
+      "category": "known_item",
+      "language": "en",
+      "query": "NIST AI Risk Management Framework 1.0 PDF",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "KI08",
+      "intent": "Find the official NIST AI RMF 1.0 publication or its canonical PDF.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ps01",
+      "family": "web",
+      "category": "primary_source",
+      "language": "en",
+      "query": "European Union AI Act Regulation 2024/1689 official journal full text",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "PS01",
+      "intent": "Return the official EU legal text for Regulation (EU) 2024/1689.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ps02",
+      "family": "web",
+      "category": "primary_source",
+      "language": "en",
+      "query": "CISA known exploited vulnerabilities catalog official",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "PS02",
+      "intent": "Return CISA's official Known Exploited Vulnerabilities Catalog.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ps03",
+      "family": "web",
+      "category": "primary_source",
+      "language": "en",
+      "query": "FDA cybersecurity in medical devices final guidance 2023",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "PS03",
+      "intent": "Return the official FDA final guidance document issued in 2023.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ps04",
+      "family": "web",
+      "category": "primary_source",
+      "language": "en",
+      "query": "WHO guideline on non-sugar sweeteners 2023",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "PS04",
+      "intent": "Return the official WHO guideline or publication page.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ps05",
+      "family": "web",
+      "category": "primary_source",
+      "language": "en",
+      "query": "SEC NVIDIA 2025 annual report 10-K",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "PS05",
+      "intent": "Return NVIDIA's official SEC 10-K filing for fiscal 2025.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ps06",
+      "family": "web",
+      "category": "primary_source",
+      "language": "en",
+      "query": "Federal Reserve March 2024 FOMC meeting minutes",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "PS06",
+      "intent": "Return the official Federal Reserve minutes for the March 2024 FOMC meeting.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ps07",
+      "family": "web",
+      "category": "primary_source",
+      "language": "en",
+      "query": "NASA Artemis II mission official overview",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "PS07",
+      "intent": "Return NASA's official Artemis II mission overview.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ps08",
+      "family": "web",
+      "category": "primary_source",
+      "language": "en",
+      "query": "EDPB Opinion 08/2024 consent or pay large online platforms",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "PS08",
+      "intent": "Return the European Data Protection Board's official Opinion 08/2024.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-te01",
+      "family": "web",
+      "category": "technical_exact",
+      "language": "en",
+      "query": "Python \"TypeError: unhashable type: 'dict'\"",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "TE01",
+      "intent": "Find pages that correctly explain and resolve this exact Python error.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-te02",
+      "family": "web",
+      "category": "technical_exact",
+      "language": "en",
+      "query": "PostgreSQL SQLSTATE 40001 serialization_failure",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "TE02",
+      "intent": "Find authoritative documentation or high-quality troubleshooting for PostgreSQL serialization failures.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-te03",
+      "family": "web",
+      "category": "technical_exact",
+      "language": "en",
+      "query": "Rust E0502 cannot borrow as mutable because it is also borrowed as immutable",
+      "anchors": [
+        "https://doc.rust-lang.org/error_codes/E0502.html"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "TE03",
+      "intent": "Find the official error explanation or a directly applicable high-quality explanation.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-te04",
+      "family": "web",
+      "category": "technical_exact",
+      "language": "en",
+      "query": "OpenSSL error:0A00010B SSL routines wrong version number",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "TE04",
+      "intent": "Find a technically accurate explanation and fixes for this exact OpenSSL error.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-te05",
+      "family": "web",
+      "category": "technical_exact",
+      "language": "en",
+      "query": "Kubernetes ImagePullBackOff ErrImagePull difference",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "TE05",
+      "intent": "Find pages that accurately distinguish the two Kubernetes states and provide diagnostic steps.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-te06",
+      "family": "web",
+      "category": "technical_exact",
+      "language": "en",
+      "query": "React \"Hydration failed because the initial UI does not match what was rendered on the server\"",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "TE06",
+      "intent": "Find directly relevant React or Next.js hydration mismatch documentation or troubleshooting.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-te07",
+      "family": "web",
+      "category": "technical_exact",
+      "language": "en",
+      "query": "Python asyncio \"Task exception was never retrieved\"",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "TE07",
+      "intent": "Find directly relevant explanations and corrective patterns for this asyncio warning.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-te08",
+      "family": "web",
+      "category": "technical_exact",
+      "language": "en",
+      "query": "Git \"fatal: refusing to merge unrelated histories\"",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "TE08",
+      "intent": "Find directly relevant Git documentation or accurate troubleshooting for this exact error.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-sm01",
+      "family": "web",
+      "category": "semantic_long_tail",
+      "language": "en",
+      "query": "browser API that reports when an element enters or leaves the viewport",
+      "anchors": [
+        "https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "SM01",
+      "intent": "Retrieve documentation or strong explanations of the Intersection Observer API.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-sm02",
+      "family": "web",
+      "category": "semantic_long_tail",
+      "language": "en",
+      "query": "Linux mechanism for receiving filesystem change notifications without polling",
+      "anchors": [
+        "https://man7.org/linux/man-pages/man7/inotify.7.html"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "SM02",
+      "intent": "Retrieve documentation or strong explanations of inotify.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-sm03",
+      "family": "web",
+      "category": "semantic_long_tail",
+      "language": "en",
+      "query": "PostgreSQL command that runs a query and reports the actual execution plan and timing",
+      "anchors": [
+        "https://www.postgresql.org/docs/current/sql-explain.html"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "SM03",
+      "intent": "Retrieve PostgreSQL EXPLAIN ANALYZE documentation or a directly useful explanation.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-sm04",
+      "family": "web",
+      "category": "semantic_long_tail",
+      "language": "en",
+      "query": "HTTP feature for resuming a download from a specific byte offset",
+      "anchors": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Range_requests"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "SM04",
+      "intent": "Retrieve documentation on HTTP range requests and byte ranges.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-sm05",
+      "family": "web",
+      "category": "semantic_long_tail",
+      "language": "en",
+      "query": "CSS grid pattern that automatically fits as many equal-width cards as possible without media queries",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "SM05",
+      "intent": "Retrieve documentation or a strong explanation of repeat(auto-fit, minmax(...)).",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-sm06",
+      "family": "web",
+      "category": "semantic_long_tail",
+      "language": "en",
+      "query": "safe file update technique that writes a temporary file and renames it over the original",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "SM06",
+      "intent": "Retrieve strong technical material on atomic file replacement using write-fsync-rename patterns.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-sm07",
+      "family": "web",
+      "category": "semantic_long_tail",
+      "language": "en",
+      "query": "retry strategy that adds randomness to exponential delays to prevent synchronized clients",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "SM07",
+      "intent": "Retrieve documentation or strong explanations of exponential backoff with jitter.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-sm08",
+      "family": "web",
+      "category": "semantic_long_tail",
+      "language": "en",
+      "query": "browser security policy that limits which origins may load scripts images and frames",
+      "anchors": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP"
+      ],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "SM08",
+      "intent": "Retrieve documentation on Content Security Policy.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-nw01",
+      "family": "web",
+      "category": "niche_small_web",
+      "language": "en",
+      "query": "personal blog measuring keyboard input latency across computers and keyboards",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "NW01",
+      "intent": "Find detailed independent measurements rather than generic SEO summaries.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-nw02",
+      "family": "web",
+      "category": "niche_small_web",
+      "language": "en",
+      "query": "reverse engineering the Intel 8087 floating point chip from microscope die photographs",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "NW02",
+      "intent": "Find detailed independent reverse-engineering write-ups based on chip die imagery.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-nw03",
+      "family": "web",
+      "category": "niche_small_web",
+      "language": "en",
+      "query": "blog post implementing an arena allocator in C with alignment and out-of-memory handling",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "NW03",
+      "intent": "Find a technically detailed independent implementation, not a shallow definition.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-nw04",
+      "family": "web",
+      "category": "niche_small_web",
+      "language": "en",
+      "query": "write-up building a tiny debugger with ptrace in C",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "NW04",
+      "intent": "Find a detailed independent tutorial or project write-up using ptrace.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-nw05",
+      "family": "web",
+      "category": "niche_small_web",
+      "language": "en",
+      "query": "detailed amateur radio guide decoding NOAA APT weather satellite images with a cheap SDR",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "NW05",
+      "intent": "Find detailed hobbyist or specialist instructions with real setup information.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-nw06",
+      "family": "web",
+      "category": "niche_small_web",
+      "language": "en",
+      "query": "personal project restoring a Sun SPARCstation IPX power supply and NVRAM",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "NW06",
+      "intent": "Find a detailed restoration log covering the PSU and NVRAM.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-nw07",
+      "family": "web",
+      "category": "niche_small_web",
+      "language": "en",
+      "query": "graphics programming blog explaining image downsampling aliasing and the limits of bilinear filtering",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "NW07",
+      "intent": "Find a technically deep independent graphics-programming article.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-nw08",
+      "family": "web",
+      "category": "niche_small_web",
+      "language": "en",
+      "query": "homebrew 6502 computer build log memory map and address decoding",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "NW08",
+      "intent": "Find detailed personal build logs or specialist guides with an explicit memory map and decoder design.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-mc01",
+      "family": "web",
+      "category": "multi_constraint",
+      "language": "en",
+      "query": "open source vector database written in Rust Apache 2.0 HNSW",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "MC01",
+      "intent": "Find a project satisfying all stated constraints.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-mc02",
+      "family": "web",
+      "category": "multi_constraint",
+      "language": "en",
+      "query": "self-hosted web analytics AGPL cookieless PostgreSQL",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "MC02",
+      "intent": "Find a web analytics product satisfying all stated constraints.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-mc03",
+      "family": "web",
+      "category": "multi_constraint",
+      "language": "en",
+      "query": "embedded columnar OLAP database SQL reads Parquet without a server",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "MC03",
+      "intent": "Find a database satisfying all stated constraints.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-mc04",
+      "family": "web",
+      "category": "multi_constraint",
+      "language": "en",
+      "query": "static site generator written in Go multilingual taxonomies Apache 2.0",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "MC04",
+      "intent": "Find a static-site generator satisfying all stated constraints.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-mc05",
+      "family": "web",
+      "category": "multi_constraint",
+      "language": "en",
+      "query": "open source Kubernetes-native workflow engine written in Go supports DAGs and a web UI",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "MC05",
+      "intent": "Find a workflow engine satisfying all stated constraints.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-mc06",
+      "family": "web",
+      "category": "multi_constraint",
+      "language": "en",
+      "query": "Python ASGI framework dependency injection OpenAPI type hints",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "MC06",
+      "intent": "Find a Python framework satisfying all stated constraints.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-mc07",
+      "family": "web",
+      "category": "multi_constraint",
+      "language": "en",
+      "query": "open source feature flag service written in Go self-hosted PostgreSQL",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "MC07",
+      "intent": "Find a feature-flag service satisfying all stated constraints.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-mc08",
+      "family": "web",
+      "category": "multi_constraint",
+      "language": "en",
+      "query": "low-profile split wireless mechanical keyboard open source ZMK firmware",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "MC08",
+      "intent": "Find keyboard projects or build guides satisfying all stated constraints.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ex01",
+      "family": "web",
+      "category": "exploratory_diversity",
+      "language": "en",
+      "query": "approaches to zero-downtime PostgreSQL schema migrations",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "EX01",
+      "intent": "Return a useful mix of distinct migration strategies and implementation guidance.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ex02",
+      "family": "web",
+      "category": "exploratory_diversity",
+      "language": "en",
+      "query": "ways to model hierarchical data in SQL",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "EX02",
+      "intent": "Return results covering multiple distinct hierarchy-modeling techniques.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ex03",
+      "family": "web",
+      "category": "exploratory_diversity",
+      "language": "en",
+      "query": "distributed API rate limiting algorithms",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "EX03",
+      "intent": "Return results covering multiple algorithmic and distributed implementation approaches.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ex04",
+      "family": "web",
+      "category": "exploratory_diversity",
+      "language": "en",
+      "query": "strategies for handling out-of-order events in stream processing",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "EX04",
+      "intent": "Return results covering multiple event-time and correction strategies.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ex05",
+      "family": "web",
+      "category": "exploratory_diversity",
+      "language": "en",
+      "query": "monorepo versus polyrepo tradeoffs",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "EX05",
+      "intent": "Return results covering distinct organizational and engineering tradeoffs.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ex06",
+      "family": "web",
+      "category": "exploratory_diversity",
+      "language": "en",
+      "query": "offline-first web app synchronization approaches",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "EX06",
+      "intent": "Return results covering multiple synchronization and conflict-resolution models.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ex07",
+      "family": "web",
+      "category": "exploratory_diversity",
+      "language": "en",
+      "query": "database change data capture approaches",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "EX07",
+      "intent": "Return results covering multiple CDC mechanisms and their tradeoffs.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ex08",
+      "family": "web",
+      "category": "exploratory_diversity",
+      "language": "en",
+      "query": "methods for preventing cache stampede",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "EX08",
+      "intent": "Return results covering multiple prevention and mitigation techniques.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ml01",
+      "family": "web",
+      "category": "multilingual_regional",
+      "language": "multilingual",
+      "query": "cómo solicitar el certificado digital de persona física FNMT",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "ML01",
+      "intent": "Find the official Spanish FNMT procedure in Spanish.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ml02",
+      "family": "web",
+      "category": "multilingual_regional",
+      "language": "multilingual",
+      "query": "factura electrónica obligatoria empresas ley crea y crece requisitos oficiales",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "ML02",
+      "intent": "Find official Spanish information on business e-invoicing requirements under the Create and Grow Law.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ml03",
+      "family": "web",
+      "category": "multilingual_regional",
+      "language": "multilingual",
+      "query": "rupture conventionnelle délai de rétractation site officiel",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "ML03",
+      "intent": "Find the official French rule and procedure for the withdrawal period.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ml04",
+      "family": "web",
+      "category": "multilingual_regional",
+      "language": "multilingual",
+      "query": "Bundesurlaubsgesetz Mindesturlaub Vollzeit offizielle Fassung",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "ML04",
+      "intent": "Find the official German statutory text or official explanation of minimum annual leave.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ml05",
+      "family": "web",
+      "category": "multilingual_regional",
+      "language": "multilingual",
+      "query": "Portal das Finanças pedir certidão de dívida e não dívida",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "ML05",
+      "intent": "Find the official Portuguese tax portal procedure for obtaining a tax-debt clearance certificate.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ml06",
+      "family": "web",
+      "category": "multilingual_regional",
+      "language": "multilingual",
+      "query": "マイナンバーカード 電子証明書 有効期限 公式",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "ML06",
+      "intent": "Find an official Japanese source stating the validity period of My Number Card electronic certificates.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ml07",
+      "family": "web",
+      "category": "multilingual_regional",
+      "language": "multilingual",
+      "query": "Rijksoverheid vakantiegeld wanneer uitbetalen",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "ML07",
+      "intent": "Find the official Dutch government explanation of when holiday allowance is paid.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-ml08",
+      "family": "web",
+      "category": "multilingual_regional",
+      "language": "multilingual",
+      "query": "com donar-se d'alta a l'idCAT Mòbil requisits oficials",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "ML08",
+      "intent": "Find the official Catalan registration requirements for idCAT Mòbil.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-rb01",
+      "family": "web",
+      "category": "robustness_noisy",
+      "language": "en",
+      "query": "pyhton dataclass frozen hash not work mutable field",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "RB01",
+      "intent": "Find accurate material explaining frozen dataclass hashing and mutable fields despite spelling and grammar noise.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-rb02",
+      "family": "web",
+      "category": "robustness_noisy",
+      "language": "en",
+      "query": "ngnix 502 bad gateway upstream prematurely closed connection",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "RB02",
+      "intent": "Find accurate nginx troubleshooting despite the misspelling.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-rb03",
+      "family": "web",
+      "category": "robustness_noisy",
+      "language": "en",
+      "query": "kuberentes pod stuck terminatting finalizer remove safely",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "RB03",
+      "intent": "Find safe Kubernetes finalizer-removal guidance despite multiple misspellings.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-rb04",
+      "family": "web",
+      "category": "robustness_noisy",
+      "language": "en",
+      "query": "postgres index for json not full text exact key value",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "RB04",
+      "intent": "Find JSONB indexing guidance for exact key/value queries while respecting the negative constraint.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-rb05",
+      "family": "web",
+      "category": "robustness_noisy",
+      "language": "en",
+      "query": "css cards same hight grid without javascript",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "RB05",
+      "intent": "Find CSS-only equal-height card layouts despite misspelling and shorthand.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-rb06",
+      "family": "web",
+      "category": "robustness_noisy",
+      "language": "en",
+      "query": "git undo last commit keep changes dont delete files",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "RB06",
+      "intent": "Find the correct Git operation while preserving working changes.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-rb07",
+      "family": "web",
+      "category": "robustness_noisy",
+      "language": "en",
+      "query": "whats the thing in http where browser asks server if cached file changed etag 304",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "RB07",
+      "intent": "Find HTTP conditional-request documentation from a verbose colloquial query.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-rb08",
+      "family": "web",
+      "category": "robustness_noisy",
+      "language": "en",
+      "query": "rust cant move out borrowed content option take",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "RB08",
+      "intent": "Find relevant Rust guidance on moving a value out through Option::take.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-fr01",
+      "family": "web",
+      "category": "freshness_rolling",
+      "language": "en",
+      "query": "latest stable Rust release notes official",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "FR01",
+      "intent": "Surface the newest stable Rust release notes from an official Rust source.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-fr02",
+      "family": "web",
+      "category": "freshness_rolling",
+      "language": "en",
+      "query": "latest Python security release official announcement",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "FR02",
+      "intent": "Surface the newest official Python security release announcement.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-fr03",
+      "family": "web",
+      "category": "freshness_rolling",
+      "language": "en",
+      "query": "latest Kubernetes release notes official",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "FR03",
+      "intent": "Surface the newest official stable Kubernetes release notes.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-fr04",
+      "family": "web",
+      "category": "freshness_rolling",
+      "language": "en",
+      "query": "latest Mozilla Firefox release notes official",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "FR04",
+      "intent": "Surface the newest official Firefox release notes.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-fr05",
+      "family": "web",
+      "category": "freshness_rolling",
+      "language": "en",
+      "query": "latest PostgreSQL minor release announcement official",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "FR05",
+      "intent": "Surface the newest official PostgreSQL minor release announcement.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-fr06",
+      "family": "web",
+      "category": "freshness_rolling",
+      "language": "en",
+      "query": "latest CISA known exploited vulnerabilities additions official",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "FR06",
+      "intent": "Surface the newest official CISA KEV additions or update notice.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-fr07",
+      "family": "web",
+      "category": "freshness_rolling",
+      "language": "en",
+      "query": "latest European Commission Digital Markets Act decision official",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "FR07",
+      "intent": "Surface the newest official European Commission decision or formal action under the DMA.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "public-fr08",
+      "family": "web",
+      "category": "freshness_rolling",
+      "language": "en",
+      "query": "latest GitHub Actions runner release",
+      "anchors": [],
+      "origin": "https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl",
+      "provenance_kind": "public_catalog",
+      "source_case_id": "FR08",
+      "intent": "Surface the newest release of GitHub's official Actions runner repository.",
+      "derivation": "Exact public catalog query; target hints are not imported as relevance judgments"
+    },
+    {
+      "id": "creator-1",
+      "family": "web",
+      "category": "creator_discovery",
+      "language": "en",
+      "query": "track Google AI Mode traffic Search Console",
+      "anchors": [],
+      "origin": "https://suganthan.com/blog/deepseek-search-api/",
+      "provenance_kind": "community_exact",
+      "derivation": "Exact published query; no inferred target label; count=10 differs from original count=50"
+    },
+    {
+      "id": "creator-2",
+      "family": "web",
+      "category": "creator_discovery",
+      "language": "en",
+      "query": "AI crawler access checker",
+      "anchors": [],
+      "origin": "https://suganthan.com/blog/deepseek-search-api/",
+      "provenance_kind": "community_exact",
+      "derivation": "Exact published query; no inferred target label; count=10 differs from original count=50"
+    },
+    {
+      "id": "creator-3",
+      "family": "web",
+      "category": "creator_discovery",
+      "language": "en",
+      "query": "Google Search Console MCP",
+      "anchors": [],
+      "origin": "https://suganthan.com/blog/deepseek-search-api/",
+      "provenance_kind": "community_exact",
+      "derivation": "Exact published query; no inferred target label; count=10 differs from original count=50"
+    },
+    {
+      "id": "creator-4",
+      "family": "web",
+      "category": "creator_discovery",
+      "language": "en",
+      "query": "x402 pay per crawl AI agents",
+      "anchors": [],
+      "origin": "https://suganthan.com/blog/deepseek-search-api/",
+      "provenance_kind": "community_exact",
+      "derivation": "Exact published query; no inferred target label; count=10 differs from original count=50"
+    },
+    {
+      "id": "cn-01",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "铁路12306 官方网站 网上订票",
+      "anchors": [
+        "https://www.12306.cn/index/"
+      ],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-02",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "故宫博物院 官方预约购票入口",
+      "anchors": [],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-03",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "国家统计局 2026年9月 居民消费价格",
+      "anchors": [],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-04",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "杭州 西湖 博物馆 周一 开放时间",
+      "anchors": [],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-05",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "北京 办理护照 官方预约 材料",
+      "anchors": [],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-06",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "上海 电子税务局 发票 红冲 操作",
+      "anchors": [],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-07",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "Vue 3 官方文档 计算属性 缓存",
+      "anchors": [
+        "https://cn.vuejs.org/guide/essentials/computed.html",
+        "https://cn.vuejs.org/guide/essentials/computed"
+      ],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-08",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "微信小程序 官方文档 wx.request",
+      "anchors": [],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-09",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "支付宝小程序 官方文档 云调用",
+      "anchors": [],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-10",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "高德地图 JavaScript API 路径规划 文档",
+      "anchors": [],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-11",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "国家图书馆 读者证 办理 官方",
+      "anchors": [],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "cn-12",
+      "family": "web",
+      "category": "chinese_service",
+      "language": "zh",
+      "query": "个人信息保护法 全文 全国人大",
+      "anchors": [],
+      "origin": "Curated Chinese service and documentation queries",
+      "provenance_kind": "curated",
+      "derivation": "New coverage supplement; not copied from an X evaluation"
+    },
+    {
+      "id": "social-01",
+      "family": "site",
+      "language": "zh",
+      "category": "wechat",
+      "difficulty": "L1",
+      "query": "site:mp.weixin.qq.com 大模型 应用",
+      "domains": [
+        "mp.weixin.qq.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 1,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-02",
+      "family": "web",
+      "language": "zh",
+      "category": "wechat",
+      "difficulty": "L2",
+      "query": "公众号文章 DeepSeek 使用教程",
+      "domains": [
+        "mp.weixin.qq.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 2,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-03",
+      "family": "site",
+      "language": "zh",
+      "category": "wechat",
+      "difficulty": "L3",
+      "query": "site:mp.weixin.qq.com AI after:2026-09-01",
+      "domains": [
+        "mp.weixin.qq.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 3,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-04",
+      "family": "site",
+      "language": "zh",
+      "category": "xiaohongshu",
+      "difficulty": "L1",
+      "query": "site:xiaohongshu.com 露营装备清单",
+      "domains": [
+        "xiaohongshu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 4,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-05",
+      "family": "web",
+      "language": "zh",
+      "category": "xiaohongshu",
+      "difficulty": "L2",
+      "query": "小红书 成都 美食 推荐 笔记",
+      "domains": [
+        "xiaohongshu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 5,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-06",
+      "family": "site",
+      "language": "zh",
+      "category": "xiaohongshu",
+      "difficulty": "L3",
+      "query": "site:xiaohongshu.com 穿搭 after:2026-09-01",
+      "domains": [
+        "xiaohongshu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 6,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-07",
+      "family": "site",
+      "language": "zh",
+      "category": "zhihu",
+      "difficulty": "L1",
+      "query": "site:zhihu.com 如何评价 DeepSeek",
+      "domains": [
+        "zhihu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 7,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-08",
+      "family": "web",
+      "language": "zh",
+      "category": "zhihu",
+      "difficulty": "L2",
+      "query": "程序员 35 岁 危机 怎么看",
+      "domains": [
+        "zhihu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 8,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-09",
+      "family": "site",
+      "language": "zh",
+      "category": "zhihu",
+      "difficulty": "L3",
+      "query": "site:zhuanlan.zhihu.com 大模型 after:2026-09-01",
+      "domains": [
+        "zhuanlan.zhihu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 9,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-10",
+      "family": "site",
+      "language": "zh",
+      "category": "douyin",
+      "difficulty": "L1",
+      "query": "site:douyin.com 做饭 教程",
+      "domains": [
+        "douyin.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 10,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-11",
+      "family": "web",
+      "language": "zh",
+      "category": "douyin",
+      "difficulty": "L2",
+      "query": "抖音 健身 教学 视频",
+      "domains": [
+        "douyin.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 11,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-12",
+      "family": "site",
+      "language": "zh",
+      "category": "weibo",
+      "difficulty": "L1",
+      "query": "site:weibo.com 热搜",
+      "domains": [
+        "weibo.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 12,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-13",
+      "family": "web",
+      "language": "zh",
+      "category": "weibo",
+      "difficulty": "L2",
+      "query": "微博 网友 热议 AI",
+      "domains": [
+        "weibo.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 13,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-14",
+      "family": "site",
+      "language": "zh",
+      "category": "bilibili",
+      "difficulty": "L1",
+      "query": "site:bilibili.com 机器学习 教程",
+      "domains": [
+        "bilibili.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 14,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-15",
+      "family": "web",
+      "language": "zh",
+      "category": "bilibili",
+      "difficulty": "L2",
+      "query": "B站 up主 大模型 原理 讲解",
+      "domains": [
+        "bilibili.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 15,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-16",
+      "family": "site",
+      "language": "zh",
+      "category": "baijiahao",
+      "difficulty": "L1",
+      "query": "site:baijiahao.baidu.com 新能源汽车",
+      "domains": [
+        "baijiahao.baidu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 16,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-17",
+      "family": "site",
+      "language": "zh",
+      "category": "toutiao",
+      "difficulty": "L1",
+      "query": "site:toutiao.com 新能源汽车",
+      "domains": [
+        "toutiao.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 17,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-18",
+      "family": "site",
+      "language": "zh",
+      "category": "douban",
+      "difficulty": "L1",
+      "query": "site:douban.com 小组 租房",
+      "domains": [
+        "douban.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 18,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-19",
+      "family": "web",
+      "language": "zh",
+      "category": "douban",
+      "difficulty": "L2",
+      "query": "豆瓣 书评 百年孤独",
+      "domains": [
+        "douban.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 19,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-20",
+      "family": "site",
+      "language": "en",
+      "category": "x",
+      "difficulty": "L1",
+      "query": "site:x.com AnthropicAI",
+      "domains": [
+        "x.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 20,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-21",
+      "family": "web",
+      "language": "en",
+      "category": "x",
+      "difficulty": "L2",
+      "query": "Karpathy tweet on vibe coding",
+      "domains": [
+        "x.com",
+        "twitter.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 21,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-22",
+      "family": "site",
+      "language": "en",
+      "category": "reddit",
+      "difficulty": "L1",
+      "query": "site:reddit.com LocalLLaMA best model",
+      "domains": [
+        "reddit.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 22,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-23",
+      "family": "web",
+      "language": "en",
+      "category": "reddit",
+      "difficulty": "L2",
+      "query": "reddit thread best budget mechanical keyboard",
+      "domains": [
+        "reddit.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 23,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-24",
+      "family": "site",
+      "language": "en",
+      "category": "instagram",
+      "difficulty": "L1",
+      "query": "site:instagram.com nasa",
+      "domains": [
+        "instagram.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 24,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-25",
+      "family": "site",
+      "language": "en",
+      "category": "facebook",
+      "difficulty": "L1",
+      "query": "site:facebook.com NASA",
+      "domains": [
+        "facebook.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 25,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-26",
+      "family": "site",
+      "language": "en",
+      "category": "linkedin",
+      "difficulty": "L1",
+      "query": "site:linkedin.com Anthropic",
+      "domains": [
+        "linkedin.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 26,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-27",
+      "family": "site",
+      "language": "en",
+      "category": "medium",
+      "difficulty": "L1",
+      "query": "site:medium.com LLM agents",
+      "domains": [
+        "medium.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 27,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-28",
+      "family": "site",
+      "language": "en",
+      "category": "substack",
+      "difficulty": "L1",
+      "query": "site:substack.com AI newsletter",
+      "domains": [
+        "substack.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 28,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "arcadia-homelab-original",
+      "family": "web",
+      "category": "community_original",
+      "language": "zh",
+      "query": "个人博客 Homelab NixOS",
+      "anchors": [],
+      "origin": "https://x.com/Arcadia_Bao/status/2111711040757006401",
+      "provenance_kind": "community_exact",
+      "intent": "Find independent personal blogs discussing Homelab and NixOS.",
+      "derivation": "Exact visible query in user-supplied screenshot 3; no inferred relevance labels or expected pages.",
+      "source_image_sha256": "c751c85b3c961f129a3b3d863a5a99150d09617acc223e8d0348e14b8e725aea"
+    }
+  ],
+  "reference_revision": {
+    "id": "search-reference-2",
+    "root_cause": "Known tracking parameters obscured identical page URLs; the Vue documentation is officially available at both declared paths. Semantic query parameters remain significant.",
+    "scope": "All three methods and all predeclared known-page queries in the five-result cohort",
+    "regressions": [
+      "tests.web_search.test_search.SearchScenarios.test_known_tracking_parameters_do_not_hide_the_same_page",
+      "tests.web_search.test_search.SearchScenarios.test_semantic_url_parameters_are_preserved"
+    ]
+  },
+  "collection_revision": {
+    "id": "search-collection-2",
+    "root_cause": "HTTP 200 can precede a truncated body; reference availability now also requires a successful transfer. Reference timeout is separate from API timing.",
+    "scope": "Entire declared two-method, 24-query, three-round cohort rerun; previous calls preserved outside Git",
+    "regressions": [
+      "tests.web_search.test_runner.ReferenceCaptureScenarios.test_http_200_with_incomplete_transfer_is_not_qualified"
+    ],
+    "supersedes_data_home_relative": "web-search/20261020-matched"
+  },
+  "cohort_revision": {
+    "reason": "Expand from 24 to 120 preregistered queries; public query catalog and exact community queries added. New complete matrix; previous pilot retained separately.",
+    "public_catalog_commit": "7714e86b1b8d7b943037c38b04d4f6ba65566d5b",
+    "public_catalog_sha256": "90ed45dae3a4604664102eede1470e1a1ab1cdca0c54f279113c94ec55c64231"
+  },
+  "reference_checks": {
+    "https://api-docs.deepseek.com/zh-cn/guides/search/": {
+      "url": "https://api-docs.deepseek.com/zh-cn/guides/search/",
+      "contains": [
+        "need_content"
+      ]
+    },
+    "https://api-docs.deepseek.com/guides/search/": {
+      "url": "https://api-docs.deepseek.com/guides/search/",
+      "contains": [
+        "need_content"
+      ]
+    },
+    "https://api-docs.deepseek.com/api/search/": {
+      "url": "https://api-docs.deepseek.com/api/search/",
+      "contains": [
+        "rerank_score"
+      ]
+    },
+    "https://docs.tavily.com/documentation/api-credits": {
+      "url": "https://docs.tavily.com/documentation/api-credits",
+      "contains": [
+        "credit"
+      ]
+    },
+    "https://suganthan.com/blog/gemini-citations/": {
+      "url": "https://suganthan.com/blog/gemini-citations/",
+      "contains": [
+        "Gemini"
+      ]
+    },
+    "https://suganthan.com/blog/fanoutfox/": {
+      "url": "https://suganthan.com/blog/fanoutfox/",
+      "contains": [
+        "FanoutFox"
+      ]
+    },
+    "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/": {
+      "url": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+      "contains": [
+        "Deployment"
+      ]
+    },
+    "https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/deployment/": {
+      "url": "https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/deployment/",
+      "contains": [
+        "Deployment"
+      ]
+    },
+    "https://artificialanalysis.ai/methodology/search-api": {
+      "url": "https://artificialanalysis.ai/methodology/search-api",
+      "contains": [
+        "Search"
+      ]
+    },
+    "https://arxiv.org/abs/2504.13128": {
+      "url": "https://arxiv.org/abs/2504.13128",
+      "contains": [
+        "2504.13128"
+      ]
+    },
+    "https://fresh-stack.github.io/": {
+      "url": "https://fresh-stack.github.io/",
+      "contains": [
+        "FreshStack"
+      ]
+    },
+    "https://arxiv.org/abs/2407.12883": {
+      "url": "https://arxiv.org/abs/2407.12883",
+      "contains": [
+        "2407.12883"
+      ]
+    },
+    "https://docs.python.org/3/library/asyncio-task.html": {
+      "url": "https://docs.python.org/3/library/asyncio-task.html",
+      "contains": [
+        "asyncio"
+      ]
+    },
+    "https://github.com/deepseek-ai/deepseek-harness": {
+      "url": "https://github.com/deepseek-ai/deepseek-harness",
+      "contains": [
+        "deepseek-ai/deepseek-harness"
+      ]
+    },
+    "https://github.com/tavily-ai/tavily-search-evals": {
+      "url": "https://github.com/tavily-ai/tavily-search-evals",
+      "contains": [
+        "tavily-ai/tavily-search-evals"
+      ]
+    },
+    "https://www.rfc-editor.org/rfc/rfc9110.html": {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+      "contains": [
+        "HTTP Semantics"
+      ]
+    },
+    "https://peps.python.org/pep-0703/": {
+      "url": "https://peps.python.org/pep-0703/",
+      "contains": [
+        "703"
+      ]
+    },
+    "http://www.incompleteideas.net/IncIdeas/BitterLesson.html": {
+      "url": "http://www.incompleteideas.net/IncIdeas/BitterLesson.html",
+      "contains": [
+        "Bitter Lesson"
+      ]
+    },
+    "https://www.sqlite.org/isolation.html": {
+      "url": "https://www.sqlite.org/isolation.html",
+      "contains": [
+        "Isolation"
+      ]
+    },
+    "https://www.w3.org/TR/WCAG22/": {
+      "url": "https://www.w3.org/TR/WCAG22/",
+      "contains": [
+        "Web Content Accessibility Guidelines"
+      ]
+    },
+    "https://github.com/BurntSushi/ripgrep": {
+      "url": "https://github.com/BurntSushi/ripgrep",
+      "contains": [
+        "BurntSushi/ripgrep"
+      ]
+    },
+    "https://sre.google/sre-book/handling-overload/": {
+      "url": "https://sre.google/sre-book/handling-overload/",
+      "contains": [
+        "Handling Overload"
+      ]
+    },
+    "https://doc.rust-lang.org/error_codes/E0502.html": {
+      "url": "https://doc.rust-lang.org/error_codes/E0502.html",
+      "contains": [
+        "E0502"
+      ]
+    },
+    "https://www.12306.cn/index/": {
+      "url": "https://www.12306.cn/index/",
+      "contains": [
+        "12306"
+      ]
+    },
+    "https://cn.vuejs.org/guide/essentials/computed.html": {
+      "url": "https://cn.vuejs.org/guide/essentials/computed.html",
+      "contains": [
+        "computed"
+      ]
+    },
+    "https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API": {
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API",
+      "contains": [
+        "IntersectionObserver"
+      ]
+    },
+    "https://man7.org/linux/man-pages/man7/inotify.7.html": {
+      "url": "https://man7.org/linux/man-pages/man7/inotify.7.html",
+      "contains": [
+        "inotify"
+      ]
+    },
+    "https://www.postgresql.org/docs/current/sql-explain.html": {
+      "url": "https://www.postgresql.org/docs/current/sql-explain.html",
+      "contains": [
+        "EXPLAIN"
+      ]
+    },
+    "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Range_requests": {
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Range_requests",
+      "contains": [
+        "Range"
+      ]
+    },
+    "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP": {
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP",
+      "contains": [
+        "Content Security Policy"
+      ]
+    },
+    "https://cn.vuejs.org/guide/essentials/computed": {
+      "url": "https://cn.vuejs.org/guide/essentials/computed",
+      "contains": [
+        "计算属性"
+      ]
+    }
+  }
+}

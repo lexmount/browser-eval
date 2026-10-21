@@ -14,12 +14,17 @@ from harness.report_languages import (
 @pytest.mark.parametrize("supported", [("en", "zh"), ("zh",)])
 @pytest.mark.parametrize("saved", [None, "en", "zh", "legacy"])
 @pytest.mark.parametrize("requested", [None, "en", "zh"])
-def test_language_resolution_respects_choice_and_renderer_capability(tmp_path, supported, saved, requested):
+def test_language_resolution_respects_choice_and_renderer_capability(
+    tmp_path, supported, saved, requested, monkeypatch
+):
     from harness.report_languages import resolve_report_language
+    monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
     if saved:
         contract = {"languages": ["zh"]} if saved == "legacy" else {"primary_language": saved}
         (tmp_path / "report-languages.json").write_text(json.dumps(contract))
-    expected = requested or ("zh" if saved == "legacy" else saved) or supported[0]
+    expected = requested or ("zh" if saved == "legacy" else saved) or (
+        "en" if "en" in supported else supported[0]
+    )
     if expected in supported:
         assert resolve_report_language(tmp_path, requested, supported=supported) == expected
     else:
@@ -108,13 +113,38 @@ def test_primary_english_keeps_explicit_chinese_navigation_and_evidence(tmp_path
     assert contract["entrypoint"] == "en/index.html"
 
 
-def test_rebuild_language_recognizes_older_chinese_only_reports(tmp_path):
+def test_rebuild_language_recognizes_older_chinese_only_reports(tmp_path, monkeypatch):
     from harness.report_languages import primary_report_language
+    monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
     assert primary_report_language(tmp_path) == "en"
     write_language_contract(tmp_path, include_english=False)
     assert primary_report_language(tmp_path) == "zh"
     write_language_contract(tmp_path, include_english=True)
     assert primary_report_language(tmp_path) == "zh"
+
+
+def test_environment_changes_new_report_default_without_overriding_saved_choice(
+    tmp_path, monkeypatch
+):
+    from harness.report_languages import primary_report_language, select_report_language
+
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "zh")
+    assert primary_report_language(tmp_path) == "zh"
+    (tmp_path / "index.html").write_text(
+        '<html><head><meta name="browser-eval-report" content="1"></head></html>'
+    )
+    write_language_contract(tmp_path, include_english=False)
+    select_report_language(tmp_path, "zh")
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+    assert primary_report_language(tmp_path) == "zh"
+
+
+def test_invalid_environment_language_fails_early(tmp_path, monkeypatch):
+    from harness.report_languages import primary_report_language
+
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "fr")
+    with pytest.raises(ValueError, match="BROWSER_EVAL_REPORT_LANGUAGE"):
+        primary_report_language(tmp_path)
 
 
 @pytest.mark.parametrize("damage", ["unsupported", "missing_edition", "wrong_entry", "missing_redirect"])

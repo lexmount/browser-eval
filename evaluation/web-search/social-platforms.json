@@ -1,0 +1,558 @@
+{
+  "schema": "web-search/1",
+  "title": "Social-platform search: 28 queries transcribed from a user-supplied screenshot",
+  "publication": {
+    "host": "https://artifact-site.lexmount.cn",
+    "state": "new-private-artifact",
+    "slug": null,
+    "expected_version": null
+  },
+  "protocol": {
+    "top_k": 10,
+    "rounds": 3,
+    "score_round": 0,
+    "concurrency": 1,
+    "server_timeout_ms": 10000,
+    "client_timeout_s": 20,
+    "interval_s": 0.3,
+    "retry": false,
+    "order": "rotate methods by case and round",
+    "latency": "Client wall time to complete response bytes; all calls and nonempty successes reported separately",
+    "quality": "First preselected round; known-page hit@5/@10 and reciprocal rank; not full-web recall",
+    "review": "No independent result review; machine checks only",
+    "reference": "Before/after complete publisher responses verify declared target identity; volatile HTML bytes may differ. No source-body scoring.",
+    "cost": "List-price estimate in native currency; unknown Lexmount price remains unavailable; not an invoice",
+    "reference_timeout_s": 30,
+    "reference_scope": "identity",
+    "execution_location": "Same macOS client in Asia/Shanghai time zone; provider localization defaults; upstream geographic routing not controlled"
+  },
+  "methods": [
+    {
+      "id": "lexmount",
+      "label": "Lexmount Search",
+      "adapter": "lexmount",
+      "endpoint": "https://webfetch.local.lexmount.net/v1/search",
+      "key_env": "LEXMOUNT_SEARCH_API_KEY",
+      "currency": "CNY",
+      "price_per_1000": null,
+      "price_source": "Product pricing not set in supplied requirements",
+      "price_checked": "2026-10-20",
+      "billing": "unknown"
+    },
+    {
+      "id": "deepseek",
+      "label": "DeepSeek Search + content",
+      "adapter": "deepseek",
+      "endpoint": "https://api.deepseek.com/v1/tools/search",
+      "key_env": "DEEPSEEK_API_KEY",
+      "currency": "CNY",
+      "price_per_1000": 5,
+      "price_source": "https://api-docs.deepseek.com/zh-cn/guides/search/",
+      "price_checked": "2026-10-20",
+      "billing": "http-200-nonempty"
+    }
+  ],
+  "cases": [
+    {
+      "id": "social-01",
+      "family": "site",
+      "language": "zh",
+      "category": "wechat",
+      "difficulty": "L1",
+      "query": "site:mp.weixin.qq.com 大模型 应用",
+      "domains": [
+        "mp.weixin.qq.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 1,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-02",
+      "family": "web",
+      "language": "zh",
+      "category": "wechat",
+      "difficulty": "L2",
+      "query": "公众号文章 DeepSeek 使用教程",
+      "domains": [
+        "mp.weixin.qq.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 2,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-03",
+      "family": "site",
+      "language": "zh",
+      "category": "wechat",
+      "difficulty": "L3",
+      "query": "site:mp.weixin.qq.com AI after:2026-09-01",
+      "domains": [
+        "mp.weixin.qq.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 3,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-04",
+      "family": "site",
+      "language": "zh",
+      "category": "xiaohongshu",
+      "difficulty": "L1",
+      "query": "site:xiaohongshu.com 露营装备清单",
+      "domains": [
+        "xiaohongshu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 4,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-05",
+      "family": "web",
+      "language": "zh",
+      "category": "xiaohongshu",
+      "difficulty": "L2",
+      "query": "小红书 成都 美食 推荐 笔记",
+      "domains": [
+        "xiaohongshu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 5,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-06",
+      "family": "site",
+      "language": "zh",
+      "category": "xiaohongshu",
+      "difficulty": "L3",
+      "query": "site:xiaohongshu.com 穿搭 after:2026-09-01",
+      "domains": [
+        "xiaohongshu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 6,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-07",
+      "family": "site",
+      "language": "zh",
+      "category": "zhihu",
+      "difficulty": "L1",
+      "query": "site:zhihu.com 如何评价 DeepSeek",
+      "domains": [
+        "zhihu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 7,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-08",
+      "family": "web",
+      "language": "zh",
+      "category": "zhihu",
+      "difficulty": "L2",
+      "query": "程序员 35 岁 危机 怎么看",
+      "domains": [
+        "zhihu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 8,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-09",
+      "family": "site",
+      "language": "zh",
+      "category": "zhihu",
+      "difficulty": "L3",
+      "query": "site:zhuanlan.zhihu.com 大模型 after:2026-09-01",
+      "domains": [
+        "zhuanlan.zhihu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 9,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-10",
+      "family": "site",
+      "language": "zh",
+      "category": "douyin",
+      "difficulty": "L1",
+      "query": "site:douyin.com 做饭 教程",
+      "domains": [
+        "douyin.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 10,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-11",
+      "family": "web",
+      "language": "zh",
+      "category": "douyin",
+      "difficulty": "L2",
+      "query": "抖音 健身 教学 视频",
+      "domains": [
+        "douyin.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 11,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-12",
+      "family": "site",
+      "language": "zh",
+      "category": "weibo",
+      "difficulty": "L1",
+      "query": "site:weibo.com 热搜",
+      "domains": [
+        "weibo.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 12,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-13",
+      "family": "web",
+      "language": "zh",
+      "category": "weibo",
+      "difficulty": "L2",
+      "query": "微博 网友 热议 AI",
+      "domains": [
+        "weibo.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 13,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-14",
+      "family": "site",
+      "language": "zh",
+      "category": "bilibili",
+      "difficulty": "L1",
+      "query": "site:bilibili.com 机器学习 教程",
+      "domains": [
+        "bilibili.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 14,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-15",
+      "family": "web",
+      "language": "zh",
+      "category": "bilibili",
+      "difficulty": "L2",
+      "query": "B站 up主 大模型 原理 讲解",
+      "domains": [
+        "bilibili.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 15,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-16",
+      "family": "site",
+      "language": "zh",
+      "category": "baijiahao",
+      "difficulty": "L1",
+      "query": "site:baijiahao.baidu.com 新能源汽车",
+      "domains": [
+        "baijiahao.baidu.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 16,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-17",
+      "family": "site",
+      "language": "zh",
+      "category": "toutiao",
+      "difficulty": "L1",
+      "query": "site:toutiao.com 新能源汽车",
+      "domains": [
+        "toutiao.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 17,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-18",
+      "family": "site",
+      "language": "zh",
+      "category": "douban",
+      "difficulty": "L1",
+      "query": "site:douban.com 小组 租房",
+      "domains": [
+        "douban.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 18,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-19",
+      "family": "web",
+      "language": "zh",
+      "category": "douban",
+      "difficulty": "L2",
+      "query": "豆瓣 书评 百年孤独",
+      "domains": [
+        "douban.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 19,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-20",
+      "family": "site",
+      "language": "en",
+      "category": "x",
+      "difficulty": "L1",
+      "query": "site:x.com AnthropicAI",
+      "domains": [
+        "x.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 20,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-21",
+      "family": "web",
+      "language": "en",
+      "category": "x",
+      "difficulty": "L2",
+      "query": "Karpathy tweet on vibe coding",
+      "domains": [
+        "x.com",
+        "twitter.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 21,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-22",
+      "family": "site",
+      "language": "en",
+      "category": "reddit",
+      "difficulty": "L1",
+      "query": "site:reddit.com LocalLLaMA best model",
+      "domains": [
+        "reddit.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 22,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-23",
+      "family": "web",
+      "language": "en",
+      "category": "reddit",
+      "difficulty": "L2",
+      "query": "reddit thread best budget mechanical keyboard",
+      "domains": [
+        "reddit.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 23,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-24",
+      "family": "site",
+      "language": "en",
+      "category": "instagram",
+      "difficulty": "L1",
+      "query": "site:instagram.com nasa",
+      "domains": [
+        "instagram.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 24,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-25",
+      "family": "site",
+      "language": "en",
+      "category": "facebook",
+      "difficulty": "L1",
+      "query": "site:facebook.com NASA",
+      "domains": [
+        "facebook.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 25,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-26",
+      "family": "site",
+      "language": "en",
+      "category": "linkedin",
+      "difficulty": "L1",
+      "query": "site:linkedin.com Anthropic",
+      "domains": [
+        "linkedin.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 26,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-27",
+      "family": "site",
+      "language": "en",
+      "category": "medium",
+      "difficulty": "L1",
+      "query": "site:medium.com LLM agents",
+      "domains": [
+        "medium.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 27,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    },
+    {
+      "id": "social-28",
+      "family": "site",
+      "language": "en",
+      "category": "substack",
+      "difficulty": "L1",
+      "query": "site:substack.com AI newsletter",
+      "domains": [
+        "substack.com"
+      ],
+      "anchors": [],
+      "origin": "User-supplied 28-row screenshot; original author and post not established",
+      "provenance_kind": "user_screenshot",
+      "source_row": 28,
+      "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3",
+      "derivation": "Exact query transcribed from supplied screenshot; platform domain checks do not judge topic relevance or factual correctness."
+    }
+  ],
+  "reference_revision": {
+    "id": "search-reference-1",
+    "root_cause": "A paper lookup targets the paper across arXiv formats; a repository lookup targets the official repository including files. Exact landing-page equality is too narrow. Other tasks keep exact known-page anchors.",
+    "scope": "All methods for declared paper and repository tasks; frozen diagnostic preflight remains unchanged",
+    "regressions": [
+      "tests.web_search.test_search.ReferenceIdentityScenarios.test_paper_formats_match_declared_paper_but_citations_do_not",
+      "tests.web_search.test_search.ReferenceIdentityScenarios.test_declared_repository_accepts_files_but_not_forks_or_lookalikes",
+      "tests.web_search.test_search.ReferenceIdentityScenarios.test_reference_url_without_entity_contract_stays_exact"
+    ]
+  },
+  "collection_revision": {
+    "id": "search-collection-2",
+    "root_cause": "HTTP 200 can precede a truncated body; reference availability now also requires a successful transfer. Reference timeout is separate from API timing.",
+    "scope": "Entire declared two-method, 24-query, three-round cohort rerun; previous calls preserved outside Git",
+    "regressions": [
+      "tests.web_search.test_runner.ReferenceCaptureScenarios.test_http_200_with_incomplete_transfer_is_not_qualified"
+    ],
+    "supersedes_data_home_relative": "web-search/20261020-matched"
+  },
+  "cohort_revision": {
+    "reason": "Additional screenshot supplied after the 120-query cohort was frozen; separate complete paired cohort, never pooled into its timing distribution.",
+    "source_sha256": "2483879ac31a9d50b2fad5269d2470217e4b77a12a48fc884cfece92aa3bc2e3"
+  },
+  "reference_checks": {}
+}

@@ -108,6 +108,11 @@ def run(stage: Callable[[list[str]], None], arguments: list[str]) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["web-search"]:
+        from harness.web_search.runner import main as search_main
+
+        search_main(argv[1:])
+        return
     if argv[:1] == ["webmainbench-latency"]:
         from .webmainbench_latency_correction import certify
 

@@ -37,6 +37,7 @@ Supported execution tracks:
 
 | Track | Question | Start here |
 | --- | --- | --- |
+| Web Search | Which links and text does a search API return, at what latency and cost? | [Synthetic example](examples/web_search/README.md) · [Track guide](harness/web_search/README.md) |
 | Web Fetch | Can a method return the required page text, records, resources or files? How long does it take? | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
 | Browser Trajectory Replay | Can different browsers complete the same recorded actions? What resources do they use? | [Curated suite](examples/trajectory_replay/README.md) · [WebArena recordings](examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | Can an Agent complete a task when only the browser changes? | [CowAgent + WebArena guide](examples/browser_use/README.md) |
@@ -113,7 +114,7 @@ major comparison rules.
 
 | Output | What you will find |
 | --- | --- |
-| `report/en/index.html` | English comparisons, task results and evidence links |
+| `report/en/index.html` | English edition when it was explicitly requested; otherwise a not-generated notice |
 | `report/index.html` | Report entry; opens the selected language |
 | `results.jsonl`, `summary.json` | Scores and aggregates for scripts or further analysis |
 | `manifest.json`, `dataset.json` | Methods, versions, settings and tasks used |
@@ -127,11 +128,11 @@ Rebuild a report from saved evidence without repeating browser or API calls:
 uv run --frozen browser-harness-eval report /absolute/path/to/run
 ```
 
-The Web Fetch CLI opens English by default, with a switchable Chinese edition. Choose Chinese when starting a run, or change the language of a saved report:
+The Web Fetch CLI falls back to English. Set the environment default for a team or agent session, or select a language explicitly; an existing report keeps its saved choice:
 
 ```bash
-uv run --frozen browser-harness-eval run --delay 0 --language zh
-uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
+BROWSER_EVAL_REPORT_LANGUAGE=zh uv run --frozen browser-harness-eval run --delay 0
+uv run --frozen browser-harness-eval report /absolute/path/to/run --language zh
 ```
 
 Rebuilding without `--language` keeps the previous choice. Language changes do not repeat calls or change scores; task wording, responses and logs retain their original language. English (`en`) and Chinese (`zh`) are supported; other language codes are rejected. See [report language support](docs/report-hosting.md#report-languages) for the standalone builders and historical reports.

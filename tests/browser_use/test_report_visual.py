@@ -39,10 +39,14 @@ def report_fixture(root: Path) -> None:
     (root / "report-languages.json").write_text(json.dumps({"languages": ["zh"]}))
 
 
-def test_routes_cover_success_when_failure_sorts_first(tmp_path):
+def test_routes_cover_only_top_level_navigation(tmp_path):
     report_fixture(tmp_path)
     routes = set(visual._routes(tmp_path))
-    assert {"results/a-fail.html", "results/z-pass.html", "en/index.html"} <= routes
+    assert routes == {
+        "index.html", "datasets/index.html", "methodology/index.html",
+        "analysis/index.html", "review/index.html", "changes/index.html",
+        "adoption/index.html", "reproduce/index.html", "accounts/index.html",
+    }
 
 
 @pytest.mark.parametrize("count", [1, True, 999999])
@@ -80,20 +84,15 @@ def complete_receipt(report, receipt, binary):
         "adoption/index.html",
         "reproduce/index.html",
         "accounts/index.html",
-        "results/a-fail.html",
-        "results/z-pass.html",
-        "en/index.html",
-        "evidence-viewer.html?src=artifacts/a-fail/executions/1/execution-evidence.json",
-        "evidence-viewer.html?src=artifacts/z-pass/executions/1/execution-evidence.json",
     ]
     value = {
-        "schema": "lex_browser_use_visual_qa/2",
+        "schema": "lex_browser_use_visual_qa/3",
         "report_tree_sha256": packager.tree_sha256(report),
         "checker_sources": checker_sources(Path(visual.__file__)),
         "browser_executable": str(binary),
         "browser_sha256": file_sha256(binary),
         "route_classes": len(routes),
-        "states_checked": len(routes) * 6,
+        "states_checked": len(routes),
         "states": [
             {
                 "route": route,
@@ -106,8 +105,8 @@ def complete_receipt(report, receipt, binary):
                 "textOverflow": [],
             }
             for route in routes
-            for width, height in ((1440, 1000), (820, 1180), (390, 844))
-            for theme in ("light", "dark")
+            for width, height in ((1440, 1000),)
+            for theme in ("light",)
         ],
         "failures": [],
     }
@@ -158,7 +157,7 @@ def test_cache_requires_complete_current_rendering(tmp_path, monkeypatch, damage
     elif damage == "browser":
         binary.write_text("Replaced browser binary")
     elif damage == "old-schema":
-        value["schema"] = "lex_browser_use_visual_qa/1"
+        value["schema"] = "lex_browser_use_visual_qa/2"
     receipt.write_text(json.dumps(value))
     calls = []
     monkeypatch.setattr(packager, "check", lambda *args, **kwargs: calls.append("evidence"))

@@ -51,8 +51,9 @@ def command_run(args: argparse.Namespace) -> int:
         provider_concurrency=args.provider_concurrency,
         max_failure_retries=args.max_failure_retries,
     )
+    language = args.language or primary_report_language(args.output / 'report')
     report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True,
-                               language=args.language)
+                               language=language)
     print(f"Report: {report_path.resolve()}")
     kinds={case.id:case.task_kind for case in cases}
     failures = [r for r in records if not task_passed(r['ok'],r['metrics'],kinds[r['case_id']])]
@@ -111,7 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
-    add_language_argument(run, default="en")
+    add_language_argument(run)
     run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")

@@ -1,0 +1,42 @@
+The 80 public_catalog queries are adapted from Microck/websearch-bench
+Commit: 7714e86b1b8d7b943037c38b04d4f6ba65566d5b
+Source: https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl
+Query text and intent are retained; provider judgments and scores are not imported.
+
+MIT License
+
+Copyright (c) 2026 Microck
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+SimpleQA Verified factual retrieval probes
+------------------------------------------
+Source: Google DeepMind / Google Research, SimpleQA Verified
+Authors: Lukas Haas, Gal Yona, Giovanni D'Antonio, Sasha Goldshtein, Dipanjan Das
+Dataset revision: ed392714d14fa5225b07c2b456453983bc75f690
+Dataset: https://huggingface.co/datasets/google/simpleqa-verified
+Report: https://arxiv.org/abs/2509.07968
+The pinned dataset card declares the MIT license.
+
+The search profile retains the original question, reference answer and supporting
+URLs for all 831 questions within the shared 128-character input limit. The other
+169 questions were excluded before collection. These are adapted retrieval probes,
+not official SimpleQA Verified scores: the original benchmark evaluates parametric
+knowledge without search or retrieval tools. Source-URL and literal-answer checks
+are reported separately and do not replace semantic answer grading.

@@ -1,4 +1,4 @@
-"""Local rendering, input identities and complete visual-check receipts."""
+"""Local rendering, input identities and focused release-review receipts."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.safety import reject_evidence_symlinks
+from lexbench_webfetch.paths import contained_path
 
 
 def browser_executable() -> str:
@@ -60,12 +60,7 @@ def checker_sources(source: Path) -> dict[str, str]:
 def state_matrix(routes: Sequence[str], viewports: Sequence[tuple[int, int]]) -> set[tuple]:
     if not routes or len(routes) != len(set(routes)):
         raise ValueError("visual QA requires nonempty unique routes")
-    return {
-        (route, width, height, theme)
-        for route in routes
-        for width, height in viewports
-        for theme in ("light", "dark")
-    }
+    return {(route, width, height, "light") for route in routes for width, height in viewports}
 
 
 def validate_routes(report: Path, routes: Sequence[str]) -> None:

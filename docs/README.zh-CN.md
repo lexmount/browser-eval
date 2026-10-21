@@ -37,6 +37,7 @@ flowchart LR
 
 | 轨道 | 回答什么问题 | 从这里开始 |
 | --- | --- | --- |
+| Web Search | 搜索接口返回哪些链接和文本，耗时与费用如何？ | [合成示例](../examples/web_search/README.md) · [专项指南](../harness/web_search/README.md) |
 | Web Fetch | 能否返回任务要求的正文、记录、资源或文件？需要多久？ | [本地示例](../examples/web_fetch/README.md) · [完整说明](../harness/web_fetch/README.md) |
 | Browser Trajectory Replay（轨迹重放） | 不同浏览器能否完成同一组已记录的操作？消耗多少资源？ | [项目任务集](../examples/trajectory_replay/README.md) · [WebArena 人工轨迹](../examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | 只更换浏览器时，Agent 能否完成任务？ | [CowAgent + WebArena 说明](../examples/browser_use/README.md) |
@@ -112,7 +113,7 @@ uv run --frozen browser-harness-eval run --delay 0
 
 | 输出 | 内容 |
 | --- | --- |
-| `report/en/index.html` | 英文比较、任务结果和证据入口 |
+| `report/en/index.html` | 仅在显式要求时生成英文版；否则显示未生成说明 |
 | `report/index.html` | 报告入口，打开所选语言 |
 | `results.jsonl`、`summary.json` | 供程序分析的评分和汇总 |
 | `manifest.json`、`dataset.json` | 使用的方法、版本、设置和任务 |
@@ -126,11 +127,11 @@ uv run --frozen browser-harness-eval run --delay 0
 uv run --frozen browser-harness-eval report /absolute/path/to/run
 ```
 
-Web Fetch 命令默认打开英文报告，并保留可切换的中文版。开始评测时可以选中文，也可以更改已有报告的语言：
+Web Fetch 命令在没有配置时默认英文。团队或 Agent 会话可通过环境变量设置默认语言，也可显式指定；已有报告沿用保存的语言：
 
 ```bash
-uv run --frozen browser-harness-eval run --delay 0 --language zh
-uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
+BROWSER_EVAL_REPORT_LANGUAGE=zh uv run --frozen browser-harness-eval run --delay 0
+uv run --frozen browser-harness-eval report /absolute/path/to/run --language zh
 ```
 
 重建时不传 `--language`，会沿用上次的选择。切换语言不重新调用浏览器或服务，也不改变评分；任务原文、响应和日志保留原来的语言。目前支持英文（`en`）和中文（`zh`），其他语言代码会报错。独立构建器和历史报告的支持范围见[报告语言说明](report-hosting.md#report-languages)。

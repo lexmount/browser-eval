@@ -519,6 +519,7 @@ def test_package_binds_report_evidence_and_release_gate(monkeypatch, tmp_path: P
     "lex_webarena_replay_visual_qa/1",
     "lex_webarena_replay_visual_qa/2",
     "lex_webarena_replay_visual_qa/3",
+    "lex_webarena_replay_visual_qa/4",
 ])
 def test_package_reruns_private_preview_gate_for_old_receipt(
     monkeypatch, tmp_path: Path, old_schema: str

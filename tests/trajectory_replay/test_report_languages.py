@@ -12,7 +12,7 @@ def test_explicit_languages_control_visual_scope(tmp_path):
     manifest = tmp_path / "report-manifest.json"
     manifest.write_text(json.dumps({"languages": ["zh"]}))
     assert language_roots(tmp_path) == (tmp_path,)
-    assert [route for route in _routes(tmp_path) if route.startswith("en/")] == ["en/index.html"]
+    assert [route for route in _routes(tmp_path) if route.startswith("en/")] == []
     manifest.write_text(json.dumps({"languages": ["zh", "en"]}))
     assert language_roots(tmp_path) == (tmp_path, tmp_path / "en")
     assert "en/index.html" in _routes(tmp_path)
