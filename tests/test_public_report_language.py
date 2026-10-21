@@ -167,7 +167,8 @@ def test_make_language_override_is_only_explicit(tmp_path, monkeypatch, target, 
 
 def cli(*args):
     env = {**os.environ, "PYTHONPATH": str(ROOT)}
-    env.pop("BROWSER_EVAL_REPORT_LANGUAGE", None)
+    # Empty environment setting isolates the public fallback from a developer .env.
+    env["BROWSER_EVAL_REPORT_LANGUAGE"] = ""
     return subprocess.run([sys.executable, "-m", "harness.web_fetch", *args],
                           cwd=ROOT, capture_output=True, text=True,
                           env=env)
