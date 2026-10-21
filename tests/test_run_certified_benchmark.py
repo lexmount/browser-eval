@@ -104,6 +104,14 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
                     build_report(output,root/'formal-report')
                 self.assertFalse((root/'formal-report').exists())
+                # A copied diagnostic run must not become a formal package,
+                # even after its dataset display label is removed.
+                from harness.web_fetch.report_package import validate_release
+                with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
+                    validate_release(output)
+                (output/'dataset.json').write_text(json.dumps(saved))
+                with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
+                    validate_release(output)
                 self.assertEqual(dataset.read_bytes(),original)
 
     def test_frozen_contract_execution_needs_no_historical_qualification_files(self):
