@@ -2,13 +2,13 @@
   "base_url": "https://artifact-site.lexmount.cn",
   "slug": "W3MxzlJuPRl6",
   "url": "https://artifact-site.lexmount.cn/s/W3MxzlJuPRl6",
-  "versionId": "ver_0646e0139a1645abae43111e42182be3",
+  "versionId": "ver_6d5f12af5e344a8ea9eab8c83cc9c47f",
   "visibility": "private",
-  "previous_version": "ver_7444ae3c231a4646b8937ee9960b039e",
-  "archive_sha256": "c0f864f862c0df9127ebe5e1bd23a68c6053fd4c0052b0de1919550e3ba63aec",
+  "previous_version": "ver_0646e0139a1645abae43111e42182be3",
+  "archive_sha256": "d9bd2641092b6d617b3d4ecf46aab1790a0827ba865fc0523e96c3ac036d717f",
   "schema": "web-search-publication/1",
-  "published_at": "2026-10-21",
-  "report_kind": "three-provider-top-five-comparison",
+  "published_at": "2026-10-21T17:24:47.305190+00:00",
+  "report_kind": "three-provider-reviewed-top-five-comparison",
   "cases": 980,
   "logical_results": 2940,
   "physical_calls": 2944,
@@ -32,32 +32,68 @@
       "sha256": "6a680b8fa3b58d8cfb25ce124288fae4d6a5680492f29167ae3a23eb9fff88e7"
     },
     "report_manifest": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_0646e0139a1645abae43111e42182be3/manifest.json",
-      "sha256": "8f1f979bd7e5e759d64be5acc894a8825cfffa329029505f31fabb85a7ac7092"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/manifest.json",
+      "sha256": "7e438476a21e4eecb499d6074bf8370e0089376dfee79768217a27bb249298a0"
     },
     "content": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_0646e0139a1645abae43111e42182be3/reader-content.json",
-      "sha256": "ac6222b0de2690d148a9f9b71687439be443bf1daf233a0d2d707c118c7cafe0"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/reader-content.json",
+      "sha256": "ec940e333788f46cfd82b4d713e49ad5e34b3ffa7fe31628bcddcc0d054a7cce"
     },
     "visual_acceptance": {
-      "path": "web-search/20261021-search-api-three-provider-report/visual-quality-chain-final/reader.json",
-      "sha256": "3769fa750e0da6e8cbf9a9d4f088596e451cb6ada8a9b01e4c67691744da73ae"
+      "path": "web-search/20261021-search-api-three-provider-report/visual-independent-release/reader.json",
+      "sha256": "bbdf68d0f30c7c3d3b328c2fcd4ef238fc10db2d0a2c05430ab003ecf575470a"
     },
     "delivery_index": {
-      "path": "web-search/20261021-search-api-three-provider-report/delivery-quality-chain-final/delivery-index.json",
-      "sha256": "cef230510b689cf4f634be12a6d22eb2fbae6d91564a910ff8ea00f3ad8c2353"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/delivery-index.json",
+      "sha256": "8afa348305338dd9f9b6fa6951f10e83f56ed3ee7b2d57ca07bab5cab0b7f3c0"
     },
     "reference_additions": {
       "path": "web-search/20261021-search-api-three-provider-report/scenario-additions.json",
       "sha256": "44b63a8f1251ebbf24d259a49f621813ddaeb034ac11fd4b7d28fc6c1376e118"
     },
     "relevance": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_0646e0139a1645abae43111e42182be3/relevance.json",
-      "sha256": "3760e07e96eb9e1ecd39ca191b41c451e2318cd18af16618979617585a6d63a7"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/relevance.json",
+      "sha256": "538aafefdaadecdeb8a40f16982ab97b407ecb56314a2efe974cfe057a78963d"
     },
     "explicit_source_requirements": {
       "path": "web-search/20261021-search-api-three-provider-report/explicit-source-requirements.json",
       "sha256": "274e9f2e820f241dfe7bccee7d8d52edb71d3a1e3e13d274d52cdc8464d56840"
+    },
+    "independent_review": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/independent-review.json",
+      "sha256": "faeb9a73a584ad22c21778e22cac0b776ab0669bc0e59386f0fc1c67c98f72a4"
+    },
+    "reference_adjudications": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/dataset-adjudications.json",
+      "sha256": "c5c9e4b55975f6ee22c36066a83cb2c58226d7c9bdd30e7910ee25167a5c677b"
+    },
+    "source_policy_correction": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/source-policy-correction.json",
+      "sha256": "be034596efc2e48353c631435ea2021549e826a341a09d70bdd4bcb4b648e40a"
+    },
+    "contamination_correction": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/contamination-correction.json",
+      "sha256": "e1f60a99128a6afec911e44d66659bb75aec8f60fa0af6d0604d3d14849eba29"
+    },
+    "contamination_validation": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/contamination-validation.json",
+      "sha256": "53d59e6148e9fb782d1aad23e3cb8fbc7bf7863b5ecc92cc2b555dc28ac1c515"
+    },
+    "grade_sensitivity": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/grade-sensitivity.json",
+      "sha256": "00f6cb66ee5e9ce902553affb96a6b5de9f6e9e499089271d09e988e6ec8226e"
+    },
+    "pipeline_audit": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/pipeline-audit.json",
+      "sha256": "e109ac12f6fb229edd9df1b9228c4a4749d4f0247ffca8552abdcb4c09133f73"
+    },
+    "reader_acceptance": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/reader-acceptance.json",
+      "sha256": "d7e8f04922a38fbfd799194636665c06f209192e1f391e602d722f93de29fa54"
+    },
+    "delivery_behavior": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/delivery-behavior.json",
+      "sha256": "438a128401e72ea9529f1275e224991a93a3a4f7d7cfa6b156e0ebfc1fed6cb6"
     }
   },
   "cohort_inputs": [
@@ -73,7 +109,9 @@
   "populations": {
     "custom": 149,
     "factual": 831,
-    "target_page_diagnostic": 60
+    "target_page_diagnostic": 60,
+    "factual_quality": 775,
+    "factual_quarantined": 56
   },
   "methods": [
     "lexmount",
@@ -95,11 +133,31 @@
     "primary_metric": "nDCG@5 × 100",
     "gain": "2^grade - 1",
     "source_requirement_queries": 24,
-    "source_ineligible_candidates": 346,
+    "source_ineligible_candidates": 238,
     "candidate_fields": [
       "title",
       "snippet"
     ],
-    "source_urls_visible_to_model": false
+    "source_urls_visible_to_model": false,
+    "source_policy": "explicit-source/2"
+  },
+  "code_commit": "08e96c22110ce60d66d896450a8d19f9625bc7b8",
+  "independent_review": {
+    "cases_reviewed": 980,
+    "case_total": 980,
+    "outputs_reviewed": 2940,
+    "output_total": 2940,
+    "candidates_reviewed": 2046,
+    "candidate_total": 2046,
+    "accepted_unreviewed_passes": 0,
+    "unresolved": 0,
+    "factual_reference_issues": 118,
+    "reference_dispositions": {
+      "quarantined": 56,
+      "reference-limitation": 26,
+      "no-change": 36
+    },
+    "new_search_calls": 0,
+    "new_judge_calls": 10
   }
 }
