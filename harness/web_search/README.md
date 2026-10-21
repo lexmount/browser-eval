@@ -97,3 +97,26 @@ External report content selects `presentation: comparison-report`, `comparison_m
 The original SimpleQA Verified task measures closed-book model answers using a model grader. This report's source-hit, reciprocal-rank and lexical-cue checks are retrieval adaptations, not official benchmark accuracy. The frozen source version, input-length selection and adapted metrics belong on the dataset and methodology pages.
 
 Results analysis provides a same-query outcome explorer and paginated output columns generated from the method registry. Unknown judgments remain separate from misses. The delivery exporter rewrites dynamic detail links as well as ordinary HTML links, preserving language and exact case evidence. Release acceptance operates filters, pagination and dynamic evidence navigation in addition to the standard success/failure workflows.
+
+## Full in-house relevance annotation
+
+Export the candidate pool from an existing checked report:
+
+```sh
+uv run --frozen python scripts/build_search_report.py --output /absolute/report --export-annotations /absolute/new-annotation-directory
+```
+
+Open `index.html` in the exported directory. It covers every in-house query and
+pools all participants' top-five URLs without displaying provider names or ranks.
+Annotators assign 0–3 relevance grades, inspect source pages when needed, and
+confirm every query, including queries with no candidates. The page saves progress
+in that browser and exports a complete JSON file. It does not call a model or
+pre-fill grades.
+
+Pass the completed file to the normal build with `--relevance`. Import verifies
+the frozen packet, every query and candidate, and the named human annotator. Model
+judges and sampled in-house label sets are rejected. Fixed labels produce nDCG@5
+and Precision@5 deterministically. Duplicate URLs earn no additional credit;
+missing slots count toward the five-slot denominator. A query with no relevant
+pooled candidate receives zero nDCG and precision and stays in the population.
+Known-URL discovery and site constraints remain separate diagnostics.
