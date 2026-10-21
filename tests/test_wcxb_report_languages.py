@@ -99,3 +99,33 @@ def test_wcxb_release_checks_bound_article_body(tmp_path, include_english, tampe
     else:
         with pytest.raises(ValueError, match='differs from bound content'):
             check_bound_interpretation(root, binding)
+
+
+@pytest.mark.parametrize('providers', [
+    ('moli', 'moli-pr643'),
+    ('moli', 'moli-pr643', 'chromium', 'obscura'),
+])
+def test_wcxb_instance_counts_versions_and_interfaces_follow_selected_evidence(tmp_path, providers):
+    root, rows, summary, truth, identities, profile, content = create_report_inputs(tmp_path)
+    rows = [row for row in rows if row['provider'] in providers]
+    summary['providers'] = {p: summary['providers'][p] for p in providers}
+    profile['providers'] = list(providers)
+    identities['moli']['reported_version'] = '2.3.4'
+    profile['candidate_source_commit'] = 'abcdef12' + '0' * 32
+    generate_wcxb(root, rows, summary, truth, identities, profile, content, include_english=True)
+    for prefix, count_text in [('', f'{len(providers)} 种配置'), ('en/', f'{len(providers)} configurations')]:
+        home = BeautifulSoup((root / prefix / 'index.html').read_text(), 'html.parser')
+        assert count_text in home.select_one('h1').get_text()
+        assert 'Moli 2.3.4' in home.get_text()
+        assert 'abcdef12' in home.get_text()
+        for route in ('index.html', 'methodology/index.html', 'datasets/index.html', 'changes/index.html'):
+            text = (root / prefix / route).read_text()
+            assert 'six configurations' not in text
+            assert '六种配置' not in text
+            assert 'five browsers' not in text
+            assert '五款浏览器' not in text
+        method = (root / prefix / 'methodology/index.html').read_text()
+        assert 'Kitesurf receives' not in method
+        interfaces = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(), 'html.parser').select_one('pre').get_text()
+        assert 'kitesurf:' not in interfaces
+        assert ('chromium:' in interfaces) == ('chromium' in providers)
