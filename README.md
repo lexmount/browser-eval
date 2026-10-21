@@ -193,3 +193,5 @@ If you use the harness in published work, cite this repository and record the ta
 ```
 
 Cite upstream benchmarks and evaluators separately when using their data or methods; this repository citation does not replace their attribution requirements.
+
+Update the pinned LexBench evaluator with `make bump-lexbench REV=<full merged commit>`. The command verifies upstream main ancestry, regenerates the lock and definition hashes, and prints changed bindings. Historical report certificates retain their original evaluator identities.
