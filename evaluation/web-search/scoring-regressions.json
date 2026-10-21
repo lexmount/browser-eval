@@ -306,5 +306,40 @@
       },
       "expected": false
     }
+  ],
+  "factual-dataset-viewer-contamination": [
+    {
+      "kind": "benchmark_page",
+      "case": {
+        "query": "What is the founding year of the college?"
+      },
+      "result": {
+        "url": "https://example.org/dataset",
+        "content": "What is the founding year of the college? [\"1969\", \"1971\"] 1971 H Subsets and Splits SELECT * FROM train LIMIT 10"
+      },
+      "expected": true
+    },
+    {
+      "kind": "benchmark_page",
+      "case": {
+        "query": "What is the founding year of the college?"
+      },
+      "result": {
+        "url": "https://college.org/history",
+        "content": "What is the founding year of the college? The college opened in 1971."
+      },
+      "expected": false
+    },
+    {
+      "kind": "benchmark_page",
+      "case": {
+        "query": "What is the founding year of the college?"
+      },
+      "result": {
+        "url": "https://example.org/log",
+        "content": "What is the founding year of the college? HIDDEN LOG ERROR: Answer validation failed Expected: 1971 Received: [user_input]"
+      },
+      "expected": true
+    }
   ]
 }

@@ -43,3 +43,20 @@ class FactualSensitivityScenarios(unittest.TestCase):
         self.assertFalse(is_benchmark_page({"url": "https://huggingface.co/model", "content": "ground_truth labels for another question"}, case=case))
         self.assertEqual(factual_sensitivity(case, [dump], rule=LEGACY_CONTAMINATION_RULE)["excluded_ranks"], [])
         self.assertEqual(factual_sensitivity(case, [dump])["metrics"]["answer_in_preview_5"], 0)
+
+    def test_dataset_viewers_and_validation_logs_are_not_independent_answers(self):
+        from harness.web_search.evidence_quality import EVALUATION_FIELDS_RULE
+        case = {"query": "What is the founding year of the college?", "reference_answer": "1971", "reference_urls": []}
+        formats = [
+            'HIDDEN LOG ERROR: Answer validation failed Expected: 1971 Received: [user_input]',
+            '1971 {"loc":"unrelated question", "loc_ans":"someone"} Subsets and Splits SELECT * FROM train LIMIT 10',
+            '["1969", "1971", "2000"] 1971 H Science easy false Subsets and Splits SELECT * FROM train LIMIT 10',
+        ]
+        for text in formats:
+            result = {"url": "https://example.org/record", "content": case["query"] + " " + text}
+            assert is_benchmark_page(result, case=case)
+            assert not is_benchmark_page(result, case=case, rule=EVALUATION_FIELDS_RULE)
+            assert factual_sensitivity(case, [result])["metrics"]["answer_in_delivered_text_5"] == 0
+        article = {"url": "https://college.org/history", "content": case["query"] + " It opened in 1971. Our training records are maintained separately."}
+        assert not is_benchmark_page(article, case=case)
+        assert not is_benchmark_page({"url": "https://huggingface.co/tutorial", "content": "Subsets and Splits SELECT * FROM train LIMIT 10"}, case=case)

@@ -1850,7 +1850,7 @@ def main(argv=None):
     )
     parser.add_argument("--identity-correction", type=Path)
     parser.add_argument("--review", type=Path, help="Complete independent review with adjudications")
-    parser.add_argument("--relevance", type=Path, help="Complete human relevance annotations for every in-house query")
+    parser.add_argument("--relevance", type=Path, help="Complete, provenance-bound relevance labels for every in-house query")
     parser.add_argument("--export-annotations", type=Path, metavar="DESTINATION",
                         help="Prepare full in-house human annotations from an existing checked report")
     parser.add_argument("--site-prefix", default="")
@@ -2748,7 +2748,7 @@ def factual_panel(profile, selected, zh):
         ['API', 'Queries', 'Given webpage retrieved', 'First-source reciprocal rank', 'Answer text: raw', 'Answer text: dataset mentions excluded'], rendered)
     if projected:
         body = body.replace('答案线索只检查三家共有的标题与短摘要。', '答案线索检查各家前五条实际交付的标题、短摘要、长摘要和正文。').replace('Answer cues use only shared titles and snippets.', 'Answer cues use every delivered title, snippet, summary and body in the top five.').replace('基础接口</th>', '方法</th>').replace('Basic API</th>', 'Method</th>').replace('短摘要含答案：原始', '搜索文字含答案：原始').replace('Preview answer: raw', 'Delivered answer cue: raw')
-    body += '<p>' + ('这项过滤是事后诊断：网址或标题出现 SimpleQA，或交付文本同时包含完整原题和 ground truth、model answer 等评测字段时，该结果不参与答案检查；原位置留空，不补搜。检查采用固定文字规则，原始数值同时保留。' if zh else 'Contamination exclusion is a post-hoc deterministic diagnostic. Results naming SimpleQA in their URL/title, or containing the complete question together with ground-truth/model-answer evaluation fields, are blanked without refilling or compacting ranks. Original values remain visible.') + '</p>'
+    body += '<p>' + ('这项过滤是事后诊断：网址或标题出现 SimpleQA，或交付文本包含完整原题，并具有评测字段、答案验证日志或训练集表格结构时，该结果不参与答案检查；原位置留空，不补搜。检查采用固定文字规则，原始数值同时保留。' if zh else 'Contamination exclusion is a post-hoc deterministic diagnostic. Results naming SimpleQA in their URL/title, or containing the complete question together with evaluation fields, validation logs or dataset-viewer structure, are blanked without refilling or compacting ranks. Original values remain visible.') + '</p>'
     if excluded:
         body += '<p data-quality-exclusions>' + (f'独立审查隔离了 {len(excluded)} 道参考答案错误或题意存在实质歧义的题，三家使用同一质量分母 {len(cases)}；全部题仍计入性能与费用。原题、原始响应和原始检查数值保留在逐题详情。' if zh else f'Independent reference review excluded {len(excluded)} defective or materially ambiguous questions from all methods’ quality metrics, leaving {len(cases)} common queries. All queries remain in latency and cost; original inputs, responses and diagnostics remain inspectable.') + '</p>'
     extra = []
@@ -3256,7 +3256,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         elif kind == 'factual':
             if quality_ids != ids:
                 body += '<p data-quality-exclusions>' + (f'质量检查使用审查后 {len(quality_ids)} 题，三家同范围；{len(ids) - len(quality_ids)} 道参考缺陷题从质量分母共同隔离。耗时和费用仍覆盖全部 {len(ids)} 题。' if zh else f'Quality uses {len(quality_ids)} reviewed-reference queries for every method; {len(ids) - len(quality_ids)} defective references are quarantined. Latency and cost retain all {len(ids)} queries.') + '</p>'
-            body += '<p class="population-note">' + ('检查前五条结果：是否搜到题库给定的网址，以及交付文字是否包含参考答案。答案文字检查剔除明确的题库转载和包含原题及评测字段的模型答题记录。' if zh else 'Source found: a published supporting URL appears in the top five. Answer cue: allowed reference-answer text appears in delivered text after excluding explicit dataset mirrors; this is not semantic accuracy.') + '</p>'
+            body += '<p class="population-note">' + ('检查前五条结果：是否搜到题库给定的网址，以及交付文字是否包含参考答案。答案文字检查剔除明确的题库转载和包含原题及评测或训练数据结构的记录。' if zh else 'Source found: a published supporting URL appears in the top five. Answer cue: allowed reference-answer text appears in delivered text after excluding explicit dataset mirrors; this is not semantic accuracy.') + '</p>'
             headings = ['搜到题库给定网页的题数', '搜索文字含参考答案的题数'] if zh else ['Published source found', 'Answer cue (mirrors excluded)']
         elif kind == 'scenario':
             body += '<p class="population-note">' + ('目标命中：前五条找到参考页面。MRR 衡量首个目标位置，第一条得 1、第二条得 0.5、未找到得 0，再对全部题取平均；越高表示目标越靠前。' if zh else 'Target found: a reference page appears in the top five. MRR averages reciprocal first-target rank: 1 for first, 0.5 for second, and 0 for a miss. Higher means targets appear earlier.') + '</p>'

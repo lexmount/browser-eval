@@ -812,7 +812,7 @@ def validate_public_review(profile, rows, evidence):
         raise ValueError("Independent reviewer receipts do not cover every query")
     issues = issue_inventory(evidence)
     decisions = evidence.get("adjudications", {})
-    if set(decisions) != set(issues):
+    if set(decisions) != set(issues) or evidence.get("open_issue_count") != 0:
         raise ValueError("Independent review requires a decision for every finding")
     for key, opinion in issues.items():
         decision = decisions[key]
@@ -874,7 +874,7 @@ def render_summary(evidence, zh=True):
         "no-change": ("核查后保持原结果", "No change"),
         "quarantined": ("隔离诊断", "Quarantined"),
     }
-    body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><ul>"
+    body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + ("全部发现已完成裁决，未处理项：0。" if zh else "All findings adjudicated; unresolved: 0.") + "</p><ul>"
     for key, value in sorted(counts.items()):
         body += f"<li>{labels[key][0 if zh else 1]}：{value}</li>"
     body += (
