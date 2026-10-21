@@ -4,7 +4,6 @@ import argparse
 import copy
 import html
 import json
-import math
 import posixpath
 import re
 from collections import Counter
