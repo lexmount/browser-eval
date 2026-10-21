@@ -1,8 +1,6 @@
 """Reader-selected API versions retain complete query populations and evidence."""
 import copy
 import json
-from pathlib import Path
-
 import pytest
 from bs4 import BeautifulSoup
 
