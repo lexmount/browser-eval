@@ -203,3 +203,51 @@ def test_diagnostic_rescore_rejects_changed_execution_scope_before_writes(experi
     assert paths == calls
     for name, raw in before.items():
         assert (evidence / name).read_bytes() == raw
+
+
+@pytest.mark.parametrize("source", ["process", "file"])
+def test_invalid_language_rejected_before_provider_construction_or_execution(tmp_path, monkeypatch, source):
+    from harness.web_fetch import cli
+
+    def unexpected(*args, **kwargs):
+        pytest.fail("An invalid language must fail before preparing or calling a provider")
+
+    monkeypatch.setattr(cli, "build_provider", unexpected)
+    monkeypatch.setattr(cli, "run_evaluation", unexpected)
+    # Track the original state even when load_runtime_env writes the key directly.
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "")
+    monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE")
+    env = tmp_path / "local.env"
+    env.write_text("BROWSER_EVAL_REPORT_LANGUAGE=fr\n" if source == "file" else "")
+    if source == "process":
+        monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "fr")
+    args = cli.build_parser().parse_args(["run", "--output", str(tmp_path / "run"), "--env-file", str(env)])
+    with pytest.raises(ValueError, match="BROWSER_EVAL_REPORT_LANGUAGE"):
+        cli.command_run(args)
+    assert not args.output.exists()
+
+
+def test_rescore_rejects_invalid_language_before_rewriting_evidence(tmp_path, monkeypatch):
+    from harness.web_fetch import cli
+
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "fr")
+    def unexpected(*args, **kwargs):
+        pytest.fail("Invalid language must not rescore evidence")
+    monkeypatch.setattr(cli, "rescore_evaluation", unexpected)
+    args = cli.build_parser().parse_args(["rescore", str(tmp_path / "run"), "--dataset", str(tmp_path / "unused.json")])
+    with pytest.raises(ValueError, match="BROWSER_EVAL_REPORT_LANGUAGE"):
+        cli.command_rescore(args)
+
+
+def test_cli_invalid_language_exits_with_configuration_error_before_calls(tmp_path, monkeypatch, capsys):
+    from harness.web_fetch import cli
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "fr")
+    monkeypatch.setattr(sys, "argv", ["browser-harness-eval", "run", "--output", str(tmp_path / "unused")])
+    def unexpected(*args, **kwargs):
+        pytest.fail("Invalid language must not call providers")
+    monkeypatch.setattr(cli, "run_evaluation", unexpected)
+    with pytest.raises(SystemExit) as error:
+        cli.main()
+    assert error.value.code == 2
+    assert "BROWSER_EVAL_REPORT_LANGUAGE" in capsys.readouterr().err
+    assert not (tmp_path / "unused").exists()

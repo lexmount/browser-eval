@@ -1,0 +1,21 @@
+{
+  "schema": "web-search-current/1",
+  "title": "Search API evaluation \u2014 current three-provider selection",
+  "profile": {
+    "path": "evaluation/web-search/search-api-modes.json",
+    "sha256": "a1cd39a6c3ba49a792590da317d53153e8aea0a303b63ed6ca04414d250e8877"
+  },
+  "methods": [
+    "lexmount",
+    "deepseek-content",
+    "bocha-summary"
+  ],
+  "supplementary_profiles": [
+    {
+      "path": "evaluation/web-search/simpleqa-verified.json",
+      "sha256": "ad08ff7adf29acdffe28e49179a14f92ec28d3af2fe79ffbc05d721da2d0f74b",
+      "id": "simpleqa"
+    }
+  ],
+  "publication_target": "evaluation/web-search/publication-target.json"
+}

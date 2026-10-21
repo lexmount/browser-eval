@@ -94,7 +94,8 @@ class CollectionScenarios(unittest.TestCase):
                 self.assertFalse((root / "run/receipt.json").exists())
 
     def profile(self, root):
-        d = json.loads(Path("evaluation/web-search/current-report.json").read_text())
+        from harness.web_search.profiles import load_profile
+        d = load_profile()
         d["cases"] = d["cases"][:1]
         d["protocol"].update(rounds=1, interval_s=0)
         d["protocol"].pop("reference_scope", None)
@@ -289,3 +290,117 @@ class ReferenceCaptureScenarios(unittest.TestCase):
             ):
                 refs = capture_references(profile, Path(tmp), "before")
             self.assertFalse(refs["https://example.org/"]["available"])
+
+
+class TransportAndResumeBoundaries(unittest.TestCase):
+    def test_subprocess_timeout_is_a_transport_result_with_partial_bytes(self):
+        import subprocess
+        from harness.web_search.runner import http_call
+        def timeout(command, **kwargs):
+            Path(command[command.index('--output') + 1]).write_bytes(b'partial\r\n')
+            raise subprocess.TimeoutExpired(command, 25)
+        with patch('harness.web_search.runner.subprocess.run', side_effect=timeout):
+            receipt, raw = http_call('https://provider.test', {})
+        self.assertEqual(receipt['transport_exit'], 28)
+        self.assertEqual(receipt['http_status'], 0)
+        self.assertEqual(raw, b'partial\r\n')
+
+    def test_resume_rejects_live_source_drift_before_archiving_results(self):
+        from harness.web_search.runner import prepare_resume
+        from harness.web_search.core import digest
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            profile = b'{"cases":[],"methods":[],"protocol":{"rounds":1}}'
+            path = root / 'input.json'; path.write_bytes(profile)
+            (root/'profile.json').write_bytes(profile)
+            (root/'run-contract.json').write_text(json.dumps({'profile_sha256':digest(profile),'implementation':{}}))
+            (root/'results.jsonl').write_bytes(b'')
+            with self.assertRaisesRegex(ValueError, 'same live'):
+                prepare_resume(path,root)
+            self.assertFalse(list(root.glob('resume-*')))
+
+    def test_complete_bad_jsonl_line_is_rejected_but_interrupted_tail_is_accepted(self):
+        from harness.record_io import read_completed_records
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp)/'rows.jsonl'
+            path.write_bytes(b'{"id":"complete"}\n{"partial"')
+            self.assertEqual(read_completed_records(path), [{'id':'complete'}])
+            path.write_bytes(b'{"id":"complete"}\n{"partial"\n')
+            with self.assertRaises(ValueError):
+                read_completed_records(path)
+
+
+def test_subprocess_timeout_retries_and_finishes_the_complete_matrix():
+    from types import SimpleNamespace
+    import subprocess
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        profile_path = CollectionScenarios().profile(root)
+        profile = json.loads(profile_path.read_text())
+        profile['methods'] = [profile['methods'][1]]
+        profile['protocol']['retry'] = True
+        profile_path.write_text(json.dumps(profile))
+        provider_calls = []
+        def subprocess_call(command, **kwargs):
+            output = Path(command[command.index('--output') + 1])
+            if '--data-binary' not in command:
+                output.write_bytes(b'reference ' * 20)
+            else:
+                provider_calls.append(command)
+                if len(provider_calls) == 1:
+                    output.write_bytes(b'partial upstream response')
+                    raise subprocess.TimeoutExpired(command, 25)
+                output.write_bytes(b'{"results":[{"url":"https://example.org/success"}]}')
+            return SimpleNamespace(stdout='200 0.001 0.002 0 0 0 200', stderr='', returncode=0)
+        with (patch('harness.web_search.runner.subprocess.run',side_effect=subprocess_call),
+              patch('harness.web_search.runner.load_runtime_env'),
+              patch.dict(os.environ, DEEPSEEK_API_KEY='fixture')):
+            run(profile_path,root/'run')
+        _, rows, receipt = load_run(root/'run')
+        assert len(rows) == 1 and receipt['certified']
+        assert len(provider_calls) == 2
+        assert rows[0]['attempts'][0]['transport_exit'] == 28
+        assert rows[0]['attempts'][1]['transport_exit'] == 0
+        assert rows[0]['results'][0]['url'] == 'https://example.org/success'
+        assert (root/'run'/rows[0]['attempts'][0]['evidence']['path']).read_bytes() == b'partial upstream response'
+
+
+def test_certified_entry_dispatch_keeps_diagnostic_collection_uncertified(tmp_path):
+    from harness.web_fetch.certification import main as certified_main
+    profile_path = CollectionScenarios().profile(tmp_path)
+    profile = json.loads(profile_path.read_text())
+    profile['methods'] = [profile['methods'][1]]
+    profile_path.write_text(json.dumps(profile))
+    calls = []
+    def http(url, body=None, **kwargs):
+        calls.append(body is not None)
+        return {'http_status':200,'elapsed_ms':1,'transport_exit':0,'transport_error':''}, (
+            b'reference '*20 if body is None else b'{"results":[]}'
+        )
+    with (patch('harness.web_search.runner.http_call',side_effect=lambda url,body=None,*args,**kwargs:http(url,body)),
+          patch('harness.web_search.runner.load_runtime_env'),
+          patch.dict(os.environ,DEEPSEEK_API_KEY='fixture')):
+        certified_main(['web-search','--profile',str(profile_path),'--output',str(tmp_path/'run'),'--diagnostic'])
+    receipt = json.loads((tmp_path/'run/receipt.json').read_text())
+    assert receipt['complete'] is True
+    assert receipt['certified'] is False
+    assert json.loads((tmp_path/'run/run-contract.json').read_text())['diagnostic'] is True
+    assert calls.count(True) == 1
+
+
+def test_certified_entry_rejects_unqualified_sources_before_provider_calls(tmp_path):
+    from harness.web_fetch.certification import main as certified_main
+    profile_path = CollectionScenarios().profile(tmp_path)
+    calls=[]
+    def http(url,body=None,*args,**kwargs):
+        calls.append(body is not None)
+        return {'http_status':404,'elapsed_ms':1,'transport_exit':0,'transport_error':''}, b'not found'
+    import pytest
+    with (patch('harness.web_search.runner.http_call',side_effect=http),
+          patch('harness.web_search.runner.load_runtime_env'),
+          patch.dict(os.environ,LEXMOUNT_SEARCH_API_KEY='fixture',DEEPSEEK_API_KEY='fixture',BOCHA_API_KEY='fixture')):
+        with pytest.raises(SystemExit) as failure:
+            certified_main(['web-search','--profile',str(profile_path),'--output',str(tmp_path/'run')])
+    assert failure.value.code == 2
+    assert not any(calls)
+    assert not (tmp_path/'run/receipt.json').exists()

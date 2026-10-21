@@ -26,13 +26,15 @@ def test_pooled_preview_relevance_rewards_useful_first_result_and_penalizes_dupl
 def test_published_blind_packet_must_match_measured_urls_and_order():
     url = "https://example.org/answer"
     candidate = hashlib.sha256(("q\0" + url).encode()).hexdigest()[:12]
-    profile = {"methods": [{"id": "a"}], "cases": [{"id": "q"}]}
+    profile = {"protocol": {"top_k": 5}, "methods": [{"id": "a"}], "cases": [{"id": "q", "query": "Find answer"}]}
     rows = [{"case_id": "q", "method": "a", "results": [{"url": url}]}]
     evidence = {"judge": {"kind": "human", "name": "Test reviewer"},
                 "plan": {"scope": "all_custom", "case_ids": ["q"], "cutoff": 5},
                 "labels": {"q": {candidate: 3}},
                 "blind_candidate_packets": [{"case_id": "q", "candidates": [{"candidate_id": candidate, "url": url}]}],
                 "provider_rankings": {"q": {"a": [candidate]}}}
+    from harness.web_search.relevance import candidate_packet
+    evidence["blind_candidate_packets"] = candidate_packet(profile, rows)[0]["blind_candidate_packets"]
     verify_provenance(profile, rows, evidence)
     evidence["provider_rankings"]["q"]["a"] = []
     with pytest.raises(ValueError, match="rank mapping"):
@@ -128,7 +130,7 @@ def test_frozen_model_labels_require_exact_candidate_coverage_and_quotes():
     evidence = {**packet, "provider_rankings": rankings, "labels": labels, "judge": {"kind": "model", "name": "test-model", "prompt": JUDGE_PROMPT, "calls": calls}}
     verify_provenance(profile, rows, evidence)
     inconsistent = copy.deepcopy(evidence)
-    inconsistent["judge"]["configuration"] = {"extra_params": {"enable_thinking": False}}
+    inconsistent["judge"]["configuration"] = {"prompt": JUDGE_PROMPT, "model": "test-model", "packet_sha256": packet["packet_sha256"], "extra_params": {"enable_thinking": False}}
     with pytest.raises(ValueError, match="configuration differs"):
         verify_provenance(profile, rows, inconsistent)
     from harness.web_search.comparison import comparison_data
@@ -163,3 +165,54 @@ def test_model_evidence_reference_displays_exact_original_not_generated_quote():
     judgment["evidence"]["preview_index"] = 1
     with pytest.raises(ValueError, match="does not identify"):
         parse_judgments(packet, response(judgment))
+
+
+def test_rank_grades_query_score_and_dataset_average_are_one_chain():
+    from harness.web_search.relevance import query_metrics, summary
+    # A deliberately poor order: the grade-3 document is second, grade-2 third.
+    metrics = query_metrics(['irrelevant', 'answer', 'partial'], {'irrelevant': 0, 'answer': 3, 'partial': 2})
+    assert metrics['contributions'] == pytest.approx([0, 4.416508275, 1.5])
+    assert metrics['idcg'] == pytest.approx(8.892789261)
+    assert metrics['ndcg'] == pytest.approx(0.665315246)
+    assert metrics['useful'] == 2 and metrics['precision'] == .4 and metrics['success'] == 1
+    empty = query_metrics([], {})
+    result = summary([dict(metrics, method='a'), dict(empty, method='a')], ['a'])['a']
+    assert result['n'] == 2 and result['ndcg'] == pytest.approx(metrics['ndcg'] / 2)
+    assert result['precision'] == .2 and result['success'] == .5
+
+
+def test_explicit_source_rules_are_uniform_and_model_cannot_override_them():
+    import json
+    from harness.web_search.relevance import candidate_packet, judge_input, parse_judgments
+    p, rows = all_case_fixture()
+    p['cases'][0]['domains'] = ['example.org']
+    for row in rows:
+        if row['case_id'] == 'question':
+            row['results'] += [{'url': 'https://example.org.attacker.test/guide', 'title': 'Same title', 'snippet': 'Same relevant content'}]
+    requirements = {'question': {'domains': ['example.org'], 'sources': ['https://example.org/']}}
+    packet, _ = candidate_packet(p, rows, requirements)
+    question = packet['blind_candidate_packets'][0]
+    view = judge_input(question)
+    assert 'url' not in str(view) and 'example.org' not in json.dumps(view)
+    assert sorted(c['source_eligible'] for c in view['candidates']) == [False, True]
+    response = {'choices': [{'message': {'content': json.dumps({'judgments': [
+        {'candidate_id': c['candidate_id'], 'grade': 3, 'reason': 'Directly useful', 'evidence': {'field': 'snippet', 'preview_index': 0}}
+        for c in question['candidates']]})}}]}
+    labels = {j['candidate_id']: j for j in parse_judgments(question, response)}
+    for c in question['candidates']:
+        judged = labels[c['candidate_id']]
+        assert judged['grade'] == (3 if c['source_eligible'] else 0)
+        assert judged['model_grade'] == 3
+        if not c['source_eligible']:
+            assert judged['grade_source'] == 'source-rule' and judged['evidence'] == c['url']
+
+
+def test_empty_selected_field_can_evidence_absence_but_not_positive_relevance():
+    import json
+    from harness.web_search.relevance import parse_judgments
+    packet = {'candidates':[{'candidate_id':'x','url':'https://example.org/', 'previews':[{'title':'Unclear result','snippet':''}]}]}
+    def response(grade):
+        return {'choices':[{'message':{'content':json.dumps({'judgments':[{'candidate_id':'x','grade':grade,'reason':'No useful information in the preview','evidence':{'field':'snippet','preview_index':0}}]})}}]}
+    assert parse_judgments(packet,response(0))[0]['evidence_empty'] is True
+    with pytest.raises(ValueError,match='exact quote'):
+        parse_judgments(packet,response(3))

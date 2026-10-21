@@ -4,14 +4,13 @@ import argparse
 import json
 from pathlib import Path
 
-from harness.web_fetch.config import ROOT
-
 from .core import digest, evaluate, normalize, write_json
 from .report import build
 
 
 def example(output):
-    profile = json.loads((ROOT / "evaluation/web-search/current-report.json").read_text())
+    from .profiles import load_profile
+    profile = load_profile()
     profile["cases"] = profile["cases"][:2]
     profile["methods"] = profile["methods"][:2]
     profile["protocol"]["rounds"] = 1

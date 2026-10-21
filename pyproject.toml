@@ -10,6 +10,7 @@ dependencies = [
   "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@d0e78e71cf5145217cb1f2b71420a7c4194d80dd",
   "beautifulsoup4>=4.12,<5",
   "fastcdc==1.7.0",
+  "python-dotenv==1.1.1",
 ]
 
 [project.scripts]
@@ -36,7 +37,6 @@ webmainbench-eval = [
   "jieba==0.42.1",
   "markdown>=3.7,<4",
   "openai>=2.8,<4",
-  "python-dotenv==1.1.1",
   "rapidfuzz==3.14.1",
 ]
 browser-use-eval = [
@@ -44,7 +44,6 @@ browser-use-eval = [
   "json-repair>=0.54,<1",
   "pillow>=11,<13",
   "playwright>=1.52,<2",
-  "python-dotenv>=1,<2",
   "pyyaml>=6,<7",
   "regex>=2025.7,<2027",
   "requests>=2.32,<3",

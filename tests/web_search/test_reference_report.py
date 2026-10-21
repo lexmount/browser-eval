@@ -37,17 +37,17 @@ class ReferenceReportScenarios(unittest.TestCase):
         self.out = self.root / 'report'
         build_reference(self.out, self.content, 'zh')
 
-    def test_both_editions_and_request_specimen_are_available(self):
+    def test_chinese_report_has_english_not_generated_entry(self):
         self.assertTrue(check(self.out))
-        self.assertTrue((self.out / 'en/index.html').is_file())
+        self.assertIn('data-english-not-generated', (self.out / 'en/index.html').read_text())
 
     def test_featured_input_output_is_visible_without_expanding(self):
         from bs4 import BeautifulSoup
         data = fixture()
         data["sections"][0]["samples"][0]["open"] = True
         self.content.write_text(json.dumps(data))
-        build_reference(self.out, self.content, "zh")
-        for route in ("index.html", "en/index.html"):
+        build_reference(self.out, self.content, "en")
+        for route in ("index.html", "zh/index.html"):
             soup = BeautifulSoup((self.out / route).read_text(), "html.parser")
             self.assertTrue(soup.select_one("details").has_attr("open"))
             self.assertEqual(soup.select_one("details code").get_text(), '{"query":"test"}')

@@ -6,6 +6,7 @@ their generated pages and raw evidence without generating alternative findings.
 
 import json
 import gzip
+import base64
 from pathlib import Path
 from urllib.parse import quote
 
@@ -25,9 +26,13 @@ async function stored(path){
  if(!shards.has(name))shards.set(name,nativeFetch(name).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);if(name.endsWith('.gz'))return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();return r.json()}));
  const data=await shards.get(name);if(!(path in data))throw Error('Missing evidence: '+path);return data[path];
 }
+function restoreBytes(value){
+ if(typeof value==='string')return new TextEncoder().encode(value);
+ return Uint8Array.from(atob(value.base64),c=>c.charCodeAt(0));
+}
 window.fetch=async function(input,options){
  const path=typeof input==='string'?input:'';
- if(path.startsWith('calls/'))return new Response(await stored(path),{headers:{'Content-Type':'application/json'}});
+ if(path.startsWith('calls/'))return new Response(restoreBytes(await stored(path)),{headers:{'Content-Type':'application/json'}});
  return nativeFetch(input,options);
 };
 function routeLink(value){
@@ -51,7 +56,8 @@ async function loadSavedPage(){
  const path=decodeURIComponent(location.hash.slice(1));
  try{
   if(!path)throw Error('No result selected');
-  const text=await stored(path);
+  const bytes=restoreBytes(await stored(path));
+  const text=new TextDecoder('utf-8').decode(bytes);
   if(path.endsWith('.html')){
    const doc=new DOMParser().parseFromString(text,'text/html');
    document.documentElement.lang=doc.documentElement.lang;
@@ -66,6 +72,11 @@ async function loadSavedPage(){
   }else{
    let formatted=text;try{formatted=JSON.stringify(JSON.parse(text),null,2)}catch{}
    target.textContent=formatted;
+   let download=document.querySelector('[data-evidence-download]');
+   if(!download){download=document.createElement('a');download.dataset.evidenceDownload='';target.before(download)}
+   if(download.href.startsWith('blob:'))URL.revokeObjectURL(download.href);
+   download.href=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
+   download.download=path.split('/').pop();download.textContent=document.documentElement.lang.startsWith('zh')?'下载原始响应':'Download original response';
   }
  }catch(e){target.textContent='Unable to load saved evidence: '+e.message}
 }
@@ -117,22 +128,23 @@ def export(source, destination):
         paths = [row["evidence"]["path"], *[a["evidence"]["path"] for a in row.get("attempts", [])]]
         paths += [route for route in manifest["routes"] if route.endswith("details/" + row["id"] + ".html")]
         for path in paths:
-            text = (source / path).read_text()
-            shard[path] = text
+            raw = (source / path).read_bytes()
+            # JSON transport must not normalize CRLF or decode arbitrary provider bytes.
+            shard[path] = {"base64": base64.b64encode(raw).decode("ascii")}
             mapping[path] = "case-data/" + row["case_id"] + ".json.gz"
             hashes[path] = digest((source / path).read_bytes())
     for cid, data in shards.items():
         target = destination / "case-data" / (cid + ".json.gz")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(gzip.compress(json.dumps(data, ensure_ascii=False).encode(), mtime=0))
-    public_files = set(manifest["routes"]) | {a["path"] for a in manifest["bundle"]} | {"manifest.json"}
+    public_files = set(manifest["routes"]) | set(manifest.get("language_notices", [])) | {a["path"] for a in manifest["bundle"]} | {"manifest.json"}
     for path in sorted(public_files - set(mapping)):
         raw = (source / path).read_bytes()
         target = destination / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(transform_page(raw.decode()).encode() if path.endswith(".html") else raw)
     write_json(destination / "delivery-index.json", {
-        "schema": "search-report-delivery/1",
+        "schema": "search-report-delivery/2",
         "source_manifest_sha256": digest((source / "manifest.json").read_bytes()),
         "files": mapping, "sha256": hashes,
     })
@@ -164,11 +176,12 @@ def verify(source, destination):
     for path, shard in index["files"].items():
         if shard not in cache:
             cache[shard] = json.loads(gzip.decompress((destination / shard).read_bytes()))
-        raw = cache[shard][path].encode()
+        value = cache[shard][path]
+        raw = base64.b64decode(value["base64"], validate=True)
         if digest(raw) != index["sha256"][path] or raw != (source / path).read_bytes():
             raise ValueError("Packed evidence changed")
     manifest = json.loads((source / "manifest.json").read_text())
-    for path in set(manifest["routes"]) | {a["path"] for a in manifest["bundle"]} | {"manifest.json"}:
+    for path in set(manifest["routes"]) | set(manifest.get("language_notices", [])) | {a["path"] for a in manifest["bundle"]} | {"manifest.json"}:
         if path in index["files"]:
             continue
         raw = (source / path).read_bytes()

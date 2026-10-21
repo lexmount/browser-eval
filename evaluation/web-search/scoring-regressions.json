@@ -1,0 +1,203 @@
+{
+  "verified-equivalent-url-hits": [
+    {
+      "kind": "anchor",
+      "case": {
+        "family": "web",
+        "anchors": [
+          "https://docs.test/page.html"
+        ],
+        "identity_aliases": {
+          "https://docs.test/page": "https://docs.test/page.html"
+        }
+      },
+      "url": "https://docs.test/page",
+      "expected": true
+    },
+    {
+      "kind": "anchor",
+      "case": {
+        "family": "web",
+        "anchors": [
+          "https://docs.test/page.html"
+        ],
+        "identity_aliases": {
+          "https://docs.test/page": "https://docs.test/page.html"
+        }
+      },
+      "url": "https://docs.test/page?id=other",
+      "expected": false
+    }
+  ],
+  "undeclared-query-change-misses": [
+    {
+      "kind": "anchor",
+      "case": {
+        "family": "web",
+        "anchors": [
+          "https://docs.test/page.html"
+        ],
+        "identity_aliases": {
+          "https://docs.test/page": "https://docs.test/page.html"
+        }
+      },
+      "url": "https://docs.test/page.html?utm_source=tracking",
+      "expected": true
+    },
+    {
+      "kind": "anchor",
+      "case": {
+        "family": "web",
+        "anchors": [
+          "https://docs.test/page.html"
+        ],
+        "identity_aliases": {
+          "https://docs.test/page": "https://docs.test/page.html"
+        }
+      },
+      "url": "https://docs.test/page.html?version=other",
+      "expected": false
+    }
+  ],
+  "unverified-host-alias-misses": [
+    {
+      "kind": "anchor",
+      "case": {
+        "family": "web",
+        "anchors": [
+          "https://docs.test/page.html"
+        ],
+        "identity_aliases": {
+          "https://docs.test/page": "https://docs.test/page.html"
+        }
+      },
+      "url": "https://docs.test/page",
+      "expected": true
+    },
+    {
+      "kind": "anchor",
+      "case": {
+        "family": "web",
+        "anchors": [
+          "https://docs.test/page.html"
+        ],
+        "identity_aliases": {
+          "https://docs.test/page": "https://docs.test/page.html"
+        }
+      },
+      "url": "https://www.docs.test/page",
+      "expected": false
+    }
+  ],
+  "annotations-preserve-calls": [
+    {
+      "kind": "anchor",
+      "case": {
+        "family": "web",
+        "anchors": [
+          "https://docs.test/page.html"
+        ],
+        "identity_aliases": {
+          "https://docs.test/page": "https://docs.test/page.html"
+        }
+      },
+      "url": "https://docs.test/page",
+      "expected": true
+    },
+    {
+      "kind": "anchor",
+      "case": {
+        "family": "web",
+        "anchors": [
+          "https://docs.test/page.html"
+        ],
+        "identity_aliases": {
+          "https://docs.test/page": "https://docs.test/page.html"
+        }
+      },
+      "url": "https://docs.test/page?id=other",
+      "expected": false
+    }
+  ],
+  "different-page-proof-rejected": [
+    {
+      "kind": "equivalence",
+      "left": {
+        "final": "https://docs.test/a"
+      },
+      "right": {
+        "final": "https://docs.test/a"
+      },
+      "expected": true
+    },
+    {
+      "kind": "equivalence",
+      "left": {
+        "final": "https://docs.test/a"
+      },
+      "right": {
+        "final": "https://docs.test/b"
+      },
+      "expected": false
+    }
+  ],
+  "unqualified-reference-rejected": [
+    {
+      "kind": "qualification",
+      "item": {
+        "anchors": [
+          "https://docs.test/page"
+        ],
+        "qualification": "independent source",
+        "sources": [
+          {
+            "url": "https://docs.test/page",
+            "title": "manual",
+            "excerpt": "body",
+            "verified_at": "2026-10-21"
+          }
+        ]
+      },
+      "expected": true
+    },
+    {
+      "kind": "qualification",
+      "item": {
+        "anchors": [
+          "https://docs.test/page"
+        ],
+        "qualification": "independent source",
+        "sources": []
+      },
+      "expected": false
+    }
+  ],
+  "published-answer-range-boundaries": [
+    {
+      "kind": "answer",
+      "answer": "150 (acceptable range: anything between 148 and 152)",
+      "text": "148 people",
+      "expected": true
+    },
+    {
+      "kind": "answer",
+      "answer": "150 (acceptable range: anything between 148 and 152)",
+      "text": "153 people",
+      "expected": false
+    }
+  ],
+  "published-answer-explicit-aliases": [
+    {
+      "kind": "answer",
+      "answer": "tramp steamer (or collier)",
+      "text": "A collier",
+      "expected": true
+    },
+    {
+      "kind": "answer",
+      "answer": "tramp steamer (or collier)",
+      "text": "A collision",
+      "expected": false
+    }
+  ]
+}

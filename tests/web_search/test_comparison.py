@@ -3,7 +3,7 @@ import json
 import pytest
 from bs4 import BeautifulSoup
 
-from harness.web_search.comparison import acceptance, comparison_data, outcome_relation, render_comparison
+from harness.web_search.comparison import acceptance, comparison_data, render_comparison
 
 
 def matrix():
@@ -31,15 +31,6 @@ def test_scoped_acceptance_keeps_unlabelled_and_missing_unknown():
     assert acceptance(p["cases"][0], rows[0], "primary") is True
     assert acceptance(p["cases"][1], rows[3], "primary") is True
     assert acceptance(p["cases"][2], rows[6], "primary") is None
-
-
-@pytest.mark.parametrize("base,other,expected", [
-    (True,[True,True],"all_pass"), (False,[False,False],"all_fail"),
-    (True,[False,False],"baseline_only"), (False,[True,True],"comparison_only"),
-    (True,[True,False],"mixed"), (False,[True,False],"mixed"),
-    (None,[False],"unknown"), (True,[None],"unknown"), (False,[],"unknown")])
-def test_relations_do_not_hide_disagreement_or_unknown(base,other,expected):
-    assert outcome_relation(base,other) == expected
 
 
 def test_output_previews_are_bounded_and_keep_missing_and_empty_distinct():
@@ -111,7 +102,7 @@ def test_benchmark_and_task_type_filters_are_separate():
         "两套评测 · 3", "自建场景集 · 2", "SimpleQA 检索诊断 · 1"
     ]
     assert [o.text for o in dom.select("[data-output-check] option")] == [
-        "全部题型", "目标网页发现", "指定网站约束", "开放探索可用性", "事实证据"
+        "全部题型", "目标网页发现", "指定网站约束", "通用网页查询", "事实证据"
     ]
     assert page.index("data-output-benchmark") < page.index("<h2>")
     assert dom.select_one("[data-relation-prev]") and dom.select_one("[data-relation-next]")
