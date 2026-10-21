@@ -10,7 +10,7 @@ from harness.web_fetch.rescoring import score_published_snapshot
 from lexbench_webfetch.scoring import score_attempt
 
 
-def example(root):
+def example(root, recover_original=False):
     source=root/'source';source.mkdir()
     cases=[{'id':key,'name':key,'url':'https://example.test/'+key,'track':'web','category':'web',
             'required_facts':[{'id':'body','alternatives':['complete answer']}]} for key in ['complete','missing']]
@@ -32,8 +32,15 @@ def example(root):
     (source/'dataset.json').write_text(json.dumps(dataset))
     (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
     (source/'execution.json').write_text(json.dumps({'batches':[{'timeout_seconds':5,'attempt_ids':[row['attempt_id'] for row in rows]}]}))
-    (source/'publication-privacy.json').write_text(json.dumps({'files':[]}))
-    result,receipt=score_published_snapshot(source,dataset)
+    privacy=[];recovered={}
+    if recover_original:
+        artifact=source/rows[0]['artifact_path'];original=root/'recovered.txt';original.write_bytes(artifact.read_bytes())
+        artifact.write_bytes(original.read_bytes()+b' [REDACTED]')
+        privacy.append({'path':rows[0]['artifact_path'],'original_sha256':file_sha256(original),
+                        'published_sha256':file_sha256(artifact),'published_bytes':artifact.stat().st_size,'scored_output':True})
+        recovered[rows[0]['artifact_path']]=original
+    (source/'publication-privacy.json').write_text(json.dumps({'files':privacy}))
+    result,receipt=score_published_snapshot(source,dataset,recovered=recovered)
     manifest={'files':{p.relative_to(source).as_posix():{'sha256':file_sha256(p)} for p in source.rglob('*') if p.is_file()}}
     def save(name,value):
         path=root/name;path.write_text(json.dumps(value,ensure_ascii=False));return {'path':name,'sha256':file_sha256(path)}
@@ -68,8 +75,9 @@ def example(root):
     path=root/'profile.json';path.write_text(json.dumps(profile));return source,path
 
 
-def test_saved_matrix_keeps_native_routes_and_inspectable_review(tmp_path):
-    source,profile=example(tmp_path);before={p.relative_to(source):p.read_bytes() for p in source.rglob('*') if p.is_file()}
+@pytest.mark.parametrize("recover_original",[False,True])
+def test_saved_matrix_keeps_native_routes_and_inspectable_review(tmp_path,recover_original):
+    source,profile=example(tmp_path,recover_original=recover_original);before={p.relative_to(source):p.read_bytes() for p in source.rglob('*') if p.is_file()}
     out=tmp_path/'report';build_snapshot_audit(source,out,profile=profile)
     assert '2 saved calls' in check_snapshot_audit(out)
     from harness.web_fetch.report_package import validate_release

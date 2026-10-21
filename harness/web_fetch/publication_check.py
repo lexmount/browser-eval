@@ -249,7 +249,12 @@ def check(archive, source, overlay=None, *, presentation_binding=None, external_
             expected_hash = scored_output_hash(row)
             retained_view = False
             if hashlib.sha256(original).hexdigest() != expected_hash:
-                public = bound_public_view(source,{'path':row['artifact_path'],'sha256':expected_hash})
+                binding={'path':row['artifact_path'],'sha256':expected_hash}
+                public = bound_public_view(source,binding)
+                if public is None and snapshot_audit:
+                    from .published_snapshot import read_snapshot_public_file
+                    retained=read_snapshot_public_file(source,binding)
+                    public=(retained,{'role':'scored_answer','published_sha256':hashlib.sha256(original).hexdigest()})
                 if (public is None or public[1]['role'] != 'scored_answer'
                     or public[1]['published_sha256'] != hashlib.sha256(original).hexdigest()):
                     raise ValueError("Original scored output hash differs")
