@@ -17,6 +17,7 @@ from urllib.parse import urlencode, urlsplit
 from harness.record_io import load_jsonl
 
 from .failure_diagnosis import diagnose
+from harness.numbers import nonnegative_number
 from .methods import ROUTE_LABELS, method_page_model, is_browser_comparison, browser_method_label
 from lexbench_webfetch.metrics import percentile, task_measured, task_passed
 from harness.web_fetch.models import REPORT_FAMILIES, execution_id, report_family
@@ -38,7 +39,7 @@ from .report_components import (
 from .report_interfaces import method_provenance
 from .methods import method_access
 from .report_methods import PROFILES, adoption_counts
-from .methods import report_method, method_version
+from .methods import report_method, method_version, report_method_catalog
 from .report_resources import render_resource_comparison
 from .report_style import STYLE
 from lexbench_webfetch.paths import contained_path
@@ -2293,22 +2294,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    route_label=f'处理路线：方法直接取得原始文档 → {provider_meta["document_extractor"]} → 可读正文'
   elif c.get('task_kind')=='file':
    route_label='处理路线：方法直接取得原始文件 → 格式、长度与 SHA-256 验收'
-  elif provider_meta.get('output_contract')=='readable_document_text':
-   route_label='处理路线：浏览器原生接口获取文档 → 共同 PDF / DOCX 正文解析；实际完成步骤见运行证据'
-  elif provider_meta.get('output_contract')=='native_markdown_resource_urls':
-   route_label='处理路线：Moli 原生 Markdown → 共同评分器只核对其中的目标图片或视频地址'
-  elif provider_meta.get('output_contract')=='native_html_resource_urls':
-   route_label='处理路线：Moli 原生 HTML → 共同评分器只识别其中的图片或视频资源地址'
-  elif provider_meta.get('output_contract')=='native_json_resource_urls':
-   route_label='处理路线：Moli 原生 JSON 页面与网络记录 → 共同评分器只识别其中的视频资源地址'
-  elif provider_meta.get('output_contract')=='structured_resource_urls':
-   route_label='处理路线：浏览器原生 DOM 接口 → 共同资源读取脚本 → 图片或视频资源地址'
-  elif provider_meta.get('output_contract')=='readable_media_metadata':
-   route_label='处理路线：浏览器原生页面接口 → 共同脚本读取正文、作者和媒体元数据'
+  elif provider_meta.get('output_contract') in report_method_catalog()['output_contract_labels']:
+   contract=provider_meta['output_contract']
+   route_label=report_method_catalog()['output_contract_labels'][contract].format(method=provider_label(r['provider']))
+   route_english=report_method_catalog('en')['output_contract_labels'][contract].format(method=browser_method_label(r['provider'],language='en'))
   else:
    extractor=str(provider_meta.get('extractor') or '')
    route_label='处理路线：'+ROUTE_LABELS.get(extractor,extractor or '参评方法直接返回正文')
-   from .methods import report_method_catalog
    route_english='Retrieval path: '+report_method_catalog('en')['route_labels'].get(extractor,extractor or 'Text returned directly by the method')
   delivered_summary=provider_meta.get('file_evaluation',{}).get('files',[])
   actual_summary=(f'实际交付：{len(delivered_summary)} 个文件、{sum(x.get("bytes",0) for x in delivered_summary):,} 字节'
@@ -2695,9 +2687,8 @@ def render_account_requirements(records):
 
 def render_execution_contract(dataset,records,manifests):
  """Render recorded budgets and scheduling without inferring missing values."""
- import math
  def seconds(value):
-  if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value<0:
+  if not nonnegative_number(value):
    return model_text('未记录','Not recorded')
   return model_text(f'{value:g} 秒',f'{value:g} seconds')
  def count(value):

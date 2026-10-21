@@ -1,12 +1,15 @@
 """Interfaces actually used by the benchmark, not a claim to cover entire SDKs."""
 import json
 import re
+from types import SimpleNamespace
 from html import escape
+from harness.numbers import positive_number
 from lexbench_webfetch.paths import contained_path
 from .methods import native_browser_engine, browser_method_label
-from .report_components import measurement_presentation
+from .report_components import measurement_presentation, bilingual_text
+from .providers.headless import output_mode_for_case
 
-from .methods import report_method, report_method_catalog, method_access
+from .methods import report_method, report_method_catalog, method_access, metadata_matches, method_page_model, browser_method_registry
 
 # Views of the shared catalog; execution aliases inherit their engine's metadata.
 SPECS = {name: item['interface'] for name, item in report_method_catalog()['methods'].items()
@@ -23,56 +26,31 @@ def method_spec(name, record, *, timeout_seconds=None, language="zh"):
  owner=catalog['adapters'].get((record or {}).get('provider_type'),{}).get('interface_method')
  registered=catalog['methods'][owner] if owner else report_method(name,record,language=language)
  base=registered.get('interface') or {
-  'entry':'未登记 / Not registered','auth':'Not registered','params':[],
-  'fields':[],'request':{},'source':'Not registered',
-  'notes':'Interface metadata has not been registered; consult saved call evidence.'}
+  'entry':t('未登记','Not registered'),'auth':t('未登记','Not registered'),'params':[],
+  'fields':[],'request':{},'source':t('未登记','Not registered'),
+  'notes':t('接口资料尚未登记；请查阅保存的调用证据。','Interface metadata has not been registered; consult saved call evidence.')}
  meta=(record or {}).get('provider_metadata',{})
  if registered.get('runtime_parameters'):
-  import math
   budget=(t(f'{timeout_seconds:g} 秒外层截止',f'{timeout_seconds:g}-second outer deadline')
-          if isinstance(timeout_seconds,(int,float)) and not isinstance(timeout_seconds,bool)
-          and math.isfinite(timeout_seconds) and timeout_seconds>0
+          if positive_number(timeout_seconds)
           else t('外层截止时间未记录','Outer deadline not recorded'))
   context={**meta,'report_outer_budget':budget}
-  params=list(base['params']);notes=base['notes']
-  from .methods import _metadata_matches
+  params=list(base['params']);notes=base['notes'];request=dict(base['request'])
   for parameter in registered['runtime_parameters']:
-   rule=next((rule for rule in parameter['rules'] if _metadata_matches(context,rule.get('metadata_equals',{}))),None)
+   rule=next((rule for rule in parameter['rules'] if metadata_matches(context,rule.get('metadata_equals',{}))),None)
    if rule is None:continue
    description=_route_template(rule['description'],context)
    if description is None:continue
-   params=[(key,kind,description if key==parameter['parameter'] else detail)
-           for key,kind,detail in params]
-   notes+=' '+rule['note']
+   params=[(key,kind,(detail+description if parameter.get('append') else description)
+            if key==parameter['parameter'] else detail) for key,kind,detail in params]
+   for key,template in rule.get('request_fields',{}).items():
+    value=_route_template(template,context)
+    if value is not None:request[key]=value
+   if rule.get('note'):notes+=' '+rule['note']
   entry=base['entry'] if name in catalog['methods'] else registered.get('unregistered_participant_entry',base['entry'])
-  base={**base,'entry':entry,'params':params,'notes':notes}
- if registered.get('dom_conversion'):
-  request={**base['request']}
-  params=list(base['params'])
-  wait=meta.get('navigation_wait_until')
-  if wait in {'load','domcontentloaded','networkidle','commit'}:
-   request['wait_until']=wait
-   params=[(key,kind,wait if key=='wait_until' else description)
-           for key,kind,description in params]
-  converter_version=meta.get('extractor_version')
-  if converter_version and meta.get('extractor')=='node-html-markdown':
-   converter='node-html-markdown '+str(converter_version)
-   request['converter']=converter
-   params=[(key,kind,converter if key=='converter' else description)
-           for key,kind,description in params]
-  converter_sha=meta.get('converter_sha256')
-  notes=base['notes']
-  if isinstance(converter_sha,str) and re.fullmatch(r'[0-9a-f]{64}',converter_sha):
-   request['converter_sha256']=converter_sha
-   params=[(key,kind,
-            description+t('；包装脚本 SHA-256 ','; wrapper script SHA-256 ')+converter_sha
-            if key=='converter' else description)
-           for key,kind,description in params]
-   notes+=t(' 转换包装还负责代码块围栏与语言标签；本轮以完整脚本 SHA-256 绑定，不把它写成未修改的包默认行为。',' The conversion wrapper also handles code fences and language labels. Its full script SHA-256 is bound; this is not described as unmodified package behavior.')
-  return {**base,'request':request,'params':params,'notes':notes}
- from .methods import _metadata_matches
+  base={**base,'entry':entry,'params':params,'notes':notes,'request':request}
  for variant in registered.get('interface_variants',[]):
-  if not _metadata_matches(meta,variant['metadata_equals']):continue
+  if not metadata_matches(meta,variant['metadata_equals']):continue
   native={k:v for k,v in meta.get('native_metadata',{}).items() if k in {'format','script_sha256'}}
   command=variant['command']
   request={**base['request'],'command':command,'native_metadata':native}
@@ -102,17 +80,17 @@ def _observed_wait(meta, *, language="zh"):
 
 def _route_template(rule, metadata):
  """Render a registered route only when all its evidence fields are present."""
- from .methods import _metadata_matches
- if not _metadata_matches(metadata,rule.get('metadata_equals',{})):return None
+ if not metadata_matches(metadata,rule.get('metadata_equals',{})):return None
  values={}
  for name,path in rule.get('fields',{}).items():
   value=metadata
   for key in path.split('.'):
    value=value.get(key) if isinstance(value,dict) else None
   if value is None or value=='':return None
+  if name in rule.get('field_values',{}) and value not in rule['field_values'][name]:return None
+  if name in rule.get('field_patterns',{}) and (not isinstance(value,str) or not re.fullmatch(rule['field_patterns'][name],value)):return None
   if name in rule.get('positive_numeric_fields',[]):
-   import math
-   if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value<=0:return None
+   if not positive_number(value):return None
   values[name]=value
  for name,fragments in rule.get('fragments',{}).items():
   values[name]=next((text for fragment in fragments
@@ -147,7 +125,6 @@ def _observed_route(engine, meta, *, language="zh", compact=False):
 def browser_task_interface_matrix(cases, providers, records=None, *, compact=False, language="zh"):
  """Describe task routes, preferring persisted call metadata when available."""
  from collections import Counter
- from .methods import _metadata_matches
  def t(zh,en):return zh if language=='zh' else en
  methods=(report_method_catalog() if language=='zh' else report_method_catalog(language))['methods']
  selected={name:next((row for row in (records or []) if row['provider']==name),None)
@@ -178,11 +155,17 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
     case_id=case.get('id',case_ids[id(case)])
     case_metadata={**case,'track':case.get('track','web'),'task_kind':case.get('task_kind','body')}
     plan=next((rule for rule in methods[engine].get('task_interfaces',[])
-               if _metadata_matches(case_metadata,rule['case_equals'])),None)
-    mode=plan['mode'] if plan else 'unregistered'
+               if metadata_matches(case_metadata,rule['case_equals'])),None)
     measured=indexed.get((provider,case_id))
+    provider_type=(measured or selected[provider] or {}).get('provider_type') or browser_method_registry().get(provider,{}).get('type','headless_markdown')
+    mode=output_mode_for_case(engine, provider_type, SimpleNamespace(
+     **{**case_metadata, 'url': case.get('url', '')}))
     if records is not None:
      meta=(measured or {}).get('provider_metadata') or {}
+     if compact:
+      observed=next((rule for rule in methods[engine].get('observed_routes',[])
+                     if _route_template(rule,meta) is not None),None)
+      mode=observed['mode'] if observed else 'unregistered'
      description=_observed_route(engine,meta,language=language,compact=compact)
      wait=_observed_wait(meta,language=language)
     elif plan:
@@ -198,7 +181,7 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
     grouped={}
     for part in parts:
      description=part['description']
-     mode='markdown' if 'Markdown' in description else part['mode']
+     mode=part['mode']
      key=(mode,description)
      if key not in grouped:grouped[key]={'mode':mode,'count':0,'description':description,'wait':''}
      grouped[key]['count']+=part['count']
@@ -221,7 +204,6 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
 
 def render_interfaces(out,records):
  from .artifacts import record_public_call_log_bindings, verify_public_call_log
- from .report_components import bilingual_text
  dataset_path=out/"dataset.json"
  dataset=json.loads(dataset_path.read_text()) if dataset_path.is_file() else {}
  comparison=dataset.get("comparison",{})
@@ -237,7 +219,8 @@ def render_interfaces(out,records):
  if native_default:
   body='<p>已测方法的输入展示保存的公开调用字段，输出展示同一次调用的实际节选。完整配置、原始响应和日志见环境与调用详情。未参评方法保留仓库登记示例。</p>'
  for i,name in enumerate(names):
-  r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
+  case_order={case['id']: index for index, case in enumerate(dataset.get('cases', []))}
+  r=min((r for r in records if r['provider']==name), key=lambda row: case_order.get(row['case_id'], len(case_order)), default=None)
   s=method_spec(name,r,timeout_seconds=comparison.get("timeout_seconds"))
   english=method_spec(name,r,timeout_seconds=comparison.get("timeout_seconds"),language="en")
   bindings=record_public_call_log_bindings(r) if r else []
@@ -245,7 +228,6 @@ def render_interfaces(out,records):
    raise ValueError("Measured native interface requires a saved call log: "+name)
   if bindings:
    request=json.loads(verify_public_call_log(out,bindings[-1]).read_text())["request"]
-   from .methods import method_page_model
    model=method_page_model(name,name,[x for x in records if x["provider"]==name])
    s={**s,"entry":model["endpoint"],"params":[],"request":request,"notes":"此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。"}
    english_model=method_page_model(name,name,[x for x in records if x["provider"]==name],language="en")
@@ -267,7 +249,6 @@ def render_interfaces(out,records):
   sample_label='本轮输出节选 · 统一记录' if r else '本轮未执行'
   body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'],english['params'])+('<h4>本轮保存的调用字段</h4>' if bindings else '<h4>调用输入示例</h4>')+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'],english['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
   measured_link='<a href="../attempts/'+escape(r['attempt_id'])+'.html">该次完整输出与判定 →</a>' if r else '未纳入本轮；参数说明为仓库登记模式，不计入本轮结果'
-  from .report_components import bilingual_text
   example_note='' if bindings else bilingual_text('以下接口说明与数值属于仓库登记示例，不是这次调用的请求记录。', 'The following interface descriptions and values are registered examples, not this call’s request record.')
   body+='<p>'+example_note+bilingual_text(s['notes'],english['notes'])+'</p><p class="source-note">核对实现：<code>'+escape(s['source'])+'</code> · '+measured_link+' · <a href="interfaces/'+name+'.json">示例 JSON</a></p></details>'
  return body

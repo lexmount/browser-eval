@@ -27,7 +27,8 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
 
     def versioned_fixture(self, case, timeout, **kwargs):
         result = original_fetch(self, case, timeout, **kwargs)
-        result.metadata.update(reported_version="9.9.9", browser_version="150.0.0.0")
+        result.metadata.update(reported_version="9.9.9", browser_version="150.0.0.0",
+                               output_contract="native_markdown_resource_urls")
         return result
 
     monkeypatch.setattr(FixtureProvider, "fetch", versioned_fixture)
@@ -95,6 +96,13 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
             assert result.code == 0
     manifest = json.loads((output / "report-manifest.json").read_text())
     assert manifest["generated_languages"] == ["zh", "en"]
+    for name in methods:
+        for prefix in ['', 'en/']:
+            page = (output / prefix / f'attempts/{name}__task-1__r001.html').read_text()
+            assert name+' 9.9.9' in page
+            assert 'Moli 原生 Markdown' not in page
+            assert 'Moli native Markdown' not in page
+            assert 'native Markdown' in page
     saved = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
     assert len(saved) == case_count * method_count
     for prefix, unit in (("", "秒"), ("en/", "seconds")):

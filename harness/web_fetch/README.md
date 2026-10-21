@@ -1318,8 +1318,8 @@ multiple products register an adapter type, the record must name its engine.
 selects request examples from that same evidence. An adapter's `interface_method`
 selects its catalog interface owner. `runtime_parameters` matches recorded policies
 to parameter descriptions; optional numeric fields must be positive and finite.
-`task_interfaces` describes
-planned task modes and waits, with tests against the public execution selector.
+`task_interfaces` describes planned routes and waits. The execution selector
+`output_mode_for_case` owns the mode; descriptions do not redefine it.
 Measured call routes and waits override those examples, including missing values.
 `task_capabilities` describes the selected route boundaries without turning task
 success into a product capability claim. Run budgets, delays and retry limits
@@ -1332,3 +1332,44 @@ Historical WCXB and WebMainBench entry points remain supported. The legacy
 75 + 25 audit reader validates its explicitly selected frozen evidence contract;
 new matrices use `uniform_native_local_measurement`. These are not unused code
 merely because their contracts describe older evidence.
+
+### Adding a method or release
+
+1. For another release of an existing engine, add or select its execution entry in
+   `configs/providers.headless.json` (or an external provider configuration), bind
+   its executable and expected identity, and collect new evidence. No new product
+   description or renderer branch is needed.
+2. For a new product, add its bilingual presentation and account requirements to
+   `data/report-methods.json`. A method may `extends` a named `templates` entry;
+   dictionaries merge, lists replace, and missing or cyclic parents are rejected.
+   Register its recorded route descriptions and native output contracts.
+3. Configure its executable provider separately. Reusing a transport does not
+   automatically add a new browser implementation to `providers/headless.py`:
+   a new engine needs execution support and tests there. Existing supported
+   adapters can use an external provider configuration without another adapter.
+   New task modes belong in the execution selector; catalog rules only describe
+   the resulting route and any task-specific limitations.
+4. Run the method registry tests and the public build/check commands against a
+   synthetic matrix containing the new participant, then run `make ci`.
+
+Catalog JSON alone supplies presentation, not executable integration. Adapter
+`interface_method` chooses a request-example owner; method `adapter_types`
+resolves product identity only when unambiguous. Known old participants may
+resolve through the execution registry without recorded `engine`; an unknown
+participant sharing an ambiguous adapter must record its engine explicitly.
+
+Execution configuration `source_url` no longer owns documentation links. Move
+that value to the product's catalog `source_url`; old external configuration keys
+are ignored for report links. Binary hashes and saved call receipts remain the
+source of execution provenance.
+
+Hosted examples describe registered defaults, not universal measured settings:
+Tavily `extract_depth` defaults to `advanced`, Exa `text_verbosity` to `full` and
+`max_age_hours` to zero; these can be overridden by configuration. Read saved
+public request logs for the actual call. Adding a report does not require editing
+these defaults. Runtime parameter rules can fill request fields, replace or append
+parameter descriptions, and validate allowed values, patterns and finite numbers.
+
+The `kind` field is a report grouping (native browser or adapter), not a complete
+product taxonomy. It does not select transport or credentials. Keep these concerns
+in their existing execution and access owners rather than duplicating them.

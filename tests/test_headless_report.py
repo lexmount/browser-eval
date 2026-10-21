@@ -96,8 +96,15 @@ class HeadlessReportTests(unittest.TestCase):
         self.assertTrue(result['winner_tied'])
         english = localize_html(page, PurePosixPath('guide/index.html'))
         self.assertIn('Resource-efficiency co-leaders in this run', english)
-        self.assertIn('Moli 1.1.15 · independent resource cohort, Lightpanda, Obscura, Chromium', english)
+        self.assertIn('Moli, Lightpanda, Obscura, Chromium', english)
         self.assertNotIn('资源效率并列领先', english)
+        self.assertNotIn('1.1.15', page)
+        self.assertNotIn('1.1.15', english)
+        self.assertIn('sample interval was not recorded', english)
+        summary['environment'] = {'sample_interval_ms': 125}
+        recorded, _ = render_resource_comparison(summary, providers)
+        self.assertIn('125 ms', recorded)
+        self.assertNotIn('50 ms', recorded)
 
     def test_resource_table_excludes_unobservable_remote_provider(self):
         resource_providers = ['moli', 'chromium', 'lightpanda', 'obscura']

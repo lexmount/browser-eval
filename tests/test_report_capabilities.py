@@ -199,3 +199,16 @@ def test_capability_fields_render_english_without_catalog_reverse_lookup(tmp_pat
     assert registered['notes'] in english
     assert registered['web']['detail'] in english
     assert registered['tested'] in english
+
+
+def test_source_notice_distinguishes_missing_version_from_mismatch():
+    from harness.web_fetch.report_capabilities import render_source_version_notice, source_version_checks
+    def notice(metadata):
+        checks = source_version_checks(['moli-webfetch'], [{'provider': 'moli-webfetch', 'provider_metadata': metadata}])
+        return render_source_version_notice(checks['moli-webfetch'])
+    missing = notice({})
+    assert '资料适用版本未确认' in missing
+    assert 'Source applicability is unverified' in missing
+    mismatch = notice({'version': '9.9.9'})
+    assert '资料版本与实测版本不一致' in mismatch
+    assert 'Source and measured versions differ' in mismatch

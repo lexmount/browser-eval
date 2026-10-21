@@ -197,3 +197,5 @@ Cite upstream benchmarks and evaluators separately when using their data or meth
 Update the pinned LexBench evaluator with `make bump-lexbench REV=<full merged commit>`. The command verifies upstream main ancestry, regenerates the lock and definition hashes, and prints changed bindings. Historical report certificates retain their original evaluator identities.
 
 Web Fetch method descriptions, interfaces, account requirements, capability sources, and their English/Chinese text share one registry: `harness/web_fetch/data/report-methods.json`. Register a new product there; executable versions and run parameters come from saved evidence. See [method metadata](harness/web_fetch/README.md#report-method-metadata) for the distinction between registered examples and measured calls.
+
+For the exact configuration and code steps for a new product or release, see [Adding a method or release](harness/web_fetch/README.md#adding-a-method-or-release).

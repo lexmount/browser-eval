@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import math
+from harness.numbers import positive_number
 import statistics
 from pathlib import Path
 
@@ -82,8 +83,7 @@ def build_summary(dataset: dict, records: list[dict], batches: list[dict]) -> di
         raise ValueError("Resource cohort is not uniformly Docker/cgroup-v2 isolated")
     for environment in environments:
         interval = environment.get("sample_interval_ms")
-        if (isinstance(interval, bool) or not isinstance(interval, (int, float))
-                or not math.isfinite(interval) or interval <= 0):
+        if not positive_number(interval):
             raise ValueError("Resource cohort requires a recorded positive sample_interval_ms")
     invariant_keys = (
         "docker_architecture", "image_id", "cpus", "memory", "pids_limit",

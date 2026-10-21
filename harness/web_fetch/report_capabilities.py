@@ -1,9 +1,10 @@
 """Official capability evidence, deliberately independent of evaluation scores."""
 import json
+from harness.numbers import positive_number
 from html import escape
-from .report_components import tabs
+from .report_components import tabs, bilingual_text
 
-from .methods import report_method, report_method_catalog, browser_method_label
+from .methods import report_method, report_method_catalog, browser_method_label, method_version, normalized_method_version
 
 
 def c(status, detail):
@@ -27,8 +28,8 @@ def task_capabilities(out, names, records, *, sources=None, language="zh"):
     matrix=browser_task_interface_matrix(cases,names,language=language)
     configured={}
     budget=dataset.get('comparison',{}).get('timeout_seconds')
-    budget_zh=(f'外层预算 {budget:g} 秒。' if isinstance(budget,(int,float)) and not isinstance(budget,bool) and budget>0 else '外层预算未记录。')
-    budget_en=(f'Outer budget: {budget:g} seconds.' if isinstance(budget,(int,float)) and not isinstance(budget,bool) and budget>0 else 'Outer budget not recorded.')
+    budget_zh=(f'外层预算 {budget:g} 秒。' if positive_number(budget) else '外层预算未记录。')
+    budget_en=(f'Outer budget: {budget:g} seconds.' if positive_number(budget) else 'Outer budget not recorded.')
     for name in names:
         registered=report_method(name,language=language)
         row={**registered.get('capabilities',{})}
@@ -39,14 +40,13 @@ def task_capabilities(out, names, records, *, sources=None, language="zh"):
                    tested_en=budget_en+' Interfaces are selected by task family; exact request parameters are in the saved call records.')
         source='task-native-'+name
         source_url=report_method(name).get('source_url','')
-        sources[source]=(name+' · 官方接口',source_url)
+        sources[source]=(name+(' · 官方接口' if language=='zh' else ' · Official interface'),source_url)
         row['sources']=[*row.get('sources',[]),source]
         configured[name]=row
     return configured
 
 def source_version_checks(names, records):
     """A dated source check applies to its bound version, not every future binary."""
-    from .methods import method_version, normalized_method_version
     checks = report_method_catalog()['sources']
     result = {}
     for name in names:
@@ -72,7 +72,6 @@ def source_version_checks(names, records):
 
 
 def render_source_version_notice(rows):
-    from .report_components import bilingual_text
     checks = report_method_catalog()['sources']
     english_checks = report_method_catalog('en')['sources']
     notices = []
@@ -82,9 +81,11 @@ def render_source_version_notice(rows):
         measured = ', '.join(row['measured_versions']) or 'not recorded'
         checked = row['checked_version'] or 'not recorded'
         source = checks[row['source']]
+        zh_status = '资料版本与实测版本不一致' if row['status'] == 'mismatch' else '资料适用版本未确认'
+        en_status = 'Source and measured versions differ' if row['status'] == 'mismatch' else 'Source applicability is unverified'
         notices.append('<li>'+bilingual_text(
-            f"资料适用版本未确认：核对版本 {checked}；实测版本 {measured}。不能据此认定当前版本具备相同能力。",
-            f"Source applicability is unverified: checked version {checked}; measured version {measured}. This does not establish the same capability for the measured version.")+
+            f"{zh_status}：核对版本 {checked}；实测版本 {measured}。不能据此认定当前版本具备相同能力。",
+            f"{en_status}: checked version {checked}; measured version {measured}. This does not establish the same capability for the measured version.")+
             ' <a href="'+escape(source['url'],quote=True)+'">'+bilingual_text(source['label'],english_checks[row['source']]['label'])+'</a></li>')
     return '<ul class="source-version-notice">'+''.join(notices)+'</ul>' if notices else ''
 
@@ -95,7 +96,8 @@ def render_capabilities(out, names, *, table, cell, link, records=()):
     configured=task_capabilities(out,names,records,sources=sources)
     capabilities=configured or {name:report_method(name).get('capabilities') for name in names if report_method(name).get('capabilities')}
     english_catalog=report_method_catalog('en')
-    english_configured=task_capabilities(out,names,records,language='en')
+    english_sources={key:(item['label'],item['url']) for key,item in english_catalog['sources'].items()}
+    english_configured=task_capabilities(out,names,records,sources=english_sources,language='en')
     english_capabilities=english_configured or {name:report_method(name,language='en').get('capabilities') for name in capabilities}
     unknown = sorted(set(names) - set(capabilities))
     version_checks = source_version_checks(names, records)
@@ -108,7 +110,6 @@ def render_capabilities(out, names, *, table, cell, link, records=()):
             continue
         row = capabilities[name]
         english = english_capabilities[name]
-        from .report_components import bilingual_text
         def localized(key):
             return bilingual_text(row[key],english[key])
         tested = (bilingual_text(row['tested'], row['tested_en']) if row.get('tested_en') else bilingual_text('仓库登记配置示例；实际调用以保存记录为准。', 'Repository configuration example; consult saved records for actual calls.') + localized('tested'))
@@ -120,7 +121,7 @@ def render_capabilities(out, names, *, table, cell, link, records=()):
         content_rows.append(('', method+''.join(values)))
         runtime_rows.append(('', method+cell(bilingual_text(row['js']['status']+' · '+row['js']['detail'],english['js']['status']+' · '+english['js']['detail']))+
                              ''.join(cell(localized(k)) for k in ['input', 'structure', 'access'])))
-        source_links = ' · '.join(link(sources[key][1], sources[key][0]+' ↗',english_catalog['sources'][key]['label']+' ↗') if key in english_catalog['sources'] else link(sources[key][1],sources[key][0]+' ↗') for key in row['sources'])
+        source_links = ' · '.join(link(sources[key][1], sources[key][0]+' ↗',english_sources[key][0]+' ↗') for key in row['sources'])
         details.append(f'<details class="interface-panel" id="capability-{escape(name)}"><summary>{escape(labels.get(name,name))} · 范围与官方依据</summary>'+
                        f'<p><strong>对应接口：</strong>{localized("scope")}</p><p>{localized("notes")}</p>'+
                        f'<p><strong>登记配置：</strong>{tested}</p><p class="source-note">{source_links}</p>'+render_source_version_notice(version_checks[name])+'</details>')

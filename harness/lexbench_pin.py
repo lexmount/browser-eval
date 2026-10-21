@@ -15,7 +15,7 @@ from urllib.parse import parse_qs, urlsplit
 
 NAME = "lexbench-webfetch"
 HINT = "Run make bump-lexbench REV=<merged-commit>."
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def project_pin(project: dict) -> tuple[str, str]:

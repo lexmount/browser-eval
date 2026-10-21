@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 import importlib.metadata
 import re
 from collections import Counter
@@ -10,13 +11,38 @@ from pathlib import Path
 from typing import Any
 
 
+def _resolve_catalog_templates(data):
+    """Expand named defaults once; methods override dictionaries and replace lists."""
+    def merge(base, override):
+        result = deepcopy(base)
+        for key, value in override.items():
+            if key == 'extends':
+                continue
+            result[key] = (merge(result[key], value) if isinstance(result.get(key), dict)
+                           and isinstance(value, dict) else deepcopy(value))
+        return result
+
+    templates = data.get('templates', {})
+    def resolve(row, chain=()):
+        parent = row.get('extends')
+        if parent is None:
+            return deepcopy(row)
+        if parent not in templates:
+            raise ValueError('Unknown method template: ' + str(parent))
+        if parent in chain:
+            raise ValueError('Cyclic method template: ' + parent)
+        return merge(resolve(templates[parent], (*chain, parent)), row)
+
+    return {**data, 'methods': {name: resolve(row) for name, row in data['methods'].items()}}
+
+
 @lru_cache(maxsize=1)
 def _raw_report_method_catalog():
     path = Path(__file__).resolve().parent / "data/report-methods.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     if data.get("schema_version") != 1:
         raise ValueError("Unsupported report method registry schema")
-    return data
+    return _resolve_catalog_templates(data)
 
 
 def _catalog_value(value, path=(), *, language="zh"):
@@ -241,7 +267,7 @@ def method_info(provider_type: str, *, language="zh") -> dict[str, Any]:
 ROUTE_LABELS = report_method_catalog()["route_labels"]
 
 
-def _metadata_matches(metadata: dict[str, Any], expected: dict[str, Any]) -> bool:
+def metadata_matches(metadata: dict[str, Any], expected: dict[str, Any]) -> bool:
     for path, value in expected.items():
         current: Any = metadata
         for key in path.split("."):
@@ -299,7 +325,7 @@ def method_page_model(name: str, label: str, records: list[dict[str, Any]], *, l
             f"output format ({output_count}/{len(records)} records): {output}."
         )
     for profile in report.get("profiles", []):
-        if metadata and all(_metadata_matches(item, profile["metadata_equals"])
+        if metadata and all(metadata_matches(item, profile["metadata_equals"])
                             for item in metadata):
             for field in ("endpoint", "freshness", "configuration"):
                 if field in profile:

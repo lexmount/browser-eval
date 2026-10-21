@@ -67,7 +67,8 @@ def test_unknown_method_retains_output_and_discloses_missing_registration(tmp_pa
     assert 'Not registered' in body
     assert 'Retained unknown output' in body
     saved = json.loads((tmp_path / 'adoption/interfaces/unknown-vendor.json').read_text())
-    assert saved['interface']['entry'] == '未登记 / Not registered'
+    assert saved['interface']['entry'] == '未登记'
+    assert method_spec('unknown-vendor', row, language='en')['entry'] == 'Not registered'
     assert method_spec('unknown-vendor', row)['request'] == {}
 
 
@@ -188,8 +189,7 @@ def test_new_engine_matrix_uses_registered_plan_and_recorded_wait(custom_catalog
     from harness.web_fetch.report_interfaces import browser_task_interface_matrix
     method = custom_catalog['methods']['acme-fetch']
     method['routes'] = {'capabilities': 'Native text', 'markdown': 'Acme text'}
-    method['task_interfaces'] = [{'case_equals': {}, 'mode': 'markdown',
-                                  'description': '{markdown}', 'wait': 'ready'}]
+    method['task_interfaces'] = [{'case_equals': {}, 'description': '{markdown}', 'wait': 'ready'}]
     cases = {'body': {'id': 'body', 'url': 'https://example.test/', 'track': 'web'}}
     planned = browser_task_interface_matrix(cases, ['acme-fetch'])
     assert planned['rows'][0]['cells']['acme-fetch'] == [
@@ -213,7 +213,9 @@ def test_registered_task_modes_match_public_execution_selection():
         'task_kind': kind, 'url': 'https://example.test/document.pdf'}
         for track in ['web', 'dynamic', 'document', 'image', 'video', 'challenge', 'risk_control']
         for kind in ['body', 'resource', 'file']}
-    providers = ['moli', 'lightpanda', 'obscura', 'chromium', 'kitesurf']
+    from harness.web_fetch.methods import report_method_catalog
+    providers = [name for name, method in report_method_catalog()['methods'].items()
+                 if method.get('kind') == 'browser']
     # Single-case matrices keep the assertion independent of presentation grouping.
     for case_id, case in cases.items():
         matrix = browser_task_interface_matrix({case_id: case}, providers)
@@ -234,11 +236,38 @@ def test_interface_converter_version_comes_from_call_not_catalog():
 
 
 def test_catalog_examples_do_not_assert_prior_run_settings():
-    from harness.web_fetch.methods import _raw_report_method_catalog
-    catalog = json.dumps(_raw_report_method_catalog(), ensure_ascii=False)
-    for phrase in ['45 秒', '45-second', '45000', '40.5', '6.1 秒', '6.1-second',
-                   'node-html-markdown 2.0.0', 'Failure retries were disabled in this run']:
-        assert phrase not in catalog
+    import ast
+    import re
+    from pathlib import Path
+    from fnmatch import fnmatchcase
+    pattern = re.compile(r'\d[\d,.]*\s*-?\s*(?:秒|毫秒|ms\b|seconds?\b)|\b\d+\.\d+\.\d+\b')
+    # Versioned evidence identities and documented product limits, not run settings.
+    allowed = ['sources.*.checked_version', 'sources.*.url', 'sources.*.label',
+               'sources.*.label.zh', 'sources.*.label.en',
+               'methods.moli.capabilities.sources.0',
+               'adapters.cloudflare_markdown.freshness.*',
+               'adapters.cloudflare_content.freshness.*',
+               'methods.obscura.routes.waits.*']
+    def strings(value, path=()):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                yield from strings(item, (*path, str(key)))
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                yield from strings(item, (*path, str(index)))
+        elif isinstance(value, str):
+            yield '.'.join(path), value
+    root = Path(__file__).resolve().parents[1] / 'harness/web_fetch'
+    catalog = json.loads((root / 'data/report-methods.json').read_text())
+    violations = [(path, text) for path, text in strings(catalog)
+                  if pattern.search(text) and not any(fnmatchcase(path, rule) for rule in allowed)]
+    for name in ['report_interfaces', 'report_capabilities', 'methods', 'report_methods', 'report_explainer']:
+        for node in ast.walk(ast.parse((root / (name+'.py')).read_text())):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str) and pattern.search(node.value):
+                violations.append((f'{name}:{node.lineno}', node.value))
+    assert not violations
+    for prohibited in ['30 秒', '40,500 毫秒', '6.1-second', '2500 ms', 'version 9.9.9']:
+        assert pattern.search(prohibited)
 
 
 def test_mixed_build_labels_have_explicit_english_and_scoped_lifetime(tmp_path):
@@ -321,3 +350,51 @@ def test_english_filters_and_hosted_labels_use_registered_language(tmp_path):
     assert not any(option.find() for option in options)
     import re
     assert not re.search(r'[\u4e00-\u9fff]', document.get_text())
+
+
+@pytest.mark.parametrize('contract', ['native_markdown_resource_urls', 'native_html_resource_urls', 'native_json_resource_urls'])
+@pytest.mark.parametrize('language', ['zh', 'en'])
+def test_output_contract_labels_use_selected_method(contract, language):
+    label = report_method_catalog(language)['output_contract_labels'][contract].format(method='Acme Fetch')
+    assert 'Acme Fetch' in label
+    assert 'Moli' not in label
+
+
+@pytest.mark.parametrize('value', [True, False, None, '30', 0, -1, float('inf'), float('-inf'), float('nan')])
+def test_positive_number_rejects_invalid_budgets(value):
+    from harness.numbers import positive_number
+    assert not positive_number(value)
+
+
+@pytest.mark.parametrize('value', [0.001, 1, 30.5])
+def test_positive_number_accepts_finite_budgets(value):
+    from harness.numbers import positive_number
+    assert positive_number(value)
+
+
+def test_catalog_templates_merge_overrides_without_mutating_defaults():
+    from harness.web_fetch.methods import _resolve_catalog_templates
+    source = {'templates': {'base': {'interface': {'notes': 'shared', 'params': ['base']}}},
+              'methods': {'one': {'extends': 'base', 'interface': {'params': ['one']}},
+                          'two': {'extends': 'base'}}}
+    result = _resolve_catalog_templates(source)
+    assert result['methods']['one']['interface'] == {'notes': 'shared', 'params': ['one']}
+    result['methods']['one']['interface']['notes'] = 'changed'
+    assert result['methods']['two']['interface']['notes'] == 'shared'
+    assert source['templates']['base']['interface']['params'] == ['base']
+
+
+@pytest.mark.parametrize('templates,parent', [({}, 'missing'), ({'loop': {'extends': 'loop'}}, 'loop')])
+def test_catalog_templates_reject_missing_or_cyclic_parent(templates, parent):
+    from harness.web_fetch.methods import _resolve_catalog_templates
+    with pytest.raises(ValueError, match='Unknown|Cyclic'):
+        _resolve_catalog_templates({'templates': templates, 'methods': {'test': {'extends': parent}}})
+
+
+def test_matrix_uses_recorded_provider_type_in_execution_selector(custom_catalog):
+    from harness.web_fetch.report_interfaces import browser_task_interface_matrix
+    cases = {'body': {'id': 'body', 'url': 'https://example.test/', 'track': 'web'}}
+    records = [{'provider': 'acme-fetch', 'provider_type': 'headless_html', 'case_id': 'body',
+                'provider_metadata': {'engine': 'acme-fetch'}}]
+    part = browser_task_interface_matrix(cases, ['acme-fetch'], records)['rows'][0]['cells']['acme-fetch'][0]
+    assert part['mode'] == 'html'
