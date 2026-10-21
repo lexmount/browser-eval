@@ -77,7 +77,7 @@ Web Fetch CLI 使用数据集文件；轨迹重放和 Browser Use 使用各自�
 
 ## 快速开始
 
-克隆仓库，在根目录打开终端，安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)。基础 CLI 支持 Python 3.11–3.14，仓库开发默认使用 3.11。
+克隆仓库，在根目录打开终端，安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)。项目要求 Python 3.11 或更高版本；仓库开发与 CI 统一使用 Python 3.11。
 
 ```bash
 uv sync --frozen
@@ -90,9 +90,9 @@ uv run --frozen browser-harness-eval run --delay 0
 接下来，可以[用 HTTP、Moli 或 Chromium 抓取本地文章](../examples/web_fetch/README.md)。说明中包含浏览器安装、多方法比较和自选任务。远程服务和 Agent 运行需要相应账户，调用可能产生费用。
 
 <details>
-<summary>选择其他 Python 版本或安装可选适配器</summary>
+<summary>Python 运行环境与可选适配器</summary>
 
-使用 Python 3.12 时，在 `uv sync --frozen` 和后续 `uv run --frozen` 命令中都加上 `--python 3.12`。可选适配器和历史实验另有版本要求，完整开发环境使用 3.11。
+仓库测试过的开发环境使用 Python 3.11。可选适配器和历史实验可能有额外限制。
 
 | 额外依赖 | 用途 |
 | --- | --- |

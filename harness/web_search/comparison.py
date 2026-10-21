@@ -12,11 +12,27 @@ def acceptance(case, row, metric="source"):
     """Return a scoped binary check, never turn an unlabelled query into failure."""
     if row is None:
         return None
+    if metric == "primary":
+        if "reference_answer" in case:
+            metric = "answer"
+        elif case.get("anchors"):
+            metric = "source"
+        elif case.get("domains"):
+            metric = "site"
+        else:
+            metric = "availability"
     if metric == "answer":
         key = "answer_in_delivered_text_5" if "reference_answer" in case else None
     elif metric == "source":
         key = ("labeled_source_hit_5" if case.get("reference_urls") else
                "anchor_hit_5" if case.get("anchors") else None)
+    elif metric == "site":
+        value = row.get("metrics", {}).get("domain_precision")
+        if value is None and row.get("metrics", {}).get("result_count") == 0:
+            return False
+        return value > 0 if value is not None else None
+    elif metric == "availability":
+        return bool(row.get("results"))
     else:
         raise ValueError("Unknown comparison metric")
     value = row.get("metrics", {}).get(key) if key else None
@@ -99,19 +115,28 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None):
                                  for field, limit in (("title", 180), ("snippet", 320),
                                                       ("summary", None), ("content", 480))}})
             outputs[method["id"]] = {
+                "primary": acceptance(case, row, "primary"),
                 "source": acceptance(case, row), "answer": acceptance(case, row, "answer"),
+                "site": acceptance(case, row, "site"),
+                "availability": acceptance(case, row, "availability"),
                 "items": items, "count": len(row.get("results", [])),
                 "error": str(row.get("error") or "")[:200],
                 "detail": detail_link(row) if detail_link else "details/" + row["id"] + ".html",
             }
+        benchmark = "factual" if "reference_answer" in case else "custom"
+        check_types = (["factual"] if benchmark == "factual" else
+                       (["target"] if case.get("anchors") else []) +
+                       (["site"] if case.get("domains") else []))
+        if not check_types:
+            check_types = ["availability"]
         cases.append({"id": case["id"], "query": case["query"],
-                      "cohort": "factual" if "reference_answer" in case else "scenario",
+                      "benchmark": benchmark, "check_types": check_types,
                       "outputs": outputs})
     populations = profile.get("comparison_populations")
     if not populations:
         populations = [
             {"id": "overall", "label": {"en": "All tasks", "zh": "总体"}, "case_ids": [c["id"] for c in cases]},
-            {"id": "factual", "label": {"en": "Public factual questions", "zh": "公开事实题"}, "case_ids": [c["id"] for c in cases if c["cohort"] == "factual"]},
+            {"id": "factual", "label": {"en": "Public factual questions", "zh": "公开事实题"}, "case_ids": [c["id"] for c in cases if c["benchmark"] == "factual"]},
             {"id": "reference", "label": {"en": "Reference-page questions", "zh": "参考网页题"}, "case_ids": [c["id"] for c in profile["cases"] if c.get("anchors") and "reference_answer" not in c]},
         ]
     ids = {c["id"] for c in cases}
@@ -134,7 +159,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 let page=0,relationPage=0,focusedId=null;const size=3,relationSize=10;
 const selected=()=>[...root.querySelectorAll('[data-compare-method]:checked')].map(x=>x.value).filter(x=>x!==$('[data-compare-baseline]').value);
 const relation=(base,others)=>{if(base==null||!others.length||others.some(v=>v==null))return 'unknown';if(base&&others.every(Boolean))return 'all_pass';if(base&&others.every(v=>!v))return 'baseline_only';if(!base&&others.every(Boolean))return 'comparison_only';if(!base&&others.every(v=>!v))return 'all_fail';return 'mixed'};
-function matching(){let q=$('[data-output-query]').value.toLowerCase(),scope=new Set(data.populations.find(p=>p.id===$('[data-output-cohort]').value).case_ids);return data.cases.filter(c=>scope.has(c.id)&&(!focusedId||c.id===focusedId)&&(!q||c.query.toLowerCase().includes(q)||c.id.toLowerCase().includes(q)))}
+function matching(){let q=$('[data-output-query]').value.toLowerCase(),benchmark=$('[data-output-benchmark]').value,check=$('[data-output-check]').value;return data.cases.filter(c=>(benchmark==='all'||c.benchmark===benchmark)&&(check==='all'||c.check_types.includes(check))&&(!focusedId||c.id===focusedId)&&(!q||c.query.toLowerCase().includes(q)||c.id.toLowerCase().includes(q)))}
 function render(){root.querySelectorAll('[data-compare-method]').forEach(x=>x.disabled=x.value===$('[data-compare-baseline]').value);let cases=matching(),metric=$('[data-compare-metric]').value,base=$('[data-compare-baseline]').value,others=selected(),counts={},matches=[];for(let c of cases){let r=relation(c.outputs[base]?.[metric],others.map(m=>c.outputs[m]?.[metric]));counts[r]=(counts[r]||0)+1;if($('[data-compare-relation]').value==='all'||r===$('[data-compare-relation]').value)matches.push(c)}
 $('[data-comparison-counts]').innerHTML=Object.keys(L.relations).map(k=>'<span>'+esc(L.relations[k])+': <strong>'+(counts[k]||0)+'</strong></span>').join('');
 relationPage=Math.min(relationPage,Math.max(0,Math.ceil(matches.length/relationSize)-1));
@@ -175,11 +200,18 @@ def render_comparison(profile, selected_rows, zh, detail_link=None):
         "answerField": t("contains answer cue", "包含答案线索"), "tasks": t("tasks", "题")}
     options = lambda values: ''.join(f'<option value="{e(k)}">{e(v)}</option>' for k, v in values)
     methods = [(m["id"], m["label"]) for m in data["methods"]]
+    custom_count = sum(c["benchmark"] == "custom" for c in data["cases"])
+    factual_count = sum(c["benchmark"] == "factual" for c in data["cases"])
+    benchmark_options = [
+        ("all", t(f"Both benchmarks · {len(data['cases'])}", f"两套评测 · {len(data['cases'])}")),
+        ("custom", t(f"In-house scenarios · {custom_count}", f"自建场景集 · {custom_count}")),
+        ("factual", t(f"SimpleQA retrieval diagnostic · {factual_count}", f"SimpleQA 检索诊断 · {factual_count}")),
+    ]
     return ('<style>' + STYLE + '</style><section class="search-compare" data-search-comparison data-labels="' + e(json.dumps(labels, ensure_ascii=False)) + '">'
-        + '<div class="compare-controls"><label>' + t('Find a query', '搜索题目') + '<input type="search" data-output-query></label><label>' + t('Dataset', '题库范围') + '<select data-output-cohort>' + options([(p['id'], p['label'] + ' · ' + str(len(p['case_ids']))) for p in data['populations']]) + '</select></label></div>'
+        + '<div class="compare-controls"><label>' + t('Find a query', '搜索题目') + '<input type="search" data-output-query></label><label>' + t('Benchmark', '评测集') + '<select data-output-benchmark>' + options(benchmark_options) + '</select></label><label>' + t('Task check', '题型与检查') + '<select data-output-check>' + options([('all', t('All task types', '全部题型')), ('target', t('Reference-page discovery', '目标网页发现')), ('site', t('Requested-site constraint', '指定网站约束')), ('availability', t('Open discovery availability', '开放探索可用性')), ('factual', t('Factual evidence', '事实证据'))]) + '</select></label></div>'
         + '<h2>' + t('Compare methods on the same tasks', '同一道题，各方法是否命中') + '</h2><p class="compare-notice">'
         + t('Source checks use independently identified reference pages or published supporting sources. Answer checks use all delivered text before benchmark-mirror exclusion, including explicitly accepted answer variants; they do not judge factual correctness. Unlabelled tasks remain unscored.', '来源检查核对独立参考网页或题库标注来源；答案检查使用全部交付文本及明确允许的答案变体，尚未排除题库镜像，不判断事实正确性。没有标注的题目不计为失败。')
-        + '</p><div class="compare-controls"><label>' + t('Check', '检查项目') + '<select data-compare-metric>' + options([('source', t('Target / supporting source found', '目标网页／标注来源命中')), ('answer', t('Answer cue in delivered text · raw', '答案线索命中 · 原始结果'))]) + '</select></label><label>' + t('Baseline', '基准方法') + '<select data-compare-baseline>' + options(methods) + '</select></label></div><fieldset><legend>' + t('Compare with', '对比方法') + '</legend><div class="compare-checks">'
+        + '</p><div class="compare-controls"><label>' + t('Check', '检查项目') + '<select data-compare-metric>' + options([('primary', t('Primary check for each task type', '按题型使用主要检查')), ('source', t('Reference target / published source', '目标网页／标注来源')), ('answer', t('Answer cue in delivered text · raw', '返回文字中的答案线索')), ('site', t('Requested-site constraint', '指定网站约束')), ('availability', t('Nonempty response', '非空响应'))]) + '</select></label><label>' + t('Baseline', '基准方法') + '<select data-compare-baseline>' + options(methods) + '</select></label></div><fieldset><legend>' + t('Compare with', '对比方法') + '</legend><div class="compare-checks">'
         + ''.join('<label><input type="checkbox" data-compare-method checked value="' + e(k) + '">' + e(v) + '</label>' for k,v in methods)
         + '</div></fieldset><div class="compare-counts" data-comparison-counts aria-live="polite"></div><label>' + t('Show tasks where', '查看题目') + '<select data-compare-relation>' + options([('all', t('All outcome relations', '全部结果'))] + list(labels['relations'].items())) + '</select></label><div class="compare-relations" data-relation-tasks></div><div class="compare-pager"><button data-relation-prev>' + t('Previous', '上一页') + '</button><span data-relation-page aria-live="polite"></span><button data-relation-next>' + t('Next', '下一页') + '</button></div>'
         + '<h2>' + t('Actual outputs, side by side', '逐题查看实际输出') + '</h2><p class="compare-notice">' + t('The dataset, query, check, providers and outcome filters above also control this view. Each column shows the first five results. Page summaries are complete; page bodies remain compact previews. Green marks identify the exact reference-page or answer-cue check, not a semantic correctness judgment.', '上方的题库、题目、检查项目、方法和命中状态会同步筛选这里。每列展示前 5 条结果，长摘要完整显示，网页正文保留节选。绿色只表示该条命中参考网页或该字段含答案线索，不代表整条结果语义正确。') + '</p><div data-output-pages></div><div class="compare-pager"><button data-output-prev>' + t('Previous', '上一页') + '</button><span data-output-page aria-live="polite"></span><button data-output-next>' + t('Next', '下一页') + '</button></div>'

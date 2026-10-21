@@ -77,7 +77,7 @@ The Web Fetch CLI takes a dataset file. Replay and Browser Use have separate run
 
 ## Quickstart
 
-Clone the repository, open a terminal in its root, and install [uv](https://docs.astral.sh/uv/getting-started/installation/). The base CLI supports Python 3.11–3.14; repository development defaults to 3.11.
+Clone the repository, open a terminal in its root, and install [uv](https://docs.astral.sh/uv/getting-started/installation/). Python 3.11 or newer is required; repository development and CI use Python 3.11.
 
 ```bash
 uv sync --frozen
@@ -90,9 +90,9 @@ Open the report path printed in the terminal. This offline example needs no brow
 Next, [run HTTP, Moli or Chromium against a local article](examples/web_fetch/README.md). That guide covers browser installation, selecting several methods and choosing your own tasks. Remote services and Agent runs need their own accounts; their calls may incur charges.
 
 <details>
-<summary>Choose another Python version or install an optional adapter</summary>
+<summary>Python runtime and optional adapters</summary>
 
-To use Python 3.12, add `--python 3.12` to both `uv sync --frozen` and subsequent `uv run --frozen` commands. Optional adapters and historical experiments have additional version constraints; the full development environment uses 3.11.
+Use Python 3.11 for the repository's tested development environment. Optional adapters and historical experiments may add their own constraints.
 
 | Extra | Used for |
 | --- | --- |
