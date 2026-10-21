@@ -47,6 +47,7 @@ class PublishConfig:
     presentation_binding: Path | None = None
     visibility: str | None = None
     parts_manifest: Path | None = None
+    snapshot_audit: bool = False
 
 
 def response_json(status, raw, *, operation):
@@ -107,7 +108,7 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
         raise ValueError("Unknown publication mode")
     if config.operation_namespace == 'webfetch':
         from .report_package import validate_release
-        validate_release(config.source, presentation_binding=config.presentation_binding)
+        validate_release(config.source, presentation_binding=config.presentation_binding,snapshot_audit=config.snapshot_audit)
     if config.visibility not in {None, "private", "unlisted", "public"}:
         raise ValueError("Unknown publication visibility")
     if config.presentation_binding is not None:
@@ -118,9 +119,9 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
         attachments = part_archives(config.parts_manifest)
         parts_plan = json.loads(config.parts_manifest.read_text())
         validation_inputs = (*validation_inputs,config.parts_manifest,*attachments.values())
-    if package_check is None and (config.presentation_binding is not None or config.parts_manifest is not None):
+    if package_check is None and (config.presentation_binding is not None or config.parts_manifest is not None or config.snapshot_audit):
         from functools import partial
-        package_check = partial(check,presentation_binding=config.presentation_binding,external_archives=attachments)
+        package_check = partial(check,presentation_binding=config.presentation_binding,external_archives=attachments,snapshot_audit=config.snapshot_audit)
     protected = {config.profile.resolve(), config.archive.resolve(),
                  *(Path(path).resolve() for path in validation_inputs)}
     if config.receipt.resolve() in protected or config.journal.resolve() in protected:
@@ -353,6 +354,7 @@ def main(*, root: Path | None = None):
     parser.add_argument("--presentation-binding", type=Path)
     parser.add_argument("--parts-manifest", type=Path)
     parser.add_argument("--visibility", choices=("private", "unlisted", "public"))
+    parser.add_argument("--snapshot-audit",action="store_true",help="Publish a validated saved-output score audit")
     args = parser.parse_args()
     result = publish(
         PublishConfig(
@@ -365,7 +367,7 @@ def main(*, root: Path | None = None):
             args.title,
             args.base_url,
             args.expected_version,
-            presentation_binding=args.presentation_binding, visibility=args.visibility, parts_manifest=args.parts_manifest,
+            presentation_binding=args.presentation_binding, visibility=args.visibility, parts_manifest=args.parts_manifest,snapshot_audit=args.snapshot_audit,
         )
     )
     print(json.dumps(result, ensure_ascii=False), flush=True)

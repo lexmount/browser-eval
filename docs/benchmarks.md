@@ -177,3 +177,8 @@ Run these Python entries through `uv run --frozen python`. The mode retains the
 original routes and metric populations and labels the new report as a saved-input
 audit; it does not certify new calls or replace the original release. The ordinary
 packaging path rejects this evidence state without the explicit audit flag.
+
+Publish through `scripts/publish_artifact_hub.py --snapshot-audit` with a separate
+publication target, receipt and operation journal. Use `--create` for a new report
+and set visibility explicitly. A later update uses that report's own site and
+expected version. Keep the original report's target unchanged.

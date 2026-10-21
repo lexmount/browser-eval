@@ -104,3 +104,21 @@ def test_snapshot_boundary_rejects_unbound_evidence_and_call_changes(tmp_path,de
         else:rows[0]['scoring']['artifact_view']='published_projection'
         p.write_text(''.join(json.dumps(row)+'\n' for row in rows));config['inputs']['results']['sha256']=file_sha256(p);profile.write_text(json.dumps(config))
     with pytest.raises(ValueError):validate_snapshot_audit(source,profile)
+
+
+def test_snapshot_package_uses_the_shared_publisher_without_certification(tmp_path):
+    from dataclasses import replace
+    from harness.web_fetch.report_package import build
+    from harness.web_fetch.report_publish import PublishConfig, publish
+    source,profile=example(tmp_path);out=tmp_path/'report'
+    build_snapshot_audit(source,out,profile=profile);archive=tmp_path/'report.zip'
+    build(out,archive,snapshot_audit=True)
+    target=tmp_path/'publication.json';target.write_text(json.dumps({'artifact_hub_base_url':'https://example.test'}))
+    config=PublishConfig(target,archive,out,tmp_path/'publication-receipt.json',tmp_path/'operation.json',mode='create',visibility='private')
+    def transport(path,data=None,content_type=None,**kwargs):
+        if path=='/api/sites':return 200,json.dumps({'slug':'new-audit','versionId':'ver_new'}).encode()
+        if path=='/api/sites/new-audit/sharing':return 200,b'{"visibility":"private"}'
+        raise AssertionError(path)
+    with pytest.raises(ValueError,match='require --snapshot-audit'):publish(config,transport=transport)
+    result=publish(replace(config,snapshot_audit=True),transport=transport)
+    assert result['visibility']=='private' and result['url']=='https://example.test/s/new-audit'
