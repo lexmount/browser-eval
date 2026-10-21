@@ -2,6 +2,7 @@
 import re
 
 from lexbench_webfetch.metrics import task_passed
+from .report_components import bilingual_text
 
 
 def quality_observations(record, case, output=''):
@@ -21,7 +22,7 @@ def quality_observations(record, case, output=''):
 def render_quality_observations(record, case, output, *, esc):
     info = quality_observations(record, case, output)
     verdict = '排除比较' if record['metrics'].get('evaluation_excluded') else '通过' if info['task_pass'] else '未通过'
-    precision = '未评测' if info['word_precision'] is None else f'{info["word_precision"]:.2%}'
+    precision = bilingual_text('未评测','Not measured') if info['word_precision'] is None else f'{info["word_precision"]:.2%}'
     component = '包含验证码组件文字' if info['challenge_component_text'] else '未检测到该组件文字特征'
     hints = '、'.join(info['hint_words']) or '无命中'
     hint_html='<code>'+esc(hints)+'</code>' if info['hint_words'] else '<span>无命中</span>'

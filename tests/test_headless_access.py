@@ -3,13 +3,13 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from harness.web_fetch.report_interfaces import HEADLESS_ACCESS, SPECS, render_interfaces
+from harness.web_fetch.report_interfaces import SPECS, render_interfaces
+from harness.web_fetch.methods import method_access
 
 
 class HeadlessAccessTests(unittest.TestCase):
     def test_all_measured_engines_have_account_and_official_sources(self):
-        self.assertEqual(set(HEADLESS_ACCESS),
-                         {'kitesurf','lightpanda','obscura','moli','chromium'})
+        accesses = {name: method_access(name, []) for name in SPECS}
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'adoption').mkdir()
@@ -18,8 +18,8 @@ class HeadlessAccessTests(unittest.TestCase):
                  'artifact_path':'body.txt','provider_metadata':{'api_token':'credential-canary',
                  'headers':{'Authorization':'Bearer credential-canary'},'engine':'kitesurf'}}
             body = render_interfaces(root, [row])
-            self.assertEqual(body.count('<h3>账号与获取入口</h3>'), len(set(SPECS) & set(HEADLESS_ACCESS)))
-            for name, access in HEADLESS_ACCESS.items():
+            self.assertEqual(body.count('<h3>账号与获取入口</h3>'), len(SPECS))
+            for name, access in accesses.items():
                 if name in SPECS:
                     saved = json.loads((root / f'adoption/interfaces/{name}.json').read_text())
                     self.assertEqual(saved['access']['account'], access['account'])
@@ -61,3 +61,19 @@ class HeadlessAccessTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+
+def test_interface_authored_fields_use_direct_english(tmp_path, monkeypatch):
+    from html import unescape
+    from pathlib import PurePosixPath
+    from harness.web_fetch.methods import report_method_catalog
+    from harness.web_fetch.report_i18n import localize_html
+    (tmp_path/'adoption').mkdir()
+    body = render_interfaces(tmp_path, [])
+    english = unescape(localize_html(body, PurePosixPath('adoption/index.html')))
+    expected = report_method_catalog('en')['methods']['chromium']['interface']
+    assert expected['notes'] in english
+    assert expected['params'][0][2] in english
+    assert expected['auth'] in english
+    assert '未记录的内部默认值不作推断' not in english

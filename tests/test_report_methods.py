@@ -3,10 +3,9 @@ from unittest.mock import patch
 from harness.web_fetch.report_methods import adoption_counts
 from harness.web_fetch.report_components import metric_legend,metric_guide
 from harness.web_fetch.methods import METHOD_REGISTRY, method_info, method_page_model
-from harness.web_fetch.report_i18n import translate_text
 
 class AdoptionTests(unittest.TestCase):
- def test_source_link_follows_method_type_and_registered_participant(self):
+ def test_product_source_is_owned_by_catalog_not_execution_alias(self):
   import json,tempfile
   from pathlib import Path
   from harness.web_fetch.report_methods import render_methods
@@ -22,11 +21,12 @@ class AdoptionTests(unittest.TestCase):
                           table=table,cell=cell,link=link,esc=esc)
    with patch('harness.web_fetch.report_methods.render_interfaces',return_value=''):
     body=render()
-   self.assertIn('href="https://github.com/lexmount/moli"',body)
+   self.assertIn('href="https://github.com/lexmount/moli/tree/main/skills/moli-webfetch"',body)
    with patch('harness.web_fetch.methods.browser_method_registry',return_value={
        'renamed-moli':{'source_url':'https://example.org/build-source'}}):
     with patch('harness.web_fetch.report_methods.render_interfaces',return_value=''):
-     self.assertIn('href="https://example.org/build-source"',render())
+     self.assertNotIn('href="https://example.org/build-source"',render())
+     self.assertIn('href="https://github.com/lexmount/moli/tree/main/skills/moli-webfetch"',render())
 
  def test_missing_run_configuration_does_not_imply_default_or_unpaid_execution(self):
   for provider_type in ('custom_adapter', 'fixture', 'cowagent_builtin'):
@@ -47,8 +47,8 @@ class AdoptionTests(unittest.TestCase):
   self.assertIn('0/1',empty)
   self.assertIn('未记录',empty)
   self.assertNotIn(method_info('headless_markdown')['endpoint'],empty)
-  for configuration in (model['configuration'],empty):
-   translated=translate_text(configuration)
+  for subset in (records,records[1:]):
+   translated=method_page_model('custom','Custom',subset,language='en')['configuration']
    self.assertNotRegex(translated,r'[\u4e00-\u9fff]')
    self.assertIn('records',translated)
 
@@ -58,7 +58,7 @@ class AdoptionTests(unittest.TestCase):
       'route':'dynamic_native_markdown','wait_until':'done',
       'wait':{'strategy':'native_default_completion'}}}
   model=method_page_model('moli-webfetch','Moli',[record]*100)
-  self.assertEqual(model['title'],'Moli · Moli 1.1.9')
+  self.assertEqual(model['title'],'Moli 1.1.9')
   self.assertEqual(model['endpoint'],'moli fetch --dump markdown --wait-until done URL')
   self.assertIn('本轮 100 例',model['configuration'])
   self.assertIn('默认 done',model['configuration'])
@@ -105,7 +105,7 @@ class AdoptionTests(unittest.TestCase):
    freshness=method_info(provider_type)['freshness']
    self.assertIn('默认最多缓存 5 秒',freshness)
    self.assertNotIn('实时',freshness)
-   translated=translate_text(freshness)
+   translated=method_info(provider_type,language='en')['freshness']
    self.assertIn('up to 5 seconds',translated)
    self.assertNotIn('Real-time',translated)
  def test_failed_candidate_verification_preserves_snapshot(self):
@@ -181,3 +181,21 @@ def test_report_labels_distinguish_release_and_source_build_with_same_version(tm
 
     unrelated(tmp_path,{},records)
     assert provider_label('moli-release')==original
+
+
+def test_method_model_selects_direct_english_fields_without_reverse_translation(monkeypatch):
+    records = [{'provider': 'moli', 'provider_type': 'moli_webfetch',
+                'provider_metadata': {'reported_version': 'moli 9.9.9', 'dump': 'markdown',
+                    'route': 'dynamic_native_markdown', 'wait_until': 'domstable',
+                    'layout': True, 'with_frames': True,
+                    'wait': {'strategy': 'native_task_family_completion'}}}]
+    model = method_page_model('moli', 'Moli', records, language='en')
+    assert model['title'] == 'Moli 9.9.9'
+    assert 'domstable' in model['configuration']
+    import re
+    assert not re.search(r'[\u4e00-\u9fff]', ' '.join(model.values()))
+    records[0]['provider_type'] = 'headless_markdown'
+    records[0]['provider_metadata'].update(extractor='moli_native_markdown', output_contract='markdown')
+    observed = method_page_model('moli', 'Moli', records, language='en')
+    assert '1/1 records' in observed['configuration']
+    assert not re.search(r'[\u4e00-\u9fff]', observed['configuration'])

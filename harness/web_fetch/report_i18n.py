@@ -171,10 +171,8 @@ TEXT = {
     "题目与计时规则": "Tasks and timing rules",
     "配置、版本和复现说明": "Configuration, versions, and reproduction",
     "本轮固定原生配置": "Fixed native configuration",
-    "每种方法内部串行执行，每题只调用一次，45秒为外层交卷期限。内部加载、连接和处理时间保留产品默认值。允许测试前固定的原生选项，不传入逐题等待、选择器、数量提示或脚本；不补抓、不额外重试。产品返回的正文和原始响应分别保存。": "Each method runs its cases serially, with one call per case and a 45-second caller deadline. Internal loading, connection, and processing timers retain product defaults. Native options may be fixed before testing; no per-case waits, selectors, count hints, or scripts are supplied. No supplemental fetches or caller retries are made. Returned text and raw responses are saved separately.",
     "每种方法内部串行执行；方法之间的调度以执行批次和保存的调用时间为准。分段执行保留每个原始分段，完整调用时间见执行批次。": "Each method runs serially internally. Execution batches and saved timestamps document scheduling between methods. Segmented executions retain every original segment; see the execution batches for full call times.",
     "每种方法内部串行；方法之间的调度见执行批次。": "Each method runs serially internally; see execution batches for scheduling between methods.",
-    "本轮统一使用固定原生配置：每题调用一次，外层截止时间 45 秒，产品内部超时保留默认值。具体选项及请求字段见接口示例、冻结配置和该次调用记录。": "This run uses fixed native configurations: one call per case, a 45-second caller deadline, and default product timers. See interface examples, frozen configurations, and individual call records for options and request fields.",
     "本轮保存的调用字段": "Saved request fields from this run",
     "此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。": "These request fields come from this public call record. See environment and call details for full configurations and logs. Frozen configurations and actual requests determine product timer settings.",
     "已测方法的输入展示保存的公开调用字段，输出展示同一次调用的实际节选。完整配置、原始响应和日志见环境与调用详情。未参评方法保留仓库登记示例。": "For measured methods, inputs show saved public request fields and outputs show excerpts from the same call. See environment and call details for full configurations, raw responses, and logs. Unmeasured methods retain registered repository examples.",
@@ -471,7 +469,6 @@ TEXT = {
     "标准答案与真实输出，放在一起看": "Reference answers beside actual outputs",
     "下面五个案例分别展示网页正文、PDF、列表、资源地址和原文件怎样验收。左边是独立参考或预先登记的要求，右边是本轮真实返回，下面逐项标出通过与失败。长内容只截取对应片段，并标明范围。": "Five examples show acceptance for page text, PDFs, lists, resource URLs, and original files. The left side contains an independent reference or registered requirements; the right side shows actual output from this run, with pass and fail checks below. Long content uses corresponding excerpts with their scope stated.",
     "每题只记通过或失败": "Each task is pass or fail",
-    "共同预算 45 秒": "Shared 45-second budget",
     "必需检查全部满足": "All required checks must pass",
     "未通过项保留在分母": "Failed tasks stay in the denominator",
     "评测集、阈值与独立复核": "Dataset, thresholds, and independent review",
@@ -598,7 +595,6 @@ TEXT = {
     "用五个真实样本，把验收过程展开": "Five real examples, with the acceptance checks explained",
     "同样是交给浏览器一个 URL，任务可能要求一篇正文、几条商品记录、一条下载地址，也可能直接要文件。判断是否完成，必须先明确要交回什么。下面用五个样本解释这四类交付物，网页正文和 PDF 正文因处理路线不同分开举例。实际数据按六个分组统计：普通网页 100 题，动态网页、热门站点、文档、图片、视频各 10 题。图片和视频组都可能要求资源地址或原文件，PDF 则沿用正文验收。": "A URL can require body text, product records, a download link, or the file itself. Acceptance starts by defining that output. Five examples below explain these four output types; web and PDF text have separate examples because their processing paths differ. Results use six reporting groups: general pages with 100 tasks, and dynamic pages, popular sites, documents, images, and videos with 10 each. Image and video tasks can require URLs or files, while PDFs use body-text acceptance.",
     "从调用开始，到可验收结果形成": "From the start of the call to an assessable output",
-    "共同预算：45 秒 · 输入的任务类型预先已知": "Shared budget: 45 seconds · input task type known in advance",
     "网页 / PDF": "Web / PDF",
     "页面转文本，或取文件后解析": "Convert page to text, or retrieve and parse a file",
     "正文内容": "Body text",
@@ -1821,7 +1817,6 @@ TEXT.update({
     "页面在 CowAgent 输出里留下页面壳，名言和作者核对点缺失；飞书帮助文档只有标题，没有要求的正文。零售退换货页则是请求被拒绝。前两例要靠内容判断才能触发后备方法，最后一例可以由请求错误触发。因此，只在网络异常时切换方法，无法复现这里看到的全部互补覆盖。": "page leaves only a page shell in CowAgent output, with quote and author checks missing; the Feishu help document contains only its title, not the required body. The retail returns page is rejected at request time. The first two need content validation to trigger a fallback, while the last can use a request error. Switching methods only on network errors therefore cannot reproduce all of the complementary coverage observed here.",
     "页面壳也不能直接证明正文必须经异步请求取得。对初始源文档的复核发现，": "A page shell also does not prove that the body must be fetched asynchronously. Review of the initial source documents found that",
     "的名言载荷和飞书文章内容已经嵌入 HTML；取回源字节与正确提取嵌入内容是两件事。它们揭示的是当前提取路径的缺口，不能作为浏览器执行能力的独立证据。": "already embeds both the quote payload and the Feishu article content in HTML. Retrieving source bytes and correctly extracting embedded content are distinct tasks. These cases expose a gap in the current extraction path; they are not independent evidence that browser execution is required.",
-    "不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。": "Different methods run in parallel while calls within each method are serial. Non-body tasks run after body-text tasks. Firecrawl cools down for 6.1 seconds after each call. This report is not an official WCXB leaderboard.",
     "十二方法机器失败项盲审与分歧裁决": "Blind review and adjudication of machine failures across twelve methods",
     "失败项盲审发现 2 条机器判定与独立审查分歧，均为 Exa 正文名称与另一组裸 URL 被审查者按顺序推断成具名链接。": "Failure-only blind review found 2 disagreements with machine verdicts. In both, the reviewer inferred named Exa links by positionally joining body names to a separate array of bare URLs.",
     "两条分歧分别由独立代理回到任务合同、完整返回和原生字段裁决；由于输出没有明确的名称—URL 配对，均维持机器失败。审查记录保存模型、协议、证据绑定与裁决理由。": "Independent agents adjudicated both disagreements against the task contract, complete response, and native fields. Because neither output explicitly paired names with URLs, both machine failures were retained. The review record preserves the model, protocol, evidence bindings, and adjudication reasons.",
@@ -2267,7 +2262,6 @@ TEXT.update({
     "直接取得 Markdown": "Markdown returned directly",
     "直接文档或媒体": "Direct document or media input",
     "由 CLI 自动选择原始响应或序列化页面；不附加页面等待参数": "The CLI automatically selects a raw response or serialized page; no page-wait parameters are added",
-    "45 秒外层端到端截止；文档解析包含在内": "45-second outer end-to-end deadline, including document parsing",
     "普通网页为 Markdown；直接文件为原始字节": "Markdown for ordinary pages; raw bytes for direct files",
     "直接文档正文使用的本地解析器": "Local parser used for direct-document body text",
     "本方法只使用官方 1.1.1 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与媒体的裸 fetch 路线在正式二进制上实测确认。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。 旧批次只保存了二进制 SHA-256，随后与官方 v1.1.1 归档逐字节匹配；受错误输出模式影响的直接文档与媒体已用正确路线重测。": "This method uses only the official 1.1.1 release binary and is scored separately from other Moli versions. Ordinary pages use native Markdown. Bare fetch for direct documents and media was verified on the release binary. When a body task obtains a supported original document, text is parsed within the same timing budget; file tasks validate bytes directly. The engine or output mode is not changed after a failure. Older batches retained only the binary SHA-256, which was later matched byte for byte to the official v1.1.1 archive. Direct-document and media calls affected by the incorrect output mode were rerun through the correct path.",
@@ -2290,7 +2284,6 @@ TEXT.update({
     "正文配置为 markdown；资源配置为 markdown、links、images": "markdown for body tasks; markdown, links, and images for resource tasks",
     "资源 → provider_metadata": "Resources → provider_metadata",
     "错误或额度原因": "Error or quota reason",
-    "本轮每次响应后冷却 6.1 秒；冷却不计入单次请求耗时，不代表无速率限制的吞吐量。完整 API 响应进入私有哈希绑定证据。选择器需要多个匹配或位于 iframe 时，Scrape Actions 不能完整表达该条件，报告明确披露而不伪称已等待。": "This run pauses for 6.1 seconds after each response. The pause is excluded from per-call latency and does not represent throughput without rate limits. The complete API response enters private, hash-bound evidence. When a selector requires more than one match or is inside an iframe, Scrape Actions cannot fully express the condition; the report discloses that limitation instead of claiming it was awaited.",
     "公开 HTTP(S) 页面": "Public HTTP(S) page",
     "done；可配置 networkidle / domstable 等": "done; networkidle / domstable and other states are configurable",
     "毫秒；与外层进程截止时间使用同一预算": "Milliseconds; shares the outer process deadline budget",
@@ -3351,13 +3344,11 @@ def translate_text(value: str, translations=None) -> str:
     core = value.strip()
     if not core:
         return value
-    from .methods import report_method_translations
-    catalog = report_method_translations()
-    translated = (translations or {}).get(core, catalog.get(core, TEXT.get(core)))
+    translated = (translations or {}).get(core, TEXT.get(core))
     if translated is None:
         for marker in (" ↕", " ↑", " ↓"):
-            if core.endswith(marker) and (core[:-len(marker)] in catalog or core[:-len(marker)] in TEXT):
-                translated = catalog.get(core[:-len(marker)], TEXT.get(core[:-len(marker)])) + marker
+            if core.endswith(marker) and core[:-len(marker)] in TEXT:
+                translated = TEXT[core[:-len(marker)]] + marker
                 break
     if translated is None:
         for pattern, replacement in REGEX:
@@ -3374,7 +3365,7 @@ def translate_text(value: str, translations=None) -> str:
             r"文字核对范围：各方法均为 ([\d,]+/[\d,]+) 例。",
             r"Text-check coverage: \1 cases for every method. ", translated,
         )
-        for source, target in sorted({**catalog, **PHRASES}.items(), key=lambda item: len(item[0]), reverse=True):
+        for source, target in sorted(PHRASES.items(), key=lambda item: len(item[0]), reverse=True):
             translated = translated.replace(source, target)
         if translated == core:
             translated = None
@@ -3432,7 +3423,7 @@ class Localizer(HTMLParser):
         self.parts.append(f"<!{decl}>")
 
     def handle_starttag(self, tag: str, attrs) -> None:
-        localized = dict(attrs).get('data-report-en') if tag == 'span' else None
+        localized = dict(attrs).get('data-report-en') if tag in {'span', 'option'} else None
         parent_model = any(self.model_text_stack)
         self.model_text_stack.append(localized is not None or parent_model)
         self.translate_stack.append(self._allows_translation(attrs))

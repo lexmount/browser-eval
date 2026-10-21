@@ -70,7 +70,6 @@
       "browser_cohort_role": "primary"
     },
     "moli_webfetch": {
-      "source_url": "https://github.com/lexmount/moli",
       "endpoint": {
         "zh": "moli fetch（网页、文档正文、结构与网页内嵌媒体用原生 Markdown，直接媒体文件用原始响应）",
         "en": "moli fetch (native Markdown for page/document text, structure and embedded media; raw responses for direct media files)"
@@ -92,10 +91,6 @@
         "en": "Acceptance is evaluated separately for each declared task family"
       },
       "report": {
-        "reported_version": {
-          "pattern": "^moli\\s+",
-          "replacement": "Moli "
-        },
         "profiles": [
           {
             "metadata_equals": {
@@ -135,7 +130,8 @@
           }
         ]
       },
-      "browser_cohort_role": "companion"
+      "browser_cohort_role": "companion",
+      "interface_method": "moli-webfetch"
     },
     "cowagent_builtin": {
       "endpoint": {
@@ -475,14 +471,17 @@
             "timeout",
             "seconds",
             {
-              "zh": "45 秒端到端截止",
-              "en": "45-second end-to-end deadline"
+              "zh": "端到端截止取自运行配置",
+              "en": "End-to-end deadline from run configuration"
             }
           ],
           [
             "converter",
             "string",
-            "node-html-markdown 2.0.0"
+            {
+              "zh": "node-html-markdown；版本取自调用记录",
+              "en": "node-html-markdown; version from call records"
+            }
           ]
         ],
         "fields": [
@@ -522,19 +521,22 @@
         "request": {
           "url": "https://example.com/",
           "engine": "chromium",
-          "timeout": 45,
+          "timeout": "<timeout_seconds>",
           "wait_until": "load",
           "dump": "html",
-          "converter": "node-html-markdown 2.0.0"
+          "converter": "<recorded_converter>"
         },
         "source": "harness/web_fetch/providers/headless_worker.py",
         "notes": {
-          "zh": "所有页面类任务都取得完整渲染 DOM，再使用 node-html-markdown 2.0.0 转为 Markdown；不运行资源提取脚本，不读取 PDF.js 等查看器私有对象，也不使用外部文档解析器。页面获取、DOM 转换与原始文件读取均计入耗时；原始字节、HTML 与转换器哈希均保留。",
-          "en": "Every webpage task obtains the complete rendered DOM and converts it to Markdown with node-html-markdown 2.0.0. No resource-extraction script, private viewer object such as PDF.js, or external document parser is used. Page retrieval, DOM conversion, and original-file reads all count toward latency. Original bytes, HTML, and converter hashes are retained."
+          "zh": "所有页面类任务都取得完整渲染 DOM，再使用 已记录版本的 node-html-markdown 转为 Markdown；不运行资源提取脚本，不读取 PDF.js 等查看器私有对象，也不使用外部文档解析器。页面获取、DOM 转换与原始文件读取均计入耗时；原始字节、HTML 与转换器哈希均保留。",
+          "en": "Every webpage task obtains the complete rendered DOM and converts it to Markdown with node-html-markdown (version from call evidence). No resource-extraction script, private viewer object such as PDF.js, or external document parser is used. Page retrieval, DOM conversion, and original-file reads all count toward latency. Original bytes, HTML, and converter hashes are retained."
         }
       },
       "capabilities": {
-        "scope": "Chromium DOM HTML + node-html-markdown 2.0.0",
+        "scope": {
+          "zh": "Chromium DOM HTML 与已记录版本的 node-html-markdown",
+          "en": "Chromium DOM HTML and the recorded node-html-markdown version"
+        },
         "sources": [
           "headless-chromium"
         ],
@@ -615,8 +617,8 @@
           "en": "Only the invocation mode used in this run is described. Document parsing, screenshots, downloads, OCR, and other modes were not enabled, so failures here do not establish that the product lacks those capabilities."
         },
         "tested": {
-          "zh": "DOMContentLoaded；45 秒端到端预算；完整 DOM 经 node-html-markdown 2.0.0 转换。",
-          "en": "DOMContentLoaded; 45-second end-to-end budget; the complete DOM is converted with node-html-markdown 2.0.0."
+          "zh": "等待条件和预算取自调用记录；完整 DOM 经已记录版本的 node-html-markdown 转换。",
+          "en": "Wait conditions and deadline come from call records; the complete DOM is converted with the recorded version of node-html-markdown."
         }
       },
       "access": {
@@ -669,7 +671,147 @@
           "en": "Page extraction waits for load"
         }
       },
-      "dom_conversion": true
+      "dom_conversion": true,
+      "status": "implemented",
+      "observed_routes": [
+        {
+          "metadata_equals": {
+            "extractor": "node-html-markdown"
+          },
+          "text": {
+            "zh": "Chromium 渲染 HTML → node-html-markdown{version} → Markdown",
+            "en": "Chromium rendered HTML → node-html-markdown{version} → Markdown"
+          },
+          "fragments": {
+            "version": [
+              {
+                "metadata_equals": {},
+                "text": {
+                  "zh": " {version}",
+                  "en": " {version}"
+                },
+                "fields": {
+                  "version": "extractor_version"
+                }
+              }
+            ]
+          },
+          "compact_text": {
+            "zh": "渲染 HTML → node-html-markdown → Markdown",
+            "en": "Rendered HTML → node-html-markdown → Markdown"
+          }
+        },
+        {
+          "metadata_equals": {
+            "output_contract": "original_file_bytes",
+            "extractor": "browser_native_response_or_download"
+          },
+          "text": {
+            "zh": "Chromium 原始响应或原生下载 → 原始文件字节",
+            "en": "Chromium original response or native download → original file bytes"
+          },
+          "compact_text": {
+            "zh": "Chromium 原始响应或原生下载 → 文件字节",
+            "en": "Chromium original response or native download → file bytes"
+          }
+        }
+      ],
+      "task_interfaces": [
+        {
+          "case_equals": {
+            "task_kind": "file"
+          },
+          "mode": "file",
+          "description": {
+            "zh": "{original} → 原始文件字节（不转 Markdown）",
+            "en": "{original} → original file bytes (no Markdown conversion)"
+          },
+          "wait": {
+            "zh": "读取原始响应或下载文件，不等待查看器绘制",
+            "en": "Read the original response or download; do not wait for viewer rendering"
+          }
+        },
+        {
+          "case_equals": {
+            "track": "document"
+          },
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}；文档必须由此接口直接返回文字，不使用外部 PDF/DOCX 解析器",
+            "en": "{markdown}; this interface must return document text directly; no external PDF/DOCX parser"
+          },
+          "wait": "{waits}"
+        },
+        {
+          "case_equals": {},
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}",
+            "en": "{markdown}"
+          },
+          "wait": "{waits}"
+        }
+      ],
+      "task_capabilities": {
+        "web": {
+          "status": {
+            "zh": "支持",
+            "en": "Supported"
+          },
+          "detail": {
+            "zh": "原生 DOM 加共同 HTML 转换",
+            "en": "Native DOM with shared HTML conversion"
+          }
+        },
+        "document": {
+          "status": {
+            "zh": "共同转换",
+            "en": "Shared conversion"
+          },
+          "detail": {
+            "zh": "使用浏览器渲染后的完整 HTML，再由固定 HTML-to-Markdown 包转换；不读取查看器私有对象，不使用外部 PDF/DOCX 解析器",
+            "en": "Full browser-rendered HTML is converted by the pinned HTML-to-Markdown package; no private viewer objects or external PDF/DOCX parsers are used"
+          }
+        },
+        "image": {
+          "status": {
+            "zh": "资源地址 / 字节",
+            "en": "Resource URLs / bytes"
+          },
+          "detail": {
+            "zh": "完整渲染 HTML 经过共同转换，评分器从 Markdown 核对资源地址；直接文件通过原生响应取得",
+            "en": "Full rendered HTML passes through shared conversion; the scorer checks resource URLs in Markdown, and direct files use the native response"
+          }
+        },
+        "av": {
+          "status": {
+            "zh": "资源与元数据",
+            "en": "Resources and metadata"
+          },
+          "detail": {
+            "zh": "完整渲染 HTML 经过共同转换，评分器从 Markdown 核对地址或页面信息；直接文件读取原始字节",
+            "en": "Full rendered HTML passes through shared conversion; the scorer checks URLs or page information in Markdown, and direct files retain original bytes"
+          }
+        },
+        "file": {
+          "status": {
+            "zh": "原生获取",
+            "en": "Native retrieval"
+          },
+          "detail": {
+            "zh": "使用该浏览器原始响应或附件接口，按固定规则验收字节",
+            "en": "Use the browser original-response or attachment interface; check bytes against fixed acceptance rules"
+          }
+        },
+        "structure": {
+          "zh": "按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。",
+          "en": "Deliver Markdown, document text, resource URLs, media metadata or original files according to the task."
+        },
+        "notes": {
+          "zh": "Chromium 负责访问和渲染；所有页面类任务都取得完整 HTML，再由固定标准包转成 Markdown。评测端不运行资源提取脚本，也不读取文档查看器私有对象。完整分类及边界见报告解读的接口表。",
+          "en": "Chromium handles access and rendering. All page tasks return full HTML for conversion to Markdown by the pinned standard package. The harness runs no resource-extraction scripts and reads no private document-viewer objects. See the interpretation interface table for the full scope and boundaries."
+        }
+      }
     },
     "cloudflare-markdown": {
       "label": {
@@ -928,7 +1070,43 @@
           "en": "Page text and dynamic tasks use /markdown; direct PDF/DOCX tasks use /ai/tomarkdown; page image and video resources use /scrape. No source-site login Cookie, Search/Crawl, screenshot, browser-control route, or post-failure interface fallback was used."
         }
       },
-      "account_id": "cloudflare-browser-rendering"
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "CLOUDFLARE_API_TOKEN",
+          "CLOUDFLARE_ACCOUNT_ID"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://dash.cloudflare.com/sign-up"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://dash.cloudflare.com/profile/api-tokens"
+          ]
+        ],
+        "account": {
+          "zh": "Browser Run 可用 Workers Free 额度。Browser Run 需要 Browser Rendering Edit；文件转换 API 接受 Workers AI Read 或 Edit。两类产品的配额和计费分开。",
+          "en": "Browser Run has a Workers Free allowance. It requires Browser Rendering Edit; file conversion accepts Workers AI Read or Edit. The products have separate quotas and billing."
+        },
+        "configuration": {
+          "zh": "注册 Cloudflare，复制 Account ID；创建覆盖 Account → Browser Rendering → Edit 与 Account → Workers AI → Read 的自定义 token。官方 Workers AI REST 入门建议 Read 和 Edit 都授予；运行前用 GET /client/v4/user/tokens/verify 验证。",
+          "en": "Register with Cloudflare and copy the Account ID. Create a custom token covering Account → Browser Rendering → Edit and Account → Workers AI → Read. The Workers AI REST getting-started guide recommends both Read and Edit; verify the token at GET /client/v4/user/tokens/verify before running."
+        },
+        "required": true,
+        "priority": {
+          "zh": "B · 已知 URL 抽取",
+          "en": "B · Known-URL extraction"
+        }
+      },
+      "status": "implemented"
     },
     "cowagent-built-in": {
       "label": {
@@ -1004,8 +1182,8 @@
         },
         "source": "harness/web_fetch/workers/cowagent_worker.py",
         "notes": {
-          "zh": "底层默认请求超时 30 秒；评测预算 45 秒不会改写工具自己的默认值。网页与 PDF/DOCX 走不同解析路径。",
-          "en": "The underlying request timeout defaults to 30 seconds. The 45-second benchmark budget does not override the tool's own default. Web pages and PDF/DOCX inputs use different parsing paths."
+          "zh": "底层请求超时和外层评测预算分别以调用记录为准。网页与 PDF/DOCX 走不同解析路径。",
+          "en": "The underlying request timeout and outer benchmark deadline are recorded separately. Web pages and PDF/DOCX inputs use different parsing paths."
         }
       },
       "capabilities": {
@@ -1094,26 +1272,31 @@
           "en": "This run called the same WebFetch; whether parsing dependencies are installed locally and whether a file can be parsed still depends on measured behavior. Declared support does not guarantee success."
         }
       },
-      "account": {
-        "provider": {
-          "zh": "CowAgent 内置 Web Fetch",
-          "en": "CowAgent built-in Web Fetch"
-        },
-        "registration_url": "https://github.com/zhayujie/CowAgent",
-        "key_url": "https://github.com/zhayujie/CowAgent",
+      "access": {
+        "type": "local",
         "env_vars": [
           "COWAGENT_REPO",
           "COWAGENT_BENCHMARK_WORKSPACE"
         ],
-        "steps": {
-          "zh": "检出并固定 CowAgent 源码，配置仓库路径和隔离工作目录；不需要供应商 API Key。",
-          "en": "Check out and pin the CowAgent source, then configure its repository path and isolated working directory; no provider API key is required."
-        },
-        "free_note": {
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://github.com/zhayujie/CowAgent"
+          ]
+        ],
+        "account": {
           "zh": "本地项目内置实现。",
           "en": "Built into the local project."
+        },
+        "configuration": {
+          "zh": "检出并固定 CowAgent 源码，配置仓库路径和隔离工作目录；不需要供应商 API Key。",
+          "en": "Check out and pin the CowAgent source, then configure its repository path and isolated working directory; no provider API key is required."
         }
-      }
+      },
+      "status": "implemented"
     },
     "crawl4ai": {
       "label": {
@@ -1166,8 +1349,8 @@
             "page_timeout",
             "number",
             {
-              "zh": "45000 毫秒",
-              "en": "45000 milliseconds"
+              "zh": "page_timeout 参数，单位毫秒",
+              "en": "page_timeout parameter in milliseconds"
             }
           ],
           [
@@ -1220,7 +1403,7 @@
             }
           ]
         ],
-        "request": "config = CrawlerRunConfig(\n    cache_mode=CacheMode.BYPASS,\n    page_timeout=45000,\n    wait_until=\"domcontentloaded\",\n    process_iframes=True,\n    remove_overlay_elements=True,\n)\nresult = await crawler.arun(\n    url=\"https://example.com/\", config=config\n)",
+        "request": "config = CrawlerRunConfig(\n    cache_mode=CacheMode.BYPASS,\n    page_timeout=PAGE_TIMEOUT_MS,\n    wait_until=\"domcontentloaded\",\n    process_iframes=True,\n    remove_overlay_elements=True,\n)\nresult = await crawler.arun(\n    url=\"https://example.com/\", config=config\n)",
         "source": "harness/web_fetch/workers/crawl4ai_worker.py",
         "notes": {
           "zh": "非动态网页使用本地无头 Chrome，并在 DOMContentLoaded 后提取；动态任务仍按预声明完成条件等待。直接 PDF 正文在调用前选择 PDFCrawlerStrategy 与 PDFContentScrapingStrategy，文件交付任务选择 AsyncHTTPCrawlerStrategy 并统一验收 downloaded_files。媒体链接不等于下载；文件字节校验不等于理解媒体。",
@@ -1316,22 +1499,37 @@
           "en": "Non-dynamic pages use the general browser strategy with domcontentloaded and no cache; dynamic tasks use their predeclared completion condition. Direct PDF body tasks preselect PDFCrawlerStrategy with PDFContentScrapingStrategy; file tasks select the native HTTP file strategy and shared validation. Screenshots, OCR, and LLM extraction are not enabled, and media fields do not imply content understanding."
         }
       },
-      "account": {
-        "provider": "Crawl4AI",
-        "registration_url": "https://github.com/unclecode/crawl4ai",
-        "key_url": "https://docs.crawl4ai.com/core/installation/",
+      "access": {
+        "type": "local",
         "env_vars": [
           "OSS_PYTHON"
         ],
-        "steps": {
-          "zh": "使用仓库冻结的 Python 环境及匹配的浏览器运行；OSS_PYTHON 只在显式覆盖 worker 解释器时设置。",
-          "en": "Run with the repository's frozen Python environment and matching browser; set OSS_PYTHON only when explicitly overriding the worker interpreter."
-        },
-        "free_note": {
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://github.com/unclecode/crawl4ai"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://docs.crawl4ai.com/core/installation/"
+          ]
+        ],
+        "account": {
           "zh": "本地开源库；不需要供应商账号。",
           "en": "Local open-source library; no provider account is required."
+        },
+        "configuration": {
+          "zh": "使用仓库冻结的 Python 环境及匹配的浏览器运行；OSS_PYTHON 只在显式覆盖 worker 解释器时设置。",
+          "en": "Run with the repository's frozen Python environment and matching browser; set OSS_PYTHON only when explicitly overriding the worker interpreter."
         }
-      }
+      },
+      "status": "implemented"
     },
     "deepseek-harness-built-in": {
       "label": {
@@ -1541,27 +1739,39 @@
           "en": "Anonymous HTTP provider only; this is not the DeepSeek model API, and no model was used for scoring."
         }
       },
-      "account": {
-        "provider": {
-          "zh": "DeepSeek Harness 内置 Web Fetch",
-          "en": "DeepSeek Harness built-in Web Fetch"
-        },
-        "registration_url": "https://github.com/deepseek-ai/deepseek-harness",
-        "key_url": "https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/web",
+      "access": {
+        "type": "local",
         "env_vars": [
           "DEEPSEEK_HARNESS_REPO",
           "OPENCLAW_NODE",
           "DEEPSEEK_PNPM"
         ],
-        "steps": {
-          "zh": "检出并固定 DeepSeek Harness 源码、Node、pnpm 与构建依赖；本轮不调用聊天模型。",
-          "en": "Check out and pin the DeepSeek Harness source, Node, pnpm, and build dependencies; this run does not call a chat model."
-        },
-        "free_note": {
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://github.com/deepseek-ai/deepseek-harness"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/web"
+          ]
+        ],
+        "account": {
           "zh": "本地项目内置实现；不需要模型 API Key。",
           "en": "Built into the local project; no model API key is required."
+        },
+        "configuration": {
+          "zh": "检出并固定 DeepSeek Harness 源码、Node、pnpm 与构建依赖；本轮不调用聊天模型。",
+          "en": "Check out and pin the DeepSeek Harness source, Node, pnpm, and build dependencies; this run does not call a chat model."
         }
-      }
+      },
+      "status": "implemented"
     },
     "exa": {
       "label": {
@@ -1619,8 +1829,8 @@
             "livecrawlTimeout",
             "integer",
             {
-              "zh": "本轮 15,000 毫秒；采用官方建议上界，且小于 40.5 秒客户端内层截止",
-              "en": "15,000 milliseconds in this run; the upper end of the official recommendation and below the 40.5-second inner client deadline"
+              "zh": "livecrawlTimeout 参数，单位毫秒；与客户端截止分别记录",
+              "en": "livecrawlTimeout parameter in milliseconds, recorded separately from the client deadline"
             }
           ],
           [
@@ -1691,7 +1901,7 @@
               "verbosity": "full"
             },
             "maxAgeHours": 0,
-            "livecrawlTimeout": 15000
+            "livecrawlTimeout": "<livecrawl_timeout_ms>"
           },
           "named_link": {
             "urls": [
@@ -1701,7 +1911,7 @@
               "verbosity": "full"
             },
             "maxAgeHours": 0,
-            "livecrawlTimeout": 15000,
+            "livecrawlTimeout": "<livecrawl_timeout_ms>",
             "extras": {
               "richLinks": 100
             }
@@ -1709,8 +1919,8 @@
         },
         "source": "harness/web_fetch/providers/exa.py",
         "notes": {
-          "zh": "已知 URL 使用 Contents 的 full 正文与 maxAgeHours=0 实时抓取；Search 先检索，Agent 和 summary 生成回答，不能代替指定 URL 的原文。资源题请求 links/imageLinks，具名列表只接纳 richLinks 的明确 anchor—URL 配对，不把正文标题与裸地址按位置猜配。livecrawlTimeout 为 15 秒，低于 40.5 秒客户端截止。逐网址状态失败或没有正文时，不能仅凭 HTTP 200 判成功；原始响应只保存在私有证据。",
-          "en": "Known URLs use Contents with full text and maxAgeHours=0 for live crawling. Search discovers pages, while Agent and summary generate answers instead of source text from the specified URL. Resource tasks request links/imageLinks; named lists accept only explicit richLinks anchor–URL pairs, never positionally paired headings and bare URLs. livecrawlTimeout is 15 seconds within the 40.5-second client limit. Per-URL status failures or missing text are not successes merely because HTTP returned 200; raw responses remain private."
+          "zh": "已知 URL 使用 Contents 的 full 正文与 maxAgeHours=0 实时抓取；Search 先检索，Agent 和 summary 生成回答，不能代替指定 URL 的原文。资源题请求 links/imageLinks，具名列表只接纳 richLinks 的明确 anchor—URL 配对，不把正文标题与裸地址按位置猜配。livecrawlTimeout 和客户端截止取自调用记录。逐网址状态失败或没有正文时，不能仅凭 HTTP 200 判成功；原始响应只保存在私有证据。",
+          "en": "Known URLs use Contents with full text and maxAgeHours=0 for live crawling. Search discovers pages, while Agent and summary generate answers instead of source text from the specified URL. Resource tasks request links/imageLinks; named lists accept only explicit richLinks anchor–URL pairs, never positionally paired headings and bare URLs. livecrawlTimeout and the client deadline come from call records. Per-URL status failures or missing text are not successes merely because HTTP returned 200; raw responses remain private."
         }
       },
       "capabilities": {
@@ -1793,7 +2003,42 @@
           "en": "This run uses text.verbosity=full and maxAgeHours=0. Resource tasks collect links/imageLinks; named-list tasks collect richLinks and accept only non-empty anchor–URL pairs. Summary and highlight generation are not called."
         }
       },
-      "account_id": "exa"
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "EXA_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://dashboard.exa.ai/"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://dashboard.exa.ai/api-keys"
+          ]
+        ],
+        "account": {
+          "zh": "需要控制台账号；用量由 credits/预算控制。",
+          "en": "A console account is required; usage is governed by credits and budget."
+        },
+        "configuration": {
+          "zh": "注册或登录 Exa 控制台，打开 API Keys，创建 key；如系统要求则设置预算。",
+          "en": "Register for or sign in to the Exa console, open API Keys, and create a key; set a budget if required by the system."
+        },
+        "required": true,
+        "priority": {
+          "zh": "B · 已知 URL 抽取",
+          "en": "B · Known-URL extraction"
+        }
+      },
+      "status": "implemented"
     },
     "firecrawl": {
       "label": {
@@ -1959,8 +2204,8 @@
         },
         "source": "harness/web_fetch/providers/firecrawl.py",
         "notes": {
-          "zh": "已知单页使用 Scrape；Search、Crawl、Agent 会先找页面或跟随其他链接，不符合本轮给定 URL 的单次任务。动态题由 Actions 等待可表达的顶层选择器；匹配数量和 iframe 子文档条件仍可能不完整。video 返回的下载地址不等于原文件或画面理解。每次响应后冷却 6.1 秒，冷却不计入单次耗时；完整 API 响应只保存在私有哈希绑定证据。",
-          "en": "Known single URLs use Scrape. Search, Crawl, and Agent discover pages or follow additional links instead of fulfilling this one-call URL task. Actions wait for top-level selectors where expressible; match counts and child-frame conditions may remain unenforced. A video download URL is not the original file or visual understanding. The 6.1-second cooldown after a response is excluded from per-call latency; full API responses remain in private hash-bound evidence."
+          "zh": "已知单页使用 Scrape；Search、Crawl、Agent 会先找页面或跟随其他链接，不符合本轮给定 URL 的单次任务。动态题由 Actions 等待可表达的顶层选择器；匹配数量和 iframe 子文档条件仍可能不完整。video 返回的下载地址不等于原文件或画面理解。调用间隔由运行配置决定，不能当作单次请求耗时；完整 API 响应只保存在私有哈希绑定证据。",
+          "en": "Known single URLs use Scrape. Search, Crawl, and Agent discover pages or follow additional links instead of fulfilling this one-call URL task. Actions wait for top-level selectors where expressible; match counts and child-frame conditions may remain unenforced. A video download URL is not the original file or visual understanding. The interval between calls is controlled by run configuration and is separate from per-call latency; full API responses remain in private hash-bound evidence."
         }
       },
       "capabilities": {
@@ -2048,7 +2293,42 @@
           "en": "Body and resource tasks request markdown, links, and images; page-video resources additionally request video. Original-file tasks use rawBase64 alone and validate the target URL's decoded bytes. Top-level dynamic selectors use Actions wait followed by the declared settle delay; selector counts and child-frame conditions remain incompletely enforced. Audio, JSON, screenshots, and Parse were not tested."
         }
       },
-      "account_id": "firecrawl"
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "FIRECRAWL_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://www.firecrawl.dev/signin"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://www.firecrawl.dev/app/api-keys"
+          ]
+        ],
+        "account": {
+          "zh": "存在无 key 的限流层；可复现评测应使用免费账号。",
+          "en": "A rate-limited keyless tier exists; reproducible evaluation should use a free account."
+        },
+        "configuration": {
+          "zh": "注册账号，打开 Firecrawl 控制台 API Keys 页面，创建以 fc- 开头的 key。",
+          "en": "Register an account, open the API Keys page in the Firecrawl console, and create a key beginning with fc-."
+        },
+        "required": true,
+        "priority": {
+          "zh": "A · 核心评测",
+          "en": "A · Core evaluation"
+        }
+      },
+      "status": "implemented"
     },
     "fixture": {
       "label": {
@@ -2061,23 +2341,28 @@
         "fixture"
       ],
       "label_template": "{label} {version}",
-      "account": {
-        "provider": {
-          "zh": "Fixture 测试适配器",
-          "en": "Fixture test adapter"
-        },
-        "registration_url": "https://github.com/lexmount/browser-eval",
-        "key_url": "https://github.com/lexmount/browser-eval",
+      "access": {
+        "type": "local",
         "env_vars": [],
-        "steps": {
-          "zh": "仓库内测试适配器；只用于确定性回归测试。",
-          "en": "Repository test adapter; used only for deterministic regression tests."
-        },
-        "free_note": {
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://github.com/lexmount/browser-eval"
+          ]
+        ],
+        "account": {
           "zh": "不需要账号或环境变量。",
           "en": "No account or environment variables required."
+        },
+        "configuration": {
+          "zh": "仓库内测试适配器；只用于确定性回归测试。",
+          "en": "Repository test adapter; used only for deterministic regression tests."
         }
-      }
+      },
+      "status": "implemented"
     },
     "kitesurf": {
       "label": {
@@ -2124,8 +2409,8 @@
             "timeout",
             "seconds",
             {
-              "zh": "45 秒客户端端到端截止",
-              "en": "45-second client-side end-to-end deadline"
+              "zh": "客户端端到端截止取自运行配置",
+              "en": "Client-side end-to-end deadline from run configuration"
             }
           ]
         ],
@@ -2252,8 +2537,8 @@
           "en": "Only the invocation mode used in this run is described. Document parsing, screenshots, downloads, OCR, and other modes were not enabled, so failures here do not establish that the product lacks those capabilities."
         },
         "tested": {
-          "zh": "networkidle2；45 秒客户端预算；直接使用账户级 /markdown。",
-          "en": "networkidle2; 45-second client budget; direct use of the account-level /markdown endpoint."
+          "zh": "直接使用账户级 /markdown；等待条件和客户端预算以调用记录为准。",
+          "en": "Use the account-level /markdown endpoint; wait conditions and the client deadline come from call records."
         }
       },
       "access": {
@@ -2324,6 +2609,133 @@
           "zh": "Markdown API 等待 networkidle2",
           "en": "Markdown API waits for networkidle2"
         }
+      },
+      "status": "implemented",
+      "observed_routes": [
+        {
+          "metadata_equals": {
+            "browser": "kitesurf",
+            "extractor": "cloudflare_native_markdown"
+          },
+          "text": {
+            "zh": "Cloudflare /markdown?browser=kitesurf → 托管原生 Markdown",
+            "en": "Cloudflare /markdown?browser=kitesurf → hosted native Markdown"
+          },
+          "compact_text": {
+            "zh": "原生 Markdown",
+            "en": "Native Markdown"
+          }
+        },
+        {
+          "metadata_equals": {
+            "output_contract": "original_file_bytes",
+            "extractor": "kitesurf_cdp_response"
+          },
+          "text": {
+            "zh": "Kitesurf 官方 CDP 原始响应 → 原始文件字节",
+            "en": "Kitesurf official CDP original response → original file bytes"
+          },
+          "compact_text": {
+            "zh": "Kitesurf 官方 CDP 原始响应 → 文件字节",
+            "en": "Kitesurf official CDP original response → file bytes"
+          }
+        }
+      ],
+      "task_interfaces": [
+        {
+          "case_equals": {
+            "task_kind": "file"
+          },
+          "mode": "file",
+          "description": {
+            "zh": "{original} → 原始文件字节（不转 Markdown）",
+            "en": "{original} → original file bytes (no Markdown conversion)"
+          },
+          "wait": {
+            "zh": "读取原始响应或下载文件，不等待查看器绘制",
+            "en": "Read the original response or download; do not wait for viewer rendering"
+          }
+        },
+        {
+          "case_equals": {
+            "track": "document"
+          },
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}；文档必须由此接口直接返回文字，不使用外部 PDF/DOCX 解析器",
+            "en": "{markdown}; this interface must return document text directly; no external PDF/DOCX parser"
+          },
+          "wait": "{waits}"
+        },
+        {
+          "case_equals": {},
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}",
+            "en": "{markdown}"
+          },
+          "wait": "{waits}"
+        }
+      ],
+      "task_capabilities": {
+        "web": {
+          "status": {
+            "zh": "支持",
+            "en": "Supported"
+          },
+          "detail": {
+            "zh": "原生网页正文输出",
+            "en": "Native page-text output"
+          }
+        },
+        "document": {
+          "status": {
+            "zh": "原生输出",
+            "en": "Native output"
+          },
+          "detail": {
+            "zh": "直接使用浏览器正文接口；不使用外部 PDF/DOCX 解析器",
+            "en": "Use the browser text interface directly, without external PDF/DOCX parsers"
+          }
+        },
+        "image": {
+          "status": {
+            "zh": "资源地址 / 字节",
+            "en": "Resource URLs / bytes"
+          },
+          "detail": {
+            "zh": "原生 Markdown 由共同评分器识别目标资源 URL；直接文件通过原生响应取得",
+            "en": "The shared scorer identifies target resource URLs in native Markdown; direct files use the native response"
+          }
+        },
+        "av": {
+          "status": {
+            "zh": "资源与元数据",
+            "en": "Resources and metadata"
+          },
+          "detail": {
+            "zh": "原生接口读取地址、页面元数据或原始字节；不做媒体理解",
+            "en": "Native interfaces retrieve URLs, page metadata or original bytes, without media understanding"
+          }
+        },
+        "file": {
+          "status": {
+            "zh": "原生获取",
+            "en": "Native retrieval"
+          },
+          "detail": {
+            "zh": "使用该浏览器原始响应或附件接口，按固定规则验收字节",
+            "en": "Use the browser original-response or attachment interface; check bytes against fixed acceptance rules"
+          }
+        },
+        "structure": {
+          "zh": "按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。",
+          "en": "Deliver Markdown, document text, resource URLs, media metadata or original files according to the task."
+        },
+        "notes": {
+          "zh": "浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。",
+          "en": "The browser handles access and native output retrieval. Embedded media and text use native Markdown; the shared scorer only checks target resource URLs. Only Chromium uses a standard HTML-to-Markdown package. See the interpretation interface table for the full scope and boundaries."
+        }
       }
     },
     "langchain-webbase": {
@@ -2366,8 +2778,8 @@
             "requests_kwargs.timeout",
             "number",
             {
-              "zh": "本轮 45 秒",
-              "en": "45 seconds in this run"
+              "zh": "timeout 参数，单位秒",
+              "en": "timeout parameter in seconds"
             }
           ],
           [
@@ -2413,7 +2825,7 @@
             }
           ]
         ],
-        "request": "loader = WebBaseLoader(\n    web_paths=(\"https://example.com/\",),\n    requests_kwargs={\"timeout\": 45},\n    raise_for_status=True,\n    continue_on_failure=False,\n)\ndocs = loader.load()",
+        "request": "loader = WebBaseLoader(\n    web_paths=(\"https://example.com/\",),\n    requests_kwargs={\"timeout\": TIMEOUT_SECONDS},\n    raise_for_status=True,\n    continue_on_failure=False,\n)\ndocs = loader.load()",
         "source": "harness/web_fetch/workers/langchain_webbase_worker.py",
         "notes": {
           "zh": "不运行网页 JavaScript；本轮没有把它替换成其他 LangChain loader。",
@@ -2507,22 +2919,37 @@
           "en": "Only load was called to read body content; no additional soup parsing, PDF loader, or browser rendering was used."
         }
       },
-      "account": {
-        "provider": "LangChain WebBaseLoader",
-        "registration_url": "https://reference.langchain.com/python/langchain-community/document_loaders/web_base/WebBaseLoader",
-        "key_url": "https://python.langchain.com/docs/how_to/document_loader_web/",
+      "access": {
+        "type": "local",
         "env_vars": [
           "OSS_PYTHON"
         ],
-        "steps": {
-          "zh": "使用仓库冻结的 Python 环境运行；OSS_PYTHON 只在显式覆盖 worker 解释器时设置。",
-          "en": "Run with the repository's frozen Python environment; set OSS_PYTHON only when explicitly overriding the worker interpreter."
-        },
-        "free_note": {
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://reference.langchain.com/python/langchain-community/document_loaders/web_base/WebBaseLoader"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://python.langchain.com/docs/how_to/document_loader_web/"
+          ]
+        ],
+        "account": {
           "zh": "本地开源库；不需要供应商账号。",
           "en": "Local open-source library; no provider account is required."
+        },
+        "configuration": {
+          "zh": "使用仓库冻结的 Python 环境运行；OSS_PYTHON 只在显式覆盖 worker 解释器时设置。",
+          "en": "Run with the repository's frozen Python environment; set OSS_PYTHON only when explicitly overriding the worker interpreter."
         }
-      }
+      },
+      "status": "implemented"
     },
     "lexmount-cn": {
       "label": {
@@ -2709,7 +3136,36 @@
           "en": "The international and China regions share a public contract, but their deployments and measurements are separate; this does not assume that their internal engines are identical."
         }
       },
-      "account_id": "lexmount-cn"
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "LEXMOUNT_CN_API_KEY",
+          "LEXMOUNT_CN_PROJECT_ID"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://browser.lexmount.cn/"
+          ]
+        ],
+        "account": {
+          "zh": "API key 与 Project ID 必须来自同一个中国区项目。",
+          "en": "The API key and Project ID must come from the same China-region project."
+        },
+        "configuration": {
+          "zh": "登录中国区控制台，复制同一项目下的 API key 与 Project ID；本评测使用 api.lexmount.cn。",
+          "en": "Sign in to the China-region console and copy the API key and Project ID from the same project; this evaluation uses api.lexmount.cn."
+        },
+        "required": true,
+        "priority": {
+          "zh": "A · 核心评测",
+          "en": "A · Core evaluation"
+        }
+      },
+      "status": "implemented"
     },
     "lexmount-global": {
       "label": {
@@ -2896,7 +3352,36 @@
           "en": "The international and China regions share a public contract, but their deployments and measurements are separate; this does not assume that their internal engines are identical."
         }
       },
-      "account_id": "lexmount-global"
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "LEXMOUNT_API_KEY",
+          "LEXMOUNT_PROJECT_ID"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://browser.lexmount.com/settings/api-keys"
+          ]
+        ],
+        "account": {
+          "zh": "内测准入；API key 与 Project ID 必须来自同一个 Global 项目。",
+          "en": "Private-beta access; the API key and Project ID must come from the same Global project."
+        },
+        "configuration": {
+          "zh": "登录后打开 Settings → API Keys，创建或复制 API key，并复制对应 Project ID；本评测使用 api.lexmount.com。",
+          "en": "After signing in, open Settings → API Keys, create or copy an API key, and copy the corresponding Project ID; this evaluation uses api.lexmount.com."
+        },
+        "required": true,
+        "priority": {
+          "zh": "A · 核心评测",
+          "en": "A · Core evaluation"
+        }
+      },
+      "status": "implemented"
     },
     "lightpanda": {
       "label": {
@@ -2946,8 +3431,8 @@
             "timeout",
             "seconds",
             {
-              "zh": "45 秒外层截止；CLI 参数按各自单位换算",
-              "en": "45-second outer deadline; CLI parameters use their native units"
+              "zh": "外层截止取自运行配置；CLI 参数按各自单位换算",
+              "en": "Outer deadline from run configuration; CLI parameters use their native units"
             }
           ]
         ],
@@ -2980,7 +3465,7 @@
         "request": {
           "url": "https://example.com/",
           "engine": "lightpanda",
-          "timeout": 45,
+          "timeout": "<timeout_seconds>",
           "wait_until": "done",
           "dump": "markdown"
         },
@@ -3075,8 +3560,8 @@
           "en": "Only the invocation mode used in this run is described. Document parsing, screenshots, downloads, OCR, and other modes were not enabled, so failures here do not establish that the product lacks those capabilities."
         },
         "tested": {
-          "zh": "CLI 自带等待；45 秒外层预算；直接使用原生 Markdown。",
-          "en": "CLI-managed waiting; 45-second outer budget; native Markdown used directly."
+          "zh": "直接使用原生 Markdown；CLI 等待和外层预算取自调用记录。",
+          "en": "Use native Markdown directly; CLI waiting and the outer deadline come from call records."
         }
       },
       "access": {
@@ -3127,6 +3612,159 @@
         "waits": {
           "zh": "Markdown CLI 等待 done",
           "en": "Markdown CLI waits for done"
+        }
+      },
+      "status": "implemented",
+      "observed_routes": [
+        {
+          "metadata_equals": {
+            "extractor": "lightpanda_native_markdown"
+          },
+          "text": {
+            "zh": "Lightpanda --dump markdown{flags} → 原生 Markdown",
+            "en": "Lightpanda --dump markdown{flags} → native Markdown"
+          },
+          "fragments": {
+            "flags": [
+              {
+                "metadata_equals": {
+                  "native_metadata.format": "lightpanda_json"
+                },
+                "text": {
+                  "zh": " --json",
+                  "en": " --json"
+                }
+              }
+            ]
+          },
+          "compact_text": {
+            "zh": "原生 Markdown",
+            "en": "Native Markdown"
+          }
+        },
+        {
+          "metadata_equals": {
+            "output_contract": "original_file_bytes",
+            "extractor": "lightpanda_cdp_response"
+          },
+          "text": {
+            "zh": "Lightpanda CDP 原始响应 → 原始文件字节",
+            "en": "Lightpanda CDP original response → original file bytes"
+          },
+          "compact_text": {
+            "zh": "Lightpanda CDP 原始响应 → 文件字节",
+            "en": "Lightpanda CDP original response → file bytes"
+          }
+        }
+      ],
+      "interface_variants": [
+        {
+          "metadata_equals": {
+            "native_metadata.format": "lightpanda_json"
+          },
+          "command": "lightpanda fetch URL --dump markdown --json",
+          "remove_request_fields": [],
+          "remove_parameters": [],
+          "notes": {
+            "zh": "Lightpanda 解包同一次调用返回的原生 Markdown；Obscura 执行固定哈希的官方 Markdown 脚本。网页正文、嵌入文档以及网页中的图片或视频信息均保留该原生输出。直接文件分别使用 Lightpanda CDP 与 Obscura --dump original。评测端不再加工 DOM 或外部解析文档；获取与输出处理均计入耗时。",
+            "en": "Lightpanda unwraps native Markdown from the same call; Obscura executes the hash-bound official Markdown script. Page text, embedded documents and embedded image or video information retain that native output. Direct files use Lightpanda CDP or Obscura --dump original. The harness performs no additional DOM processing or external document parsing; retrieval and output processing are included in elapsed time."
+          }
+        }
+      ],
+      "task_interfaces": [
+        {
+          "case_equals": {
+            "task_kind": "file"
+          },
+          "mode": "file",
+          "description": {
+            "zh": "{original} → 原始文件字节（不转 Markdown）",
+            "en": "{original} → original file bytes (no Markdown conversion)"
+          },
+          "wait": {
+            "zh": "读取原始响应或下载文件，不等待查看器绘制",
+            "en": "Read the original response or download; do not wait for viewer rendering"
+          }
+        },
+        {
+          "case_equals": {
+            "track": "document"
+          },
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}；文档必须由此接口直接返回文字，不使用外部 PDF/DOCX 解析器",
+            "en": "{markdown}; this interface must return document text directly; no external PDF/DOCX parser"
+          },
+          "wait": "{waits}"
+        },
+        {
+          "case_equals": {},
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}",
+            "en": "{markdown}"
+          },
+          "wait": "{waits}"
+        }
+      ],
+      "task_capabilities": {
+        "web": {
+          "status": {
+            "zh": "支持",
+            "en": "Supported"
+          },
+          "detail": {
+            "zh": "原生网页正文输出",
+            "en": "Native page-text output"
+          }
+        },
+        "document": {
+          "status": {
+            "zh": "原生输出",
+            "en": "Native output"
+          },
+          "detail": {
+            "zh": "直接使用浏览器正文接口；不使用外部 PDF/DOCX 解析器",
+            "en": "Use the browser text interface directly, without external PDF/DOCX parsers"
+          }
+        },
+        "image": {
+          "status": {
+            "zh": "资源地址 / 字节",
+            "en": "Resource URLs / bytes"
+          },
+          "detail": {
+            "zh": "原生 Markdown 由共同评分器识别目标资源 URL；直接文件通过原生响应取得",
+            "en": "The shared scorer identifies target resource URLs in native Markdown; direct files use the native response"
+          }
+        },
+        "av": {
+          "status": {
+            "zh": "资源与元数据",
+            "en": "Resources and metadata"
+          },
+          "detail": {
+            "zh": "原生接口读取地址、页面元数据或原始字节；不做媒体理解",
+            "en": "Native interfaces retrieve URLs, page metadata or original bytes, without media understanding"
+          }
+        },
+        "file": {
+          "status": {
+            "zh": "原生获取",
+            "en": "Native retrieval"
+          },
+          "detail": {
+            "zh": "使用该浏览器原始响应或附件接口，按固定规则验收字节",
+            "en": "Use the browser original-response or attachment interface; check bytes against fixed acceptance rules"
+          }
+        },
+        "structure": {
+          "zh": "按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。",
+          "en": "Deliver Markdown, document text, resource URLs, media metadata or original files according to the task."
+        },
+        "notes": {
+          "zh": "浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。",
+          "en": "The browser handles access and native output retrieval. Embedded media and text use native Markdown; the shared scorer only checks target resource URLs. Only Chromium uses a standard HTML-to-Markdown package. See the interpretation interface table for the full scope and boundaries."
         }
       }
     },
@@ -3207,8 +3845,8 @@
             },
             "seconds",
             {
-              "zh": "外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值",
-              "en": "The outer deadline is always 45 seconds. Internal parameters follow the frozen call record: explicit mode reserves time for finalization and cleanup; uniform mode keeps the product defaults."
+              "zh": "外层截止和内部参数以冻结的调用记录为准；未记录的内部默认值不作推断",
+              "en": "Outer and internal deadlines follow the frozen call record; unrecorded internal defaults are not inferred."
             }
           ]
         ],
@@ -3338,8 +3976,8 @@
           "en": "Body text and files have different delivery contracts. Document tasks require Moli's native Markdown interface to return readable body text directly. PDF or DOCX bytes or a URL alone do not pass, and the benchmark does not parse them externally. Direct media files are checked only for format, length, and frozen SHA-256, without content understanding."
         },
         "tested": {
-          "zh": "网页与文档正文使用 --dump markdown；直接媒体文件返回原始字节；本轮没有启用失败重试，端到端预算 45 秒。",
-          "en": "Webpage and document body tasks use --dump markdown; direct media files return original bytes. Failure retries were disabled in this run, with a 45-second end-to-end budget."
+          "zh": "网页与文档正文使用 --dump markdown；直接媒体文件返回原始字节；重试设置和端到端预算取自运行记录。",
+          "en": "Webpage and document body tasks use --dump markdown; direct media files return original bytes. Retry settings and the end-to-end deadline come from run records."
         }
       },
       "access": {
@@ -3364,22 +4002,6 @@
           ]
         ],
         "type": "local"
-      },
-      "account": {
-        "provider": "Moli",
-        "registration_url": "https://github.com/lexmount/moli",
-        "key_url": "https://github.com/lexmount/moli",
-        "env_vars": [
-          "MOLI_BINARY"
-        ],
-        "steps": {
-          "zh": "安装本轮绑定版本及 SHA-256 的二进制；不需要供应商账号或 API Key。",
-          "en": "Install the binary bound to the recorded version and SHA-256; no provider account or API key is required."
-        },
-        "free_note": {
-          "zh": "本地 CLI。",
-          "en": "Local CLI."
-        }
       },
       "version_policy": "native",
       "routes": {
@@ -3409,7 +4031,186 @@
         }
       },
       "release_url_template": "https://github.com/lexmount/moli/releases/tag/v{version}",
-      "release_version_pattern": "moli (\\d+\\.\\d+\\.\\d+)"
+      "status": "implemented",
+      "version_prefix": "moli",
+      "observed_routes": [
+        {
+          "metadata_equals": {
+            "extractor": "moli_native_markdown",
+            "dump": "markdown"
+          },
+          "text": {
+            "zh": "moli fetch --dump markdown{flags} → Moli 原生 Markdown",
+            "en": "moli fetch --dump markdown{flags} → Moli native Markdown"
+          },
+          "fragments": {
+            "flags": [
+              {
+                "metadata_equals": {
+                  "layout": true,
+                  "with_frames": true
+                },
+                "text": {
+                  "zh": " --layout --with-frames",
+                  "en": " --layout --with-frames"
+                }
+              }
+            ]
+          },
+          "compact_text": {
+            "zh": "原生 Markdown",
+            "en": "Native Markdown"
+          }
+        },
+        {
+          "metadata_equals": {
+            "output_contract": "original_file_bytes",
+            "extractor": "moli_cdp_response"
+          },
+          "text": {
+            "zh": "Moli CDP 原始响应 → 原始文件字节",
+            "en": "Moli CDP original response → original file bytes"
+          },
+          "compact_text": {
+            "zh": "Moli CDP 原始响应 → 文件字节",
+            "en": "Moli CDP original response → file bytes"
+          }
+        }
+      ],
+      "task_interfaces": [
+        {
+          "case_equals": {
+            "task_kind": "file"
+          },
+          "mode": "file",
+          "description": {
+            "zh": "{original} → 原始文件字节（不转 Markdown）",
+            "en": "{original} → original file bytes (no Markdown conversion)"
+          },
+          "wait": {
+            "zh": "读取原始响应或下载文件，不等待查看器绘制",
+            "en": "Read the original response or download; do not wait for viewer rendering"
+          }
+        },
+        {
+          "case_equals": {
+            "track": "document"
+          },
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}；HTML/TXT 可直接返回正文，直接 PDF/DOCX 未提供可读正文；评测端不使用外部解析器",
+            "en": "{markdown}; HTML/TXT can return text directly; direct PDF/DOCX did not provide readable text; the harness uses no external parser"
+          },
+          "wait": "{waits}"
+        },
+        {
+          "case_equals": {
+            "track": "dynamic"
+          },
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}；动态正文整类统一启用 --layout 和 --with-frames，不使用逐题 selector",
+            "en": "{markdown}; all dynamic-text tasks enable --layout and --with-frames, without per-task selectors"
+          },
+          "wait": {
+            "zh": "动态网站正文整类使用 CLI 原生 domstable",
+            "en": "All dynamic-text tasks use native CLI domstable"
+          }
+        },
+        {
+          "case_equals": {
+            "track": "image",
+            "task_kind": "resource"
+          },
+          "mode": "resource",
+          "description": {
+            "zh": "{resource} → 图片或视频资源地址（直接从原生 Markdown 核对）",
+            "en": "{resource} → image or video resource URLs (checked directly in native Markdown)"
+          },
+          "wait": "{waits}"
+        },
+        {
+          "case_equals": {
+            "track": "video",
+            "task_kind": "resource"
+          },
+          "mode": "resource",
+          "description": {
+            "zh": "{resource} → 图片或视频资源地址（直接从原生 Markdown 核对）",
+            "en": "{resource} → image or video resource URLs (checked directly in native Markdown)"
+          },
+          "wait": "{waits}"
+        },
+        {
+          "case_equals": {},
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}",
+            "en": "{markdown}"
+          },
+          "wait": "{waits}"
+        }
+      ],
+      "task_capabilities": {
+        "web": {
+          "status": {
+            "zh": "支持",
+            "en": "Supported"
+          },
+          "detail": {
+            "zh": "原生网页正文输出",
+            "en": "Native page-text output"
+          }
+        },
+        "document": {
+          "status": {
+            "zh": "有限支持",
+            "en": "Limited support"
+          },
+          "detail": {
+            "zh": "HTML/TXT 可由原生 Markdown 返回；直接 PDF/DOCX 未提供可读正文，评测端不使用外部解析器",
+            "en": "HTML/TXT can be returned as native Markdown; direct PDF/DOCX did not provide readable text, and the harness uses no external parser"
+          }
+        },
+        "image": {
+          "status": {
+            "zh": "资源地址 / 字节",
+            "en": "Resource URLs / bytes"
+          },
+          "detail": {
+            "zh": "原生 Markdown 由共同评分器识别目标资源 URL；直接文件通过原生响应取得",
+            "en": "The shared scorer identifies target resource URLs in native Markdown; direct files use the native response"
+          }
+        },
+        "av": {
+          "status": {
+            "zh": "资源与元数据",
+            "en": "Resources and metadata"
+          },
+          "detail": {
+            "zh": "原生接口读取地址、页面元数据或原始字节；不做媒体理解",
+            "en": "Native interfaces retrieve URLs, page metadata or original bytes, without media understanding"
+          }
+        },
+        "file": {
+          "status": {
+            "zh": "原生获取",
+            "en": "Native retrieval"
+          },
+          "detail": {
+            "zh": "使用该浏览器原始响应或附件接口，按固定规则验收字节",
+            "en": "Use the browser original-response or attachment interface; check bytes against fixed acceptance rules"
+          }
+        },
+        "structure": {
+          "zh": "按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。",
+          "en": "Deliver Markdown, document text, resource URLs, media metadata or original files according to the task."
+        },
+        "notes": {
+          "zh": "浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。",
+          "en": "The browser handles access and native output retrieval. Embedded media and text use native Markdown; the shared scorer only checks target resource URLs. Only Chromium uses a standard HTML-to-Markdown package. See the interpretation interface table for the full scope and boundaries."
+        }
+      }
     },
     "moli-webfetch": {
       "label": {
@@ -3490,8 +4291,8 @@
             },
             "number",
             {
-              "zh": "外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值",
-              "en": "The outer deadline is always 45 seconds. Internal parameters follow the frozen call record: explicit mode reserves time for finalization and cleanup; uniform mode keeps the product defaults."
+              "zh": "外层截止和内部参数以冻结的调用记录为准；未记录的内部默认值不作推断",
+              "en": "Outer and internal deadlines follow the frozen call record; unrecorded internal defaults are not inferred."
             }
           ],
           [
@@ -3651,21 +4452,119 @@
           "en": "Webpage body text, document body text, structured tasks, and webpage media information all use Moli's native Markdown. Every dynamic-body task uses --layout, --with-frames, and domstable; no task-specific selector is supplied. Webpage media tasks check target URLs in the same Markdown output and do not download the media. A direct PDF or DOCX fails when it does not provide readable body text; direct media files validate raw bytes. A failure does not switch formats or fetch through another provider. Only measured records enter the ranking."
         }
       },
-      "account": {
-        "provider": "Moli WebFetch",
-        "registration_url": "https://github.com/lexmount/moli/tree/main/skills/moli-webfetch",
-        "key_url": "https://github.com/lexmount/moli/releases",
+      "access": {
+        "type": "local",
         "env_vars": [
           "MOLI_BINARY"
         ],
-        "steps": {
-          "zh": "安装并固定本轮 Moli 可执行文件；不需要供应商账号或 API Key。",
-          "en": "Install and pin the Moli executable used in this run; no provider account or API key is required."
-        },
-        "free_note": {
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://github.com/lexmount/moli/tree/main/skills/moli-webfetch"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://github.com/lexmount/moli/releases"
+          ]
+        ],
+        "account": {
           "zh": "本地 CLI；二进制路径和版本属于运行证据。",
           "en": "Local CLI; the binary path and version are part of the run evidence."
+        },
+        "configuration": {
+          "zh": "安装并固定本轮 Moli 可执行文件；不需要供应商账号或 API Key。",
+          "en": "Install and pin the Moli executable used in this run; no provider account or API key is required."
         }
+      },
+      "status": "implemented",
+      "version_prefix": "moli",
+      "runtime_parameters": [
+        {
+          "parameter": {
+            "zh": "外层截止",
+            "en": "Outer deadline"
+          },
+          "rules": [
+            {
+              "metadata_equals": {
+                "internal_timeout_policy": "native_default"
+              },
+              "description": {
+                "text": {
+                  "zh": "{budget}；Moli 总等待、HTTP 和连接超时保留该二进制默认值",
+                  "en": "{budget}; Moli total, HTTP and connection timers retain this binary’s defaults"
+                },
+                "fields": {
+                  "budget": "report_outer_budget"
+                }
+              },
+              "note": {
+                "zh": "这批调用未传入 Moli 内部超时参数。",
+                "en": "These calls did not pass Moli internal timeout parameters."
+              }
+            },
+            {
+              "metadata_equals": {
+                "internal_timeout_policy": "explicit"
+              },
+              "description": {
+                "text": {
+                  "zh": "{budget}；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时{value}",
+                  "en": "{budget}; recorded commands explicitly set Moli total, HTTP and connection timeouts{value}"
+                },
+                "fields": {
+                  "budget": "report_outer_budget"
+                },
+                "fragments": {
+                  "value": [
+                    {
+                      "text": {
+                        "zh": " {timeout_ms:,} 毫秒",
+                        "en": " {timeout_ms:,} ms"
+                      },
+                      "fields": {
+                        "timeout_ms": "http_connect_timeout_ms"
+                      },
+                      "positive_numeric_fields": [
+                        "timeout_ms"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "note": {
+                "zh": "这批调用使用保存记录中的显式 Moli 超时，未写成产品默认值。",
+                "en": "These calls use recorded explicit Moli timeouts, not assumed product defaults."
+              }
+            },
+            {
+              "metadata_equals": {},
+              "description": {
+                "text": {
+                  "zh": "{budget}；Moli 内部超时以逐次调用记录为准",
+                  "en": "{budget}; Moli internal timeouts follow individual call records"
+                },
+                "fields": {
+                  "budget": "report_outer_budget"
+                }
+              },
+              "note": {
+                "zh": "保存证据未提供可核对的 Moli 内部超时策略。",
+                "en": "Saved evidence does not identify a verifiable Moli internal timeout policy."
+              }
+            }
+          ]
+        }
+      ],
+      "unregistered_participant_entry": {
+        "zh": "CLI · Moli · 路线以逐次调用记录为准",
+        "en": "CLI · Moli · route from individual call records"
       }
     },
     "obscura": {
@@ -3716,8 +4615,8 @@
             "timeout",
             "seconds",
             {
-              "zh": "45 秒外层截止；CLI 参数按各自单位换算",
-              "en": "45-second outer deadline; CLI parameters use their native units"
+              "zh": "外层截止取自运行配置；CLI 参数按各自单位换算",
+              "en": "Outer deadline from run configuration; CLI parameters use their native units"
             }
           ]
         ],
@@ -3750,7 +4649,7 @@
         "request": {
           "url": "https://example.com/",
           "engine": "obscura",
-          "timeout": 45,
+          "timeout": "<timeout_seconds>",
           "wait_until": "load + adaptive settle",
           "dump": "markdown"
         },
@@ -3845,8 +4744,8 @@
           "en": "Only the invocation mode used in this run is described. Document parsing, screenshots, downloads, OCR, and other modes were not enabled, so failures here do not establish that the product lacks those capabilities."
         },
         "tested": {
-          "zh": "CLI 自带等待；45 秒外层预算；直接使用原生 Markdown。",
-          "en": "CLI-managed waiting; 45-second outer budget; native Markdown used directly."
+          "zh": "直接使用原生 Markdown；CLI 等待和外层预算取自调用记录。",
+          "en": "Use native Markdown directly; CLI waiting and the outer deadline come from call records."
         }
       },
       "access": {
@@ -3897,6 +4796,164 @@
         "waits": {
           "zh": "CLI 使用官方默认 load 加自适应静默等待（最多 5 秒）",
           "en": "CLI uses the official default load event plus adaptive settling (up to 5 seconds)"
+        }
+      },
+      "status": "implemented",
+      "observed_routes": [
+        {
+          "metadata_equals": {
+            "extractor": "obscura_native_markdown"
+          },
+          "text": {
+            "zh": "Obscura --eval 官方 Markdown 脚本{script} → 原生 Markdown",
+            "en": "Obscura --eval official Markdown script{script} → native Markdown"
+          },
+          "fragments": {
+            "script": [
+              {
+                "metadata_equals": {},
+                "text": {
+                  "zh": "（脚本 SHA-256 {sha}）",
+                  "en": " (script SHA-256 {sha})"
+                },
+                "fields": {
+                  "sha": "native_metadata.script_sha256"
+                }
+              }
+            ]
+          },
+          "compact_text": {
+            "zh": "官方脚本 → Markdown",
+            "en": "Official script → Markdown"
+          }
+        },
+        {
+          "metadata_equals": {
+            "output_contract": "original_file_bytes",
+            "extractor": "obscura_original_response"
+          },
+          "text": {
+            "zh": "Obscura --dump original 原始响应 → 原始文件字节",
+            "en": "Obscura --dump original response → original file bytes"
+          },
+          "compact_text": {
+            "zh": "Obscura --dump original 原始响应 → 文件字节",
+            "en": "Obscura --dump original response → file bytes"
+          }
+        }
+      ],
+      "interface_variants": [
+        {
+          "metadata_equals": {
+            "native_metadata.format": "obscura_eval"
+          },
+          "command": "obscura fetch URL --eval <upstream-native-markdown-and-location>",
+          "remove_request_fields": [
+            "dump"
+          ],
+          "remove_parameters": [
+            "--dump"
+          ],
+          "notes": {
+            "zh": "Lightpanda 解包同一次调用返回的原生 Markdown；Obscura 执行固定哈希的官方 Markdown 脚本。网页正文、嵌入文档以及网页中的图片或视频信息均保留该原生输出。直接文件分别使用 Lightpanda CDP 与 Obscura --dump original。评测端不再加工 DOM 或外部解析文档；获取与输出处理均计入耗时。",
+            "en": "Lightpanda unwraps native Markdown from the same call; Obscura executes the hash-bound official Markdown script. Page text, embedded documents and embedded image or video information retain that native output. Direct files use Lightpanda CDP or Obscura --dump original. The harness performs no additional DOM processing or external document parsing; retrieval and output processing are included in elapsed time."
+          }
+        }
+      ],
+      "task_interfaces": [
+        {
+          "case_equals": {
+            "task_kind": "file"
+          },
+          "mode": "file",
+          "description": {
+            "zh": "{original} → 原始文件字节（不转 Markdown）",
+            "en": "{original} → original file bytes (no Markdown conversion)"
+          },
+          "wait": {
+            "zh": "读取原始响应或下载文件，不等待查看器绘制",
+            "en": "Read the original response or download; do not wait for viewer rendering"
+          }
+        },
+        {
+          "case_equals": {
+            "track": "document"
+          },
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}；文档必须由此接口直接返回文字，不使用外部 PDF/DOCX 解析器",
+            "en": "{markdown}; this interface must return document text directly; no external PDF/DOCX parser"
+          },
+          "wait": "{waits}"
+        },
+        {
+          "case_equals": {},
+          "mode": "markdown",
+          "description": {
+            "zh": "{markdown}",
+            "en": "{markdown}"
+          },
+          "wait": "{waits}"
+        }
+      ],
+      "task_capabilities": {
+        "web": {
+          "status": {
+            "zh": "支持",
+            "en": "Supported"
+          },
+          "detail": {
+            "zh": "原生网页正文输出",
+            "en": "Native page-text output"
+          }
+        },
+        "document": {
+          "status": {
+            "zh": "原生输出",
+            "en": "Native output"
+          },
+          "detail": {
+            "zh": "直接使用浏览器正文接口；不使用外部 PDF/DOCX 解析器",
+            "en": "Use the browser text interface directly, without external PDF/DOCX parsers"
+          }
+        },
+        "image": {
+          "status": {
+            "zh": "资源地址 / 字节",
+            "en": "Resource URLs / bytes"
+          },
+          "detail": {
+            "zh": "原生 Markdown 由共同评分器识别目标资源 URL；直接文件通过原生响应取得",
+            "en": "The shared scorer identifies target resource URLs in native Markdown; direct files use the native response"
+          }
+        },
+        "av": {
+          "status": {
+            "zh": "资源与元数据",
+            "en": "Resources and metadata"
+          },
+          "detail": {
+            "zh": "原生接口读取地址、页面元数据或原始字节；不做媒体理解",
+            "en": "Native interfaces retrieve URLs, page metadata or original bytes, without media understanding"
+          }
+        },
+        "file": {
+          "status": {
+            "zh": "原生获取",
+            "en": "Native retrieval"
+          },
+          "detail": {
+            "zh": "使用该浏览器原始响应或附件接口，按固定规则验收字节",
+            "en": "Use the browser original-response or attachment interface; check bytes against fixed acceptance rules"
+          }
+        },
+        "structure": {
+          "zh": "按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。",
+          "en": "Deliver Markdown, document text, resource URLs, media metadata or original files according to the task."
+        },
+        "notes": {
+          "zh": "浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。",
+          "en": "The browser handles access and native output retrieval. Embedded media and text use native Markdown; the shared scorer only checks target resource URLs. Only Chromium uses a standard HTML-to-Markdown package. See the interpretation interface table for the full scope and boundaries."
         }
       }
     },
@@ -3959,8 +5016,8 @@
             "signal",
             "AbortSignal",
             {
-              "zh": "本轮 45 秒预算，通过函数参数传入",
-              "en": "45-second budget in this run, passed as a function argument"
+              "zh": "timeout 参数，单位秒预算，通过函数参数传入",
+              "en": "Deadline passed as a function argument, as recorded for the run"
             }
           ]
         ],
@@ -4098,27 +5155,39 @@
           "en": "This run enabled Readability and disabled the Firecrawl fallback and cache; the capabilities of OpenClaw's broader browser or PDF tools cannot be attributed to this row."
         }
       },
-      "account": {
-        "provider": {
-          "zh": "OpenClaw 内置 Web Fetch",
-          "en": "OpenClaw built-in Web Fetch"
-        },
-        "registration_url": "https://github.com/openclaw/openclaw",
-        "key_url": "https://github.com/openclaw/openclaw/blob/main/docs/tools/web-fetch.md",
+      "access": {
+        "type": "local",
         "env_vars": [
           "OPENCLAW_REPO",
           "OPENCLAW_NODE",
           "OPENCLAW_PNPM"
         ],
-        "steps": {
-          "zh": "检出并固定 OpenClaw 源码、Node 与 pnpm；本轮关闭 Firecrawl 回退。",
-          "en": "Check out and pin the OpenClaw source, Node, and pnpm; the Firecrawl fallback is disabled for this run."
-        },
-        "free_note": {
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://github.com/openclaw/openclaw"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://github.com/openclaw/openclaw/blob/main/docs/tools/web-fetch.md"
+          ]
+        ],
+        "account": {
           "zh": "本地项目内置实现；不需要云端抓取 Key。",
           "en": "Built into the local project; no cloud-retrieval key is required."
+        },
+        "configuration": {
+          "zh": "检出并固定 OpenClaw 源码、Node 与 pnpm；本轮关闭 Firecrawl 回退。",
+          "en": "Check out and pin the OpenClaw source, Node, and pnpm; the Firecrawl fallback is disabled for this run."
         }
-      }
+      },
+      "status": "implemented"
     },
     "tavily": {
       "label": {
@@ -4168,8 +5237,8 @@
             "timeout",
             "number",
             {
-              "zh": "服务端提取截止；由客户端内层截止推导，本轮 40.5 秒，官方范围 1–60 秒",
-              "en": "Server-side extraction deadline; derived from the inner client deadline, 40.5 seconds in this run, within the official 1–60 second range"
+              "zh": "服务端提取截止取自保存的请求，单位秒",
+              "en": "Server-side extraction deadline in seconds, from the saved request"
             }
           ],
           [
@@ -4236,14 +5305,14 @@
             "https://example.com/"
           ],
           "extract_depth": "advanced",
-          "timeout": 40.5,
+          "timeout": "<timeout_seconds>",
           "format": "markdown",
           "include_images": false
         },
         "source": "harness/web_fetch/providers/tavily.py",
         "notes": {
-          "zh": "已知 URL 使用 advanced Extract；Search 根据查询找页面，Crawl 扩展到链接页面，Research 生成答案，均不替代目标 URL 的正文。资源题开启 include_images；没有原文件或视频下载字段。45 秒外层预算预留持久化后，客户端与服务端提取截止均为 40.5 秒。HTTP 200 但没有 raw_content 仍按适配器请求失败；原始响应只保存在私有哈希绑定证据。",
-          "en": "Known URLs use advanced Extract. Search finds pages from a query, Crawl follows linked pages, and Research generates answers; none replaces text from the target URL. Resource tasks enable include_images, but the API has no original-file or video-download output. The 45-second outer limit reserves time for persistence, leaving 40.5 seconds for client and server extraction. HTTP 200 without raw_content remains an adapter-level request failure; raw responses remain private hash-bound evidence."
+          "zh": "已知 URL 使用 advanced Extract；Search 根据查询找页面，Crawl 扩展到链接页面，Research 生成答案，均不替代目标 URL 的正文。资源题开启 include_images；没有原文件或视频下载字段。外层、客户端和服务端提取截止分别以运行配置和请求记录为准。HTTP 200 但没有 raw_content 仍按适配器请求失败；原始响应只保存在私有哈希绑定证据。",
+          "en": "Known URLs use advanced Extract. Search finds pages from a query, Crawl follows linked pages, and Research generates answers; none replaces text from the target URL. Resource tasks enable include_images, but the API has no original-file or video-download output. Outer, client and server extraction deadlines are recorded separately in run configuration and requests. HTTP 200 without raw_content remains an adapter-level request failure; raw responses remain private hash-bound evidence."
         }
       },
       "capabilities": {
@@ -4331,7 +5400,533 @@
           "en": "This run used advanced + markdown + include_images=true without query; Research file uploads were not tested."
         }
       },
-      "account_id": "tavily"
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "TAVILY_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://app.tavily.com"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://app.tavily.com/home"
+          ]
+        ],
+        "account": {
+          "zh": "官方快速开始说明每月有 1,000 免费 API credits，无需绑卡。",
+          "en": "The official quickstart states that 1,000 free API credits are available each month with no card required."
+        },
+        "configuration": {
+          "zh": "注册或登录 Tavily Platform，从控制台复制 API key。",
+          "en": "Register for or sign in to Tavily Platform and copy an API key from the console."
+        },
+        "required": true,
+        "priority": {
+          "zh": "B · 已知 URL 抽取",
+          "en": "B · Known-URL extraction"
+        }
+      },
+      "status": "implemented"
+    },
+    "browserbase": {
+      "label": {
+        "zh": "Browserbase Fetch",
+        "en": "Browserbase Fetch"
+      },
+      "status": "planned",
+      "source_url": "https://www.browserbase.com/sign-up",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "BROWSERBASE_API_KEY",
+          "BROWSERBASE_PROJECT_ID"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://www.browserbase.com/sign-up"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://www.browserbase.com/overview"
+          ]
+        ],
+        "account": {
+          "zh": "官方页面存在契约冲突；打分前必须先以账号内实际接口核验。",
+          "en": "Official pages describe conflicting contracts; verify the account-specific interface before scoring."
+        },
+        "configuration": {
+          "zh": "注册后创建或选择项目，从 Overview 控制台复制 API key 与 Project ID。",
+          "en": "After registering, create or select a project and copy its API key and Project ID from Overview."
+        },
+        "required": true,
+        "priority": {
+          "zh": "B · 已知 URL 抓取候选",
+          "en": "B · Known-URL fetch candidate"
+        }
+      }
+    },
+    "bocha-web-search": {
+      "label": {
+        "zh": "Bocha Web Search",
+        "en": "Bocha Web Search"
+      },
+      "status": "planned",
+      "source_url": "https://open.bochaai.com/",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "BOCHA_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://open.bochaai.com/"
+          ]
+        ],
+        "account": {
+          "zh": "搜索/摘要产品，不是任意已知 URL 抽取；应使用独立查询数据集。",
+          "en": "Search and summaries do not extract arbitrary known URLs; use a separate query dataset."
+        },
+        "configuration": {
+          "zh": "在博查开放平台注册，在控制台创建 API key，并填入 BOCHA_API_KEY。",
+          "en": "Register on the Bocha platform, create an API key in the console and set BOCHA_API_KEY."
+        },
+        "required": true,
+        "priority": {
+          "zh": "D · 查询到搜索结果",
+          "en": "D · Query-based search results"
+        }
+      }
+    },
+    "baidu-ai-search": {
+      "label": {
+        "zh": "Baidu Qianfan AI Search",
+        "en": "Baidu Qianfan AI Search"
+      },
+      "status": "planned",
+      "source_url": "https://console.bce.baidu.com/qianfan/ais/console/apiKey",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "QIANFAN_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://console.bce.baidu.com/qianfan/ais/console/apiKey"
+          ]
+        ],
+        "account": {
+          "zh": "Web Search 按查询返回摘要、URL 与片段，不是任意 URL 抓取 API。",
+          "en": "Web Search returns summaries, URLs and snippets for a query; it is not an arbitrary-URL fetch API."
+        },
+        "configuration": {
+          "zh": "注册并完成百度智能云认证，打开千帆 API Key 管理并创建或复制 key。",
+          "en": "Register and verify a Baidu AI Cloud account, then create or copy a key in Qianfan API Key Management."
+        },
+        "required": true,
+        "priority": {
+          "zh": "D · 查询到搜索结果",
+          "en": "D · Query-based search results"
+        }
+      }
+    },
+    "tencent-wsa": {
+      "label": {
+        "zh": "Tencent Cloud Web Search API",
+        "en": "Tencent Cloud Web Search API"
+      },
+      "status": "planned",
+      "source_url": "https://console.cloud.tencent.com/wsa",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "TENCENT_WSA_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://console.cloud.tencent.com/wsa"
+          ]
+        ],
+        "account": {
+          "zh": "返回标题、片段与来源 URL 的搜索 API，应与已知 URL 抽取分开评测。",
+          "en": "This search API returns titles, snippets and source URLs; evaluate it separately from known-URL extraction."
+        },
+        "configuration": {
+          "zh": "注册并完成认证，开通 Web Search API，再在控制台创建服务 API key。",
+          "en": "Register and verify an account, enable Web Search API and create a service API key in the console."
+        },
+        "required": true,
+        "priority": {
+          "zh": "D · 查询到搜索结果",
+          "en": "D · Query-based search results"
+        }
+      }
+    },
+    "aliyun-model-studio": {
+      "label": {
+        "zh": "Alibaba Cloud Model Studio web_search + web_extractor",
+        "en": "Alibaba Cloud Model Studio web_search + web_extractor"
+      },
+      "status": "planned",
+      "source_url": "https://bailian.console.aliyun.com/",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "DASHSCOPE_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://bailian.console.aliyun.com/"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://bailian.console.aliyun.com/?tab=model#/api-key"
+          ]
+        ],
+        "account": {
+          "zh": "web_extractor 当前随 web_search 出现在模型响应中；模型 token 与工具调用都计入成本。",
+          "en": "web_extractor currently appears alongside web_search in model responses; both model tokens and tool calls contribute to cost."
+        },
+        "configuration": {
+          "zh": "注册并完成阿里云认证，开通百炼 Model Studio，在 API Key 管理创建 key。",
+          "en": "Register and verify an Alibaba Cloud account, enable Model Studio and create an API key."
+        },
+        "required": true,
+        "priority": {
+          "zh": "E · 模型绑定检索",
+          "en": "E · Model-bound retrieval"
+        }
+      }
+    },
+    "gemini-url-context": {
+      "label": {
+        "zh": "Google Gemini URL Context",
+        "en": "Google Gemini URL Context"
+      },
+      "status": "planned",
+      "source_url": "https://aistudio.google.com/",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "GEMINI_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://aistudio.google.com/"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://aistudio.google.com/apikey"
+          ]
+        ],
+        "account": {
+          "zh": "模型把检索到的 URL 内容作为输入 token，返回答案/引用，而不是独立原始 Markdown。",
+          "en": "The model consumes retrieved URL content as input tokens and returns answers or citations, not standalone raw Markdown."
+        },
+        "configuration": {
+          "zh": "登录 Google AI Studio，创建 API key 并填入 GEMINI_API_KEY。",
+          "en": "Sign in to Google AI Studio, create an API key and set GEMINI_API_KEY."
+        },
+        "required": true,
+        "priority": {
+          "zh": "E · 模型绑定检索",
+          "en": "E · Model-bound retrieval"
+        }
+      }
+    },
+    "brightdata": {
+      "label": {
+        "zh": "Bright Data Web Unlocker",
+        "en": "Bright Data Web Unlocker"
+      },
+      "status": "planned",
+      "source_url": "https://brightdata.com/cp/start",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "BRIGHTDATA_API_TOKEN",
+          "BRIGHTDATA_UNLOCKER_ZONE"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://brightdata.com/cp/start"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://brightdata.com/cp/zones"
+          ]
+        ],
+        "account": {
+          "zh": "需要账号、计费或试用资格，以及 Web Unlocker zone。",
+          "en": "Requires an account, billing or trial eligibility, and a Web Unlocker zone."
+        },
+        "configuration": {
+          "zh": "注册账号，创建 Web Unlocker zone，再复制 API token 与 zone 名称。",
+          "en": "Register, create a Web Unlocker zone and copy the API token and zone name."
+        },
+        "required": true,
+        "priority": {
+          "zh": "C · 解锁场景数据集",
+          "en": "C · Access-unblocking dataset"
+        }
+      }
+    },
+    "scrapingbee": {
+      "label": {
+        "zh": "ScrapingBee",
+        "en": "ScrapingBee"
+      },
+      "status": "planned",
+      "source_url": "https://app.scrapingbee.com/account/register",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "SCRAPINGBEE_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://app.scrapingbee.com/account/register"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://app.scrapingbee.com/account/manage/api_key"
+          ]
+        ],
+        "account": {
+          "zh": "受试用/账户限额约束；生产套餐有月度最低消费。",
+          "en": "Trial and account limits apply; production plans have a monthly minimum charge."
+        },
+        "configuration": {
+          "zh": "注册后打开 Account → API Key，复制 key。",
+          "en": "Register and copy the key from Account → API Key."
+        },
+        "required": true,
+        "priority": {
+          "zh": "C · 抓取 API 对比",
+          "en": "C · Fetch API comparison"
+        }
+      }
+    },
+    "zyte": {
+      "label": {
+        "zh": "Zyte API",
+        "en": "Zyte API"
+      },
+      "status": "planned",
+      "source_url": "https://app.zyte.com/",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "ZYTE_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://app.zyte.com/"
+          ]
+        ],
+        "account": {
+          "zh": "官方文档说明首月有 5 美元初始 credit。",
+          "en": "The recorded official documentation describes an initial $5 credit for the first month."
+        },
+        "configuration": {
+          "zh": "注册后在控制台打开 Zyte API，创建或复制 API key。",
+          "en": "Register, open Zyte API in the console and create or copy an API key."
+        },
+        "required": true,
+        "priority": {
+          "zh": "C · 抓取 API 对比",
+          "en": "C · Fetch API comparison"
+        }
+      }
+    },
+    "zenrows": {
+      "label": {
+        "zh": "ZenRows",
+        "en": "ZenRows"
+      },
+      "status": "planned",
+      "source_url": "https://app.zenrows.com/register",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "ZENROWS_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://app.zenrows.com/register"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://app.zenrows.com/builder"
+          ]
+        ],
+        "account": {
+          "zh": "受账号/试用限额约束。",
+          "en": "Account and trial limits apply."
+        },
+        "configuration": {
+          "zh": "注册并复制控制台或 request builder 中显示的 API key。",
+          "en": "Register and copy the API key shown in the console or request builder."
+        },
+        "required": true,
+        "priority": {
+          "zh": "C · 抓取 API 对比",
+          "en": "C · Fetch API comparison"
+        }
+      }
+    },
+    "scrapfly": {
+      "label": {
+        "zh": "Scrapfly",
+        "en": "Scrapfly"
+      },
+      "status": "planned",
+      "source_url": "https://scrapfly.io/register",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "SCRAPFLY_API_KEY"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://scrapfly.io/register"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://scrapfly.io/dashboard"
+          ]
+        ],
+        "account": {
+          "zh": "受账号/试用限额约束。",
+          "en": "Account and trial limits apply."
+        },
+        "configuration": {
+          "zh": "注册后打开控制台，复制项目 API key。",
+          "en": "Register, open the console and copy the project API key."
+        },
+        "required": true,
+        "priority": {
+          "zh": "C · 抓取 API 对比",
+          "en": "C · Fetch API comparison"
+        }
+      }
+    },
+    "oxylabs": {
+      "label": {
+        "zh": "Oxylabs Web Scraper API",
+        "en": "Oxylabs Web Scraper API"
+      },
+      "status": "planned",
+      "source_url": "https://dashboard.oxylabs.io/en/registration",
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "OXYLABS_USERNAME",
+          "OXYLABS_PASSWORD"
+        ],
+        "links": [
+          [
+            {
+              "zh": "注册 / 登录",
+              "en": "Register / sign in"
+            },
+            "https://dashboard.oxylabs.io/en/registration"
+          ],
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://dashboard.oxylabs.io/"
+          ]
+        ],
+        "account": {
+          "zh": "所选产品可能需要试用或销售审批。",
+          "en": "The selected product may require trial or sales approval."
+        },
+        "configuration": {
+          "zh": "注册或申请试用，开通 Web Scraper API 并复制用户凭据。",
+          "en": "Register or request a trial, enable Web Scraper API and copy the user credentials."
+        },
+        "required": true,
+        "priority": {
+          "zh": "C · 抓取 API 对比",
+          "en": "C · Fetch API comparison"
+        }
+      }
     }
   },
   "sources": {
@@ -4341,7 +5936,8 @@
         "en": "CowAgent · WebFetch source"
       },
       "url": "https://github.com/zhayujie/CowAgent/blob/ed5bb344cfe42cee443c8266ba47ee666d8d7471/agent/tools/web_fetch/web_fetch.py",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "lex": {
       "label": {
@@ -4349,7 +5945,8 @@
         "en": "Lexmount · Extract contract"
       },
       "url": "https://browser.lexmount.com/docs/webfetch/reference/all-in-one-extract",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "lex-overview": {
       "label": {
@@ -4357,7 +5954,8 @@
         "en": "Lexmount · WebFetch overview"
       },
       "url": "https://browser.lexmount.com/en/docs/webfetch",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "fire": {
       "label": {
@@ -4365,7 +5963,8 @@
         "en": "Firecrawl · Scrape formats"
       },
       "url": "https://docs.firecrawl.dev/features/scrape",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "fire-api": {
       "label": {
@@ -4373,7 +5972,8 @@
         "en": "Firecrawl · Scrape API and video format"
       },
       "url": "https://docs.firecrawl.dev/api-reference/endpoint/scrape",
-      "checked_at": "2026-09-15"
+      "checked_at": "2026-09-15",
+      "checked_version": null
     },
     "fire-doc": {
       "label": {
@@ -4381,7 +5981,8 @@
         "en": "Firecrawl · document parsing"
       },
       "url": "https://docs.firecrawl.dev/features/document-parsing",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "tav": {
       "label": {
@@ -4389,7 +5990,8 @@
         "en": "Tavily · Extract contract"
       },
       "url": "https://docs.tavily.com/documentation/api-reference/endpoint/extract",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "tav-depth": {
       "label": {
@@ -4397,7 +5999,8 @@
         "en": "Tavily · extraction depth"
       },
       "url": "https://docs.tavily.com/documentation/best-practices/best-practices-extract",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "tav-research": {
       "label": {
@@ -4405,7 +6008,8 @@
         "en": "Tavily · Research file uploads"
       },
       "url": "https://www.tavily.com/blog/what-tavily-shipped-in-may-26",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "exa": {
       "label": {
@@ -4413,7 +6017,8 @@
         "en": "Exa · Contents parameters"
       },
       "url": "https://exa.ai/docs/reference/contents-api-guide-for-coding-agents",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "cf": {
       "label": {
@@ -4421,7 +6026,8 @@
         "en": "Cloudflare · Markdown endpoint"
       },
       "url": "https://developers.cloudflare.com/browser-run/quick-actions/markdown-endpoint/",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "cf-scrape": {
       "label": {
@@ -4429,7 +6035,8 @@
         "en": "Cloudflare · Scrape endpoint"
       },
       "url": "https://developers.cloudflare.com/browser-run/quick-actions/scrape-endpoint/",
-      "checked_at": "2026-09-15"
+      "checked_at": "2026-09-15",
+      "checked_version": null
     },
     "cf-files": {
       "label": {
@@ -4437,7 +6044,8 @@
         "en": "Cloudflare · document-to-Markdown conversion"
       },
       "url": "https://developers.cloudflare.com/workers-ai/features/markdown-conversion/usage/rest-api/",
-      "checked_at": "2026-09-15"
+      "checked_at": "2026-09-15",
+      "checked_version": null
     },
     "cf-formats": {
       "label": {
@@ -4445,7 +6053,8 @@
         "en": "Cloudflare · supported document formats"
       },
       "url": "https://developers.cloudflare.com/workers-ai/features/markdown-conversion/supported-formats/",
-      "checked_at": "2026-09-15"
+      "checked_at": "2026-09-15",
+      "checked_version": null
     },
     "claw": {
       "label": {
@@ -4453,7 +6062,8 @@
         "en": "OpenClaw · Web Fetch documentation"
       },
       "url": "https://github.com/openclaw/openclaw/blob/12c4bdf7482f24c85b011e9d858fdec3c245101c/docs/tools/web-fetch.md",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "claw-code": {
       "label": {
@@ -4461,7 +6071,8 @@
         "en": "OpenClaw · extraction implementation"
       },
       "url": "https://github.com/openclaw/openclaw/blob/12c4bdf7482f24c85b011e9d858fdec3c245101c/src/agents/tools/web-fetch.ts",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "claw-html": {
       "label": {
@@ -4469,7 +6080,8 @@
         "en": "OpenClaw · HTML converter"
       },
       "url": "https://github.com/openclaw/openclaw/blob/12c4bdf7482f24c85b011e9d858fdec3c245101c/src/agents/tools/web-fetch-utils.ts",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "claw-reader": {
       "label": {
@@ -4477,7 +6089,8 @@
         "en": "OpenClaw · Readability extension"
       },
       "url": "https://github.com/openclaw/openclaw/blob/12c4bdf7482f24c85b011e9d858fdec3c245101c/extensions/web-readability/web-content-extractor.ts",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "dsh": {
       "label": {
@@ -4485,7 +6098,8 @@
         "en": "DeepSeek Harness · MIME policy"
       },
       "url": "https://github.com/deepseek-ai/deepseek-harness/blob/dd6322d604e00eec1ba5e0c8541159906a21094a/packages/web/web-fetch-http/src/policy.ts",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "dsh-text": {
       "label": {
@@ -4493,7 +6107,8 @@
         "en": "DeepSeek Harness · Markdown conversion"
       },
       "url": "https://github.com/deepseek-ai/deepseek-harness/blob/dd6322d604e00eec1ba5e0c8541159906a21094a/packages/web/tool-web/src/fetch.ts",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "lc": {
       "label": {
@@ -4501,7 +6116,8 @@
         "en": "LangChain · WebBaseLoader source"
       },
       "url": "https://github.com/langchain-ai/langchain-community/blob/libs/community/v0.3.30/libs/community/langchain_community/document_loaders/web_base.py",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "lc-loaders": {
       "label": {
@@ -4509,7 +6125,8 @@
         "en": "LangChain · other document loaders"
       },
       "url": "https://docs.langchain.com/oss/python/integrations/document_loaders/index",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "c4-media": {
       "label": {
@@ -4517,7 +6134,8 @@
         "en": "Crawl4AI · links and media"
       },
       "url": "https://docs.crawl4ai.com/core/link-media/",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "c4-pdf": {
       "label": {
@@ -4525,7 +6143,8 @@
         "en": "Crawl4AI · PDF strategy"
       },
       "url": "https://docs.crawl4ai.com/advanced/pdf-parsing/",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "c4-download": {
       "label": {
@@ -4533,7 +6152,8 @@
         "en": "Crawl4AI · file downloads"
       },
       "url": "https://docs.crawl4ai.com/advanced/file-downloading/",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "c4-config": {
       "label": {
@@ -4541,12 +6161,14 @@
         "en": "Crawl4AI · configuration"
       },
       "url": "https://docs.crawl4ai.com/api/parameters/",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": null
     },
     "moli": {
       "label": "Moli 1.1.4 · WebFetch skill",
       "url": "https://github.com/lexmount/moli/blob/v1.1.4/skills/moli-webfetch/SKILL.md",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": "1.1.4"
     },
     "moli-recipes": {
       "label": {
@@ -4554,7 +6176,8 @@
         "en": "Moli 1.1.4 · output and interface boundaries"
       },
       "url": "https://github.com/lexmount/moli/blob/v1.1.4/skills/moli-webfetch/references/fetch-recipes.md",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": "1.1.4"
     },
     "moli-release": {
       "label": {
@@ -4562,7 +6185,8 @@
         "en": "Moli 1.1.4 · official release"
       },
       "url": "https://github.com/lexmount/moli/releases/tag/v1.1.4",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": "1.1.4"
     },
     "headless-kitesurf": {
       "label": {
@@ -4570,7 +6194,8 @@
         "en": "kitesurf · official documentation (verified 2026-09-03)"
       },
       "url": "https://developers.cloudflare.com/browser-run/kitesurf/",
-      "checked_at": "2026-09-03"
+      "checked_at": "2026-09-03",
+      "checked_version": null
     },
     "headless-lightpanda": {
       "label": {
@@ -4578,7 +6203,8 @@
         "en": "lightpanda · official documentation (verified 2026-09-03)"
       },
       "url": "https://github.com/lightpanda-io/browser",
-      "checked_at": "2026-09-03"
+      "checked_at": "2026-09-03",
+      "checked_version": null
     },
     "headless-obscura": {
       "label": {
@@ -4586,7 +6212,8 @@
         "en": "obscura · official documentation (verified 2026-09-03)"
       },
       "url": "https://github.com/h4ckf0r0day/obscura",
-      "checked_at": "2026-09-03"
+      "checked_at": "2026-09-03",
+      "checked_version": null
     },
     "headless-chromium": {
       "label": {
@@ -4594,7 +6221,8 @@
         "en": "chromium · official documentation (verified 2026-09-03)"
       },
       "url": "https://developer.chrome.com/docs/automation-and-testing/headless",
-      "checked_at": "2026-09-03"
+      "checked_at": "2026-09-03",
+      "checked_version": null
     },
     "headless-moli-1.1.5": {
       "label": {
@@ -4602,7 +6230,8 @@
         "en": "Moli 1.1.5 · official release"
       },
       "url": "https://github.com/lexmount/moli/releases/tag/v1.1.5",
-      "checked_at": "2026-09-11"
+      "checked_at": "2026-09-11",
+      "checked_version": "1.1.5"
     }
   }
 }

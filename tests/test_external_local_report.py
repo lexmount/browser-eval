@@ -97,7 +97,18 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
     assert manifest["generated_languages"] == ["zh", "en"]
     saved = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
     assert len(saved) == case_count * method_count
+    for prefix, unit in (("", "秒"), ("en/", "seconds")):
+        methodology = (output / prefix / "methodology/index.html").read_text()
+        assert f"{timeout} {unit}" in methodology
+        assert "45 秒" not in methodology
+        assert "6.1 秒" not in methodology
     assert all(row["provider_metadata"]["reported_version"] == "9.9.9" for row in saved)
+    if timeout == 30:
+        for page in output.rglob("*.html"):
+            content = page.read_text()
+            for stale in ("45 秒", "45-second", "6.1 秒", "6.1-second",
+                          "node-html-markdown 2.0.0", "40.5 秒"):
+                assert stale not in content, (page.relative_to(output), stale)
     for prefix in ("", "en/"):
         home = (output / prefix / "index.html").read_text()
         assert "synthetic-0 9.9.9" in home

@@ -78,22 +78,28 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
     (dest/'counts.json').write_text(json.dumps({'snapshot':data['generated_at'],'scope':'签名命中线索，不是运行调用次数或全网采用量','methods':counts},ensure_ascii=False,indent=2)+'\n')
     intro=[];rows=[];details=''
     for name in names:
-        from .methods import browser_method_registry
         registered=report_method(name,next(row for row in records if row['provider']==name))
+        english_registered=report_method(name,next(row for row in records if row['provider']==name),language='en')
         profile=registered.get('profile',{})
+        english_profile=english_registered.get('profile',{})
         kind=profile.get('kind','未登记 / Not registered')
         desc=profile.get('description','Method description has not been registered.')
+        english_kind=english_profile.get('kind','Not registered')
+        english_desc=english_profile.get('description','Method description has not been registered.')
         url=registered.get('source_url','')
         r=next(r for r in records if r['provider']==name);info=method_info(r['provider_type'])
-        url=browser_method_registry().get(name,{}).get('source_url',info.get('source_url',url))
+        english_info=method_info(r['provider_type'],language='en')
         if native:
             model=method_page_model(name,name,[row for row in records if row['provider']==name])
             desc=model['contract']
+            english_desc=method_page_model(name,name,[row for row in records if row['provider']==name],language='en')['contract']
+            english_info={**english_info,'output':'Native product output; actual responses and logs retained','freshness':'Cache and wait settings are in the frozen configuration'}
             info={**info,'output':'产品原生返回；保留实际输出与日志','freshness':'缓存与等待选项见本轮固定配置'}
-        intro.append(('',cell(link('../providers/'+name+'.html',display_name(name)))+cell(kind)+cell(desc)+cell(esc(info['output']))+cell(esc(info['freshness']))+cell(link(url,'文档 / 源码 ↗'))))
+        from .report_components import bilingual_text
+        intro.append(('',cell(link('../providers/'+name+'.html',display_name(name),browser_method_label(name,language='en')))+cell(bilingual_text(kind,english_kind))+cell(bilingual_text(desc,english_desc))+cell(bilingual_text(info['output'],english_info['output']))+cell(bilingual_text(info['freshness'],english_info['freshness']))+cell(link(url,'文档 / 源码 ↗'))))
     for item in counts:
         name=item['provider'];n=item['repository_count'];known=n is not None
-        provider_label=link('../providers/'+name+'.html',display_name(name)) if name in names else link('#interface-'+name,display_name(name)+'（未纳入本轮）')
+        provider_label=link('../providers/'+name+'.html',display_name(name),browser_method_label(name,language='en')) if name in names else link('#interface-'+name,display_name(name)+'（未纳入本轮）',browser_method_label(name,language='en')+' (not included in this run)')
         rows.append(('',cell(provider_label)+cell(link('#evidence-'+name,str(n)) if known else '—',n if known else -1)+cell(str(item['file_count']) if known else '—',item['file_count'] if known else -1)))
         if known:
             evidence_rows=[('',cell(link(r['url'],r['repo']))+cell('<br>'.join(link(m['url'],m['path']) for m in r['matches']))) for r in item['repositories']]
@@ -111,7 +117,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
     ])+'<p>'+link('evidence.json','完整检索证据')+' · '+link('counts.json','逐方法统计数据')+'</p>'
     body=hero('方法介绍','参评方法的官方能力、价格、接口与开源采用；实测表现见各方法执行记录。')
     body+=section('参评方法','<p>'+' · '.join(
-        link('../providers/'+name+'.html',display_name(name)) for name in names)+'</p>')
+        link('../providers/'+name+'.html',display_name(name),browser_method_label(name,language='en')) for name in names)+'</p>')
     body+=section('能力、价格与接口',tabs('method-guide',[
         ('capabilities','官方能力',render_capabilities(out,names,table=table,cell=cell,link=link,records=records)),
         ('pricing','价格与计费',render_pricing(out,names,table=table,cell=cell,link=link,esc=esc)),

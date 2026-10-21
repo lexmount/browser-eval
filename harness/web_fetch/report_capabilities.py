@@ -14,62 +14,92 @@ CAPABILITIES = {name:item['capabilities'] for name,item in report_method_catalog
                 if item.get('capabilities')}
 SOURCES = {key:(item['label'],item['url']) for key,item in report_method_catalog()['sources'].items()}
 
-def task_capabilities(out, names, records, *, sources=None):
+def task_capabilities(out, names, records, *, sources=None, language="zh"):
     """Describe the configured native task routes, without upgrading product claims."""
-    sources = dict(SOURCES) if sources is None else sources
+    catalog = report_method_catalog() if language == "zh" else report_method_catalog(language)
+    sources = {key:(item["label"],item["url"]) for key,item in catalog["sources"].items()} if sources is None else sources
     from .report_interfaces import browser_task_interface_matrix
-    from .methods import native_browser_engine, browser_method_registry
     measured=[r for r in records if r.get('provider_metadata',{}).get('output_contract')]
     if (not measured or not all(report_method(name).get('kind') == 'browser' for name in names)
             or not (out/'dataset.json').is_file()):return None
     dataset=json.loads((out/'dataset.json').read_text())
     cases={case['id']:case for case in dataset['cases']}
-    matrix=browser_task_interface_matrix(cases,names)
+    matrix=browser_task_interface_matrix(cases,names,language=language)
     configured={}
     budget=dataset.get('comparison',{}).get('timeout_seconds')
     budget_zh=(f'外层预算 {budget:g} 秒。' if isinstance(budget,(int,float)) and not isinstance(budget,bool) and budget>0 else '外层预算未记录。')
     budget_en=(f'Outer budget: {budget:g} seconds.' if isinstance(budget,(int,float)) and not isinstance(budget,bool) and budget>0 else 'Outer budget not recorded.')
     for name in names:
-        engine=native_browser_engine(name)
-        row={**report_method(name).get('capabilities',{})}
+        registered=report_method(name,language=language)
+        row={**registered.get('capabilities',{})}
         if not row:continue
-        row.update(
-            scope=matrix['capabilities'][name],
-            web=c('支持','原生网页正文输出' if engine!='chromium' else '原生 DOM 加共同 HTML 转换'),
-            document=(c('有限支持','HTML/TXT 可由原生 Markdown 返回；直接 PDF/DOCX 未提供可读正文，评测端不使用外部解析器')
-                      if engine=='moli' else
-                      c('共同转换','使用浏览器渲染后的完整 HTML，再由固定 HTML-to-Markdown 包转换；不读取查看器私有对象，不使用外部 PDF/DOCX 解析器')
-                      if engine=='chromium' else
-                      c('原生输出','直接使用浏览器正文接口；不使用外部 PDF/DOCX 解析器')),
-            image=c('资源地址 / 字节',
-                    '原生 Markdown 由共同评分器识别目标资源 URL；直接文件通过原生响应取得'
-                    if engine!='chromium' else
-                    '完整渲染 HTML 经过共同转换，评分器从 Markdown 核对资源地址；直接文件通过原生响应取得'),
-            av=c('资源与元数据',
-                 '完整渲染 HTML 经过共同转换，评分器从 Markdown 核对地址或页面信息；直接文件读取原始字节'
-                 if engine=='chromium' else
-                 '原生接口读取地址、页面元数据或原始字节；不做媒体理解'),
-            file=c('原生获取','使用该浏览器原始响应或附件接口，按固定规则验收字节'),
-            structure='按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。',
-            notes=('浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。'
-                   if engine!='chromium' else
-                   'Chromium 负责访问和渲染；所有页面类任务都取得完整 HTML，再由固定标准包转成 Markdown。评测端不运行资源提取脚本，也不读取文档查看器私有对象。完整分类及边界见报告解读的接口表。'),
-            tested=budget_zh+'接口按任务大类预选；具体请求参数见保存的调用记录。',
-            tested_en=budget_en+' Interfaces are selected by task family; exact request parameters are in the saved call records.')
+        row.update(registered.get('task_capabilities',{}))
+        row.update(scope=matrix['capabilities'][name],
+                   tested=budget_zh+'接口按任务大类预选；具体请求参数见保存的调用记录。',
+                   tested_en=budget_en+' Interfaces are selected by task family; exact request parameters are in the saved call records.')
         source='task-native-'+name
-        source_url=browser_method_registry().get(name,{}).get('source_url',report_method(name).get('source_url',''))
+        source_url=report_method(name).get('source_url','')
         sources[source]=(name+' · 官方接口',source_url)
-        row['sources']=[source]
+        row['sources']=[*row.get('sources',[]),source]
         configured[name]=row
     return configured
+
+def source_version_checks(names, records):
+    """A dated source check applies to its bound version, not every future binary."""
+    from .methods import method_version, normalized_method_version
+    checks = report_method_catalog()['sources']
+    result = {}
+    for name in names:
+        subset = [row for row in records if row.get('provider') == name]
+        registered = report_method(name, subset[0] if subset else None)
+        versions = {normalized_method_version(registered, version) if version else None
+                    for row in subset for version in [method_version(row)]}
+        rows = []
+        for key in registered.get('capabilities', {}).get('sources', []):
+            source = checks[key]
+            checked = source.get('checked_version')
+            expected = normalized_method_version(registered, checked) if checked else None
+            if expected and versions and None not in versions:
+                status = 'matched' if versions == {expected} else 'mismatch'
+            else:
+                status = 'unverified'
+            rows.append({'source': key, 'checked_version': checked,
+                         'measured_versions': sorted(v for v in versions if v is not None),
+                         'missing_measured_version': not versions or None in versions,
+                         'status': status})
+        result[name] = rows
+    return result
+
+
+def render_source_version_notice(rows):
+    from .report_components import bilingual_text
+    checks = report_method_catalog()['sources']
+    english_checks = report_method_catalog('en')['sources']
+    notices = []
+    for row in rows:
+        if row['status'] == 'matched':
+            continue
+        measured = ', '.join(row['measured_versions']) or 'not recorded'
+        checked = row['checked_version'] or 'not recorded'
+        source = checks[row['source']]
+        notices.append('<li>'+bilingual_text(
+            f"资料适用版本未确认：核对版本 {checked}；实测版本 {measured}。不能据此认定当前版本具备相同能力。",
+            f"Source applicability is unverified: checked version {checked}; measured version {measured}. This does not establish the same capability for the measured version.")+
+            ' <a href="'+escape(source['url'],quote=True)+'">'+bilingual_text(source['label'],english_checks[row['source']]['label'])+'</a></li>')
+    return '<ul class="source-version-notice">'+''.join(notices)+'</ul>' if notices else ''
+
 
 def render_capabilities(out, names, *, table, cell, link, records=()):
     labels={name:browser_method_label(name) for name in names}
     sources = dict(SOURCES)
     configured=task_capabilities(out,names,records,sources=sources)
     capabilities=configured or {name:report_method(name).get('capabilities') for name in names if report_method(name).get('capabilities')}
+    english_catalog=report_method_catalog('en')
+    english_configured=task_capabilities(out,names,records,language='en')
+    english_capabilities=english_configured or {name:report_method(name,language='en').get('capabilities') for name in capabilities}
     unknown = sorted(set(names) - set(capabilities))
-    evidence = {'source_checks': report_method_catalog()['sources'], 'scope': '官方契约/固定源码能力，不是实测成绩',
+    version_checks = source_version_checks(names, records)
+    evidence = {'source_version_checks': version_checks, 'source_checks': report_method_catalog()['sources'], 'scope': '官方契约/固定源码能力，不是实测成绩',
                 'sources': sources, 'methods': {n: capabilities[n] for n in names if n in capabilities}, 'unreviewed': unknown}
     (out / 'adoption' / 'capabilities.json').write_text(json.dumps(evidence, ensure_ascii=False, indent=2)+'\n')
     content_rows, runtime_rows, details = [], [], []
@@ -77,23 +107,26 @@ def render_capabilities(out, names, *, table, cell, link, records=()):
         if name not in capabilities:
             continue
         row = capabilities[name]
+        english = english_capabilities[name]
         from .report_components import bilingual_text
-        tested = (bilingual_text(row['tested'], row['tested_en']) if row.get('tested_en') else bilingual_text('仓库登记配置示例；实际调用以保存记录为准。', 'Repository configuration example; consult saved records for actual calls.') + escape(row['tested']))
-        method = cell(link('#capability-'+name, labels.get(name,name)))
+        def localized(key):
+            return bilingual_text(row[key],english[key])
+        tested = (bilingual_text(row['tested'], row['tested_en']) if row.get('tested_en') else bilingual_text('仓库登记配置示例；实际调用以保存记录为准。', 'Repository configuration example; consult saved records for actual calls.') + localized('tested'))
+        method = cell(link('#capability-'+name, labels.get(name,name),browser_method_label(name,language='en')))
         values = []
         for key in ['web', 'document', 'image', 'av', 'file']:
             item = row[key]
-            values.append(cell('<strong>'+escape(item['status'])+'</strong><small>'+escape(item['detail'])+'</small>'))
+            values.append(cell('<strong>'+bilingual_text(item['status'],english[key]['status'])+'</strong><small>'+bilingual_text(item['detail'],english[key]['detail'])+'</small>'))
         content_rows.append(('', method+''.join(values)))
-        runtime_rows.append(('', method+cell(escape(row['js']['status']+' · '+row['js']['detail']))+
-                             ''.join(cell(escape(row[k])) for k in ['input', 'structure', 'access'])))
-        source_links = ' · '.join(link(sources[s][1], sources[s][0]+' ↗') for s in row['sources'])
+        runtime_rows.append(('', method+cell(bilingual_text(row['js']['status']+' · '+row['js']['detail'],english['js']['status']+' · '+english['js']['detail']))+
+                             ''.join(cell(localized(k)) for k in ['input', 'structure', 'access'])))
+        source_links = ' · '.join(link(sources[key][1], sources[key][0]+' ↗',english_catalog['sources'][key]['label']+' ↗') if key in english_catalog['sources'] else link(sources[key][1],sources[key][0]+' ↗') for key in row['sources'])
         details.append(f'<details class="interface-panel" id="capability-{escape(name)}"><summary>{escape(labels.get(name,name))} · 范围与官方依据</summary>'+
-                       f'<p><strong>对应接口：</strong>{escape(row["scope"])}</p><p>{escape(row["notes"])}</p>'+
-                       f'<p><strong>登记配置：</strong>{tested}</p><p class="source-note">{source_links}</p></details>')
+                       f'<p><strong>对应接口：</strong>{localized("scope")}</p><p>{localized("notes")}</p>'+
+                       f'<p><strong>登记配置：</strong>{tested}</p><p class="source-note">{source_links}</p>'+render_source_version_notice(version_checks[name])+'</details>')
     checks = report_method_catalog()['sources']
     used = sorted({source for row in capabilities.values() for source in row.get('sources',[])})
-    dates = ' · '.join(link(checks[key]['url'], checks[key]['label']+' · '+checks[key]['checked_at'])
+    dates = ' · '.join(link(checks[key]['url'], checks[key]['label']+' · '+checks[key]['checked_at'],english_catalog['sources'][key]['label']+' · '+checks[key]['checked_at'])
                        for key in used if key in checks)
     legend = '<p>官方能力资料不是实测成绩。Official capability sources and their verification dates: '+dates+'</p>'
     if configured:

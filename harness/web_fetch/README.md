@@ -1300,8 +1300,33 @@ Interface requests in this catalog are labeled examples. Saved public call logs
 own measured request fields; frozen run contracts own budgets and method scope.
 Do not copy a cohort's task count, timing, or result conclusion into product
 metadata. Source verification dates belong to each source entry, not to a global
-report date. The catalog supplies translations to all report views, so do not
-copy those same translations into the legacy page translation maps.
+report date. `checked_version` binds a source to the product version that was
+actually checked; use `null` when that identity was not recorded. Reports disclose
+missing or mismatching version coverage without changing measured results.
+
+Each method has one `access` object (`type`, `account`, `configuration`, `links`,
+and `env_vars`). Hosted checklist entries may additionally declare `priority`
+and `required`. Entries with `status: planned` document account preparation but
+are not executable providers and are not added to reports unless measured.
+Product documentation URLs belong to the method catalog. Execution participants
+may have distinct labels and an explicit `release_channel`; they do not override
+the product documentation source. Saved binary hashes and call records own build
+provenance. A shared adapter is a transport, not necessarily one product: when
+multiple products register an adapter type, the record must name its engine.
+
+`observed_routes` matches saved metadata to descriptions; `interface_variants`
+selects request examples from that same evidence. An adapter's `interface_method`
+selects its catalog interface owner. `runtime_parameters` matches recorded policies
+to parameter descriptions; optional numeric fields must be positive and finite.
+`task_interfaces` describes
+planned task modes and waits, with tests against the public execution selector.
+Measured call routes and waits override those examples, including missing values.
+`task_capabilities` describes the selected route boundaries without turning task
+success into a product capability claim. Run budgets, delays and retry limits
+come from execution manifests, not this catalog.
+
+Read colocated translations by language and field identity. Keep both languages
+in the owning object rather than copying them into legacy translation maps.
 
 Historical WCXB and WebMainBench entry points remain supported. The legacy
 75 + 25 audit reader validates its explicitly selected frozen evidence contract;

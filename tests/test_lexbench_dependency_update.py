@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.web_fetch.dependency import (
+from scripts.maintenance.lexbench import (
     binding_changes, bump, refresh_binding, require_merged_revision, validate_binding,
 )
 
@@ -57,7 +57,7 @@ def test_rejected_update_leaves_all_bindings_unchanged(tmp_path, monkeypatch):
     before = {name: (tmp_path / name).read_bytes() for name in names}
     def reject(*args):
         raise ValueError("not merged")
-    monkeypatch.setattr("harness.web_fetch.dependency.require_merged_revision", reject)
+    monkeypatch.setattr("scripts.maintenance.lexbench.require_merged_revision", reject)
     with pytest.raises(ValueError, match="not merged"):
         bump(tmp_path, "a" * 40)
     assert before == {name: (tmp_path / name).read_bytes() for name in names}

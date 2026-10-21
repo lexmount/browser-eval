@@ -836,6 +836,16 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             self.assertIn('统一解析策略不保证', body)
             self.assertNotIn('150 道',body)
             self.assertNotIn('1.1.5',body)
+            from bs4 import BeautifulSoup
+            self.assertNotIn('<span',BeautifulSoup(body,'html.parser').get_text())
+            from pathlib import PurePosixPath
+            from harness.web_fetch.report_i18n import localize_html
+            english=BeautifulSoup(localize_html(body,PurePosixPath('guide/index.html')),'html.parser')
+            retry=english.find(id='timing-boundary').find('p').get_text()
+            self.assertIn('The retry limit follows the execution configuration',retry)
+            self.assertNotRegex(retry,r'[\u4e00-\u9fff]')
+            for stale in ('45 秒','90 秒','45 seconds','90 seconds'):
+                self.assertNotIn(stale,body)
 
     def test_interpretation_bounds_long_program_errors_without_changing_evidence(self):
         from bs4 import BeautifulSoup
@@ -1009,6 +1019,11 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             (source/'dataset.json').write_text(json.dumps(measured))
             before=(source/'results.jsonl').read_bytes()
             build_report(source,report)
+            for relative in ('guide/index.html','guide/article.html'):
+                page=(report/relative).read_text()
+                for stale in ('45 秒','90 秒','45 seconds','90 seconds'):
+                    self.assertNotIn(stale,page)
+            self.assertIn('5 秒',(report/'methodology/index.html').read_text())
             self.assertEqual((report/'results.jsonl').read_bytes(),before)
             analysis=(report/'analysis/index.html').read_text()
             self.assertNotIn('已核验判定',analysis,

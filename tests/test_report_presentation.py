@@ -3,7 +3,8 @@ import json
 from pathlib import Path
 import unittest
 from harness.web_fetch.report import EXTRA,active_tracks,failure_category,filter_controls,case_attrs,failure_filters,overall_ranking,overview_matched_latency,provider_configuration,review_cell,table,write
-from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
+from harness.web_fetch.report_interfaces import SPECS
+from harness.web_fetch.methods import method_access
 from harness.web_fetch.report_style import STYLE
 
 class ReportRevisionTests(unittest.TestCase):
@@ -102,27 +103,21 @@ class ReportRevisionTests(unittest.TestCase):
   for s in SPECS.values():
    self.assertTrue(s['params'] and s['fields'] and s['request'] and s['source'])
  def test_current_interface_and_capability_copy_is_localized(self):
-  from harness.web_fetch.report_capabilities import CAPABILITIES, SOURCES
-  from harness.web_fetch.report_i18n import translate_text
-  current_interface_copy=[
-   SPECS['moli-webfetch']['entry'],
-   *(description for _,_,description in SPECS['moli-webfetch']['params']),
-   SPECS['moli-webfetch']['notes'],
-   SPECS['tavily']['params'][1][2], SPECS['tavily']['notes'],
-   SPECS['exa']['params'][1][2], SPECS['exa']['notes'],
-   SPECS['crawl4ai']['notes'],
-   *(description for _,_,description in SPECS['firecrawl']['params']),
-   *(description for _,_,description in SPECS['firecrawl']['fields']),
-   SPECS['firecrawl']['notes'],
-  ]
-  current_capability_copy=[]
+  from harness.web_fetch.methods import report_method_catalog
+  from harness.web_fetch.report_interfaces import method_spec
+  catalog=report_method_catalog(language='en')
   for method in ('moli-webfetch','tavily','exa','firecrawl','cloudflare-markdown','crawl4ai'):
-   row=CAPABILITIES[method]
-   current_capability_copy.extend([row['scope'],row['tested'],row['notes']])
-   current_capability_copy.extend(row[field]['detail'] for field in ('web','document','image','av','file','js'))
-  current_capability_copy.extend(SOURCES[key][0]+' ↗' for key in ('moli','moli-recipes','moli-release'))
-  for source in current_interface_copy+current_capability_copy:
-   self.assertNotRegex(translate_text(source),r'[\u4e00-\u9fff]',source)
+   spec=method_spec(method,None,language='en')
+   copy=[spec['entry'],spec['notes']]
+   copy.extend(description for _,_,description in spec['params'])
+   copy.extend(description for _,_,description in spec['fields'])
+   row=catalog['methods'][method]['capabilities']
+   copy.extend([row['scope'],row['tested'],row['notes']])
+   copy.extend(row[field]['detail'] for field in ('web','document','image','av','file','js'))
+   for text in copy:
+    self.assertNotRegex(text,r'[\u4e00-\u9fff]',method)
+  for key in ('moli','moli-recipes','moli-release'):
+   self.assertNotRegex(catalog['sources'][key]['label'],r'[\u4e00-\u9fff]')
  def test_regional_endpoint_distinct(self):
   self.assertNotEqual(SPECS['lexmount-cn']['entry'],SPECS['lexmount-global']['entry'])
  def test_review_label_links_records_without_claiming_fresh_verification(self):
@@ -131,8 +126,8 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('1/1 · 复核记录',row)
   self.assertNotIn('已核验',row)
  def test_headless_access_covers_every_method_and_lists_setup_variables(self):
-  self.assertEqual(set(HEADLESS_ACCESS),{'kitesurf','lightpanda','obscura','moli','chromium'})
-  for access in HEADLESS_ACCESS.values():
+  for name in ('kitesurf','lightpanda','obscura','moli','chromium'):
+   access=method_access(name,[])
    self.assertTrue(access['env_vars'])
    self.assertTrue(access['links'])
  def test_language_toggle_uses_one_shared_report_tree(self):

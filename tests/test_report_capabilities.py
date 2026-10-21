@@ -139,3 +139,63 @@ class CapabilityTests(unittest.TestCase):
             (out/'adoption').mkdir()
             result = render_capabilities(out, ['new-provider'], table=table, cell=cell, link=link)
             self.assertIn('尚无已核对的官方能力资料：new-provider', result)
+
+
+def test_source_version_mismatch_is_visible_and_exported(tmp_path):
+    from harness.web_fetch.report_i18n import localize_html
+    (tmp_path/'adoption').mkdir()
+    record = {'provider': 'moli-webfetch', 'provider_metadata': {'reported_version': 'moli 9.9.9'}}
+    html = render_capabilities(tmp_path, ['moli-webfetch'], table=table, cell=cell, link=link,
+                               records=[record])
+    exported = json.loads((tmp_path/'adoption/capabilities.json').read_text())
+    checks = exported['source_version_checks']['moli-webfetch']
+    assert checks
+    assert all(row['status'] == 'mismatch' for row in checks)
+    assert all(row['checked_version'] == '1.1.4' for row in checks)
+    assert '核对版本 1.1.4；实测版本 9.9.9' in html
+    from pathlib import PurePosixPath
+    english = localize_html(html, PurePosixPath('adoption/index.html'))
+    assert 'checked version 1.1.4; measured version 9.9.9' in english
+    assert '/blob/v1.1.4/' in english  # Preserve the actual source binding.
+
+
+def test_source_version_controls_preserve_unknown_and_mixed_versions():
+    from harness.web_fetch.report_capabilities import source_version_checks
+    def statuses(versions):
+        records = [{'provider': 'moli-webfetch', 'provider_metadata': {
+            'reported_version': version}} for version in versions]
+        return {row['status'] for row in source_version_checks(['moli-webfetch'], records)['moli-webfetch']}
+    assert statuses(['MOLI 1.1.4']) == {'matched'}
+    assert statuses(['moli 1.1.4', 'moli 9.9.9']) == {'mismatch'}
+    assert statuses(['moli 1.1.4-build.1']) == {'mismatch'}
+    assert statuses(['moli 1.1.4', None]) == {'unverified'}
+    assert statuses([]) == {'unverified'}
+
+
+def test_native_capabilities_retain_version_bound_sources(tmp_path):
+    (tmp_path/'adoption').mkdir()
+    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [
+        {'id': 'web', 'track': 'web', 'url': 'https://example.test/'}]}))
+    records = [{'provider': 'moli', 'case_id': 'web', 'provider_metadata': {
+        'reported_version': 'moli 9.9.9', 'output_contract': 'markdown'}}]
+    html = render_capabilities(tmp_path, ['moli'], table=table, cell=cell, link=link,
+                               records=records)
+    assert '核对版本 1.1.5；实测版本 9.9.9' in html
+    evidence = json.loads((tmp_path/'adoption/capabilities.json').read_text())
+    assert 'headless-moli-1.1.5' in evidence['methods']['moli']['sources']
+    assert 'task-native-moli' in evidence['methods']['moli']['sources']
+
+
+def test_capability_fields_render_english_without_catalog_reverse_lookup(tmp_path, monkeypatch):
+    from pathlib import PurePosixPath
+    from harness.web_fetch.methods import report_method_catalog
+    from harness.web_fetch.report_i18n import localize_html
+    (tmp_path/'adoption').mkdir()
+    page = render_capabilities(tmp_path, ['moli'], table=table, cell=cell, link=link)
+    english = localize_html(page, PurePosixPath('adoption/index.html'))
+    from html import unescape
+    english = unescape(english)
+    registered = report_method_catalog('en')['methods']['moli']['capabilities']
+    assert registered['notes'] in english
+    assert registered['web']['detail'] in english
+    assert registered['tested'] in english

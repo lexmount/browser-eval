@@ -80,6 +80,11 @@ def build_summary(dataset: dict, records: list[dict], batches: list[dict]) -> di
     if any(any(environment.get(key) != expected for key, expected in required_environment.items())
            for environment in environments):
         raise ValueError("Resource cohort is not uniformly Docker/cgroup-v2 isolated")
+    for environment in environments:
+        interval = environment.get("sample_interval_ms")
+        if (isinstance(interval, bool) or not isinstance(interval, (int, float))
+                or not math.isfinite(interval) or interval <= 0):
+            raise ValueError("Resource cohort requires a recorded positive sample_interval_ms")
     invariant_keys = (
         "docker_architecture", "image_id", "cpus", "memory", "pids_limit",
         "sample_interval_ms", "network_isolation", "controller_excluded",

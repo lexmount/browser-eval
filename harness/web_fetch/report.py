@@ -16,7 +16,6 @@ from urllib.parse import urlencode, urlsplit
 
 from harness.record_io import load_jsonl
 
-from .accounts import report_access_registry
 from .failure_diagnosis import diagnose
 from .methods import ROUTE_LABELS, method_page_model, is_browser_comparison, browser_method_label
 from lexbench_webfetch.metrics import percentile, task_measured, task_passed
@@ -36,7 +35,8 @@ from .report_components import (
  tabs,
  task_instruction,
 )
-from .report_interfaces import method_access, method_provenance
+from .report_interfaces import method_provenance
+from .methods import method_access
 from .report_methods import PROFILES, adoption_counts
 from .methods import report_method, method_version
 from .report_resources import render_resource_comparison
@@ -338,13 +338,18 @@ def provider_configuration(name,records,info):
 def provider_page_body(name,records,cases,headers,tracks,*,native_default=False):
  """Render one method page from generic result records and method metadata."""
  model=method_page_model(name,provider_label(name),records)
+ english_model=method_page_model(name,browser_method_label(name,language='en'),records,language='en')
+ def field(key):return model_text(model[key],english_model[key])
  controls=filter_controls([('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
- configuration=f'<p><code>{esc(model["endpoint"])}</code></p>'
+ configuration=f'<p><code>{field("endpoint")}</code></p>'
  if native_default:
-  configuration+='<p>本轮统一使用固定原生配置：每题调用一次，外层截止时间 45 秒，产品内部超时保留默认值。具体选项及请求字段见接口示例、冻结配置和该次调用记录。</p>'
+  configuration+='<p>'+model_text(
+   '调用次数、重试和预算以运行记录为准；内部参数以保存的请求为准。',
+   'Call counts, retries and deadlines come from run records; internal parameters come from saved requests.')+'</p>'
+  configuration+='<p>'+link('../methodology/index.html','查看运行参数','View execution parameters')+' · '+link('../reproduce/index.html','查看冻结配置与证据','View frozen configuration and evidence')+'</p>'
  else:
-  configuration+=f'<p>{esc(model["freshness"])}</p><p>{esc(model["configuration"])}</p>'
- body=hero(esc(model['title']),esc(model['contract']))+section('本轮配置',configuration)
+  configuration+=f'<p>{field("freshness")}</p><p>{field("configuration")}</p>'
+ body=hero(field('title'),field('contract'))+section('本轮配置',configuration)
  body+=section('方法资料','<p class="actions">'+link('../adoption/index.html#'+model['pricing_anchor'],'价格与计费 →')+link('../adoption/index.html#interface-'+name,'接口与示例 →')+'</p>')
  return body+section(f'{len(records)} 条执行记录',controls+table(headers,[attempt_row(r,cases[r['case_id']]) for r in records],'filtered-table'))
 JS=r'''function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}
@@ -1714,7 +1719,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
     if r['metrics'].get(key) is not None:per_case[r['case_id']].append(r['metrics'][key] if r['ok'] else 0)
    return statistics.mean(statistics.mean(values) for values in per_case.values()) if per_case else None
   times=[r['elapsed_ms'] for r in rs if succeeded(r,cases[r['case_id']])]
-  values=cell(link(base+f'providers/{name}.html',provider_label(name)))+cell(rate(ok,len(rs)),ok/len(rs))
+  values=cell(link(base+f'providers/{name}.html',provider_label(name),browser_method_label(name,language='en')))+cell(rate(ok,len(rs)),ok/len(rs))
   if text_track:
    values+=cell(rate(passed,n),passed/n if n else -1)
    values+=''.join(cell(pct(avg(k)),avg(k) if full else -1) for k in ['word_recall','word_precision','word_f1'])
@@ -1802,7 +1807,7 @@ def overview_all_call_latency(records,cases):
  rows=[]
  for name in names:
   times=[r['elapsed_ms'] for r in records if r['provider']==name]
-  rows.append(('',cell(link('providers/'+name+'.html',provider_label(name)))+cell(str(len(times)))+
+  rows.append(('',cell(link('providers/'+name+'.html',provider_label(name),browser_method_label(name,language='en')))+cell(str(len(times)))+
                cell(ms(statistics.mean(times)))+cell(ms(percentile(times,.5)))+cell(ms(percentile(times,.95)))))
  return ('<p>'+model_text(f'每种方法均使用同一组 {len(cases)} 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。',f'Each method uses the same {len(cases)} tasks, including passes, failures, errors and timeouts. Latency covers one call from input to output, excluding cooldown intervals between calls. Each method executes cases sequentially; method concurrency and limits are documented in the call-chain audit. Local/remote execution, network conditions and native product limits still affect latency.')+'</p>'+
          table(['方法','调用数','全部调用均值','全部调用 P50','全部调用 P95'],rows,'all-call-latency-table',metrics=[]))
@@ -1830,7 +1835,7 @@ def overview_matched_latency(records,cases):
  metrics=['mean_ms','p50_ms','p95_ms'];rows=[]
  minima={key:min(row[key] for row in population['rows']) for key in metrics}
  for row in population['rows']:
-  values=cell(link('providers/'+row['provider']+'.html',provider_label(row['provider'])))
+  values=cell(link('providers/'+row['provider']+'.html',provider_label(row['provider']),browser_method_label(row['provider'],language='en')))
   for key in metrics:
    value=ms(row[key]);values+=cell('<strong>'+value+'</strong>' if row[key]==minima[key] else value,row[key])
   rows.append(('',values))
@@ -1841,7 +1846,7 @@ def overview_matched_latency(records,cases):
  for row in population['rows']:
   observed=row['recorded_start_dates']
   if observed:
-   dates.append(esc(provider_label(row['provider']))+'：'+esc('、'.join(f'{date}（{number} 题）' for date,number in observed.items())))
+   dates.append(model_text(provider_label(row['provider']),browser_method_label(row['provider'],language="en"))+model_text('：'+'、'.join(f'{date}（{number} 题）' for date,number in observed.items()),': '+', '.join(f'{date} ({number} tasks)' for date,number in observed.items())))
  links='、'.join(link('datasets/'+cid+'.html',cases[cid].get('name',cid)) for cid in population['common_pass_cases'])
  content=(note+table(['方法','同题均值','同题 P50','同题 P95'],rows,'overall-matched-latency-table',metrics=[])
           +'<details><summary>共同任务与调用日期</summary><p>'+links+'</p><p>'+'<br>'.join(dates)+'</p></details>')
@@ -1892,7 +1897,7 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
  for name,rs in groups.items():
   n=sum(measured(r,cases[r['case_id']]) for r in rs)
   passed=sum(succeeded(r,cases[r['case_id']]) for r in rs)
-  values=cell(link(f'providers/{name}.html',provider_label(name)))+cell(rate(sum(bool(r['ok']) for r in rs),len(rs)),sum(bool(r['ok']) for r in rs)/len(rs))+cell(rate(passed,n)+(f'<br><small>{passed}/{n}</small>' if has_unknown else ''),passed/n if n else -1)
+  values=cell(link(f'providers/{name}.html',provider_label(name),browser_method_label(name,language='en')))+cell(rate(sum(bool(r['ok']) for r in rs),len(rs)),sum(bool(r['ok']) for r in rs)/len(rs))+cell(rate(passed,n)+(f'<br><small>{passed}/{n}</small>' if has_unknown else ''),passed/n if n else -1)
   if has_unknown:values+=cell(str(len(rs)-n))
   for track,_ in active_tracks(cases):
    subset=[r for r in rs if report_family(cases[r['case_id']])==track and measured(r,cases[r['case_id']])]
@@ -1938,7 +1943,7 @@ def filter_controls(options,all_first=()):
  controls=''
  for key,label,choices in options:
   ordered=([('','全部')]+choices) if key in {'provider','track','category','failureStage','failureCategory',*all_first} else (choices+[('','全部')])
-  controls+=f'<label>{label} <select data-filter="{key}" aria-label="{label}">'+''.join(f'<option value="{esc(v)}"'+(' selected' if key=='result' and v=='fail' else '')+f'>{esc(t)}</option>' for v,t in ordered)+'</select></label>'
+  controls+=f'<label>{label} <select data-filter="{key}" aria-label="{label}">'+''.join(f'<option value="{esc(v)}"'+(' selected' if key=='result' and v=='fail' else '')+(f' data-report-en="{esc(browser_method_label(v,language="en"))}"' if key=='provider' and v else '')+f'>{esc(t)}</option>' for v,t in ordered)+'</select></label>'
  return '<div class="filters">'+controls+'<input data-filter="query" aria-label="搜索" placeholder="搜索案例、方法或原因"><span id="count" role="status" aria-live="polite"></span></div>'
 
 def failure_filters(records,cases):
@@ -1951,7 +1956,7 @@ def comparison_rows(cases,bycase,names):
   attempts={r['provider']:r for r in bycase.get(case_id,[])}
   passed=[name for name in names if name in attempts and measured(attempts[name],c) and succeeded(attempts[name],c)]
   failed=[name for name in names if name in attempts and measured(attempts[name],c) and not succeeded(attempts[name],c)]
-  method_links=lambda selected,state:('<span class="outcome-list">'+''.join(f'<a class="outcome-pill {state}" href="{esc(safe_href("../attempts/"+attempts[name]["attempt_id"]+".html"))}">{esc(provider_label(name))}</a>' for name in selected)+'</span>') if selected else '—'
+  method_links=lambda selected,state:('<span class="outcome-list">'+''.join(f'<a class="outcome-pill {state}" href="{esc(safe_href("../attempts/"+attempts[name]["attempt_id"]+".html"))}">{model_text(provider_label(name),browser_method_label(name,language="en"))}</a>' for name in selected)+'</span>') if selected else '—'
   attrs=(dataset_attrs(c)+f' data-pass="{esc(" ".join(passed))}" data-fail="{esc(" ".join(failed))}"')
   task=(f'<div class="task-cell">{link("../datasets/"+case_id+".html",c["name"])}<div class="task-meta"><code class="tiny">{esc(case_id)}</code>'
         f'<span class="track-badge">{esc(case_track_label(c))}</span></div></div>')
@@ -1967,10 +1972,10 @@ def method_comparisons(cases,bycase,names):
  ordered=sorted(names,key=lambda name:(-sum(succeeded(attempt,cases[attempt['case_id']]) for attempt in all_attempts if attempt['provider']==name),provider_label(name)))
  if len(ordered)<2:return '<p class="decision-lead">至少需要两种方法才能比较任务交集。</p>'
  a=ordered[0];b=ordered[1]
- options=lambda selected:''.join(f'<option value="{esc(name)}"'+(' selected' if name==selected else '')+f'>{esc(provider_label(name))}</option>' for name in ordered)
+ options=lambda selected:''.join(f'<option value="{esc(name)}"'+(' selected' if name==selected else '')+f' data-report-en="{esc(browser_method_label(name,language="en"))}">{esc(provider_label(name))}</option>' for name in ordered)
  tracks='<option value="">全部类型</option>'+''.join(f'<option value="{esc(key)}">{esc(label)}</option>' for key,label in REPORT_TRACKS.items())
  rows=comparison_rows(cases,bycase,names)
- checks=''.join(f'<label><input type="checkbox" value="{esc(name)}" data-compare-method'+(' checked' if name==b else '')+f'> {esc(provider_label(name))}</label>' for name in ordered)
+ checks=''.join(f'<label><input type="checkbox" value="{esc(name)}" data-compare-method'+(' checked' if name==b else '')+f'> {model_text(provider_label(name),browser_method_label(name,language="en"))}</label>' for name in ordered)
  return (f'<article class="method-comparison"><header class="comparison-heading"><div><h3>同题结果组合</h3><p>以方法 A 为基准，可选择一个或多个方法共同比较；方法名可直达该次完整证据。</p></div><b class="comparison-count" id="compare-count" role="status" aria-live="polite"></b></header>'
          '<div class="comparison-controls">'
          f'<label>方法 A<select id="compare-a" data-compare-control>{options(a)}</select></label>'
@@ -2002,7 +2007,7 @@ def local_call_chain_section(dataset, prefix="../"):
  rows=[]
  for item in audit.get('methods',[]):
   note=item['native_log_note']
-  rows.append(('',cell(link(prefix+'providers/'+item['provider']+'.html',provider_label(item['provider'])))+cell(esc(note))))
+  rows.append(('',cell(link(prefix+'providers/'+item['provider']+'.html',provider_label(item['provider']),browser_method_label(item['provider'],language='en')))+cell(esc(note))))
  intro='<p>每次调用都保存了测试程序的调用记录：何时开始、传入什么参数、何时返回，以及是否发生错误。各案例详情中的“调用方事件”展示这些记录。</p><p>“产品与依赖库日志”展示产品或底层库实际输出的运行信息。云端服务没有开放的内部日志，不会用测试程序的记录代替。下表说明各方法留下了哪些日志。</p>'
  return section('本轮保存了哪些日志',intro+table(['方法','产品与依赖库日志范围'],rows,metrics=[])+'<p>完整日志在各案例详情中查看。日志可以帮助定位问题，但没有记录的内部过程不能据此推断；日志文件存在，也不等于产品的全部内部过程都有记录。</p>','call-chain-audit')
 
@@ -2208,7 +2213,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  for r in detail_records:
   c=cases[r['case_id']];m=r['metrics'];ref=reference_text(c)
   output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')
-  rows=[('',cell(k)+cell(v)) for k,v in [('任务 ID',f'<code>{esc(c["id"])}</code>'),('方法',link('../providers/'+r['provider']+'.html',provider_label(r['provider']))),('请求','成功' if r['ok'] else '失败'),('任务结果',result_label(r,c)),('HTTP 状态',esc(r.get('status_code'))),('耗时',ms(r['elapsed_ms'])),('全文完整度 / 纯净度 / F1',f'{pct(m.get("word_recall"))} / {pct(m.get("word_precision"))} / {pct(m.get("word_f1"))}'),('输出字符',f'{len(output):,}'),('输出校验值',f'<code class="break">{esc(m.get("content_sha256"))}</code>')]]
+  rows=[('',cell(k)+cell(v)) for k,v in [('任务 ID',f'<code>{esc(c["id"])}</code>'),('方法',link('../providers/'+r['provider']+'.html',provider_label(r['provider']),browser_method_label(r['provider'],language='en'))),('请求','成功' if r['ok'] else '失败'),('任务结果',result_label(r,c)),('HTTP 状态',esc(r.get('status_code'))),('耗时',ms(r['elapsed_ms'])),('全文完整度 / 纯净度 / F1',f'{pct(m.get("word_recall"))} / {pct(m.get("word_precision"))} / {pct(m.get("word_f1"))}'),('输出字符',f'{len(output):,}'),('输出校验值',f'<code class="break">{esc(m.get("content_sha256"))}</code>')]]
   if not c.get('ground_truth_main_content'):
    rows[6]=('',cell('全文完整度 / 纯净度 / F1')+cell('— / — / —（全文指标无完整参考，未评测）'))
   else:
@@ -2283,6 +2288,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   detail_metrics=['请求','结果','耗时','HTTP 状态','输出字符','输出校验值']+(['具名详情入口'] if c.get('task_kind')=='structure' else ['完整度','纯净度','F1'] if c.get('ground_truth_main_content') else [])
   state=result_label(r,c);passed=succeeded(r,c)
   provider_meta=r.get('provider_metadata',{})
+  route_english=None
   if provider_meta.get('document_extractor'):
    route_label=f'处理路线：方法直接取得原始文档 → {provider_meta["document_extractor"]} → 可读正文'
   elif c.get('task_kind')=='file':
@@ -2302,17 +2308,19 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   else:
    extractor=str(provider_meta.get('extractor') or '')
    route_label='处理路线：'+ROUTE_LABELS.get(extractor,extractor or '参评方法直接返回正文')
+   from .methods import report_method_catalog
+   route_english='Retrieval path: '+report_method_catalog('en')['route_labels'].get(extractor,extractor or 'Text returned directly by the method')
   delivered_summary=provider_meta.get('file_evaluation',{}).get('files',[])
   actual_summary=(f'实际交付：{len(delivered_summary)} 个文件、{sum(x.get("bytes",0) for x in delivered_summary):,} 字节'
                   if c.get('task_kind')=='file' else f'实际输出：{len(output):,} 字符')
   hero_meta=(f'<strong>任务 ID：<code>{esc(c["id"])}</code></strong><br>{esc(task_instruction(c))}'
-             f'<span class="meta"><span class="pill">方法：{esc(provider_label(r["provider"]))}</span>'
+             f'<span class="meta"><span class="pill">方法：{model_text(provider_label(r["provider"]),browser_method_label(r["provider"],language="en"))}</span>'
              f'<span class="pill">运行 ID：{esc(r.get("run_id") or execution_id(r))}</span></span>')
   summary=(f'<div class="attempt-verdict {"" if passed or not measured(r,c) else "failure"}">'
            f'<span class="status-line">{esc(state)}</span><p>{esc(reason(r,c) if passed or not measured(r,c) else (r.get("diagnosis") or {}).get("category") or "任务规则未满足")}</p>'
-           f'<p class="source-note">方法：{link("../providers/"+r["provider"]+".html",provider_label(r["provider"]))} · '
+           f'<p class="source-note">方法：{link("../providers/"+r["provider"]+".html",provider_label(r["provider"]),browser_method_label(r["provider"],language="en"))} · '
            f'请求：{"成功" if r["ok"] else "失败"} · 耗时：{ms(r["elapsed_ms"])} · {actual_summary}</p></div>')
-  summary+=f'<p class="source-note">{esc(route_label)}</p>'
+  summary+=f'<p class="source-note">{model_text(route_label,route_english)}</p>'
   summary+=('<p class="actions"><a href="#evidence-reference">查看判定使用的标准答案</a>'
             '<a href="#evidence-output">查看本次完整实际返回</a>'
             '<a href="#decision">查看逐项判定</a>'
@@ -2477,7 +2485,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   write(out,'attempts/'+r['attempt_id']+'.html',c['name']+' · '+r['provider'],body)
  controls=filter_controls([('provider','方法',[(n,provider_label(n)) for n in names]),('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
  comparison=section('方法组合对比','<p class="source-note">按同一任务逐项比较，不用各方法不同的成功样本拼接结论。成功与失败均沿用主榜的程序判定；点击方法可查看标准答案、实际返回和原因。</p>'+method_comparisons(cases,bycase,names),'method-comparison')
- write(out,'analysis/index.html','结果分析',hero('结果分析','先比较方法在同一任务上的成败组合，再筛选全部执行记录。')+comparison+section('全部执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',provider_label(r['provider'])))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table',cls='all-method-results')))
+ write(out,'analysis/index.html','结果分析',hero('结果分析','先比较方法在同一任务上的成败组合，再筛选全部执行记录。')+comparison+section('全部执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',provider_label(r['provider']),browser_method_label(r['provider'],language='en')))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table',cls='all-method-results')))
  write_support(out,records,manifests,authored_interpretation=authored_interpretation)
  from .report_changes import render_changes
  if records and all(row.get('provider_type') == 'fixture' for row in records):
@@ -2663,6 +2671,67 @@ def load_frozen_method_options(out,records):
  return document
 
 
+def render_account_requirements(records):
+ names=sorted({row['provider'] for row in records},key=lambda name:(provider_label(name).lower(),name))
+ accesses={name:method_access(name,records) for name in names}
+ english_accesses={name:method_access(name,records,language='en') for name in names}
+ hosted=[name for name in names if accesses[name].get('type')=='hosted']
+ intro=model_text('账号与安装要求来自本轮方法登记资料；未登记的要求明确标注。',
+                  'Account and installation requirements come from the participating method registrations; missing requirements are marked.')
+ if hosted:
+  intro+=' '+model_text('需要供应商账号的方法：','Methods requiring a provider account: ')+model_text('、'.join(provider_label(name) for name in hosted),', '.join(browser_method_label(name,language='en') for name in hosted))
+ rows=[]
+ for name,access in accesses.items():
+  english=english_accesses[name]
+  official='<br>'.join(link(url,label,english['links'][index][0])
+                      for index,(label,url) in enumerate(access['links']))
+  variables='<br>'.join('<code>'+esc(value)+'</code>' for value in access['env_vars'])
+  rows.append(('',cell(model_text(provider_label(name),browser_method_label(name,language='en')))+cell(model_text(access['account'],english['account']))+cell(official)+cell(variables)+cell(model_text(access['configuration'],english['configuration']))))
+ body=hero('账号与安装',intro)
+ body+=section('本轮方法清单','<p>这里列的是完成本报告所需的全部外部准备：账号、官方获取入口和变量名称。变量值、本机路径、登录会话、Cookie 和 Token 均不进入报告。</p>'+table(['方法','账号要求','官方获取入口','变量名称','本轮配置'],rows,cls='accounts-table',metrics=[]))
+ body+=section('公开内容边界','<p class="callout success"><b>报告只公开复现所需的名称和入口，不公开凭据值。</b> 发布门禁会扫描 HTML、JSON、下载文件和逐次输出中的常见 Token、私钥、Authorization 值与用户目录路径；第三方原始 HTML 中命中密钥形态的片段单独脱敏，计分输出保持逐字节不变。扫描结果和脱敏文件哈希随发布包保存。</p>')
+ return body
+
+
+def render_execution_contract(dataset,records,manifests):
+ """Render recorded budgets and scheduling without inferring missing values."""
+ import math
+ def seconds(value):
+  if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value<0:
+   return model_text('未记录','Not recorded')
+  return model_text(f'{value:g} 秒',f'{value:g} seconds')
+ def count(value):
+  return str(value) if isinstance(value,int) and not isinstance(value,bool) and value>=0 else model_text('未记录','Not recorded')
+ declared=dataset.get('comparison',{}).get('timeout_seconds')
+ intro=''
+ if declared is not None:
+  intro='<p>'+model_text('事前声明的外层预算：','Predeclared outer budget: ')+seconds(declared)+'</p>'
+ names={row['provider'] for row in records}
+ rows=[]
+ represented=set()
+ for index,manifest in enumerate(manifests,1):
+  parameters=manifest.get('parameters',{})
+  for provider in manifest.get('providers',[]):
+   name=provider.get('name')
+   if name not in names:continue
+   represented.add(name)
+   values=[model_text(provider_label(name),browser_method_label(name,language="en")),str(index),seconds(parameters.get('timeout')),
+           seconds(provider.get('min_interval_seconds')),seconds(parameters.get('delay')),
+           count(parameters.get('runs')),count(parameters.get('max_failure_retries'))]
+   rows.append(('', ''.join(cell(value) for value in values)))
+ for name in sorted(names-represented):
+  rows.append(('',cell(model_text(provider_label(name),browser_method_label(name,language="en")))+cell('—')+
+               ''.join(cell(model_text('未记录','Not recorded')) for _ in range(5))))
+ body=intro+table([model_text('方法','Method'),model_text('批次','Batch'),
+     model_text('外层超时','Outer timeout'),model_text('方法最小调用间隔','Method minimum interval'),
+     model_text('运行器调用间延迟','Runner delay between calls'),model_text('计划轮数','Planned runs'),
+     model_text('失败重试上限','Failure retry limit')],rows,metrics=[])
+ body+='<p>'+model_text(
+  '上表读取保存的执行批次，缺失值不补为当前默认值。方法最小间隔与运行器延迟是各自的配置，不是实测等待时间；方法之间的并发和实际调度以批次记录与调用时间为准。产品内部加载、连接和处理限制见冻结配置及真实请求，不从外层预算推断。',
+  'The table reads saved execution batches; missing values are not replaced with current defaults. Method intervals and runner delays are separate settings, not measured waiting time. Inter-method concurrency and actual scheduling follow batch records and call timestamps. Native loading, connection and processing limits come from frozen configuration and actual requests, not from the outer budget.')+' '+link('../reproduce/index.html','环境与复现','Environment and reproduction')+'</p>'
+ return body
+
+
 def write_support(out,records,manifests,*,authored_interpretation=True):
  dataset=json.loads((out/'dataset.json').read_text()) if (out/'dataset.json').is_file() else {}
  local_matrix=measurement_presentation(dataset).local_matrix
@@ -2678,17 +2747,17 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
   resource_summary=json.loads((out/'resource-cohort/resource-comparison.json').read_text())
   resource_environment=resource_summary.get('environment',{})
   resource_parameters=[
-   ('任务数',len(resource_summary.get('planned_cases',[]))),
-   ('方法数',len(resource_summary.get('providers',[]))),
-   ('CPU',resource_environment.get('cpus','—')),
-   ('Memory',resource_environment.get('memory','—')),
-   ('PID limit',resource_environment.get('pids_limit','—')),
-   ('Sampling interval (ms)',resource_environment.get('sample_interval_ms','—')),
+   (('任务数','Task count'),len(resource_summary.get('planned_cases',[]))),
+   (('方法数','Method count'),len(resource_summary.get('providers',[]))),
+   (('CPU 核数','CPU cores'),resource_environment.get('cpus','—')),
+   (('内存限制','Memory limit'),resource_environment.get('memory','—')),
+   (('进程数限制','Process limit'),resource_environment.get('pids_limit','—')),
+   (('采样间隔（毫秒）','Sampling interval (ms)'),resource_environment.get('sample_interval_ms','—')),
   ]
   methodology+=section('资源测量边界','<p>'+model_text(
    'CPU、内存和网络来自独立的资源测量队列。主表统计预先确定的全部调用，包含失败；各方法成功调用另作条件统计，共同通过子集只作诊断。',
    'CPU, memory and network measurements come from a separate resource cohort. The primary table includes all predeclared calls, including failures; successful-call distributions are conditional and the common-pass subset is diagnostic only.')+'</p>'
-   +table(['参数','值'],[('',cell(esc(key))+cell(esc(value))) for key,value in resource_parameters],metrics=[])
+   +table([model_text('参数','Parameter'),model_text('值','Value')],[('',cell(model_text(*key))+cell(esc(value))) for key,value in resource_parameters],metrics=[])
    +'<p>'+model_text(
     '累计计数用于 CPU 与网络总量；内存峰值和速率分位数受实际采样间隔限制，可能遗漏更短的尖峰。环境身份、统计范围与排除项见资源证据。',
     'Cumulative counters provide CPU and network totals. Memory peaks and rate percentiles depend on the recorded sampling interval and may miss shorter peaks. The resource evidence identifies the environment, scope and exclusions.')+' '
@@ -2720,16 +2789,13 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  methodology+=section('参考与匹配','<p>原始快照保留不变；评分参考清除零宽空格、BOM 和软连字符，并检查空正文、乱码、重复核对点及核对点是否存在于参考中。通过检查不等于语义完整性已获证明，正文范围仍以来源记录为准。</p><p>关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，菜单路径如 Settings &gt; AI 与 Settings&gt;AI 等价；忽略 Markdown 链接地址、行内代码与加粗标记。一个已被完整记录边界约束的字段允许丢失内联元素间空白，例如标签列表 <code>change deep-thoughts</code> 与 <code>changedeep-thoughts</code> 内容等价；相邻独立链接仍按独立词段核对，不猜测跨记录的粘连分词。保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。</p>')
  methodology+=section('调用时间','<p>各方法使用同一套冻结任务与参考。不同批次的耗时不直接排名；同窗速度子集单独标识。实时网页内容、登录状态和站点策略可能变化，成绩只代表所记录的调用。环境、版本与命令见“环境与复现”。</p>')
  methodology+=section('变更后重跑范围','<p>不把“代码有更新”直接等同于全部重跑。只改展示时重建报告；只改裁判且原始输出足够时离线重算；某个参考变化时重跑该题的全部方法；新增或升级单个实现时重跑该方法的全部题；计时边界变化时废弃并重跑同窗测速。只有全局任务输入、调用边界或所有方法共同依赖发生变化，才需要全量重跑。</p>')
- methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
- if headless:
-  methods_count=len({row['provider'] for row in records})
-  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。',f'本轮 {methods_count} 种配置分别使用独立进程或新上下文。具体接口、等待条件与输出处理见报告解读的任务接口表，实际版本和配置见执行批次。每次调用使用 45 秒端到端预算，调用次数和重试规则以事前声明的协议为准。命令、版本、参考、评分或计时错误按完整声明范围纠正，保留旧证据；不按分数选择重试结果。')
-  if dataset.get('comparison',{}).get('retrieval_mode') in {
-      'native_default_completion', 'native_task_family_completion'}:
-   methodology=methodology.replace('正文任务中，方法只返回原始 PDF 或 DOCX 时，本地正文解析也计时；原始文件任务则到字节校验完成即停止，不做无关的 Markdown 转换。','本轮文档正文只验收浏览器原生接口交付的文字；取得文件字节后不另接外部解析器补正文。原始文件任务到字节校验完成即停止。')
- if local_matrix:
-  methodology+=section('本轮固定原生配置','<p>每种方法内部串行执行，每题只调用一次，45秒为外层交卷期限。内部加载、连接和处理时间保留产品默认值。允许测试前固定的原生选项，不传入逐题等待、选择器、数量提示或脚本；不补抓、不额外重试。产品返回的正文和原始响应分别保存。</p><p>每种方法内部串行执行；方法之间的调度以执行批次和保存的调用时间为准。分段执行保留每个原始分段，完整调用时间见执行批次。</p>')
-  methodology=methodology.replace('方法之间并行、同一方法串行。','每种方法内部串行；方法之间的调度见执行批次。')
+ methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
+ methodology+=section(model_text('运行参数与调用边界','Run parameters and call boundaries'),
+                      render_execution_contract(dataset,records,manifests))
+ if measurement_presentation(dataset).native_outputs:
+  methodology+='<p>'+model_text(
+   '正文验收使用原生接口交付的内容，不以额外解析器补齐回答。原始文件任务按其字节验收规则核对；请求、输出与错误保留在逐次调用证据中。',
+   'Text acceptance uses content delivered by the native interface, without an additional parser completing the answer. Original-file tasks use their byte-acceptance rules; requests, outputs and errors remain in per-call evidence.')+'</p>'
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','浏览器版本与二进制来源')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else [])+([('request-status-corrections.json','请求状态纠正收据')] if (out/'request-status-corrections.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'
@@ -2775,9 +2841,9 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
    version='；'.join(versions) or ('云端服务未公开后端版本' if not hashes and not any(identities) else '未取得可确认的版本信息')
    if versions and all(re.fullmatch(r'[0-9a-f]{40}', value) for value in versions):
     version='源码提交：'+version
-   provider_rows.append(('',cell(link('../providers/'+name+'.html',provider_label(name)))+cell('<span class="break">'+esc(version)+'</span>')))
+   provider_rows.append(('',cell(link('../providers/'+name+'.html',provider_label(name),browser_method_label(name,language='en')))+cell('<span class="break">'+esc(version)+'</span>')))
   else:
-   provider_rows.append(('',cell(link('../providers/'+name+'.html',provider_label(name)))+cell(esc('；'.join(versions) or '版本未记录'))+cell(esc(basis))+cell(esc('；'.join(deployments)))+cell('<br>'.join('<code class="tiny break">'+esc(x)+'</code>' for x in hashes) or '—')+cell(str(len(subset)))))
+   provider_rows.append(('',cell(link('../providers/'+name+'.html',provider_label(name),browser_method_label(name,language='en')))+cell(esc('；'.join(versions) or '版本未记录'))+cell(esc(basis))+cell(esc('；'.join(deployments)))+cell('<br>'.join('<code class="tiny break">'+esc(x)+'</code>' for x in hashes) or '—')+cell(str(len(subset)))))
  write_review_page(out,records)
  repo='https://github.com/lexmount/browser-eval'
  support=hero('环境与复现','代码、评测集和复现说明以 browser-eval 仓库为准；本页只列本轮必要配置。')
@@ -2800,7 +2866,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
    labels=NATIVE_OPTION_LABELS
    def option_text(value):
     return '开启' if value is True else '关闭' if value is False else '、'.join(map(str,value)) if isinstance(value,list) else str(value)
-   config_rows=[('',cell(link('../providers/'+name+'.html',provider_label(name)))+cell(''.join('<div>'+esc(labels.get(k,k))+'：<code>'+esc(option_text(v))+'</code></div>' for k,v in value.items()))) for name,value in options.items()]
+   config_rows=[('',cell(link('../providers/'+name+'.html',provider_label(name),browser_method_label(name,language='en')))+cell(''.join('<div>'+esc(labels.get(k,k))+'：<code>'+esc(option_text(v))+'</code></div>' for k,v in value.items()))) for name,value in options.items()]
    support+=section(model_text(options_document['scope_title'],options_document['scope_title_en']),
                     '<p>'+model_text(options_document['scope_description'],options_document['scope_description_en'])+'</p>'
                     +table(['方法','固定选项'],config_rows,metrics=[]))
@@ -2826,46 +2892,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
    reproduce+='<p>'+model_text('评分时的原件私下保留；公开回答和完整原生响应隐藏了目录或敏感值。清单保留评分原件的标识，并单独记录公开副本。公开文件可重建本报告，不能还原隐藏内容；正文质量等指标保留原件的计算值，不保证用脱敏文字逐字重算一致。复核片段的坐标记录原件位置；公开副本仅能核对仍可见的片段。','Scoring originals remain private. Public answers and complete native responses hide paths or sensitive values. The inventory preserves original scoring identities and separately binds public views. Public files rebuild this report but cannot reconstruct omitted content. Text-quality diagnostics retain the original calculations and may not reproduce exactly from redacted text. Review coordinates refer to originals; public views verify only the visible excerpts.')+' '+link('../'+public_profile['publication_evidence_views']['path'],'PUBLIC-EVIDENCE-VIEWS.json')+'</p>'
  support+=section('核心复现指令',reproduce)
  write(out,'reproduce/index.html','环境与复现',support)
- if not authored_interpretation and not local_matrix:
-  rows=[]
-  for name in sorted({r['provider'] for r in records}):
-   selected=[r for r in records if r['provider']==name]
-   types=sorted({r.get('provider_type','未记录') for r in selected})
-   engines=sorted({r.get('provider_metadata',{}).get('engine','未记录') for r in selected})
-   rows.append(('',cell(esc(name))+cell(esc('；'.join(types)))+cell(esc('；'.join(engines)))))
-  body=hero('账号与安装','本报告的方法由调用方的显式配置提供。')
-  body+=section('本轮方法',table(['方法名称','适配器类型','记录的引擎'],rows,metrics=[]))
-  body+='<div class="wrap"><p>运行前准备配置对应的程序与账户。报告保留方法名称、版本和执行证据，不包含凭据值。实际参数与版本见 '+link('../reproduce/index.html','环境与复现')+'。</p></div>'
-  write(out,'accounts/index.html','账号与安装',body)
- elif headless:
-  access_rows=[]
-  for name in sorted({r['provider'] for r in records},key=lambda value:(provider_label(value).lower(),value)):
-   access=method_access(name,records)
-   official='<br>'.join(link(url,label) for label,url in access['links'])
-   variables='<br>'.join('<code>'+esc(value)+'</code>' for value in access['env_vars'])
-   access_rows.append(('',cell(provider_label(name))+cell(esc(access['account']))+cell(official)+cell(variables)+cell(esc(access['configuration']))))
-  hosted=[provider_label(name) for name in sorted({r['provider'] for r in records})
-          if report_method(name).get('access',{}).get('type')=='hosted']
-  account_intro=model_text('账号与安装要求来自本轮方法登记资料；未登记的要求明确标注。',
-                           'Account and installation requirements come from the participating method registrations; missing requirements are marked.')
-  if hosted:
-   account_intro+=' '+model_text('需要供应商账号的方法：','Methods requiring a provider account: ')+esc('、'.join(hosted))
-
-  account_body=hero('账号与安装',account_intro)
-  account_body+=section('本轮方法清单','<p>这里列的是完成本报告所需的全部外部准备：账号、官方获取入口和变量名称。变量值、本机路径、登录会话、Cookie 和 Token 均不进入报告。</p>'+table(['方法','账号要求','官方获取入口','变量名称','本轮配置'],access_rows,cls='accounts-table',metrics=[]))
-  account_body+=section('公开内容边界','<p class="callout success"><b>报告只公开复现所需的名称和入口，不公开凭据值。</b> 发布门禁会扫描 HTML、JSON、下载文件和逐次输出中的常见 Token、私钥、Authorization 值与用户目录路径；第三方原始 HTML 中命中密钥形态的片段单独脱敏，计分输出保持逐字节不变。扫描结果和脱敏文件哈希随发布包保存。</p>')
-  write(out,'accounts/index.html','账号与安装',account_body)
- else:
-  accounts=report_access_registry(
-   {r['provider'] for r in records},
-   fixture_providers={r['provider'] for r in records if r.get('provider_type')=='fixture'},
-  )
-  accountrows=[]
-  for a in accounts:
-   official=link(a['registration_url'],'官方获取入口' if local_matrix else '注册 / 登录')
-   if a['key_url']!=a['registration_url']:official+='<br>'+link(a['key_url'],'获取凭据')
-   accountrows.append(('',cell(esc(a['provider']))+cell(official)+cell('<br>'.join('<code>'+esc(x)+'</code>' for x in a['env_vars']))+cell(esc(a['steps']))+cell(esc(a['free_note']))))
-  write(out,'accounts/index.html','账号与安装',hero('账号与安装','只列官方入口和环境变量名称，不保存实际凭据。')+section('安装与账号准备',table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))
+ write(out,'accounts/index.html','账号与安装',render_account_requirements(records))
  from .report_methods import render_methods
  write(out,'adoption/index.html','方法介绍',render_methods(out,records,hero=hero,section=section,table=table,cell=cell,link=link,esc=esc,authored=authored_interpretation))
 
