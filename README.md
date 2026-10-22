@@ -1,12 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/overview.svg" alt="Browser Eval evaluation workflow" width="100%">
-
-# Browser Eval
-
-### Run the same tasks. Keep the evidence.
-
-An evaluation harness for web fetching, recorded browser actions and autonomous agents.
+<img src="docs/assets/overview.png" alt="Browser Eval — Same tasks. Clear comparisons." width="100%">
 
 **English** · [简体中文](docs/README.zh-CN.md)
 

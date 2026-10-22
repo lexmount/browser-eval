@@ -1,12 +1,6 @@
 <div align="center">
 
-<img src="assets/overview.svg" alt="Browser Eval evaluation workflow" width="100%">
-
-# Browser Eval
-
-### 执行同一组任务，留下可核查的证据。
-
-用于网页抓取、固定浏览器操作和自主 Agent 的评测脚手架。
+<img src="assets/overview.png" alt="Browser Eval — Same tasks. Clear comparisons." width="100%">
 
 [English](../README.md) · **简体中文**
 
