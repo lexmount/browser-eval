@@ -122,6 +122,22 @@ class CurrentProfileScenarios(unittest.TestCase):
         self.manifest['report_assessment'] = {'independent_review_scope': 'all'}
         self.assertEqual(publication_authority(self.manifest, self.entry, root=self.root)['slug'], 'search')
 
+    def test_new_release_plan_can_replace_observations_but_not_the_site(self):
+        self.target["visibility"] = "private"
+        self.save_target()
+        expected = {k: self.target[k] for k in ("base_url", "slug", "versionId", "visibility")}
+        planned = dict(self.target, cases=2, logical_results=6)
+        planned["bindings"] = dict(self.target["bindings"], relevance={"path": "new-labels.json", "sha256": "new"})
+        actual = publication_authority(self.manifest, self.entry, root=self.root, planned_target=planned, expected_target=expected)
+        self.assertEqual(actual["cases"], 2)
+        for key, value in [("slug", "other"), ("versionId", "stale"), ("base_url", "https://other.example.org"), ("visibility", "public")]:
+            with self.subTest(key=key), self.assertRaisesRegex(ValueError, "exact live target"):
+                publication_authority(self.manifest, self.entry, root=self.root, planned_target=dict(planned, **{key: value}), expected_target=expected)
+        self.target["versionId"] = "concurrent-release"
+        self.save_target()
+        with self.assertRaisesRegex(ValueError, "exact live target"):
+            publication_authority(self.manifest, self.entry, root=self.root, planned_target=planned, expected_target=expected)
+
 
 def test_publication_checks_pinned_files_and_real_population(tmp_path):
     from harness.web_search.profiles import verify_publication_inputs

@@ -11,33 +11,26 @@ from harness.reporting.visual import (
 )
 from lexbench_webfetch.paths import contained_path
 
-SCHEMA = 'web-search-reader-capture/1'
+SCHEMA = 'web-search-reader-capture/2'
 WIDTH, HEIGHT = 1280, 900
 
 
 def producer_sources() -> dict[str, str]:
     """Qualify same-named modules so neither producer binding is overwritten."""
     from harness.reporting import visual as shared_visual
+    from . import pages
 
     return {
         'harness/web_search/visual.py': file_sha256(Path(__file__)),
+        'harness/web_search/pages.py': file_sha256(Path(pages.__file__)),
         'harness/reporting/visual.py': file_sha256(Path(shared_visual.__file__)),
     }
 
 
 def routes(report: Path) -> list[tuple[str, str, str]]:
     manifest = json.loads((report / 'manifest.json').read_text())
-    standalone = (manifest.get('authored') or {}).get('presentation') == 'comparison-report'
-    if standalone:
-        chapters = [('home', 'index.html'), ('capabilities', 'capabilities.html'),
-                    ('quality', 'quality.html'), ('performance', 'performance.html'),
-                    ('dataset', 'dataset.html'), ('results', 'results.html'), ('method', 'research.html')]
-    else:
-        chapters = [('home', 'index.html'), ('dataset', 'dataset.html'),
-                    ('results', 'results.html'), ('interpretation', 'interpretation.html'),
-                    ('performance', 'performance.html'), ('method', 'research.html')]
-    if manifest.get('independent_review_sha256'):
-        chapters += [('review', 'review.html')]
+    from .pages import reader_pages
+    chapters = [(p["key"], p["route"]) for p in reader_pages((manifest.get("authored") or {}).get("presentation"), reviewed=bool(manifest.get("independent_review_sha256")))]
     languages = manifest.get('languages') or [manifest['primary_language']]
     result = [(lang, name, (lang + '/' if lang != 'zh' else '') + route)
               for lang in languages for name, route in chapters]
@@ -49,7 +42,9 @@ def state_passes(state: dict) -> bool:
     return (layout_passes(state, empty_lists=('clipped', 'tiny', 'page_errors', 'failed_resources'))
             and type(state.get('heading_count')) is int and state['heading_count'] >= 1
             and state.get('theme') == 'light' and state.get('width') == WIDTH
-            and state.get('height') == HEIGHT)
+            and state.get('height') == HEIGHT
+            and state.get('page_language', '').split('-')[0] == state.get('language')
+            and state.get('final_path') == state.get('route'))
 
 
 def verify(report: Path, receipt: Path) -> bool:
@@ -122,7 +117,8 @@ for(const node of document.querySelectorAll('h1,h2,nav a,input,select,button')){
   if(parseFloat(getComputedStyle(node).fontSize)<12)tiny.push(node.tagName);
 }
 return {overflow:document.documentElement.scrollWidth-innerWidth,clipped,tiny,
-heading_count:document.querySelectorAll('main h1').length};
+heading_count:document.querySelectorAll('main h1').length,
+page_language:document.documentElement.lang,final_path:decodeURIComponent(location.pathname).slice(1)};
 }''')
                     state.update(language=lang, route_class=chapter, route=route, width=WIDTH,
                                  height=HEIGHT, theme='light', page_errors=errors,

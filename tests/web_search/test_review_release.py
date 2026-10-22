@@ -10,11 +10,11 @@ from harness.web_search.example import example
 from harness.web_search.report import build, check
 
 
-def audited_fixture(tmp_path):
+def audited_fixture(tmp_path, scope="all"):
     example(tmp_path)
     report = tmp_path / "report"
     root = tmp_path / "review"
-    contract = review.freeze(report, root, model="test-model", scope="all", authorization="Explicit full-review test scenario")
+    contract = review.freeze(report, root, model="test-model", scope=scope, authorization="Explicit full-review test scenario" if scope == "all" else None)
     for entry in contract["packets"]:
         packet = json.loads((root / entry["path"]).read_bytes())
         result = {"packet_sha256": entry["sha256"], "cases": []}
@@ -196,3 +196,16 @@ def test_summary_rejects_tampered_review_scope(tmp_path):
     homepage.write_text(str(doc))
     with pytest.raises(ValueError, match="coverage"):
         check(output)
+
+
+def test_failure_only_review_can_build_and_reports_accepted_unreviewed_passes(tmp_path):
+    _, evidence = audited_fixture(tmp_path, scope="failures")
+    path = tmp_path / "review.json"
+    review.save(path, evidence)
+    out = tmp_path / "released"
+    build(out, source=tmp_path / "fixture", review=path)
+    assert check(out)
+    manifest = json.loads((out / "manifest.json").read_bytes())
+    assert manifest["report_assessment"]["independent_review_scope"] == "failures"
+    assert evidence["accepted_unreviewed_passes"] > 0
+    assert evidence["output_reviewed"] < evidence["output_total"]

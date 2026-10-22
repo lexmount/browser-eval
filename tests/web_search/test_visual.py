@@ -17,7 +17,7 @@ def report_fixture(root):
     for filename in ('index', 'dataset', 'results', 'performance',
                      'research', 'capabilities', 'quality'):
         (root / (filename + '.html')).write_text(
-            '<!doctype html><meta charset="utf-8"><main><h1>' + filename + '</h1></main>')
+            '<!doctype html><html lang="zh"><meta charset="utf-8"><main><h1>' + filename + '</h1></main>')
 
 
 @pytest.mark.parametrize('primary', ['zh', 'en'])
@@ -37,7 +37,7 @@ def test_capture_produces_complete_bound_proof_and_rejects_tampering(tmp_path, m
         (root / 'manifest.json').write_text(json.dumps(manifest))
         (root / 'en').mkdir()
         for page in root.glob('*.html'):
-            (root / 'en' / page.name).write_bytes(page.read_bytes())
+            (root / 'en' / page.name).write_text(page.read_text().replace('lang="zh"', 'lang="en"'))
     visual.capture(root, receipt)
     assert visual.verify(root, receipt)
     original = json.loads(receipt.read_text())
@@ -45,10 +45,10 @@ def test_capture_produces_complete_bound_proof_and_rejects_tampering(tmp_path, m
     assert next(item['route'] for item in original['captures'] if item['language'] == primary and item['route_class'] == 'home') == ('en/index.html' if primary == 'en' else 'index.html')
     assert {capture['route_class'] for capture in original['captures']} >= {'quality', 'performance'}
     assert original['browser_version']
-    assert set(original['producer_sources']) == {'harness/web_search/visual.py', 'harness/reporting/visual.py'}
+    assert set(original['producer_sources']) == {'harness/web_search/visual.py', 'harness/reporting/visual.py', 'harness/web_search/pages.py'}
     assert all('readable' not in capture for capture in original['captures'])
     for damage in ('schema', 'manifest', 'producer', 'search-producer', 'shared-producer', 'browser', 'version', 'duplicate',
-                   'missing', 'overflow', 'tiny', 'page-error', 'resource', 'heading', 'image', 'path'):
+                   'page-language', 'final-route', 'missing', 'overflow', 'tiny', 'page-error', 'resource', 'heading', 'image', 'path'):
         proof = deepcopy(original)
         first = proof['captures'][0]
         if damage == 'schema': proof['schema'] = 'legacy'
@@ -59,6 +59,8 @@ def test_capture_produces_complete_bound_proof_and_rejects_tampering(tmp_path, m
         elif damage == 'browser': proof['browser_sha256'] = '0' * 64
         elif damage == 'version': proof['browser_version'] = ''
         elif damage == 'duplicate': proof['captures'][-1] = deepcopy(first)
+        elif damage == 'page-language': first['page_language'] = 'en' if first['language'] == 'zh' else 'zh'
+        elif damage == 'final-route': first['final_path'] = 'wrong.html'
         elif damage == 'missing': proof['captures'].pop()
         elif damage == 'overflow': first['overflow'] = 20
         elif damage == 'tiny': first['tiny'] = ['H1']

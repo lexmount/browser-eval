@@ -52,7 +52,7 @@ def example(output):
             identity = f"{case['id']}-{method['id']}-r0"
             path = "calls/" + identity + ".json"
             write_json(source / path, payload)
-            results = [] if failed else normalize(payload)
+            results = [] if failed else normalize(payload, method["adapter"])
             rows.append(
                 dict(
                     id=identity,

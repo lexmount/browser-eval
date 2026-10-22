@@ -2,5 +2,18 @@
   "schema": "search-assessment-authority/1",
   "approved_sha256": [
     "ce69db0c91878f18c3c478f5d8a345b3c9c20dca114b47740482d3d2396008df"
+  ],
+  "provenance": [
+    {
+      "sha256": "ce69db0c91878f18c3c478f5d8a345b3c9c20dca114b47740482d3d2396008df",
+      "root_cause": "Thirty existing scenario queries had no independently bound reference URL; published answer annotations were treated as literal answer text, causing false misses for explicit ranges and alternatives. Added references are chosen from original query intent without reading provider outputs.",
+      "regression_ids": [
+        "annotations-preserve-calls",
+        "unqualified-reference-rejected",
+        "published-answer-range-boundaries",
+        "published-answer-explicit-aliases"
+      ],
+      "provider_calls": 0
+    }
   ]
 }

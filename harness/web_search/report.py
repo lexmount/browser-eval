@@ -112,13 +112,24 @@ def cells(values):
 def _redact_url_userinfo(raw):
     """Redact only HTTP URL authority credentials, preserving every other byte."""
     def replace(match):
-        authority = match.group(2)
-        if b"@" not in authority:
-            return match.group(0)
-        return match.group(1) + b"REDACTED:REDACTED@" + authority.rsplit(b"@", 1)[1]
-
-    raw = re.sub(rb'(https?://)([^/?#\s"<>\\]*:[^/?#\s"<>\\]*@[^/?#\s"<>\\]+)', replace, raw, flags=re.IGNORECASE)
-    return re.sub(rb"(https?://)([^/?#\s\"<>\\'()]+)", replace, raw, flags=re.IGNORECASE)
+        token = match.group(0)
+        candidate = re.split(rb"\]\(|[,;](?:mailto:|https?://)", token, maxsplit=1, flags=re.I)[0]
+        authority = candidate.split(b"://", 1)[1].split(b"/", 1)[0].split(b"?", 1)[0].split(b"#", 1)[0]
+        for separator in (b"'", b")"):
+            if separator in authority and b":" not in authority.split(separator, 1)[0]:
+                candidate = candidate.split(separator, 1)[0]
+        try:
+            parsed = urlsplit(candidate.decode("utf-8"))
+            if not parsed.hostname or parsed.username is None:
+                return token
+        except (ValueError, UnicodeError):
+            return token
+        start = candidate.index(b"://") + 3
+        end = start + len(parsed.netloc.encode("utf-8"))
+        netloc = candidate[start:end]
+        redacted = candidate[:start] + b"REDACTED:REDACTED@" + netloc.rsplit(b"@", 1)[1] + candidate[end:]
+        return redacted + token[len(candidate):]
+    return re.sub(rb"https?://[^\s\"<>\\]+", replace, raw, flags=re.I)
 
 
 
@@ -251,7 +262,7 @@ def load_run(source):
                 if abs(r["cost"] - sum(a["cost"] for a in attempts)) > 1e-8:
                     raise ValueError("Retry cost mismatch")
         if not r["error"] and r["http_status"] == 200:
-            normalized = normalize(json.loads((source / r["evidence"]["path"]).read_bytes()))
+            normalized = normalize(json.loads((source / r["evidence"]["path"]).read_bytes()), next(m["adapter"] for m in profile["methods"] if m["id"] == r["method"]))
             if normalized != r["results"]:
                 raise ValueError("Normalized response mismatch")
         if evaluate(bycase[r["case_id"]], r["results"]) != r["metrics"]:
@@ -366,8 +377,8 @@ def assessment_profile(profile, relevance, review):
     if relevance:
         protocol["quality"] = "Frozen pooled title/snippet relevance grades (0..3); deterministic aggregation. See report_assessment for judge provenance."
     if review:
-        protocol["review"] = "Complete independent Codex result review with per-output opinions and finding adjudications."
-    return dict(profile, protocol=protocol, **({"independent_result_review_scope": "all", "factual_quality_exclusions": exclusions} if review else {}))
+        protocol["review"] = "Complete independent Codex result review with per-output opinions and finding adjudications." if review["scope"] == "all" else "Failure-only result audit; successful outputs outside the review are counted explicitly."
+    return dict(profile, protocol=protocol, **({"independent_result_review_scope": review["scope"], "factual_quality_exclusions": exclusions} if review else {}))
 
 def build(
     output,
@@ -462,7 +473,7 @@ def build(
             )
         except ValueError:
             payloads[r["id"]] = {}
-    diagnostics = operational(rows, payloads)
+    diagnostics = operational(rows, payloads, profile["methods"])
     bundle = []
     if review_data:
         bundle.append({"path": "independent-review.json", "sha256": digest((output / "independent-review.json").read_bytes())})
@@ -508,14 +519,9 @@ def build(
         def t(en, cn, zh=zh):
             return cn if zh else en
 
-        nav = [
-            ("index.html", t("Overview", "概览")),
-            ("dataset.html", t("Queries", "评测集")),
-            ("results.html", t("Results", "结果")),
-            ("interpretation.html", t("Findings", "结果解读")),
-            ("performance.html", t("Latency diagnostics", "性能诊断")),
-            ("research.html", t("Method & market", "方法与竞品")),
-        ]
+        from .pages import reader_pages
+        page_registry = reader_pages(authored.get("presentation"), reviewed=bool(review_data))
+        nav = [(p["route"], p[lang]) for p in page_registry if p["nav"]]
         if reading_sections and authored.get("presentation") != "comparison-report":
             nav = (
                 [("index.html", t("Overview", "总览"))]
@@ -523,15 +529,6 @@ def build(
                 + [("interpretation.html", t("Report interpretation", "报告解读"))]
                 + [entry for entry in nav[1:] if entry[0] != "interpretation.html"]
             )
-        if authored.get("presentation") == "comparison-report":
-            nav = [("index.html", t("Decisions", "选型结论")),
-                   ("capabilities.html", t("API outputs", "接口与输出")),
-                   ("quality.html", t("Retrieval quality", "检索效果")),
-                   ("performance.html", t("Speed and cost", "速度与费用")),
-                   ("dataset.html", t("Tests and sources", "测试集与来源")),
-                   ("results.html", t("Query comparison", "逐题对照"))]
-        elif review_data:
-            nav.append(("review.html", t("Review", "独立审查")))
         state = (
             t(
                 ("Measured API evaluation · frozen model relevance labels and deterministic metrics." if relevance_data and relevance_data["judge"]["kind"] == "model" else "Measured API evaluation · human relevance labels and deterministic metrics." if relevance_data else "Measured API evaluation · automated target checks, no relevance labels."),
@@ -666,7 +663,7 @@ def build(
                 if i == 5 and value is not None:
                     label = f"{value * 100:.1f}% ({summary[m['id']]['metrics'][hit_key]['n']}题)" if zh else f"{value * 100:.1f}% ({summary[m['id']]['metrics'][hit_key]['n']} queries)"
                 win = i in winners and value == winners[i]
-                td.append(numeric_cell(label, value if i else None, f"overview-{i}", directions.get(i, "neutral"), win))
+                td.append(numeric_cell(label, value if i else None, ("method", "nonempty", "mean-ms", "p50-ms", "p95-ms", "target-hit", "price-per-1000")[i], directions.get(i, "neutral"), win))
             core.append("<tr>" + "".join(td) + "</tr>")
         summary = aggregate(selected)
         physical = aggregate(rows)
@@ -815,7 +812,7 @@ def build(
                     chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
                 page(chapter_key + ".html", chapter_title, chapter_body)
         if review_data and authored.get("presentation") != "comparison-report":
-            body += '<p data-review-coverage><a href="review.html">' + t(
+            body += f'<p data-review-coverage data-reviewed-queries="{review_data["case_reviewed"]}/{review_data["case_total"]}" data-reviewed-outputs="{review_data["output_reviewed"]}/{review_data["output_total"]}"><a href="review.html">' + t(
                 f"Codex reviewed {review_data['case_reviewed']}/{review_data['case_total']} queries and {review_data['output_reviewed']}/{review_data['output_total']} outputs",
                 f"Codex 已审查 {review_data['case_reviewed']}/{review_data['case_total']} 题、{review_data['output_reviewed']}/{review_data['output_total']} 份接口输出") + '</a></p>'
         page(
@@ -913,9 +910,12 @@ def build(
         for r in selected:
             cid = r["case_id"]
             c = bycase[cid]
-            status, reason = classify(c, r, cutoff=cutoff)
             query_relevance = next((x for x in (relevance_scores or []) if x["case_id"] == cid and x["method"] == r["method"]), None)
+            status, reason = classify(c, r, cutoff=cutoff, quality_excluded=cid in profile.get("factual_quality_exclusions", []), relevance_grades=query_relevance["ranked_grades"] if query_relevance else None)
             reason_label = {
+                "relevance_hit": t("Useful result found", "找到可用结果"),
+                "relevance_miss": t("No useful result found", "未找到可用结果"),
+                "quality_excluded": t("Reference qualification excluded", "参考资料不合格，不计质量"),
                 "api_error": t("API or transport error", "接口或传输错误"),
                 "empty": t("Empty result list", "返回空列表"),
                 "domain_mismatch": t(
@@ -986,8 +986,8 @@ def build(
                     for u in c.get("reference_urls", [])
                 ) + "</ul>"
                 detail += "<p>" + t(
-                    "Checks compare the first five URLs with the published sources and look for the normalized answer phrase in individual returned fields. A phrase match is not a factual correctness or entailment judgment.",
-                    "检查前五条网址是否属于公开标注来源，以及单个返回字段是否出现规范化后的答案词组。文字匹配不判定上下文是否正确，也不等于答案准确率。",
+                    f'Checks compare the first {cutoff} URLs with the published sources and look for the normalized answer phrase in individual returned fields. A phrase match is not a factual correctness or entailment judgment.',
+                    f'检查前 {cutoff} 条网址是否属于公开标注来源，以及单个返回字段是否出现规范化后的答案词组。文字匹配不判定上下文是否正确，也不等于答案准确率。',
                 ) + "</p>"
             if c.get("paper_ids") or c.get("repositories"):
                 detail += (
@@ -1021,7 +1021,8 @@ def build(
             ]
             if "reference_answer" in c:
                 metric_labels += [
-                    ("labeled_source_hit_5", t("Published source in top 5", "前五条找到标注来源")),
+                    ("labeled_source_hit_5", t("Published source in top 5", "前 5 条找到标注来源")),
+                    ("labeled_source_rr_5", t("Published-source reciprocal rank in top 5", "前 5 条标注来源排名倒数")),
                     ("answer_in_preview_5", t("Answer phrase in title/snippet", "标题／短摘要出现答案")),
                     ("answer_in_delivered_text_5", t("Answer phrase in delivered text", "全部交付文字出现答案")),
                 ]
@@ -1182,12 +1183,12 @@ def build(
                  + interpretation_summary_table(profile, selected, zh, authored, relevance_scores)
                  + factual_panel(profile, selected, zh)
                  + authored_sections(authored, "interpretation", lang, rows=selected)
-                 + outcome_table(profile, selected, zh) + domain_discovery_table(profile, selected, zh))
+                 + outcome_table(profile, selected, zh, relevance_scores) + domain_discovery_table(profile, selected, zh))
         if authored.get("presentation") == "comparison-report":
             primary_ids = {c["id"] for c in profile["cases"] if "reference_answer" not in c}
             primary_rows = [r for r in rows if r["case_id"] in primary_ids]
             primary_profile = dict(profile, cases=[c for c in profile["cases"] if c["id"] in primary_ids])
-            primary_diagnostics = operational(primary_rows, payloads)
+            primary_diagnostics = operational(primary_rows, payloads, profile["methods"])
             timing = benchmark_operations(profile, selected, authored, zh)
             timing += authored_sections(authored, "performance", lang, rows=selected)
             timing += '<details class="technical-details"><summary>' + t("Server timing and upstream evidence", "服务端计时与上游调度证据") + '</summary>' + performance_view(primary_profile, primary_diagnostics, zh, evidence_prefix="../" if prefix else "") + '</details>'
@@ -1217,7 +1218,7 @@ def build(
             billing_corrections=billing_corrections,
             independent_review_sha256=digest((output / "independent-review.json").read_bytes()) if review_data else None,
             report_assessment={"relevance": {key: relevance_data["judge"][key] for key in ("kind", "name")} if relevance_data else None,
-                               "independent_review_scope": "all" if review_data else None,
+                               "independent_review_scope": review_data["scope"] if review_data else None,
                                "collection_protocol_sha256": digest(json.dumps(collection_profile["protocol"], sort_keys=True).encode())},
             relevance_sha256=digest((output / "relevance-judgments.json").read_bytes()) if relevance_data else None,
             result_storage="raw-response",
@@ -1249,6 +1250,12 @@ def build(
 def check(output, *, return_data=False, evidence_only=False):
     manifest = json.loads((output / "manifest.json").read_text())
     _check_report_languages(output, manifest)
+    from .pages import reader_pages
+    top_routes = reader_pages((manifest.get("authored") or {}).get("presentation"), reviewed=bool(manifest.get("independent_review_sha256")))
+    for lang in manifest["languages"]:
+        prefix = "" if lang == "zh" else lang + "/"
+        if not {prefix + p["route"] for p in top_routes}.issubset(manifest["routes"]):
+            raise ValueError("Report is missing a registered reader page")
     editions = [
         {r.removeprefix(lang + "/") for r in manifest["routes"] if r.startswith(lang + "/")}
         if lang != "zh"
@@ -1276,7 +1283,7 @@ def check(output, *, return_data=False, evidence_only=False):
     if manifest.get("report_assessment") is not None:
         expected_assessment = {
             "relevance": {key: relevance_data["judge"][key] for key in ("kind", "name")} if relevance_data else None,
-            "independent_review_scope": "all" if manifest.get("independent_review_sha256") else None,
+            "independent_review_scope": review_data["scope"] if review_data else None,
             "collection_protocol_sha256": digest(json.dumps(manifest["collection_profile"]["protocol"], sort_keys=True).encode()),
         }
         if (manifest["report_assessment"] != expected_assessment
@@ -1290,7 +1297,7 @@ def check(output, *, return_data=False, evidence_only=False):
             payloads[row["id"]] = {}
         if manifest.get("result_storage") == "raw-response":
             results = (
-                normalize(payloads[row["id"]])
+                normalize(payloads[row["id"]], next(m["adapter"] for m in manifest["profile"]["methods"] if m["id"] == row["method"]))
                 if row["http_status"] == 200 and not row["error"]
                 else []
             )
@@ -1316,10 +1323,10 @@ def check(output, *, return_data=False, evidence_only=False):
             coverage = soup.select_one("[data-review-coverage]")
             query_scope = f"{review_data['case_reviewed']}/{review_data['case_total']}"
             output_scope = f"{review_data['output_reviewed']}/{review_data['output_total']}"
-            if coverage is None or any(value not in coverage.get_text() for value in (query_scope, output_scope)):
+            if coverage is None or any(value not in re.findall(r"(?<!\d)\d+/\d+(?!\d)", coverage.get_text()) for value in (query_scope, output_scope)):
                 raise ValueError("Independent review coverage differs from the accepted evidence")
             for attr, value in (("data-reviewed-queries", query_scope), ("data-reviewed-outputs", output_scope)):
-                if coverage.has_attr(attr) and coverage[attr] != value:
+                if coverage.get(attr) != value:
                     raise ValueError("Independent review coverage differs from the accepted evidence")
             review_page = BeautifulSoup((output / (prefix + "review.html")).read_text(), "html.parser")
             expected = BeautifulSoup(render_summary(review_data, lang == "zh"), "html.parser")
@@ -1329,7 +1336,7 @@ def check(output, *, return_data=False, evidence_only=False):
             for row in manifest["rows"]:
                 detail = BeautifulSoup((output / (prefix + "details/" + row["id"] + ".html")).read_text(), "html.parser")
                 expected = BeautifulSoup(render_detail(review_data, row["id"], lang == "zh"), "html.parser")
-                actual = detail.select("[data-independent-opinion]")
+                actual = detail.select("[data-independent-opinion], [data-review-not-selected]")
                 if len(actual) != 1 or actual[0].get_text() != expected.get_text():
                     raise ValueError("Independent review detail differs from accepted evidence")
     factual_cases = {
@@ -1417,11 +1424,11 @@ def check(output, *, return_data=False, evidence_only=False):
                 ):
                     raise ValueError("Provider filter population mismatch")
     relevance_scores = (score_relevance(manifest["profile"], [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]], relevance_data["plan"], relevance_data["labels"]) if relevance_data else [])
-    expected_diagnostics = operational(manifest["rows"], payloads)
+    expected_diagnostics = operational(manifest["rows"], payloads, manifest["profile"]["methods"])
     cases = {c["id"]: c for c in manifest["profile"]["cases"]}
     for row in manifest["rows"]:
         if row["http_status"] == 200 and not row["error"]:
-            if normalize(payloads[row["id"]]) != row["results"]:
+            if normalize(payloads[row["id"]], next(m["adapter"] for m in manifest["profile"]["methods"] if m["id"] == row["method"])) != row["results"]:
                 raise ValueError("Published results disagree with raw response")
         if row["metrics"] != evaluate(cases[row["case_id"]], row["results"]):
             raise ValueError("Published scores disagree with the declared rules")
@@ -1530,7 +1537,7 @@ def check(output, *, return_data=False, evidence_only=False):
             if authored.get("presentation") == "comparison-report":
                 primary_ids = {c["id"] for c in manifest["profile"]["cases"] if "reference_answer" not in c}
                 primary_rows = [r for r in manifest["rows"] if r["case_id"] in primary_ids]
-                visible_diagnostics = operational(primary_rows, payloads)
+                visible_diagnostics = operational(primary_rows, payloads, manifest["profile"]["methods"])
                 expected_operations = BeautifulSoup(benchmark_operations(manifest["profile"], [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]], authored, soup.html["lang"] == "zh"), 'html.parser')
                 if str(soup.select_one('[data-benchmark-operations]')) != str(expected_operations.select_one('[data-benchmark-operations]')):
                     raise ValueError("Benchmark timing/cost summary differs from physical calls")
@@ -1633,14 +1640,14 @@ def check(output, *, return_data=False, evidence_only=False):
                 stats = physical.get(method["id"])
                 if not stats:
                     continue
-                for column, key in ((2, "mean"), (3, "p50"), (4, "p95")):
-                    cell = tr.select("td")[column]
+                for metric, key in (("mean-ms", "mean"), ("p50-ms", "p50"), ("p95-ms", "p95")):
+                    cell = tr.select_one(f'td[data-metric="{metric}"]')
                     value = stats["all_latency"][key]
                     if float(cell["data-value"]) != value or cell.get_text().replace(
                         "★", ""
                     ).strip() != fmt(value):
                         raise ValueError("Visible latency disagrees with evidence")
-                cell = tr.select("td")[5]
+                cell = tr.select_one('td[data-metric="target-hit"]')
                 hit = quality[method["id"]]["metrics"][hit_key]
                 expected = (
                     "—" if hit["mean"] is None else (
@@ -1650,13 +1657,6 @@ def check(output, *, return_data=False, evidence_only=False):
                 )
                 if cell.get_text().replace("★", "").strip() != expected:
                     raise ValueError("Visible target hit disagrees with evidence")
-            for i in (2, 3, 4, 5):
-                cells_at = [r.select("td")[i] for r in table_rows]
-                values = [float(c["data-value"]) if c["data-value"] else None for c in cells_at]
-                best = numeric_winners([[value] for value in values], {0: "max" if i == 5 else "min"}).get(0)
-                for cell, value in zip(cells_at, values, strict=True):
-                    if ("win" in cell.get("class", [])) != (best is not None and value == best):
-                        raise ValueError("Missing or incorrect unique winner marker")
         if route.endswith("capabilities.html") and manifest.get("authored", {}).get("interface_example_case_id"):
             cid = manifest["authored"]["interface_example_case_id"]
             example = soup.select_one("[data-interface-case]")
@@ -1720,6 +1720,7 @@ def main(argv=None):
     parser.add_argument("--include-english", action="store_true")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--release-check", type=Path, metavar="VISUAL_RECEIPT")
+    parser.add_argument("--publication-plan", type=Path)
     parser.add_argument("--export-delivery", type=Path, metavar="DESTINATION",
                         help="Export the checked report into lossless case shards for bounded-file hosts")
     args = parser.parse_args(argv)
@@ -1740,7 +1741,7 @@ def main(argv=None):
         print(args.export_delivery)
         return
     if args.release_check:
-        release_check(args.output, args.release_check)
+        release_check(args.output, args.release_check, publication_plan=args.publication_plan)
         print("Web Search full release checks passed")
         return
     if args.check:
@@ -1768,7 +1769,7 @@ def main(argv=None):
     )
 
 
-def release_check(output, visual_receipt):
+def release_check(output, visual_receipt, *, publication_plan=None):
     """Combine deterministic evidence checks with the separate operated-browser gate."""
     check(output)
     proof = json.loads(visual_receipt.read_text())
@@ -1779,9 +1780,13 @@ def release_check(output, visual_receipt):
     if not report_manifest.get("receipt", {}).get("synthetic"):
         if not report_manifest.get("receipt", {}).get("certified"):
             raise ValueError("A formal release requires certified collection evidence")
-        target = publication_authority(report_manifest)
-        from .profiles import verify_publication_inputs
-        verify_publication_inputs(report_manifest, target)
+        if publication_plan is not None:
+            from .publication import verify_plan
+            verify_plan(output, publication_plan.parent)
+        else:
+            target = publication_authority(report_manifest)
+            from .profiles import verify_publication_inputs
+            verify_publication_inputs(report_manifest, target)
     from .visual import verify
     return verify(output, visual_receipt)
 
@@ -1854,9 +1859,6 @@ def cohort_summary(profile, rows, zh):
 
     def t(en, cn):
         return cn if zh else en
-
-    if profile.get("factual_quality_exclusions"):
-        return '<section data-cohort-summary><h2>' + t("Measurement scope", "实测范围") + '</h2><p>' + t("Performance and cost include every physical request in each collection batch, including quarantined reference questions. Quality uses only the active dataset. The original calls remain in evidence.", "性能与费用包含各批次的全部实际请求，包括参考审查中隔离的题目。质量指标只使用当前有效题库；原始调用保留在证据中。") + '</p></section>'
 
     entries = []
     for group in groups:
@@ -2505,6 +2507,7 @@ def cost_panel(profile, rows, zh):
 
 def relevance_panel(profile, scored, evidence, zh):
     """Explain and visualize judged preview relevance without conflating it with recall."""
+    cutoff = profile.get("protocol", {}).get("top_k", evidence.get("plan", {}).get("cutoff", scored[0].get("cutoff", 5) if scored else 5))
     if not scored:
         return ""
     methods = profile["methods"]
@@ -2533,9 +2536,9 @@ def relevance_panel(profile, scored, evidence, zh):
     count = len(evidence["plan"]["case_ids"])
     title = (f"自建题库相关性：{count} 题" if zh else f"In-house relevance: {count} queries")
     definitions = (
-        "搜索质量分 = nDCG@5 × 100，衡量有用结果是否排在前面；可用结果比例统计前五条中的 2、3 级结果；直接满足率统计至少找到一条 3 级结果的题目。"
+        f'搜索质量分 = nDCG@{cutoff} × 100，衡量有用结果是否排在前面；可用结果比例统计前 {cutoff} 条中的 2、3 级结果；直接满足率统计至少找到一条 3 级结果的题目。'
         if zh else
-        "Ranking quality is nDCG@5 × 100. Useful-result fraction counts grades 2 and 3 in five slots; direct-match rate counts queries with at least one grade-3 result."
+        f'Ranking quality is nDCG@{cutoff} × 100. Useful-result fraction counts grades 2 and 3 in {cutoff} slots; direct-match rate counts queries with at least one grade-3 result.'
     )
     scope = (
         f"模型裁判：{audit['name']}。本轮评估标题与短摘要所呈现的相关性；没有核验网页全文或摘要事实准确性。标签已冻结，重新计算指标不再调用模型；重新标注可能产生差异。"
@@ -2562,21 +2565,23 @@ def relevance_panel(profile, scored, evidence, zh):
 
 
 def factual_panel(profile, selected, zh, *, compact=False):
+    from .core import factual_evidence
+    cutoff = profile["protocol"]["top_k"]
     excluded = set(profile.get('factual_quality_exclusions', []))
     cases = {c['id']: c for c in profile['cases'] if 'reference_answer' in c and c['id'] not in excluded}
     if not cases:
         return ''
     projected = bool(profile.get("comparison_selection") or profile.get("current_selection"))
     baseline = profile['methods'] if projected else [m for m in profile['methods'] if not any(m.get('output_options', {}).values())]
-    answer_key = 'answer_in_delivered_text_5' if projected else 'answer_in_preview_5'
-    keys = ('labeled_source_hit_5', 'labeled_source_rr_5', answer_key)
+    answer_key = f'answer_in_delivered_text_{cutoff}' if projected else f'answer_in_preview_{cutoff}'
+    keys = (f'labeled_source_hit_{cutoff}', f'labeled_source_rr_{cutoff}', answer_key)
     values = []
     by_method = {}
     for method in profile['methods']:
         group = {r['case_id']: r for r in selected if r['method'] == method['id'] and r['case_id'] in cases}
         by_method[method['id']] = group
         if method in baseline:
-            values.append((method['label'], len(group), [sum(r['metrics'][k] for r in group.values()) for k in keys] + [sum(factual_sensitivity(cases[r['case_id']], r['results'])['metrics'][answer_key] for r in group.values())]))
+            values.append((method['label'], len(group), [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[k] for r in group.values()) for k in keys] + [sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][answer_key] for r in group.values())]))
     if compact:
         headers = ["方法", "找到标注来源（题）", "返回文字含答案（题）"] if zh else ["Method", "Given source found", "Answer text delivered"]
         rendered = []
@@ -2586,7 +2591,7 @@ def factual_panel(profile, selected, zh, *, compact=False):
             for i, total in enumerate((sums[0], sums[3])):
                 row += numeric_cell(f'{int(total)}/{n} · {total/n:.1%}' if n else '—', total/n if n else None, f'factual-current-{i}', 'max', n > 0 and best.get(i) == total/n)
             rendered.append('<tr>' + row + '</tr>')
-        return '<section data-factual><h2>' + (f'公开事实集：{len(cases)} 题的证据发现' if zh else f'Factual evidence retrieval: {len(cases)} queries') + '</h2><p>' + ('在前五条中检查题库给定网址，以及标题、短摘要、长摘要和正文中的参考答案文字。已排除题库转载和模型答题记录；答案文字出现不代表上下文正确。' if zh else 'Check top-five given URLs and answer text in all delivered fields, excluding dataset mirrors and evaluation logs. Text presence does not verify its context.') + '</p>' + table(headers, rendered) + ('<p data-quality-exclusions>' + (f'参考核查共同剔除 {len(excluded)} 道有缺陷的题，质量统计保留 {len(cases)} 题；原始响应、耗时和费用保留完整采集范围。' if zh else f'Reference review excludes {len(excluded)} defective queries for every provider; quality uses {len(cases)} queries. Original responses, timing and cost retain the full collection.') + '</p>' if excluded else '') + '</section>'
+        return '<section data-factual><h2>' + (f'公开事实集：{len(cases)} 题的证据发现' if zh else f'Factual evidence retrieval: {len(cases)} queries') + '</h2><p>' + (f'在前 {cutoff} 条中检查题库给定网址，以及标题、短摘要、长摘要和正文中的参考答案文字。已排除题库转载和模型答题记录；答案文字出现不代表上下文正确。' if zh else f'Check top-{cutoff} given URLs and answer text in all delivered fields, excluding dataset mirrors and evaluation logs. Text presence does not verify its context.') + '</p>' + table(headers, rendered) + ('<p class="muted">目标排名 MRR 可在逐题详情的目标排名倒数中核对。</p>' if zh else '<p class="muted">Target MRR is available through the per-query reciprocal-rank details.</p>') + ('<p data-quality-exclusions>' + (f'参考核查共同剔除 {len(excluded)} 道有缺陷的题，质量统计保留 {len(cases)} 题；原始响应、耗时和费用保留完整采集范围。' if zh else f'Reference review excludes {len(excluded)} defective queries for every provider; quality uses {len(cases)} queries. Original responses, timing and cost retain the full collection.') + '</p>' if excluded else '') + '</section>'
     rendered = []
     for label, n, sums in values:
         row = ['<td>' + esc(label) + '</td>', f'<td>{n}</td>']
@@ -2601,14 +2606,14 @@ def factual_panel(profile, selected, zh, *, compact=False):
     body = '<section data-factual><h3>' + (
         ('公开事实题：题库给定网页与答案文字' if zh else 'Public factual questions: sources and answer cues') if projected else ('公开事实题：基础接口的证据发现' if zh else 'Public factual questions: basic-API evidence discovery')
     ) + '</h3><p>' + (
-        '前五条中找到题库列出的任一支持网址，就记一次来源命中。MRR 是首个命中位置的倒数：第 1 条得 1，第 2 条得 0.5，未命中得 0，再对全部题取平均。答案线索只检查三家共有的标题与短摘要。失败、空结果和不足五条都保留，不补齐、不换题。'
+        f'前 {cutoff} 条中找到题库列出的任一支持网址，就记一次来源命中。MRR 是首个命中位置的倒数：第 1 条得 1，第 2 条得 0.5，未命中得 0，再对全部题取平均。答案线索只检查各接口共有的标题与短摘要。失败、空结果和不足五条都保留，不补齐、不换题。'
         if zh else
-        'A source hit means at least one published supporting URL appears in the top five. MRR averages reciprocal first-hit rank: 1 for rank one, 0.5 for rank two and zero for a miss. Answer cues use only shared titles and snippets. Failures, empties and short lists remain in the population.'
+        f'A source hit means at least one published supporting URL appears in the top {cutoff}. MRR averages reciprocal first-hit rank: 1 for rank one, 0.5 for rank two and zero for a miss. Answer cues use only shared titles and snippets. Failures, empties and short lists remain in the population.'
     ) + '</p>' + table(
         ['基础接口', '题数', '找到标注来源', '来源排名 MRR', '短摘要含答案：原始', '剔除题库与模型答题记录后'] if zh else
         ['API', 'Queries', 'Given webpage retrieved', 'First-source reciprocal rank', 'Answer text: raw', 'Answer text: dataset mentions excluded'], rendered)
     if projected:
-        body = body.replace('答案线索只检查三家共有的标题与短摘要。', '答案线索检查各家前五条实际交付的标题、短摘要、长摘要和正文。').replace('Answer cues use only shared titles and snippets.', 'Answer cues use every delivered title, snippet, summary and body in the top five.').replace('基础接口</th>', '方法</th>').replace('Basic API</th>', 'Method</th>').replace('短摘要含答案：原始', '搜索文字含答案：原始').replace('Preview answer: raw', 'Delivered answer cue: raw')
+        body = body.replace('答案线索只检查各接口共有的标题与短摘要。', f'答案线索检查各家前 {cutoff} 条实际交付的标题、短摘要、长摘要和正文。').replace('Answer cues use only shared titles and snippets.', f'Answer cues use every delivered title, snippet, summary and body in the top {cutoff}.').replace('基础接口</th>', '方法</th>').replace('API</th>', 'Method</th>').replace('短摘要含答案：原始', '搜索文字含答案：原始').replace('Answer text: raw', 'Delivered answer cue: raw')
     body += '<p>' + ('这项过滤是事后诊断：网址或标题出现 SimpleQA，或交付文本包含完整原题，并具有评测字段、答案验证日志或训练集表格结构时，该结果不参与答案检查；原位置留空，不补搜。检查采用固定文字规则，原始数值同时保留。' if zh else 'Contamination exclusion is a post-hoc deterministic diagnostic. Results naming SimpleQA in their URL/title, or containing the complete question together with evaluation fields, validation logs or dataset-viewer structure, are blanked without refilling or compacting ranks. Original values remain visible.') + '</p>'
     if excluded:
         body += '<p data-quality-exclusions>' + (f'独立审查隔离了 {len(excluded)} 道参考答案错误或题意存在实质歧义的题，各接口使用同一质量分母 {len(cases)}；全部题仍计入性能与费用。原题、原始响应和原始检查数值保留在逐题详情。' if zh else f'Independent reference review excluded {len(excluded)} defective or materially ambiguous questions from all methods’ quality metrics, leaving {len(cases)} common queries. All queries remain in latency and cost; original inputs, responses and diagnostics remain inspectable.') + '</p>'
@@ -2623,9 +2628,9 @@ def factual_panel(profile, selected, zh, *, compact=False):
         a, b = by_method[disabled['id']], by_method[enabled['id']]
         if set(a) != set(b):
             raise ValueError('Incomplete factual content pair')
-        a = {cid: dict(r, metrics=factual_sensitivity(cases[cid], r['results'])['metrics']) for cid,r in a.items()}
-        b = {cid: dict(r, metrics=factual_sensitivity(cases[cid], r['results'])['metrics']) for cid,r in b.items()}
-        key = 'answer_in_delivered_text_5'
+        a = {cid: dict(r, metrics=factual_sensitivity(cases[cid], r['results'], cutoff=cutoff)['metrics']) for cid,r in a.items()}
+        b = {cid: dict(r, metrics=factual_sensitivity(cases[cid], r['results'], cutoff=cutoff)['metrics']) for cid,r in b.items()}
+        key = f'answer_in_delivered_text_{cutoff}'
         extra.append(cells([esc(enabled['label']), str(len(a)),
             str(sum(r['metrics'][key] for r in a.values())), str(sum(r['metrics'][key] for r in b.values())),
             str(sum(not a[c]['metrics'][key] and b[c]['metrics'][key] for c in a)),
@@ -2722,9 +2727,12 @@ def known_page_chart(profile, selected, zh):
     return ''.join(output)
 
 
-def outcome_table(profile, selected, zh):
+def outcome_table(profile, selected, zh, relevance_scores=None):
     cases = {c["id"]: c for c in profile["cases"]}
     names = {
+        "relevance_hit": ("Useful result found", "找到可用结果"),
+        "relevance_miss": ("No useful result found", "未找到可用结果"),
+        "quality_excluded": ("Reference excluded from quality", "参考资料不合格，不计质量"),
         "api_error": ("API / transport error", "接口或传输失败"),
         "empty": ("Empty response", "空结果"),
         "domain_mismatch": ("Off-domain URL returned", "返回链接不符合指定域名"),
@@ -2741,7 +2749,8 @@ def outcome_table(profile, selected, zh):
     rows = []
     for m in profile["methods"]:
         group = [r for r in selected if r["method"] == m["id"]]
-        counts = Counter(classify(cases[r["case_id"]], r, cutoff=profile["protocol"]["top_k"])[1] for r in group)
+        scores = {(x["case_id"], x["method"]): x for x in (relevance_scores or [])}
+        counts = Counter(classify(cases[r["case_id"]], r, cutoff=profile["protocol"]["top_k"], quality_excluded=r["case_id"] in profile.get("factual_quality_exclusions", []), relevance_grades=(scores.get((r["case_id"], r["method"])) or {}).get("ranked_grades"))[1] for r in group)
         for kind, n in counts.items():
             rows.append(cells([esc(m["label"]), names[kind][int(zh)], str(n), str(len(group))]))
     return (
@@ -3003,6 +3012,7 @@ def executive_table(profile, selected, content, scores, zh):
 
 def discovery_comparison(profile, selected, content, zh):
     """Compare every provider on the same explicit page/site checks."""
+    cutoff = profile["protocol"]["top_k"]
     rows = []
     for population in metric_populations(profile, content):
         kind = population.get('metric_kind', population['id'])
@@ -3023,7 +3033,7 @@ def discovery_comparison(profile, selected, content, zh):
         rows.append('<tr>' + cells_html + '</tr>')
     if not rows:
         return ''
-    return '<section data-discovery><h2>' + ('指定网页与网站的发现能力' if zh else 'Directed webpage discovery') + '</h2><p>' + ('在自建集有明确网页或网站要求的题目中，核对前五条是否出现指定网址或域名；下表列出各接口的命中数。这两项衡量找页能力，相关性仍看全量质量分。' if zh else 'For scenario queries with explicit webpage/site targets, check whether the top five contain the given URL or domain. These diagnose discovery separately from graded relevance.') + '</p>' + table((['检查','题数'] if zh else ['Check','Queries']) + [m['label'] for m in profile['methods']], rows) + '</section>'
+    return '<section data-discovery><h2>' + ('指定网页与网站的发现能力' if zh else 'Directed webpage discovery') + '</h2><p>' + (f'在自建集有明确网页或网站要求的题目中，核对前 {cutoff} 条是否出现指定网址或域名；下表列出各接口的命中数。这两项衡量找页能力，相关性仍看全量质量分。' if zh else f'For scenario queries with explicit webpage/site targets, check whether the top {cutoff} contain the given URL or domain. These diagnose discovery separately from graded relevance.') + '</p>' + table((['检查','题数'] if zh else ['Check','Queries']) + [m['label'] for m in profile['methods']], rows) + '</section>'
 
 
 def benchmark_operations(profile, selected, content, zh):
@@ -3097,6 +3107,8 @@ def metric_populations(profile, content):
 
 
 def population_summary(profile, selected, content, zh, *, diagnostics=False, relevance_scores=None):
+    from .core import factual_evidence
+    cutoff = profile["protocol"]["top_k"]
     lang = "zh" if zh else "en"
     independent = content.get("independent_benchmarks")
     roots = [p for p in metric_populations(profile, content) if p.get("benchmark_root")] if independent else []
@@ -3131,7 +3143,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                 measures = [q['ndcg'] * 100, q['precision'] * profile['protocol']['top_k'], sum(r['success'] for r in relevance_scores if r['case_id'] in ids and r['method'] == method['id'])]
             elif kind == 'factual':
                 quality_group = [r for r in group if r['case_id'] in quality_ids]
-                measures = [sum(r['metrics']['labeled_source_hit_5'] for r in quality_group), sum(factual_sensitivity(cases[r['case_id']], r['results'])['metrics']['answer_in_delivered_text_5'] for r in quality_group)]
+                measures = [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_hit_{cutoff}'] for r in quality_group), sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][f'answer_in_delivered_text_{cutoff}'] for r in quality_group)]
             elif kind == 'scenario':
                 hit_key = 'anchor_hit_5' if profile['protocol']['top_k'] == 5 else 'anchor_hit_10'
                 if any(r['metrics'].get(hit_key) is None or r['metrics'].get('reciprocal_rank') is None for r in group):
@@ -3185,18 +3197,18 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             body += '<p>' + esc(population['description'][lang]) + '</p>'
         headings = ['返回结果的题数'] if zh else ['Queries returning results']
         if ranked:
-            headings = ['搜索质量分（0–100）', '每题可用结果（条/5）', '有直接满足结果的题数'] if zh else ['Ranking quality (0–100)', 'Useful results per query (/5)', 'Queries with a direct match']
-            body += '<p><a href="quality.html#relevance-scores">' + ('质量分 = nDCG@5 × 100 · 查看等级和计算方法' if zh else 'Quality = nDCG@5 × 100 · Inspect grades and calculation') + '</a></p>'
+            headings = ['搜索质量分（0–100）', f'每题可用结果（条/{cutoff}）', '有直接满足结果的题数'] if zh else ['Ranking quality (0–100)', f'Useful results per query (/{cutoff})', 'Queries with a direct match']
+            body += '<p><a href="quality.html#relevance-scores">' + (f'质量分 = nDCG@{cutoff} × 100 · 查看等级和计算方法' if zh else f'Quality = nDCG@{cutoff} × 100 · Inspect grades and calculation') + '</a></p>'
         elif kind == 'factual':
             if quality_ids != ids:
-                body += '<p data-quality-exclusions>' + ('性能与费用统计包含已隔离题的实际请求；质量指标使用上方有效题目。' if zh else f'Quality uses {len(quality_ids)} reviewed-reference queries for every method; {len(ids) - len(quality_ids)} defective references are quarantined. Latency and cost retain all {len(ids)} queries.') + '</p>'
-            body += '<p class="population-note">' + ('检查前五条结果：是否搜到题库给定的网址，以及交付文字是否包含参考答案。答案文字检查剔除明确的题库转载和包含原题及评测或训练数据结构的记录。' if zh else 'Source found: a published supporting URL appears in the top five. Answer cue: allowed reference-answer text appears in delivered text after excluding explicit dataset mirrors; this is not semantic accuracy.') + '</p>'
+                body += '<p data-quality-exclusions>' + (f'质量统计使用采集后完成参考审查的 {len(quality_ids)} 题；另有 {len(ids) - len(quality_ids)} 题因参考问题统一排除质量分，其耗时和费用保留。' if zh else f'Quality uses {len(quality_ids)} reviewed-reference queries for every method; {len(ids) - len(quality_ids)} defective references are quarantined. Latency and cost retain all {len(ids)} queries.') + '</p>'
+            body += '<p class="population-note">' + (f'检查前 {cutoff} 条结果：是否搜到题库给定的网址，以及交付文字是否包含参考答案。答案文字检查剔除明确的题库转载和包含原题及评测或训练数据结构的记录。' if zh else f'Source found: a published supporting URL appears in the top {cutoff}. Answer cue: allowed reference-answer text appears in delivered text after excluding explicit dataset mirrors; this is not semantic accuracy.') + '</p>'
             headings = ['搜到题库给定网页的题数', '搜索文字含参考答案的题数'] if zh else ['Published source found', 'Answer cue (mirrors excluded)']
         elif kind == 'scenario':
-            body += '<p class="population-note">' + ('目标命中：前五条找到参考页面。MRR 衡量首个目标位置，第一条得 1、第二条得 0.5、未找到得 0，再对全部题取平均；越高表示目标越靠前。' if zh else 'Target found: a reference page appears in the top five. MRR averages reciprocal first-target rank: 1 for first, 0.5 for second, and 0 for a miss. Higher means targets appear earlier.') + '</p>'
+            body += '<p class="population-note">' + (f'目标命中：前 {cutoff} 条找到参考页面。MRR 衡量首个目标位置，第一条得 1、第二条得 0.5、未找到得 0，再对全部题取平均；越高表示目标越靠前。' if zh else f'Target found: a reference page appears in the top {cutoff}. MRR averages reciprocal first-target rank: 1 for first, 0.5 for second, and 0 for a miss. Higher means targets appear earlier.') + '</p>'
             headings = ['找到目标页面', '目标排名 MRR'] if zh else ['Reference target found', 'Target MRR']
         elif kind == 'site':
-            body += '<p class="population-note">' + ('站点满足：前五条至少一条来自题目指定域名；域名占比是前五条中指定域名结果的平均比例。两项都不判断页面内容是否相关。' if zh else 'Site satisfied: at least one top-five result uses the requested domain. Domain fraction averages the share of top-five results from that domain. Neither metric judges page relevance.') + '</p>'
+            body += '<p class="population-note">' + (f'站点满足：前 {cutoff} 条至少一条来自题目指定域名；域名占比是前 {cutoff} 条中指定域名结果的平均比例。两项都不判断页面内容是否相关。' if zh else f'Site satisfied: at least one top-{cutoff} result uses the requested domain. Domain fraction averages the share of top-{cutoff} results from that domain. Neither metric judges page relevance.') + '</p>'
             headings = ['满足站点约束', '指定域名占比'] if zh else ['Site constraint met', 'Requested-domain fraction']
         headers = (['方法'] + headings + ['平均耗时 ms','P50 耗时 ms','P95 耗时 ms','目录价估算费用']) if zh else (['Method'] + headings + ['Mean ms','P50 ms','P95 ms','Population cost'])
         body += table(headers, rendered)

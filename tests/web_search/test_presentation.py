@@ -64,9 +64,9 @@ def test_factual_reciprocal_rank_is_directional_and_highlighted(tmp_path):
     profile = json.loads((tmp_path/'fixture/profile.json').read_text())
     rows = [json.loads(line) for line in (tmp_path/'fixture/results.jsonl').read_text().splitlines()]
     for case in profile['cases']:
-        case.update(reference_answer='answer',reference_urls=[])
+        case.update(reference_answer='answer',reference_urls=['https://example.org/reference'])
     for row in rows:
-        row['metrics'].update(labeled_source_hit_5=0,labeled_source_rr_5=0.5 if row['method']=='lexmount' else 0,answer_in_preview_5=0,answer_in_delivered_text_5=0)
+        row['results'] = [{'url': 'https://example.org/other'}, {'url': 'https://example.org/reference'}] if row['method'] == 'lexmount' else []
     doc=check_presentation(factual_panel(profile,rows,True))
     cells=doc.select('td[data-metric="factual-1"]')
     assert len(cells) > 1

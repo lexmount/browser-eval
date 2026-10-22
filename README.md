@@ -114,7 +114,7 @@ major comparison rules.
 
 | Output | What you will find |
 | --- | --- |
-| `report/en/index.html` | English edition when it was explicitly requested; otherwise a not-generated notice |
+| `report/en/index.html` | English edition under the default configuration; Chinese-only builds show a not-generated notice |
 | `report/index.html` | Report entry; opens the selected language |
 | `results.jsonl`, `summary.json` | Scores and aggregates for scripts or further analysis |
 | `manifest.json`, `dataset.json` | Methods, versions, settings and tasks used |

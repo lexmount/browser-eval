@@ -425,3 +425,32 @@ def test_resume_reference_drift_preserves_every_saved_result_and_call(tmp_path):
         assert not list(output.glob("resume-*"))
         for name, raw in before.items():
             assert (output / name).read_bytes() == raw
+
+
+def test_certified_entry_rejects_diagnostic_before_any_call(tmp_path, monkeypatch):
+    import pytest
+    from harness.web_search import runner
+    monkeypatch.setattr(runner, "http_call", lambda *a, **kw: pytest.fail("Network called"))
+    with pytest.raises(SystemExit) as error:
+        runner.main(["--profile", "missing.json", "--output", str(tmp_path / "run"), "--diagnostic"], certified=True)
+    assert error.value.code == 2
+
+
+def test_completed_resume_rejected_without_network_or_saved_file_changes(tmp_path, monkeypatch):
+    import pytest
+    from harness.web_search import runner
+    profile = CollectionScenarios().profile(tmp_path)
+    output = tmp_path / "run"
+    output.mkdir()
+    (output / "receipt.json").write_text("{}")
+    (output / "profile.json").write_bytes(profile.read_bytes())
+    (output / "run-contract.json").write_text("{}")
+    (output / "results.jsonl").write_text("")
+    before = {p.name: p.read_bytes() for p in output.iterdir()}
+    monkeypatch.setattr(runner, "load_runtime_env", lambda: None)
+    for key in ("LEXMOUNT_SEARCH_API_KEY", "DEEPSEEK_API_KEY", "BOCHA_API_KEY"):
+        monkeypatch.setenv(key, "fixture")
+    monkeypatch.setattr(runner, "http_call", lambda *a, **kw: pytest.fail("Network called"))
+    with pytest.raises(ValueError, match="completed|Completed"):
+        runner.run(profile, output, resume=True, certified=True)
+    assert {p.name: p.read_bytes() for p in output.iterdir()} == before

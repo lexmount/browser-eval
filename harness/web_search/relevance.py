@@ -4,7 +4,7 @@ import hashlib
 import json
 import math
 
-from .core import canonical_url, in_domain
+from .core import candidate_identity, canonical_url, in_domain
 
 
 def _gain(grade, rank):
@@ -31,7 +31,7 @@ def score(profile, rows, plan, labels):
             ids = []
             for item in result["results"][:cutoff]:
                 canonical = canonical_url(item["url"])
-                candidate_id = hashlib.sha256((case_id + "\0" + canonical).encode()).hexdigest()[:12]
+                candidate_id = candidate_identity(case_id, canonical)
                 ids.append(candidate_id)
                 candidate_ids.add(candidate_id)
             rankings[method] = ids
@@ -103,11 +103,11 @@ def verify_provenance(profile, rows, evidence):
         if ids != set(labels[case_id]) or len(ids) != len(packet["candidates"]):
             raise ValueError("Blind packet candidates disagree with grades")
         for candidate in packet["candidates"]:
-            expected = hashlib.sha256((case_id + "\0" + canonical_url(candidate["url"])).encode()).hexdigest()[:12]
+            expected = candidate_identity(case_id, candidate["url"])
             if candidate["candidate_id"] != expected:
                 raise ValueError("Blind packet URL identity mismatch")
         for method in (m["id"] for m in profile["methods"]):
-            actual = [hashlib.sha256((case_id + "\0" + canonical_url(item["url"])).encode()).hexdigest()[:12]
+            actual = [candidate_identity(case_id, item["url"])
                       for item in indexed[case_id, method]["results"][:plan["cutoff"]]]
             if rankings[case_id][method] != actual:
                 raise ValueError("Published rank mapping disagrees with provider results")
@@ -143,7 +143,7 @@ def candidate_packet(profile, rows, source_requirements=None, *, source_policy="
             ranking = []
             for item in indexed[cid, method["id"]]["results"][:cutoff]:
                 url = canonical_url(item["url"])
-                key = hashlib.sha256((cid + "\0" + url).encode()).hexdigest()[:12]
+                key = candidate_identity(cid, url)
                 ranking.append(key)
                 candidate = pool.setdefault(key, {"candidate_id": key, "url": url, "previews": []})
                 preview = {f: item.get(f) or "" for f in ("title", "snippet")}
@@ -197,7 +197,7 @@ def export_annotations(profile, rows, destination):
     destination.mkdir(parents=True, exist_ok=False)
     (destination / "packet.json").write_text(json.dumps(packet, ensure_ascii=False, indent=2))
     payload = json.dumps(packet, ensure_ascii=False).replace("<", "\\u003c")
-    page = ANNOTATION_HTML.replace("__PACKET__", payload)
+    page = ANNOTATION_HTML.replace("__PACKET__", payload).replace("__CUTOFF__", str(profile["protocol"]["top_k"]))
     (destination / "index.html").write_text(page, encoding="utf-8")
     return destination / "index.html"
 
@@ -205,7 +205,7 @@ def export_annotations(profile, rows, destination):
 ANNOTATION_HTML = r'''<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>自建搜索题库 · 全量相关性标注</title><style>
 body{font:16px/1.6 system-ui;color:#183039;background:#f4f7f8;margin:auto;max-width:1000px;padding:28px}header,article{background:white;padding:24px;border:1px solid #d8e1e5;border-radius:10px;margin:16px 0}button,select,input{font:inherit;padding:8px}a{overflow-wrap:anywhere;color:#065c78}article p{white-space:pre-wrap}nav{display:flex;gap:12px;flex-wrap:wrap;align-items:center}#progress{font-weight:bold}summary{cursor:pointer}label{display:block;margin:10px 0}.error{color:#a32121}small{color:#52676f}</style>
-<header><h1>自建搜索题库 · 全量相关性标注</h1><p>按题意判断每个网页是否有用。候选网页来自三家接口的前 5 条结果，按网址去重，隐藏接口名称和原始排名。所有题目都使用同一套标准。</p>
+<header><h1>自建搜索题库 · 全量相关性标注</h1><p>按题意判断每个网页是否有用。候选网页来自各接口的前 __CUTOFF__ 条结果，按网址去重，隐藏接口名称和原始排名。所有题目都使用同一套标准。</p>
 <p><b>0 分</b>：无关，或违反题目明确的网站、日期、语言等要求。<b>1 分</b>：话题相关，但没有可用于回答的信息。<b>2 分</b>：提供部分有效信息。<b>3 分</b>：直接满足主要需求。</p>
 <p>先看查询和预览，信息不足时打开原网页核实。技术问题允许多种正确方法；开放问题允许多种相关来源。接口没有返回网页的题目也要确认。分数由人工填写；页面只保存和校验，不会调用模型。</p>
 <label>标注者姓名 <input id="reviewer" autocomplete="name"></label><p id="progress"></p><nav><button id="prev">上一题</button><select id="cases"></select><button id="next">下一题</button><button id="unfinished">下一道未完成</button><button id="export">导出完整标注</button></nav><p id="message" role="status"></p></header>
@@ -217,7 +217,7 @@ let state;try{state=JSON.parse(localStorage.getItem(key))}catch{};state=state||{
 const done=c=>state.reviewed.includes(c.case_id)&&c.candidates.every(x=>Number.isInteger(state.labels[c.case_id]?.[x.candidate_id]));
 function save(){state.name=$('#reviewer').value;localStorage.setItem(key,JSON.stringify(state));$('#progress').textContent=items.filter(done).length+' / '+items.length+' 题完成；候选网页 '+items.reduce((n,c)=>n+c.candidates.length,0)+' 条'}
 function render(){let c=items[at];$('#cases').value=String(at);$('#query').textContent=c.query+(c.required_domains?.length?'（限定网站：'+c.required_domains.join(', ')+'）':'');$('#reviewed').checked=state.reviewed.includes(c.case_id);$('#prev').disabled=at===0;$('#next').disabled=at===items.length-1;
-$('#candidates').innerHTML=c.candidates.map(x=>'<article><a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.url)+'</a>'+x.previews.map(p=>'<h3>'+esc(p.title)+'</h3><p>'+esc(p.snippet)+'</p>').join('')+'<label>相关性 <select data-grade="'+esc(x.candidate_id)+'"><option value="">请选择</option>'+[0,1,2,3].map(g=>'<option value="'+g+'" '+(state.labels[c.case_id]?.[x.candidate_id]===g?'selected':'')+'>'+g+' 分</option>').join('')+'</select></label></article>').join('')||'<article>三家均未返回候选网页。请确认本题，评分时保留这道题。</article>';
+$('#candidates').innerHTML=c.candidates.map(x=>'<article><a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.url)+'</a>'+x.previews.map(p=>'<h3>'+esc(p.title)+'</h3><p>'+esc(p.snippet)+'</p>').join('')+'<label>相关性 <select data-grade="'+esc(x.candidate_id)+'"><option value="">请选择</option>'+[0,1,2,3].map(g=>'<option value="'+g+'" '+(state.labels[c.case_id]?.[x.candidate_id]===g?'selected':'')+'>'+g+' 分</option>').join('')+'</select></label></article>').join('')||'<article>各接口均未返回候选网页。请确认本题，评分时保留这道题。</article>';
 document.querySelectorAll('[data-grade]').forEach(el=>el.onchange=()=>{state.labels[c.case_id]??={};if(el.value==='')delete state.labels[c.case_id][el.dataset.grade];else state.labels[c.case_id][el.dataset.grade]=Number(el.value);save()});save()}
 $('#cases').innerHTML=items.map((c,i)=>'<option value="'+i+'">'+(i+1)+'. '+esc(c.query)+'</option>').join('');$('#reviewer').value=state.name;$('#reviewer').oninput=save;
 $('#cases').onchange=()=>{at=Number($('#cases').value);render()};$('#prev').onclick=()=>{at--;render()};$('#next').onclick=()=>{at++;render()};$('#unfinished').onclick=()=>{let i=items.findIndex(c=>!done(c));if(i>=0){at=i;render()}};

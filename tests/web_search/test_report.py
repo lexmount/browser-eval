@@ -38,15 +38,19 @@ class ReportScenarios(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Quality page'):
             check(self.out)
 
-    def test_reviewed_report_does_not_repeat_collection_counts_in_interpretation(self):
+    def test_reference_exclusion_does_not_remove_cohort_measurements(self):
         from harness.web_search.report import cohort_summary
-        profile = {"report_cohorts": [{"id": "public", "case_ids": ["good", "bad"]}],
-                   "factual_quality_exclusions": ["bad"]}
+        from harness.web_search.report import load_run
+        profile, rows, _ = load_run(self.root / "fixture")
+        profile["report_cohorts"] = [{"id": "public", "label": {"zh": "公开组", "en": "Public"}, "case_ids": [c["id"] for c in profile["cases"]]}]
+        profile["factual_quality_exclusions"] = [profile["cases"][0]["id"]]
+        for row in rows:
+            row["cohort"] = "public"
         for zh in (True, False):
-            text = BeautifulSoup(cohort_summary(profile, [], zh), "html.parser").get_text()
-            self.assertNotIn("2", text)
-            self.assertIn("实际请求" if zh else "physical request", text)
-            self.assertIn("有效题库" if zh else "active dataset", text)
+            doc = BeautifulSoup(cohort_summary(profile, rows, zh), "html.parser")
+            self.assertEqual(len(doc.select("tbody tr")), len(profile["methods"]))
+            self.assertIn("实际请求" if zh else "physical requests", doc.get_text())
+
 
     def test_dataset_uses_reviewed_questions_without_rewriting_collected_calls(self):
         from harness.web_search.report import quality_dataset, metric_populations, dataset_context
@@ -553,14 +557,16 @@ class ReportScenarios(unittest.TestCase):
 
     def test_missing_winner_marker_is_rejected(self):
         p = self.out / "index.html"
-        p.write_text(p.read_text().replace('class="win"', 'class="neutral"'))
+        doc = BeautifulSoup(p.read_text(), 'html.parser')
+        doc.select_one('.comparison-winner').unwrap()
+        p.write_text(str(doc))
         with self.assertRaises(ValueError):
             check(self.out)
 
     def test_wrong_winner_marker_is_rejected(self):
         p = self.out / "index.html"
         soup = BeautifulSoup(p.read_text(), "html.parser")
-        soup.select("table tbody tr")[1].select("td")[3]["class"] = ["win"]
+        soup.select("table tbody tr")[1].select_one('td[data-metric="p50-ms"]').append(soup.select_one(".comparison-winner").extract())
         p.write_text(str(soup))
         with self.assertRaises(ValueError):
             check(self.out)

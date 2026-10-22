@@ -7,6 +7,8 @@ import re
 import unicodedata
 from decimal import Decimal
 
+# Frozen input policy and algorithm receipt have separate version identities.
+POLICY_NAME = "published-answers/2"
 RULE_VERSION = "reference-answer-evidence/1"
 NUMBER = r"[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
 

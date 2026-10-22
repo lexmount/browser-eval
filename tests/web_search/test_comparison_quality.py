@@ -99,6 +99,9 @@ def test_real_browser_filters_and_highlights_respect_quality_scope(zh):
         try:
             page.set_content(render_comparison(profile, rows, zh))
             page.locator("[data-output-benchmark]").select_option("factual")
+            assert page.locator('[data-output-benchmark] option[value="factual"]').inner_text().endswith('· 2')
+            assert "Who founded isolated?" not in page.locator('[data-relation-tasks]').inner_text()
+            page.locator("[data-output-benchmark]").select_option("excluded")
             isolated = page.locator(".compare-task").filter(
                 has=page.locator("h3", has_text="Who founded isolated?")
             )
@@ -107,6 +110,7 @@ def test_real_browser_filters_and_highlights_respect_quality_scope(zh):
             assert isolated.locator(".compare-match").count() == 0
             assert isolated.locator('a[href="details/isolateda.html"]').count() == 1
             assert isolated.locator(".compare-result").count() == 2
+            page.locator("[data-output-benchmark]").select_option("all")
             page.locator("[data-compare-relation]").select_option("all_pass")
             assert page.locator("[data-relation-tasks] [data-show-query]").all_text_contents() == [
                 "Who founded genuine?"

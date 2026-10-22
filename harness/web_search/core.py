@@ -7,8 +7,6 @@ Unjudged URLs are not irrelevant documents. Provider scores are not judgments.
 import hashlib
 import json
 import math
-import os
-import tempfile
 import re
 import statistics
 import unicodedata
@@ -24,18 +22,9 @@ def digest(data):
 
 def request_cost(method, status, transport_exit, payload):
     """Billing follows the provider response, not local URL acceptance."""
-    price = method.get("price_per_1000")
-    if price is None or transport_exit:
-        return None
-    if status != 200:
-        return 0.0
-    if method["billing"] == "http-200-nonempty":
-        if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
-            return None
-        return price / 1000 if payload["results"] else 0.0
-    if method["billing"] != "http-200":
-        raise ValueError("Unsupported billing policy")
-    return price / 1000
+    from .adapters import Adapter, adapter_for
+    adapter = adapter_for(method["adapter"]) if method.get("adapter") else Adapter(None)
+    return adapter.cost(method, status, transport_exit, payload)
 
 
 def canonical_url(url):
@@ -170,14 +159,16 @@ def contains_answer(text, answer):
     )
 
 
-def factual_evidence(case, results):
+def factual_evidence(case, results, *, cutoff=5):
+    results = results[:cutoff]
     sources = {canonical_url(u) for u in case.get("reference_urls", [])}
     source_ranks = [
         i for i, item in enumerate(results, 1) if canonical_url(item["url"]) in sources
     ]
     # Test fields individually so words spanning unrelated fields cannot form a hit.
     def hit(fields):
-        if case.get("answer_match_rule") == "published-answers/2":
+        from .answer_rules import POLICY_NAME
+        if case.get("answer_match_rule") == POLICY_NAME:
             from .answer_rules import match_reference_answer
             matcher = lambda text: match_reference_answer(case["reference_answer"], text)
         else:
@@ -187,10 +178,10 @@ def factual_evidence(case, results):
             for item in results for field in fields
         ))
     return {
-        "labeled_source_hit_5": int(bool(source_ranks)),
-        "labeled_source_rr_5": 1 / min(source_ranks) if source_ranks else 0,
-        "answer_in_preview_5": hit(("title", "snippet")),
-        "answer_in_delivered_text_5": hit(("title", "snippet", "summary", "content")),
+        f"labeled_source_hit_{cutoff}": int(bool(source_ranks)),
+        f"labeled_source_rr_{cutoff}": 1 / min(source_ranks) if source_ranks else 0,
+        f"answer_in_preview_{cutoff}": hit(("title", "snippet")),
+        f"answer_in_delivered_text_{cutoff}": hit(("title", "snippet", "summary", "content")),
     }
 
 
@@ -308,29 +299,21 @@ def verify_bundle(root, bindings):
 
 
 def write_json(path, value):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as stream:
-        temporary = Path(stream.name)
-        try:
-            stream.write(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        except BaseException:
-            temporary.unlink(missing_ok=True)
-            raise
-    try:
-        os.replace(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
-    return {"path": path.name, "sha256": digest(path.read_bytes())}
+    from harness.reporting.publication import atomic_write
+    atomic_write(Path(path), (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode())
 
 
-def task_acceptance(case, row, metric="primary", *, quality_excluded=False, cutoff=5):
+def candidate_identity(case_id, url):
+    return digest((case_id + "\0" + canonical_url(url)).encode())[:12]
+
+
+def task_acceptance(case, row, metric="primary", *, quality_excluded=False, cutoff=5, relevance_grades=None):
     if row is None:
         return None
     if quality_excluded and "reference_answer" in case and metric in ("primary", "source", "answer"):
         return None
+    if metric == "primary" and relevance_grades is not None:
+        return any(g is not None and g >= 2 for g in relevance_grades[:cutoff])
     if metric == "primary":
         metric = "answer" if "reference_answer" in case else "source" if case.get("anchors") else "site" if case.get("domains") and case.get("family") in ("site", "vertical") else "unscored"
     if metric == "availability":
@@ -344,7 +327,7 @@ def task_acceptance(case, row, metric="primary", *, quality_excluded=False, cuto
     if "reference_answer" in case:
         from .evidence_quality import factual_sensitivity
         metrics = factual_sensitivity(case, row.get("results", []), cutoff=cutoff)["metrics"]
-        return bool(metrics["answer_in_delivered_text_5"] if metric == "answer" else metrics["labeled_source_hit_5"])
+        return bool(metrics[f"answer_in_delivered_text_{cutoff}"] if metric == "answer" else metrics[f"labeled_source_hit_{cutoff}"])
     if metric == "answer" or not case.get("anchors"):
         return None
     key = "anchor_hit_5" if cutoff == 5 else "anchor_hit_10" if cutoff == 10 else None
@@ -355,12 +338,14 @@ def task_acceptance(case, row, metric="primary", *, quality_excluded=False, cuto
     return bool(evaluate(case, safe, cutoff=cutoff)["reciprocal_rank"])
 
 
-def classify(case, row, *, cutoff=5):
+def classify(case, row, *, cutoff=5, quality_excluded=False, relevance_grades=None):
     """Primary acceptance and diagnostic labels share the same task predicate."""
+    if quality_excluded:
+        return "probe", "quality_excluded"
     if row.get("error") or row.get("http_status", 200) != 200:
         return "fail", "api_error"
     if not row["results"]:
         return "fail", "empty"
-    accepted = task_acceptance(case, row, cutoff=cutoff)
-    category = "answer" if "reference_answer" in case else "target" if case.get("anchors") else "domain" if case.get("domains") else "probe"
+    accepted = task_acceptance(case, row, cutoff=cutoff, quality_excluded=quality_excluded, relevance_grades=relevance_grades)
+    category = "relevance" if relevance_grades is not None else "answer" if "reference_answer" in case else "target" if case.get("anchors") else "domain" if case.get("domains") else "probe"
     return (("pass" if accepted else "fail"), category + ("_hit" if accepted else "_miss")) if accepted is not None else ("probe", "probe")

@@ -7,6 +7,9 @@ import hashlib
 import json
 import os
 import signal
+import shutil
+import tempfile
+import threading
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -38,7 +41,7 @@ PROMPT = (
     "wer, reference URLs, provenance and acceptance requirements are coherent. Fo"
     "r factual reference answers, inspect only the frozen source observations "
     "included in this packet. Cite their URLs and exact supporting excerpts. "
-    "External search and local-file tools are disabled. A publisher annotation "
+    "External search and local-file tools are disabled. Provider outputs do not independently verify a reference. If reference_observations is empty, record a reference-limitation issue rather than claiming verification. A publisher annotation "
     "alone is not independent verification; record insufficient evidence as an "
     "issue. For open-ended queries, review whether r"
     "equirements and expected sources make sense.\nFor in-house cases grade EACH p"
@@ -131,20 +134,23 @@ def make_cases(profile, rows, report):
     """Return full, blinded cases and a private mapping to original row IDs."""
     from .relevance import candidate_packet
 
+    methods = {m["id"]: m for m in profile["methods"]}
     hydrated = []
+    full_by_id = {}
     for row in rows:
         path = report / row["evidence"]["path"]
         if path.is_symlink() or sha(path.read_bytes()) != row["evidence"]["sha256"]:
             raise ValueError("Raw evidence changed")
         try:
             full = (
-                normalize(json.loads(path.read_bytes()))
+                normalize(json.loads(path.read_bytes()), methods[row["method"]].get("adapter"))
                 if row["http_status"] == 200 and not row["error"]
                 else []
             )
         except (ValueError, TypeError):
             full = []
         hydrated.append({**row, "results": full})
+        full_by_id[row["id"]] = full
     pooled, _ = candidate_packet(profile, hydrated)
     pools = {p["case_id"]: p["candidates"] for p in pooled["blind_candidate_packets"]}
     result, private = [], {}
@@ -174,11 +180,7 @@ def make_cases(profile, rows, report):
                 or sha(path.read_bytes()) != evidence["sha256"]
             ):
                 raise ValueError("Raw evidence changed")
-            try:
-                payload = json.loads(path.read_bytes())
-                full = normalize(payload) if row["http_status"] == 200 and not row["error"] else []
-            except (ValueError, TypeError):
-                full = []
+            full = full_by_id[row["id"]]
             outputs.append(
                 {
                     "output_id": oid,
@@ -200,7 +202,7 @@ def make_cases(profile, rows, report):
                 "raw_sha256": evidence["sha256"],
             }
         # Case definitions contain reference/provenance, never machine scores.
-        result.append({"case": case, "candidates": pools.get(cid, []), "outputs": outputs})
+        result.append({"case": case, "reference_observations": case.get("source_observations", case.get("reference_annotation", {}).get("sources", [])), "candidates": pools.get(cid, []), "outputs": outputs})
     if len(indexed) != len(private):
         raise ValueError("Rows outside declared case/method inventory")
     return result, private
@@ -233,7 +235,22 @@ def report_binding(profile, rows):
     }
 
 
-def freeze(report, destination, *, model=None, budget=180000, scope="failures", authorization=None):
+def freeze(report, destination, **options):
+    """Make an incomplete freeze invisible to callers and resume operations."""
+    destination = Path(destination)
+    if destination.exists():
+        raise ValueError("Freeze destination already exists; use run to resume")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=".review-freeze-", dir=destination.parent))
+    try:
+        contract = _freeze(report, staging / "frozen", **options)
+        os.replace(staging / "frozen", destination)
+        return contract
+    finally:
+        shutil.rmtree(staging)
+
+
+def _freeze(report, destination, *, model=None, budget=180000, scope="failures", authorization=None):
     from .report import check
 
     if not model or model == "codex-app-inherited":
@@ -253,6 +270,10 @@ def freeze(report, destination, *, model=None, budget=180000, scope="failures", 
     full_report_binding = report_binding(
         profile, [{**row, "results": items_by_row[row["id"]]} for row in rows]
     )
+    from .core import classify
+    definitions = {c["id"]: c for c in profile["cases"]}
+    states = {r["id"]: classify(definitions[r["case_id"]], r, cutoff=profile["protocol"]["top_k"]) for r in rows}
+    full_counts = {"cases": len(cases), "outputs": len(rows), "candidates": sum(len(c["candidates"]) for c in cases)}
     if scope == "failures":
         from .core import classify
         definitions = {c["id"]: c for c in profile["cases"]}
@@ -271,9 +292,9 @@ def freeze(report, destination, *, model=None, budget=180000, scope="failures", 
             binding = aliases[output["output_id"]]
             raw_path = destination / "raw" / (sha(output["output_id"].encode())[:24] + ".json")
             raw_path.write_bytes(Path(binding["raw_path"]).read_bytes())
-            binding["frozen_raw_path"] = str(raw_path.resolve())
+            binding["frozen_raw_path"] = raw_path.relative_to(destination).as_posix()
             binding["original_source_path"] = binding["raw_path"]
-            binding["raw_path"] = str(raw_path.resolve())
+            binding["raw_path"] = raw_path.relative_to(destination).as_posix()
     packets, current = [], []
     for case in cases:
         if current and len(encoded(current + [case]).decode()) > budget:
@@ -295,13 +316,13 @@ def freeze(report, destination, *, model=None, budget=180000, scope="failures", 
         "model": model,
         "scope": scope,
         "authorization": authorization,
+        "full_counts": full_counts,
+        "accepted_unreviewed_passes": sum(state[0] == "pass" for state in states.values()) if scope == "failures" else 0,
         "case_count": len(cases),
         "output_count": len(aliases),
         "candidate_count": sum(len(c["candidates"]) for c in cases),
         "case_ids": [c["case"]["id"] for c in cases],
         "output_ids": sorted(aliases),
-        "profile_sha256": sha(encoded(profile)),
-        "rows_sha256": sha(encoded(rows)),
         "report_binding": full_report_binding,
         "source_bindings": bindings,
         "prompt_sha256": sha(PROMPT.encode()),
@@ -351,6 +372,8 @@ def load_frozen(root):
     aliases = json.loads((root / "alias-map.private.json").read_bytes())
     for binding in aliases.values():
         path = Path(binding["raw_path"])
+        if not path.is_absolute():
+            path = root / path
         if path.is_symlink() or sha(path.read_bytes()) != binding["raw_sha256"]:
             raise ValueError("Frozen raw output changed")
     cases = [
@@ -374,6 +397,8 @@ def load_frozen(root):
     for case in cases:
         for output in case["outputs"]:
             path = Path(aliases[output["output_id"]]["raw_path"])
+            if not path.is_absolute():
+                path = root / path
             if path.is_symlink() or sha(path.read_bytes()) != output["raw_evidence"]["sha256"]:
                 raise ValueError("Anonymous raw evidence changed")
     return contract
@@ -425,6 +450,8 @@ def validate_result(packet, result, expected_hash):
         if dataset["status"] == "accept" and "reference_answer" in case["case"] and not checks:
             raise ValueError("Factual reference requires independent source checks")
         for source in checks:
+            if "reference_answer" in case["case"] and review["dataset_review"]["status"] == "accept" and not any(source.get("url") == observed.get("url") and source.get("excerpt", "") in observed.get("excerpt", "") for observed in case.get("reference_observations", [])):
+                raise ValueError("Reference check must quote an independent frozen source")
             if not all(
                 isinstance(source.get(k), str) and source[k].strip()
                 for k in ("url", "excerpt", "assessment")
@@ -466,15 +493,8 @@ def _successful(root, entry, contract):
         result_path = job / "result.json"
         if (
             state.get("status") != "completed"
-            or not (
-                (state.get("backend", "codex-cli") == "codex-cli" and state.get("returncode") == 0)
-                or (
-                    state.get("backend") == "codex-app-subagent"
-                    and state.get("reviewer_id", "").startswith("/root/")
-                    and contract["model"] == "codex-app-inherited"
-                    and "returncode" not in state
-                )
-            )
+            or state.get("backend", "codex-cli") != "codex-cli"
+            or state.get("returncode") != 0
             or state.get("packet_sha256") != entry["sha256"]
             or state.get("contract_sha256") != sha(encoded(contract))
             or state.get("result_sha256") != sha(result_path.read_bytes())
@@ -501,21 +521,21 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         raise ValueError("Limit must be positive")
     entries = contract["packets"][:limit] if limit is not None else contract["packets"]
 
-    def execute(entry):
+    active = {}
+    active_lock = threading.Lock()
+    isolated_home = root / "codex-home"
+    isolated_home.mkdir(exist_ok=True, mode=0o700)
+    auth = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "auth.json"
+    if auth.is_file() and not (isolated_home / "auth.json").exists():
+        shutil.copyfile(auth, isolated_home / "auth.json")
+        (isolated_home / "auth.json").chmod(0o600)
+    (isolated_home / "config.toml").write_text("# Isolated review runtime; no inherited MCP servers or plugins.\n", encoding="utf-8")
+
+    def execute_locked(entry):
         if _successful(root, entry, contract):
             return entry["id"], "reused"
         job = root / "jobs" / entry["id"]
         job.mkdir(parents=True, exist_ok=True)
-        state_path = job / "status.json"
-        if state_path.exists():
-            prior = json.loads(state_path.read_bytes())
-            if prior.get("status") == "running" and prior.get("pid"):
-                try:
-                    os.kill(prior["pid"], 0)
-                except ProcessLookupError:
-                    pass
-                else:
-                    raise ValueError("Packet already has a live review process: " + entry["id"])
         # Preserve unsuccessful physical jobs; never overwrite their outputs.
         previous = list(job.glob("attempt-*"))
         attempt = job / f"attempt-{len(previous) + 1:03d}"
@@ -558,23 +578,39 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         with (attempt / "stdout.log").open("wb") as out, (attempt / "stderr.log").open("wb") as err:
             process = subprocess.Popen(
                 command, stdin=subprocess.PIPE, stdout=out, stderr=err, start_new_session=True,
-                env={k: v for k, v in os.environ.items() if k in {"PATH", "HOME", "CODEX_HOME", "TMPDIR", "LANG", "LC_ALL"}}
+                env={**{k: v for k, v in os.environ.items() if k in {"PATH", "HOME", "TMPDIR", "LANG", "LC_ALL"}}, "CODEX_HOME": str(isolated_home.resolve())}
             )
+            with active_lock:
+                active[entry["id"]] = (process, job / "status.json", state)
             state["pid"] = process.pid
             save(job / "status.json", state)
             try:
                 process.communicate(text.encode(), timeout=timeout)
                 state["returncode"] = process.returncode
+                session_log = (attempt / "stdout.log").read_bytes()
+                state["session_log_sha256"] = sha(session_log)
+                state["requested_model"] = contract["model"]
+                events = []
+                for line in session_log.decode("utf-8", errors="replace").splitlines():
+                    try:
+                        event = json.loads(line)
+                        if isinstance(event, dict):
+                            events.append(event)
+                    except ValueError:
+                        continue
+                state["observed_model"] = next((e["model"] for e in events if isinstance(e.get("model"), str)), None)
                 if process.returncode != 0:
                     raise ValueError("Codex exited unsuccessfully")
                 validate_result(packet, json.loads(result_path.read_bytes()), entry["sha256"])
                 (job / "result.json").write_bytes(result_path.read_bytes())
                 state.update(status="completed", result_sha256=sha(result_path.read_bytes()))
-            except (subprocess.TimeoutExpired, ValueError, OSError, KeyboardInterrupt) as error:
+            except (subprocess.TimeoutExpired, ValueError, OSError) as error:
                 if process.poll() is None:
                     os.killpg(process.pid, signal.SIGKILL)
                     process.wait()
                 state.update(status="failed", returncode=process.returncode, error=str(error))
+            with active_lock:
+                active.pop(entry["id"], None)
             state["finished_at"] = time.time()
             save(attempt / "status.json", state)
             save(job / "status.json", state)
@@ -584,8 +620,30 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         )
         return entry["id"], state["status"]
 
-    with ThreadPoolExecutor(max_workers=workers) as pool:
+    def execute(entry):
+        import fcntl
+        job = root / "jobs" / entry["id"]
+        job.mkdir(parents=True, exist_ok=True)
+        with (job / "process.lock").open("a") as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as error:
+                raise ValueError("Packet already has an active reviewer: " + entry["id"]) from error
+            return execute_locked(entry)
+
+    pool = ThreadPoolExecutor(max_workers=workers)
+    try:
         return list(pool.map(execute, entries))
+    finally:
+        with active_lock:
+            remaining = list(active.values())
+        for process, path, state in remaining:
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
+            state.update(status="interrupted", returncode=process.returncode)
+            save(path, state)
+        pool.shutdown(wait=True, cancel_futures=True)
 
 
 def collect(root, *, require_complete=False):
@@ -643,15 +701,15 @@ def collect(root, *, require_complete=False):
         "model": contract["model"],
         "contract_sha256": sha(encoded(contract)),
         "scope": contract["scope"],
-        "provenance": {"contract": contract, "packets": [json.loads((root / e["path"]).read_bytes()) for e in contract["packets"]], "executions": [{**{k: v for k, v in json.loads((root / "jobs" / e["id"] / "status.json").read_bytes()).items() if k in {"status", "backend", "returncode", "packet_sha256", "contract_sha256", "input_sha256", "result_sha256"}}, "output_bytes_hex": (root / "jobs" / e["id"] / "result.json").read_bytes().hex()} for e in contract["packets"] if _successful(root, e, contract)]},
+        "provenance": {"contract": contract, "packets": [json.loads((root / e["path"]).read_bytes()) for e in contract["packets"]], "executions": [{**{k: v for k, v in json.loads((root / "jobs" / e["id"] / "status.json").read_bytes()).items() if k in {"status", "backend", "returncode", "packet_sha256", "contract_sha256", "input_sha256", "result_sha256", "requested_model", "observed_model", "session_log_sha256"}}, "output_bytes_hex": (root / "jobs" / e["id"] / "result.json").read_bytes().hex()} for e in contract["packets"] if _successful(root, e, contract)]},
         "report_binding": contract["report_binding"],
-        "case_total": contract["case_count"],
+        "case_total": contract.get("full_counts", {}).get("cases", contract["case_count"]),
         "case_reviewed": len(reviewed),
-        "output_total": contract["output_count"],
+        "output_total": contract.get("full_counts", {}).get("outputs", contract["output_count"]),
         "output_reviewed": len(outputs),
-        "candidate_total": contract["candidate_count"],
+        "candidate_total": contract.get("full_counts", {}).get("candidates", contract["candidate_count"]),
         "candidate_reviewed": sum(len(c["candidate_grades"]) for c in reviewed),
-        "accepted_unreviewed_passes": None if missing else 0,
+        "accepted_unreviewed_passes": None if missing else contract.get("accepted_unreviewed_passes", 0),
         "missing_case_ids": missing,
         "issue_case_count": len(issues),
         "open_issue_count": sum(
@@ -695,16 +753,26 @@ def validate_public_review(profile, rows, evidence):
     """Reject invented counts, changed answers and unfinished adjudications."""
     if (
         evidence.get("schema") != "web-search-independent-review-evidence/1"
-        or evidence.get("scope") != "all"
+        or evidence.get("scope") not in ("all", "failures")
         or evidence.get("report_binding") != report_binding(profile, rows)
     ):
         raise ValueError("Independent review does not bind this complete report")
+    scope = evidence["scope"]
+    if profile.get("independent_result_review_scope") == "all" and scope != "all":
+        raise ValueError("This report explicitly requires a complete result review")
     from .relevance import legacy_evidence_allowed
     proof = evidence.get("provenance")
     if not proof and not legacy_evidence_allowed(evidence, "review"):
         raise ValueError("Independent review requires frozen contract, packets and execution receipts")
     if proof:
         contract = proof["contract"]
+        for binding in contract.get("source_bindings", []):
+            if Path(binding["path"]).is_absolute() or ".." in Path(binding["path"]).parts:
+                raise ValueError("Public review contains a private source path")
+        if any(any(key in execution for key in ("pid", "command", "cwd", "attempt_path")) for execution in proof["executions"]):
+            raise ValueError("Public review contains private execution metadata")
+        if contract.get("scope") != scope or contract.get("model") != evidence.get("model") or scope == "all" and not contract.get("authorization"):
+            raise ValueError("Review scope, requested model or authorization differs")
         if sha(encoded(contract)) != evidence["contract_sha256"] or contract["report_binding"] != report_binding(profile, rows):
             raise ValueError("Independent review frozen contract differs")
         if len(proof["packets"]) != len(contract["packets"]) or len(proof["executions"]) != len(contract["packets"]):
@@ -719,12 +787,16 @@ def validate_public_review(profile, rows, evidence):
             raw_opinion = bytes.fromhex(execution.get("output_bytes_hex", ""))
             if json.loads(raw_opinion) != original or execution.get("packet_sha256") != entry["sha256"] or execution.get("input_sha256") != sha(text.encode()) or execution.get("result_sha256") != sha(raw_opinion):
                 raise ValueError("Independent review input or output receipt differs")
-    expected_cases = {case["id"] for case in profile["cases"]}
+    from .core import classify
+    definitions = {c["id"]: c for c in profile["cases"]}
+    all_rows = {row["id"]: row for row in rows}
+    selected_rows = rows if scope == "all" else [r for r in rows if classify(definitions[r["case_id"]], r, cutoff=profile["protocol"]["top_k"])[0] == "fail"]
+    expected_cases = {row["case_id"] for row in selected_rows}
     cases = evidence["cases"]
     ids = [case["case_id"] for case in cases]
     if len(ids) != len(set(ids)) or set(ids) != expected_cases:
         raise ValueError("Independent review case coverage is incomplete")
-    expected_rows = {row["id"]: row for row in rows}
+    expected_rows = {row["id"]: row for row in selected_rows}
     opinions = [output for case in cases for output in case["output_reviews"]]
     actual_rows = [opinion["row_id"] for opinion in opinions]
     if len(actual_rows) != len(set(actual_rows)) or set(actual_rows) != set(expected_rows):
@@ -765,14 +837,12 @@ def validate_public_review(profile, rows, evidence):
         "output": len(opinions),
         "candidate": sum(len(c["candidate_grades"]) for c in cases),
     }
-    if any(
-        evidence.get(key + suffix) != value
-        for key, value in counts.items()
-        for suffix in ("_total", "_reviewed")
-    ):
+    totals = {"case": len(profile["cases"]), "output": len(all_rows), "candidate": sum(len(x) for x in expected_candidates.values())}
+    if any(evidence.get(key + "_reviewed") != value for key, value in counts.items()) or any(evidence.get(key + "_total") != value for key, value in totals.items()):
         raise ValueError("Independent review counts disagree with actual opinions")
-    if evidence.get("missing_case_ids") or evidence.get("accepted_unreviewed_passes") != 0:
-        raise ValueError("Independent review leaves unreviewed results")
+    unreviewed_passes = 0 if scope == "all" else sum(classify(definitions[r["case_id"]], r, cutoff=profile["protocol"]["top_k"])[0] == "pass" for r in rows)
+    if evidence.get("missing_case_ids") or evidence.get("accepted_unreviewed_passes") != unreviewed_passes:
+        raise ValueError("Independent review leaves unexpected unreviewed results")
     by_case = {case["case_id"]: case for case in cases}
     run_case_ids = []
     for run in evidence.get("review_runs", []):
@@ -848,13 +918,13 @@ def render_summary(evidence, zh=True):
     from collections import Counter
 
     counts = Counter(d["resolution"] for d in evidence["adjudications"].values())
-    title = "独立审查" if zh else "Independent review"
+    title = "结果复核" if zh else "Result audit"
     text = (
-        f"Codex 已审查 {evidence['case_reviewed']}/{evidence['case_total']} 题、"
+        f"已复核 {evidence['case_reviewed']}/{evidence['case_total']} 题、"
         f"{evidence['output_reviewed']}/{evidence['output_total']} 份接口输出、"
         f"{evidence['candidate_reviewed']}/{evidence['candidate_total']} 个候选网页。"
         if zh
-        else f"Codex reviewed {evidence['case_reviewed']}/{evidence['case_total']} queries, "
+        else f"Reviewed {evidence['case_reviewed']}/{evidence['case_total']} queries, "
         f"{evidence['output_reviewed']}/{evidence['output_total']} outputs and "
         f"{evidence['candidate_reviewed']}/{evidence['candidate_total']} pooled candidates."
     )
@@ -865,7 +935,12 @@ def render_summary(evidence, zh=True):
         "no-change": ("核查后保持原结果", "No change"),
         "quarantined": ("隔离诊断", "Quarantined"),
     }
-    text += (" 审查输入、意见和运行记录均已按哈希绑定，可逐项核对；运行记录由本次评测方提供。" if zh else " Execution records are operator-attested and hash-bound, not third-party signed attestations.")
+    if evidence.get("provenance"):
+        text += (" 输入、意见和运行记录均已按哈希绑定；运行记录由评测方提供。" if zh else " Inputs, opinions and operator-provided execution records are hash-bound.")
+    else:
+        text += (" 复核依据为已发布的逐项意见与裁决，历史记录未保留执行日志。" if zh else " This historical audit retains published opinions and adjudications; execution logs were not retained.")
+    text += (" 模型记录：" if zh else " Recorded model: ") + str(evidence.get("model") or ("未记录" if zh else "not recorded")) + ("。" if zh else ".")
+
     body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + ("全部发现已完成裁决，未处理项：0。" if zh else "All findings adjudicated; unresolved: 0.") + "</p><details><summary>" + ("审查发现的处理分类（同题可有多项）" if zh else "Finding dispositions (multiple findings per query)") + "</summary><ul>"
     for key, value in sorted(counts.items()):
         body += f"<li>{labels[key][0 if zh else 1]}：{value}" + (" 条发现" if zh else " findings") + "</li>"
@@ -890,7 +965,7 @@ def render_summary(evidence, zh=True):
             target = "details/" + case["output_reviews"][0]["row_id"] + ".html"
             label = labels[decision["resolution"]][0 if zh else 1]
             if decision.get("quality_excluded"):
-                label = "三家共同隔离质量统计" if zh else "Excluded from every method’s quality denominator"
+                label = "各接口共同隔离质量统计" if zh else "Excluded from every method’s quality denominator"
             body += '<tr><td><a href="' + escape(target) + '">' + escape(case["case_id"]) + '</a></td><td>' + escape(label) + '</td><td>' + escape(decision["reason"]) + '</td></tr>'
         body += '</tbody></table></div></details>'
     body += (
@@ -910,13 +985,13 @@ def render_detail(evidence, row_id, zh=True):
             continue
         body = (
             "<section data-independent-opinion><h2>"
-            + ("Codex 独立审查" if zh else "Independent Codex review")
+            + ("结果复核" if zh else "Result audit")
             + "</h2>"
         )
         decision = evidence["adjudications"].get(case["case_id"] + ":dataset", {})
         if decision.get("quality_excluded"):
             body += '<p class="notice" data-reference-quarantine>' + (
-                "本题已从三家质量汇总共同隔离。下方保留原题和原始检查值；耗时与费用仍计入全体。"
+                "本题已从各接口质量汇总共同隔离。下方保留原题和原始检查值；耗时与费用仍计入全体。"
                 if zh else "This query is quarantined from every method’s quality summary. Original inputs and diagnostics remain below; latency and cost remain included."
             ) + " " + escape(decision["reason"]) + '</p>'
         body += '<details><summary>' + ('原始审查意见、证据与裁决' if zh else 'Original review opinion, evidence and decisions') + '</summary><p>' + escape(opinion['reason']) + '</p><p>' + escape(opinion['evidence']) + '</p>'
@@ -971,6 +1046,8 @@ def render_detail(evidence, row_id, zh=True):
             )
         body += "</details></section>"
         return body
+    if evidence.get("scope") == "failures":
+        return '<section data-review-not-selected><h2>' + ("结果复核" if zh else "Result audit") + '</h2><p>' + ("本结果不在本次失败结果复核范围内。" if zh else "This result is outside the failure-only audit scope.") + "</p></section>"
     raise ValueError("Missing independent opinion for result detail")
 
 

@@ -113,7 +113,7 @@ uv run --frozen browser-harness-eval run --delay 0
 
 | 输出 | 内容 |
 | --- | --- |
-| `report/en/index.html` | 仅在显式要求时生成英文版；否则显示未生成说明 |
+| `report/en/index.html` | 未配置语言时生成英文版；仅生成中文时显示英文版未生成说明 |
 | `report/index.html` | 报告入口，打开所选语言 |
 | `results.jsonl`、`summary.json` | 供程序分析的评分和汇总 |
 | `manifest.json`、`dataset.json` | 使用的方法、版本、设置和任务 |

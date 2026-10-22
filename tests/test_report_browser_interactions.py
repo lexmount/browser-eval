@@ -11,7 +11,7 @@ from contextlib import contextmanager
 import pytest
 from playwright.sync_api import sync_playwright
 
-from harness.reporting.visual import browser_executable, local_report_server
+from harness.reporting.visual import browser_executable, local_report_server, local_page
 
 
 @pytest.fixture(params=[({"width": 1280, "height": 900}, "light"), ({"width": 390, "height": 844}, "dark")])
@@ -51,7 +51,7 @@ def test_browser_use_sort_filter_restore_and_keyboard_dialog(tmp_path, browser, 
     <dialog id="detail" aria-label="Evidence"><button onclick="closeDiagnosis('detail')">Close</button>
     <pre>Exact evaluator error</pre></dialog></body></html>''')
     with local_report_server(tmp_path) as origin:
-        page = browser.new_page(**display)
+        page = local_page(browser, origin, **display)
         try:
             page.goto(origin)
             page.locator('th button').click()
@@ -112,7 +112,7 @@ def test_replay_real_assets_evidence_dialog_and_private_nested_navigation(tmp_pa
     (tmp_path / 'data/results.json').write_text(json.dumps([{'key':'fixture','browser':'Synthetic','task_id':1,'failure_stage':'official_evaluation'}]))
     (tmp_path / 'data/evidence/fixture.json').write_text(json.dumps({'official_evaluation':{'error':'Expected mutation was absent'}}))
     with hosted_preview(tmp_path) as origin:
-        page = browser.new_page(**display)
+        page = local_page(browser, origin, **display)
         try:
             page.goto(origin + 'results.html')
             page.wait_for_selector('[data-results][data-results-ready=true]')
@@ -139,14 +139,18 @@ def test_wcxb_generated_filter_and_diagnosis_keyboard_return(tmp_path, browser, 
     root = inputs[0]
     generate_wcxb(*inputs)
     with local_report_server(root) as origin:
-        page = browser.new_page(**display)
+        page = local_page(browser, origin, **display)
         try:
             page.goto(origin + '/analysis/index.html')
+            activate_and_check_layout(page, display)
             page.locator('#scope').select_option('all')
             rows = page.locator('tr[data-provider]:visible')
             assert rows.count() > 0
+            full_height = page.locator('.scroll').filter(has=page.locator('tr[data-provider]')).first.evaluate('(e)=>e.clientHeight')
             page.locator('#q').fill('impossible-fixture-query')
             assert rows.count() == 0
+            empty_height = page.locator('.scroll').filter(has=page.locator('tr[data-provider]')).first.evaluate('(e)=>e.clientHeight')
+            assert empty_height < full_height
             page.locator('#q').fill('')
             assert rows.count() > 0
             trigger = page.locator('[data-diagnosis-open]:visible').first
@@ -166,7 +170,7 @@ def test_moli_actual_evidence_loader_search_and_keyboard_return(tmp_path, browse
     source = Path(__file__).resolve().parents[1] / 'scripts/moli_report'
     html = (source / 'index.html').read_text().replace('{{lang}}', 'zh').replace('{{base}}', '')
     html = html.replace('<script defer src="mermaid.min.js"></script>', '')
-    html = html.replace('<link rel="stylesheet" href="style.css" />', '')
+    (tmp_path / "style.css").write_text((source / "style.css").read_text())
     html = html.replace('</body>', '<button id="fixture-evidence" data-evidence="data/log.txt">Open log</button></body>')
     (tmp_path / 'index.html').write_text(html)
     (tmp_path / 'app.js').write_text((source / 'app.js').read_text())
@@ -174,12 +178,13 @@ def test_moli_actual_evidence_loader_search_and_keyboard_return(tmp_path, browse
     (tmp_path / 'data/model.json').write_text(json.dumps({'cases': [], 'functional_methods': []}))
     (tmp_path / 'data/log.txt').write_text('Exact fixture error\nExpected mutation missing')
     with local_report_server(tmp_path) as origin:
-        page = browser.new_page(**display)
+        page = local_page(browser, origin, **display)
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
         try:
             page.goto(origin + '/#page=method')
             page.wait_for_selector('main[data-route="method"]')
+            activate_and_check_layout(page, display)
             page.locator('#fixture-evidence').click()
             page.wait_for_selector('#evidence-text')
             assert 'Expected mutation missing' in page.locator('#evidence-text').inner_text()
@@ -190,5 +195,64 @@ def test_moli_actual_evidence_loader_search_and_keyboard_return(tmp_path, browse
             assert not page.locator('#evidence-dialog').is_visible()
             assert page.locator('#fixture-evidence').evaluate('(e)=>e===document.activeElement')
             assert errors == []
+        finally:
+            page.close()
+
+
+def activate_and_check_layout(page, display):
+    theme = display["color_scheme"]
+    before = page.evaluate("[document.body,document.documentElement].map(e=>getComputedStyle(e).backgroundColor).join('/')")
+    page.evaluate("theme => {document.documentElement.dataset.theme=theme; document.body.classList.toggle('dark',theme==='dark');document.body.classList.toggle('light',theme==='light')}", theme)
+    page.wait_for_timeout(50)
+    if theme == "dark":
+        assert page.evaluate("[document.body,document.documentElement].map(e=>getComputedStyle(e).backgroundColor).join('/')") != before
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
+
+
+def test_generated_browser_use_success_failure_and_evidence_viewer(tmp_path, monkeypatch, browser, display):
+    from tests.browser_use.test_report import build_browser_use_fixture
+    output = build_browser_use_fixture(tmp_path, monkeypatch)
+    with local_report_server(output) as origin:
+        page = local_page(browser, origin, **display)
+        try:
+            for method in ("chromium", "moli"):
+                page.goto(origin + '/results/model-a-' + method + '-44.html?report-language=zh')
+                activate_and_check_layout(page, display)
+                link = page.locator('a[href*="evidence-viewer.html?src="]').first
+                assert link.count() == 1
+                link.click()
+                page.wait_for_selector('#evidence-raw-link:not([hidden])')
+                assert 'AgentResponseEvaluator' in page.locator('main').inner_text()
+                if method == 'moli':
+                    assert 'Fixture expected mutation missing' in page.locator('main').inner_text()
+                activate_and_check_layout(page, display)
+        finally:
+            page.close()
+
+
+def test_generated_replay_success_failure_steps_and_viewer(tmp_path, monkeypatch, browser, display):
+    from tests.trajectory_replay.test_webarena_report import build_replay_fixture
+    output = build_replay_fixture(tmp_path, monkeypatch, failed=True)
+    with hosted_preview(output) as origin:
+        page = local_page(browser, origin, **display)
+        try:
+            for method in ('chromium', 'moli-old'):
+                page.goto(origin + 'result/' + method + '-29.html?report-language=zh')
+                activate_and_check_layout(page, display)
+                trigger = page.locator('[data-open-step]').first
+                trigger.click()
+                dialog = page.locator('#step-dialog')
+                assert dialog.is_visible()
+                box = dialog.bounding_box()
+                assert box['x'] >= -1 and box['width'] <= display['viewport']['width'] + 2
+                page.wait_for_function("document.querySelector('[data-step-planned]').textContent.includes('snapshot')")
+                assert 'snapshot' in dialog.inner_text()
+                page.keyboard.press('Escape')
+                assert not dialog.is_visible()
+                assert trigger.evaluate('(e)=>e===document.activeElement')
+                page.locator('a[href*="evidence-viewer.html?file="]:visible').first.click()
+                page.wait_for_function("document.querySelector('[data-evidence-viewer]').textContent.length > 10")
+                page.locator('[data-evidence-tab="trajectory"]').click()
+                assert 'Fixture action failed' in page.locator('main').inner_text() if method == 'moli-old' else 'Fixture snapshot' in page.locator('main').inner_text()
         finally:
             page.close()
