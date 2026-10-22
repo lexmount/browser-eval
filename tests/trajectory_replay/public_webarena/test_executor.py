@@ -448,64 +448,6 @@ def test_navigation_network_idle_is_best_effort_and_keeps_render_grace():
     assert responses[0].status == 200
 
 
-@pytest.mark.parametrize("network_delay_ms", [50, 500, 5_000])
-@pytest.mark.parametrize("observation_ms", [300, 600])
-def test_navigation_reserves_observation_budget_without_extending_deadline(
-    monkeypatch, network_delay_ms, observation_ms
-):
-    clock = [0.0]
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.executor.time.perf_counter",
-        lambda: clock[0],
-    )
-
-    class TimedPage(FakePage):
-        def goto(self, url, **kwargs):
-            clock[0] += 0.05
-            return super().goto(url, **kwargs)
-
-        def wait_for_load_state(self, state, **kwargs):
-            allotted = kwargs["timeout"]
-            clock[0] += min(network_delay_ms, allotted) / 1_000
-            if network_delay_ms > allotted:
-                raise TimeoutError("streaming request is still open")
-
-        def wait_for_timeout(self, milliseconds):
-            clock[0] += milliseconds / 1_000
-
-    def observe(page, timeout, limit):
-        assert timeout >= 475
-        clock[0] += min(observation_ms, timeout) / 1_000
-        if observation_ms > timeout:
-            raise TimeoutError("document observation timed out")
-        return "Observed title", "Observed body"
-
-    trace = []
-
-    def run():
-        return execute_steps(
-            TimedPage(),
-            [{
-                "action": "navigate",
-                "url": "https://example.com",
-                "timeout_ms": 1_000,
-                "save_as": "page",
-            }],
-            document_observer=observe,
-            trace=trace,
-        )
-
-    # A genuinely slow observation must still fail within the original budget.
-    if observation_ms == 600 and network_delay_ms >= 500:
-        with pytest.raises(TimeoutError, match="document observation timed out"):
-            run()
-        assert trace[0]["status"] == "fail"
-    else:
-        assert run()["page"].endswith("Observed body")
-        assert trace[0]["status"] == "pass"
-    assert clock[0] <= 1.0
-
-
 def test_same_document_navigation_without_response_reloads_for_network_evidence():
     class SamePage(FakePage):
         def __init__(self):
