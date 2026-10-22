@@ -13,6 +13,44 @@ from harness.web_search.report import build, check, fairness_table, load_run, re
 
 
 class ReportScenarios(unittest.TestCase):
+    def test_reviewed_report_does_not_repeat_collection_counts_in_interpretation(self):
+        from harness.web_search.report import cohort_summary
+        profile = {"report_cohorts": [{"id": "public", "case_ids": ["good", "bad"]}],
+                   "factual_quality_exclusions": ["bad"]}
+        for zh in (True, False):
+            text = BeautifulSoup(cohort_summary(profile, [], zh), "html.parser").get_text()
+            self.assertNotIn("2", text)
+            self.assertIn("实际请求" if zh else "physical request", text)
+            self.assertIn("有效题库" if zh else "active dataset", text)
+
+    def test_dataset_uses_reviewed_questions_without_rewriting_collected_calls(self):
+        from harness.web_search.report import quality_dataset, metric_populations, dataset_context
+        profile = {
+            "cases": [
+                {"id": "scenario", "origin": "community"},
+                {"id": "valid", "reference_answer": "a"},
+                {"id": "bad-reference", "reference_answer": "b"},
+            ],
+            "factual_quality_exclusions": ["bad-reference"],
+            "report_cohorts": [{"id": "public", "case_ids": ["valid", "bad-reference"]}],
+        }
+        content = {
+            "presentation": "comparison-report", "independent_benchmarks": True,
+            "metric_populations": [
+                {"id": "custom", "benchmark_root": True, "case_ids": ["scenario"]},
+                {"id": "factual", "benchmark_root": True, "case_ids": ["valid", "bad-reference"]},
+            ],
+        }
+        before = json.dumps([profile, content], sort_keys=True)
+        active, authored = quality_dataset(profile, content)
+        self.assertEqual([c["id"] for c in active["cases"]], ["scenario", "valid"])
+        self.assertEqual(active["report_cohorts"][0]["case_ids"], ["valid"])
+        self.assertEqual(metric_populations(active, authored)[1]["case_ids"], ["valid"])
+        text = BeautifulSoup(dataset_context(active, authored, True), "html.parser").get_text()
+        self.assertIn("当前有效 1 题", text)
+        self.assertNotIn("保留 2 题", text)
+        self.assertEqual(json.dumps([profile, content], sort_keys=True), before)
+
     def test_paired_option_median_handles_an_even_query_count(self):
         from harness.web_search.report import mode_panel
         profile = {"methods": [
