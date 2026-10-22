@@ -903,6 +903,14 @@ notice. Bilingual release checks require matching routes and values. English
 repair content must be present in the bound asset set for an English build.
 See [report languages](../../docs/report-hosting.md#report-languages) for all builders.
 
+WCXB findings live in the external, hash-bound `report-content.json` guide editions.
+The home page summarizes measured values and links to that interpretation; it must
+not duplicate case-specific findings in Python. Release checks verify the bound
+article, current profile populations and participant rows. Optional-feature receipt
+paths come from the content binding, and their case must belong to the current
+population; the checks do not require a particular outcome. Illustrations and
+examples are validated against the supplied article rather than a fixed inventory.
+
 `wcxb_latency.py` owns paired-call collection, receipt validation and certification.
 The collector uses the profile's complete qualified population, timeout and binary
 hashes. It runs two serial rounds, reverses order per task and selects the final

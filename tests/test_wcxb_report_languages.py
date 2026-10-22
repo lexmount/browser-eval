@@ -125,3 +125,92 @@ def test_wcxb_uses_measured_versions_and_actual_configuration_count(tmp_path):
             text = (root / prefix / route).read_text()
             assert '1.1.8' not in text
             assert 'six configurations' not in text and '六种配置' not in text
+
+
+def test_new_wcxb_population_does_not_inherit_historical_findings(tmp_path):
+    from harness.web_fetch.wcxb_report_check import require_home_interpretation
+    from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
+
+    inputs = create_report_inputs(tmp_path, english_source=True)
+    root, rows, summary, references, identities, profile, content = inputs
+    before = json.dumps([rows, summary, references, identities, profile, content], sort_keys=True)
+    _, calls = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile,
+                                        set(references))
+    latency = summarize_full_paired_latency(calls, set(references))
+    generate_wcxb(*inputs, include_english=True)
+    assert json.dumps([rows, summary, references, identities, profile, content], sort_keys=True) == before
+    for lang, prefix in (('zh', ''), ('en', 'en/')):
+        raw = (root / prefix / 'index.html').read_text()
+        soup = require_home_interpretation(raw, summary, latency, lang)
+        assert soup.select_one('#moli-change') is None
+        assert '5412' not in raw and '5458' not in raw and 'PR #643' not in raw
+        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+        assert guide.select_one('main').decode_contents() == content['guide'][lang]
+        wrong = BeautifulSoup(raw, 'html.parser')
+        context = wrong.select_one('#moli-latency-context')
+        count = f'{summary["case_count"]} ' + ('页' if lang == 'zh' else 'pages')
+        context.string = context.get_text(' ', strip=True).replace(count, '504 pages')
+        with pytest.raises(ValueError, match='corrected population'):
+            require_home_interpretation(wrong, summary, latency, lang)
+        wrong = BeautifulSoup(raw, 'html.parser')
+        wrong.select_one('#moli-latency-context').decompose()
+        with pytest.raises(ValueError, match='missing'):
+            require_home_interpretation(wrong, summary, latency, lang)
+
+
+def test_wcxb_public_build_uses_bound_optional_case_and_profile_participants(tmp_path):
+    import hashlib
+    from harness.web_fetch.report_build import build_wcxb_report
+    from harness.web_fetch.wcxb_scoring import score
+    from harness.web_fetch.wcxb_report_check import check_bound_interpretation
+    from tests.wcxb_fixture import create_cohort, write_json
+
+    cohort = create_cohort(tmp_path / 'cohort', paired=True, providers=('moli', 'moli-pr643'))
+    score(**cohort)
+    source = cohort['evidence_root']
+    profile = json.loads(cohort['profile_path'].read_text())
+    profile.update(source_repository='https://example.invalid/source', source_commit='a' * 40)
+    optional_root = source / 'optional-new-case'
+    builds = {}
+    for name, binary in (('release', profile['release_binary_sha256']),
+                         ('candidate', profile['candidate_binary_sha256'])):
+        builds[name] = {'binary_sha256': binary, 'returncode': 0,
+                        'description_present': name == 'release'}
+        for extension, field in (('md', 'output_sha256'), ('stderr', 'stderr_sha256')):
+            path = optional_root / f'{name}.{extension}'
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('Synthetic optional evidence')
+            builds[name][field] = hashlib.sha256(path.read_bytes()).hexdigest()
+    receipt = optional_root / 'receipt.json'
+    write_json(receipt, {'case_id': 'case-001', 'source_sha256': profile['source_dataset_sha256'],
+                        'builds': builds})
+    profile['optional_ui_receipt_sha256'] = hashlib.sha256(receipt.read_bytes()).hexdigest()
+    review_name = 'research/wcxb-representative-review.json'
+    review = source / 'report-assets' / review_name
+    write_json(review, {'scope': 'targeted_representative_anomaly_review', 'case_count': 0,
+                        'result_count': 0, 'total_results': 4, 'unreviewed_results': 4, 'cases': []})
+    profile['report_assets'] = {review_name: hashlib.sha256(review.read_bytes()).hexdigest()}
+    guide = '<section><h1>Only the supplied synthetic finding</h1></section>'
+    content = source / 'report-assets/report-content.json'
+    write_json(content, {'schema_version': 1, 'guide': {'zh': guide, 'en': guide}})
+    authority = tmp_path / 'authority'
+    authority.mkdir()
+    (authority / 'contract.json').write_text('{}')
+    binding = {'schema_version': 1, 'relative_path': 'report-content.json',
+               'sha256': hashlib.sha256(content.read_bytes()).hexdigest(),
+               'evidence': {receipt.relative_to(source).as_posix(): profile['optional_ui_receipt_sha256']},
+               'authority': {'contract.json': hashlib.sha256(b'{}').hexdigest()},
+               'rendered_sha256': {'guide': {lang: hashlib.sha256(guide.encode()).hexdigest()
+                                            for lang in ('zh', 'en')}}}
+    before = {p.relative_to(source): hashlib.sha256(p.read_bytes()).hexdigest()
+              for p in source.rglob('*') if p.is_file()}
+    output = tmp_path / 'report'
+    build_wcxb_report(source, cohort['source'], cohort['sample_manifest'], profile, output,
+                      content_binding=binding, authority_root=authority, include_english=True)
+    check_bound_interpretation(output, binding)
+    assert (output / 'research/wcxb-optional-new-case/receipt.json').read_bytes() == receipt.read_bytes()
+    assert 'Only the supplied synthetic finding' in (output / 'guide/index.html').read_text()
+    assert '5412' not in (output / 'index.html').read_text()
+    assert set(json.loads((output / 'evidence/case-001.json').read_text())['outputs']) == set(profile['providers'])
+    assert before == {p.relative_to(source): hashlib.sha256(p.read_bytes()).hexdigest()
+                      for p in source.rglob('*') if p.is_file()}

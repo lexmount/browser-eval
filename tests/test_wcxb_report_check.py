@@ -49,3 +49,32 @@ def test_localized_number_spacing_does_not_change_measurements():
     wrong.feed("<p>99 tasks, 103 calls, 31/100, 1,599 items, 80%</p>")
     with pytest.raises(ValueError, match="value differs"):
         require_bilingual_shape(zh, wrong, "index.html")
+
+
+def test_guide_checks_bound_content_and_current_methods_without_fixed_cases():
+    from bs4 import BeautifulSoup
+    from harness.web_fetch.wcxb_report_check import require_guide_interpretation
+
+    anchors = ('guide-results', 'guide-score', 'guide-cases', 'guide-methods',
+               'guide-timing', 'guide-conclusion')
+    html = '<main><nav class="essay-toc">' + ''.join(
+        f'<a href="#{name}">{name}</a>' for name in anchors) + '</nav>'
+    html += '<section id="guide-results"><table><tbody>'
+    for name in ('alpha', 'beta'):
+        html += f'<tr><td><a href="providers/{name}.html">{name}</a></td><td>50.00%</td><td>15 ms</td></tr>'
+    html += '</tbody></table></section><section id="guide-score">Word overlap</section>'
+    html += '<section id="guide-cases"><a href="cases/custom-example.html#alpha">Evidence</a></section>'
+    html += '<section id="guide-methods"><table><tbody><tr><td>alpha</td></tr><tr><td>beta</td></tr></tbody></table></section>'
+    html += '<section id="guide-timing"><a href="research/wcxb-full-paired-latency/calls.jsonl">Calls</a><a href="research/wcxb-full-paired-latency/certification.json">Certificate</a></section>'
+    html += '<section id="guide-conclusion">' + 'This is a synthetic bound finding with independent evidence. ' * 5 + '</section></main>'
+    summary = {'providers': {p: {'quality_f1': .5, 'mean_latency_ms': 15} for p in ('alpha', 'beta')}}
+    require_guide_interpretation(html, summary, ['alpha', 'beta'], 'en', expected_html=html)
+    for selector in ('#guide-cases a', '#guide-conclusion', '#guide-results tbody tr'):
+        changed = BeautifulSoup(html, 'html.parser')
+        changed.select_one(selector).decompose()
+        with pytest.raises(ValueError, match='bound interpretation'):
+            require_guide_interpretation(changed, summary, ['alpha', 'beta'], 'en', expected_html=html)
+    # Even authentic prose must agree with the current measured numbers.
+    changed_summary = {'providers': {**summary['providers'], 'alpha': {'quality_f1': .7, 'mean_latency_ms': 15}}}
+    with pytest.raises(ValueError, match='alpha evidence'):
+        require_guide_interpretation(html, changed_summary, ['alpha', 'beta'], 'en', expected_html=html)
