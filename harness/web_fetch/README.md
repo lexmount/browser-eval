@@ -1391,7 +1391,9 @@ must declare their parser instead of inheriting whichever dependency is installe
 Historical declarations without a parser can replay `srcset` only when their
 bound scoring-source identity is registered in
 `harness/web_fetch/data/native-projection-history.json`. Those historical scorers
-included the projection implementation in their source hash. The registry names
+included the projection implementation in their source hash. The registry maps
+each proven source hash to its parser, including versions
+that already used the current parser but omitted its declaration. It names
 the exact Git revision, projection source path and source SHA-256; it contains
 no task IDs, measured outputs or result-dependent exceptions. The retained
 comma-splitting behavior is for verifying historical receipts, not new calls.

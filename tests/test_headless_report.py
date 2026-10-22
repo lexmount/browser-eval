@@ -1116,3 +1116,22 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'differs from binding'):
                 build_report(source,root/'tampered-report')
             self.assertFalse((root/'tampered-report').exists())
+
+
+def test_resource_notes_localize_with_recorded_or_missing_sample_interval():
+    from harness.web_fetch.report_i18n import untranslated_english_narrative
+    keys = {key for _, metrics in GROUPS for _, key, _, _, _ in metrics}
+    for interval in (None, 23):
+        summary = {'rows': [{'provider': 'fixture', 'metrics': {
+            key: {'mean': 1, 'p50': 1, 'p95': 1} for key in keys}}],
+            'providers': ['fixture'], 'common_pass_cases': ['a'], 'planned_cases': ['a'],
+            'environment': {'sample_interval_ms': interval}}
+        page, _ = render_resource_comparison(summary, ['fixture', 'remote-fixture'])
+        english = localize_html(page, PurePosixPath('guide/index.html'))
+        assert not untranslated_english_narrative(english)
+        assert 'remote-fixture' in english
+        assert 'Kitesurf' not in english
+        assert 'CPU utilization and transfer rates are not ranked as lower-is-better' in english
+        assert ('every 23 ms' if interval else 'sample interval was not recorded') in english
+        measured_only, _ = render_resource_comparison(summary, ['fixture'])
+        assert 'remote-fixture' not in measured_only

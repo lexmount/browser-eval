@@ -558,7 +558,7 @@
           },
           "detail": {
             "zh": "登记示例中适配器没有 PDF / Office 解析器，不据此推断产品能力",
-            "en": "This run's adapter has no PDF / Office parser; no broader product limitation is inferred"
+            "en": "Registered example: the adapter has no PDF / Office parser; no broader product limitation is inferred"
           }
         },
         "image": {
@@ -578,7 +578,7 @@
           },
           "detail": {
             "zh": "登记示例中没有媒体解析，不据此推断产品能力",
-            "en": "This run performs no media parsing; no broader product limitation is inferred"
+            "en": "Registered example: the adapter performs no media parsing; no broader product limitation is inferred"
           }
         },
         "file": {
@@ -1337,7 +1337,7 @@
         },
         "tested": {
           "zh": "登记示例中调用同一 WebFetch；本机是否安装解析依赖、文件是否能解析仍看实测，支持声明不等于必然成功。",
-          "en": "This run called the same WebFetch; whether parsing dependencies are installed locally and whether a file can be parsed still depends on measured behavior. Declared support does not guarantee success."
+          "en": "Registered example: calls the same WebFetch; whether parsing dependencies are installed locally and whether a file can be parsed still depends on measured behavior. Declared support does not guarantee success."
         }
       },
       "access": {
@@ -1612,8 +1612,8 @@
           "en": "Project built-in"
         },
         "description": {
-          "zh": "本轮使用匿名 HTTP provider 与 Turndown 转换。",
-          "en": "This run used the anonymous HTTP provider with Turndown conversion."
+          "zh": "登记示例中使用匿名 HTTP provider 与 Turndown 转换。",
+          "en": "Registered example: uses the anonymous HTTP provider with Turndown conversion."
         }
       },
       "adapter_types": [
@@ -1854,8 +1854,8 @@
           "en": "Managed API"
         },
         "description": {
-          "zh": "本轮调用 Contents 取得指定 URL 的正文，不测试搜索。",
-          "en": "This run called Contents to retrieve body text from the specified URL; search was not tested."
+          "zh": "登记示例中调用 Contents 取得指定 URL 的正文，不测试搜索。",
+          "en": "Registered example: calls Contents to retrieve body text from the specified URL; search was not tested."
         }
       },
       "adapter_types": [
@@ -2068,7 +2068,7 @@
         },
         "tested": {
           "zh": "text.verbosity=full、maxAgeHours=0；资源题取 links/imageLinks，具名列表题取 richLinks 并只接收非空 anchor—URL 对。登记示例中没有调用摘要或高亮生成。",
-          "en": "This run uses text.verbosity=full and maxAgeHours=0. Resource tasks collect links/imageLinks; named-list tasks collect richLinks and accept only non-empty anchor–URL pairs. Summary and highlight generation are not called."
+          "en": "Registered example: uses text.verbosity=full and maxAgeHours=0. Resource tasks collect links/imageLinks; named-list tasks collect richLinks and accept only non-empty anchor–URL pairs. Summary and highlight generation are not called."
         }
       },
       "access": {
@@ -2545,7 +2545,7 @@
           },
           "detail": {
             "zh": "登记示例中适配器没有 PDF / Office 解析器，不据此推断产品能力",
-            "en": "This run's adapter has no PDF / Office parser; no broader product limitation is inferred"
+            "en": "Registered example: the adapter has no PDF / Office parser; no broader product limitation is inferred"
           }
         },
         "image": {
@@ -2565,7 +2565,7 @@
           },
           "detail": {
             "zh": "登记示例中没有媒体解析，不据此推断产品能力",
-            "en": "This run performs no media parsing; no broader product limitation is inferred"
+            "en": "Registered example: the adapter performs no media parsing; no broader product limitation is inferred"
           }
         },
         "file": {
@@ -3024,7 +3024,7 @@
         "source": "harness/web_fetch/providers/lexmount.py",
         "notes": {
           "zh": "登记示例中为实时提取。中国区与国际区分开调用、分开计分。",
-          "en": "This run uses live extraction. The China and international endpoints are called and scored separately."
+          "en": "Registered example: uses live extraction. The China and international endpoints are called and scored separately."
         }
       },
       "capabilities": {
@@ -3240,7 +3240,7 @@
         "source": "harness/web_fetch/providers/lexmount.py",
         "notes": {
           "zh": "登记示例中为实时提取。中国区与国际区分开调用、分开计分。",
-          "en": "This run uses live extraction. The China and international endpoints are called and scored separately."
+          "en": "Registered example: uses live extraction. The China and international endpoints are called and scored separately."
         }
       },
       "capabilities": {
@@ -3475,7 +3475,7 @@
           },
           "detail": {
             "zh": "登记示例中适配器没有 PDF / Office 解析器，不据此推断产品能力",
-            "en": "This run's adapter has no PDF / Office parser; no broader product limitation is inferred"
+            "en": "Registered example: the adapter has no PDF / Office parser; no broader product limitation is inferred"
           }
         },
         "image": {
@@ -3495,7 +3495,7 @@
           },
           "detail": {
             "zh": "登记示例中没有媒体解析，不据此推断产品能力",
-            "en": "This run performs no media parsing; no broader product limitation is inferred"
+            "en": "Registered example: the adapter performs no media parsing; no broader product limitation is inferred"
           }
         },
         "file": {
@@ -4085,8 +4085,8 @@
           "en": "Deliver Markdown, document text, resource URLs, media metadata or original files according to the task."
         },
         "notes": {
-          "zh": "浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。",
-          "en": "The browser handles access and native output retrieval. Embedded media and text use native Markdown; the shared scorer only checks target resource URLs. Only Chromium uses a standard HTML-to-Markdown package. See the interpretation interface table for the full scope and boundaries."
+          "zh": "浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL。完整分类及边界见报告解读的接口表。",
+          "en": "The browser handles access and native output retrieval. Embedded media and text use native Markdown; the shared scorer only checks target resource URLs. See the interpretation interface table for the full scope and boundaries."
         }
       }
     },
@@ -4562,7 +4562,7 @@
           },
           "detail": {
             "zh": "登记示例中适配器没有 PDF / Office 解析器，不据此推断产品能力",
-            "en": "This run's adapter has no PDF / Office parser; no broader product limitation is inferred"
+            "en": "Registered example: the adapter has no PDF / Office parser; no broader product limitation is inferred"
           }
         },
         "image": {
@@ -4582,7 +4582,7 @@
           },
           "detail": {
             "zh": "登记示例中没有媒体解析，不据此推断产品能力",
-            "en": "This run performs no media parsing; no broader product limitation is inferred"
+            "en": "Registered example: the adapter performs no media parsing; no broader product limitation is inferred"
           }
         },
         "file": {
@@ -4755,8 +4755,8 @@
           "en": "Project built-in"
         },
         "description": {
-          "zh": "本轮使用 HTTP + Readability；关闭 Firecrawl 回退，避免混成两个方法。",
-          "en": "This run used HTTP + Readability with the Firecrawl fallback disabled to avoid mixing two methods."
+          "zh": "登记示例中使用 HTTP + Readability；关闭 Firecrawl 回退，避免混成两个方法。",
+          "en": "Registered example: uses HTTP + Readability with the Firecrawl fallback disabled to avoid mixing two methods."
         }
       },
       "adapter_types": [
@@ -4937,7 +4937,7 @@
         },
         "tested": {
           "zh": "登记示例中开启 Readability、关闭 Firecrawl 回退及缓存；不能把整个 OpenClaw 的浏览器或 PDF 工具能力算到此行。",
-          "en": "This run enabled Readability and disabled the Firecrawl fallback and cache; the capabilities of OpenClaw's broader browser or PDF tools cannot be attributed to this row."
+          "en": "Registered example: enables Readability and disables the Firecrawl fallback and cache; the capabilities of OpenClaw's broader browser or PDF tools cannot be attributed to this row."
         }
       },
       "access": {
@@ -4987,8 +4987,8 @@
           "en": "Managed API"
         },
         "description": {
-          "zh": "本轮调用 Extract，从给定 URL 提取可读内容。",
-          "en": "This run called Extract to retrieve readable content from the given URL."
+          "zh": "登记示例中调用 Extract，从给定 URL 提取可读内容。",
+          "en": "Registered example: calls Extract to retrieve readable content from the given URL."
         }
       },
       "adapter_types": [
@@ -5182,7 +5182,7 @@
         },
         "tested": {
           "zh": "登记示例中 advanced + markdown + include_images=true，不传 query；未测试 Research 文件上传。",
-          "en": "This run used advanced + markdown + include_images=true without query; Research file uploads were not tested."
+          "en": "Registered example: uses advanced + markdown + include_images=true without query; Research file uploads were not tested."
         }
       },
       "access": {
@@ -6139,8 +6139,8 @@
           "en": "Deliver Markdown, document text, resource URLs, media metadata or original files according to the task."
         },
         "notes": {
-          "zh": "浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。",
-          "en": "The browser handles access and native output retrieval. Embedded media and text use native Markdown; the shared scorer only checks target resource URLs. Only Chromium uses a standard HTML-to-Markdown package. See the interpretation interface table for the full scope and boundaries."
+          "zh": "浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL。完整分类及边界见报告解读的接口表。",
+          "en": "The browser handles access and native output retrieval. Embedded media and text use native Markdown; the shared scorer only checks target resource URLs. See the interpretation interface table for the full scope and boundaries."
         }
       }
     }

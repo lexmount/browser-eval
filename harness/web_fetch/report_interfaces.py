@@ -219,8 +219,8 @@ def render_interfaces(out,records):
  body='<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置见“环境与复现”。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
  if native_default:
   body='<p>已测方法的输入展示保存的公开调用字段，输出展示同一次调用的实际节选。完整配置、原始响应和日志见环境与调用详情。未参评方法保留仓库登记示例。</p>'
+ case_order={case['id']: index for index, case in enumerate(dataset.get('cases', []))}
  for i,name in enumerate(names):
-  case_order={case['id']: index for index, case in enumerate(dataset.get('cases', []))}
   r=min((r for r in records if r['provider']==name), key=lambda row: case_order.get(row['case_id'], len(case_order)), default=None)
   s=method_spec(name,r,timeout_seconds=comparison.get("timeout_seconds"))
   english=method_spec(name,r,timeout_seconds=comparison.get("timeout_seconds"),language="en")

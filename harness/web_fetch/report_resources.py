@@ -159,11 +159,19 @@ def render_resource_comparison(summary, providers):
         if positive_number(interval) else 'CPU 与网络总量来自累计计数；采样间隔未记录，不能据此判断短时尖峰覆盖。',
         f'CPU and network totals come from cumulative counters. Memory and instantaneous rates are sampled every {interval:g} ms and may miss shorter spikes.'
         if positive_number(interval) else 'CPU and network totals come from cumulative counters. The sample interval was not recorded, so short-lived peak coverage is unknown.')
-    caveat = ('<p class="callout"><b>可比边界：</b>每次调用使用一次性 Linux 客户端容器、cgroup v2 与独立网络命名空间；'
-              '宿主控制器和容器启停不计入。Kitesurf 的远端浏览器 CPU、内存和远端上游流量不可见，'
-              '因此不进入资源表或本地引擎资源排名。</p>'
-              '<p class="source-note">'+sampling_note+
-              'CPU 占用、传输速率不按“越低越好”评选。完整方法与逐次证据见环境与复现页。</p>')
+    unmeasured = [provider for provider in providers if provider not in declared]
+    scope_note = bilingual_text(
+        '每次调用使用一次性 Linux 客户端容器、cgroup v2 与独立网络命名空间；宿主控制器和容器启停不计入。不可见的远端 CPU、内存和上游流量不能计为本地资源测量。',
+        'Each call uses a disposable Linux client container, cgroup v2 and a dedicated network namespace; the host controller and container lifecycle are excluded. Unobservable remote CPU, memory and upstream traffic cannot count as local resource measurements.')
+    if unmeasured:
+        scope_note += bilingual_text(
+            '未列入本资源测量范围的方法：'+ '、'.join(provider_name(provider) for provider in unmeasured)+'。',
+            'Methods outside this resource cohort: '+ ', '.join(
+                report_method(provider).get('label', {}).get('en', provider) for provider in unmeasured)+'.')
+    caveat = ('<p class="callout"><b>'+bilingual_text('可比边界：', 'Comparison scope: ')+
+              '</b>'+scope_note+'</p><p class="source-note">'+sampling_note+
+              bilingual_text('CPU 占用、传输速率不按“越低越好”评选。完整方法与逐次证据见环境与复现页。',
+                  'CPU utilization and transfer rates are not ranked as lower-is-better. See Methodology and Reproduction for full methods and per-call evidence.')+'</p>')
     return headline + cards + sample + '<div class="resource-groups">' + ''.join(sections) + '</div>' + caveat, {
         'winner': leader,
         'winner_label': leader_label,

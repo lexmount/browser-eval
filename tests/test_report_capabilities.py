@@ -214,3 +214,17 @@ def test_source_notice_distinguishes_missing_version_from_mismatch():
     mismatch = notice({'version': '9.9.9'})
     assert '资料版本与实测版本不一致' in mismatch
     assert 'Source and measured versions differ' in mismatch
+
+
+def test_configured_capability_legend_is_fully_localized(tmp_path):
+    from pathlib import PurePosixPath
+    from harness.web_fetch.report_i18n import localize_html, untranslated_english_narrative
+    (tmp_path/'adoption').mkdir()
+    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [
+        {'id': 'web', 'track': 'web', 'url': 'https://example.test/'}]}))
+    records = [{'provider': 'moli', 'case_id': 'web', 'provider_metadata': {
+        'reported_version': 'moli 9.9.9', 'output_contract': 'markdown'}}]
+    page = render_capabilities(tmp_path, ['moli'], table=table, cell=cell, link=link, records=records)
+    english = localize_html(page, PurePosixPath('adoption/index.html'))
+    assert 'configured interfaces and processing boundaries' in english
+    assert not untranslated_english_narrative(english)

@@ -1,74 +1,74 @@
 {
   "moli_webfetch:defaults": {
     "cells": 168,
-    "sha256": "fcd87567ab1e2322d0b70a0b8ad86f8a06049a99744437d25e847c8cb96bb7cc"
+    "sha256": "4e66d03b097e2e0b8d8a3025079eb0a30bf565120199c97a410abc044e1bb027"
   },
   "moli_webfetch:configured": {
     "cells": 168,
-    "sha256": "a3748e1f4ee1dc2146265e3ffd05d5b825e7f26fa93b9bf0f6da3ac2d18d49a3"
+    "sha256": "f9586a678d144f518486e9e436dd5c64880f048b6e0e4ed93ba26beac38001c0"
   },
   "firecrawl:defaults": {
     "cells": 168,
-    "sha256": "af669b272591f70754dc78efdfac542ebc2351cd3f897d593985895983a05839"
+    "sha256": "85fe1b1eb0d29ddf7f293c91266e896c3616a7b2e839feb8a56b48beafb304c8"
   },
   "firecrawl:configured": {
     "cells": 168,
-    "sha256": "35c0ccfb610dba28dc2c2cdc9ab31d0b4b2d49102e6fa08710ddc99a2a900d6b"
+    "sha256": "f2a97410b7f9e06ae06637d0e7656e138a3521a60dd8027c426614f30b639dea"
   },
   "tavily_extract:defaults": {
     "cells": 168,
-    "sha256": "2ffbe3b81be72d3a0d68dda31d01a4371ced70578f089df323d26999d5bf79bf"
+    "sha256": "1da2806f37b9b2b224265e220a96fb9849ea82f0c40f3d7777ed1cdc3d0c15f6"
   },
   "tavily_extract:configured": {
     "cells": 168,
-    "sha256": "32d301f8e6ea2b82ea8433b3a80e7131cdd99cc0a2cfcecc6e046638a767029f"
+    "sha256": "a40b318ccca1978af7462a62baa0d4d47fbab326162f2c83446432e0b3c0b057"
   },
   "exa_contents:defaults": {
     "cells": 168,
-    "sha256": "d8e85ca520aa2be10905b65b9111b08b99f6a7d7c0fcbb4413a940486ffbd4d7"
+    "sha256": "1312dfa3eb33b9b29de55543fc3ffd663b0e59f1becb2cd10a7e12777d31bca0"
   },
   "exa_contents:configured": {
     "cells": 168,
-    "sha256": "89b2cef41501dbca7e2402ba69dc4fe3a7d2b5efd4b0c70ba77f16ce8341fef5"
+    "sha256": "9c7ffd79e20fcfb322a317dfae3271203c1c2c42aa09f52daaaabadfdf946d99"
   },
   "cloudflare_markdown:defaults": {
     "cells": 168,
-    "sha256": "145f2c1f8aeb5c9ad2a26b3434f677fcabee55e5b98a24bf42ac4ecd4747b52b"
+    "sha256": "bc8d5ea1939f7810a0d1b38d0ee98f86bbc8d53e9d25940dea9efcbadb0a7328"
   },
   "cloudflare_markdown:configured": {
     "cells": 168,
-    "sha256": "ee0bb7a5aca52f1c5946ccded53f300ab1216bb16bfc4d2e6cbd8c11ef48c233"
+    "sha256": "8fe63eb401e2964c6af30ec49dbc66625ccaf8e4f75af573e8f7f6c7563fed25"
   },
   "cloudflare_content:defaults": {
     "cells": 168,
-    "sha256": "31bea84bd5bba65c0753b196ffff16ffc2ae60dfb491c0c10311ab76bb317cce"
+    "sha256": "a9c73f32a531965a9e55293c18b72766266010a231fcf9150af41922d4eeb8bf"
   },
   "cloudflare_content:configured": {
     "cells": 168,
-    "sha256": "2e989b2bf030bb8b2ba291cf9157989dac0e4a29d71a9aecf39a7ac7b9af176f"
+    "sha256": "6e3983ae12da6d3f28edb35b102f48e13b51e31cf3faeeeb5297e41840158b75"
   },
   "subprocess_jsonl:defaults": {
     "cells": 168,
-    "sha256": "68a12a0b1fe699a7ba58f376d6a7641fa32052ddcc79067192cfdd7ad8878113"
+    "sha256": "4edb323b311ee86004aa160120562ab42ca95bcb65da7b330a9e819e4148d28e"
   },
   "subprocess_jsonl:configured": {
     "cells": 168,
-    "sha256": "d51d6f7831c298cf48b4f177fd05333caba8a6cb8467ae671457b8cc0cbb4721"
+    "sha256": "6612065c03bd9061fd165345c96d239ec973493e190dea7bf829644412dda6a1"
   },
   "cowagent_builtin:defaults": {
     "cells": 168,
-    "sha256": "3ea7c4cd26bdf9fc2b8d90ade63840f26aa8b0903a8e762fc158bcec5b732635"
+    "sha256": "bbbfed5ef4238db2652f8aaac170d5144ab68dbc962e53fc59300d51ff78c672"
   },
   "cowagent_builtin:configured": {
     "cells": 168,
-    "sha256": "c38dbe9681835769a2b8b0df2309162209dd0a575d9960cfec191261cd736560"
+    "sha256": "f5a5763367ad7861c3f8e7d8180c27ecf5104829a96036e0610650fa24b851f2"
   },
   "fixture:defaults": {
     "cells": 168,
-    "sha256": "67bb8149d514f2ecb70f4a64ad7f1fbbe54d12e8d0d6075d23a9b2ebe5da6387"
+    "sha256": "46897fa8480097bed7680f1e0057abaddd45cf8e6acc3a9857b80580ba526eae"
   },
   "fixture:configured": {
     "cells": 168,
-    "sha256": "8418ceed078dd49be80a4b137a2a28971498140a5ca17e7d027d649193e7a1d6"
+    "sha256": "78d72000b12c48bcafc5c1fbe6a704194ee09202f9307615f8e2336ad5486bfe"
   }
 }

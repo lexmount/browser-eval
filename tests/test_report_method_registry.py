@@ -261,7 +261,7 @@ def test_catalog_examples_do_not_assert_prior_run_settings():
     catalog = json.loads((root / 'data/report-methods.json').read_text())
     violations = [(path, text) for path, text in strings(catalog)
                   if pattern.search(text) and not any(fnmatchcase(path, rule) for rule in allowed)]
-    for name in ['report_interfaces', 'report_capabilities', 'methods', 'report_methods', 'report_explainer']:
+    for name in ['report_interfaces', 'report_capabilities', 'methods', 'report_methods', 'report_explainer', 'report_resources', 'report_components']:
         for node in ast.walk(ast.parse((root / (name+'.py')).read_text())):
             if isinstance(node, ast.Constant) and isinstance(node.value, str) and pattern.search(node.value):
                 violations.append((f'{name}:{node.lineno}', node.value))
@@ -398,3 +398,25 @@ def test_matrix_uses_recorded_provider_type_in_execution_selector(custom_catalog
                 'provider_metadata': {'engine': 'acme-fetch'}}]
     part = browser_task_interface_matrix(cases, ['acme-fetch'], records)['rows'][0]['cells']['acme-fetch'][0]
     assert part['mode'] == 'html'
+
+
+def test_catalog_descriptions_do_not_claim_measured_run_settings():
+    import re
+    from fnmatch import fnmatchcase
+    from pathlib import Path
+    data = json.loads((Path(__file__).resolve().parents[1] /
+                       'harness/web_fetch/data/report-methods.json').read_text())
+    def violations(value, path=()):
+        if isinstance(value, dict):
+            return [item for key, child in value.items()
+                    for item in violations(child, (*path, str(key)))]
+        if isinstance(value, list):
+            return [item for index, child in enumerate(value)
+                    for item in violations(child, (*path, str(index)))]
+        bound = any(fnmatchcase('.'.join(path), rule) for rule in (
+            'adapters.*.report.*', 'methods.*.runtime_parameters.*.rules.*'))
+        return [path] if isinstance(value, str) and re.search('本轮|this run', value, re.I) and not bound else []
+    assert not violations(data)
+    for text in ('本轮使用默认参数', 'THIS RUN uses a timeout'):
+        assert violations({'methods': {'new': {'profile': {'description': text}}}})
+        assert not violations({'adapters': {'new': {'report': {'description': text}}}})

@@ -167,11 +167,13 @@ def test_projection_controls_cover_public_persistence_and_saved_verification(tmp
     verify_saved_native_answer(tmp_path, record)
 
 
-@pytest.mark.parametrize('source', [
-    'b17fc68566409232d3840f69aa4511c6dcdfd154c774eb169ea43787659496f7',
-    'bd08ad5ba4a6ef6962391ef0ea6f3ed7cccaac3294708de87cfd1b9e95d6969c',
+@pytest.mark.parametrize('source, current_parser', [
+    ('b17fc68566409232d3840f69aa4511c6dcdfd154c774eb169ea43787659496f7', False),
+    ('bd08ad5ba4a6ef6962391ef0ea6f3ed7cccaac3294708de87cfd1b9e95d6969c', False),
+    ('7e1b468e981cfe1da89d443047aff7facd841cd03f00bfc4b016ed67ba292da3', True),
+    ('d042394ea0e8c3aa7aed5851663eaf73772fc4357781999e20a87f48e857e00a', False),
 ])
-def test_historical_srcset_replay_is_source_bound_and_exact(tmp_path, source):
+def test_historical_srcset_replay_is_source_bound_and_exact(tmp_path, source, current_parser):
     from harness.web_fetch.native_routes import verify_saved_native_answer
     payload = {'elements': [{'results': [{'attributes': [
         {'name': 'srcset', 'value': '/image?crop=10,20 1x, /large.png 2x'}]}]}]}
@@ -180,6 +182,9 @@ def test_historical_srcset_replay_is_source_bound_and_exact(tmp_path, source):
                    'base_url': 'https://example.test/page'}}}
     expected = ['https://example.test/20', 'https://example.test/image?crop=10',
                 'https://example.test/large.png']
+    legacy = expected
+    current = ['https://example.test/image?crop=10,20', 'https://example.test/large.png']
+    expected = current if current_parser else legacy
     raw = json.dumps(payload).encode()
     (tmp_path / 'answer.txt').write_bytes(b'')
     (tmp_path / 'raw.json').write_bytes(raw)
@@ -192,8 +197,8 @@ def test_historical_srcset_replay_is_source_bound_and_exact(tmp_path, source):
     verify_saved_native_answer(tmp_path, record)
     assert record == frozen
     assert (tmp_path / 'raw.json').read_bytes() == raw
-    # The new parser's answer must not rescue a mismatching historical receipt.
-    metadata['images'] = ['https://example.test/image?crop=10,20', 'https://example.test/large.png']
+    # Neither parser's answer may rescue a receipt bound to the other parser.
+    metadata['images'] = legacy if current_parser else current
     with pytest.raises(ValueError, match='differs from its declared native field projection'):
         verify_saved_native_answer(tmp_path, record)
     metadata['images'] = expected
@@ -202,8 +207,11 @@ def test_historical_srcset_replay_is_source_bound_and_exact(tmp_path, source):
         verify_saved_native_answer(tmp_path, record)
     record['metrics']['scoring_source_sha256'] = source
     declaration['answer_fields']['images']['srcset_parser'] = 'html-candidates-v1'
-    with pytest.raises(ValueError, match='differs from its bound semantics'):
+    if current_parser:
         verify_saved_native_answer(tmp_path, record)
+    else:
+        with pytest.raises(ValueError, match='differs from its bound semantics'):
+            verify_saved_native_answer(tmp_path, record)
 
 
 @pytest.mark.parametrize('parser', [None, '', 1, True, 'future-v9', 'comma-split-v1'])

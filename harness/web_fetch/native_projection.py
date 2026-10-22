@@ -9,6 +9,7 @@ import binascii
 import hashlib
 import json
 import re
+from functools import lru_cache
 from urllib.parse import parse_qsl, quote, urljoin, urlsplit
 
 from lexbench_webfetch.paths import validate_http_url
@@ -171,17 +172,29 @@ def native_field_value(payload, pointer):
 SRCSET_PARSER = 'html-candidates-v1'
 
 
-def _srcset_urls(value, parser, historical_scoring_source):
-    # Historical scorer identities include response_input.py, which owned this
-    # projection. Never select semantics by comparing the resulting answer.
+@lru_cache(maxsize=1)
+def _historical_srcset_parsers():
     registry = json.loads((Path(__file__).parent / 'data/native-projection-history.json').read_text())
-    legacy = historical_scoring_source in registry['legacy_comma_split_scoring_sources']
+    if registry.get('schema_version') != 2:
+        raise ValueError('Unsupported native projection history schema')
+    parsers = {source: entry['parser'] for source, entry in registry['scoring_sources'].items()}
+    if any(parser not in {SRCSET_PARSER, 'legacy-comma-split'} for parser in parsers.values()):
+        raise ValueError('Unsupported historical srcset parser')
+    return parsers
+
+
+def _srcset_urls(value, parser, historical_scoring_source):
+    # Source identities bind the historical projection, never the resulting answer.
+    historical = _historical_srcset_parsers().get(historical_scoring_source)
     if parser is not None:
-        if parser != SRCSET_PARSER or legacy:
+        if parser != SRCSET_PARSER or historical not in {None, parser}:
             raise ValueError('Native srcset parser differs from its bound semantics')
+    else:
+        parser = historical
+    if parser == SRCSET_PARSER:
         from lexbench_webfetch.resource_urls import srcset_urls
         return srcset_urls(value)
-    if legacy:
+    if parser == 'legacy-comma-split':
         return [part.strip().split()[0] for part in value.split(',') if part.strip()]
     raise ValueError('Native srcset projection lacks a recognized parser binding')
 
