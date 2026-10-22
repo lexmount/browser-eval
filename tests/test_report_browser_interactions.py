@@ -164,36 +164,50 @@ def test_wcxb_generated_filter_and_diagnosis_keyboard_return(tmp_path, browser, 
             page.close()
 
 
-def test_moli_actual_evidence_loader_search_and_keyboard_return(tmp_path, browser, display):
+def test_moli_actual_result_evidence_loader_and_keyboard_return(tmp_path, browser, display):
     from pathlib import Path
-
     source = Path(__file__).resolve().parents[1] / 'scripts/moli_report'
     html = (source / 'index.html').read_text().replace('{{lang}}', 'zh').replace('{{base}}', '')
     html = html.replace('<script defer src="mermaid.min.js"></script>', '')
-    (tmp_path / "style.css").write_text((source / "style.css").read_text())
-    html = html.replace('</body>', '<button id="fixture-evidence" data-evidence="data/log.txt">Open log</button></body>')
+    (tmp_path / 'style.css').write_text((source / 'style.css').read_text())
     (tmp_path / 'index.html').write_text(html)
     (tmp_path / 'app.js').write_text((source / 'app.js').read_text())
-    (tmp_path / 'data').mkdir()
-    (tmp_path / 'data/model.json').write_text(json.dumps({'cases': [], 'functional_methods': []}))
+    (tmp_path / 'data/cases').mkdir(parents=True)
+    model = {'cases': [{'id': 'fixture', 'title': 'Fixture result'}], 'functional_methods': [],
+             'protocol': {'k_runs': 1}, 'runs': {key: {'run_id': key} for key in ('off_baseline', 'off_engine', 'on_baseline', 'on_engine')}}
+    (tmp_path / 'data/model.json').write_text(json.dumps(model))
+    modes = {}
+    for mode, status in [('off', 'pass'), ('on', 'fail')]:
+        modes[mode] = {'passes': int(status == 'pass'), 'attempts': [{
+            'ordinal': 1, 'status': status, 'profile_status': status, 'duration_ms': 2,
+            'answer': 'Fixture answer', 'resource': {},
+            'failure': {'class': 'fixture', 'detail': 'Expected mutation missing'} if status == 'fail' else None,
+            'evidence': {'baseline': {'log': {'url': 'data/log.txt', 'sha256': ''}}},
+        }]}
+    (tmp_path / 'data/cases/fixture.json').write_text(json.dumps({'id': 'fixture', 'title': 'Fixture result', 'subset': 'Fixture', 'modes': modes}))
     (tmp_path / 'data/log.txt').write_text('Exact fixture error\nExpected mutation missing')
     with local_report_server(tmp_path) as origin:
         page = local_page(browser, origin, **display)
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
         try:
-            page.goto(origin + '/#page=method')
-            page.wait_for_selector('main[data-route="method"]')
-            activate_and_check_layout(page, display)
-            page.locator('#fixture-evidence').click()
-            page.wait_for_selector('#evidence-text')
-            assert 'Expected mutation missing' in page.locator('#evidence-text').inner_text()
-            page.locator('#evidence-query').fill('mutation')
-            assert page.locator('mark.evidence-match').inner_text() == 'mutation'
-            page.locator('#dialog-close').focus()
-            page.keyboard.press('Escape')
-            assert not page.locator('#evidence-dialog').is_visible()
-            assert page.locator('#fixture-evidence').evaluate('(e)=>e===document.activeElement')
+            for mode in ('off', 'on'):
+                page.goto(origin + '/#page=result/fixture/' + mode)
+                page.wait_for_selector('main[data-route^="result/"] [data-report-detail]')
+                activate_and_check_layout(page, display)
+                if mode == 'on':
+                    assert 'Expected mutation missing' in page.locator('.notice.warn').inner_text()
+                page.locator('[data-report-detail] summary').click()
+                trigger = page.locator('[data-evidence="data/log.txt"]')
+                trigger.click()
+                page.wait_for_selector('#evidence-text')
+                assert 'Expected mutation missing' in page.locator('#evidence-text').inner_text()
+                page.locator('#evidence-query').fill('mutation')
+                assert page.locator('mark.evidence-match').inner_text() == 'mutation'
+                page.locator('#dialog-close').focus()
+                page.keyboard.press('Escape')
+                assert not page.locator('#evidence-dialog').is_visible()
+                assert trigger.evaluate('(e)=>e===document.activeElement')
             assert errors == []
         finally:
             page.close()
@@ -201,11 +215,13 @@ def test_moli_actual_evidence_loader_search_and_keyboard_return(tmp_path, browse
 
 def activate_and_check_layout(page, display):
     theme = display["color_scheme"]
+    dark = page.evaluate("document.documentElement.dataset.theme === 'dark' || document.body.classList.contains('dark')")
     before = page.evaluate("[document.body,document.documentElement].map(e=>getComputedStyle(e).backgroundColor).join('/')")
-    page.evaluate("theme => {document.documentElement.dataset.theme=theme; document.body.classList.toggle('dark',theme==='dark');document.body.classList.toggle('light',theme==='light')}", theme)
-    page.wait_for_timeout(50)
-    if theme == "dark":
+    if dark != (theme == "dark"):
+        page.locator('#theme, .theme, .theme-toggle, button[onclick="theme()"]:visible').first.click()
+        page.wait_for_timeout(50)
         assert page.evaluate("[document.body,document.documentElement].map(e=>getComputedStyle(e).backgroundColor).join('/')") != before
+    assert page.evaluate("document.documentElement.dataset.theme === 'dark' || document.body.classList.contains('dark')") == (theme == "dark")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
 
 

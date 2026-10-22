@@ -454,3 +454,45 @@ def test_completed_resume_rejected_without_network_or_saved_file_changes(tmp_pat
     with pytest.raises(ValueError, match="completed|Completed"):
         runner.run(profile, output, resume=True, certified=True)
     assert {p.name: p.read_bytes() for p in output.iterdir()} == before
+
+
+def test_invalid_billing_stops_before_any_paid_or_reference_call(tmp_path, monkeypatch):
+    import pytest
+    from harness.web_search import runner
+    path = CollectionScenarios().profile(tmp_path)
+    profile = json.loads(path.read_bytes())
+    profile['methods'][0]['billing'] = 'typo'
+    path.write_text(json.dumps(profile))
+    monkeypatch.setattr(runner, 'http_call', lambda *a, **kw: pytest.fail('Network called'))
+    with pytest.raises(ValueError, match='billing policy'):
+        runner.run(path, tmp_path / 'run', certified=True)
+    assert not (tmp_path / 'run').exists()
+
+
+def test_business_error_is_retained_and_retried_instead_of_crashing_billing(tmp_path, monkeypatch):
+    from harness.web_search import runner
+    path = CollectionScenarios().profile(tmp_path)
+    profile = json.loads(path.read_bytes())
+    profile['methods'] = [dict(profile['methods'][2], billing='http-200-nonempty')]
+    profile['protocol']['retry'] = True
+    path.write_text(json.dumps(profile))
+    monkeypatch.setattr(runner, 'load_runtime_env', lambda: None)
+    monkeypatch.setenv('BOCHA_API_KEY', 'fixture')
+    def http(url, body=None, header=None, timeout=20):
+        receipt = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+        raw = b'{"code":429,"data":{"webPages":{"value":[]}}}' if body else b'reference ' * 20
+        return receipt, raw
+    monkeypatch.setattr(runner, 'http_call', http)
+    runner.run(path, tmp_path / 'run')
+    rows = [json.loads(line) for line in (tmp_path / 'run/results.jsonl').read_text().splitlines()]
+    assert len(rows) == 1 and len(rows[0]['attempts']) == 2
+    assert rows[0]['error'] and rows[0]['results'] == [] and rows[0]['cost'] is None
+    assert not json.loads((tmp_path / 'run/receipt.json').read_bytes())['certified']
+
+
+def test_collect_cli_passes_selected_supplemental_cohort(tmp_path, monkeypatch):
+    from harness.web_search import runner
+    observed = []
+    monkeypatch.setattr(runner, 'run', lambda *a, **kw: observed.append(kw))
+    runner.main(['--output', str(tmp_path / 'run'), '--cohort', 'factual'])
+    assert observed[0]['cohort'] == 'factual'

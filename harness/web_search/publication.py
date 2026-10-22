@@ -7,15 +7,11 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import urllib.error
-import urllib.request
 import zipfile
 
 from lexbench_webfetch.paths import contained_path
-from harness.reporting.publication import PublicationOperation, atomic_write
-from harness.web_fetch.artifact_auth import load_token
-from harness.web_fetch.publication import upload_large_archive
-from harness.web_fetch.report_publish import activated_version, response_json
+from harness.reporting.publication import atomic_write
+from harness.web_fetch.report_publish import PublishConfig, publish as publish_package
 from .core import digest
 from .profiles import ROOT, current_selection
 
@@ -49,7 +45,7 @@ def prepare(report, visual, content, sources, work):
     work.mkdir(parents=True, exist_ok=False)
     inputs = work / "inputs"
     inputs.mkdir()
-    bindings = {}
+    bindings = {k: dict(v) for k, v in target["bindings"].items() if k in target.get("correction_history", {}).get("binding_names", [])}
     def bind(name, source, filename):
         destination = inputs / filename
         shutil.copyfile(source, destination)
@@ -97,10 +93,11 @@ def prepare(report, visual, content, sources, work):
                      independent_review={k: review[k] for k in ("case_total", "case_reviewed", "output_total", "output_reviewed", "candidate_total", "candidate_reviewed", "accepted_unreviewed_passes")},
                      quality_annotation={"queries": len(relevance["plan"]["case_ids"]), "candidates": sum(len(v) for v in relevance["labels"].values()), "scope": relevance["plan"]["scope"]},
                      archive_sha256=digest(archive.read_bytes()))
-    candidate["independent_review"]["reference_dispositions"] = dict(Counter(d["resolution"] for d in review["adjudications"].values()))
+    candidate["independent_review"]["finding_dispositions"] = dict(Counter(d["resolution"] for d in review["adjudications"].values()))
+    candidate["independent_review"]["reference_dispositions"] = dict(Counter(d["resolution"] for k, d in review["adjudications"].items() if k.endswith(":dataset") and k.removesuffix(":dataset") in factual))
     for obsolete in ("superseded_physical_calls", "cohort_inputs", "quality_judge"):
         candidate.pop(obsolete, None)
-    plan = {"schema": "search-publication-plan/1", "expected_target": {k: target[k] for k in ("base_url", "slug", "versionId", "visibility")}, "target": candidate, "archive_sha256": candidate["archive_sha256"]}
+    plan = {"title": manifest.get("authored", {}).get("title", {}).get(manifest.get("primary_language", "zh"), manifest["profile"].get("title", "Search API evaluation")), "schema": "search-publication-plan/1", "expected_target": {k: target[k] for k in ("base_url", "slug", "versionId", "visibility")}, "target": candidate, "archive_sha256": candidate["archive_sha256"]}
     save(work / "publication-plan.json", plan)
     verify_plan(report, work)
     return work
@@ -137,39 +134,34 @@ def verify_plan(report, work):
     return plan
 
 
-def publish(report, work):
+def publish(report, work, *, transport=None):
     plan = verify_plan(report, work)
     target = plan["target"]
-    base = target["base_url"]
-    token = load_token(base_url=base)
-    def raw_request(path, data=None, content_type=None, method=None, extra_headers=None):
-        headers = {"Authorization": "Bearer " + token, **(extra_headers or {})}
-        if content_type:
-            headers["Content-Type"] = content_type
-        request = urllib.request.Request(base + path, data=data, headers=headers, method=method)
-        try:
-            with urllib.request.urlopen(request, timeout=180) as response:
-                return response.status, response.read()
-        except urllib.error.HTTPError as error:
-            if error.code == 404 and path.startswith("/api/operations/"):
-                return error.code, error.read()
-            raise
-    def request(path, data=None, content_type=None, method=None):
-        if data is not None and method != "PUT":
-            stage = "commit" if "/commit" in path else "start"
-            operation = PublicationOperation(work / (stage + "-operation.json"), "search-" + stage + "-")
-            return operation.upload(path, data, content_type, {"base_url": base, "archive_sha256": plan["archive_sha256"], "path": path, "body_sha256": digest(data)}, allow_create=True, request=raw_request, decode=response_json)
-        return raw_request(path, data, content_type, method)
+    authority = work / "site-authority.json"
     receipt_file = work / "publication-receipt.json"
-    if receipt_file.exists():
-        result = json.loads(receipt_file.read_bytes())
+    desired = {"publication": {"base_url": target["base_url"], "site_slug": target["slug"], "version_id": target["versionId"]}}
+    if not authority.exists():
+        save(authority, desired)
+    elif json.loads(authority.read_bytes()) != desired:
+        raise ValueError("Publication authority differs from the frozen plan")
+    if not receipt_file.exists():
+        save(receipt_file, {"slug": target["slug"], "versionId": target["versionId"], "base_url": target["base_url"]})
+    def package_check(archive, source):
+        if digest(archive.read_bytes()) != plan["archive_sha256"]:
+            raise ValueError("Frozen publication archive changed")
+        verify_plan(report, work)
+    completed = json.loads(receipt_file.read_bytes())
+    if completed.get("archive_sha256") == plan["archive_sha256"] and completed.get("publication_pending") is False and completed.get("versionId") != target["versionId"]:
+        result = completed
     else:
-        raw = upload_large_archive(request, work / "report.zip", slug=target["slug"], expected=target["versionId"], title="Search API 评测：接口、质量、性能与成本", max_workers=4)
-        response = json.loads(raw)
-        if response["slug"] != target["slug"]:
-            raise ValueError("Publication returned another site")
-        result = {"slug": response["slug"], "versionId": activated_version(response), "archive_sha256": plan["archive_sha256"]}
-        save(receipt_file, result)
+        result = publish_package(
+        PublishConfig(authority, work / "report.zip", work / "delivery", receipt_file,
+                      work / "operation-pending.json", mode="update",
+                      title=plan.get("title", "Search API evaluation"),
+                      operation_namespace="search", visibility=target["visibility"]),
+            transport=transport, package_check=package_check,
+            validation_inputs=(work / "publication-plan.json", work / "inputs"),
+        )
     updated = dict(target, previous_version=target["versionId"], versionId=result["versionId"], published_at=datetime.now(UTC).isoformat(), code_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT).decode().strip())
     # Keep the exact planned files immutable after activation, then bind their new paths.
     frozen = work.parent / "published" / result["versionId"]

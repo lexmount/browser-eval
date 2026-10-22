@@ -707,3 +707,42 @@ def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
     detail.write_text(str(dom))
     with pytest.raises(ValueError,match='Query quality calculation'):
         check(output)
+
+
+def test_factual_detail_uses_ten_result_budget_without_changing_frozen_five_metrics(tmp_path):
+    from harness.web_search.core import evaluate, normalize
+    example(tmp_path)
+    source = tmp_path / 'fixture'
+    profile = json.loads((source / 'profile.json').read_bytes())
+    profile['protocol']['top_k'] = 10
+    case = profile['cases'][0]
+    case.update(reference_answer='Ada', reference_urls=['https://answer.invalid/ada'])
+    (source / 'profile.json').write_text(json.dumps(profile))
+    rows = [json.loads(line) for line in (source / 'results.jsonl').read_text().splitlines()]
+    for row in rows:
+        if row['case_id'] != case['id']:
+            continue
+        raw = {'results': [{'url': f'https://other.invalid/{i}', 'title': 'Unrelated'} for i in range(5)] + [{'url': case['reference_urls'][0], 'title': 'Ada'}]}
+        path = source / row['evidence']['path']
+        path.write_text(json.dumps(raw))
+        row['evidence']['sha256'] = digest(path.read_bytes())
+        row['results'] = normalize(raw)
+        row['metrics'] = evaluate(case, row['results'])
+        assert row['metrics']['labeled_source_hit_5'] == 0
+    (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    receipt = json.loads((source / 'receipt.json').read_bytes())
+    receipt.update(profile_sha256=digest((source/'profile.json').read_bytes()), results_sha256=digest((source/'results.jsonl').read_bytes()))
+    (source / 'receipt.json').write_text(json.dumps(receipt))
+    output = tmp_path / 'ten-results'
+    build(output, source=source)
+    assert check(output)
+    detail = BeautifulSoup((output / 'details' / (rows[0]['id'] + '.html')).read_text(), 'html.parser')
+    value = detail.find('td', string='前 10 条找到标注来源').find_next_sibling('td').get_text()
+    assert float(value.replace(',', '')) == 1
+    assert '前 5 条找到标注来源' not in detail.get_text()
+
+    interpretation = output / 'interpretation.html'
+    interpretation.write_text(interpretation.read_text().replace('data-factual', 'removed-factual', 1))
+    import pytest
+    with pytest.raises(ValueError, match='Interpretation factual evidence'):
+        check(output)

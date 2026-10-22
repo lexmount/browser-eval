@@ -523,7 +523,11 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
 
     active = {}
     active_lock = threading.Lock()
-    isolated_home = root / "codex-home"
+    # Runtime credentials must never become retained review evidence.
+    stale_auth = root / "codex-home" / "auth.json"
+    stale_auth.unlink(missing_ok=True)
+    runtime = tempfile.TemporaryDirectory(prefix="search-review-runtime-")
+    isolated_home = Path(runtime.name) / "codex"
     isolated_home.mkdir(exist_ok=True, mode=0o700)
     auth = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "auth.json"
     if auth.is_file() and not (isolated_home / "auth.json").exists():
@@ -547,6 +551,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         command = [
             executable,
             "exec",
+            "--json",
             "--model",
             contract["model"],
             "--sandbox",
@@ -578,7 +583,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         with (attempt / "stdout.log").open("wb") as out, (attempt / "stderr.log").open("wb") as err:
             process = subprocess.Popen(
                 command, stdin=subprocess.PIPE, stdout=out, stderr=err, start_new_session=True,
-                env={**{k: v for k, v in os.environ.items() if k in {"PATH", "HOME", "TMPDIR", "LANG", "LC_ALL"}}, "CODEX_HOME": str(isolated_home.resolve())}
+                env={**{k: v for k, v in os.environ.items() if k in {"PATH", "TMPDIR", "LANG", "LC_ALL"}}, "CODEX_HOME": str(isolated_home.resolve()), "HOME": runtime.name}
             )
             with active_lock:
                 active[entry["id"]] = (process, job / "status.json", state)
@@ -644,6 +649,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
             state.update(status="interrupted", returncode=process.returncode)
             save(path, state)
         pool.shutdown(wait=True, cancel_futures=True)
+        runtime.cleanup()
 
 
 def collect(root, *, require_complete=False):
@@ -758,6 +764,8 @@ def validate_public_review(profile, rows, evidence):
     ):
         raise ValueError("Independent review does not bind this complete report")
     scope = evidence["scope"]
+    if scope != "all" and any(d.get("quality_excluded") is True for d in evidence.get("adjudications", {}).values()):
+        raise ValueError("Failure-only review cannot change the quality population")
     if profile.get("independent_result_review_scope") == "all" and scope != "all":
         raise ValueError("This report explicitly requires a complete result review")
     from .relevance import legacy_evidence_allowed
@@ -893,6 +901,8 @@ def validate_public_review(profile, rows, evidence):
             raise ValueError("Independent review has an unresolved or stale decision")
     factual_ids = {c["id"] for c in profile["cases"] if "reference_answer" in c}
     for key, decision in decisions.items():
+        if decision.get("quality_excluded") is True and scope != "all":
+            raise ValueError("Failure-only review cannot change the quality population")
         if decision.get("quality_excluded") is True and (
             not key.endswith(":dataset")
             or key.removesuffix(":dataset") not in factual_ids

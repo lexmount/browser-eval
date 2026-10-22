@@ -81,7 +81,7 @@ def test_review_release_counts_failures_and_retains_opinions(tmp_path, layout):
     assert soup.select_one('a[href="review.html"]')
     manifest = json.loads((out / "manifest.json").read_bytes())
     assert "review.html" in manifest["routes"]
-    assert "Complete independent Codex" in manifest["profile"]["protocol"]["review"]
+    assert "Complete result audit" in manifest["profile"]["protocol"]["review"]
     assert (
         manifest["collection_profile"]["protocol"]["review"]
         != manifest["profile"]["protocol"]["review"]
@@ -209,3 +209,11 @@ def test_failure_only_review_can_build_and_reports_accepted_unreviewed_passes(tm
     assert manifest["report_assessment"]["independent_review_scope"] == "failures"
     assert evidence["accepted_unreviewed_passes"] > 0
     assert evidence["output_reviewed"] < evidence["output_total"]
+
+
+def test_failure_only_audit_cannot_change_quality_denominator(tmp_path):
+    report, evidence = audited_fixture(tmp_path, scope="failures")
+    profile, rows = check(report, return_data=True, evidence_only=True)
+    evidence["adjudications"]["fact:dataset"] = {"quality_excluded": True}
+    with pytest.raises(ValueError, match="Failure-only review"):
+        review.validate_public_review(profile, rows, evidence)
