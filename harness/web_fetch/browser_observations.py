@@ -53,6 +53,8 @@ PAINTED_TEXT = r"""(root) => {
         ? node.textContent : '';
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    // Unrendered elements can return textContent from innerText.
+    if (['NOSCRIPT', 'TEMPLATE'].includes(node.tagName)) return '';
     const style = getComputedStyle(node);
     if (style.display === 'none' || Number(style.opacity) === 0) return '';
     if (!affected.has(node)) return node.innerText || '';

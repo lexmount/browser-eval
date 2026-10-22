@@ -207,6 +207,8 @@ def rendered_page():
             body = b"""<html><body><nav>Navigation only</nav><main>
             <div style="display:none">Hidden panel</div>
             <div style="opacity:0"><span>Transparent menu</span></div>
+            <noscript>Fallback code is not visible with JavaScript enabled</noscript>
+            <template>Template payload is not visible</template>
             <span>Visible duplicate</span><div style="opacity:0">Visible duplicate</div>
             <p style="opacity:0.5">Translucent text</p>
             <p>Inline <strong>formatting</strong> preserved</p>
@@ -256,6 +258,8 @@ def test_live_multielement_completion_preserves_declared_content_scope(rendered_
     if mode == "visible":
         assert "Inline formatting preserved" in row["content_text"]
         assert row["content_text"].count("Visible duplicate") == 1
+        assert "Fallback code" not in row["content_text"]
+        assert "Template payload" not in row["content_text"]
     assert ("Hidden panel" in row["content_text"]) == (mode != "visible")
     assert ("Excluded panel" in row["content_text"]) == (mode == "dom")
 
