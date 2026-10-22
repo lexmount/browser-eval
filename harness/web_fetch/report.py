@@ -2220,6 +2220,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  overall_title=('任务判定汇总（非排名）' if diagnostic else model_text('本轮任务通过率排名','Task pass-rate ranking for this sample') if local_pass_rate_ranking(dataset) else '综合通过率总榜')
  if score_audit:overall_title='任务通过情况'
  budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
+ scope_summary=dataset.get('comparison',{}).get('report_scope_disclosure',{}).get('summary')
+ if scope_summary:home+='<div class="wrap"><p class="callout" data-report-scope-summary>'+esc(model_text(scope_summary['zh'],scope_summary['en']))+'</p></div>'
  home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None),'overall-ranking')
  home+=report_scope_disclosure(dataset)
  home+=input_suite_comparison(dataset,cases,records)
