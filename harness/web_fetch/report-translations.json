@@ -3284,7 +3284,8 @@
     "读取指定文章或帖子集合，核对标题、正文及题目声明的讨论区内容。": "Read the selected article or post collection and check its title, body and declared discussion content.",
     "固定文章须覆盖已核定的完整正文；帖子集合须保留每条帖子的正文，不能只返回帖子链接。": "A fixed article requires its qualified complete body. A post collection requires post bodies, rather than links alone.",
     "只评测各题声明的首次自动加载范围。评论仅在有独立来源并登记为必需时验收；不要求登录、展开或翻页。": "Only the declared initial automatic load is evaluated. Comments are required only when independently sourced and explicitly declared; login, expansion and pagination are outside scope.",
-    "请求成功，且同时满足登记的标题、正文覆盖、帖子和讨论区要求。未声明的检查跳过；目录或摘要不能代替正文。": "The request must succeed and satisfy all declared title, body-coverage, post and discussion requirements. Undeclared checks are skipped; a directory or excerpt cannot replace body content."
+    "请求成功，且同时满足登记的标题、正文覆盖、帖子和讨论区要求。未声明的检查跳过；目录或摘要不能代替正文。": "The request must succeed and satisfy all declared title, body-coverage, post and discussion requirements. Undeclared checks are skipped; a directory or excerpt cannot replace body content.",
+    "文章内容": "Article content"
   },
   "PHRASES": {
     "处理路线：": "Retrieval path: ",
