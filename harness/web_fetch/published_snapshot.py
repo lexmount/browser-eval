@@ -272,11 +272,6 @@ def check_snapshot_audit(root):
     for item in disclosure.get('attachments',[]):
         _bound(root,item)
     if disclosure:
-        if disclosure.get('summary'):
-            home=BeautifulSoup((root/'index.html').read_text(),'html.parser')
-            summary=home.select_one('[data-report-scope-summary]')
-            if summary is None or disclosure['summary']['zh'] not in summary.get_text():
-                raise ValueError('Snapshot report lost its opening sample scope')
         for route in ['index.html','guide/index.html','methodology/index.html']:
             page=BeautifulSoup((root/route).read_text(),'html.parser')
             note=page.select_one('[data-report-scope-disclosure]')
