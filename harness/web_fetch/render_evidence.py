@@ -117,7 +117,9 @@ def validate_render_reference(
             errors.append(f"duplicate_fact_id:{identifier}")
         seen.add(identifier)
         facts.append({"id": identifier, "alternatives": alternatives})
-    if not facts:
+    body_requirements = get("body_requirements", {}) or {}
+    required_patterns = get("required_patterns", []) or []
+    if not facts and not (body_requirements or required_patterns or get("acceptance_contract")):
         errors.append("required_facts_empty")
     texts = {"initial_visible": _initial_visible(html),
              "initial_payload": _payload_candidates(html),
@@ -147,6 +149,15 @@ def validate_render_reference(
         for group in coverage[key]["groups"]:
             if not group["pass"]:
                 errors.append(f"{key}_missing_fact:{group['id']}")
+    if body_requirements or required_patterns:
+        from lexbench_webfetch.metrics import evaluate_content
+        for key in ("reference", "rendered"):
+            checks = evaluate_content(texts[key], [], body_requirements=body_requirements,
+                                      required_patterns=required_patterns)
+            if not checks["body_coverage_pass"]:
+                errors.append(f"{key}_body_requirements_not_met")
+            if not all(row['pass'] for row in checks['pattern_results']):
+                errors.append(f"{key}_pattern_requirements_not_met")
     evidence = (get("source_benchmark", {}) or {}).get("render_evidence", {})
     completion = evidence.get("completion", {})
     condition = completion.get("condition")

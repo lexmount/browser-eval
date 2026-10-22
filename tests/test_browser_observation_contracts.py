@@ -36,7 +36,7 @@ def test_invalid_policy_rejected_before_browser_calls(rule, monkeypatch):
     def unexpected(*args, **kwargs):
         pytest.fail("Invalid policy reached browser capture")
 
-    monkeypatch.setattr(capture, "capture_with_retries", unexpected)
+    monkeypatch.setattr(capture, "_capture_in_process", unexpected)
     with pytest.raises(ValueError, match="policy"):
         capture.capture_batch([case_with(rule)], timeout_ms=1000, attempts=1)
 
@@ -93,7 +93,7 @@ def checkpoint_setup(tmp_path, monkeypatch):
         calls.append(case["id"])
         return {"case_id": case["id"], "status": "success", "content_text": "Article"}
 
-    monkeypatch.setattr(capture, "capture_with_retries", observe)
+    monkeypatch.setattr(capture, "_capture_in_process", observe)
     options = dict(
         timeout_ms=1000,
         attempts=1,
@@ -133,7 +133,7 @@ def test_binary_changed_during_capture_cannot_install_checkpoint(checkpoint_setu
         binary.write_bytes(b"changed during observation")
         return {"case_id": case["id"]}
 
-    monkeypatch.setattr(capture, "capture_with_retries", observe)
+    monkeypatch.setattr(capture, "_capture_in_process", observe)
     with pytest.raises(ValueError, match="implementation changed"):
         capture.capture_batch([case_with()], **options)
     assert not (options["checkpoints"] / "new-task.json").exists()
@@ -272,3 +272,24 @@ def test_live_ambiguous_content_scope_is_rejected_instead_of_truncated(rendered_
     task["url"] = rendered_page
     with pytest.raises(ValueError, match="exactly one element"):
         capture.capture(task, 10000, os.environ["BROWSER_EVAL_TEST_BROWSER_BINARY"])
+
+
+def test_stuck_capture_worker_is_bounded_and_remains_an_unqualified_observation(monkeypatch):
+    import time
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', 'import time; time.sleep(30)')
+    began = time.monotonic()
+    row = capture._capture_in_process(case_with(), 20, 1)
+    assert time.monotonic() - began < 8
+    assert row['status'] == 'failure'
+    assert row['completion']['satisfied'] is False
+    assert row['attempt_count'] is None
+    assert row['attempt_errors'][0]['type'] == 'TimeoutError'
+    assert 'wall-clock budget' in row['attempt_errors'][0]['message']
+
+
+def test_crashed_capture_worker_does_not_erase_other_case_results(monkeypatch):
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', "raise RuntimeError('controlled worker failure')")
+    row = capture._capture_in_process(case_with(), 1000, 1)
+    assert row['case_id'] == 'new-task'
+    assert row['status'] == 'failure'
+    assert 'controlled worker failure' in row['attempt_errors'][0]['message']

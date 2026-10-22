@@ -163,3 +163,30 @@ class RenderEvidenceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DeclaredContentReferenceTests(unittest.TestCase):
+    def test_body_scope_is_sufficient_without_an_artificial_fact_group(self):
+        from lexbench_webfetch.body_coverage import body_requirements
+        text = 'An article explains how batteries store energy and how charging changes their capacity.'
+        case = {'id': 'article', 'url': 'https://example.test/', 'required_facts': [],
+                'ground_truth_main_content': text, 'body_requirements': body_requirements(text),
+                'source_benchmark': {'render_evidence': {
+                    'scope': 'Complete article body', 'rendered_truncated': False,
+                    'completion': {'condition': 'Article loaded', 'satisfied': True, 'timeout_ms': 10000}}}}
+        self.assertTrue(validate_render_reference(case, '<main>Loading</main>', text)['valid'])
+        missing = validate_render_reference(case, '<main>Loading</main>', 'Home Terms Privacy')
+        self.assertFalse(missing['valid'])
+        self.assertIn('rendered_body_requirements_not_met', missing['errors'])
+
+    def test_pattern_scope_is_checked_on_both_reference_and_observation(self):
+        case = {'id': 'code', 'url': 'https://example.test/', 'required_facts': [],
+                'ground_truth_main_content': 'revenue = 123',
+                'required_patterns': [{'id': 'formula', 'pattern': r'revenue\s*=\s*\d+', 'minimum': 1}],
+                'source_benchmark': {'render_evidence': {
+                    'scope': 'Visible worked example', 'rendered_truncated': False,
+                    'completion': {'condition': 'Example loaded', 'satisfied': True, 'timeout_ms': 10000}}}}
+        self.assertTrue(validate_render_reference(case, '<main>Loading</main>', 'revenue = 123')['valid'])
+        self.assertFalse(validate_render_reference(case, '<main>Loading</main>', 'Home Terms')['valid'])
+        case['ground_truth_main_content'] = 'Home Terms'
+        self.assertFalse(validate_render_reference(case, '<main>Loading</main>', 'revenue = 123')['valid'])

@@ -1,4 +1,5 @@
 """Synthetic clocks and captures only: no network, browsers or real providers."""
+import pytest
 import json
 import tempfile
 import unittest
@@ -147,10 +148,11 @@ class ReferenceLifecycleTests(unittest.TestCase):
         with self.assertRaises(ReferenceLifecycleError):
             check_case_equivalent_reference_binding(replace(equivalent, task_prompt="Different task"), binding)
 
-    def test_only_body_with_independent_metadata_is_required(self):
-        for case in (replace(self.case, source_verification={}),
-                     replace(self.case, task_kind="structure"), replace(self.case, ground_truth_main_content="")):
-            self.assertIsNone(self.checks(case))
+    def test_explicit_reference_requirements_are_independent_of_output_kind(self):
+        self.assertIsNone(self.checks(replace(self.case, source_verification={})))
+        self.assertIsNotNone(self.checks(replace(self.case, task_kind="structure")))
+        with self.assertRaisesRegex(ReferenceLifecycleError, "required live reference is missing"):
+            self.checks(replace(self.case, ground_truth_main_content=""))
         with self.assertRaisesRegex(ReferenceLifecycleError, "resource evidence binding"):
             self.checks(replace(self.case, track="image", task_kind="resource",
                                 expected_resources=[{"id": "image", "urls": ["https://example.test/a.png"]}]))
@@ -622,6 +624,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         stable = replace(
             self.case,
             id="stable",
+            source_verification={**self.case.source_verification, "reference_mode": "frozen"},
             acceptance_contract={
                 "version": 1,
                 "schema": "product",
@@ -629,7 +632,8 @@ class ReferenceLifecycleTests(unittest.TestCase):
                 "stable_text_anchors": [{"id": "section", "alternatives": ["Catalog"]}],
             },
         )
-        resource = replace(self.case, id="resource", track="image", task_kind="resource")
+        resource = replace(self.case, id="resource", track="image", task_kind="resource",
+                           source_verification={**self.case.source_verification, "reference_mode": "frozen"})
         records = [
             {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p",
              "started_at": "2026-01-01T00:00:01+00:00", "elapsed_ms": 10,
@@ -655,6 +659,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         stable = replace(
             self.case,
             id="stable",
+            source_verification={**self.case.source_verification, "reference_mode": "frozen"},
             acceptance_contract={
                 "version": 1,
                 "schema": "product",
@@ -687,6 +692,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         stable = replace(
             self.case,
             id="stable",
+            source_verification={**self.case.source_verification, "reference_mode": "frozen"},
             acceptance_contract={
                 "version": 1,
                 "schema": "product",
@@ -799,3 +805,26 @@ class ReferenceLifecycleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@pytest.mark.parametrize('track', ['web', 'dynamic', 'challenge', 'risk_control', 'document', 'image', 'video'])
+@pytest.mark.parametrize('kind', ['body', 'structure', 'resource', 'file'])
+def test_explicit_live_reference_is_selected_for_every_mixed_contract(track, kind):
+    from harness.web_fetch.reference_lifecycle import requires_fresh_reference
+    case = {'id': 'live', 'url': 'https://example.test/', 'track': track, 'task_kind': kind,
+            'ground_truth_main_content': 'Substantive independently observed article',
+            'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+                                    'stable_text_anchors': [{'id': 'title', 'alternatives': ['Article']}]},
+            'source_verification': {'reference_mode': 'live_exact'}}
+    assert requires_fresh_reference(case)
+    case['source_verification'] = {}
+    assert not requires_fresh_reference(case)
+
+
+def test_unknown_reference_mode_is_not_hidden_by_a_stable_contract():
+    from harness.web_fetch.reference_lifecycle import requires_fresh_reference
+    with pytest.raises(ReferenceLifecycleError, match='reference mode'):
+        requires_fresh_reference({'acceptance_contract': {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'title', 'alternatives': ['Article']}]},
+            'source_verification': {'reference_mode': 'live_excat'}})

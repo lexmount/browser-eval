@@ -114,6 +114,18 @@ a changed experiment. Checkpoints and final outputs are created exclusively and
 cannot replace an existing observation. Store them under the configured data
 home, outside Git.
 
+The batch isolates each browser worker in a child process. Its wall-clock budget
+covers all declared attempts plus two seconds for startup and cleanup, including
+browser transport calls that do not honor Playwright's page timeout. A stuck or
+crashed worker produces a failed observation and leaves other cases intact.
+
+Explicit `source_verification.reference_mode: live_exact` applies to every track
+and output kind, including stable contracts and mixed text/resource deliveries.
+A required live reference must exist before execution. Without that declaration,
+compiled references remain frozen. Rendered-reference checks apply the declared
+body regions and patterns as well as facts; a fact group is optional when another
+content requirement establishes the source scope.
+
 ## WCXB scoring
 
 `wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is

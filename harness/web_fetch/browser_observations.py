@@ -7,6 +7,9 @@ import argparse
 import hashlib
 import ipaddress
 import json
+import os
+import signal
+import subprocess
 import socket
 import sys
 import tempfile
@@ -566,6 +569,11 @@ def capture_with_retries(
                     "message": str(error)[:1000],
                 }
             )
+    return _failed_observation(case, observer, errors, attempts, timeout_ms, last_row)
+
+
+def _failed_observation(case, observer, errors, attempts, timeout_ms, last_row=None):
+    last_row = last_row or {}
     return {
         **last_row,
         "case_id": case["id"],
@@ -599,6 +607,68 @@ def capture_source_identity() -> dict:
 
     return {**{name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names},
             "lexbench_webfetch/scoring": SCORING_SOURCE_SHA256}
+
+
+
+_CAPTURE_PROGRAM = (
+    "import json,sys; from harness.web_fetch.browser_observations import capture_with_retries; "
+    "print(json.dumps(capture_with_retries(**json.load(sys.stdin))))"
+)
+
+
+def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolved_ip=None,
+                        *, observation_scope="reference", dns_mode="system"):
+    """Bound browser transport and cleanup as well as page operations."""
+    payload = dict(case=case, timeout_ms=timeout_ms, attempts=attempts,
+                   browser_binary=browser_binary, resolved_ip=resolved_ip,
+                   observation_scope=observation_scope, dns_mode=dns_mode)
+    budget = timeout_ms * attempts / 1000 + 2
+    began = time.monotonic()
+    diagnostics = ""
+    with subprocess.Popen(
+        [sys.executable, "-c", _CAPTURE_PROGRAM], stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        cwd=Path(__file__).resolve().parents[2], start_new_session=os.name == "posix",
+        env={**os.environ, "DEBUG": "pw:api"},
+    ) as process:
+        try:
+            stdout, stderr = process.communicate(json.dumps(payload), timeout=budget)
+            if process.returncode:
+                raise RuntimeError(stderr[-1000:] or f"Capture worker exited {process.returncode}")
+            result = json.loads(stdout)
+            if not isinstance(result, dict) or result.get('case_id') != case['id']:
+                raise ValueError("Capture worker returned another case")
+            return result
+        except subprocess.TimeoutExpired:
+            # Each POSIX worker owns a new process group, including its driver.
+            # Terminate only that group so a stuck transport cannot hold pipes open.
+            signals = (signal.SIGTERM, signal.SIGKILL) if os.name == "posix" else (None, None)
+            for sig in signals:
+                try:
+                    if os.name == "posix":
+                        os.killpg(process.pid, sig)
+                    else:
+                        process.kill()
+                except ProcessLookupError:
+                    pass
+                try:
+                    _stdout, diagnostics = process.communicate(timeout=1)
+                    break
+                except subprocess.TimeoutExpired:
+                    continue
+            message = f"Browser observation worker exceeded {budget:g}s wall-clock budget"
+            error_type = "TimeoutError"
+        except (RuntimeError, ValueError) as error:
+            message, error_type = str(error), type(error).__name__
+    row = _failed_observation(
+        case, {"browser": "Chromium", "binary": "explicit" if browser_binary else "Playwright default",
+               "dns_mode": dns_mode},
+        [{"attempt": None, "type": error_type, "message": message}], None, timeout_ms)
+    row['completion']['elapsed_ms'] = round((time.monotonic() - began) * 1000, 2)
+    row['worker_wall_budget_ms'] = budget * 1000
+    if diagnostics:
+        row['worker_diagnostics'] = diagnostics[-4000:]
+    return row
 
 
 def capture_batch(
@@ -685,7 +755,7 @@ def capture_batch(
         )
         if dns_mode != "system":
             options["dns_mode"] = dns_mode
-        row = capture_with_retries(
+        row = _capture_in_process(
             case, timeout_ms, attempts, browser_binary, resolved_ip, **options
         )
         guard()
