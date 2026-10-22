@@ -12,7 +12,7 @@ from .providers import build_provider
 from .report_build import build_report
 from .runner import rescore_evaluation, run_evaluation
 from .storage import data_home
-from harness.report_languages import add_language_argument, resolve_report_language
+from harness.report_languages import ReportLanguageError, add_language_argument, resolve_report_language
 
 EXAMPLES = Path(__file__).parent / "data"
 
@@ -167,6 +167,6 @@ def main() -> None:
         args.output = default_run_dir()
     try:
         result = args.handler(args)
-    except ValueError as error:
+    except ReportLanguageError as error:
         parser.error(str(error))
     raise SystemExit(result)

@@ -56,14 +56,17 @@ def current_selection(path=CURRENT_PROFILE, *, root=ROOT):
     return selection
 
 
-def load_profile_bytes(path=CURRENT_PROFILE, *, root=ROOT):
+def load_profile_bytes(path=CURRENT_PROFILE, *, root=ROOT, cohort="primary"):
     """Keep flat historical bytes exact; freeze a new identity for a current run."""
     raw = Path(path).read_bytes()
     document = json.loads(raw)
     if document.get("schema") != "web-search-current/1":
         return raw
     selection = current_selection(path, root=root)
-    profile = copy.deepcopy(_bound(root, selection["profile"]))
+    binding = selection["profile"] if cohort == "primary" else next((c for c in selection.get("supplementary_profiles", []) if c["id"] == cohort), None)
+    if binding is None:
+        raise ValueError("Unknown supplementary cohort")
+    profile = copy.deepcopy(_bound(root, binding))
     by_id = {m["id"]: m for m in profile["methods"]}
     profile["methods"] = [by_id[mid] for mid in selection["methods"]]
     profile["title"] = selection["title"]
@@ -71,7 +74,7 @@ def load_profile_bytes(path=CURRENT_PROFILE, *, root=ROOT):
     profile["publication"] = {"authority": selection["publication_target"]}
     if selection.get("independent_result_review_scope"):
         profile["independent_result_review_scope"] = selection["independent_result_review_scope"]
-    profile["current_selection"] = {"sha256": digest(raw), "profile": selection["profile"], "methods": selection["methods"]}
+    profile["current_selection"] = {"sha256": digest(raw), "profile": binding, "methods": selection["methods"], "cohort": cohort}
     validate_profile(profile)
     return (json.dumps(profile, ensure_ascii=False, indent=2) + "\n").encode()
 
@@ -112,8 +115,7 @@ def publication_authority(manifest, path=CURRENT_PROFILE, *, root=ROOT):
         if bindings[prefix + "_profile"] != {k: expected_profile[k] for k in ("path", "sha256")}:
             raise ValueError("Live search target profile differs from the current selection")
         accepted_profiles = {expected_profile["sha256"]}
-        if cohort == "primary":
-            accepted_profiles.add(digest(load_profile_bytes(path, root=root)))
+        accepted_profiles.add(digest(load_profile_bytes(path, root=root, cohort=cohort)))
         if receipt["profile_sha256"] not in accepted_profiles:
             raise ValueError("Search release uses a different collection profile")
         if receipt.get("receipt_sha256") != bindings[prefix + "_receipt"]["sha256"]:

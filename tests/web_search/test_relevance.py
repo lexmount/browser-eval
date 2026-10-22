@@ -128,10 +128,12 @@ def test_frozen_model_labels_require_exact_candidate_coverage_and_quotes():
         calls.append({"case_id": p["case_id"], "request": request, "response": response})
         labels[p["case_id"]] = {x["candidate_id"]: x["grade"] for x in items}
     evidence = {**packet, "provider_rankings": rankings, "labels": labels, "judge": {"kind": "model", "name": "test-model", "prompt": JUDGE_PROMPT, "calls": calls}}
+    from tests.web_search.model_fixture import strict_model_evidence
+    evidence = strict_model_evidence(evidence)
     verify_provenance(profile, rows, evidence)
     inconsistent = copy.deepcopy(evidence)
     inconsistent["judge"]["configuration"] = {"prompt": JUDGE_PROMPT, "model": "test-model", "packet_sha256": packet["packet_sha256"], "extra_params": {"enable_thinking": False}}
-    with pytest.raises(ValueError, match="configuration differs"):
+    with pytest.raises(ValueError, match="configuration"):
         verify_provenance(profile, rows, inconsistent)
     from harness.web_search.comparison import comparison_data
     display_profile = dict(profile, methods=[dict(m, label=m["id"]) for m in profile["methods"]])

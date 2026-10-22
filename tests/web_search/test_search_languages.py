@@ -5,8 +5,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from harness.web_search.example import example
-from harness.web_search.report import build, build_reference, check, main
-from tests.web_search.test_reference_report import fixture as reference_fixture
+from harness.web_search.report import build, check, main
 
 
 @pytest.fixture
@@ -52,27 +51,12 @@ def test_measured_rebuild_preserves_language_and_explicit_english_generates_chin
     assert manifest["primary_language"] == "en"
     assert set(manifest["languages"]) == {"en", "zh"}
     assert manifest["language_notices"] == []
-    assert BeautifulSoup((output / "index.html").read_text(), "html.parser").html["lang"] == "en"
-    assert BeautifulSoup((output / "zh/index.html").read_text(), "html.parser").html["lang"] == "zh"
+    assert BeautifulSoup((output / "index.html").read_text(), "html.parser").html["lang"] == "zh"
+    assert BeautifulSoup((output / "en/index.html").read_text(), "html.parser").html["lang"] == "en"
     assert check(output)
     build(output, source=source, language="zh")
     assert not list((output / "zh").rglob("*.html"))
     assert {p.name for p in (output / "en").rglob("*.html")} == {"index.html"}
-    assert check(output)
-
-
-def test_reference_chinese_only_and_explicit_english_edition_follow_same_contract(tmp_path, monkeypatch):
-    content = tmp_path / "reference.json"
-    content.write_text(json.dumps(reference_fixture()))
-    output = tmp_path / "reference"
-    build_reference(output, content, "zh")
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
-    main(["--reference-content", str(content), "--output", str(output)])
-    assert json.loads((output / "manifest.json").read_text())["languages"] == ["zh"]
-    assert "data-english-not-generated" in (output / "en/index.html").read_text()
-    main(["--reference-content", str(content), "--output", str(output), "--language", "en"])
-    assert "data-english-not-generated" not in (output / "index.html").read_text()
-    assert (output / "zh/index.html").is_file()
     assert check(output)
 
 

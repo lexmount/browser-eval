@@ -36,7 +36,7 @@ def measured_run(tmp_path):
         patch("harness.web_search.runner.load_runtime_env"),
         patch.dict(os.environ, DEEPSEEK_API_KEY="fixture"),
     ):
-        run(profile_path, output)
+        run(profile_path, output, certified=True)
     assert load_run(output)[2]["certified"] is True
     return output
 

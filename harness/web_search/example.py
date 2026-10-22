@@ -9,12 +9,15 @@ from .report import build
 
 
 def example(output):
-    from .profiles import load_profile
-    profile = load_profile()
-    profile["cases"] = profile["cases"][:2]
-    profile["methods"] = profile["methods"][:2]
-    profile["protocol"]["rounds"] = 1
-    profile["title"] = "Synthetic rendering fixture — not measurements"
+    profile = {
+        "schema": "web-search/1", "title": "Synthetic rendering fixture — not measurements",
+        "protocol": {"top_k": 5, "rounds": 1, "score_round": 0, "concurrency": 1, "server_timeout_ms": 1000, "client_timeout_s": 2, "interval_s": 0, "retry": False, "review": "Synthetic fixture without independent review"},
+        "methods": [
+            {"id": "lexmount", "label": "Fixture A", "adapter": "lexmount", "endpoint": "https://fixture-a.invalid/search", "key_env": "FIXTURE_A_KEY", "currency": "CNY", "price_per_1000": None, "billing": "unknown"},
+            {"id": "deepseek-content", "label": "Fixture B", "adapter": "deepseek", "endpoint": "https://fixture-b.invalid/search", "key_env": "FIXTURE_B_KEY", "currency": "CNY", "price_per_1000": 5, "billing": "http-200-nonempty", "output_options": {"need_content": False}},
+        ],
+        "cases": [{"id": "fixture-" + str(i), "family": "web", "language": "zh", "query": "Synthetic query " + str(i), "anchors": ["https://reference.invalid/" + str(i)], "origin": "Synthetic fixture", "provenance_kind": "curated"} for i in range(2)],
+    }
     source = output / "fixture"
     source.mkdir(parents=True, exist_ok=True)
     write_json(source / "profile.json", profile)

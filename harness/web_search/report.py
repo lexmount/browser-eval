@@ -117,7 +117,7 @@ def _redact_url_userinfo(raw):
             return match.group(0)
         return match.group(1) + b"REDACTED:REDACTED@" + authority.rsplit(b"@", 1)[1]
 
-    return re.sub(rb'(https?://)([^/?#\s"<>\\]+)', replace, raw, flags=re.IGNORECASE)
+    return re.sub(rb'(https?://)([^/?#\s"<>\\,;]+)', replace, raw, flags=re.IGNORECASE)
 
 
 def public_calls(profile, rows, source, sources):
@@ -339,37 +339,20 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
 
 
 def _language_notice(output, languages):
-    """Keep the unavailable English entry separate from generated report routes."""
-    from harness.report_languages import english_notice
-    notices = []
-    notice = output / "en/index.html"
-    if languages == ["zh"]:
-        notice.parent.mkdir(parents=True, exist_ok=True)
-        notice.write_text(english_notice(), encoding="utf-8")
-        notices.append("en/index.html")
-    elif notice.is_file() and "data-english-not-generated" in notice.read_text():
-        notice.unlink()
-    return notices
+    from harness.report_languages import write_language_contract
+    if languages == ["zh"] and (output / "en").exists():
+        for directory in sorted((output / "en").rglob("*"), key=lambda p: len(p.parts), reverse=True):
+            if directory.is_dir() and not any(directory.iterdir()):
+                directory.rmdir()
+    write_language_contract(output, include_english="en" in languages)
+    return ["en/index.html"] if languages == ["zh"] else []
 
 
 def _check_report_languages(output, manifest):
-    languages = manifest.get("languages", [])
-    primary = manifest.get("primary_language")
-    if languages not in (["zh"], ["zh", "en"], ["en", "zh"]) or primary not in languages:
-        raise ValueError("Unsupported report language configuration")
-    notices = manifest.get("language_notices", [])
-    if languages == ["zh"]:
-        notice = output / "en/index.html"
-        if notices != ["en/index.html"] or not notice.is_file():
-            raise ValueError("English not-generated notice is missing")
-        page = BeautifulSoup(notice.read_text(), "html.parser")
-        if not page.select_one("[data-english-not-generated]") or not page.select_one('a[href="../index.html"]'):
-            raise ValueError("English not-generated notice has no Chinese return link")
-        english = {p.relative_to(output).as_posix() for p in (output / "en").rglob("*.html")}
-        if english != {"en/index.html"}:
-            raise ValueError("Chinese-only report contains stale English output")
-    elif notices:
-        raise ValueError("Generated English report must not retain an unavailable notice")
+    from harness.report_languages import check_language_contract, generated_languages
+    check_language_contract(output)
+    if list(generated_languages(output)) != manifest.get("languages"):
+        raise ValueError("Report language metadata differs from the report manifest")
 
 
 
@@ -516,7 +499,7 @@ def build(
             bundle.append(evidence)
     for lang in languages:
         zh = lang == "zh"
-        prefix = "" if lang == language else lang + "/"
+        prefix = "" if lang == "zh" else lang + "/"
 
         def t(en, cn, zh=zh):
             return cn if zh else en
@@ -582,7 +565,7 @@ def build(
             navigation = "".join(f'<a href="{back}{p}">{label}</a>' for p, label in nav)
             if len(languages) > 1:
                 other = "zh" if lang == "en" else "en"
-                otherprefix = "" if other == language else other + "/"
+                otherprefix = "" if other == "zh" else other + "/"
                 language_depth = "../" * (len(Path(prefix + route).parts) - 1)
                 navigation += f'<a href="{language_depth}{otherprefix}{route}">{"中文" if other == "zh" else "English"}</a>'
             elif lang == "zh" and authored.get("presentation") != "comparison-report":
@@ -609,6 +592,8 @@ def build(
                         asset_paths = {a["path"] for a in authored.get("assets", [])}
                         if relevance_data:
                             asset_paths.add("relevance-judgments.json")
+                        if review_data:
+                            asset_paths.add("independent-review.json")
                         node[attr] = posixpath.normpath(
                             posixpath.join(
                                 site_prefix,
@@ -624,12 +609,14 @@ def build(
                     link = document.new_tag("a", href=posixpath.join(site_prefix, prefix, target))
                     link.string = label
                     if target == "review.html":
+                        link.string = label + f" · {review_data['case_reviewed']}/{review_data['case_total']}"
                         link['data-review-coverage'] = ''
                         link['data-reviewed-queries'] = f"{review_data['case_reviewed']}/{review_data['case_total']}"
                         link['data-reviewed-outputs'] = f"{review_data['output_reviewed']}/{review_data['output_total']}"
                     footer.append(link)
                 document.main.append(footer)
-            path.write_text(str(document))
+            from harness.report_languages import REPORT_PAGE_MARKER
+            path.write_text(str(document).replace("</head>", REPORT_PAGE_MARKER + "</head>"))
             routes.append(prefix + route)
 
         hit_key = "anchor_hit_5" if profile["protocol"]["top_k"] == 5 else "anchor_hit_10"
@@ -648,13 +635,12 @@ def build(
         entries = []
         for m in overview_methods:
             s = summary.get(m["id"])
-            p = physical.get(m["id"])
-            a = p["all_latency"] if p else {}
+            a = s["all_latency"] if s else {}
             hit = s["metrics"][hit_key] if s else {"mean": None, "n": 0}
             entries.append(
                 [
                     m["label"],
-                    p["nonempty"] if p else None,
+                    s["nonempty"] if s else None,
                     a.get("mean"),
                     a.get("p50"),
                     a.get("p95"),
@@ -670,7 +656,7 @@ def build(
             for i, value in enumerate(entry):
                 label = esc(value) if i == 0 else fmt(value)
                 if i == 1 and value is not None:
-                    label = f"{value}/{physical[m['id']]['n']}"
+                    label = f"{value}/{summary[m['id']]['n']}"
                 if i == 6:
                     label += " " + m["currency"]
                 if i == 5 and value is not None:
@@ -804,6 +790,8 @@ def build(
                     )
                     + "</section>"
                 )
+        if not reading_sections and authored.get("presentation") != "comparison-report":
+            body += mode_panel(profile, selected, zh)
         if authored.get("presentation") == "comparison-report":
             body = authored_sections(authored, "lead", lang, rows=selected)
             body += executive_table(profile, selected, authored, relevance_scores, zh)
@@ -934,6 +922,10 @@ def build(
                 ),
                 "target_hit": t("Reference target found", "找到参考目标"),
                 "source_hit": t("Published supporting source found", "找到题库标注来源"),
+                "answer_hit": t("Reference answer text found", "找到参考答案文字"),
+                "answer_miss": t("Reference answer text absent", "未找到参考答案文字"),
+                "domain_hit": t("Requested site found", "找到指定网站"),
+                "domain_miss": t("Requested site absent", "未找到指定网站"),
                 "source_miss": t("Published supporting source not found", "未找到题库标注来源"),
                 "probe": t("Unjudged query", "未标注相关性"),
             }[reason]
@@ -1229,19 +1221,18 @@ def build(
             renderer_sha256=digest(Path(__file__).read_bytes()),
         ),
     )
+    from harness.report_languages import select_report_language
+    entry = select_report_language(output, language)
     check(output)
-    return output / "index.html"
+    return entry
 
 
 def check(output, *, return_data=False, evidence_only=False):
     manifest = json.loads((output / "manifest.json").read_text())
-    if manifest.get("schema") == "web-search-reference/1":
-        return check_reference(output)
     _check_report_languages(output, manifest)
-    primary = manifest["primary_language"]
     editions = [
         {r.removeprefix(lang + "/") for r in manifest["routes"] if r.startswith(lang + "/")}
-        if lang != primary
+        if lang != "zh"
         else {r for r in manifest["routes"] if not r.startswith(("en/", "zh/"))}
         for lang in manifest["languages"]
     ]
@@ -1299,7 +1290,7 @@ def check(output, *, return_data=False, evidence_only=False):
         review_data = json.loads(review_path.read_bytes())
         validate_public_review(manifest["profile"], manifest["rows"], review_data)
         for lang in manifest["languages"]:
-            prefix = "" if lang == primary else lang + "/"
+            prefix = "" if lang == "zh" else lang + "/"
             if prefix + "review.html" not in manifest["routes"]:
                 raise ValueError("Independent review page is missing")
             soup = BeautifulSoup((output / (prefix + "index.html")).read_text(), "html.parser")
@@ -1341,7 +1332,7 @@ def check(output, *, return_data=False, evidence_only=False):
         if any(r.get("cohort") != by_id.get(r["case_id"]) for r in manifest["rows"]):
             raise ValueError("Result belongs to the wrong cohort")
     for lang in manifest["languages"]:
-        prefix = "" if lang == primary else lang + "/"
+        prefix = "" if lang == "zh" else lang + "/"
         soup = BeautifulSoup((output / (prefix + "research.html")).read_text(), "html.parser")
         expected = BeautifulSoup(
             fairness_table(manifest["profile"], manifest["rows"], lang == "zh"), "html.parser"
@@ -1666,7 +1657,7 @@ def check(output, *, return_data=False, evidence_only=False):
             href = a.get("href", a.get("data-evidence", a.get("data-detail", "")))
             if href.startswith(("https://", "http://", "#")):
                 continue
-            href = href.partition("#")[0]
+            href = urlsplit(href).path
             site_root = output.parent if manifest.get("site_prefix") else output
             target = (site_root / href).resolve()
             if not target.is_relative_to(site_root.resolve()) or not target.is_file():
@@ -1676,171 +1667,6 @@ def check(output, *, return_data=False, evidence_only=False):
     if return_data:
         selected = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
         return manifest["profile"], selected
-    return True
-
-
-def build_reference(output, content_path, language="en"):
-    """Render documented API capabilities separately from measured comparisons."""
-    if language not in ("en", "zh"):
-        raise ValueError("Unsupported primary report language; choose en or zh")
-    data = json.loads(content_path.read_text())
-    if data.get("schema") != "web-search-reference/1":
-        raise ValueError("Unsupported reference comparison schema")
-    output = Path(output)
-    output.mkdir(parents=True, exist_ok=True)
-    artifacts = data.get("artifacts", [])
-    verify_bundle(content_path.parent, artifacts)
-    for item in artifacts:
-        target = output / item["path"]
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes((content_path.parent / item["path"]).read_bytes())
-    old_manifest_path = output / "manifest.json"
-    if old_manifest_path.is_file():
-        old_manifest = json.loads(old_manifest_path.read_text())
-        for route in [*old_manifest.get("routes", []), *old_manifest.get("language_notices", [])]:
-            old = (output / route).resolve()
-            if old.is_relative_to(output.resolve()) and old.is_file():
-                old.unlink()
-    languages = ["en", "zh"] if language == "en" else ["zh"]
-    sources = {s["id"]: s for s in data["sources"]}
-    routes = []
-    for lang in languages:
-        zh = lang == "zh"
-        route = "index.html" if lang == language else lang + "/index.html"
-        other = "zh" if lang == "en" else "en"
-        switch = other + "/index.html" if lang == language else "../index.html"
-
-        def refs(ids):
-            return " ".join(
-                f'<a class="citation" href="#source-{esc(i)}">[{esc(i)}]</a>' for i in ids
-            )
-
-        body = f'<p class="eyebrow">API REFERENCE / {esc(data["checked"])}</p><h1>{esc(data["title"][lang])}</h1>'
-        body += '<p class="notice" data-state>' + esc(data["scope"][lang]) + "</p>"
-        body += '<p class="lede">' + esc(data["lead"][lang]) + "</p>"
-        for section in data["sections"]:
-            body += f'<section id="{esc(section["id"])}"><h2>{esc(section["title"][lang])}</h2>'
-            if section.get("headers"):
-                body += table(
-                    section["headers"][lang],
-                    [cells([esc(v) for v in row[lang]]) for row in section["rows"]],
-                )
-            for paragraph in section.get("paragraphs", []):
-                body += (
-                    "<p>" + esc(paragraph[lang]) + " " + refs(paragraph.get("sources", [])) + "</p>"
-                )
-            for sample in section.get("samples", []):
-                body += (
-                    ("<details open>" if sample.get("open") else "<details>")
-                    + "<summary>"
-                    + esc(sample["label"][lang])
-                    + "</summary>"
-                )
-                body += (
-                    '<p class="muted">'
-                    + esc(sample["note"][lang])
-                    + "</p><pre><code>"
-                    + esc(sample["code"])
-                    + "</code></pre></details>"
-                )
-            body += "</section>"
-        body += (
-            '<section id="sources"><h2>'
-            + ("来源与核对范围" if zh else "Sources and scope")
-            + "</h2>"
-        )
-        for identity, source in sources.items():
-            if not source["url"].startswith("https://"):
-                raise ValueError("Sources must use HTTPS")
-            body += f'<p id="source-{esc(identity)}">[{esc(identity)}] <a href="{esc(source["url"])}">{esc(source["label"][lang])}</a><br><span class="muted">{esc(source["note"][lang])}</span></p>'
-        for item in artifacts:
-            target = ("../" if lang != language else "") + item["path"]
-            body += f'<p><a href="{esc(target)}">{esc(item["label"][lang])}</a></p>'
-        body += "</section>"
-        navigation = "".join(
-            f'<a href="#{esc(s["id"])}">{esc(s["nav"][lang])}</a>' for s in data["sections"]
-        )
-        document = f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(data["title"][lang])}</title><style>{STYLE}
-main{{max-width:1120px}}section{{border-top:1px solid var(--line);margin-top:36px;padding-top:8px}}details{{border:1px solid var(--line);border-radius:8px;padding:16px;margin:16px 0;background:var(--panel)}}summary{{cursor:pointer;font-weight:600}}code{{font:14px/1.65 ui-monospace,monospace}}.citation{{font-size:13px;color:var(--win)}}a:focus-visible,summary:focus-visible,button:focus-visible{{outline:3px solid #648caf;outline-offset:4px}}@media print{{nav,button{{display:none}}.scroll{{overflow:visible}}table{{min-width:0}}body{{font-size:11px}}}}
-</style></head><body><nav>{navigation}<a href="{switch}">{"English" if zh else "中文"}</a><button data-theme>{"切换主题" if zh else "Theme"}</button></nav><main>{body}</main><script>document.querySelector('[data-theme]').onclick=()=>{{let dark=getComputedStyle(document.body).backgroundColor==='rgb(17, 25, 31)';document.body.className=dark?'light':'dark'}};</script></body></html>'''
-        path = output / route
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(document)
-        routes.append(route)
-    (output / "reference-input.json").write_bytes(content_path.read_bytes())
-    write_json(
-        output / "manifest.json",
-        {
-            "schema": "web-search-reference/1",
-            "template": "web-search/reference/1",
-            "primary_language": language,
-            "languages": languages,
-            "language_notices": _language_notice(output, languages),
-            "routes": routes,
-            "input_sha256": digest(content_path.read_bytes()),
-            "bundle": artifacts,
-        },
-    )
-    check_reference(output)
-    return output / "index.html"
-
-
-def check_reference(output):
-    """Reject altered facts, missing sources and broken specimen/navigation links."""
-    manifest = json.loads((output / "manifest.json").read_text())
-    raw = (output / "reference-input.json").read_bytes()
-    if digest(raw) != manifest["input_sha256"]:
-        raise ValueError("Reference input hash mismatch")
-    data = json.loads(raw)
-    if manifest.get("bundle", []) != data.get("artifacts", []):
-        raise ValueError("Reference artifact bindings disagree")
-    verify_bundle(output, manifest.get("bundle", []))
-    _check_report_languages(output, manifest)
-    expected = {"index.html"} | {lang + "/index.html" for lang in manifest["languages"] if lang != manifest["primary_language"]}
-    if set(manifest["routes"]) != expected:
-        raise ValueError("Missing language edition")
-    for route in expected:
-        soup = BeautifulSoup((output / route).read_text(), "html.parser")
-        lang = soup.html["lang"]
-        if (
-            soup.h1.get_text() != data["title"][lang]
-            or soup.select_one("[data-state]").get_text() != data["scope"][lang]
-        ):
-            raise ValueError("Reference scope mismatch")
-        for section in data["sections"]:
-            node = soup.find(id=section["id"])
-            if node is None or node.h2.get_text() != section["title"][lang]:
-                raise ValueError("Missing reference section")
-            actual = [[td.get_text() for td in row.select("td")] for row in node.select("tbody tr")]
-            if actual != [row[lang] for row in section.get("rows", [])]:
-                raise ValueError("Capability table mismatch")
-            for p in section.get("paragraphs", []):
-                if p[lang] not in node.get_text():
-                    raise ValueError("Missing factual qualification")
-            if [x.get_text() for x in node.select("pre code")] != [
-                s["code"] for s in section.get("samples", [])
-            ]:
-                raise ValueError("Specimen mismatch")
-            if [x.has_attr("open") for x in node.select("details")] != [
-                bool(s.get("open")) for s in section.get("samples", [])
-            ]:
-                raise ValueError("Specimen visibility mismatch")
-        for source in data["sources"]:
-            node = soup.find(id="source-" + source["id"])
-            if node is None or node.a["href"] != source["url"]:
-                raise ValueError("Missing reference source")
-        for a in soup.select("a[href]"):
-            href = a["href"]
-            if href.startswith("#"):
-                if soup.find(id=href[1:]) is None:
-                    raise ValueError("Broken reference anchor")
-            elif (
-                not href.startswith("https://")
-                and not (output / route).parent.joinpath(href).is_file()
-            ):
-                raise ValueError("Broken reference navigation")
-        if "/Users/" in str(soup):
-            raise ValueError("Private path in reference report")
     return True
 
 
@@ -1858,11 +1684,6 @@ def main(argv=None):
         help="Add a separately verified cohort to the same report",
     )
     parser.add_argument("--content", type=Path)
-    parser.add_argument(
-        "--reference-content",
-        type=Path,
-        help="Build a sourced API reference comparison, without benchmark scores",
-    )
     parser.add_argument("--identity-correction", type=Path)
     parser.add_argument("--review", type=Path, help="Complete independent review with adjudications")
     parser.add_argument("--relevance", type=Path, help="Complete, provenance-bound relevance labels for every in-house query")
@@ -1878,27 +1699,20 @@ def main(argv=None):
                         help="Export the checked report into lossless case shards for bounded-file hosts")
     args = parser.parse_args(argv)
     if args.export_annotations:
-        if args.source or args.cohort or args.reference_content:
+        if args.source or args.cohort:
             parser.error("Annotation export consumes an existing report")
         from .relevance import export_annotations
         profile, selected = check(args.output, return_data=True)
         print(export_annotations(profile, selected, args.export_annotations))
         return
     if args.export_delivery:
-        if args.source or args.cohort or args.reference_content:
+        if args.source or args.cohort:
             parser.error("Delivery export consumes an existing report, not build inputs")
         check(args.output)
         from .delivery import export, verify
         export(args.output, args.export_delivery)
         verify(args.output, args.export_delivery)
         print(args.export_delivery)
-        return
-    if args.reference_content:
-        if args.source or args.identity_correction or args.release_check:
-            parser.error("Reference comparisons cannot consume measured benchmark inputs")
-        from harness.report_languages import resolve_report_language
-        language = resolve_report_language(args.output, args.language)
-        print(build_reference(args.output, args.reference_content, language))
         return
     if args.release_check:
         release_check(args.output, args.release_check)
@@ -1936,18 +1750,6 @@ def release_check(output, visual_receipt):
     manifest = output / "manifest.json"
     if proof["manifest_sha256"] != digest(manifest.read_bytes()):
         raise ValueError("Visual check belongs to a different build")
-    if json.loads(manifest.read_text()).get("schema") == "web-search-reference/1":
-        expected = {(lang, 1280, "light") for lang in json.loads(manifest.read_text())["languages"]}
-        actual = set()
-        for capture in proof["captures"]:
-            if digest(Path(capture["path"]).read_bytes()) != capture["sha256"]:
-                raise ValueError("Reference visual evidence mismatch")
-            if capture["metrics"]["page"] != capture["metrics"]["viewport"]:
-                raise ValueError("Reference page overflows its viewport")
-            actual.add((capture["language"], capture["width"], capture["theme"]))
-        if actual != expected:
-            raise ValueError("Incomplete reference visual coverage")
-        return True
     report_manifest = json.loads(manifest.read_text())
     if report_manifest.get("receipt", {}).get("certified"):
         publication_authority(report_manifest)
@@ -2120,7 +1922,7 @@ def fairness_table(profile, rows, zh):
         + "<p>"
         + t(
             f"First-round queries with equal result counts across all providers: {equal}/{len(common)}. Empty and short responses remain in every declared denominator. Counts do not establish relevance.",
-            f"三家实际返回数量相同的题目：{equal}/{len(common)}。空结果和不足额返回均保留在预定分母中。返回条数不代表相关性。",
+            f"各接口实际返回数量相同的题目：{equal}/{len(common)}。空结果和不足额返回均保留在预定分母中。返回条数不代表相关性。",
         )
         + "</p></section>"
     )
@@ -2631,15 +2433,15 @@ def interface_example(profile, rows, case_id, zh):
 def relevance_detail(result, zh):
     t = lambda en, cn: cn if zh else en
     rows = []
-    for i in range(5):
+    for i in range(result.get("cutoff", 5)):
         grade = result["ranked_grades"][i] if i < len(result["ranked_grades"]) else 0
         label = str(grade) if i < len(result["ranked_grades"]) else t("Not returned", "未返回，记0")
         rows.append(cells([str(i + 1), label, str(2**grade-1), f'{1 / math.log2(i+2):.4f}', f'{(result["contributions"][i] if i < len(result["contributions"]) else 0):.4f}']))
     return ('<section data-case-relevance><h2>' + t("Query ranking quality", "本题搜索质量分") + '</h2><strong>' + f'{result["ndcg"]*100:.1f} / 100' + '</strong><p>'
-            + t("Useful results: ", "可用结果：") + f'{result["useful"]}/5 · ' + t("Grade-3 result: ", "是否有直接满足结果：") + (t("Yes", "有") if result["success"] else t("No", "无"))
-            + '</p><details><summary>' + t("Inspect the complete calculation", "查看五条结果的计算过程") + '</summary>'
+            + t("Useful results: ", "可用结果：") + f'{result["useful"]}/{result.get("cutoff", 5)} · ' + t("Grade-3 result: ", "是否有直接满足结果：") + (t("Yes", "有") if result["success"] else t("No", "无"))
+            + '</p><details><summary>' + t("Inspect the complete calculation", "查看各条结果的计算过程") + '</summary>'
             + table([t("Rank", "排名"), t("Grade", "等级"), t("Gain", "增益 2^等级−1"), t("Rank weight", "排名权重"), t("Contribution", "得分贡献")], rows)
-            + '<p>' + t("Ideal pooled grades: ", "候选池的理想前五条等级：") + esc(str(result["ideal_grades"])) + '</p><p>'
+            + '<p>' + t("Ideal pooled grades: ", "候选池的理想等级：") + esc(str(result["ideal_grades"])) + '</p><p>'
             + (f'{result["dcg"]:.4f} ÷ {result["idcg"]:.4f} × 100 = {result["ndcg"]*100:.1f}' if result['idcg'] else t('No relevant candidate in the pool: score 0.', '候选池全为 0 级，本题质量分记 0。')) + '</p></details></section>')
 
 
@@ -2718,7 +2520,7 @@ def relevance_panel(profile, scored, evidence, zh):
     panel = ('<section class="specimen" id="relevance-scores" data-relevance><h3>' + esc(title) + '</h3>' + bars
              + ('' if profile.get("comparison_selection") else '<p>' + esc(definitions) + '</p>')
              + '<details><summary>' + ("可用结果与直接满足比例" if zh else "Useful results and direct matches") + '</summary>' + table(["题型" if zh else "Category", "服务" if zh else "Provider", "题数" if zh else "Queries", "搜索质量分（0–100）" if zh else "Ranking quality /100", "可用结果比例" if zh else "Useful-result fraction", "直接满足率" if zh else "Direct-match rate"], rows) + '</details>'
-             + '<p class="muted">' + esc((f"评分来源：{audit['name']}；逐条理由与冻结标签见评分证据。" if zh else f"Judgments: {audit['name']}; see the frozen labels and reasons.") if profile.get("comparison_selection") else scope + denominator) + '</p><a href="relevance-judgments.json">'
+             + '<p class="muted">' + esc(scope + denominator) + '</p><a href="relevance-judgments.json">'
              + ("查看逐项评分证据" if zh else "Scoring evidence") + '</a></section>')
     first_case = evidence["plan"]["case_ids"][0]
     query = next(c["query"] for c in profile["cases"] if c["id"] == first_case)
@@ -2749,13 +2551,13 @@ def factual_panel(profile, selected, zh, *, compact=False):
     if compact:
         headers = ["方法", "找到标注来源（题）", "返回文字含答案（题）"] if zh else ["Method", "Given source found", "Answer text delivered"]
         rendered = []
-        best = numeric_winners([(v[2][0], v[2][3]) for v in values], {0: "max", 1: "max"})
+        best = numeric_winners([(v[2][0]/v[1] if v[1] else None, v[2][3]/v[1] if v[1] else None) for v in values], {0: "max", 1: "max"})
         for label, n, sums in values:
             row = '<td>' + esc(label) + '</td>'
             for i, total in enumerate((sums[0], sums[3])):
-                row += numeric_cell(f'{int(total)}/{n} · {total/n:.1%}' if n else '—', total, f'factual-current-{i}', 'max', best.get(i) == total)
+                row += numeric_cell(f'{int(total)}/{n} · {total/n:.1%}' if n else '—', total/n if n else None, f'factual-current-{i}', 'max', n > 0 and best.get(i) == total/n)
             rendered.append('<tr>' + row + '</tr>')
-        return '<section data-factual><h2>' + (f'公开事实集：{len(cases)} 题的证据发现' if zh else f'Factual evidence retrieval: {len(cases)} queries') + '</h2><p>' + ('在前五条中检查题库给定网址，以及标题、短摘要、长摘要和正文中的参考答案文字。已排除题库转载和模型答题记录；答案文字出现不代表上下文正确。' if zh else 'Check top-five given URLs and answer text in all delivered fields, excluding dataset mirrors and evaluation logs. Text presence does not verify its context.') + '</p>' + table(headers, rendered) + '</section>'
+        return '<section data-factual><h2>' + (f'公开事实集：{len(cases)} 题的证据发现' if zh else f'Factual evidence retrieval: {len(cases)} queries') + '</h2><p>' + ('在前五条中检查题库给定网址，以及标题、短摘要、长摘要和正文中的参考答案文字。已排除题库转载和模型答题记录；答案文字出现不代表上下文正确。' if zh else 'Check top-five given URLs and answer text in all delivered fields, excluding dataset mirrors and evaluation logs. Text presence does not verify its context.') + '</p>' + table(headers, rendered) + ('<p data-quality-exclusions>' + (f'参考核查共同剔除 {len(excluded)} 道有缺陷的题，质量统计保留 {len(cases)} 题；原始响应、耗时和费用保留完整采集范围。' if zh else f'Reference review excludes {len(excluded)} defective queries for every provider; quality uses {len(cases)} queries. Original responses, timing and cost retain the full collection.') + '</p>' if excluded else '') + '</section>'
     rendered = []
     for label, n, sums in values:
         row = ['<td>' + esc(label) + '</td>', f'<td>{n}</td>']
@@ -2780,7 +2582,7 @@ def factual_panel(profile, selected, zh, *, compact=False):
         body = body.replace('答案线索只检查三家共有的标题与短摘要。', '答案线索检查各家前五条实际交付的标题、短摘要、长摘要和正文。').replace('Answer cues use only shared titles and snippets.', 'Answer cues use every delivered title, snippet, summary and body in the top five.').replace('基础接口</th>', '方法</th>').replace('Basic API</th>', 'Method</th>').replace('短摘要含答案：原始', '搜索文字含答案：原始').replace('Preview answer: raw', 'Delivered answer cue: raw')
     body += '<p>' + ('这项过滤是事后诊断：网址或标题出现 SimpleQA，或交付文本包含完整原题，并具有评测字段、答案验证日志或训练集表格结构时，该结果不参与答案检查；原位置留空，不补搜。检查采用固定文字规则，原始数值同时保留。' if zh else 'Contamination exclusion is a post-hoc deterministic diagnostic. Results naming SimpleQA in their URL/title, or containing the complete question together with evaluation fields, validation logs or dataset-viewer structure, are blanked without refilling or compacting ranks. Original values remain visible.') + '</p>'
     if excluded:
-        body += '<p data-quality-exclusions>' + (f'独立审查隔离了 {len(excluded)} 道参考答案错误或题意存在实质歧义的题，三家使用同一质量分母 {len(cases)}；全部题仍计入性能与费用。原题、原始响应和原始检查数值保留在逐题详情。' if zh else f'Independent reference review excluded {len(excluded)} defective or materially ambiguous questions from all methods’ quality metrics, leaving {len(cases)} common queries. All queries remain in latency and cost; original inputs, responses and diagnostics remain inspectable.') + '</p>'
+        body += '<p data-quality-exclusions>' + (f'独立审查隔离了 {len(excluded)} 道参考答案错误或题意存在实质歧义的题，各接口使用同一质量分母 {len(cases)}；全部题仍计入性能与费用。原题、原始响应和原始检查数值保留在逐题详情。' if zh else f'Independent reference review excluded {len(excluded)} defective or materially ambiguous questions from all methods’ quality metrics, leaving {len(cases)} common queries. All queries remain in latency and cost; original inputs, responses and diagnostics remain inspectable.') + '</p>'
     extra = []
     for enabled in ([] if projected else profile['methods']):
         options = enabled.get('output_options', {})
@@ -2900,6 +2702,10 @@ def outcome_table(profile, selected, zh):
         "target_miss": ("Known target absent", "未命中已知目标"),
         "target_hit": ("Known target found", "命中已知目标"),
         "source_hit": ("Published supporting source found", "找到题库标注来源"),
+        "answer_hit": ("Reference answer text found", "找到参考答案文字"),
+        "answer_miss": ("Reference answer text absent", "未找到参考答案文字"),
+        "domain_hit": ("Requested site found", "找到指定网站"),
+        "domain_miss": ("Requested site absent", "未找到指定网站"),
         "source_miss": ("Published supporting source not found", "未找到题库标注来源"),
         "probe": ("Unjudged query response", "无相关性标注的查询响应"),
     }
@@ -3162,16 +2968,6 @@ def project_comparison(profile, rows, content):
 def executive_table(profile, selected, content, scores, zh):
     """Keep every benchmark's primary quality measures visible on the home page."""
     summary_content = dict(content)
-    if not content.get("independent_benchmarks"):
-        primary = [c["id"] for c in profile["cases"] if "reference_answer" not in c]
-        factual = [c["id"] for c in profile["cases"] if "reference_answer" in c]
-        summary_content.update(independent_benchmarks=True, metric_populations=[
-            {"id": key, "benchmark_root": True, "label": label, "case_ids": ids}
-            for key, label, ids in [
-                ("custom", {"zh": "自建场景集", "en": "In-house scenarios"}, primary),
-                ("factual", {"zh": "公开事实集", "en": "Public factual queries"}, factual),
-            ] if ids
-        ])
     body = population_summary(profile, selected, summary_content, zh, relevance_scores=scores)
     return '<section data-executive>' + body + '</section>'
 
@@ -3189,7 +2985,7 @@ def discovery_comparison(profile, selected, content, zh):
             group = [r for r in selected if r['method'] == method['id'] and r['case_id'] in ids]
             if len(group) != len(ids):
                 raise ValueError('Incomplete discovery comparison')
-            counts.append(sum(bool(r['metrics'].get('anchor_hit_5')) if kind == 'scenario' else (r['metrics'].get('domain_precision') or 0) > 0 for r in group))
+            counts.append(sum(bool(evaluate(next(c for c in profile['cases'] if c['id'] == r['case_id']), r['results'][:profile['protocol']['top_k']])['anchor_hit_10']) if kind == 'scenario' else (r['metrics'].get('domain_precision') or 0) > 0 for r in group))
         best = max(counts)
         label = ('找到指定网页' if kind == 'scenario' else '找到指定网站') if zh else ('Find the given webpage' if kind == 'scenario' else 'Find the requested site')
         cells_html = '<td>' + label + '</td><td>' + str(len(ids)) + '</td>'
@@ -3198,29 +2994,37 @@ def discovery_comparison(profile, selected, content, zh):
         rows.append('<tr>' + cells_html + '</tr>')
     if not rows:
         return ''
-    return '<section data-discovery><h2>' + ('指定网页与网站的发现能力' if zh else 'Directed webpage discovery') + '</h2><p>' + ('在自建集有明确网页或网站要求的题目中，核对前五条是否出现指定网址或域名；下表同时列三家的命中数。这两项衡量找页能力，相关性仍看全量质量分。' if zh else 'For scenario queries with explicit webpage/site targets, check whether the top five contain the given URL or domain. These diagnose discovery separately from graded relevance.') + '</p>' + table((['检查','题数'] if zh else ['Check','Queries']) + [m['label'] for m in profile['methods']], rows) + '</section>'
+    return '<section data-discovery><h2>' + ('指定网页与网站的发现能力' if zh else 'Directed webpage discovery') + '</h2><p>' + ('在自建集有明确网页或网站要求的题目中，核对前五条是否出现指定网址或域名；下表列出各接口的命中数。这两项衡量找页能力，相关性仍看全量质量分。' if zh else 'For scenario queries with explicit webpage/site targets, check whether the top five contain the given URL or domain. These diagnose discovery separately from graded relevance.') + '</p>' + table((['检查','题数'] if zh else ['Check','Queries']) + [m['label'] for m in profile['methods']], rows) + '</section>'
 
 
 def benchmark_operations(profile, selected, content, zh):
-    """Keep independently collected benchmark timings separate, never blend them."""
+    """Collection labels, populations, retries and currencies come from the inputs."""
+    populations = [p for p in metric_populations(profile, content) if p.get("benchmark_root")]
+    if not populations:
+        cohorts = sorted({r.get("cohort", "primary") for r in selected})
+        populations = [{"id": key, "label": {"zh": cohort_label(profile, key, True), "en": cohort_label(profile, key, False)}, "case_ids": sorted({r["case_id"] for r in selected if r.get("cohort", "primary") == key})} for key in cohorts]
     rendered = []
-    for population in metric_populations(profile, content):
-        if not population.get('benchmark_root'):
-            continue
-        ids = set(population['case_ids'])
-        rows = [r for r in selected if r['case_id'] in ids]
-        stats = aggregate(rows)
-        values = [(m, stats[m['id']]) for m in profile['methods']]
-        raw = [[item['all_latency'][k] for k in ('mean', 'p50', 'p95')] + [item['cost_total']] for _, item in values]
-        winners = numeric_winners(raw, {0:'min',1:'min',2:'min',3:'min'})
-        for idx, (method, item) in enumerate(values):
-            label = ('公开事实集实测批次' if zh else 'Factual collection') if population.get('metric_kind') == 'factual' else ('自建场景集' if zh else 'Scenario set')
-            row = '<td>' + label + '</td><td>' + esc(method['label']) + '</td>'
-            for i, value in enumerate(raw[idx]):
-                display = fmt(value) if value is not None else ('未定价' if zh else 'Not priced')
-                row += numeric_cell(display, value, f'operation-{population["id"]}-{i}', 'min', value is not None and winners.get(i) == value)
+    comparable = len({m.get("currency", "CNY") for m in profile["methods"]}) == 1
+    for population in populations:
+        ids = set(population["case_ids"])
+        stats = aggregate([r for r in selected if r["case_id"] in ids])
+        values = [(m, stats[m["id"]]) for m in profile["methods"]]
+        raw = [[item["all_latency"][k] for k in ("mean", "p50", "p95")] + [item["cost_total"]] for _, item in values]
+        directions = {0:"min", 1:"min", 2:"min", 3:"min" if comparable else "neutral"}
+        winners = numeric_winners(raw, directions)
+        for index, (method, item) in enumerate(values):
+            row = '<td>' + esc(population.get("label", {"zh": population.get("id", "评测集"), "en": population.get("id", "Benchmark")})["zh" if zh else "en"]) + '</td><td>' + esc(method["label"]) + '</td>'
+            for i, value in enumerate(raw[index]):
+                label = fmt(value) if value is not None else ("未定价" if zh else "Not priced")
+                if i == 3 and value is not None:
+                    label += " " + esc(method.get("currency", "CNY"))
+                row += numeric_cell(label, value, f'operation-{population["id"]}-{i}', directions[i], value is not None and winners.get(i) == value)
             rendered.append('<tr>' + row + '</tr>')
-    return '<section data-benchmark-operations><h2>' + ('两批实测，分别比较' if zh else 'Compare each collection separately') + '</h2><p>' + ('每题只计一个最终结果，失败最多重试一次；耗时和费用包含实际重试。性能保留完整采集批次，包含参考核查中隔离的题。P95 表示 95% 的请求在该时间内结束。' if zh else 'One final result per query, with at most one eligible failure retry. Timing and cost include retries and the complete collection, including reference-quarantined questions. P95 bounds 95% of request waits.') + '</p>' + table(['实测批次','接口','平均耗时 ms','P50 ms','P95 ms','本批估算费用 元'] if zh else ['Collection','API','Mean ms','P50 ms','P95 ms','Estimated batch cost'], rendered) + '</section>'
+    if not rendered:
+        return ''
+    retries = int(bool(profile["protocol"].get("retry")))
+    note = (f"每题每个接口保留一个最终结果，失败最多重试 {retries} 次；耗时和费用计入实际重试。P95 表示 95% 的请求在该时间内结束。" if zh else f"One final result per provider and query, with at most {retries} failure retries; timing and cost include actual retries. P95 bounds 95% of waits.")
+    return '<section data-benchmark-operations><h2>' + ("各采集批次的性能与费用" if zh else "Performance and cost by collection") + '</h2><p>' + note + '</p>' + table(["实测批次","接口","平均耗时 ms","P50 ms","P95 ms","本批估算费用"] if zh else ["Collection","API","Mean ms","P50 ms","P95 ms","Estimated batch cost"], rendered) + '</section>'
 
 
 def quality_dataset(profile, content):
@@ -3266,16 +3070,11 @@ def metric_populations(profile, content):
 def population_summary(profile, selected, content, zh, *, diagnostics=False, relevance_scores=None):
     lang = "zh" if zh else "en"
     independent = content.get("independent_benchmarks")
-    heading = (("两套评测，分别报告" if zh else "Two benchmarks, reported separately")
-               if independent else ("总体与分题组结果" if zh else "Overall and population results"))
-    exclusions = set(profile.get("factual_quality_exclusions", []))
-    factual_count = sum("reference_answer" in case and case["id"] not in exclusions for case in profile["cases"])
-    scenario_count = sum("reference_answer" not in case for case in profile["cases"])
-    note = ((f"{scenario_count} 题自建集和 {factual_count} 题公开事实集回答不同问题，不合并成总分。子题组只解释各自适用的检查。非空、平均耗时、P50 和 P95 都包含失败与重试等待。"
-             if zh else f"The {scenario_count}-query in-house set and {factual_count}-query public factual set answer different questions and are not merged. Subgroups only explain their eligible checks. Nonempty and latency include failures and retry waits.")
-            if independent else
-            ("总体包含每道查询一次；分题组是总体的子集，不相加。非空指至少返回一条可用结果。平均、P50（中位数）和 P95（95% 的查询耗时不超过此值）均包含失败和重试等待。费用为本题组全部调用的可核算费用，未定价显示 —。"
-             if zh else "Overall counts every query once. Subgroups overlap with overall and must not be added. Nonempty means at least one usable result. Mean, P50 (median) and P95 (95% of queries finish within this duration) include failures and retry waits. Cost totals billable calls; unset prices show —."))
+    roots = [p for p in metric_populations(profile, content) if p.get("benchmark_root")] if independent else []
+    heading = ("各评测集的核心结果" if zh else "Core results by benchmark")
+    scope = "；".join(p["label"][lang] + " " + str(len(set(p["case_ids"]) - set(profile.get("factual_quality_exclusions", [])))) + (" 题" if zh else " queries") for p in roots)
+    note = ((scope + ("。各题库分别统计。" if zh else ". Benchmarks are reported separately. ")) if scope else "") + (
+        "平均耗时、P50 和 P95 均计入全部请求与实际重试等待；费用按对应题组的实际调用估算。" if zh else "Mean, P50 and P95 cover all requests and retry waits; fees estimate the calls in each population.")
     if diagnostics:
         heading = "参考网址与指定网站：辅助检查" if zh else "Reference URLs and requested sites: diagnostics"
         note = "下列检查只解释具体网址与域名的发现情况，题目可重叠；统一相关性评分仍覆盖完整自建题库。" if zh else "These overlapping subsets diagnose URL and domain discovery. Uniform relevance scoring covers the complete in-house set."
@@ -3402,10 +3201,19 @@ def annotation_detail(annotation, zh):
 
 
 def dataset_context(profile, content, zh):
-    if content.get('presentation') != 'comparison-report':
+    if content.get("presentation") != "comparison-report":
         return ''
-    factual = [c for c in profile['cases'] if 'reference_answer' in c]
-    source = '<a href="https://huggingface.co/datasets/google/simpleqa-verified">SimpleQA Verified</a>'
-    custom = [c for c in profile['cases'] if 'reference_answer' not in c]
-    originals = sum(c.get('provenance_kind') in {'community_exact', 'user_screenshot'} for c in custom)
-    return '<section><h2>' + ('两套题库，分别评估' if zh else 'Two independent datasets') + '</h2>' + table(['题库', '题数', '用途'] if zh else ['Dataset', 'Queries', 'Purpose'], [cells(['自建场景集' if zh else 'In-house scenarios', str(len(custom)), '通用网页、指定网站与垂类搜索的相关性' if zh else 'Relevance across web, site and vertical queries']), cells(['公开事实集' if zh else 'Public factual queries', str(len(factual)), '标注来源与答案文字能否进入前五条' if zh else 'Given sources and answer text in the top five'])]) + '<p>' + (f'自建集含 {originals} 道社区原题，其余逐题注明公开查询集、派生场景或自编来源。公开事实题来自 {source}，已按共同接口限制和参考核查规则筛选。' if zh else f'The scenario set includes {originals} exact community queries; other origins are attributed per query. Factual questions come from {source}, with shared input and reference qualification rules.') + '</p></section>'
+    populations = [p for p in metric_populations(profile, content) if p.get("benchmark_root")]
+    if not populations:
+        populations = [{"label": {"zh": profile.get("title", "评测集"), "en": profile.get("title", "Benchmark")}, "case_ids": [c["id"] for c in profile["cases"]]}]
+    rows = []
+    for population in populations:
+        cases = [c for c in profile["cases"] if c["id"] in population["case_ids"]]
+        if not cases:
+            continue
+        factual = all("reference_answer" in c for c in cases)
+        purpose = ("检查给定网页与参考答案文字" if factual else "评价查询结果的相关性") if zh else ("Given-source and reference-answer text checks" if factual else "Query-result relevance")
+        rows.append(cells([esc(population.get("label", {"zh": population.get("id", "评测集"), "en": population.get("id", "Benchmark")})["zh" if zh else "en"]), str(len(cases)), purpose]))
+    originals = sum(c.get("provenance_kind") in {"community_exact", "user_screenshot"} for c in profile["cases"])
+    note = (f"含 {originals} 道社区原题。各题的原始查询、来源网址和改编关系列在下表。" if zh else f"Includes {originals} exact community queries. Original queries, source URLs and derivation are listed below.") if originals else ("各题的原始查询、来源网址和参考依据列在下表。" if zh else "Original queries, source URLs and references are listed below.")
+    return '<section><h2>' + ("评测集与评估范围" if zh else "Datasets and evaluation scope") + '</h2>' + table(["题库","题数","用途"] if zh else ["Dataset","Queries","Purpose"], rows) + '<p>' + note + '</p></section>'

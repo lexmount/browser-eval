@@ -35,14 +35,14 @@ def test_capture_produces_complete_bound_proof_and_rejects_tampering(tmp_path, m
         manifest = json.loads((root / 'manifest.json').read_text())
         manifest.update(primary_language='en', languages=['en', 'zh'])
         (root / 'manifest.json').write_text(json.dumps(manifest))
-        (root / 'zh').mkdir()
+        (root / 'en').mkdir()
         for page in root.glob('*.html'):
-            (root / 'zh' / page.name).write_bytes(page.read_bytes())
+            (root / 'en' / page.name).write_bytes(page.read_bytes())
     visual.capture(root, receipt)
     assert visual.verify(root, receipt)
     original = json.loads(receipt.read_text())
     assert len(original['captures']) == (14 if primary == 'en' else 7)
-    assert next(item['route'] for item in original['captures'] if item['language'] == primary and item['route_class'] == 'home') == 'index.html'
+    assert next(item['route'] for item in original['captures'] if item['language'] == primary and item['route_class'] == 'home') == ('en/index.html' if primary == 'en' else 'index.html')
     assert {capture['route_class'] for capture in original['captures']} >= {'quality', 'performance'}
     assert original['browser_version']
     assert set(original['producer_sources']) == {'harness/web_search/visual.py', 'harness/reporting/visual.py'}
@@ -89,7 +89,7 @@ def test_standalone_routes_follow_saved_primary_language(tmp_path, primary, lang
     manifest = json.loads((root / 'manifest.json').read_text())
     manifest.update(primary_language=primary, languages=languages)
     (root / 'manifest.json').write_text(json.dumps(manifest))
-    secondary = next((lang for lang in languages if lang != primary), None)
+    secondary = 'en' if 'en' in languages else None
     if secondary:
         (root / secondary).mkdir()
         for page in root.glob('*.html'):
@@ -97,9 +97,9 @@ def test_standalone_routes_follow_saved_primary_language(tmp_path, primary, lang
     routes = visual.routes(root)
     assert len(routes) == 7 * len(languages)
     assert {lang for lang, _, _ in routes} == set(languages)
-    assert next(route for lang, chapter, route in routes if lang == primary and chapter == 'home') == 'index.html'
+    assert next(route for lang, chapter, route in routes if lang == primary and chapter == 'home') == ('en/index.html' if primary == 'en' else 'index.html')
     if secondary:
-        assert next(route for lang, chapter, route in routes if lang == secondary and chapter == 'home') == secondary + '/index.html'
+        assert next(route for lang, chapter, route in routes if lang == secondary and chapter == 'home') == 'en/index.html'
     (root / 'quality.html').unlink()
     with pytest.raises(ValueError, match='missing'):
         visual.routes(root)

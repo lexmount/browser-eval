@@ -13,6 +13,7 @@ from pathlib import Path
 from harness.web_fetch.config import ROOT, load_runtime_env
 from harness.record_io import read_completed_records
 
+from .adapters import adapter_for
 from .core import digest, evaluate, normalize, request_body, request_cost, validate_profile, write_json
 from .profiles import CURRENT_PROFILE, load_profile_bytes
 
@@ -145,6 +146,9 @@ def prepare_resume(profile_path, output):
     """Resume only an unchanged, interrupted matrix; preserve every displaced byte."""
     profile_bytes = load_profile_bytes(profile_path)
     profile = json.loads(profile_bytes)
+    required = ("profile.json", "run-contract.json", "results.jsonl")
+    if any(not (output / name).is_file() for name in required):
+        raise ValueError("Resume requires complete frozen inputs and results.jsonl")
     if (output / "profile.json").read_bytes() != profile_bytes:
         raise ValueError("Resume requires the exact frozen profile")
     if (output / "receipt.json").exists():
@@ -202,7 +206,8 @@ def prepare_resume(profile_path, output):
     return retained, number
 
 
-def run(profile_path, output, diagnostic=False, resume=False):
+def run(profile_path, output, diagnostic=False, resume=False, *, certified=False):
+    diagnostic = diagnostic or not certified
     profile_bytes = load_profile_bytes(profile_path)
     profile = json.loads(profile_bytes)
     validate_profile(profile)
@@ -217,6 +222,7 @@ def run(profile_path, output, diagnostic=False, resume=False):
     if resume:
         if not output.is_dir():
             raise ValueError("Resume directory does not exist")
+        rows, _ = prepare_resume(profile_path, output)
         if (output / "profile.json").read_bytes() != profile_bytes:
             raise ValueError("Resume requires the exact frozen profile")
         original_contract = json.loads((output / "run-contract.json").read_text())
@@ -224,12 +230,13 @@ def run(profile_path, output, diagnostic=False, resume=False):
             raise ValueError("Resume cannot change certification mode")
         validate_resume_implementation(output, original_contract)
         # Validate current sources before changing saved evidence.
+        if not (output / "references-before.json").is_file():
+            raise ValueError("Resume requires frozen references-before.json")
         before = json.loads((output / "references-before.json").read_text())
         phase = "resume-precheck-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
         current = capture_references(profile, output, phase)
         if reference_changes(profile, before, current):
             raise ValueError("Reference recheck failed; resume made no provider calls")
-        rows, _ = prepare_resume(profile_path, output)
         unavailable = []
     else:
         output.mkdir(parents=True, exist_ok=False)
@@ -272,7 +279,7 @@ def run(profile_path, output, diagnostic=False, resume=False):
                 payload = request_body(method["adapter"], case, protocol, method.get("output_options"))
                 key = os.environ[method["key_env"]]
                 header = (
-                    "X-API-Key: " if method["adapter"] == "lexmount" else "Authorization: Bearer "
+                    adapter_for(method["adapter"]).authorization_header + ": " + adapter_for(method["adapter"]).authorization_prefix
                 ) + key
                 attempts = []
                 operation_start = time.perf_counter()
@@ -341,7 +348,7 @@ def run(profile_path, output, diagnostic=False, resume=False):
                     cache=decoded.get("cache") if isinstance(decoded, dict) else None,
                 )
                 rows.append(row)
-                with (output / "results.jsonl").open("a") as stream:
+                with (output / "results.jsonl").open("a", encoding="utf-8") as stream:
                     stream.write(json.dumps(row, ensure_ascii=False) + "\n")
                 print(
                     f"{identity}: HTTP {receipt['http_status']}, {len(results)} results, "
@@ -390,6 +397,7 @@ def run(profile_path, output, diagnostic=False, resume=False):
             ],
         ),
     )
+    (output / "interruption.json").unlink(missing_ok=True)
     return output
 
 
@@ -405,7 +413,7 @@ def reference_changes(profile, before, after):
     ]
 
 
-def main(argv=None):
+def main(argv=None, *, certified=False):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--profile", type=Path, default=CURRENT_PROFILE
@@ -414,8 +422,10 @@ def main(argv=None):
     parser.add_argument("--diagnostic", action="store_true")
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args(argv)
+    if certified and args.diagnostic:
+        parser.error("Certified collection cannot use --diagnostic")
     try:
-        print(run(args.profile, args.output, args.diagnostic, args.resume))
+        print(run(args.profile, args.output, args.diagnostic, args.resume, certified=certified))
     except (ValueError, FileExistsError) as exc:
         parser.exit(2, str(exc) + "\n")
 

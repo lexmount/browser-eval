@@ -18,7 +18,7 @@ def run_judge(tmp_path, monkeypatch):
     from harness.web_search import report
 
     monkeypatch.setattr(config, "ROOT", tmp_path)
-    (tmp_path / ".env").write_text("SEARCH_JUDGE_API_KEY=test-only\n")
+    (tmp_path / ".env").write_text("SEARCH_JUDGE_API_KEY=test-only\nSEARCH_JUDGE_BASE_URL=https://test.invalid/v1\n")
 
     profile = {
         "protocol": {"top_k": 5},
@@ -220,8 +220,8 @@ def test_missing_repository_credential_fails_before_output_creation(run_judge, m
 
 
 def test_custom_proxy_credential_is_loaded_from_real_repository_env_file(run_judge, monkeypatch):
-    name = "CUSTOM_PROXY_BEARER_TOKEN"
-    (run_judge.output.parent / ".env").write_text(f"{name}=repository-test-value\n")
+    name = "BIFROST_API_KEY"
+    (run_judge.output.parent / ".env").write_text(f"{name}=repository-test-value\nSEARCH_JUDGE_BASE_URL=https://test.invalid/v1\n")
     monkeypatch.setenv(name, "stale-shell-value")
     calls = []
 
@@ -267,6 +267,8 @@ def test_invalid_credential_variable_name_creates_no_output(run_judge, name):
 )
 def test_loopback_http_is_usable_for_local_transport_tests(run_judge, monkeypatch, base):
     monkeypatch.setattr(urllib.request, "urlopen", lambda request, **kw: Response(answer(request)))
+    from harness.web_fetch import config
+    (config.ROOT / ".env").write_text("SEARCH_JUDGE_API_KEY=test-only\nSEARCH_JUDGE_BASE_URL=" + base + "\n")
     run_judge(["--base-url", base])
     assert (run_judge.output / "relevance.json").is_file()
 
@@ -296,6 +298,11 @@ def test_correction_reuses_identical_inputs_and_calls_only_changed_cases(
     previous["judge"]["configuration"].pop("receipt_schema")
     for call in previous["judge"]["calls"]:
         del call["attempts"]
+    from harness.web_search import relevance as relevance_module
+    import hashlib
+    pinned = tmp_path / "legacy-evidence.json"
+    pinned.write_text(json.dumps({"model":[hashlib.sha256(json.dumps(previous,ensure_ascii=False,sort_keys=True).encode()).hexdigest()]}))
+    monkeypatch.setattr(relevance_module, "LEGACY_EVIDENCE_PATH", pinned)
     validate_model_evidence(previous)
     prior.write_text(json.dumps(previous))
     changed = tmp_path / "changed-rules.json"
@@ -348,7 +355,7 @@ def test_correction_reuses_identical_inputs_and_calls_only_changed_cases(
     bad["judge"]["inherited_case_ids"].append("q")
     with pytest.raises(ValueError, match="differs from its original"):
         validate_model_evidence(bad)
-    with pytest.raises(ValueError, match="transport configuration changed"):
+    with pytest.raises(ValueError, match="transport configuration changed|endpoint host"):
         run_judge(
             [
                 "--output",

@@ -59,7 +59,7 @@ def query_metrics(ranking, grades, cutoff=5):
     ideal_contributions = [_gain(g, i) for i, g in enumerate(ideal_grades)]
     dcg, ideal = sum(contributions), sum(ideal_contributions)
     useful = sum(g >= 2 for g in ranked_grades)
-    return {"ndcg": dcg / ideal if ideal else 0.0, "precision": useful / cutoff,
+    return {"cutoff": cutoff, "ndcg": dcg / ideal if ideal else 0.0, "precision": useful / cutoff,
             "success": float(any(g == 3 for g in ranked_grades)), "returned": len(ranked_grades),
             "useful": useful, "ranked_grades": ranked_grades, "duplicates": duplicates,
             "ideal_grades": ideal_grades, "contributions": contributions,
@@ -288,6 +288,36 @@ def _judge_retryable(status, error_type):
     )
 
 
+from pathlib import Path
+LEGACY_EVIDENCE_PATH = Path(__file__).resolve().parents[2] / "evaluation/web-search/legacy-evidence.json"
+
+
+def legacy_evidence_allowed(evidence, kind):
+    registry = json.loads(LEGACY_EVIDENCE_PATH.read_text())
+    identity = hashlib.sha256(json.dumps(evidence, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    return identity in registry.get(kind, [])
+
+
+def validate_judge_url(value):
+    from ipaddress import ip_address
+    from urllib.parse import urlsplit
+    base = urlsplit(value)
+    hostname = base.hostname
+    try:
+        loopback = hostname == "localhost" or ip_address(hostname or "").is_loopback
+    except ValueError:
+        loopback = hostname == "localhost"
+    if (not hostname or base.username or base.password or base.query or base.fragment
+            or not (base.scheme == "https" or base.scheme == "http" and loopback)
+            or any(c.isspace() or ord(c) < 32 for c in value)):
+        raise ValueError("Judge base URL requires HTTPS without credentials or query/fragment; HTTP is allowed only on loopback")
+    try:
+        _ = base.port
+    except ValueError as error:
+        raise ValueError("Judge base URL has an invalid port") from error
+    return base
+
+
 def validate_model_evidence(evidence, *, _depth=0):
     if _depth > 8:
         raise ValueError("Judge inheritance chain is too deep")
@@ -312,6 +342,16 @@ def validate_model_evidence(evidence, *, _depth=0):
     ):
         raise ValueError("Explicit source requirements differ from the frozen judge contract")
     strict_receipts = configuration.get("receipt_schema") in (2, 3)
+    if not strict_receipts and not legacy_evidence_allowed(evidence, "model"):
+        raise ValueError("Model evidence requires strict configuration and physical receipts; legacy evidence must be hash-pinned")
+    if judge["prompt"] != JUDGE_PROMPT:
+        raise ValueError("Model evidence uses an unapproved grading prompt")
+    expected_packet = hashlib.sha256(json.dumps({"schema": evidence["schema"], "plan": evidence["plan"], "blind_candidate_packets": packets, **({"source_policy": evidence["source_policy"]} if "source_policy" in evidence else {})}, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    if evidence.get("packet_sha256") != expected_packet:
+        raise ValueError("Model packet hash differs from frozen inputs")
+    if configuration.get("base_url"):
+        validate_judge_url(configuration["base_url"])
+
     inherited = {}
     if configuration.get("receipt_schema") == 3:
         predecessor = judge["predecessor"]
@@ -415,14 +455,11 @@ def judge_main(argv=None):
     import argparse
     import base64
     import os
-    import re
     import time
     import urllib.error
     import urllib.request
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    from ipaddress import ip_address
     from pathlib import Path
-    from urllib.parse import urlsplit
 
     from harness.web_fetch.config import load_runtime_env
 
@@ -450,36 +487,22 @@ def judge_main(argv=None):
         "--disable-thinking", action="store_true", help="Pass enable_thinking=false through Bifrost"
     )
     args = parser.parse_args(argv)
+    import re
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.token_env):
         raise ValueError("Judge credential variable must be a valid environment variable name")
-    try:
-        base = urlsplit(args.base_url)
-        hostname = base.hostname
-        _ = base.port  # Validate a malformed/out-of-range authority port before writing anything.
-        try:
-            loopback = hostname == "localhost" or ip_address(hostname or "").is_loopback
-        except ValueError:
-            loopback = hostname == "localhost"
-        valid_base = (base.scheme == "https" or base.scheme == "http" and loopback) and hostname
-        if (
-            not valid_base
-            or "@" in base.netloc
-            or base.query
-            or base.fragment
-            or any(character.isspace() or ord(character) < 32 for character in args.base_url)
-        ):
-            raise ValueError("Invalid base URL")
-    except ValueError as error:
-        raise ValueError(
-            "Judge base URL requires HTTPS without credentials or query/fragment; HTTP is allowed only on loopback"
-        ) from error
-    # Explicitly selected custom credential names follow the same repository-only
-    # rule as the runner's standard API_KEY variables, including Bifrost tokens.
+    if args.token_env not in {"SEARCH_JUDGE_API_KEY", "BIFROST_API_KEY"}:
+        raise ValueError("Use a dedicated SEARCH_JUDGE_API_KEY or BIFROST_API_KEY credential")
+    validate_judge_url(args.base_url)
     os.environ.pop(args.token_env, None)
     load_runtime_env()
     token = os.environ.get(args.token_env, "")
     if not token.strip() or "\r" in token or "\n" in token:
         raise ValueError(f"Set a nonempty {args.token_env} in the repository .env")
+    from dotenv import dotenv_values
+    from harness.web_fetch import config as runtime_config
+    configured_base = dotenv_values(runtime_config.ROOT / ".env").get("SEARCH_JUDGE_BASE_URL", "")
+    if not configured_base or validate_judge_url(configured_base).netloc != validate_judge_url(args.base_url).netloc:
+        raise ValueError("Judge endpoint host must match repository SEARCH_JUDGE_BASE_URL")
     from .report import check
 
     profile, rows = check(args.report, return_data=True, evidence_only=True)

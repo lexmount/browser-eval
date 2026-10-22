@@ -37,14 +37,7 @@ Raw response bodies, declared requests, transport errors, timings, cache metadat
 
 ## Checks and example
 
-For a sourced API capability comparison without benchmark scores, use the same
-builder with `--reference-content /absolute/content.json --language zh`. The
-`web-search-reference/1` input supplies bilingual sections, tables, request
-specimens and HTTPS sources; optional artifacts carry relative paths and SHA-256
-bindings. The renderer follows the selected report language; English is generated only when selected or explicitly requested. Its ordinary `--check`
-rejects changed capability cells, missing qualifications, altered specimens,
-broken citations, missing editions and artifact hash mismatches. The runnable
-synthetic input is `fixture()` in `tests/web_search/test_reference_report.py`.
+API capability research belongs in the main report’s bound `--content` input. The measured report owns interface tables, request specimens and supporting sources.
 
 ```sh
 uv run --frozen python -m unittest discover -s tests/web_search
@@ -56,7 +49,7 @@ The example is synthetic and labels its numbers accordingly. Report checks rejec
 
 The separate full gate is `scripts/build_search_report.py --output /absolute/report --release-check /absolute/visual-receipt.json`. It binds the report manifest to one reviewed capture of each top-level tab. Link, evidence, filter and pagination structure is checked during generation. Keep this receipt and screenshots outside Git.
 
-Supplemental cohorts use the same collector with another frozen profile, such as `evaluation/web-search/social-platforms.json`. Present completed cohorts in one report with `--source /absolute/primary-run --cohort social=/absolute/social-run`. Repeat `--cohort NAME=RUN` for additional non-overlapping cohorts. The builder verifies each source independently, rejects duplicate cases and incompatible execution protocols, and renders one query inventory and one result inventory with group filters. The overall table describes saved calls across the fixed query mix; per-cohort timing remains visible and does not become a new same-window measurement. Optional external content supplies bilingual `cohort_labels`. Collection profiles and receipts remain immutable. `--site-prefix` is available when a separately requested nested report is needed. Qualified equivalent-page corrections use `--identity-correction evaluation/web-search/identity-correction.json`: the report retains the collection profile, original evidence and an explicit before/after scoring receipt. This changes neither calls nor latency. A source observation must prove each alias and the correction must name its cause and regression controls.
+Supplemental cohorts use the same collector with another explicitly selected frozen profile. Present completed cohorts in one report with `--source /absolute/primary-run --cohort social=/absolute/social-run`. Repeat `--cohort NAME=RUN` for additional non-overlapping cohorts. The builder verifies each source independently, rejects duplicate cases and incompatible execution protocols, and renders one query inventory and one result inventory with group filters. The overall table describes saved calls across the fixed query mix; per-cohort timing remains visible and does not become a new same-window measurement. Optional external content supplies bilingual `cohort_labels`. Collection profiles and receipts remain immutable. `--site-prefix` is available when a separately requested nested report is needed. Qualified equivalent-page corrections use `--identity-correction evaluation/web-search/identity-correction.json`: the report retains the collection profile, original evidence and an explicit before/after scoring receipt. This changes neither calls nor latency. A source observation must prove each alias and the correction must name its cause and regression controls.
 
 Reader-oriented content can select `reading_model` and supply `reading_sections`
 with stable keys, bilingual titles and navigation labels. Sections target those
