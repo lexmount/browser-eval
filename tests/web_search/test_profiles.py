@@ -121,3 +121,21 @@ class CurrentProfileScenarios(unittest.TestCase):
         self.manifest['independent_review_sha256'] = 'bound-review'
         self.manifest['report_assessment'] = {'independent_review_scope': 'all'}
         self.assertEqual(publication_authority(self.manifest, self.entry, root=self.root)['slug'], 'search')
+
+
+def test_publication_checks_pinned_files_and_real_population(tmp_path):
+    from harness.web_search.profiles import verify_publication_inputs
+    source = tmp_path / "proof.json"
+    source.write_text("{}")
+    binding = {"path": source.name, "sha256": digest(source.read_bytes())}
+    target = {"bindings": {"relevance": binding, "independent_review": binding}, "logical_results": 1, "cases": 1, "physical_calls": 1}
+    manifest = {"rows": [{"attempts": [{}]}], "profile": {"cases": [{}]}, "relevance_sha256": binding["sha256"], "independent_review_sha256": binding["sha256"]}
+    assert verify_publication_inputs(manifest, target, data_home=tmp_path)
+    import pytest
+    for field in ("logical_results", "physical_calls", "cases"):
+        broken = dict(target, **{field: 2})
+        with pytest.raises(ValueError, match="population"):
+            verify_publication_inputs(manifest, broken, data_home=tmp_path)
+    source.write_text("changed")
+    with pytest.raises(ValueError, match="binding changed"):
+        verify_publication_inputs(manifest, target, data_home=tmp_path)

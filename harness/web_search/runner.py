@@ -129,15 +129,23 @@ def reference_available(profile, url, receipt, raw):
     )
 
 
+def collection_implementation():
+    """Freeze collection/scoring dependencies, excluding report presentation code."""
+    names = (
+        "harness/web_search/runner.py", "harness/web_search/core.py",
+        "harness/web_search/adapters.py", "harness/web_search/profiles.py",
+        "harness/web_search/answer_rules.py", "harness/web_search/evidence_quality.py",
+        "harness/web_fetch/config.py", "uv.lock", "pyproject.toml",
+    )
+    return {name: digest((ROOT / name).read_bytes()) for name in names}
+
+
 def validate_resume_implementation(output, contract):
     """Reject code drift before reference requests, file mutations or provider calls."""
     for name, sha in contract["implementation"].items():
         if digest((output / "implementation" / name).read_bytes()) != sha:
             raise ValueError("Original collection implementation changed")
-    current = {
-        str(p.relative_to(ROOT)): digest(p.read_bytes())
-        for p in (ROOT / "harness/web_search").glob("*.py")
-    }
+    current = collection_implementation()
     if current != contract["implementation"]:
         raise ValueError("Resume requires the same live collection implementation; start a new cohort")
 
@@ -187,8 +195,8 @@ def prepare_resume(profile_path, output):
             target.parent.mkdir(exist_ok=True)
             shutil.move(call, target)
     source_hashes = {}
-    for source in (ROOT / "harness/web_search").glob("*.py"):
-        relative = source.relative_to(ROOT)
+    for relative in collection_implementation():
+        source = ROOT / relative
         target = archive / "implementation" / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
@@ -222,7 +230,6 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
     if resume:
         if not output.is_dir():
             raise ValueError("Resume directory does not exist")
-        rows, _ = prepare_resume(profile_path, output)
         if (output / "profile.json").read_bytes() != profile_bytes:
             raise ValueError("Resume requires the exact frozen profile")
         original_contract = json.loads((output / "run-contract.json").read_text())
@@ -237,14 +244,12 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
         current = capture_references(profile, output, phase)
         if reference_changes(profile, before, current):
             raise ValueError("Reference recheck failed; resume made no provider calls")
+        rows, _ = prepare_resume(profile_path, output)
         unavailable = []
     else:
         output.mkdir(parents=True, exist_ok=False)
         (output / "profile.json").write_bytes(profile_bytes)
-        sources = {
-            str(p.relative_to(ROOT)): digest(p.read_bytes())
-            for p in (ROOT / "harness/web_search").glob("*.py")
-        }
+        sources = collection_implementation()
         for relative in sources:
             target = output / "implementation" / relative
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -300,7 +305,7 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
                     try:
                         decoded = json.loads(raw)
                         if receipt["http_status"] == 200 and not receipt["transport_exit"]:
-                            results = normalize(decoded)
+                            results = normalize(decoded, method["adapter"])
                         else:
                             error = error or json.dumps(
                                 decoded.get("error", decoded), ensure_ascii=False
@@ -343,9 +348,9 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
                     evidence={"path": relative, "sha256": digest(raw)},
                     attempts=attempts,
                     metrics=evaluate(case, results),
-                    server_timing=decoded.get("timing") if isinstance(decoded, dict) else None,
+                    server_timing=decoded.get("timing") if adapter_for(method["adapter"]).telemetry and isinstance(decoded, dict) else None,
                     usage=decoded.get("usage") if isinstance(decoded, dict) else None,
-                    cache=decoded.get("cache") if isinstance(decoded, dict) else None,
+                    cache=decoded.get("cache") if adapter_for(method["adapter"]).telemetry and isinstance(decoded, dict) else None,
                 )
                 rows.append(row)
                 with (output / "results.jsonl").open("a", encoding="utf-8") as stream:

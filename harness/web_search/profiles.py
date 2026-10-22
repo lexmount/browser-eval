@@ -121,3 +121,25 @@ def publication_authority(manifest, path=CURRENT_PROFILE, *, root=ROOT):
         if receipt.get("receipt_sha256") != bindings[prefix + "_receipt"]["sha256"]:
             raise ValueError("Search release uses a different collection receipt")
     return target
+
+
+def verify_publication_inputs(manifest, target, *, root=ROOT, data_home=None):
+    """Verify pinned source and previous-release files before a replacement upload."""
+    from lexbench_webfetch.paths import contained_path
+    data_home = Path(data_home) if data_home is not None else Path.home() / ".browser-eval"
+    for name, binding in target["bindings"].items():
+        base = root if binding["path"].startswith("evaluation/") else data_home
+        source = contained_path(base, binding["path"], reject_symlinks=True)
+        if not source.is_file() or digest(source.read_bytes()) != binding["sha256"]:
+            raise ValueError("Search publication binding changed: " + name)
+    for key, field in (("relevance", "relevance_sha256"), ("independent_review", "independent_review_sha256")):
+        if manifest.get(field) != target["bindings"][key]["sha256"]:
+            raise ValueError("Search publication source differs: " + key)
+    if target.get("logical_results") != len(manifest["rows"]):
+        raise ValueError("Search publication logical result population differs")
+    if target.get("cases") != len(manifest["profile"]["cases"]):
+        raise ValueError("Search publication query population differs")
+    physical = sum(len(row.get("attempts", [row])) for row in manifest["rows"])
+    if target.get("physical_calls") != physical:
+        raise ValueError("Search publication physical call population differs")
+    return True

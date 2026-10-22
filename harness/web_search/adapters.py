@@ -13,40 +13,44 @@ class Adapter:
     telemetry: bool = False
 
 
-def _request(adapter, case, protocol, options=None):
+def _options(options, allowed):
     options = options or {}
-    allowed = {"deepseek": {"need_content"}, "bocha": {"summary"}, "lexmount": set()}
-    if set(options) - allowed.get(adapter, set()) or any(type(v) is not bool for v in options.values()):
+    if set(options) - allowed or any(type(v) is not bool for v in options.values()):
         raise ValueError("Unsupported search output option")
-    if adapter == "lexmount":
-        body = dict(
-            query=case["query"],
-            type="web",
-            limit=protocol["top_k"],
-            timeout_ms=protocol["server_timeout_ms"],
-            include=["attempts"],
-        )
-        if case.get("source"):
-            body["source"] = case["source"]
-        return body
-    if adapter in ("deepseek", "bocha"):
-        query = case["query"]
-        if adapter == "bocha":
-            body = dict(count=protocol["top_k"], summary=options.get("summary", True), freshness="noLimit")
-            if case.get("domains") and case.get("family") in ("site", "vertical"):
-                body["include"] = "|".join(case["domains"])
-                query = re.sub(r"(?<!\S)site:\S+", "", query).strip()
-            after = re.search(r"(?<!\S)after:(\d{4}-\d{2}-\d{2})(?!\S)", query)
-            if after and protocol.get("as_of"):
-                start = date.fromisoformat(after[1]) + timedelta(days=1)
-                body["freshness"] = f"{start.isoformat()}..{protocol['as_of']}"
-                query = (query[:after.start()] + query[after.end():]).strip()
-            body["query"] = " ".join(query.split())
-            return body
-        if case.get("source") and case.get("domains"):
-            query += " " + " OR ".join("site:" + d for d in case["domains"])
-        return dict(query=query, count=protocol["top_k"], need_content=options.get("need_content", True))
-    raise ValueError("Unknown search adapter: " + adapter)
+    return options
+
+
+def lexmount_request(case, protocol, options=None):
+    _options(options, set())
+    body = dict(query=case["query"], type="web", limit=protocol["top_k"],
+                timeout_ms=protocol["server_timeout_ms"], include=["attempts"])
+    if case.get("source"):
+        body["source"] = case["source"]
+    return body
+
+
+def deepseek_request(case, protocol, options=None):
+    options = _options(options, {"need_content"})
+    query = case["query"]
+    if case.get("source") and case.get("domains"):
+        query += " " + " OR ".join("site:" + d for d in case["domains"])
+    return dict(query=query, count=protocol["top_k"], need_content=options.get("need_content", True))
+
+
+def bocha_request(case, protocol, options=None):
+    options = _options(options, {"summary"})
+    query = case["query"]
+    body = dict(count=protocol["top_k"], summary=options.get("summary", True), freshness="noLimit")
+    if case.get("domains") and case.get("family") in ("site", "vertical"):
+        body["include"] = "|".join(case["domains"])
+        query = re.sub(r"(?<!\S)site:\S+", "", query).strip()
+    after = re.search(r"(?<!\S)after:(\d{4}-\d{2}-\d{2})(?!\S)", query)
+    if after and protocol.get("as_of"):
+        start = date.fromisoformat(after[1]) + timedelta(days=1)
+        body["freshness"] = f"{start.isoformat()}..{protocol['as_of']}"
+        query = (query[:after.start()] + query[after.end():]).strip()
+    body["query"] = " ".join(query.split())
+    return body
 
 
 def _bocha_response(payload):
@@ -80,9 +84,9 @@ def _bocha_response(payload):
 
 
 ADAPTERS = {
-    "lexmount": Adapter(lambda case, protocol, options: _request("lexmount", case, protocol, options), "X-API-Key", "", telemetry=True),
-    "deepseek": Adapter(lambda case, protocol, options: _request("deepseek", case, protocol, options)),
-    "bocha": Adapter(lambda case, protocol, options: _request("bocha", case, protocol, options), response=_bocha_response),
+    "lexmount": Adapter(lexmount_request, "X-API-Key", "", telemetry=True),
+    "deepseek": Adapter(deepseek_request),
+    "bocha": Adapter(bocha_request, response=_bocha_response),
 }
 
 

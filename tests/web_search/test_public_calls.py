@@ -61,3 +61,11 @@ class PublicCallScenarios(unittest.TestCase):
         self.assertEqual(request_cost(method, 200, 0, {'results': [{'url': 'invalid'}]}), .005)
         self.assertIsNone(request_cost(method, 200, 0, {'unexpected': True}))
         self.assertIsNone(request_cost(method, 200, 1, {'results': [1]}))
+
+
+def test_url_credentials_redact_delimiter_passwords_without_eating_adjacent_prose():
+    from harness.web_search.report import _redact_url_userinfo
+    for url in (b"https://user:pa;ss@host.example/x", b"https://user:a,b@host.example/x", b"https://user:pa'ss@host.example/x", b"https://user:pa(ss)@host.example/x"):
+        assert _redact_url_userinfo(url) == b"https://REDACTED:REDACTED@host.example/x"
+    for text in (b"https://a.example'bob@corp.example", b"https://a.example)bob@corp.example"):
+        assert _redact_url_userinfo(text) == text

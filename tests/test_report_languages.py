@@ -250,3 +250,16 @@ def test_nonlanguage_manifest_is_not_selected_or_modified(tmp_path, monkeypatch)
     assert resolve_report_language(tmp_path, supported=("zh",)) == "zh"
     with pytest.raises(ValueError):
         resolve_report_language(tmp_path, "en", supported=("zh",))
+
+
+def test_nested_header_navigation_rewrites_every_chinese_home_link(tmp_path):
+    from harness.report_languages import REPORT_PAGE_MARKER, select_report_language
+    (tmp_path / "en").mkdir()
+    source = '<html><head>' + REPORT_PAGE_MARKER + '</head><body><header><nav><a href="index.html">Home</a></nav><a href="index.html">中文</a></header></body></html>'
+    (tmp_path / "index.html").write_text(source)
+    (tmp_path / "en/index.html").write_text(source.replace('href="index.html"', 'href="../index.html"'))
+    write_language_contract(tmp_path, include_english=True)
+    select_report_language(tmp_path, "en")
+    from bs4 import BeautifulSoup
+    page = BeautifulSoup((tmp_path / "en/index.html").read_text(), "html.parser")
+    assert [a["href"] for a in page.select("header a")] == ["../index.html?report-language=zh"] * 2

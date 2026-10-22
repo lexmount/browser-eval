@@ -133,25 +133,22 @@ cases and outputs before reviewers see prior scores:
 
 ```sh
 uv run --frozen python scripts/review_search_results.py freeze \
-  --report /absolute/report --output /absolute/new-review
+  --report /absolute/report --output /absolute/new-review --model MODEL_ID
 ```
 
-The default backend uses independent Codex app agents. Each agent receives only
-its hash-bound anonymous packets and the saved review schema. The parent accepts
-an agent result only after receiving that agent's actual completion notification:
+Freeze requires an explicit model ID. Failure-only review is the default; a full
+review requires `--scope all --authorization` with the user authorization record.
+Run frozen packets through the maintained CLI backend and collect its completed
+results:
 
 ```sh
-uv run --frozen python scripts/review_search_results.py accept \
-  --review /absolute/review --packet 0001 --result /absolute/result.json \
-  --reviewer-id /root/assigned-reviewer
-uv run --frozen python scripts/review_search_results.py collect \
-  --review /absolute/review --require-complete
+uv run --frozen python scripts/review_search_results.py run --review /absolute/review --workers 4
+uv run --frozen python scripts/review_search_results.py collect --review /absolute/review --require-complete
 ```
 
-A separately selected, account-supported CLI model can use `freeze --model ID`
-and `run --review /absolute/review --workers 4`. An unavailable model or a failed
-job earns no review coverage. Successful packets are reused on resume; input
-changes are rejected. Frozen inputs survive rebuilding the original report.
+An unavailable model or failed job earns no coverage. Successful packets are
+reused on resume, and changed inputs are rejected. Execution records are
+operator-attested and hash-bound; they are not third-party signed attestations.
 
 Coverage counts questions, method outputs and pooled relevance candidates
 separately. Every question and output, including empties and errors, requires a

@@ -111,10 +111,10 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
             query_score = query_metrics(ranking, labels[case["id"]], cutoff) if case["id"] in labels and not quality_excluded else None
             outputs[method["id"]] = {
                 "score": query_score,
-                "primary": (None if quality_excluded else any(x["grade"] is not None and x["grade"] >= 2 for x in items) if case["id"] in labels else acceptance(case, row, "primary")),
+                "primary": (None if quality_excluded else any(x["grade"] is not None and x["grade"] >= 2 for x in items) if case["id"] in labels else acceptance(case, row, "primary", cutoff=cutoff)),
                 "quality": any(x["grade"] is not None and x["grade"] >= 2 for x in items) if case["id"] in labels and not quality_excluded else None,
-                "source": acceptance(case, row, quality_excluded=quality_excluded), "answer": acceptance(case, row, "answer", quality_excluded=quality_excluded),
-                "site": acceptance(case, row, "site"),
+                "source": acceptance(case, row, quality_excluded=quality_excluded, cutoff=cutoff), "answer": acceptance(case, row, "answer", quality_excluded=quality_excluded, cutoff=cutoff),
+                "site": acceptance(case, row, "site", cutoff=cutoff),
                 "availability": acceptance(case, row, "availability"),
                 "items": items, "count": len(row.get("results", [])),
                 "error": str(row.get("error") or "")[:200],
@@ -234,11 +234,10 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
         "answerField": t("contains answer cue", "包含答案线索"), "tasks": t("tasks", "题")}
     options = lambda values: ''.join(f'<option value="{e(k)}">{e(v)}</option>' for k, v in values)
     methods = [(m["id"], m["label"]) for m in data["methods"]]
-    custom_count = sum(c["benchmark"] == "custom" for c in data["cases"])
-    benchmark_options = [
-        ("all", t(f"Both benchmarks · {len(data['cases'])}", f"两套评测 · {len(data['cases'])}")),
-        ("custom", t(f"In-house scenarios · {custom_count}", f"自建场景集 · {custom_count}")),
-        ("factual", t("Public factual questions", "公开事实题")),
+    populations = sorted({case["benchmark"] for case in data["cases"]})
+    names = {"custom": t("In-house scenarios", "自建场景集"), "factual": t("Public factual questions", "公开事实题")}
+    benchmark_options = [("all", t(f"All benchmarks · {len(data['cases'])}", f"全部题目 · {len(data['cases'])}"))] + [
+        (key, names.get(key, key) + " · " + str(sum(c["benchmark"] == key for c in data["cases"]))) for key in populations
     ]
     return ('<style>' + STYLE + '</style><section class="search-compare" data-search-comparison data-labels="' + e(json.dumps(labels, ensure_ascii=False)) + '">'
         + '<div class="compare-controls"><label>' + t('Find a query', '搜索题目') + '<input type="search" data-output-query></label><label>' + t('Benchmark', '评测集') + '<select data-output-benchmark>' + options(benchmark_options).replace('<option value="custom">', '<option value="custom" selected>') + '</select></label><label>' + t('Task check', '题型与检查') + '<select data-output-check>' + options([('all', t('All task types', '全部题型')), ('target', t('Reference-page discovery', '目标网页发现')), ('site', t('Requested-site constraint', '指定网站约束')), ('availability', t('Open discovery availability', '通用网页查询')), ('factual', t('Factual evidence', '事实证据'))]) + '</select></label></div>'

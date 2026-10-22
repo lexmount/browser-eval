@@ -404,3 +404,24 @@ def test_certified_entry_rejects_unqualified_sources_before_provider_calls(tmp_p
     assert failure.value.code == 2
     assert not any(calls)
     assert not (tmp_path/'run/receipt.json').exists()
+
+
+def test_resume_reference_drift_preserves_every_saved_result_and_call(tmp_path):
+    import pytest
+    profile = CollectionScenarios().profile(tmp_path)
+    output = tmp_path / "run"
+    reference = b"reference " * 20
+    def http(url, body=None, *args, **kwargs):
+        if body is None:
+            return dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error=""), reference
+        return dict(http_status=402, elapsed_ms=1, transport_exit=0, transport_error=""), b'{"error":"account"}'
+    with patch("harness.web_search.runner.http_call", side_effect=http), patch("harness.web_search.runner.load_runtime_env"), patch.dict(os.environ, LEXMOUNT_SEARCH_API_KEY="fixture", DEEPSEEK_API_KEY="fixture", BOCHA_API_KEY="fixture"):
+        with pytest.raises(ValueError, match="Provider account error"):
+            run(profile, output, certified=True)
+        before = {p.relative_to(output).as_posix(): p.read_bytes() for p in output.rglob("*") if p.is_file()}
+        reference = b"changed source " * 20
+        with pytest.raises(ValueError, match="Reference recheck failed"):
+            run(profile, output, resume=True, certified=True)
+        assert not list(output.glob("resume-*"))
+        for name, raw in before.items():
+            assert (output / name).read_bytes() == raw

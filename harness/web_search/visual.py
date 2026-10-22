@@ -108,7 +108,7 @@ def capture(report: Path, receipt: Path) -> Path:
                 page.on('response', lambda response: failed_resources.append(str(response.status) + ' ' + response.url)
                         if response.status >= 400 and response.url.startswith(origin) else None)
                 try:
-                    response = page.goto(origin + '/' + route, wait_until='load')
+                    response = page.goto(origin + '/' + route + ('?report-language=zh' if lang == 'zh' else ''), wait_until='load')
                     if response is None or not response.ok:
                         raise ValueError('Reader route failed: ' + route)
                     page.evaluate("document.body.classList.remove('dark');document.body.classList.add('light')")
