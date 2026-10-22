@@ -24,6 +24,7 @@ def example(tmp_path, model="gpt-6.1-sol", scope="all"):
                 "id": "fact",
                 "query": "Where?",
                 "reference_answer": "Antarctica",
+                "source_observations": [{"url": "https://example.org/answer", "excerpt": "Antarctica", "observation_kind": "independent fixture source"}],
                 "anchors": ["https://example.org/answer"],
             },
         ],
@@ -221,19 +222,14 @@ def test_full_case_method_matrix_required(tmp_path):
 
 
 def test_live_job_is_not_restarted(tmp_path):
+    import fcntl
     _, root, contract = example(tmp_path)
     job = root / "jobs" / contract["packets"][0]["id"]
     job.mkdir(parents=True)
-    review.save(job / "status.json", {"status": "running", "pid": 12345})
-    with (
-        patch("harness.web_search.review.os.kill"),
-        patch(
-            "harness.web_search.review.subprocess.Popen",
-            side_effect=AssertionError("live process must not be duplicated"),
-        ),
-        pytest.raises(ValueError, match="live review process"),
-    ):
-        review.run(root, limit=1)
+    with (job / "process.lock").open("a") as active:
+        fcntl.flock(active, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with patch("harness.web_search.review.subprocess.Popen", side_effect=AssertionError("duplicate reviewer")), pytest.raises(ValueError, match="active reviewer"):
+            review.run(root, limit=1)
 
 
 def test_written_result_without_terminal_success_does_not_count(tmp_path):

@@ -128,8 +128,7 @@ Model annotations are labeled separately from human annotations. The rubric uses
 
 ## Independent result audit
 
-Independent audit is a separate, explicitly requested stage. Freeze all current
-cases and outputs before reviewers see prior scores:
+Independent audit is a separate, explicitly requested stage. Freeze the requested scope before reviewers see prior scores:
 
 ```sh
 uv run --frozen python scripts/review_search_results.py freeze \
@@ -151,8 +150,10 @@ reused on resume, and changed inputs are rejected. Execution records are
 operator-attested and hash-bound; they are not third-party signed attestations.
 
 Coverage counts questions, method outputs and pooled relevance candidates
-separately. Every question and output, including empties and errors, requires a
-review record. Factual reference answers require independent source checks.
+separately. Every selected output, including empties and errors, requires a review
+record. Unreviewed successful outputs are counted explicitly. A factual reference
+can be accepted only with an independent frozen source excerpt; tested provider
+outputs cannot substitute for it.
 Long document checks cover delivered structure and the query-relevant passages
 in complete saved bodies; review coverage is not a claim that every unrelated
 sentence in every returned document has been fact-checked. Provider limitations,
@@ -188,3 +189,17 @@ one performance page. The dataset page owns current inputs and provenance; the r
 explorer shows one query per output page without truncating full summaries or dropping
 providers. Methodology and independent review remain linked appendices. Redundant
 standalone cost and interpretation routes are not generated in this layout.
+
+## Publish a replacement
+
+`scripts/publish_search_report.py` freezes the checked report, source receipts,
+content, visual evidence and lossless delivery archive before any upload. Pass
+`--report`, `--visual-receipt`, `--content`, each `--source COHORT=RUN` and a new
+`--output` directory inside `BROWSER_EVAL_DATA_HOME`. The next release is checked
+against its own frozen inputs while the existing site identity and remote version
+remain locked. `--resume` reuses the same plan and idempotent upload operation.
+The command records the activated version in this track’s publication target.
+
+Review CLI jobs use the signed-in Codex account in an isolated configuration,
+copying only its authentication file. Search-provider and model-judge API keys
+continue to come from the repository `.env`; they are not passed to review jobs.

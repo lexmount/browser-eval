@@ -47,6 +47,7 @@ jobs:
     name: Base Python ${{ matrix.python }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python: ["3.12", "3.13", "3.14"]
     steps:
@@ -57,5 +58,6 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.7.8"
-      - run: uv sync --frozen --python ${{ matrix.python }}
-      - run: uv run --frozen --no-sync python -m harness.web_fetch validate --providers fixture
+      - run: uv sync --frozen --extra test --python ${{ matrix.python }}
+      - run: uv run --frozen --no-sync --python ${{ matrix.python }} python -m harness.web_fetch validate --providers fixture
+      - run: uv run --frozen --no-sync --python ${{ matrix.python }} python -m pytest tests/test_portable_cli.py tests/test_cli_scope.py tests/test_web_fetch_quickstart.py tests/test_public_report_language.py -q

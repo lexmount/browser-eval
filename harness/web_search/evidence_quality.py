@@ -58,5 +58,5 @@ def factual_sensitivity(case, results, *, rule=CONTAMINATION_RULE, cutoff=5):
     return {
         "rule": rule,
         "excluded_ranks": excluded,
-        "metrics": factual_evidence(case, retained),
+        "metrics": factual_evidence(case, retained, cutoff=cutoff),
     }

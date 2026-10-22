@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from .core import canonical_url, evaluate, validate_profile, normalize
-from .answer_rules import match_reference_answer
+from .answer_rules import POLICY_NAME, match_reference_answer
 
 
 def validate_regressions(record):
@@ -37,6 +37,15 @@ def validate_regressions(record):
                     {case["id"]: control.get("requirements", {})},
                 )
                 actual = packet["blind_candidate_packets"][0]["candidates"][0]["source_eligible"]
+            elif control["kind"] == "annotation":
+                profile = {"cases": [{"id": "q"}]}
+                rows = [{"id": "control", "case_id": "q", "results": [], "elapsed_ms": 123, "cost": 7, "metrics": evaluate(profile["cases"][0], [])}]
+                revision = {"schema": "web-search-assessment-revision/1", "provider_calls": 0, "root_cause": "Independent annotation qualification", "regression_ids": ["unqualified-reference-rejected"], "cases": [control["item"]]}
+                try:
+                    revised, updated, _ = apply_report_revision(profile, rows, revision)
+                    actual = revised != profile and updated[0]["results"] == rows[0]["results"] and updated[0]["elapsed_ms"] == 123 and updated[0]["cost"] == 7 and not profile["cases"][0].get("anchors")
+                except ValueError:
+                    actual = False
             elif control["kind"] == "qualification":
                 actual = _qualified(control["item"])
             elif control["kind"] == "equivalence":
@@ -89,7 +98,7 @@ def apply_report_revision(profile, rows, revision):
         cases[cid]["anchors"] = anchors
         cases[cid]["reference_annotation"] = item
     if revision.get("answer_match_rule"):
-        if revision["answer_match_rule"] != "published-answers/2":
+        if revision["answer_match_rule"] != POLICY_NAME:
             raise ValueError("Unsupported answer matching rule")
         for case in cases.values():
             if case.get("reference_answer"):
@@ -128,10 +137,13 @@ def apply_identity_correction(profile, rows, correction):
     return revised, updated, changes
 
 
+REVISION_AUTHORITY_PATH = Path(__file__).resolve().parents[2] / "evaluation/web-search/assessment-revisions.json"
+
+
 def validate_revision_binding(revision):
     """Reader prose cannot introduce or modify an approved scoring revision."""
     from .core import digest
-    authority = Path(__file__).resolve().parents[2] / "evaluation/web-search/assessment-revisions.json"
+    authority = REVISION_AUTHORITY_PATH
     registered = json.loads(authority.read_text())
     identity = digest(json.dumps(revision, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode())
     if identity not in registered["approved_sha256"]:

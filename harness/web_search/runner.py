@@ -135,7 +135,7 @@ def collection_implementation():
         "harness/web_search/runner.py", "harness/web_search/core.py",
         "harness/web_search/adapters.py", "harness/web_search/profiles.py",
         "harness/web_search/answer_rules.py", "harness/web_search/evidence_quality.py",
-        "harness/web_fetch/config.py", "uv.lock", "pyproject.toml",
+        "harness/web_fetch/config.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
     )
     return {name: digest((ROOT / name).read_bytes()) for name in names}
 
@@ -150,9 +150,9 @@ def validate_resume_implementation(output, contract):
         raise ValueError("Resume requires the same live collection implementation; start a new cohort")
 
 
-def prepare_resume(profile_path, output):
+def prepare_resume(profile_path, output, *, cohort="primary", validate_only=False):
     """Resume only an unchanged, interrupted matrix; preserve every displaced byte."""
-    profile_bytes = load_profile_bytes(profile_path)
+    profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
     profile = json.loads(profile_bytes)
     required = ("profile.json", "run-contract.json", "results.jsonl")
     if any(not (output / name).is_file() for name in required):
@@ -184,6 +184,8 @@ def prepare_resume(profile_path, output):
         and not any(r["http_status"] in {401, 402} for r in group)
     }
     retained = [row for row in rows if row["case_id"] in completed]
+    if validate_only:
+        return retained, None
     number = len(list(output.glob("resume-*"))) + 1
     archive = output / f"resume-{number}"
     archive.mkdir()
@@ -210,13 +212,13 @@ def prepare_resume(profile_path, output):
         "implementation": source_hashes,
         "resumed_at": datetime.now(UTC).isoformat(),
     })
-    (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained))
+    (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained), encoding="utf-8")
     return retained, number
 
 
-def run(profile_path, output, diagnostic=False, resume=False, *, certified=False):
+def run(profile_path, output, diagnostic=False, resume=False, *, certified=False, cohort="primary"):
     diagnostic = diagnostic or not certified
-    profile_bytes = load_profile_bytes(profile_path)
+    profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
     profile = json.loads(profile_bytes)
     validate_profile(profile)
     load_runtime_env()
@@ -230,6 +232,7 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
     if resume:
         if not output.is_dir():
             raise ValueError("Resume directory does not exist")
+        prepare_resume(profile_path, output, cohort=cohort, validate_only=True)
         if (output / "profile.json").read_bytes() != profile_bytes:
             raise ValueError("Resume requires the exact frozen profile")
         original_contract = json.loads((output / "run-contract.json").read_text())
@@ -244,7 +247,7 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
         current = capture_references(profile, output, phase)
         if reference_changes(profile, before, current):
             raise ValueError("Reference recheck failed; resume made no provider calls")
-        rows, _ = prepare_resume(profile_path, output)
+        rows, _ = prepare_resume(profile_path, output, cohort=cohort)
         unavailable = []
     else:
         output.mkdir(parents=True, exist_ok=False)
@@ -348,9 +351,9 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
                     evidence={"path": relative, "sha256": digest(raw)},
                     attempts=attempts,
                     metrics=evaluate(case, results),
-                    server_timing=decoded.get("timing") if adapter_for(method["adapter"]).telemetry and isinstance(decoded, dict) else None,
-                    usage=decoded.get("usage") if isinstance(decoded, dict) else None,
-                    cache=decoded.get("cache") if adapter_for(method["adapter"]).telemetry and isinstance(decoded, dict) else None,
+                    server_timing=adapter_for(method["adapter"]).timing(decoded).get("timing"),
+                    usage=adapter_for(method["adapter"]).timing(decoded).get("usage"),
+                    cache=adapter_for(method["adapter"]).timing(decoded).get("cache"),
                 )
                 rows.append(row)
                 with (output / "results.jsonl").open("a", encoding="utf-8") as stream:
@@ -395,7 +398,7 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
                     output / "references-before.json",
                     output / "references-after.json",
                     *sorted((output / "references").glob("*.bin")),
-                    *sorted((output / "implementation").rglob("*.py")),
+                    *sorted(p for p in (output / "implementation").rglob("*") if p.is_file()),
                     *sorted(output.glob("references-resume-precheck-*.json")),
                     *sorted(p for directory in output.glob("resume-*") for p in directory.rglob("*") if p.is_file()),
                 ]
@@ -423,6 +426,7 @@ def main(argv=None, *, certified=False):
     parser.add_argument(
         "--profile", type=Path, default=CURRENT_PROFILE
     )
+    parser.add_argument("--cohort", default="primary", help="Cohort ID in the current selection registry")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--diagnostic", action="store_true")
     parser.add_argument("--resume", action="store_true")
@@ -430,7 +434,7 @@ def main(argv=None, *, certified=False):
     if certified and args.diagnostic:
         parser.error("Certified collection cannot use --diagnostic")
     try:
-        print(run(args.profile, args.output, args.diagnostic, args.resume, certified=certified))
+        print(run(args.profile, args.output, args.diagnostic, args.resume, certified=certified, cohort=args.cohort))
     except (ValueError, FileExistsError) as exc:
         parser.exit(2, str(exc) + "\n")
 

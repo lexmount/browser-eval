@@ -69,12 +69,16 @@ def load_profile_bytes(path=CURRENT_PROFILE, *, root=ROOT, cohort="primary"):
     profile = copy.deepcopy(_bound(root, binding))
     by_id = {m["id"]: m for m in profile["methods"]}
     profile["methods"] = [by_id[mid] for mid in selection["methods"]]
-    profile["title"] = selection["title"]
+    profile["title"] = selection["title"] if cohort == "primary" else profile["title"]
     profile["protocol"]["comparison"] = "Current selected methods; one declared result per query and method."
     profile["publication"] = {"authority": selection["publication_target"]}
     if selection.get("independent_result_review_scope"):
         profile["independent_result_review_scope"] = selection["independent_result_review_scope"]
     profile["current_selection"] = {"sha256": digest(raw), "profile": binding, "methods": selection["methods"], "cohort": cohort}
+    for field in ("collection_revision", "cohort_revision"):
+        profile.pop(field, None)
+    if selection.get("independent_result_review_scope"):
+        profile["protocol"]["review"] = "Review is a separate post-collection stage; declared scope: " + selection["independent_result_review_scope"]
     validate_profile(profile)
     return (json.dumps(profile, ensure_ascii=False, indent=2) + "\n").encode()
 
@@ -83,7 +87,7 @@ def load_profile(path=CURRENT_PROFILE, *, root=ROOT):
     return json.loads(load_profile_bytes(path, root=root))
 
 
-def publication_authority(manifest, path=CURRENT_PROFILE, *, root=ROOT):
+def publication_authority(manifest, path=CURRENT_PROFILE, *, root=ROOT, planned_target=None, expected_target=None):
     """Bind a formal release to the current participants, inputs and live target."""
     selection = current_selection(path, root=root)
     if selection.get("independent_result_review_scope") == "all" and (
@@ -93,6 +97,12 @@ def publication_authority(manifest, path=CURRENT_PROFILE, *, root=ROOT):
     ):
         raise ValueError("Current Search release requires complete independent result review")
     target = json.loads(_inside(root, selection["publication_target"]).read_bytes())
+    if planned_target is not None:
+        identity = ("base_url", "slug", "versionId", "visibility")
+        if expected_target != {k: target[k] for k in identity} or any(planned_target.get(k) != target[k] for k in identity):
+            raise ValueError("Publication plan no longer matches the exact live target")
+        target = planned_target
+
     host = urlsplit(target["base_url"])
     if host.scheme != "https" or not host.netloc or host.username or host.password or host.path not in ("", "/"):
         raise ValueError("Invalid search publication host")
@@ -126,13 +136,17 @@ def publication_authority(manifest, path=CURRENT_PROFILE, *, root=ROOT):
 def verify_publication_inputs(manifest, target, *, root=ROOT, data_home=None):
     """Verify pinned source and previous-release files before a replacement upload."""
     from lexbench_webfetch.paths import contained_path
-    data_home = Path(data_home) if data_home is not None else Path.home() / ".browser-eval"
+    import os
+    data_home = Path(data_home) if data_home is not None else Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval")).expanduser()
     for name, binding in target["bindings"].items():
         base = root if binding["path"].startswith("evaluation/") else data_home
         source = contained_path(base, binding["path"], reject_symlinks=True)
         if not source.is_file() or digest(source.read_bytes()) != binding["sha256"]:
             raise ValueError("Search publication binding changed: " + name)
-    for key, field in (("relevance", "relevance_sha256"), ("independent_review", "independent_review_sha256")):
+    current_fields = [("relevance", "relevance_sha256"), ("independent_review", "independent_review_sha256")]
+    if "content" in target["bindings"] and manifest.get("content_sha256"):
+        current_fields.append(("content", "content_sha256"))
+    for key, field in current_fields:
         if manifest.get(field) != target["bindings"][key]["sha256"]:
             raise ValueError("Search publication source differs: " + key)
     if target.get("logical_results") != len(manifest["rows"]):

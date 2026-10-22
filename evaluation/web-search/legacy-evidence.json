@@ -5,5 +5,15 @@
   ],
   "review": [
     "8c24bd0367be0434022dd6ae0878f34c20513d87c564fe3777df3571e4b2c1f5"
+  ],
+  "review_provenance": [
+    {
+      "sha256": "8c24bd0367be0434022dd6ae0878f34c20513d87c564fe3777df3571e4b2c1f5",
+      "kind": "published-opinions-without-execution-logs",
+      "publication": {
+        "slug": "W3MxzlJuPRl6",
+        "versionId": "ver_6d5f12af5e344a8ea9eab8c83cc9c47f"
+      }
+    }
   ]
 }

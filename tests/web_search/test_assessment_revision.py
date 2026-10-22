@@ -73,3 +73,10 @@ class AssessmentRevisionScenarios(unittest.TestCase):
                 case = {'id': 'fact', 'family': 'web', 'reference_answer': reference, 'answer_match_rule': 'published-answers/2', 'reference_urls': []}
                 results = normalize({'results': [{'url': 'https://docs.test/fact', 'title': text}]})
                 self.assertEqual(evaluate(case, results)['answer_in_preview_5'], expected)
+
+
+def test_unapproved_authored_revision_is_rejected():
+    import pytest
+    from harness.web_search.scoring import validate_revision_binding
+    with pytest.raises(ValueError, match="versioned scoring authority"):
+        validate_revision_binding({"schema": "web-search-assessment-revision/1", "cases": [], "provider_calls": 0})

@@ -12,6 +12,28 @@ class Adapter:
     response: object = None
     telemetry: bool = False
 
+    def cost(self, method, status, transport_exit, payload):
+        price = method.get("price_per_1000")
+        policy = method.get("billing")
+        if policy not in {"unknown", "http-200", "http-200-nonempty"}:
+            raise ValueError("Unsupported billing policy")
+        if policy == "unknown" or price is None or transport_exit:
+            return None
+        if status != 200:
+            return 0.0
+        if policy == "http-200-nonempty":
+            payload = self.response(payload) if self.response else payload
+            if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
+                return None
+            return price / 1000 if payload["results"] else 0.0
+        return price / 1000
+
+    def timing(self, payload):
+        if not self.telemetry or not isinstance(payload, dict):
+            return {}
+        return {key: payload.get(key) for key in ("timing", "usage", "cache", "attempts", "stop_reason", "coverage")}
+
+
 
 def _options(options, allowed):
     options = options or {}

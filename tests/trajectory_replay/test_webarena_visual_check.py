@@ -197,7 +197,6 @@ def test_chinese_visual_review_skips_english_notice(tmp_path):
         "missing-state",
         "wrong-theme",
         "missing-height",
-        "viewer-error",
         "missing-topology-field",
         "low-contrast",
         "source",
@@ -245,7 +244,6 @@ def test_current_replay_receipt_binds_full_visual_scope(tmp_path, monkeypatch, d
                 "clipped": [],
                 "tiny": [],
                 "low_contrast_headers": [],
-                "viewerError": False,
                 "topologyMissing": False,
                 "rawMermaid": False,
             }
@@ -260,8 +258,6 @@ def test_current_replay_receipt_binds_full_visual_scope(tmp_path, monkeypatch, d
         value["states"][0]["theme"] = "unmeasured"
     elif damage == "missing-height":
         del value["states"][0]["height"]
-    elif damage == "viewer-error":
-        value["states"][0]["viewerError"] = True
     elif damage == "missing-topology-field":
         del value["states"][0]["topologyMissing"]
     elif damage == "low-contrast":

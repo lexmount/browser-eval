@@ -4,11 +4,17 @@ from collections import Counter
 from statistics import mean
 
 
-def operational(rows, payloads):
+def operational(rows, payloads, methods=None):
     calls = []
+    by_method = {m["id"]: m for m in (methods or [])}
     for row in rows:
         payload = payloads.get(row["id"], {})
-        attempts = payload.get("attempts", []) if isinstance(payload, dict) else []
+        from .adapters import adapter_for
+        adapter = by_method.get(row["method"], {}).get("adapter")
+        if adapter:
+            timing = adapter_for(adapter).timing(payload)
+            payload = timing
+        attempts = (payload.get("attempts") or []) if isinstance(payload, dict) else []
         valid = [
             a
             for a in attempts

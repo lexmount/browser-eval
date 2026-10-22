@@ -227,7 +227,7 @@ def test_reference_quarantine_is_common_and_never_removes_latency_or_cost():
         assert text[1:3] == ["1/1 · 100.0%", "1/1 · 100.0%"]
         assert text[3] == "500.00"
         assert text[-1] == "0.02 元"
-    assert "包含已隔离题的实际请求" in soup.select_one("[data-quality-exclusions]").get_text()
+    assert "耗时和费用保留" in soup.select_one("[data-quality-exclusions]").get_text()
 
 
 def test_collection_description_separates_retries_from_logical_results(tmp_path):

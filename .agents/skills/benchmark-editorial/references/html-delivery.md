@@ -4,7 +4,7 @@ The dashboard reading page and standalone HTML are two presentations of the same
 
 Treat report home and interpretation pages as reusable presentation material. Each section should communicate one conclusion through a chart, meaningful diagram, image, or inspectable evidence specimen, with concise supporting text and exact values available to copy. Do not use decorative background art or repeat the same dense table across summary, interpretation, and analysis. Result analysis owns filterable inventories and detailed distributions; result pages own logs and complete evidence.
 
-Generate Chinese by default. English prose, illustrations, rendering and language-specific checks run only on an explicit manual request. An absent English edition gets a not-generated notice and a return link, not stale translated pages. Preserve translation sources without distributing unused English assets. Apply cross-language parity checks only when both editions are generated; always test the notice in a Chinese-only release.
+Public build entries default to English, with an explicit language or BROWSER_EVAL_REPORT_LANGUAGE override. For agent-authored delivery, select the conversation language unless the user specifies another edition. Rebuilds preserve the saved primary language; additional translations require an explicit request. An absent English edition gets a not-generated notice and a return link, not stale translated pages. Preserve translation sources without distributing unused English assets. Apply cross-language parity checks only when both editions are generated; always test the notice in a Chinese-only release.
 
 ## Reading layout
 
@@ -20,7 +20,7 @@ Reference and actual output should be easy to compare. Preserve original snippet
 
 ## Artifact verification
 
-Generate the integrated and self-contained views from the same source. The standalone file must work without the dashboard, external fonts or CDN libraries; use the repository's script-free export contract. Inspect light/dark, desktop/phone and print presentations after the final change, not only an earlier screenshot.
+Generate the integrated and self-contained views from the same source. The standalone file must work without the dashboard, external fonts or CDN libraries; use the repository's script-free export contract. Inspect each delivered top-level page locally for content and layout. Reusable component tests own theme, narrow-screen, evidence-dialog and navigation behavior; do not repeat remote click tours for each publication.
 
 Escape dataset-derived text and validate links and paths. Exclude credentials, local paths, private reference URLs, work logs and editing discussion from the public bundle. Secret scans supplement source inspection.
 
