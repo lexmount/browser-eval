@@ -2715,7 +2715,7 @@ def relevance_panel(profile, scored, evidence, zh):
         if zh else f"Human annotator: {audit['name']}. Metric calculation uses fixed labels without model calls."
     )
     denominator = ("空结果、不足五条和候选池全为 0 级的题目都留在分母中。" if zh else "Empty responses, missing slots and all-zero candidate pools remain in the denominator.")
-    panel = ('<section class="specimen" data-relevance><h3>' + esc(title) + '</h3>' + bars
+    panel = ('<section class="specimen" id="relevance-scores" data-relevance><h3>' + esc(title) + '</h3>' + bars
              + ('' if profile.get("comparison_selection") else '<p>' + esc(definitions) + '</p>')
              + '<details><summary>' + ("可用结果与直接满足比例" if zh else "Useful results and direct matches") + '</summary>' + table(["题型" if zh else "Category", "服务" if zh else "Provider", "题数" if zh else "Queries", "搜索质量分（0–100）" if zh else "Ranking quality /100", "可用结果比例" if zh else "Useful-result fraction", "直接满足率" if zh else "Direct-match rate"], rows) + '</details>'
              + '<p class="muted">' + esc((f"评分来源：{audit['name']}；逐条理由与冻结标签见评分证据。" if zh else f"Judgments: {audit['name']}; see the frozen labels and reasons.") if profile.get("comparison_selection") else scope + denominator) + '</p><a href="relevance-judgments.json">'
@@ -3160,33 +3160,20 @@ def project_comparison(profile, rows, content):
 
 
 def executive_table(profile, selected, content, scores, zh):
-    """One home comparison; detailed quality and billing stay on their own pages."""
-    primary = {c["id"] for c in profile["cases"] if "reference_answer" not in c}
-    primary = primary or {c["id"] for c in profile["cases"]}
-    rows = [r for r in selected if r["case_id"] in primary]
-    stats = aggregate(rows)
-    relevance = relevance_summary([r for r in (scores or []) if r["case_id"] in primary], [m["id"] for m in profile["methods"]]) if scores else {}
-    values = []
-    for method in profile["methods"]:
-        timing = stats.get(method["id"], {}).get("all_latency", {})
-        quality = relevance.get(method["id"], {}).get("ndcg")
-        values.append([method["label"], quality * 100 if quality is not None else None,
-                       *[timing.get(key) for key in ("mean", "p50", "p95")], method.get("price_per_1000")])
-    directions = {1: "max", 2: "min", 3: "min", 4: "min", 5: "min" if len({m["currency"] for m in profile["methods"]}) == 1 else "neutral"}
-    winners = numeric_winners(values, directions)
-    rendered = []
-    for values_row in values:
-        row = []
-        for i, value in enumerate(values_row):
-            label = esc(value) if not i else (f'{value:.1f}' if i == 1 and value is not None else fmt(value))
-            if i == 5 and value is None:
-                label = "未定价" if zh else "Not priced"
-            row.append(numeric_cell(label, value if i else None, f'executive-{i}', directions.get(i, 'neutral'), i in winners and winners[i] == value))
-        rendered.append('<tr>' + ''.join(row) + '</tr>')
-    dates = sorted({str(r.get('timestamp', ''))[:10] for r in rows} - {''})
-    dated = ('采集日期（UTC）：' if zh else 'Collected (UTC): ') + (' — '.join([dates[0], dates[-1]]) if len(dates) > 1 else dates[0]) if dates else ''
-    headers = ['接口', '质量分 /100 ↑' , '平均耗时 ms ↓', 'P50 ms ↓', 'P95 ms ↓', '目录价 元/千次 ↓'] if zh else ['API', 'Quality /100 ↑', 'Mean ms ↓', 'P50 ms ↓', 'P95 ms ↓', 'Price /1k ↓']
-    return '<section data-executive><h2>' + (f'核心比较：自建场景集 {len(primary)} 题' if zh else f'Core comparison: {len(primary)} scenario queries') + '</h2><p class="metric-caption">' + ('质量分衡量有用结果是否靠前；平均、P50（中位数）和 P95 均包含全部题目及重试等待。计费条件见“速度与费用”。' if zh else 'Quality measures useful results near the top. Mean, P50 and P95 include every query and retry wait. Billing conditions are on the performance page.') + '</p>' + table(headers, rendered) + '<p class="muted">' + esc(dated) + '</p></section>'
+    """Keep every benchmark's primary quality measures visible on the home page."""
+    summary_content = dict(content)
+    if not content.get("independent_benchmarks"):
+        primary = [c["id"] for c in profile["cases"] if "reference_answer" not in c]
+        factual = [c["id"] for c in profile["cases"] if "reference_answer" in c]
+        summary_content.update(independent_benchmarks=True, metric_populations=[
+            {"id": key, "benchmark_root": True, "label": label, "case_ids": ids}
+            for key, label, ids in [
+                ("custom", {"zh": "自建场景集", "en": "In-house scenarios"}, primary),
+                ("factual", {"zh": "公开事实集", "en": "Public factual queries"}, factual),
+            ] if ids
+        ])
+    body = population_summary(profile, selected, summary_content, zh, relevance_scores=scores)
+    return '<section data-executive>' + body + '</section>'
 
 
 def discovery_comparison(profile, selected, content, zh):
@@ -3371,7 +3358,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         headings = ['返回结果的题数'] if zh else ['Queries returning results']
         if ranked:
             headings = ['搜索质量分（0–100）', '每题可用结果（条/5）', '有直接满足结果的题数'] if zh else ['Ranking quality (0–100)', 'Useful results per query (/5)', 'Queries with a direct match']
-            body += '<p><a href="quality.html">' + ('质量分 = nDCG@5 × 100 · 查看等级和计算方法' if zh else 'Quality = nDCG@5 × 100 · Inspect grades and calculation') + '</a></p>'
+            body += '<p><a href="quality.html#relevance-scores">' + ('质量分 = nDCG@5 × 100 · 查看等级和计算方法' if zh else 'Quality = nDCG@5 × 100 · Inspect grades and calculation') + '</a></p>'
         elif kind == 'factual':
             if quality_ids != ids:
                 body += '<p data-quality-exclusions>' + ('性能与费用统计包含已隔离题的实际请求；质量指标使用上方有效题目。' if zh else f'Quality uses {len(quality_ids)} reviewed-reference queries for every method; {len(ids) - len(quality_ids)} defective references are quarantined. Latency and cost retain all {len(ids)} queries.') + '</p>'

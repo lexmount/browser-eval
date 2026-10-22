@@ -95,3 +95,9 @@ and audit inventories. A subset discovery claim must show every selected provide
 on that same subset; the headline relevance score covers the full declared relevance
 population. Give quality, collection timing/billing, input provenance and original
 responses distinct owners, and remove duplicate reading routes when consolidating them.
+
+Conciseness must preserve the evidence needed for the decision. Keep each independent
+benchmark’s primary quality measures and denominator visible in the home comparison;
+do not replace them with a narrow diagnostic or hide them inside disclosure controls.
+Reorganization must account for each substantive finding, calculation and evidence
+entry before retiring a section.

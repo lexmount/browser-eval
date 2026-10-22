@@ -23,7 +23,7 @@ class ReportScenarios(unittest.TestCase):
         self.assertEqual(routes, {"index.html", "capabilities.html", "quality.html", "performance.html", "dataset.html", "results.html", "research.html"})
         home = BeautifulSoup((self.out / "index.html").read_text(), "html.parser")
         self.assertEqual(len(home.select('[data-executive]')), 1)
-        self.assertFalse(home.select('[data-populations]'))
+        self.assertEqual(len(home.select('[data-populations]')), 1)
         self.assertEqual(len(home.select('[data-executive] tbody tr')), 2)
         nav = [a['href'] for a in home.select('nav a')]
         self.assertEqual(nav, ['index.html', 'capabilities.html', 'quality.html', 'performance.html', 'dataset.html', 'results.html'])
@@ -675,10 +675,23 @@ def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
     output = tmp_path / 'final'; build(output, source=source, content=content, relevance=labels)
     home = BeautifulSoup((output/'index.html').read_text(),'html.parser')
     headers = [h.get_text() for h in home.select('[data-executive] th')]
-    assert '质量分 /100 ↑' in headers
+    assert '搜索质量分（0–100）' in headers
+    assert '每题可用结果（条/5）' in headers
+    assert '有直接满足结果的题数' in headers
+    assert not home.select_one('[data-executive] table').find_parent('details')
     quality = BeautifulSoup((output/'quality.html').read_text(), 'html.parser')
     assert '可用结果比例' in quality.get_text() and '直接满足率' in quality.get_text()
     assert home.select_one('[data-executive] tbody td:nth-child(2)').get_text().strip('★ ') == '100.0'
+    # A concise home must still expose every primary relevance measure.
+    saved_home = (output / 'index.html').read_text()
+    for column in (2, 3, 4):
+        broken = BeautifulSoup(saved_home, 'html.parser')
+        for row in broken.select('[data-executive] tr'):
+            row.select('th,td')[column - 1].decompose()
+        (output / 'index.html').write_text(str(broken))
+        with pytest.raises(ValueError, match='Population summary'):
+            check(output)
+    (output / 'index.html').write_text(saved_home)
     result = BeautifulSoup((output/'results.html').read_text(),'html.parser')
     assert not result.select('[data-method-filter]')  # No conflicting duplicate legacy inventory.
     data = json.loads(result.select_one('[data-comparison-data]').string)
