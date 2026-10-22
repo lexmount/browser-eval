@@ -831,8 +831,9 @@ def build(
             ),
             body,
         )
+        dataset_profile, dataset_content = quality_dataset(profile, authored)
         ds = []
-        for c in profile["cases"]:
+        for c in dataset_profile["cases"]:
             anchors = "<br>".join(
                 f'<a href="{esc(u)}" title="{esc(u)}">{t("Target page", "目标页面")} · {esc(u.split("://", 1)[-1].split("/", 1)[0])}</a>'
                 for u in c.get("anchors", [])
@@ -873,14 +874,14 @@ def build(
         page(
             "dataset.html",
             t("Query set", "评测查询集"),
-            dataset_context(profile, authored, zh)
-            + provenance_table(profile, zh)
+            dataset_context(dataset_profile, dataset_content, zh)
+            + provenance_table(dataset_profile, zh)
             + f'<p><a href="{"../" if prefix else ""}query-catalog-license.txt">'
             + t("Public query catalog attribution and license", "公开查询集署名与许可")
             + "</a></p>"
-            + origin_filter(profile, zh)
-            + cohort_filter(profile, zh)
-            + population_filter(profile, authored, zh)
+            + origin_filter(dataset_profile, zh)
+            + cohort_filter(dataset_profile, zh)
+            + population_filter(dataset_profile, dataset_content, zh)
             + "<label>"
             + t("Search queries, categories or sources", "搜索查询、类别或来源")
             + " <input data-query></label><p>"
@@ -912,7 +913,7 @@ def build(
                         f'<tr data-row data-state="all" data-cohort="{esc(c.get("cohort", ""))}" data-origin="{esc(origin_group(c))}" data-case-id="{esc(c["id"])}">',
                         1,
                     )
-                    for s, c in zip(ds, profile["cases"], strict=True)
+                    for s, c in zip(ds, dataset_profile["cases"], strict=True)
                 ],
                 bounded=True,
             ),
@@ -1370,7 +1371,10 @@ def check(output, *, return_data=False, evidence_only=False):
                     raise ValueError("Incomplete cohort filter")
         for route in (("dataset.html",) if (manifest.get("authored") or {}).get("presentation") == "comparison-report" else ("dataset.html", "results.html")):
             inventory = BeautifulSoup((output / (prefix + route)).read_text(), "html.parser")
-            expected_groups = {origin_group(c) for c in manifest["profile"]["cases"]}
+            inventory_profile = quality_dataset(manifest["profile"], manifest.get("authored") or {})[0] if route == "dataset.html" else manifest["profile"]
+            if route == "dataset.html" and Counter(r.get("data-case-id") for r in inventory.select("[data-row]")) != Counter(c["id"] for c in inventory_profile["cases"]):
+                raise ValueError("Active dataset differs from reviewed quality population")
+            expected_groups = {origin_group(c) for c in inventory_profile["cases"]}
             if {o["value"] for o in inventory.select("[data-origin-filter] option")} != {
                 "all",
                 *expected_groups,
@@ -1378,7 +1382,7 @@ def check(output, *, return_data=False, evidence_only=False):
                 raise ValueError("Incomplete query-source filter")
             expected_origins = [
                 origin_group(c)
-                for c in manifest["profile"]["cases"]
+                for c in inventory_profile["cases"]
                 for _ in range(
                     1 if route == "dataset.html" else (
                         len(manifest["profile"]["methods"]) if manifest["rows"] else 0
@@ -1963,6 +1967,7 @@ def origin_filter(profile, zh):
         "community_derived": ("Derived scenarios", "社区场景派生题"),
         "public_catalog": ("Public query catalog", "公开集补充"),
         "curated": ("Curated probes", "自编探针"),
+        "public_labeled": ("Public factual queries", "公开事实题"),
     }
     return (
         "<label>"
@@ -2007,6 +2012,9 @@ def cohort_summary(profile, rows, zh):
 
     def t(en, cn):
         return cn if zh else en
+
+    if profile.get("factual_quality_exclusions"):
+        return '<section data-cohort-summary><h2>' + t("Measurement scope", "实测范围") + '</h2><p>' + t("Performance and cost include every physical request in each collection batch, including quarantined reference questions. Quality uses only the active dataset. The original calls remain in evidence.", "性能与费用包含各批次的全部实际请求，包括参考审查中隔离的题目。质量指标只使用当前有效题库；原始调用保留在证据中。") + '</p></section>'
 
     entries = []
     for group in groups:
@@ -3133,6 +3141,21 @@ def project_comparison(profile, rows, content):
     return projected, selected
 
 
+def quality_dataset(profile, content):
+    """Active dataset excludes rejected references; archived calls stay in results."""
+    excluded = set(profile.get("factual_quality_exclusions", []))
+    if not excluded:
+        return profile, content
+    active = copy.deepcopy(profile)
+    active["cases"] = [case for case in active["cases"] if case["id"] not in excluded]
+    for cohort in active.get("report_cohorts", []):
+        cohort["case_ids"] = [cid for cid in cohort["case_ids"] if cid not in excluded]
+    authored = copy.deepcopy(content)
+    for population in authored.get("metric_populations", []):
+        population["case_ids"] = [cid for cid in population["case_ids"] if cid not in excluded]
+    return active, authored
+
+
 def metric_populations(profile, content):
     cases = {c["id"] for c in profile["cases"]}
     populations = content.get("metric_populations") or [
@@ -3163,8 +3186,9 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
     independent = content.get("independent_benchmarks")
     heading = (("两套评测，分别报告" if zh else "Two benchmarks, reported separately")
                if independent else ("总体与分题组结果" if zh else "Overall and population results"))
-    factual_count = sum("reference_answer" in case for case in profile["cases"])
-    scenario_count = len(profile["cases"]) - factual_count
+    exclusions = set(profile.get("factual_quality_exclusions", []))
+    factual_count = sum("reference_answer" in case and case["id"] not in exclusions for case in profile["cases"])
+    scenario_count = sum("reference_answer" not in case for case in profile["cases"])
     note = ((f"{scenario_count} 题自建集和 {factual_count} 题公开事实集回答不同问题，不合并成总分。子题组只解释各自适用的检查。非空、平均耗时、P50 和 P95 都包含失败与重试等待。"
              if zh else f"The {scenario_count}-query in-house set and {factual_count}-query public factual set answer different questions and are not merged. Subgroups only explain their eligible checks. Nonempty and latency include failures and retry waits.")
             if independent else
@@ -3246,7 +3270,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                 win = i in winners and winners[i] == value
                 html_cells.append(numeric_cell(label, value if i else None, f"population-{i}", directions.get(i, "neutral"), win))
             rendered.append('<tr>' + ''.join(html_cells) + '</tr>')
-        body += '<article data-population="' + esc(population['id']) + '"><h3>' + esc(population['label'][lang]) + f' · {len(ids)}' + (' 题' if zh else ' queries') + '</h3>'
+        body += '<article data-population="' + esc(population['id']) + '"><h3>' + esc(population['label'][lang]) + f' · {len(quality_ids) if kind == "factual" else len(ids)}' + (' 题' if zh else ' queries') + '</h3>'
         if population.get('description'):
             body += '<p>' + esc(population['description'][lang]) + '</p>'
         headings = ['返回结果的题数'] if zh else ['Queries returning results']
@@ -3255,7 +3279,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             body += '<p><a href="quality.html">' + ('质量分 = nDCG@5 × 100 · 查看等级和计算方法' if zh else 'Quality = nDCG@5 × 100 · Inspect grades and calculation') + '</a></p>'
         elif kind == 'factual':
             if quality_ids != ids:
-                body += '<p data-quality-exclusions>' + (f'质量检查使用审查后 {len(quality_ids)} 题，三家同范围；{len(ids) - len(quality_ids)} 道参考缺陷题从质量分母共同隔离。耗时和费用仍覆盖全部 {len(ids)} 题。' if zh else f'Quality uses {len(quality_ids)} reviewed-reference queries for every method; {len(ids) - len(quality_ids)} defective references are quarantined. Latency and cost retain all {len(ids)} queries.') + '</p>'
+                body += '<p data-quality-exclusions>' + ('性能与费用统计包含已隔离题的实际请求；质量指标使用上方有效题目。' if zh else f'Quality uses {len(quality_ids)} reviewed-reference queries for every method; {len(ids) - len(quality_ids)} defective references are quarantined. Latency and cost retain all {len(ids)} queries.') + '</p>'
             body += '<p class="population-note">' + ('检查前五条结果：是否搜到题库给定的网址，以及交付文字是否包含参考答案。答案文字检查剔除明确的题库转载和包含原题及评测或训练数据结构的记录。' if zh else 'Source found: a published supporting URL appears in the top five. Answer cue: allowed reference-answer text appears in delivered text after excluding explicit dataset mirrors; this is not semantic accuracy.') + '</p>'
             headings = ['搜到题库给定网页的题数', '搜索文字含参考答案的题数'] if zh else ['Published source found', 'Answer cue (mirrors excluded)']
         elif kind == 'scenario':
@@ -3314,4 +3338,4 @@ def dataset_context(profile, content, zh):
     custom = [c for c in profile['cases'] if 'reference_answer' not in c]
     originals = sum(c.get('provenance_kind') in {'community_exact', 'user_screenshot'} for c in custom)
     introduction = (f"自建场景集 {len(custom)} 题：包含 {originals} 道社区原题，其余来自公开查询集和注明来源的派生或自编场景。全部题目使用同一套候选池、四级标注和质量指标，不抽样；下表可按来源查看原题与改编题。" if zh else f"The in-house benchmark contains {len(custom)} queries, including {originals} exact community queries, plus public-catalog and attributed derived or authored scenarios. Every query uses the same pooled four-level labeling and quality metrics without sampling; source filters distinguish originals from adaptations.")
-    return '<section class="specimen"><h2>' + ('题目从哪里来' if zh else 'Where the questions come from') + '</h2><p>' + introduction + '</p><p>' + (f'公开事实题来自 {source}：原版 1,000 题，按接口统一长度限制排除 169 题，保留 {len(factual)} 题；筛选在调用前完成，未按结果挑题。' if zh else f'Public factual questions come from {source}: 169 of the original 1,000 questions were excluded by the shared query-length limit before calls, leaving {len(factual)}. Selection did not depend on results.') + '</p><p>' + (f'场景参考页检查共 {targets} 题：{targets-added} 题沿用原有参考，{added} 题根据原始问题补充独立来源。后补标注沿用已保存的输出，不重测。这只是自建集的辅助检查子集，不另算一套评测。' if zh else f'The scenario reference check covers {targets} questions: {targets-added} original references and {added} independently added references based on the original queries. Added labels reuse saved responses without new calls. This is an auxiliary subset of the in-house benchmark, not a separate benchmark.') + '</p></section>'
+    return '<section class="specimen"><h2>' + ('题目从哪里来' if zh else 'Where the questions come from') + '</h2><p>' + introduction + '</p><p>' + (f'公开事实集来自 {source}，按共同接口长度限制和参考核查规则筛选，当前有效 {len(factual)} 题。已隔离题的原始调用仍保留在结果与审查记录中。' if zh else f'Public factual questions come from {source}. The shared query-length contract and independent reference review leave {len(factual)} active questions. Archived calls remain in results and review evidence.') + '</p><p>' + (f'场景参考页检查共 {targets} 题：{targets-added} 题沿用原有参考，{added} 题根据原始问题补充独立来源。后补标注沿用已保存的输出，不重测。这只是自建集的辅助检查子集，不另算一套评测。' if zh else f'The scenario reference check covers {targets} questions: {targets-added} original references and {added} independently added references based on the original queries. Added labels reuse saved responses without new calls. This is an auxiliary subset of the in-house benchmark, not a separate benchmark.') + '</p></section>'
