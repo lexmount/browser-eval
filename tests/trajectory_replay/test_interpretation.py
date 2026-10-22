@@ -231,3 +231,48 @@ def test_secret_scan_only_excludes_exact_shipped_png_bytes():
     assert "base64" not in result
     with pytest.raises(ValueError):
         _text_without_verified_embedded_images(text, set())
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_outcome_chart_uses_each_selected_method_population(tmp_path, lang):
+    source = tmp_path / "article.json"
+    source.write_text(
+        json.dumps(
+            {
+                "schema": "lex_replay_interpretation/1",
+                "results_sha256": "cohort",
+                "title": {"zh": "结果", "en": "Results"},
+                "intro": {"zh": "任务比较", "en": "Task comparison"},
+                "sections": [
+                    {
+                        "id": "outcomes",
+                        "title": {"zh": "结果", "en": "Outcomes"},
+                        "data": "outcomes",
+                        "paragraphs": [],
+                    }
+                ],
+            }
+        )
+    )
+    audit = tmp_path / "audit.json"
+    audit.write_text(json.dumps({"bindings": {"results_sha256": "cohort"}}))
+    rows = [
+        {"participant_id": method, "task_id": index, "status": status}
+        for method, states in {
+            "first": ["pass", "fail", "pass"],
+            "second": ["pass", "fail"],
+        }.items()
+        for index, status in enumerate(states)
+    ]
+    _, body = render_interpretation(
+        source=source,
+        contract_audit=audit,
+        results_sha256="cohort",
+        methods={"first": {"label": "First"}, "second": {"label": "Second"}},
+        rows=rows,
+        lang=lang,
+        image_dir=tmp_path,
+        image_prefix="assets/",
+    )
+    assert "2/3" in body and "1/2" in body
+    assert "812" not in body

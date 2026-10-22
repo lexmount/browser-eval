@@ -428,53 +428,22 @@ def test_fix_log_missing_source_diff_is_explicit_and_binary_bound(
             report_module._load_fix_log(profile)
 
 
-def test_cross_track_control_localizes_mechanism_evidence_and_keeps_links() -> None:
+def test_cross_track_control_localizes_measured_contract_counts_and_evidence() -> None:
     bridge = json.loads(Path("research/browser-use-trajectory-replay-bridge.json").read_text())
     report_module._validate_replay_contract_definitions(bridge)
     attempts = [
         {"model": model, "engine": engine, "task_id": task_id, "score": 0}
-        for model in report_module.MODEL_LABELS
-        for engine in report_module.ENGINE_LABELS
-        for tasks in bridge["original_contract_task_groups"].values()
-        for task_id in tasks
+        for model in report_module.MODEL_LABELS for engine in report_module.ENGINE_LABELS
+        for tasks in bridge["original_contract_task_groups"].values() for task_id in tasks
     ]
     chinese = report_module._trajectory_replay_control(bridge, attempts)
     english = localize_html(chinese, PurePosixPath("analysis/index.html"))
-    assert "第 9 个决策" in chinese
-    assert "第 40 个决策" in chinese
-    assert "decision 9" in english
-    assert "Decision 40" in english
-    assert "reasoning_effort=low" in chinese and "reasoning_effort=low" in english
-    assert "81 条保留官方原合同，9 条使用修订合同" in chinese
-    assert "81 retain the original official contract and 9 use revised contracts" in english
-    assert "同一官方 evaluator" not in chinese
-    assert "same official evaluator" not in english
-    assert "<td>59</td><td>1</td>" in chinese and "<td>22</td><td>8</td>" in chinese
-    assert "notification_area" in english and "Referer" in english
+    assert "recorded_response" in english and "HAR" in english
+    assert "<td>59</td><td>1</td>" in chinese
+    assert "<td>22</td><td>8</td>" in chinese
     assert "0/81" in english and "0/59" in english and "0/22" in english
     assert "post-hoc diagnostic" in english
-    assert "固定动作、预录回答与绑定合同的重放验收结果" in chinese
-    assert (
-        "Replay acceptance for fixed actions, prerecorded responses, and bound contracts" in english
-    )
-    assert "recorded_response" in chinese and "recorded_response" in english
-    assert "不证明当前浏览器读到了所需数据" in chinese
-    assert "does not prove that the current browser read the required data" in english
-    assert "也不证明 Agent 在本次运行中计算出了答案" in chinese
-    assert "or that the Agent computed the answer during this run" in english
-    assert "要求网络事件的合同仍会检查本次 HAR" in chinese
-    assert "Contracts requiring network events still check the current HAR" in english
-    assert "给定可行路径后的执行能力" not in chinese
-    assert "measures execution after a viable path is given" not in english
-    assert "新发现的视口设置缺陷要求重新核对这一归因" in chinese
-    assert "viewport configuration defect requires that attribution to be reassessed" in english
-    assert "Task 173" in english and "widths of 992 or more" in english
-    assert "37 道检索题均只使用回答验收" in chinese
-    assert "All 37 retrieval tasks" in english
-    assert "the other 53 tasks cannot replace the original 90 as a new ranking" in english
-    for result_id in ("gpt-6-astra-chromium-124", "gpt-5.6-sol-moli-510"):
-        assert f"results/{result_id}.html#trajectory" in chinese
-        assert f"results/{result_id}.html#trajectory" in english
+    assert 'evidence-viewer.html?src=data/trajectory-replay-bridge.json' in english
     assert not any("\u4e00" <= char <= "\u9fff" for char in english)
 
 
@@ -1326,6 +1295,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
                     "reasoning_effort": "low",
                 },
                 "environment": {
+                    "platform": "Linux fixture host",
                     "site_access_host": "192.168.5.2",
                     "docker_architecture": "aarch64",
                     "docker_server_version": "28.0",
@@ -1384,9 +1354,15 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     assert "common-success subset retains each configuration" in english_home
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
-    assert "ContainerManager.start(reset=True)" in methodology_text
+    assert "环境准备回执" in methodology_text
     assert "192.168.5.2" in methodology_text
     assert "不含点击序列" in methodology_text
+    for page in (methodology_text, text):
+        assert "Colima" not in page
+        assert "macOS" not in page
+    assert "Linux fixture host" in text
+    assert "官方数据 812 题" not in methodology_text
+    assert "663" not in methodology_text
     assert "计划与实际对照" in methodology_text
     assert "每题执行上限：3" in methodology_text
     assert "冻结配置及实际执行记录" in methodology_text
@@ -1586,3 +1562,37 @@ def test_pairing_uses_dynamic_baseline_for_three_browsers(monkeypatch) -> None:
     assert comparisons["first"]["baseline_engine"] == "baseline"
     assert comparisons["first"]["comparison_only"] == 1
     assert comparisons["third"]["comparison_only"] == 2
+
+
+def test_replay_control_uses_selected_counts_and_origin_inventory():
+    bridge = {
+        "effective_results": {
+            "chromium": {"tasks": 7, "passes": 5},
+            "fixture": {"tasks": 7, "passes": 3},
+        },
+        "chromium_trajectory_provenance": {
+            "expert_repair_spec": 2,
+            "successful_browser_use_execution": 5,
+            "successful_browser_use_execution_by_origin": {"fixture-model_fixture": 5},
+        },
+        "contract_counts": {"official_task_contract": 5, "corrected_replay_contract": 2},
+        "source_contract_counts": {
+            "authoritative_successful_browser_use_execution": {
+                "official_task_contract": 3,
+                "corrected_replay_contract": 2,
+            },
+            "expert_repair_spec": {"official_task_contract": 2, "corrected_replay_contract": 0},
+        },
+        "correction_categories": {
+            "event_selection": [],
+            "event_selection_and_expected": [],
+            "reference_or_acceptance": [],
+        },
+    }
+    page = report_module._trajectory_replay_control(bridge)
+    english = localize_html(page, PurePosixPath("analysis/index.html"))
+    assert "5/7" in page and "3/7" in page
+    assert "fixture-model_fixture" in page
+    assert "recorded_response" in english and "HAR" in english
+    for obsolete in ("90/90", "36", "37", "Task 173", "Task 676", "Colima"):
+        assert obsolete not in page

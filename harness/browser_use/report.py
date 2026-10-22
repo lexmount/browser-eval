@@ -49,7 +49,7 @@ from .publication import (
 )
 from .selection import PilotSelection, load_pilot, report_selection_path, validate_against_official
 
-ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli 1.1.3"}
+ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli"}
 MODEL_LABELS = {"gpt-5.6-sol": "GPT-5.6 Sol"}
 BASELINE_ENGINE = "chromium"
 TIER_LABELS = {"easy": "简单", "medium": "中等", "hard": "困难"}
@@ -289,7 +289,7 @@ def _table(
     table_id: str = "",
     classes: str = "",
 ) -> str:
-    head = "".join(f"<th>{_e(x)}</th>" for x in headers)
+    head = "".join(f"<th>{x if isinstance(x, Safe) else _e(x)}</th>" for x in headers)
     body = "".join(
         "<tr>" + "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in row) + "</tr>"
         for row in rows
@@ -884,7 +884,7 @@ def _clean_subset_table(
             table_id="clean-subset-table",
             classes="core-comparison-table",
         )
-        + '<p class="fine">这是事后诊断口径，不是官方新分数。它按任务统一剔除任一配置已证实受任务/evaluator、站点、共享环境或参考状态干扰的任务，保证四个配置分母一致。</p>'
+        + '<p class="fine">这是事后诊断口径，不是官方新分数。它按任务统一剔除任一配置已证实受任务/evaluator、站点、共享环境或参考状态干扰的任务，保证各配置分母一致。</p>'
         f'<p class="fine">本轮剔除 {len(excluded)} 题：{_e("、".join(f"#{task_id}" for task_id in sorted(excluded)))}。</p>'
     )
 
@@ -1482,7 +1482,7 @@ def _english_page(body: str) -> str:
 
 
 def _hero(eyebrow: str, title: str, lead: str) -> str:
-    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{_e(title)}</h1><p class="lead">{_e(lead)}</p></div></section>'
+    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{_e(title)}</h1><p class="lead">{lead if isinstance(lead, Safe) else _e(lead)}</p></div></section>'
 
 
 def _section(title: str, body: str) -> str:
@@ -2253,84 +2253,49 @@ def _replay_original_contract_rows(
 def _trajectory_replay_control(
     bridge: dict[str, Any] | None, attempts: list[dict[str, Any]] | None = None
 ) -> str:
+    """Explain the selected replay comparison without inheriting a past article."""
     if bridge is None:
         return ""
-    result = bridge["effective_results"]
+    from .report_i18n import bilingual_text
+
+    def text(zh, en):
+        return Safe(bilingual_text(zh, en))
+
+    result_rows = [
+        [ENGINE_LABELS.get(key, key), f"{value['passes']}/{value['tasks']}"]
+        for key, value in bridge["effective_results"].items()
+        if isinstance(value, dict) and 'tasks' in value and 'passes' in value
+    ]
     provenance = bridge["chromium_trajectory_provenance"]
-    origins = provenance["successful_browser_use_execution_by_origin"]
-    diagnostic = ""
+    source_rows = [
+        [text("历史成功轨迹", "Historical successful executions"), provenance["successful_browser_use_execution"]],
+        [text("专家修复轨迹", "Expert-repaired trajectories"), provenance["expert_repair_spec"]],
+        *[[origin, count] for origin, count in provenance["successful_browser_use_execution_by_origin"].items()],
+    ]
+    contract_rows = [
+        [source, counts["official_task_contract"], counts["corrected_replay_contract"]]
+        for source, counts in bridge["source_contract_counts"].items()
+    ]
+    body = '<section id="trajectory-replay-control"><h2>' + text(
+        "固定轨迹控制", "Fixed-trajectory control") + '</h2><p>' + text(
+        "轨迹重放执行固定动作，验收使用预录回答（recorded_response）和本次网络记录（HAR）。它不测 Agent 的自主规划；回答通过也不证明本次读到了目标数据。要求网络事件的合同仍检查本次 HAR。",
+        "Replay executes fixed actions and evaluates the recorded_response and current HAR. It does not measure autonomous Agent planning; an accepted recorded answer does not establish a fresh reading. Contracts requiring network events still inspect the current HAR.") + '</p>'
+    body += _table([text("配置", "Configuration"), text("通过数／任务数", "Passes / tasks")], result_rows)
+    body += '<h3>' + text("轨迹来源", "Trajectory provenance") + '</h3>'
+    body += _table([text("来源", "Source"), text("任务数", "Tasks")], source_rows)
+    body += '<h3>' + text("轨迹来源与验收合同", "Trajectory source and acceptance contract") + '</h3>'
+    body += _table([text("来源", "Source"), text("官方原合同", "Original official contract"), text("修订合同", "Revised contract")], contract_rows)
     if attempts is not None:
-        diagnostic_rows = "".join(
-            "<tr>" + "".join(f"<td>{_e(cell)}</td>" for cell in row) + "</tr>"
-            for row in _replay_original_contract_rows(bridge, attempts)
-        )
-        diagnostic = (
-            '<h3>保留原合同的任务仍有自主执行失败</h3>'
-            '<p>下表固定排除修订合同任务，按轨迹来源统计自主执行的官方通过数。'
-            '这是事后诊断，主报告分母仍为 90；历史成功路径经过筛选，不能把此表当成新的能力排名。</p>'
-            '<div class="table-scroll"><table><thead><tr><th>配置</th><th>全部原合同任务</th>'
-            '<th>历史成功路径来源</th><th>专家修复路径来源</th></tr></thead><tbody>'
-            + diagnostic_rows + '</tbody></table></div>'
-        )
-    contract_rows = "".join(
-        f'<tr><td>{label}</td><td>{counts["official_task_contract"]}</td><td>{counts["corrected_replay_contract"]}</td></tr>'
-        for source, label in (("authoritative_successful_browser_use_execution", "历史成功轨迹"), ("expert_repair_spec", "专家修复轨迹"))
-        for counts in [bridge["source_contract_counts"][source]]
-    )
-    correction_rows = "".join(
-        f'<tr><td>{label}</td><td>{", ".join(map(str, bridge["correction_categories"][key]))}</td><td>{description}</td></tr>'
-        for key, label, description in (
-            ("event_selection", "仅修改事件选择", "按匹配条件选择保存请求，避免随后请求覆盖。"),
-            ("event_selection_and_expected", "事件选择与预期字段修改", "修订路由、请求字段或 Referer 条件，并匹配所需异步请求。"),
-            ("reference_or_acceptance", "参考答案或验收要求修改", "涉及商品名、表单字段、商品选择规则、未提交表单状态及冗余保存要求。"),
-        )
-    )
-    return (
-        '<section id="trajectory-replay-control"><h2>固定轨迹控制：它验证浏览器执行，不测自主规划</h2>'
-        '<p><strong>Chromium 的 90/90 不是 CowAgent 的 90/90。</strong>轨迹重放把既定 BrowserTool 调用交给浏览器，模型调用数为 0；'
-        'Chromium 的 90/90 表示这 90 组固定动作、预录回答与绑定验收合同通过了重放验收，其中部分合同经过修订。它不让 Agent 在当次运行中观察、检索、比较、选择或决定何时结束。</p>'
-        '<p>验收使用轨迹预录回答（recorded_response）与本次网络记录（HAR）。对于检索问答题，通过不证明当前浏览器读到了所需数据，也不证明 Agent 在本次运行中计算出了答案；要求网络事件的合同仍会检查本次 HAR 是否包含对应请求。</p>'
-        '<p>90 题中的 37 道检索题均只使用回答验收，不要求网络事件：36 题沿用原合同，Task 279 使用修订合同。这 37 题的本轮读数与答案尚未验证；原评分保留，其余 53 题也不能替代原 90 题成为新的排名。</p>'
-        '<div class="answer-strip"><article><b>Chromium：90/90</b><p>固定动作、预录回答与绑定合同的重放验收结果。</p></article>'
-        f'<article><b>Moli：{result["moli"]["passes"]}/{result["moli"]["tasks"]}</b><p>同一固定路径仍有 36 条失败，不能把浏览器差异归零。</p></article>'
-        f'<article><b>路径来源：{provenance["expert_repair_spec"]} + {provenance["successful_browser_use_execution"]}</b><p>30 条专家修复路径，加 60 条历史成功的 Browser Use 路径。</p></article></div>'
-        '<p>后 60 条在进入重放集之前已经按“成功”条件筛选，其中 '
-        f'{origins["gpt-5.6-sol_chromium"]} 条来自 Sol × Chromium、{origins["gpt-5.6-sol_moli"]} 条来自 Sol × Moli、'
-        f'{origins["gpt-6-astra_chromium"]} 条来自 Astra × Chromium。'
-        '因此固定轨迹成绩受给定路径、预录回答和验收合同共同约束，不能作为 Agent 决策能力、模型能力或完整 90 题自主通过率的反事实估计。</p>'
-        '<h3>轨迹来源与验收合同</h3>'
-        f'<p>90 条轨迹中，{bridge["contract_counts"]["official_task_contract"]} 条保留官方原合同，{bridge["contract_counts"]["corrected_replay_contract"]} 条使用修订合同。专家修复轨迹不一定修改验收；历史成功轨迹也可能修订验收。合同差异与路径来源需同时考虑。</p>'
-        '<div class="table-scroll"><table><thead><tr><th>轨迹来源</th><th>官方原合同</th><th>修订合同</th></tr></thead><tbody>'
-        + contract_rows + '</tbody></table></div>'
-        '<div class="table-scroll"><table><thead><tr><th>修订类别</th><th>任务</th><th>验收差异</th></tr></thead><tbody>'
-        + correction_rows + '</tbody></table></div>'
-        + diagnostic +
-        '<p>历史复核曾将 Moli 的 36 个固定轨迹失败归为浏览器责任；新发现的视口设置缺陷要求重新核对这一归因。'
-        '历史 Browser Use 的 Chromium 实际宽度为 780，Moli 为 1920；Task 173 的搜索链接在宽度达到 992 时由网页 CSS 隐藏。'
-        '该任务的失败不能单凭可见性超时归因于浏览器。历史分数保留，统一视口后的比较须重新冻结完整任务范围与轨迹资格。</p>'
-        '<p class="source-note">数据绑定：<a href="evidence-viewer.html?src=data/trajectory-replay-bridge.json">跨轨迹控制摘要</a>；'
-        '<a href="evidence-viewer.html?src=data/trajectory-replay-failure-review.json">36 个 Moli 固定轨迹失败的逐题复核</a>。</p>'
-        '<h3>从失败结果追到决策与运行设置</h3>'
-        '<p><a href="results/gpt-5.6-sol-chromium-676.html#verification">Task 676 · Sol × Chromium · 验收证据</a>：'
-        '官方合同要求带 filters[status]=fraud 的订单列表 XHR。HAR 已记录该请求、200 状态和正确 Referer；'
-        '<a href="results/gpt-5.6-sol-chromium-676.html#trajectory">操作轨迹</a>显示 Suspected Fraud 已生效。'
-        'NetworkEventEvaluator._filter_events_by_criteria 却对 NAVIGATE + GET 只保留最后的文档导航，遗漏 XHR；'
-        '默认 last_event_only 又可能在同路径请求中选中后来的 notification_area。两个模型的 Chromium 结果都受此影响。'
-        '<a href="results/gpt-5.6-sol-moli-676.html#verification">Moli 的同题证据</a>还缺少 XHR Referer。'
-        '重放修订既改变事件选择，也移除了 Referer 条件；后者并非 Chromium 这次误判的原因。四个配置的原始失败分数保持不变。</p>'
-        '<p><a href="results/gpt-6-astra-chromium-124.html#trajectory">Task 124 · Astra × Chromium</a>：'
-        'Agent 在第 9 个决策就结束，未耗尽 40 步。轨迹把 wireless earphone 查询扩大成 earphone，'
-        '工具结果仍显示 Items 1 to 12 of 24 total，最终却提交 min=0.01、max=287.64。'
-        '失败发生在候选资格与检索完整性判断；轨迹中有可读结果，不能用浏览器不可操作或步骤不足解释。'
-        '当前运行器依赖模型执行提示中的完成自检，没有独立验证候选全集。提示要求自检并不等于已经完成自检。</p>'
-        '<p><a href="results/gpt-5.6-sol-moli-510.html#trajectory">Task 510 · Sol × Moli</a>：'
-        '第 40 个决策仍在调用工具，最终回答承认尚未结账。'
-        'harness/browser_use/runner.py 的 _exhausted_agent_steps 检测这一状态，并通过 _max_steps_response 标记未完成。'
-        '这证明预算上限中断了流程，但所选 Hiquphon Tweeters 本身也不符合官方目标；增加预算能否完成正确购买仍需对照实验。</p>'
-        '<p>两模型均使用 reasoning_effort=low 和 40 步上限。'
-        'harness/browser_use/model.py 限定 low，runner.py 在创建适配器时也传入 low。'
-        '现有分数只反映这套 Agent、工具与推理设置；尚无固定观察输入、仅改变推理档位的实验，不能把分数接近解释为模型能力相同。</p></section>'
-    )
+        body += '<p>' + text(
+            "以下为保留原合同任务的事后诊断，不替代自主执行的完整任务分母或官方结果。",
+            "The following post-hoc diagnostic uses original-contract tasks. It does not replace the full autonomous-run population or official outcomes.") + '</p>'
+        body += _table([text("配置", "Configuration"), text("全部原合同任务", "All original-contract tasks"), text("历史成功路径来源", "Historical-success paths"), text("专家修复路径来源", "Expert-repaired paths")], _replay_original_contract_rows(bridge, attempts))
+    body += '<p class="source-note"><a href="evidence-viewer.html?src=data/trajectory-replay-bridge.json">' + text(
+        "跨轨迹控制证据", "Cross-track control evidence") + '</a>'
+    if bridge.get("moli_failure_review"):
+        body += ' · <a href="evidence-viewer.html?src=data/trajectory-replay-failure-review.json">' + text(
+            "固定轨迹失败复核", "Replay failure review") + '</a>'
+    return body + '</p></section>'
 
 
 def _automatic_failure_counts(attempts: list[dict[str, Any]]) -> Counter[str]:
@@ -3124,6 +3089,9 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 encoding="utf-8",
             )
 
+        def translated(zh, en):
+            return Safe(bilingual_text(zh, en))
+
         benchmarks = [
             [
                 "WebArena‑Verified",
@@ -3166,58 +3134,57 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         methodology = _hero(
             "Methodology",
             "评最终结果，不评参考点击路径",
-            "唯一成绩来源是未修改的 WebArena‑Verified 1.2.3 evaluator；确定性证据审计只验证记录一致性。",
+            translated("唯一成绩来源是运行记录绑定的官方 evaluator；确定性证据审计只验证记录一致性。", "Scores come from the official evaluator bound by the execution records; deterministic auditing checks evidence consistency."),
         ) + _section(
             "候选 benchmark 的验收边界",
             _table(["Benchmark", "评什么", "验收对象", "判分", "问题"], benchmarks),
         )
+        evaluator_counts = Counter(
+            rule.get("evaluator", "UnknownEvaluator")
+            for task in tasks
+            for rule in (task.get("contract") or {}).get("evaluation_contract", [])
+        )
+        selected_sites = Counter(site for task in tasks for site in task.get("sites", []))
+        site_images = environment.get("site_images") or config.get("site_images") or {}
         methodology += _section(
             "本轮判分链",
-            f'<ol class="flow"><li>预注册 {task_count} 题</li><li>逐题重置站点</li><li>CowAgent 自主规划</li><li>只替换浏览器</li><li>官方 evaluator 验收</li><li>确定性证据复核</li></ol><p>官方数据 812 题全部配置 AgentResponseEvaluator，其中 663 题还配置 NetworkEventEvaluator。所有已配置 evaluator 都返回 1.0 才通过。它检查最终结果和必要副作用，不要求复刻参考动作序列。</p>',
+            f'<ol class="flow"><li>预注册 {task_count} 题</li><li>CowAgent 自主规划</li><li>BrowserTool</li><li>官方 evaluator 验收</li><li>确定性证据复核</li></ol>'
+            + '<p>' + translated(
+                "以下计数来自本轮选中任务的冻结验收合同。所有已配置 evaluator 都返回 1.0 才通过。",
+                "The counts below come from the selected tasks' frozen acceptance contracts. Every configured evaluator must return 1.0 for a task to pass.") + '</p>'
+            + _table(["Evaluator", translated("任务数", "Tasks")], sorted(evaluator_counts.items()), table_id="methodology-evaluators"),
         )
         methodology += _section(
             f"这 {task_count} 题如何部署并由 Agent 执行",
-            '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="WebArena-Verified 本地部署、CowAgent 自主操作、双浏览器对照与程序化验收流程" width="1672" height="941"><figcaption>图 1 · 从官方站点镜像、逐题隔离与健康检查，到 CowAgent 观察—决策—操作闭环，再到 Chromium/Moli 对照和官方程序化验收。窄屏可横向滚动查看。</figcaption></figure>'
-            f"<p><strong>站点确实部署在本机，不是公网代站。</strong>macOS 上的 Docker 由 Colima 虚拟机承载；运行配置记录的 <code>{_e(site_access_host)}</code> 是浏览器容器访问 macOS 宿主发布端口所用的 Colima 网关，不是评测网站自身地址。Shopping、Shopping Admin、Reddit、GitLab 四个官方站点镜像通过 Docker 端口发布到这个入口，独立的 Chromium/Moli 浏览器容器据此访问本地站点。</p>"
-            f"<p>WebArena‑Verified 当前提供 Shopping、Shopping Admin、Reddit、GitLab、Wikipedia、Map 六类环境。本轮 {task_count} 题只覆盖前四类；Wikipedia 与 Map 需要额外大型数据卷，因此没有部署，也没有任务进入成绩。</p>"
-            + (
-                f"<p>运行器在每个物理执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。本轮 {preparation_receipt_count}/{len(source_attempts)} 个物理执行都保存了环境准备回执，并与对应执行记录绑定。</p>"
-                if preparation_receipts_complete
-                else "<p>运行器在每个物理执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。当前证据尚未完整保存逐执行环境准备回执，因此不能把每次准备成功当成已独立核验的事实。</p>"
-            )
-            + f"<p>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 {max_agent_steps} 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每次物理执行都保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
-            + _table(
-                ["站点", "本轮访问地址", "应用端口", "环境控制端口", "状态"],
-                [
-                    ["Shopping", f"http://{site_access_host}:7770", "7770", "7771", "本轮已部署"],
-                    [
-                        "Shopping Admin",
-                        f"http://{site_access_host}:7780/admin",
-                        "7780",
-                        "7781",
-                        "本轮已部署",
-                    ],
-                    ["Reddit", f"http://{site_access_host}:9999", "9999", "9998", "本轮已部署"],
-                    ["GitLab", f"http://{site_access_host}:8023", "8023", "8024", "本轮已部署"],
-                    ["Wikipedia", "—", "8888", "8889", f"未部署；不在 {task_count} 题"],
-                    ["Map", "—", "3030", "3031", f"未部署；不在 {task_count} 题"],
-                ],
-            )
-            + (
-                f'<p class="callout success"><strong>环境准备证据：</strong>{preparation_receipt_count}/{len(source_attempts)} 个物理执行均记录 reset、ready、应用健康检查和登录准备状态；事件流随后证明 CowAgent 自主产生 BrowserTool 调用序列。</p>'
-                if preparation_receipts_complete
-                else '<p class="callout"><strong>证据边界：</strong>事件流能证明 CowAgent 在准备完成后产生了 BrowserTool 调用序列；镜像 ID、digest、代码提交与网关记录限定了本地运行身份。逐执行环境准备回执尚不完整。</p>'
-            )
+            '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="Browser Use evaluation flow: tasks, recorded environment, autonomous actions, registered browsers and official evaluators"><figcaption>'
+            + translated("流程图说明职责；本轮部署身份与环境准备范围见下表及逐执行证据。",
+                         "The diagram explains responsibilities. The recorded deployment and preparation coverage are specified below and in each execution's evidence.")
+            + '</figcaption></figure><p>'
+            + translated(
+                f"预注册文件不含点击序列。CowAgent 在最多 {max_agent_steps} 步内观察页面、请求模型决策并生成 BrowserTool 调用。具体浏览器、版本和环境以运行记录为准。",
+                f"The selection contains no click sequence. CowAgent observes pages, requests model decisions and generates BrowserTool calls within a {max_agent_steps}-step budget. Browser versions and environment identity follow the execution records.") + '</p>'
+            + _table([translated("环境字段", "Environment field"), translated("本轮身份", "Recorded identity")], [
+                [translated("宿主", "Host"), environment.get("platform", "—")],
+                [translated("Docker 上下文", "Docker context"), config.get("docker_context", "—")],
+                [translated("站点访问入口", "Site access host"), site_access_host],
+            ])
+            + _table([translated("站点", "Site"), translated("选中任务数", "Selected tasks"), translated("记录的镜像", "Recorded image")], [
+                [SITE_LABELS.get(site, site), count, (site_images.get(site) or {}).get("reference", "—")]
+                for site, count in sorted(selected_sites.items())
+            ], table_id="methodology-sites")
+            + '<p>' + translated(
+                f"环境准备回执：{preparation_receipt_count}/{len(source_attempts)} 个物理执行。逐执行的重置、就绪和健康检查状态以对应回执为准。",
+                f"Environment preparation receipts: {preparation_receipt_count}/{len(source_attempts)} physical executions. Reset, readiness and health-check states follow the corresponding receipts.") + '</p>'
             + '<p class="page-links">'
             + "".join(
-                f'<a href="results/{model_id}-{engine}-{example_id}.html#trajectory">查看 {_e(MODEL_LABELS[model_id])} · {_e(ENGINE_LABELS[engine])} 自主轨迹示例</a>'
-                for model_id in MODEL_LABELS
-                for engine in ENGINE_LABELS
+                f'<a href="results/{model_id}-{engine}-{example_id}.html#trajectory">'
+                + translated(f"{MODEL_LABELS[model_id]} · {ENGINE_LABELS[engine]} 自主轨迹示例",
+                             f"{MODEL_LABELS[model_id]} · {ENGINE_LABELS[engine]} autonomous trajectory") + '</a>'
+                for model_id in MODEL_LABELS for engine in ENGINE_LABELS
                 for example_id in [next((int(task["task_id"]) for task in tasks
                                          if (model_id, engine, int(task["task_id"])) in by_attempt), None)]
                 if example_id is not None
-            )
-            + '<a href="reproduce/">核对镜像与运行身份</a></p>',
+            ) + '<a href="reproduce/">核对镜像与运行身份</a></p>',
         )
         methodology += _section(
             "固定协议",
@@ -3659,13 +3626,13 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         site_images = environment.get("site_images") or {}
         reproduce += _section(
             "部署环境与网络拓扑",
-            "<p>本轮 Docker daemon 运行在 macOS 上的 Colima 虚拟机中。站点容器把应用端口发布到 Docker 宿主；两个浏览器容器通过其容器内 <code>host.docker.internal</code> 对应的网关地址访问这些端口。运行时记录的地址是 <code>"
-            + _e(environment.get("site_access_host") or "未记录")
-            + "</code>。它属于本轮私有网络，不应复制为其他机器的固定地址。</p>"
+            "<p>" + translated(
+                "下表展示运行记录中的宿主、容器运行时、站点访问入口与镜像身份。它们属于所选证据，不作为其他报告实例的默认部署配置。",
+                "The table shows the recorded host, container runtime, site access entry and image identities. These describe the selected evidence and do not prescribe deployment defaults for another instance.") + "</p>"
             + _table(
                 ["层", "本轮身份", "作用"],
                 [
-                    ["宿主", environment.get("platform", "—"), "运行 Colima 与报告 runner"],
+                    ["宿主", environment.get("platform", "—"), translated("记录的执行宿主", "Recorded execution host")],
                     [
                         "Docker",
                         f"{environment.get('docker_name', '—')} · {environment.get('docker_architecture', '—')} · {environment.get('docker_server_version', '—')}",
@@ -3679,7 +3646,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     [
                         "ARM 兼容模式",
                         (environment.get("site_runtime_compatibility") or {}).get("mode", "未启用"),
-                        "运行部分 amd64 PHP 站点镜像",
+                        translated("记录的运行兼容配置", "Recorded runtime compatibility"),
                     ],
                 ],
             )

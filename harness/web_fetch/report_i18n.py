@@ -424,10 +424,8 @@ TEXT = {
     "从输入到交付共 2.44 秒，包含流程开销。本题预先声明为 PDF 文档，未测试未知链接的自动类型识别。": "Input-to-delivery time is 2.44 seconds, including processing overhead. This task is declared as a PDF document in advance; automatic type detection for an unknown URL was not tested.",
     "排除：Just a moment... / Prove your humanity / Access Denied；不得返回安全验证或拒绝访问页": "Exclude: Just a moment... / Prove your humanity / Access Denied; must not return a security-verification or access-denied page",
     "评测集与判定规则": "Dataset and acceptance rules",
-    "名称至少 2 个字符且含字母；以 http(s) 开头的名称，以及“详情”“Read more”等登记的入口标签会被剔除。": "Names need at least 2 characters and a letter. Names starting with http(s), and registered link labels such as 'Details' and 'Read more', are excluded.",
     "文章目录": "Article contents",
     "名称至少 2 个字符且含字母；URL、价格及通用占位标签不算名称。": "Names need at least 2 characters and a letter; URLs, prices, and generic placeholder labels do not count as names.",
-    "按域名与路径去重；查询参数变化不增加记录数。": "Deduplicate by host and path; query-parameter changes do not increase the record count.",
     "正文 0 字符；必要文字命中 0/3。": "Body: 0 characters; required text matched: 0/3.",
     "完整记录 0 条；稳定文字命中 0/4。": "Complete records: 0; stable text matched: 0/4.",
     "目标图片地址命中 0/1。": "Target image URL matched: 0/1.",
@@ -438,7 +436,6 @@ TEXT = {
     "Moli 1.1.1 的 Web Fetch 表现：五款浏览器、150 个任务": "Moli 1.1.1's Web Fetch performance: five browsers, 150 tasks",
     "完整报告测试了三个 Moli 版本；本文在比较总通过数后，统一采用其中表现最好的 1.1.1，没有按题选择不同版本的结果。": "The full report tests three Moli versions. After comparing total passes, this article consistently uses the best-performing version, 1.1.1, without selecting different versions task by task.",
     "PDF 是一个具体原因：Moli 能先交回文件字节，再由本地 pypdf 提取正文。有六道 PDF 题只被 Moli＋pypdf 路线完成，其他四款的本轮交付路线未通过。这个成绩比较的是浏览器及其内容处理路径，包含 PDF 解析所用时间。": "PDFs explain part of the difference: Moli returns file bytes, then local pypdf extracts the text. Six PDF tasks are completed only by the Moli + pypdf path; the other four browsers' tested paths fail them. The comparison includes the browser and its content-processing path, including PDF parsing time.",
-    "每条：非空名称 + 本站详情链接": "Each record: nonempty name + detail link on this site",
     "每条：非空名称＋本站详情链接": "Each record: nonempty name + detail link on this site",
     "域名：": "Hosts: ",
     "详情路径规则：": "Detail-path rule: ",
@@ -452,9 +449,6 @@ TEXT = {
     "案例原始记录：": "Original case records: ",
     "左右滑动查看完整判定。": "Scroll horizontally to view all verdict details.",
     "排除：": "Exclude: ",
-    "替换字符数 ≥20 且占比 ≥2% 时拒绝": "Reject when replacement characters number ≥20 and make up ≥2%",
-    "PNG 文件头：89504e470d0a1a0a": "PNG header: 89504e470d0a1a0a",
-    "文件长度的通用门槛是 32 字节。SHA-256 是按文件字节计算的指纹，用来核对是否同一份文件；不评价图片识别或媒体语义。": "The general file-length threshold is 32 bytes. SHA-256 is a fingerprint calculated from the file's bytes to check file identity; it does not assess image recognition or media semantics.",
     "文章对比 Moli 1.1.1 与另外四款浏览器，明确 150 题中通过 135 题，完整展示均值、P50、P95，并用五个可切换案例并列标准答案与真实输出。原始调用、评分及榜单分母不变。": "The article compares Moli 1.1.1 with four other browsers, states that across 150 tasks it passed 135, presents mean latency, P50, and P95, and provides five selectable examples pairing references with actual outputs. Original calls, scores, and ranking denominators are unchanged.",
     "网页、PDF、列表、资源地址和原文件采用可切换面板，逐项核对独立参考与真实返回；保留原始 PNG，关键数字直接排版。": "Selectable panels for web text, PDFs, lists, resource URLs, and original files compare independent references with actual outputs check by check. The original PNG is retained, with key figures presented directly as text.",
     "明确结构检查不核验商品名称事实、文件长度门槛为 32 字节，以及正文规则经过统一离线修订。": "Clarify that structural checks do not verify product-name facts, the file-length threshold is 32 bytes, and body rules received shared offline revisions.",
@@ -549,19 +543,13 @@ TEXT = {
     "随后还会用独立的浏览器自动化评测，比较搜索、点击、翻页和填写等连续操作，检验 Agent 能否完成整段网页任务。": "A separate browser-automation evaluation will then compare sequences of searches, clicks, pagination, and form inputs to test whether an agent completes the whole web task.",
     "查看完整报告与全部真实输出 →": "View the full report and every actual output →",
     "按任务或浏览器查看结果，也可核对评分与调用记录": "Browse results by task or browser, and inspect scoring and call records",
-    "Example Domain 网页": "Example Domain page",
-    "Attention Is All You Need 论文": "Attention Is All You Need paper",
-    "Anthropologie 蜡烛列表": "Anthropologie candle list",
     "Pexels 图片下载地址": "Pexels image download URL",
     "httpbin PNG 文件": "httpbin PNG file",
     "图片地址": "Image URL",
     "完整输出与逐项判定": "Complete output and item-level verdicts",
     "独立参考正文 · 摘要节选": "Independent reference text · abstract excerpt",
-    "Moli 1.1.1 · 同一摘要位置节选": "Moli 1.1.1 · excerpt from the same abstract position",
     "两侧均为节选；评分使用完整正文。Moli 取得 PDF 后，由本地 pypdf 在同一预算内提取文字。": "Both sides show excerpts; scoring uses the complete text. After Moli retrieves the PDF, local pypdf extracts text within the same budget.",
     "独立参考正文 · 全文": "Independent reference text · complete body",
-    "Moli 1.1.1 · 原始 Markdown 全文": "Moli 1.1.1 · complete original Markdown",
-    "参考以正文保存，实际输出保留 Markdown 标记；按文字内容验收。": "The reference is saved as body text; actual output retains Markdown markup. Acceptance checks the textual content.",
     "必要文字": "Required text",
     "正文分区覆盖": "Body-region coverage",
     "排除错误页": "Exclude error pages",
@@ -571,28 +559,22 @@ TEXT = {
     "未触发已登记的解码损坏判据": "Registered decoding-damage criteria not triggered",
     "独立观察的稳定文字": "Independently observed stable text",
     "记录要求": "Record requirements",
-    "Moli 1.1.1 · 四组稳定文字对应的原文行": "Moli 1.1.1 · original lines for the four stable-text groups",
-    "原始 Markdown 中三条商品记录节选": "Three product-record excerpts from the original Markdown",
     "稳定文字": "Stable text",
     "完整记录": "Complete records",
     "唯一记录": "Unique records",
-    "商品名称、价格和排序不作为固定答案；本题不核验名称的事实正确性或信息时效。右侧节选不是完整列表。": "Product names, prices, and ordering are not fixed answers. This task does not verify the factual correctness of names or information freshness. The right-hand excerpt is not the complete list.",
     "独立确认的目标资源": "Independently confirmed target resource",
     "Moli 1.1.1 · 含目标下载链接的原始输出节选": "Moli 1.1.1 · original-output excerpt containing the target download link",
     "目标图片地址": "Target image URL",
     "本题的资源匹配规则忽略 URL 查询参数，因此实际下载链接与登记目标匹配；这不是对任意下载地址的通用等价判断。本题不要求下载图片，也不检查推荐图片的数量。": "This task's resource-matching rules ignore URL query parameters, so the actual download link matches the registered target. This is not a general equivalence rule for arbitrary download URLs. The task neither requires downloading the image nor checks the number of recommended images.",
     "独立目标文件": "Independent target file",
     "目标 SHA-256": "Target SHA-256",
-    "Moli 1.1.1 · 实际交付的 PNG": "Moli 1.1.1 · actual delivered PNG",
     "实际 SHA-256": "Actual SHA-256",
     "文件签名": "File signature",
-    "至少 32 字节；独立目标为 8,090 字节": "At least 32 bytes; independent target is 8,090 bytes",
     "文件一致性": "File identity",
     "匹配独立目标 SHA-256": "Match the independent target SHA-256",
     "一致": "Identical",
     "不一致": "Different",
     "文件长度的通用门槛是 32 字节；目标哈希进一步确认该文件逐字节一致。不评价图片识别或媒体语义。": "The general file-length threshold is 32 bytes; the target hash further confirms byte-for-byte identity. Image recognition and media semantics are not evaluated.",
-    "Chromium · 本轮对照输出": "Chromium · comparison output from this run",
     "空输出 · 0 字符": "Empty output · 0 characters",
     "以上为前 400 字符节选。": "Excerpt of the first 400 characters.",
     "标准答案与要求": "Reference answer and requirements",
@@ -2911,12 +2893,10 @@ TEXT.update({
     "每款配置每题保留一次主结果。完整报告提供每道题的参考内容、实际输出和各项判定，便于逐条复查。": "Each configuration retains one primary result per task. The full report provides each task’s reference, actual output, and item-level verdicts for inspection.",
     "PDF 和原文件交付解释了 Moli 在这轮混合任务中的增益。下一步需要验证：增加站点与文档类型后，这些成功能否重复，现有的读取缺口能否补齐。": "PDF and original-file delivery explain Moli’s gains in this mixed task set. The next step is to test whether those successes repeat across more sites and document types, and whether the current retrieval gaps can be closed.",
     "延迟列表、iframe，以及本轮未通过的 DOCX 和嵌入式文档查看器，需要在迭代后重新验证；热门站点需要重复运行，速度比较也需要更多共同成功样本。": "Delayed lists, iframes, DOCX, and embedded document viewers that failed this run need retesting after updates. Popular sites need repeated runs, and latency comparisons need more shared successful tasks.",
-    "标题与注意力机制 · 原文行节选": "Title and attention mechanism · original line excerpts",
     "；不得返回安全验证或拒绝访问页": "; must not return a security-verification or access-denied page",
     "命中拦截页特征": "Block-page signature detected",
     "未命中排除项或拦截页特征": "No excluded text or block-page signature detected",
     "链接识别细节": "Link parsing details",
-    "两侧均为节选；评分使用完整正文。参考正文按词数从头到尾近似等分为五段，再检查每段连续六字符片段在输出中找回的比例。Moli 取得 PDF 后，由本地 pypdf 在同一预算内提取文字。": "Both sides show excerpts; scoring uses the complete text. The reference is divided from start to finish into five approximately equal regions by word count. Each region is checked for the proportion of contiguous six-character fragments recovered in the output. After Moli retrieves the PDF, local pypdf extracts the text within the same budget."
 })
 
 
@@ -2934,8 +2914,6 @@ TEXT.update({
 
 
 TEXT.update({
-    "本题预先声明为 PDF 文档，未测试未知链接的自动类型识别。": "This task is declared as a PDF document in advance; automatic type detection for an unknown URL was not tested.",
-    "这三次用于观察波动，不替换主榜的那次结果。": "These three calls observe variability and do not replace the result used in the main ranking.",
     "两侧均为节选；评分使用完整正文。参考正文按词数从头到尾近似等分为五段，再检查每段连续六字符片段在输出中找回的比例。Moli 取得 PDF 后，由本地 pypdf 在同一预算内提取文字。本题预先声明为 PDF 文档，未测试未知链接的自动类型识别。": "Both sides show excerpts; scoring uses the complete text. The reference is divided from start to finish into five approximately equal regions by word count. Each region is checked for the proportion of contiguous six-character fragments recovered in the output. After Moli retrieves the PDF, local pypdf extracts the text within the same budget. This task is declared as a PDF document in advance; automatic type detection for an unknown URL was not tested.",
     "商品名称、价格和排序不作为固定答案；本题不核验名称的事实正确性或信息时效。右侧节选不是完整列表。后续三次固定诊断调用中，Moli 一次取得 72 条记录，两次返回空内容；单次通过尚不能说明长期稳定性。这三次用于观察波动，不替换主榜的那次结果。": "Product names, prices, and ordering are not fixed answers. This task does not verify the factual accuracy of names or information freshness. The excerpt on the right is not the complete list. In three subsequent fixed diagnostic calls, Moli retrieved 72 records once and returned empty content twice. A single pass does not establish long-term reliability. These three calls observe variability and do not replace the result used in the main ranking."
 })
@@ -3003,7 +2981,6 @@ TEXT.update({
     "Quotes 延迟加载的名言": "Quotes: quotations loaded after a delay",
     "独立渲染后可见的第一条完整记录": "First complete record visible after independent rendering",
     "查看全部 10 条独立参考记录": "View all 10 independent reference records",
-    "页面自动加载完成后应有 10 条名言，每条保留原句、作者与标签；无需滚动或点击。": "After automatic loading completes, the page should contain 10 quotations, each with its text, author, and tags. No scrolling or clicking is required.",
     "返回 170 字符，用时 5.75 秒；输出里有标题、登录和翻页入口，没有名言记录。": "Returned 170 characters in 5.75 seconds. The output contains a title, login link, and pagination links, but no quotation records.",
     "完整名言记录 0 条；固定名言命中 0/10 组。": "Complete quotation records: 0; fixed quotation groups matched: 0/10.",
     "第一条原句": "First quotation’s text",
@@ -3013,15 +2990,12 @@ TEXT.update({
     "至少 10 条，每条包含原句、作者和标签": "At least 10 records, each with quotation text, author, and tags",
     "完整 0 条；去重后 0 条": "Complete: 0 records; after deduplication: 0 records",
     "全部固定名言": "All fixed quotations",
-    "10 组原句、作者与标签均须匹配独立参考": "All 10 groups of quotation text, author, and tags must match the independent reference",
     "排除：Access denied / CAPTCHA；不得返回安全验证或拒绝访问页": "Exclude: Access denied / CAPTCHA; must not return a security-verification or access-denied page",
-    "这个练习页将名言延迟呈现。调用正常返回，不等于目标内容已经到齐；Moli 与 Chromium 本轮都只取得了页面框架。等待与内容完成判断，是这类任务需要改进的环节。": "This practice page displays quotations after a delay. A completed call does not mean the requested content has arrived. Moli and Chromium both retrieve only the page shell in this run. Waiting and detecting content completion are areas to improve for this type of task.",
     "MDN 视频播放文件": "MDN video playback file",
     "独立源文档确认的视频文件地址": "Video file URL confirmed in an independent source document",
     "应交付视频文件或有效播放器入口；封面图片与普通首页链接不算。": "Return the video file or a valid player entry point; a cover image or ordinary homepage link does not qualify.",
     "以输入页面地址补全相对路径后": "After resolving relative paths against the input page URL",
     "视频资源地址": "Video resource URL",
-    "输出虽含“不支持 HTML5 视频”的后备提示，仍提供了正确的播放文件链接。资源题检查目标地址，而不是把这句话当作抓取失败。本题 Moli 与 Chromium 均通过，不涉及视频听写或内容理解。": "The output includes fallback text saying HTML5 video is unsupported, but still provides the correct playback file link. This resource task checks the target URL; the fallback message alone does not mean retrieval failed. Moli and Chromium both pass this task, which does not test video transcription or comprehension."
 })
 
 
@@ -3043,7 +3017,6 @@ TEXT.update({
     "绿色标记该项最低值。计时包含内容提取与后处理；远端 Kitesurf 还包含网络往返。本组仅 9 道，按报告算法，P95 等于各自最慢的一道。": "Green marks the lowest value in each measure. Timing includes content extraction and post-processing; remote Kitesurf calls also include network round trips. With only 9 tasks, the report’s P95 calculation gives each browser’s slowest task.",
     "显示值保留两位小数，差值与百分比使用未舍入值计算。主评测的跨批次采集与同窗测速的小样本，都限制了对长期运行速度的推断。": "Displayed values use two decimal places; differences and percentages use unrounded values. Collection across batches in the main evaluation and the small same-window sample both limit conclusions about long-term speed.",
     "Moli 也在继续迭代：1.1.2、1.1.3、1.1.4 分别于 9 月 4 日、5 日、8 日发布。1.1.4 包含页面重定向处理修复。是否改善这里的延迟列表、iframe 或文档问题，仍需同题复测。": "Moli continues to change: versions 1.1.2, 1.1.3, and 1.1.4 were released on 9/4, 5, and 8, respectively. Version 1.1.4 includes fixes to page-redirect handling. Whether it improves the delayed-list, iframe, or document issues here requires retesting the same tasks.",
-    "应交付目标视频文件的地址或有效播放器入口；封面图片与普通首页链接不算。": "Return the target video file URL or a valid player entry point; a cover image or ordinary homepage link does not qualify.",
 })
 
 

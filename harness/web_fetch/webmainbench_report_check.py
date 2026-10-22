@@ -126,6 +126,56 @@ def check_table_interaction(root: Path, *, provider_count: int, case_count: int)
         raise ValueError('Result inventory lacks complete filters or stable sorting semantics')
 
 
+def check_latency_diagnostic(section, evidence: dict, *, formal_round=None) -> None:
+    """Check displayed timing against the selected diagnostic, independent of version names."""
+    if section is None:
+        raise ValueError('Latency diagnostic section is missing')
+    runs = evidence['balanced_200']['runs']
+    table = section.select_one('.wmb-rerun-table')
+    rows = table.select('tbody tr') if table else []
+    if len(rows) != len(runs):
+        raise ValueError('Latency diagnostic version population differs')
+    for rendered, (version, run) in zip(rows, runs.items()):
+        cells = rendered.find_all('td', recursive=False)
+        if len(cells) != 6 or not cells[1].get_text(strip=True).endswith(version) or cells[2].get_text(strip=True) != f"{run['n']}/{run['calls']}":
+            raise ValueError('Latency diagnostic version or call count differs')
+        for cell, metric in zip(cells[3:], ('mean', 'p50', 'p95')):
+            values = [item[metric] for item in runs.values()]
+            won = run[metric] == min(values) and values.count(run[metric]) == 1
+            if (not close(float(cell['data-sort']), run[metric])
+                    or len(cell.select('.comparison-winner')) != int(won)):
+                raise ValueError('Latency diagnostic value or unique winner differs')
+    context = section.select_one('[data-timing-context]')
+    if formal_round is not None:
+        if context is None or context.get('data-formal-round') != str(formal_round) or not context.get_text(strip=True):
+            raise ValueError('Latency diagnostic must distinguish the separate formal timing')
+    elif context is not None:
+        raise ValueError('Latency diagnostic claims an unbound formal timing')
+    cases = evidence['tail_repeat']['cases']
+    case_rows = section.select('.wmb-rerun-cases tbody tr')
+    if len(case_rows) != len(cases):
+        raise ValueError('Latency diagnostic repeat population differs')
+    for rendered, case in zip(case_rows, cases):
+        cells = rendered.find_all('td', recursive=False)
+        if len(cells) != 6 or not cells[1].select_one(f'a[href$="datasets/{case["case_id"]}.html"]'):
+            raise ValueError('Latency diagnostic page evidence differs')
+        for cell, metric in zip(cells[2:], ('older_median_ms', 'newer_median_ms', 'older_max_ms', 'newer_max_ms')):
+            if not close(float(cell['data-sort']), case[metric]):
+                raise ValueError('Latency diagnostic page timing differs')
+    outliers = [case for case in cases if abs(case['older_median_ms'] - case['newer_median_ms']) > 20]
+    direction = section.select_one('[data-tail-outliers]')
+    expected = {'data-tail-outliers': len(outliers),
+                'data-tail-newer-faster': sum(case['newer_median_ms'] < case['older_median_ms'] for case in outliers),
+                'data-tail-older-faster': sum(case['older_median_ms'] < case['newer_median_ms'] for case in outliers)}
+    if direction is None or any(direction.get(key) != str(value) for key, value in expected.items()) or not direction.get_text(strip=True):
+        raise ValueError('Latency diagnostic tail conclusion differs')
+    if len(section.select('.wmb-rerun-resource tbody tr')) != len(evidence['resource']) or not section.select_one('a[href$="latency-diagnostic.json"]'):
+        raise ValueError('Latency diagnostic resource population or receipt is missing')
+    failed_case = (evidence.get('failure_retest') or {}).get('case_id')
+    if failed_case and not section.select_one(f'a[href$="datasets/{failed_case}.html"]'):
+        raise ValueError('Latency diagnostic failure specimen is missing')
+
+
 def check(root: Path, *, authority_root: Path | None = None) -> None:
     repo = authority_directory(authority_root, "evaluation/webmainbench-full/current-report.json")
     profile_path = repo / 'evaluation/webmainbench-full/current-report.json'
@@ -704,63 +754,8 @@ def check_sample_report(root: Path, dataset: dict | None = None,
                         f'a[href$="datasets/{latency_diagnostic["failure_retest"]["case_id"]}.html"]')):
                 raise ValueError(prefix + 'Core coverage lacks the verified fixture-failure explanation')
             for section in (localized_home.select_one('#moli-latency-rerun'), guide_page.select_one('#delivery .wmb-rerun-diagnostic')):
-                if section is None or len(section.select('.wmb-rerun-table tbody tr')) != 2:
-                    raise ValueError(prefix + 'Moli latency rerun must show the current two-version comparison')
-                context = section.select_one('[data-timing-context="prior-overlap"]')
-                context_markers = (('较早', '同时运行', '正式', '无并发', '第二轮') if not prefix
-                                   else ('earlier', 'overlapped', 'formal', 'without concurrent', 'second round'))
-                if latency_correction and (context is None
-                                           or context.get('data-formal-round') != str(latency_correction['selected_round'])
-                                           or not all(marker in context.get_text(' ', strip=True) for marker in context_markers)):
-                    raise ValueError(prefix + 'Corrected timing must distinguish the earlier diagnostic run')
-                if not latency_correction and context is not None:
-                    raise ValueError(prefix + 'Uncorrected timing must not claim a later formal run')
-                rerun_rows = dict(zip(('1.1.5', '1.1.7'),
-                                      section.select('.wmb-rerun-table tbody tr')))
-                for name, row in rerun_rows.items():
-                    cells = row.find_all('td', recursive=False)
-                    run = latency_diagnostic['balanced_200']['runs'][name]
-                    if (cells[-4].get_text(strip=True) != f"{run['n']}/{run['calls']}"
-                            or any(not close(float(td['data-sort']), run[key])
-                                   for td, key in zip(cells[-3:], ('mean', 'p50', 'p95')))):
-                        raise ValueError(prefix + 'Moli latency rerun values differ from verified evidence')
-                    for key, td in zip(('mean', 'p50', 'p95'), cells[-3:]):
-                        other = '1.1.7' if name == '1.1.5' else '1.1.5'
-                        expected = run[key] < latency_diagnostic['balanced_200']['runs'][other][key]
-                        if bool(td.select('.comparison-winner')) != expected or len(td.select('.comparison-winner')) > 1:
-                            raise ValueError(prefix + 'Moli rerun winner marker disagrees with same-host evidence')
-                case_rows = section.select('.wmb-rerun-cases tbody tr')
-                if len(case_rows) != 20:
-                    raise ValueError(prefix + 'Moli slow-page inventory must include all 20 cases')
-                outliers = [row for row in latency_diagnostic['tail_repeat']['cases']
-                            if abs(row['older_median_ms'] - row['newer_median_ms']) > 20]
-                direction = section.select_one('[data-tail-outliers]')
-                if (direction is None
-                        or direction.get('data-tail-outliers') != str(len(outliers))
-                        or direction.get('data-tail-newer-faster') != str(sum(
-                            row['newer_median_ms'] < row['older_median_ms'] for row in outliers))
-                        or direction.get('data-tail-older-faster') != str(sum(
-                            row['older_median_ms'] < row['newer_median_ms'] for row in outliers))
-                        or not direction.get_text(' ', strip=True)):
-                    raise ValueError(prefix + 'Moli tail conclusion disagrees with per-page medians')
-                for rendered, evidence in zip(case_rows, latency_diagnostic['tail_repeat']['cases']):
-                    cells = rendered.find_all('td', recursive=False)
-                    if (not cells[1].select_one(f'a[href$="datasets/{evidence["case_id"]}.html"]')
-                            or any(not close(float(td['data-sort']), evidence[key])
-                                   for td, key in zip(cells[2:], ('older_median_ms', 'newer_median_ms',
-                                                                   'older_max_ms', 'newer_max_ms')))):
-                        raise ValueError(prefix + 'Moli per-case repeat table differs from verified evidence')
-                conclusion_markers = (('先请求', '不能保证', '20 页') if not prefix
-                                      else ('first call', 'cannot be guaranteed', '20 pages'))
-                if not all(marker in section.get_text(' ', strip=True) for marker in conclusion_markers):
-                    raise ValueError(prefix + 'Moli repeat conclusion or ordering effect is missing')
-                if len(section.select('.wmb-rerun-resource tbody tr')) != 2 or not section.select_one('a[href$="latency-diagnostic.json"]'):
-                    raise ValueError(prefix + 'Moli latency rerun lacks resource evidence or per-case download')
-                failed_case = latency_diagnostic['failure_retest']['case_id']
-                if (not section.select_one(f'a[href$="datasets/{failed_case}.html"]')
-                        or not all(marker in section.get_text(' ', strip=True) for marker in
-                                   (('重试', '禁用页面脚本') if not prefix else ('retry', 'Disabling page-authored JavaScript')))):
-                    raise ValueError(prefix + 'Moli failed-page retest conclusion is missing')
+                check_latency_diagnostic(section, latency_diagnostic,
+                                         formal_round=latency_correction['selected_round'] if latency_correction else None)
         home_headers = {tag.get_text(" ", strip=True) for tag in localized_home.select("#wmb-core-results th")}
         if teds_revision is not None:
             correction_label = '修正后复算' if not prefix else 'recomputed after correction'

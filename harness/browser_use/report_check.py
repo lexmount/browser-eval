@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import re
+from collections import Counter
 from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
@@ -23,6 +24,7 @@ from harness.browser_use.failure_cause_review import (
 from harness.browser_use.publication import evidence_metadata
 from harness.browser_use.report import (
     PUBLIC_EXECUTION_ARTIFACTS,
+    SITE_LABELS,
     _attempt_id,
     _configure_engine_labels,
     _configure_models,
@@ -306,6 +308,41 @@ def _check_public_privacy(report_dir: Path) -> None:
             raise ValueError(f"published report contains sensitive text: {path}")
 
 
+def check_methodology_evidence(content: str, tasks: list[dict], environment: dict) -> None:
+    """Require displayed deployment and evaluator facts to match the selected evidence."""
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(content, "html.parser")
+    expected = {
+        "methodology-evaluators": Counter(
+            rule.get("evaluator", "UnknownEvaluator")
+            for task in tasks
+            for rule in (task.get("contract") or {}).get("evaluation_contract", [])
+        ),
+        "methodology-sites": Counter(
+            SITE_LABELS.get(site, site) for task in tasks for site in task.get("sites", [])
+        ),
+    }
+    for table_id, counts in expected.items():
+        table = soup.find("table", id=table_id)
+        if table is None:
+            raise ValueError("methodology is missing selected-evidence table: " + table_id)
+        rows = [row.find_all("td") for row in table.select("tbody tr")]
+        values = {
+            cells[0].get_text(strip=True): cells[1].get_text(strip=True)
+            for cells in rows
+            if len(cells) >= 2
+        }
+        if len(rows) != len(counts) or values != {key: str(value) for key, value in counts.items()}:
+            raise ValueError("methodology differs from selected evidence: " + table_id)
+    visible = soup.get_text(" ", strip=True)
+    for key in ("platform", "site_access_host"):
+        if environment.get(key) and str(environment[key]) not in visible:
+            raise ValueError("methodology is missing recorded environment: " + key)
+    if soup.find(id="deployment-flow") is None:
+        raise ValueError("methodology is missing the evaluation-flow diagram")
+
+
 def check(
     report_dir: Path,
     evidence_dir: Path | list[Path],
@@ -540,10 +577,11 @@ def check(
         or "逐结果覆盖" in review_index
     ):
         raise ValueError("review page must present review rounds, not a per-result audit table")
-    methodology_index = rendered_pages[report_dir / "methodology/index.html"]
-    for marker in ("192.168.5.2", "Wikipedia", "Map", "环境准备证据"):
-        if marker not in methodology_index:
-            raise ValueError(f"methodology is missing deployment evidence boundary: {marker}")
+    selected_tasks = json.loads((report_dir / "data/selection.json").read_text())["tasks"]
+    environment = bundles[0]["manifest"].get("environment") or {}
+    for page in (report_dir / "methodology/index.html", report_dir / "en/methodology/index.html"):
+        if page in rendered_pages:
+            check_methodology_evidence(rendered_pages[page], selected_tasks, environment)
     analysis_index = rendered_pages[report_dir / "analysis/index.html"]
     for marker in (
         "comparison-winner",

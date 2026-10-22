@@ -17,6 +17,11 @@ Include the task ID, method and versions, OS, command and sanitized error. Remov
 | New report instance | The existing track's profile, external evidence and report content; reuse its build and release commands |
 | Reusable logic | `harness/`; `scripts/` stays a thin command entry point |
 
+Keep interface translations, original-language task text and multilingual test
+fixtures. Keep measured counts, host facts and report-specific interpretation out
+of shared renderers: read them from the selected profile and bound evidence.
+Published historical reports retain their own content and provenance.
+
 Test both accepted and rejected scenarios. Fix scoring rules rather than editing saved verdicts. Refactoring must preserve historical measurements and certificates.
 
 Write documentation in English. Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Preserve original task text, quotations and frozen acceptance inputs. Reports follow their track's language settings.

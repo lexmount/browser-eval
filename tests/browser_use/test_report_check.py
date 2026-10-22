@@ -192,3 +192,31 @@ def test_external_profile_and_bound_review_do_not_use_default_authority(tmp_path
     with pytest.raises(ValueError, match='bound to the failure-cause review'):
         checker.check(tmp_path / 'report', tmp_path / 'evidence', None,
                       require_complete=True, profile_path=external, authority_root=root)
+
+
+@pytest.mark.parametrize("defect", [None, "count", "host", "diagram"])
+def test_methodology_uses_selected_evidence_instead_of_historical_deployment(defect):
+    content = (
+        '<figure id="deployment-flow"></figure><p>Linux fixture · selected.gateway</p>'
+        '<table id="methodology-evaluators"><tbody><tr>'
+        '<td>FixtureEvaluator</td><td>2</td></tr></tbody></table>'
+        '<table id="methodology-sites"><tbody><tr><td>new-site</td><td>2</td></tr></tbody></table>'
+    )
+    tasks = [
+        {
+            "sites": ["new-site"],
+            "contract": {"evaluation_contract": [{"evaluator": "FixtureEvaluator"}]},
+        }
+    ] * 2
+    environment = {"platform": "Linux fixture", "site_access_host": "selected.gateway"}
+    if defect == "count":
+        content = content.replace("<td>2</td>", "<td>812</td>", 1)
+    if defect == "host":
+        content = content.replace("selected.gateway", "historical.gateway")
+    if defect == "diagram":
+        content = content.replace('id="deployment-flow"', 'id="unrelated"')
+    if defect is None:
+        checker.check_methodology_evidence(content, tasks, environment)
+    else:
+        with pytest.raises(ValueError, match="methodology"):
+            checker.check_methodology_evidence(content, tasks, environment)

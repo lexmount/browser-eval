@@ -36,7 +36,7 @@ def _outcome_chart(methods: dict, rows: list[dict], lang: str) -> str:
             f'<div class="outcome-track" aria-label="{rate:.1f}%"><i style="width:'
             f'{rate:.2f}%"></i></div></li>'
         )
-    caption = "官方通过数／812 题" if zh else "Official passes / 812 tasks"
+    caption = "官方通过数／各配置任务数" if zh else "Official passes / tasks per configuration"
     return (
         f"""<figure class="outcome-chart" data-outcome-chart><ol>{''.join(entries)}"""
         f'</ol><figcaption>{caption}</figcaption></figure>'
