@@ -39,6 +39,7 @@ from harness.report_languages import check_language_contract, generated_language
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.templates import template_identity
+from harness.reporting.assets import bound_json_asset
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 FORBIDDEN_READER_TERMS = (
