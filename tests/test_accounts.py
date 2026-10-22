@@ -133,3 +133,91 @@ def test_official_links_render_text_instead_of_escaped_bilingual_markup():
         assert links
         assert all('<span' not in link.get_text() for link in links)
         assert all('data-report-en' not in link.get_text() for link in links)
+
+
+def test_version_aliases_use_their_execution_variables():
+    import re
+    from harness.web_fetch.methods import browser_method_registry
+
+    for name, config in browser_method_registry().items():
+        if config.get('engine') != 'moli':
+            continue
+        variable = re.fullmatch(r'\$\{([^:}]+)(?::-[^}]*)?}', config['binary']).group(1)
+        for language in ('zh', 'en'):
+            access = method_access(name, [], language=language)
+            assert access['env_vars'] == [variable]
+            assert variable in access['configuration']
+
+
+def test_measured_installation_uses_verified_configuration(tmp_path):
+    import hashlib
+    import json
+    from harness.web_fetch.methods import with_measured_method_labels
+
+    config = tmp_path / 'providers.json'
+    providers = {
+        'moli-1.1.7': {'engine': 'moli', 'binary': '${FROZEN_OLD_BINARY:-/private/program}'},
+        'moli-candidate': {'engine': 'moli', 'binary': '${FROZEN_NEW_BINARY}'},
+    }
+    config.write_text(json.dumps({'providers': providers}))
+    manifests = [{'provider_config_source': str(config),
+                  'provider_config_sha256': hashlib.sha256(config.read_bytes()).hexdigest(),
+                  'providers': [{'name': name} for name in providers]}]
+    records = [{'provider': name, 'provider_metadata': {'engine': 'moli',
+                'reported_version': '1.1.7'}} for name in providers]
+
+    @with_measured_method_labels
+    def render(out, dataset, records, manifests):
+        return render_account_requirements(records)
+
+    page = render(tmp_path, {}, records, manifests)
+    assert 'FROZEN_OLD_BINARY' in page and 'FROZEN_NEW_BINARY' in page
+    assert 'MOLI_BINARY' not in page and 'MOLI_CANDIDATE_BINARY' not in page
+    assert '/private/program' not in page and str(tmp_path) not in page
+    assert '/releases/tag/v1.1.7' in page
+
+    # A changed file must never silently become the historical authority.
+    config.write_text(json.dumps({'providers': {
+        name: {**value, 'binary': '${TODAYS_BINARY}'} for name, value in providers.items()}}))
+    page = render(tmp_path, {}, records, manifests)
+    assert 'TODAYS_BINARY' not in page and 'FROZEN_OLD_BINARY' not in page
+    assert 'installation variables were not recorded' in page
+    config.unlink()
+    assert 'installation variables were not recorded' in render(tmp_path, {}, records, manifests)
+    # The scoped configuration must not leak into another report or a catalog query.
+    assert method_access('moli-candidate', [])['env_vars'] == ['MOLI_CANDIDATE_BINARY']
+
+
+def test_measured_installation_does_not_guess_from_current_config():
+    records = [{'provider': 'moli', 'provider_metadata': {'engine': 'moli'}}]
+    access = method_access('moli', records, language='en')
+    assert access['env_vars'] == []
+    assert 'not recorded' in access['configuration']
+
+
+def test_frozen_installation_rejects_ambiguous_cohort_and_batch_bindings(tmp_path):
+    import hashlib
+    import json
+    from harness.web_fetch.methods import frozen_execution_configs
+
+    def manifest(filename, binary, **extra):
+        path = tmp_path / filename
+        path.write_text(json.dumps({'providers': {'moli': {
+            'engine': 'moli', 'binary': binary,
+            'resource_binary': '${CONTAINER_BROWSER}'}}, **extra}))
+        return {'provider_config_source': str(path),
+                'provider_config_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                'providers': [{'name': 'moli'}]}
+
+    first = manifest('first.json', '${FIRST_BROWSER}')
+    second = manifest('second.json', '${SECOND_BROWSER}')
+    assert frozen_execution_configs([first, second, first])['moli'] is None
+    assert frozen_execution_configs([first, first])['moli']['binary'] == '${FIRST_BROWSER}'
+    resource = {**first, 'parameters': {'resource_sample_interval_ms': 100}}
+    assert frozen_execution_configs([resource])['moli']['binary'] == '${CONTAINER_BROWSER}'
+    ambiguous = manifest('ambiguous.json', '${DEFAULT_BROWSER}', cohorts={
+        'alternate': {'provider_overrides': {'moli': {'binary': '${ALTERNATE_BROWSER}'}}}})
+    assert frozen_execution_configs([ambiguous])['moli'] is None
+    link = tmp_path / 'linked.json'
+    link.symlink_to(tmp_path / 'first.json')
+    assert frozen_execution_configs([{**first, 'provider_config_source': str(link)}])['moli'] is None

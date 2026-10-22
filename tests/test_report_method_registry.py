@@ -433,3 +433,20 @@ def test_moli_template_preserves_complete_localized_catalog(language, expected_s
     entry = report_method_catalog(language)['methods']['moli']
     canonical = json.dumps(entry, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
     assert hashlib.sha256(canonical.encode()).hexdigest() == expected_sha256
+
+
+@pytest.mark.parametrize("version", ["2.3.4", None])
+def test_explicit_unknown_engine_does_not_inherit_colliding_product(tmp_path, version):
+    from harness.web_fetch.methods import report_method, native_browser_engine
+    row = {"provider": "moli", "provider_type": "headless_markdown",
+           "provider_metadata": {"engine": "new-engine", "reported_version": version}}
+    assert report_method("moli", row) == {}
+    assert native_browser_engine("moli", row) == "new-engine"
+    assert method_access("moli", [row])["env_vars"] == []
+    assert method_spec("moli", row, language="en")["entry"] == "Not registered"
+
+    @with_measured_method_labels
+    def render(out, dataset, records):
+        return browser_method_label("moli", language="en")
+
+    assert render(tmp_path, {}, [row]) == "new-engine" + (" 2.3.4" if version else "")

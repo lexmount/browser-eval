@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import inspect
 from copy import deepcopy
 import importlib.metadata
 import re
@@ -66,6 +68,74 @@ def report_method_catalog(language="zh"):
 
 
 _REPORT_RECORDS = ContextVar("webfetch_report_records", default={})
+_REPORT_EXECUTION_CONFIGS = ContextVar("webfetch_report_execution_configs", default={})
+
+
+def frozen_execution_configs(manifests):
+    """Read installation bindings only from bytes named by execution manifests.
+
+    Missing or conflicting configurations remain unavailable. Never publish raw
+    configuration values, which may include credentials and machine paths.
+    """
+    bindings = {}
+    for manifest in manifests:
+        config = {}
+        binary_key = ("resource_binary" if manifest.get("parameters", {}).get("resource_sample_interval_ms") is not None else "binary")
+        source = manifest.get("provider_config_source")
+        digest = manifest.get("provider_config_sha256")
+        if source and digest:
+            path = Path(source)
+            if path.is_file() and not path.is_symlink():
+                raw = path.read_bytes()
+                if hashlib.sha256(raw).hexdigest() == digest:
+                    payload = json.loads(raw)
+                    config = payload.get("providers", {})
+                    # A manifest does not identify which cohort override was
+                    # selected. Do not infer an executable when overrides differ.
+                    config = deepcopy(config)
+                    for cohort in payload.get("cohorts", {}).values():
+                        for name, override in cohort.get("provider_overrides", {}).items():
+                            if any(key in override and override[key] != config.get(name, {}).get(key)
+                                   for key in (binary_key, "engine")):
+                                config.pop(name, None)
+                    if binary_key != "binary":
+                        config = {name: {**value, "binary": value.get(binary_key)}
+                                  for name, value in config.items()}
+        for provider in manifest.get("providers", []):
+            name = provider["name"]
+            value = config.get(name)
+            if name in bindings and bindings[name] != value:
+                bindings[name] = None
+            else:
+                bindings[name] = value
+    return bindings
+
+
+def _browser_installation_access(name, selected, registered, access, language):
+    if registered.get("kind") != "browser" or access.get("type") != "local":
+        return access
+    measured = selected or _REPORT_RECORDS.get().get(name)
+    config = (_REPORT_EXECUTION_CONFIGS.get().get(name) if measured
+              else browser_method_registry().get(name))
+    engine = (measured or {}).get("provider_metadata", {}).get("engine")
+    if config and engine and config.get("engine") != engine:
+        config = None
+    binary = config.get("binary") if config else None
+    variables = []
+    if binary is None:
+        explanation = ("未找到可核验的执行配置，安装变量未记录。" if language == "zh" else
+                       "A verifiable execution configuration is unavailable; installation variables were not recorded.")
+    else:
+        match = re.fullmatch(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?}", str(binary))
+        if match:
+            variables = [match.group(1)]
+            explanation = (("安装与执行记录版本一致的程序，通过 " + match.group(1) + " 指定程序位置。")
+                           if language == "zh" else
+                           ("Install the recorded program version and set " + match.group(1) + " to its location."))
+        else:
+            explanation = ("执行配置直接指定程序位置，未使用安装环境变量。" if language == "zh" else
+                           "The execution configuration specifies the executable directly, without an installation environment variable.")
+    return {**access, "env_vars": variables, "configuration": explanation}
 
 
 def report_method(name, record=None, *, language="zh"):
@@ -73,8 +143,10 @@ def report_method(name, record=None, *, language="zh"):
     methods = (report_method_catalog() if language == "zh" else report_method_catalog(language))["methods"]
     record = record or _REPORT_RECORDS.get().get(name, {})
     metadata = record.get("provider_metadata") or {}
+    if metadata.get("engine"):
+        return methods.get(metadata["engine"], {})
     execution = browser_method_registry().get(name, {})
-    for key in (metadata.get("engine"), execution.get("engine"), name):
+    for key in (execution.get("engine"), name):
         if key in methods:
             return methods[key]
     provider_type = record.get("provider_type", execution.get("type"))
@@ -105,6 +177,7 @@ def method_access(name, records, *, language="zh"):
     registered = report_method(name, selected, language=language)
     access = registered.get("access")
     if access:
+        access = _browser_installation_access(name, selected, registered, access, language)
         template = registered.get("release_url_template")
         versions = {normalized_method_version(registered, value) if value else None
                     for row in records if row.get("provider") == name
@@ -156,6 +229,10 @@ def browser_method_label(name, *, language="zh"):
     measured = _MEASURED_LABELS.get().get(name)
     if measured:
         return measured[language]
+    record = _REPORT_RECORDS.get().get(name, {})
+    engine = (record.get("provider_metadata") or {}).get("engine")
+    if engine:
+        return report_method(name, record).get("label", {}).get(language, engine)
     return (browser_method_registry().get(name, {}).get("label")
             or report_method(name).get("label", {}).get(language, name))
 
@@ -190,6 +267,7 @@ def method_version(record, provenance=None, *, language="zh"):
 
 def with_measured_method_labels(render):
     """Scope all participant labels to recorded versions and binary identities."""
+    signature = inspect.signature(render)
     @wraps(render)
     def wrapped(out, dataset, records, *args, **kwargs):
         path = Path(out) / "implementation-provenance.json"
@@ -197,6 +275,10 @@ def with_measured_method_labels(render):
         identities = {item["binary_sha256"]: item for item in provenance.get("implementations", [])
                       if item.get("binary_sha256")}
         records_token = _REPORT_RECORDS.set({row["provider"]: row for row in records})
+        arguments = signature.bind(out, dataset, records, *args, **kwargs).arguments
+        configs_token = _REPORT_EXECUTION_CONFIGS.set(
+            frozen_execution_configs(arguments["manifests"]) if "manifests" in arguments
+            else _REPORT_EXECUTION_CONFIGS.get())
         labels = {}
         try:
             for name in {row["provider"] for row in records}:
@@ -218,7 +300,8 @@ def with_measured_method_labels(render):
                         row, identities, language=language)) for row in subset)
                     releases = [match.group(1) if (match := re.match(
                         r"^(\d+\.\d+\.\d+)", version)) else None for version in counts]
-                    base = name if preserve_name else registered.get("label", {}).get(language, name)
+                    base = name if preserve_name else registered.get("label", {}).get(
+                        language, metadata.get("engine") or name)
                     def label(version):
                         return versioned_method_label(registered, base, version)
                     if len(counts) == 1:
@@ -239,6 +322,7 @@ def with_measured_method_labels(render):
             finally:
                 _MEASURED_LABELS.reset(token)
         finally:
+            _REPORT_EXECUTION_CONFIGS.reset(configs_token)
             _REPORT_RECORDS.reset(records_token)
     return wrapped
 
