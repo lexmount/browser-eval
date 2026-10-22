@@ -2,12 +2,12 @@
   "base_url": "https://artifact-site.lexmount.cn",
   "slug": "W3MxzlJuPRl6",
   "url": "https://artifact-site.lexmount.cn/s/W3MxzlJuPRl6",
-  "versionId": "ver_481f8af805254f82b894f92a1715206c",
+  "versionId": "ver_2b77ba13d981421eb9711c3b4a7ae2e0",
   "visibility": "private",
-  "previous_version": "ver_d0c14dfb57964142bd2538d92ce58ad7",
-  "archive_sha256": "ecbb33dd834e50f45280ab04d14f2f8c941b40bd03c2555d63191e10605badb9",
+  "previous_version": "ver_481f8af805254f82b894f92a1715206c",
+  "archive_sha256": "b5a08aab643ecf119cd55c14365dbc1f5a4d5f5630ff7f4f741a4a98a03eb159",
   "schema": "web-search-publication/1",
-  "published_at": "2026-10-22T04:32:19.364775+00:00",
+  "published_at": "2026-10-22T05:21:47.549518+00:00",
   "report_kind": "three-provider-reviewed-top-five-comparison",
   "cases": 980,
   "logical_results": 2940,
@@ -32,20 +32,20 @@
       "sha256": "6a680b8fa3b58d8cfb25ce124288fae4d6a5680492f29167ae3a23eb9fff88e7"
     },
     "report_manifest": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_481f8af805254f82b894f92a1715206c/manifest.json",
-      "sha256": "7759990a12a5bdba346539dcdbf71b86d06bd2a00944323224df5c7bf708c768"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_2b77ba13d981421eb9711c3b4a7ae2e0/manifest.json",
+      "sha256": "bb70646f8cf200d5eb12f54f711540b550f220ab81c53b29ae04a000d550e3c5"
     },
     "content": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_481f8af805254f82b894f92a1715206c/reader-content.json",
-      "sha256": "84c77a0afa611e27802d63084aaff5991bce8b27b486116252fecdedff54795f"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_2b77ba13d981421eb9711c3b4a7ae2e0/reader-content.json",
+      "sha256": "db0e392f2e6125a41a9698954167cf53f85b14b9acfd1561199fba090cd684fa"
     },
     "visual_acceptance": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_481f8af805254f82b894f92a1715206c/visual-acceptance.json",
-      "sha256": "e0eb455ca368d39a922b881a933c2ca54d8144b5b5bc762d44588f5327fca09a"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_2b77ba13d981421eb9711c3b4a7ae2e0/visual-acceptance.json",
+      "sha256": "aedc1760330f49bfa405555459826adebc668284e7d059832cf88bc2d60cf321"
     },
     "delivery_index": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_481f8af805254f82b894f92a1715206c/delivery-index.json",
-      "sha256": "6ef82107cf1c61ac51c7f7198ad07b43feadc018e354c8786457488f24b75d48"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_2b77ba13d981421eb9711c3b4a7ae2e0/delivery-index.json",
+      "sha256": "8b699cc4cc8237eedb1e18019e9c3b5a6ad90129f245a6249111c9670ba00899"
     },
     "reference_additions": {
       "path": "web-search/20261021-search-api-three-provider-report/scenario-additions.json",
@@ -88,12 +88,12 @@
       "sha256": "e109ac12f6fb229edd9df1b9228c4a4749d4f0247ffca8552abdcb4c09133f73"
     },
     "reader_acceptance": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_481f8af805254f82b894f92a1715206c/reader-acceptance.json",
-      "sha256": "637d957a070a32fe9a9e53cef332b0558971a3530ad9095ec268006d96c2a75f"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_2b77ba13d981421eb9711c3b4a7ae2e0/reader-acceptance.json",
+      "sha256": "bb3dab5708c1fe017341f957cfd88ffc7c8a09057ece61fab5a08a0db6f57bae"
     },
     "delivery_behavior": {
-      "path": "web-search/20261021-search-api-three-provider-report/published/ver_481f8af805254f82b894f92a1715206c/delivery-behavior.json",
-      "sha256": "ea9f3f156d32a70004f338a612044816f2362ae00885f808dd7a7200a427398a"
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_2b77ba13d981421eb9711c3b4a7ae2e0/delivery-behavior.json",
+      "sha256": "2ad6000c2f6798cf48071c56a5a0219dffd26e14f79516a99e02728b08e379f0"
     }
   },
   "cohort_inputs": [
@@ -141,7 +141,7 @@
     "source_urls_visible_to_model": false,
     "source_policy": "explicit-source/2"
   },
-  "code_commit": "8ef00090f0d49329eb53c6836c1b44bf380bdb59",
+  "code_commit": "ffe82cc62b6534a52ec9655cf48835ef4fb5b991",
   "independent_review": {
     "cases_reviewed": 980,
     "case_total": 980,
