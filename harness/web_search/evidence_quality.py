@@ -46,10 +46,10 @@ def is_benchmark_page(result, *, case=None, rule=CONTAMINATION_RULE):
     return evaluation_fields or dataset_viewer or validation_log or named_benchmark
 
 
-def factual_sensitivity(case, results, *, rule=CONTAMINATION_RULE):
+def factual_sensitivity(case, results, *, rule=CONTAMINATION_RULE, cutoff=5):
     retained = []
     excluded = []
-    for rank, result in enumerate(results[:5], 1):
+    for rank, result in enumerate(results[:cutoff], 1):
         if is_benchmark_page(result, case=case, rule=rule):
             excluded.append(rank)
             retained.append({"url": f"https://benchmark-excluded.invalid/{rank}"})

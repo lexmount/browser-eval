@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> None:
     if argv[:1] == ["web-search"]:
         from harness.web_search.runner import main as search_main
 
-        search_main(argv[1:])
+        search_main(argv[1:], certified=True)
         return
     if argv[:1] == ["webmainbench-latency"]:
         from .webmainbench_latency_correction import certify

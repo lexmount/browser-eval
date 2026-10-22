@@ -8,7 +8,7 @@ import pytest
 from harness.web_search import review
 
 
-def example(tmp_path, model="gpt-6.1-sol"):
+def example(tmp_path, model="gpt-6.1-sol", scope="all"):
     report = tmp_path / "report"
     report.mkdir()
     profile = {
@@ -56,13 +56,14 @@ def example(tmp_path, model="gpt-6.1-sol"):
                     "http_status": 200,
                     "error": "",
                     "metrics": {"score": 42},
+                    "results": payload["results"],
                     "evidence": {"path": path.name, "sha256": review.sha(path.read_bytes())},
                 }
             )
     (report / "manifest.json").write_text("{}")
     root = tmp_path / "review"
     with patch("harness.web_search.report.check", return_value=(profile, rows)):
-        contract = review.freeze(report, root, budget=1000, model=model)
+        contract = review.freeze(report, root, budget=1000, model=model, scope=scope, authorization="Explicit full-review test scenario" if scope == "all" else None)
     return report, root, contract
 
 
@@ -125,6 +126,7 @@ def complete(root, contract):
                 "packet_sha256": entry["sha256"],
                 "contract_sha256": review.sha(review.encoded(contract)),
                 "result_sha256": review.sha((job / "result.json").read_bytes()),
+                "input_sha256": review.sha((review.PROMPT + json.dumps({"packet_sha256": entry["sha256"], **packet}, ensure_ascii=False)).encode()),
             },
         )
 
@@ -246,43 +248,11 @@ def test_written_result_without_terminal_success_does_not_count(tmp_path):
     assert data["case_total"] == 2
 
 
-def test_subagent_accept_keeps_actual_backend_and_exact_output_identity(tmp_path):
-    report, root, contract = example(tmp_path, model="codex-app-inherited")
-    entry = contract["packets"][0]
-    packet = json.loads((root / entry["path"]).read_bytes())
-    result = tmp_path / "actual-agent-result.json"
-    review.save(result, opinion(packet, entry["sha256"]))
-    assert review.accept(root, entry["id"], result, "/root/actual-reviewer") == "accepted"
-    assert review.accept(root, entry["id"], result, "/root/actual-reviewer") == "reused"
-    state = json.loads((root / "jobs" / entry["id"] / "status.json").read_bytes())
-    assert state["backend"] == "codex-app-subagent"
-    assert state["reviewer_id"] == "/root/actual-reviewer"
-    assert "returncode" not in state
-    # Rebuilding the original report cannot invalidate frozen review inputs.
-    for path in report.iterdir():
-        path.unlink()
-    data = review.collect(root)
-    assert data["case_reviewed"] == 1 and data["output_reviewed"] == 2
-    assert data["review_runs"][0]["backend"] == "codex-app-subagent"
-    for output in data["cases"][0]["output_reviews"]:
-        assert {"method", "row_id", "raw_sha256"} <= set(output)
-        assert "raw_path" not in output
-    with pytest.raises(ValueError, match="app subagents"):
-        review.run(root)
-
-
-def test_subagent_accept_rejects_wrong_backend_contract_and_extra_schema_fields(tmp_path):
-    _, root, contract = example(tmp_path)
-    entry = contract["packets"][0]
-    packet = json.loads((root / entry["path"]).read_bytes())
-    result = tmp_path / "opinion.json"
-    data = opinion(packet, entry["sha256"])
-    review.save(result, data)
-    with pytest.raises(ValueError, match="inherited-model"):
-        review.accept(root, entry["id"], result, "/root/reviewer")
-    data["fabricated"] = True
-    with pytest.raises(ValueError, match="schema fields"):
-        review.validate_result(packet, data, entry["sha256"])
+def test_manual_backend_and_inherited_placeholder_are_not_accepted(tmp_path):
+    with pytest.raises(ValueError, match="explicit reviewer model"):
+        example(tmp_path, model="codex-app-inherited")
+    with pytest.raises(SystemExit):
+        review.main(["accept", "--review", str(tmp_path), "--packet", "1", "--result", "fake", "--reviewer-id", "/root/invented"])
 
 
 def test_report_binding_ignores_derived_metrics_but_rejects_changed_answers():
@@ -307,3 +277,13 @@ def test_report_binding_ignores_derived_metrics_but_rejects_changed_answers():
         review.report_binding(profile, [{**row, "results": [{"url": "https://example.org"}]}])
         != binding
     )
+
+
+def test_failure_only_review_counts_only_selected_outputs_and_can_resume(tmp_path):
+    _, root, contract = example(tmp_path, scope="failures")
+    frozen = review.load_frozen(root)
+    aliases = json.loads((root / "alias-map.private.json").read_text())
+    assert frozen == contract
+    assert contract["output_count"] == len(aliases)
+    assert 0 < contract["output_count"] < 4
+    assert contract["scope"] == "failures"

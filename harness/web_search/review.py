@@ -24,9 +24,8 @@ def encoded(value):
 
 
 def save(path, value):
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_bytes(encoded(value))
-    temporary.replace(path)
+    from harness.reporting.publication import atomic_write
+    atomic_write(path, encoded(value))
 
 
 PROMPT = (
@@ -234,15 +233,35 @@ def report_binding(profile, rows):
     }
 
 
-def freeze(report, destination, *, model="codex-app-inherited", budget=180000):
+def freeze(report, destination, *, model=None, budget=180000, scope="failures", authorization=None):
     from .report import check
 
+    if not model or model == "codex-app-inherited":
+        raise ValueError("An explicit reviewer model ID is required")
+    if scope not in ("failures", "all") or scope == "all" and not authorization:
+        raise ValueError("Full review requires an explicit authorization record")
     if budget < 1000:
         raise ValueError("Packet budget must be at least 1000 characters")
     if destination.exists():
         raise ValueError("Freeze destination already exists; use run to resume")
     profile, rows = check(report, return_data=True, evidence_only=True)
     cases, aliases = make_cases(profile, rows, report)
+    items_by_row = {
+        aliases[output["output_id"]]["row_id"]: output["items"]
+        for case in cases for output in case["outputs"]
+    }
+    full_report_binding = report_binding(
+        profile, [{**row, "results": items_by_row[row["id"]]} for row in rows]
+    )
+    if scope == "failures":
+        from .core import classify
+        definitions = {c["id"]: c for c in profile["cases"]}
+        failed = {r["id"] for r in rows if classify(definitions[r["case_id"]], r)[0] == "fail"}
+        for case in cases:
+            case["outputs"] = [o for o in case["outputs"] if aliases[o["output_id"]]["row_id"] in failed]
+        cases = [c for c in cases if c["outputs"]]
+        keep = {o["output_id"] for c in cases for o in c["outputs"]}
+        aliases = {k: v for k, v in aliases.items() if k in keep}
     destination.mkdir(parents=True)
     (destination / "packets").mkdir()
     (destination / "raw").mkdir()
@@ -252,7 +271,7 @@ def freeze(report, destination, *, model="codex-app-inherited", budget=180000):
             binding = aliases[output["output_id"]]
             raw_path = destination / "raw" / (sha(output["output_id"].encode())[:24] + ".json")
             raw_path.write_bytes(Path(binding["raw_path"]).read_bytes())
-            output["raw_evidence"]["path"] = str(raw_path.resolve())
+            binding["frozen_raw_path"] = str(raw_path.resolve())
             binding["original_source_path"] = binding["raw_path"]
             binding["raw_path"] = str(raw_path.resolve())
     packets, current = [], []
@@ -274,29 +293,16 @@ def freeze(report, destination, *, model="codex-app-inherited", budget=180000):
         "schema": "web-search-independent-review/1",
         "reviewer": "Codex",
         "model": model,
-        "scope": "all",
+        "scope": scope,
+        "authorization": authorization,
         "case_count": len(cases),
-        "output_count": len(rows),
+        "output_count": len(aliases),
         "candidate_count": sum(len(c["candidates"]) for c in cases),
         "case_ids": [c["case"]["id"] for c in cases],
         "output_ids": sorted(aliases),
         "profile_sha256": sha(encoded(profile)),
         "rows_sha256": sha(encoded(rows)),
-        "report_binding": report_binding(
-            profile,
-            [
-                {
-                    **row,
-                    "results": next(
-                        o["items"]
-                        for c in cases
-                        for o in c["outputs"]
-                        if aliases[o["output_id"]]["row_id"] == row["id"]
-                    ),
-                }
-                for row in rows
-            ],
-        ),
+        "report_binding": full_report_binding,
         "source_bindings": bindings,
         "prompt_sha256": sha(PROMPT.encode()),
         "rubric": {"grades": [0, 1, 2, 3], "primary_fields": ["url", "title", "snippet"]},
@@ -365,7 +371,7 @@ def load_frozen(root):
         raise ValueError("Frozen review population mismatch")
     for case in cases:
         for output in case["outputs"]:
-            path = Path(output["raw_evidence"]["path"])
+            path = Path(aliases[output["output_id"]]["raw_path"])
             if path.is_symlink() or sha(path.read_bytes()) != output["raw_evidence"]["sha256"]:
                 raise ValueError("Anonymous raw evidence changed")
     return contract
@@ -481,55 +487,12 @@ def _successful(root, entry, contract):
         return None
 
 
-def accept(root, packet_id, result_path, reviewer_id):
-    """Import an actual completed app subagent opinion after its completion notification."""
-    contract = load_frozen(root)
-    if contract["model"] != "codex-app-inherited":
-        raise ValueError("Subagent review requires a separately frozen inherited-model contract")
-    if not reviewer_id.startswith("/root/") or not reviewer_id.strip():
-        raise ValueError("Use the actual canonical completed subagent identity")
-    matches = [entry for entry in contract["packets"] if entry["id"] == packet_id]
-    if len(matches) != 1:
-        raise ValueError("Unknown review packet")
-    entry = matches[0]
-    data = result_path.read_bytes()
-    validate_result(
-        json.loads((root / entry["path"]).read_bytes()), json.loads(data), entry["sha256"]
-    )
-    job = root / "jobs" / packet_id
-    if _successful(root, entry, contract):
-        if (job / "result.json").read_bytes() != data:
-            raise ValueError("Completed review cannot be silently replaced")
-        return "reused"
-    job.mkdir(parents=True, exist_ok=True)
-    attempt = job / f"attempt-{len(list(job.glob('attempt-*'))) + 1:03d}"
-    attempt.mkdir()
-    (attempt / "result.json").write_bytes(data)
-    packet = json.loads((root / entry["path"]).read_bytes())
-    text = PROMPT + json.dumps({"packet_sha256": entry["sha256"], **packet}, ensure_ascii=False)
-    (attempt / "input.txt").write_text(text)
-    state = {
-        "status": "completed",
-        "backend": "codex-app-subagent",
-        "reviewer_id": reviewer_id,
-        "packet_sha256": entry["sha256"],
-        "contract_sha256": sha(encoded(contract)),
-        "input_sha256": sha(text.encode()),
-        "result_sha256": sha(data),
-        "accepted_at": time.time(),
-        "attempt": attempt.name,
-        "completion_basis": "Parent received this subagent's completion notification",
-    }
-    save(attempt / "status.json", state)
-    (job / "result.json").write_bytes(data)
-    save(job / "status.json", state)
-    return "accepted"
 
 
 def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
     contract = load_frozen(root)
     if contract["model"] == "codex-app-inherited":
-        raise ValueError("Use app subagents and accept for this frozen review")
+        raise ValueError("Historical app reviews are read-only; freeze a new explicit-model review")
     if not 1 <= workers <= 4:
         raise ValueError("Use 1..4 workers")
     if limit is not None and limit < 1:
@@ -570,7 +533,10 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
             "-C",
             str(attempt),
             "-c",
-            'web_search="live"',
+            'web_search="disabled"',
+            "--disable", "shell_tool", "--disable", "unified_exec",
+            "--disable", "apps", "--disable", "plugins", "--disable", "view_image",
+            "--disable", "browser_use", "--disable", "computer_use", "--disable", "multi_agent",
             "--output-schema",
             str((root / "schema.json").resolve()),
             "--output-last-message",
@@ -589,7 +555,8 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         }
         with (attempt / "stdout.log").open("wb") as out, (attempt / "stderr.log").open("wb") as err:
             process = subprocess.Popen(
-                command, stdin=subprocess.PIPE, stdout=out, stderr=err, start_new_session=True
+                command, stdin=subprocess.PIPE, stdout=out, stderr=err, start_new_session=True,
+                env={k: v for k, v in os.environ.items() if k in {"PATH", "HOME", "CODEX_HOME", "TMPDIR", "LANG", "LC_ALL"}}
             )
             state["pid"] = process.pid
             save(job / "status.json", state)
@@ -601,7 +568,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
                 validate_result(packet, json.loads(result_path.read_bytes()), entry["sha256"])
                 (job / "result.json").write_bytes(result_path.read_bytes())
                 state.update(status="completed", result_sha256=sha(result_path.read_bytes()))
-            except (subprocess.TimeoutExpired, ValueError, OSError) as error:
+            except (subprocess.TimeoutExpired, ValueError, OSError, KeyboardInterrupt) as error:
                 if process.poll() is None:
                     os.killpg(process.pid, signal.SIGKILL)
                     process.wait()
@@ -673,7 +640,8 @@ def collect(root, *, require_complete=False):
         "reviewer": contract["reviewer"],
         "model": contract["model"],
         "contract_sha256": sha(encoded(contract)),
-        "scope": "all",
+        "scope": contract["scope"],
+        "provenance": {"contract": contract, "packets": [json.loads((root / e["path"]).read_bytes()) for e in contract["packets"]], "executions": [{**json.loads((root / "jobs" / e["id"] / "status.json").read_bytes()), "output_bytes_hex": (root / "jobs" / e["id"] / "result.json").read_bytes().hex()} for e in contract["packets"] if _successful(root, e, contract)]},
         "report_binding": contract["report_binding"],
         "case_total": contract["case_count"],
         "case_reviewed": len(reviewed),
@@ -681,7 +649,7 @@ def collect(root, *, require_complete=False):
         "output_reviewed": len(outputs),
         "candidate_total": contract["candidate_count"],
         "candidate_reviewed": sum(len(c["candidate_grades"]) for c in reviewed),
-        "accepted_unreviewed_passes": 0,
+        "accepted_unreviewed_passes": None if missing else 0,
         "missing_case_ids": missing,
         "issue_case_count": len(issues),
         "open_issue_count": sum(
@@ -729,6 +697,26 @@ def validate_public_review(profile, rows, evidence):
         or evidence.get("report_binding") != report_binding(profile, rows)
     ):
         raise ValueError("Independent review does not bind this complete report")
+    from .relevance import legacy_evidence_allowed
+    proof = evidence.get("provenance")
+    if not proof and not legacy_evidence_allowed(evidence, "review"):
+        raise ValueError("Independent review requires frozen contract, packets and execution receipts")
+    if proof:
+        contract = proof["contract"]
+        if sha(encoded(contract)) != evidence["contract_sha256"] or contract["report_binding"] != report_binding(profile, rows):
+            raise ValueError("Independent review frozen contract differs")
+        if len(proof["packets"]) != len(contract["packets"]) or len(proof["executions"]) != len(contract["packets"]):
+            raise ValueError("Independent review execution proof is incomplete")
+        for entry, packet, execution in zip(contract["packets"], proof["packets"], proof["executions"], strict=True):
+            if sha(encoded(packet)) != entry["sha256"] or execution.get("status") != "completed" or execution.get("returncode") != 0 or execution.get("backend", "codex-cli") != "codex-cli" or execution.get("contract_sha256") != evidence["contract_sha256"]:
+                raise ValueError("Independent review execution is invalid")
+            original_cases = [{**case, "output_reviews": [{k: v for k, v in o.items() if k not in ("row_id", "method", "raw_sha256")} for o in case["output_reviews"]]} for case in evidence["cases"] if case["case_id"] in entry["case_ids"]]
+            original = {"packet_sha256": entry["sha256"], "cases": original_cases}
+            validate_result(packet, original, entry["sha256"])
+            text = PROMPT + json.dumps({"packet_sha256": entry["sha256"], **packet}, ensure_ascii=False)
+            raw_opinion = bytes.fromhex(execution.get("output_bytes_hex", ""))
+            if json.loads(raw_opinion) != original or execution.get("packet_sha256") != entry["sha256"] or execution.get("input_sha256") != sha(text.encode()) or execution.get("result_sha256") != sha(raw_opinion):
+                raise ValueError("Independent review input or output receipt differs")
     expected_cases = {case["id"] for case in profile["cases"]}
     cases = evidence["cases"]
     ids = [case["case_id"] for case in cases]
@@ -988,18 +976,15 @@ def main(argv=None):
     p = sub.add_parser("freeze")
     p.add_argument("--report", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
-    p.add_argument("--model", default="codex-app-inherited")
+    p.add_argument("--model", required=True)
+    p.add_argument("--scope", choices=("failures", "all"), default="failures")
+    p.add_argument("--authorization", help="Record the explicit instruction authorizing full review")
     p.add_argument("--packet-characters", type=int, default=180000)
     p = sub.add_parser("run")
     p.add_argument("--review", type=Path, required=True)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--limit", type=int)
     p.add_argument("--timeout", type=int, default=3600)
-    p = sub.add_parser("accept")
-    p.add_argument("--review", type=Path, required=True)
-    p.add_argument("--packet", required=True)
-    p.add_argument("--result", type=Path, required=True)
-    p.add_argument("--reviewer-id", required=True)
     p = sub.add_parser("collect")
     p.add_argument("--review", type=Path, required=True)
     p.add_argument("--require-complete", action="store_true")
@@ -1009,7 +994,7 @@ def main(argv=None):
             args.report.resolve(),
             args.output.resolve(),
             model=args.model,
-            budget=args.packet_characters,
+            budget=args.packet_characters, scope=args.scope, authorization=args.authorization,
         )
         print(
             json.dumps(
@@ -1017,8 +1002,6 @@ def main(argv=None):
                 ensure_ascii=False,
             )
         )
-    elif args.command == "accept":
-        print(accept(args.review.resolve(), args.packet, args.result.resolve(), args.reviewer_id))
     elif args.command == "run":
         run(args.review.resolve(), workers=args.workers, limit=args.limit, timeout=args.timeout)
     else:

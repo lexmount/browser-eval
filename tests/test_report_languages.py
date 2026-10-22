@@ -222,7 +222,7 @@ def test_body_contract_conclusion_is_localized(passed, anchors, expected):
     assert localize_html('<p>' + conclusion + '</p>', PurePosixPath('attempts/example.html')) == '<p>' + expected + '</p>'
 
 
-@pytest.mark.parametrize("metadata_name", ["report-languages.json", "report-manifest.json", "manifest.json"])
+@pytest.mark.parametrize("metadata_name", ["report-languages.json", "report-manifest.json"])
 def test_saved_language_survives_environment_changes_for_every_track(tmp_path, monkeypatch, metadata_name):
     from harness.report_languages import resolve_report_language
     (tmp_path / metadata_name).write_text(json.dumps({"primary_language": "zh", "languages": ["zh"]}))
@@ -237,3 +237,16 @@ def test_quoted_local_configuration_is_available_without_process_environment(tmp
     monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
     (tmp_path / ".env").write_text(f"export BROWSER_EVAL_REPORT_LANGUAGE='{selected}' # report language\n")
     assert configured_report_language() == selected
+
+
+def test_nonlanguage_manifest_is_not_selected_or_modified(tmp_path, monkeypatch):
+    from harness.report_languages import resolve_report_language
+    path = tmp_path / "manifest.json"
+    original = '{"task_count":3}'
+    path.write_text(original)
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+    assert resolve_report_language(tmp_path) == "en"
+    assert path.read_text() == original
+    assert resolve_report_language(tmp_path, supported=("zh",)) == "zh"
+    with pytest.raises(ValueError):
+        resolve_report_language(tmp_path, "en", supported=("zh",))

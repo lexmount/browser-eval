@@ -290,14 +290,15 @@ class ReferenceIdentityScenarios(unittest.TestCase):
 
 
 class ConstraintOutcomeScenarios(unittest.TestCase):
-    def test_partial_domain_leak_fails_but_web_source_preference_is_not_a_filter(self):
+    def test_site_presence_uses_the_same_scoped_acceptance_as_comparison(self):
         from harness.web_search.core import classify
 
         case = {"family": "site", "domains": ["example.org"]}
         results = [result("https://a.example.org/"), result("https://outside.org/")]
         row = dict(http_status=200, error="", results=results, metrics=evaluate(case, results))
-        self.assertEqual(classify(case, row), ("fail", "domain_mismatch"))
-        self.assertEqual(classify({**case, "family": "web"}, row), ("probe", "probe"))
+        self.assertEqual(classify(case, row), ("pass", "domain_hit"))
+        from harness.web_search.comparison import acceptance
+        self.assertTrue(acceptance(case, row, "primary"))
 
     def test_empty_and_api_failure_stay_distinct(self):
         from harness.web_search.core import classify

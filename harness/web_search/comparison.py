@@ -7,45 +7,12 @@ import re
 from urllib.parse import urlsplit
 
 from .core import canonical_url, evaluate, factual_evidence, in_domain
-from .evidence_quality import factual_sensitivity, is_benchmark_page
+from .evidence_quality import is_benchmark_page
 
 
-def acceptance(case, row, metric="source", *, quality_excluded=False):
-    """Return a scoped binary check, never turn an unlabelled query into failure."""
-    if row is None:
-        return None
-    if (quality_excluded and "reference_answer" in case
-            and metric in ("primary", "source", "answer")):
-        return None
-    if metric == "primary":
-        if "reference_answer" in case:
-            metric = "answer"
-        elif case.get("anchors"):
-            metric = "source"
-        elif case.get("domains"):
-            metric = "site"
-        else:
-            return None
-    if metric == "answer":
-        key = "answer_in_delivered_text_5" if "reference_answer" in case else None
-    elif metric == "source":
-        key = ("labeled_source_hit_5" if case.get("reference_urls") else
-               "anchor_hit_5" if case.get("anchors") else None)
-    elif metric == "site":
-        if not case.get("domains"):
-            return None
-        value = row.get("metrics", {}).get("domain_precision")
-        if value is None and row.get("metrics", {}).get("result_count") == 0:
-            return False
-        return value > 0 if value is not None else None
-    elif metric == "availability":
-        return bool(row.get("results"))
-    else:
-        raise ValueError("Unknown comparison metric")
-    metrics = (factual_sensitivity(case, row.get("results", []))["metrics"]
-               if "reference_answer" in case else row.get("metrics", {}))
-    value = metrics.get(key) if key else None
-    return bool(value) if value in (0, 1) and value is not None else None
+def acceptance(case, row, metric="source", *, quality_excluded=False, cutoff=5):
+    from .core import task_acceptance
+    return task_acceptance(case, row, metric, quality_excluded=quality_excluded, cutoff=cutoff)
 
 
 def _url(value):
@@ -57,7 +24,7 @@ def _url(value):
 def _preview(value, limit=None):
     # Public code examples can contain a source author's home directory.
     # Compact previews omit those paths; the immutable response remains linked.
-    value = re.sub(r"/Users/[^\s\"<>]+", "[source path]", str(value or ""))
+    value = re.sub(r"(?:/Users/|/home/|[A-Za-z]:\\Users\\)[^\s\"<>]+", "[source path]", str(value or ""))
     return value if limit is None else value[:limit]
 
 
@@ -98,6 +65,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
         if key in rows:
             raise ValueError("Comparison requires one logical result per method and task")
         rows[key] = row
+    cutoff = profile.get("protocol", {}).get("top_k", 5)
     labels = (relevance or {}).get("labels", {})
     judgments = {}
     for call in (relevance or {}).get("judge", {}).get("calls", []):
@@ -115,7 +83,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
                 outputs[method["id"]] = None
                 continue
             items = []
-            for item in row.get("results", [])[:5]:
+            for item in row.get("results", [])[:cutoff]:
                 contaminated = "reference_answer" in case and is_benchmark_page(item, case=case)
                 source_match, answer_fields = _item_checks(
                     case, item, quality_excluded=quality_excluded,
@@ -130,7 +98,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
                 judgment = judgments.get(case["id"], {}).get(candidate_id, {})
                 items.append({"url": _url(item.get("url")),
                               "grade_reason": judgment.get("reason", ""),
-                              "grade_source": judgment.get("grade_source", "model"),
+                              "grade_source": judgment.get("grade_source", (relevance or {}).get("judge", {}).get("kind", "unjudged")),
                               "grade_evidence": (judgment.get("evidence") or (("所选字段为空" if zh else "Selected field is empty") if judgment.get("evidence_empty") else "")),
                               "contamination_excluded": contaminated,
                               "source_match": source_match, "answer_fields": visible_answers,
@@ -139,12 +107,12 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
                               "site_match": not (quality_excluded or contaminated) and any(in_domain(item.get("url", ""), d) for d in case.get("domains", [])),
                               **displayed})
             from .relevance import query_metrics
-            ranking = [hashlib.sha256((case["id"] + "\0" + canonical_url(item["url"])).encode()).hexdigest()[:12] for item in row.get("results", [])[:5] if _url(item.get("url"))]
-            query_score = query_metrics(ranking, labels[case["id"]], 5) if case["id"] in labels and not quality_excluded else None
+            ranking = [hashlib.sha256((case["id"] + "\0" + canonical_url(item["url"])).encode()).hexdigest()[:12] for item in row.get("results", [])[:cutoff] if _url(item.get("url"))]
+            query_score = query_metrics(ranking, labels[case["id"]], cutoff) if case["id"] in labels and not quality_excluded else None
             outputs[method["id"]] = {
                 "score": query_score,
-                "primary": (None if quality_excluded else any(x["grade"] >= 2 for x in items) if case["id"] in labels else acceptance(case, row, "primary")),
-                "quality": any(x["grade"] >= 2 for x in items) if case["id"] in labels and not quality_excluded else None,
+                "primary": (None if quality_excluded else any(x["grade"] is not None and x["grade"] >= 2 for x in items) if case["id"] in labels else acceptance(case, row, "primary")),
+                "quality": any(x["grade"] is not None and x["grade"] >= 2 for x in items) if case["id"] in labels and not quality_excluded else None,
                 "source": acceptance(case, row, quality_excluded=quality_excluded), "answer": acceptance(case, row, "answer", quality_excluded=quality_excluded),
                 "site": acceptance(case, row, "site"),
                 "availability": acceptance(case, row, "availability"),
@@ -180,7 +148,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
         raise ValueError("Comparison population contains unknown tasks")
     populations = [{"id": p["id"], "label": p["label"]["zh" if zh else "en"],
                     "case_ids": p["case_ids"]} for p in populations if p["case_ids"]]
-    return {"methods": methods, "cases": cases, "populations": populations}
+    return {"methods": methods, "cases": cases, "populations": populations, "cutoff": cutoff}
 
 
 STYLE = """
@@ -197,7 +165,7 @@ const selected=()=>[...root.querySelectorAll('[data-compare-method]:checked')].m
 const relation=(base,others)=>{if(base==null||!others.length||others.some(v=>v==null))return 'unknown';if(base&&others.every(Boolean))return 'all_pass';if(base&&others.every(v=>!v))return 'baseline_only';if(!base&&others.every(Boolean))return 'comparison_only';if(!base&&others.every(v=>!v))return 'all_fail';return 'mixed'};
 const effectiveMetric=(c,m)=>m==='primary'?(c.has_relevance?'quality':c.benchmark==='factual'?'answer':c.check_types.includes('target')?'source':c.check_types.includes('site')?'site':'unscored'):m;
 const verdict=(c,o,m)=>{if(c.quality_excluded&&['primary','source','answer','quality'].includes(m))return L.quarantined;const k=effectiveMetric(c,m),v=o?.[m];return v==null?L.unknown:L.verdicts[k][v?0:1]};
-const scoreSummary=o=>!o.score?'':'<div class="query-score" data-query-score><strong>'+esc(L.qualityScore)+' '+(o.score.ndcg*100).toFixed(1)+'<small> / 100</small></strong><span>'+esc(L.usefulCount)+' '+o.score.useful+'/5 · '+esc(o.score.success?L.direct:L.noDirect)+'</span><details><summary>'+esc(L.calculation)+'</summary><table><thead><tr><th>'+esc(L.rank)+'</th><th>'+esc(L.grade)+'</th><th>'+esc(L.weightedGain)+'</th></tr></thead><tbody>'+Array.from({length:5},(_,i)=>'<tr><td>'+(i+1)+'</td><td>'+(i<o.score.ranked_grades.length?o.score.ranked_grades[i]:esc(L.notReturned))+(o.score.duplicates[i]?' · '+esc(L.duplicate):'')+'</td><td>'+(o.score.contributions[i]||0).toFixed(4)+'</td></tr>').join('')+'</tbody></table><p>'+esc(L.idealGrades)+': '+o.score.ideal_grades.join(', ')+'</p><p>'+esc(L.actual)+' '+o.score.dcg.toFixed(4)+' ÷ '+esc(L.ideal)+' '+o.score.idcg.toFixed(4)+' × 100 = '+(o.score.ndcg*100).toFixed(1)+'</p></details></div>';
+const scoreSummary=o=>!o.score?'':'<div class="query-score" data-query-score><strong>'+esc(L.qualityScore)+' '+(o.score.ndcg*100).toFixed(1)+'<small> / 100</small></strong><span>'+esc(L.usefulCount)+' '+o.score.useful+'/'+data.cutoff+' · '+esc(o.score.success?L.direct:L.noDirect)+'</span><details><summary>'+esc(L.calculation)+'</summary><table><thead><tr><th>'+esc(L.rank)+'</th><th>'+esc(L.grade)+'</th><th>'+esc(L.weightedGain)+'</th></tr></thead><tbody>'+Array.from({length:data.cutoff},(_,i)=>'<tr><td>'+(i+1)+'</td><td>'+(i<o.score.ranked_grades.length?o.score.ranked_grades[i]:esc(L.notReturned))+(o.score.duplicates[i]?' · '+esc(L.duplicate):'')+'</td><td>'+(o.score.contributions[i]||0).toFixed(4)+'</td></tr>').join('')+'</tbody></table><p>'+esc(L.idealGrades)+': '+o.score.ideal_grades.join(', ')+'</p><p>'+esc(L.actual)+' '+o.score.dcg.toFixed(4)+' ÷ '+esc(L.ideal)+' '+o.score.idcg.toFixed(4)+' × 100 = '+(o.score.ndcg*100).toFixed(1)+'</p></details></div>';
 const criteria=c=>{const x=c.criteria;return '<div class="compare-criteria" data-task-criteria><strong>'+esc(L.criteria)+'</strong>'+(c.quality_excluded?'<p data-quality-excluded>'+esc(L.quarantined)+'</p>':'')+(x.answer!=null?'<p>'+esc(L.referenceAnswer)+': <b>'+esc(x.answer)+'</b></p>':'')+(x.urls.length?'<p>'+esc(L.referenceUrls)+'</p>'+x.urls.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>').join(''):'')+(x.official_sources&&Object.keys(x.official_sources).length?'<details><summary>'+esc(L.sourceRules)+'</summary><p>'+[...(x.official_sources.domains||[]),...(x.official_sources.url_prefixes||[])].map(esc).join('<br>')+'</p>'+x.official_sources.sources.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>').join('')+'</details>':'')+(x.domains.length?'<p>'+esc(L.requestedSites)+': '+x.domains.map(esc).join(', ')+'</p>':'')+((x.paper_ids.length||x.repositories.length||Object.keys(x.aliases).length)?'<details><summary>'+esc(L.equivalents)+'</summary><pre>'+esc(JSON.stringify({aliases:x.aliases,papers:x.paper_ids,repositories:x.repositories},null,2))+'</pre></details>':'')+(!x.urls.length&&x.answer==null&&!x.domains.length?'<p>'+esc(L.unannotated)+'</p>':'')+'</div>'};
 function matching(){let q=$('[data-output-query]').value.toLowerCase(),benchmark=$('[data-output-benchmark]').value,check=$('[data-output-check]').value;return data.cases.filter(c=>(benchmark==='all'||c.benchmark===benchmark)&&(check==='all'||c.check_types.includes(check))&&(!focusedId||c.id===focusedId)&&(!q||c.query.toLowerCase().includes(q)||c.id.toLowerCase().includes(q)))}
 function render(){root.querySelectorAll('[data-compare-method]').forEach(x=>x.disabled=x.value===$('[data-compare-baseline]').value);let cases=matching(),metric=$('[data-compare-metric]').value,base=$('[data-compare-baseline]').value,others=selected(),counts={},matches=[];for(let c of cases){let r=relation(c.outputs[base]?.[metric],others.map(m=>c.outputs[m]?.[metric]));counts[r]=(counts[r]||0)+1;if($('[data-compare-relation]').value==='all'||r===$('[data-compare-relation]').value)matches.push(c)}

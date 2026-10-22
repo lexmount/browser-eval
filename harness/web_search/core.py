@@ -12,7 +12,6 @@ import tempfile
 import re
 import statistics
 import unicodedata
-from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -62,68 +61,13 @@ def in_domain(url, domain):
 
 
 def request_body(adapter, case, protocol, options=None):
-    options = options or {}
-    allowed = {"deepseek": {"need_content"}, "bocha": {"summary"}, "lexmount": set()}
-    if set(options) - allowed.get(adapter, set()) or any(type(v) is not bool for v in options.values()):
-        raise ValueError("Unsupported search output option")
-    if adapter == "lexmount":
-        body = dict(
-            query=case["query"],
-            type="web",
-            limit=protocol["top_k"],
-            timeout_ms=protocol["server_timeout_ms"],
-            include=["attempts"],
-        )
-        if case.get("source"):
-            body["source"] = case["source"]
-        return body
-    if adapter in ("deepseek", "bocha"):
-        query = case["query"]
-        if adapter == "bocha":
-            body = dict(count=protocol["top_k"], summary=options.get("summary", True), freshness="noLimit")
-            if case.get("domains") and case.get("family") in ("site", "vertical"):
-                body["include"] = "|".join(case["domains"])
-                query = re.sub(r"(?<!\S)site:\S+", "", query).strip()
-            after = re.search(r"(?<!\S)after:(\d{4}-\d{2}-\d{2})(?!\S)", query)
-            if after and protocol.get("as_of"):
-                start = date.fromisoformat(after[1]) + timedelta(days=1)
-                body["freshness"] = f"{start.isoformat()}..{protocol['as_of']}"
-                query = (query[:after.start()] + query[after.end():]).strip()
-            body["query"] = " ".join(query.split())
-            return body
-        if case.get("source") and case.get("domains"):
-            query += " " + " OR ".join("site:" + d for d in case["domains"])
-        return dict(query=query, count=protocol["top_k"], need_content=options.get("need_content", True))
-    raise ValueError("Unknown search adapter: " + adapter)
+    from .adapters import adapter_for
+    return adapter_for(adapter).request(case, protocol, options)
 
 
-def normalize(payload):
-    if (
-        isinstance(payload, dict)
-        and isinstance(payload.get("data"), dict)
-        and "webPages" in payload["data"]
-    ):
-        if payload.get("code") != 200:
-            raise ValueError("Search provider reported an error")
-        web_pages = payload["data"]["webPages"]
-        pages = web_pages.get("value") if isinstance(web_pages, dict) else None
-        if not isinstance(pages, list):
-            raise ValueError("Response must contain a web page array")
-        if any(not isinstance(item, dict) for item in pages):
-            raise ValueError("Each web page must be an object")
-        payload = {
-            "results": [
-                {
-                    "url": item.get("url"),
-                    "title": item.get("name", ""),
-                    "snippet": item.get("snippet", ""),
-                    "summary": item.get("summary", ""),
-                    "content": "",
-                    "date": item.get("datePublished"),
-                }
-                for item in pages
-            ]
-        }
+def normalize(payload, adapter=None):
+    from .adapters import normalize_envelope
+    payload = normalize_envelope(payload, adapter)
     if (
         not isinstance(payload, dict)
         or payload.get("error")
@@ -304,15 +248,15 @@ def validate_profile(profile):
         ids = [x["id"] for x in items]
         if len(ids) != len(set(ids)) or any(not re.fullmatch("[a-z0-9-]+", v) for v in ids):
             raise ValueError("Duplicate or unsafe IDs")
-    if protocol["top_k"] not in (5, 10) or protocol["rounds"] < 1 or protocol["concurrency"] != 1:
-        raise ValueError("This protocol requires top 5 or 10 and serial calls")
+    if type(protocol["top_k"]) is not int or protocol["top_k"] < 1 or protocol["rounds"] < 1 or protocol["concurrency"] != 1:
+        raise ValueError("This protocol requires a positive result cutoff and serial calls")
     if protocol["score_round"] not in range(protocol["rounds"]):
         raise ValueError("Invalid score round")
     query_limit = 4096 if protocol.get("preserve_publisher_queries") else 128
     for method in methods:
         canonical_url(method["endpoint"])
-        if method["adapter"] not in ("lexmount", "deepseek", "bocha"):
-            raise ValueError("Unknown adapter")
+        from .adapters import adapter_for
+        adapter_for(method["adapter"])
         for case in cases:
             query = request_body(method["adapter"], case, protocol, method.get("output_options"))["query"]
             if not query.strip() or len(query) > query_limit:
@@ -380,18 +324,41 @@ def write_json(path, value):
     return {"path": path.name, "sha256": digest(path.read_bytes())}
 
 
+def task_acceptance(case, row, metric="primary", *, quality_excluded=False, cutoff=5):
+    if row is None:
+        return None
+    if quality_excluded and "reference_answer" in case and metric in ("primary", "source", "answer"):
+        return None
+    if metric == "primary":
+        metric = "answer" if "reference_answer" in case else "source" if case.get("anchors") else "site" if case.get("domains") and case.get("family") in ("site", "vertical") else "unscored"
+    if metric == "availability":
+        return not row.get("error") and row.get("http_status", 200) == 200 and bool(row.get("results"))
+    if metric == "site":
+        return (any(any(in_domain(item["url"], d) for d in case["domains"]) for item in row.get("results", [])[:cutoff]) if case.get("domains") else None)
+    if metric == "unscored":
+        return None
+    if metric not in ("answer", "source"):
+        raise ValueError("Unknown comparison metric")
+    if "reference_answer" in case:
+        from .evidence_quality import factual_sensitivity
+        metrics = factual_sensitivity(case, row.get("results", []), cutoff=cutoff)["metrics"]
+        return bool(metrics["answer_in_delivered_text_5"] if metric == "answer" else metrics["labeled_source_hit_5"])
+    if metric == "answer" or not case.get("anchors"):
+        return None
+    key = "anchor_hit_5" if cutoff == 5 else "anchor_hit_10" if cutoff == 10 else None
+    value = row.get("metrics", {}).get(key) if key else None
+    if value is not None:
+        return bool(value)
+    safe = [r for r in row.get("results", [])[:cutoff] if str(r.get("url", "")).startswith(("https://", "http://"))]
+    return bool(evaluate(case, safe)["anchor_hit_10"])
+
+
 def classify(case, row):
-    """Describe machine-observed failure types without claiming reviewed relevance."""
-    if row.get("error") or row["http_status"] != 200:
+    """Primary acceptance and diagnostic labels share the same task predicate."""
+    if row.get("error") or row.get("http_status", 200) != 200:
         return "fail", "api_error"
     if not row["results"]:
         return "fail", "empty"
-    fraction = row["metrics"]["domain_precision"]
-    if case["family"] in ("site", "vertical") and fraction is not None and fraction < 1:
-        return "fail", "domain_mismatch"
-    if "reference_answer" in case:
-        return ("pass", "source_hit") if row["metrics"]["labeled_source_hit_5"] else ("fail", "source_miss")
-    hit = row["metrics"]["anchor_hit_10"]
-    if hit == 0:
-        return "fail", "target_miss"
-    return ("pass", "target_hit") if hit == 1 else ("probe", "probe")
+    accepted = task_acceptance(case, row)
+    category = "answer" if "reference_answer" in case else "target" if case.get("anchors") else "domain" if case.get("domains") else "probe"
+    return (("pass" if accepted else "fail"), category + ("_hit" if accepted else "_miss")) if accepted is not None else ("probe", "probe")

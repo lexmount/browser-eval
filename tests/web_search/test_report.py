@@ -62,8 +62,8 @@ class ReportScenarios(unittest.TestCase):
         content = {
             "presentation": "comparison-report", "independent_benchmarks": True,
             "metric_populations": [
-                {"id": "custom", "benchmark_root": True, "case_ids": ["scenario"]},
-                {"id": "factual", "benchmark_root": True, "case_ids": ["valid", "bad-reference"]},
+                {"id": "custom", "benchmark_root": True, "label": {"zh":"自建场景集","en":"Scenarios"}, "case_ids": ["scenario"]},
+                {"id": "factual", "benchmark_root": True, "label": {"zh":"公开事实集","en":"Facts"}, "case_ids": ["valid", "bad-reference"]},
             ],
         }
         before = json.dumps([profile, content], sort_keys=True)
@@ -161,7 +161,7 @@ class ReportScenarios(unittest.TestCase):
         soup = BeautifulSoup((self.out / "index.html").read_text(), "html.parser")
         rows = soup.select_one('table').select('tbody tr')
         self.assertEqual(len(rows), 1)
-        self.assertIn('Lexmount', rows[0].get_text())
+        self.assertIn('Fixture A', rows[0].get_text())
         self.assertTrue(check(self.out))
         content.write_text(json.dumps({"overview_methods": ["missing"]}))
         with self.assertRaises(ValueError):

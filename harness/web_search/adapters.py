@@ -1,0 +1,102 @@
+"""Provider transport registry. Add a provider here without changing the collector."""
+from dataclasses import dataclass
+from datetime import date, timedelta
+import re
+
+
+@dataclass(frozen=True)
+class Adapter:
+    request: object
+    authorization_header: str = "Authorization"
+    authorization_prefix: str = "Bearer "
+    response: object = None
+    telemetry: bool = False
+
+
+def _request(adapter, case, protocol, options=None):
+    options = options or {}
+    allowed = {"deepseek": {"need_content"}, "bocha": {"summary"}, "lexmount": set()}
+    if set(options) - allowed.get(adapter, set()) or any(type(v) is not bool for v in options.values()):
+        raise ValueError("Unsupported search output option")
+    if adapter == "lexmount":
+        body = dict(
+            query=case["query"],
+            type="web",
+            limit=protocol["top_k"],
+            timeout_ms=protocol["server_timeout_ms"],
+            include=["attempts"],
+        )
+        if case.get("source"):
+            body["source"] = case["source"]
+        return body
+    if adapter in ("deepseek", "bocha"):
+        query = case["query"]
+        if adapter == "bocha":
+            body = dict(count=protocol["top_k"], summary=options.get("summary", True), freshness="noLimit")
+            if case.get("domains") and case.get("family") in ("site", "vertical"):
+                body["include"] = "|".join(case["domains"])
+                query = re.sub(r"(?<!\S)site:\S+", "", query).strip()
+            after = re.search(r"(?<!\S)after:(\d{4}-\d{2}-\d{2})(?!\S)", query)
+            if after and protocol.get("as_of"):
+                start = date.fromisoformat(after[1]) + timedelta(days=1)
+                body["freshness"] = f"{start.isoformat()}..{protocol['as_of']}"
+                query = (query[:after.start()] + query[after.end():]).strip()
+            body["query"] = " ".join(query.split())
+            return body
+        if case.get("source") and case.get("domains"):
+            query += " " + " OR ".join("site:" + d for d in case["domains"])
+        return dict(query=query, count=protocol["top_k"], need_content=options.get("need_content", True))
+    raise ValueError("Unknown search adapter: " + adapter)
+
+
+def _bocha_response(payload):
+    if (
+        isinstance(payload, dict)
+        and isinstance(payload.get("data"), dict)
+        and "webPages" in payload["data"]
+    ):
+        if payload.get("code") != 200:
+            raise ValueError("Search provider reported an error")
+        web_pages = payload["data"]["webPages"]
+        pages = web_pages.get("value") if isinstance(web_pages, dict) else None
+        if not isinstance(pages, list):
+            raise ValueError("Response must contain a web page array")
+        if any(not isinstance(item, dict) for item in pages):
+            raise ValueError("Each web page must be an object")
+        payload = {
+            "results": [
+                {
+                    "url": item.get("url"),
+                    "title": item.get("name", ""),
+                    "snippet": item.get("snippet", ""),
+                    "summary": item.get("summary", ""),
+                    "content": "",
+                    "date": item.get("datePublished"),
+                }
+                for item in pages
+            ]
+        }
+    return payload
+
+
+ADAPTERS = {
+    "lexmount": Adapter(lambda case, protocol, options: _request("lexmount", case, protocol, options), "X-API-Key", "", telemetry=True),
+    "deepseek": Adapter(lambda case, protocol, options: _request("deepseek", case, protocol, options)),
+    "bocha": Adapter(lambda case, protocol, options: _request("bocha", case, protocol, options), response=_bocha_response),
+}
+
+
+def adapter_for(name):
+    if name not in ADAPTERS:
+        raise ValueError("Unknown search adapter: " + str(name))
+    return ADAPTERS[name]
+
+
+def normalize_envelope(payload, adapter=None):
+    if adapter is not None:
+        transform = adapter_for(adapter).response
+        return transform(payload) if transform else payload
+    # Saved historical calls predate adapter-tagged native envelopes.
+    if isinstance(payload, dict) and isinstance(payload.get("data"), dict) and "webPages" in payload["data"]:
+        return ADAPTERS["bocha"].response(payload)
+    return payload

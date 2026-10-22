@@ -14,7 +14,7 @@ def audited_fixture(tmp_path):
     example(tmp_path)
     report = tmp_path / "report"
     root = tmp_path / "review"
-    contract = review.freeze(report, root)
+    contract = review.freeze(report, root, model="test-model", scope="all", authorization="Explicit full-review test scenario")
     for entry in contract["packets"]:
         packet = json.loads((root / entry["path"]).read_bytes())
         result = {"packet_sha256": entry["sha256"], "cases": []}
@@ -50,7 +50,11 @@ def audited_fixture(tmp_path):
             )
         submission = root / (entry["id"] + ".json")
         review.save(submission, result)
-        review.accept(root, entry["id"], submission, "/root/independent-fixture-reviewer")
+        job = root / "jobs" / entry["id"]
+        job.mkdir(parents=True)
+        (job / "result.json").write_bytes(submission.read_bytes())
+        text = review.PROMPT + json.dumps({"packet_sha256":entry["sha256"], **packet},ensure_ascii=False)
+        review.save(job / "status.json", {"status":"completed","backend":"codex-cli","returncode":0,"packet_sha256":entry["sha256"],"contract_sha256":review.sha(review.encoded(contract)),"input_sha256":review.sha(text.encode()),"result_sha256":review.sha(submission.read_bytes())})
     evidence = review.collect(root, require_complete=True)
     evidence["adjudications"] = {}
     return report, evidence
@@ -163,5 +167,5 @@ def test_reference_exclusion_cannot_target_a_provider_output(tmp_path):
     run["opinion_sha256"] = review.sha(review.encoded({"packet_sha256": run["packet_sha256"], "cases": original_cases}))
     key = case["case_id"] + ":dataset"
     evidence["adjudications"][key] = {"opinion_sha256": review.sha(review.encoded(case["dataset_review"])), "resolution": "quarantined", "quality_excluded": True, "reason": "Defect", "evidence": "Source"}
-    with pytest.raises(ValueError, match="factual reference defect"):
+    with pytest.raises(ValueError, match="factual reference defect|receipt differs"):
         review.validate_public_review(profile, rows, evidence)

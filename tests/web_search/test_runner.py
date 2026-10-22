@@ -38,13 +38,13 @@ class CollectionScenarios(unittest.TestCase):
                 patch.dict(os.environ, LEXMOUNT_SEARCH_API_KEY="test", DEEPSEEK_API_KEY="test", BOCHA_API_KEY="test"),
             ):
                 with self.assertRaisesRegex(ValueError, "Provider account error"):
-                    run(p, root / "run")
+                    run(p, root / "run", certified=True)
                 original = (root / "run/results.jsonl").read_bytes()
                 # A process can stop partway through the final row write.
                 with (root / "run/results.jsonl").open("ab") as stream:
                     stream.write(b'{"id":"incomplete')
                 recovered = True
-                run(p, root / "run", resume=True)
+                run(p, root / "run", resume=True, certified=True)
             _, rows, receipt = load_run(root / "run")
             self.assertEqual(len(calls), 10)  # four interrupted calls, then both three-method cases
             self.assertEqual(len(rows), 6)
@@ -84,7 +84,7 @@ class CollectionScenarios(unittest.TestCase):
                     patch.dict(os.environ, LEXMOUNT_SEARCH_API_KEY="test", DEEPSEEK_API_KEY="test", BOCHA_API_KEY="test"),
                 ):
                     with self.assertRaisesRegex(ValueError, "Provider account error"):
-                        run(p, root / "run")
+                        run(p, root / "run", certified=True)
                 self.assertEqual(len(calls), 2)
                 self.assertEqual(len(set(calls)), 1)  # no spending on the next participant
                 rows = (root / "run/results.jsonl").read_text().splitlines()
@@ -139,7 +139,7 @@ class CollectionScenarios(unittest.TestCase):
                 patch("harness.web_search.runner.load_runtime_env"),
                 patch.dict(os.environ, LEXMOUNT_SEARCH_API_KEY="test", DEEPSEEK_API_KEY="test", BOCHA_API_KEY="test"),
             ):
-                run(p, root / "run")
+                run(p, root / "run", certified=True)
             _, rows, receipt = load_run(root / "run")
             self.assertEqual(len(order), 4)
             self.assertEqual(len(rows), 3)
@@ -168,7 +168,7 @@ class CollectionScenarios(unittest.TestCase):
                 patch.dict(os.environ, LEXMOUNT_SEARCH_API_KEY="test", DEEPSEEK_API_KEY="test", BOCHA_API_KEY="test"),
             ):
                 with self.assertRaises(ValueError):
-                    run(p, root / "run")
+                    run(p, root / "run", certified=True)
             self.assertEqual(call.call_count, 1)
 
     def test_failed_call_retries_once_and_only_final_response_is_scored(self):
@@ -194,7 +194,7 @@ class CollectionScenarios(unittest.TestCase):
                 patch("harness.web_search.runner.load_runtime_env"),
                 patch.dict(os.environ, DEEPSEEK_API_KEY="test"),
             ):
-                run(p, root / "run")
+                run(p, root / "run", certified=True)
             _, rows, _ = load_run(root / "run")
             self.assertEqual(len(calls), 2)
             self.assertEqual(len(rows), 1)
@@ -227,7 +227,7 @@ class CollectionScenarios(unittest.TestCase):
                 patch("harness.web_search.runner.load_runtime_env"),
                 patch.dict(os.environ, DEEPSEEK_API_KEY="test"),
             ):
-                run(p, root / "run")
+                run(p, root / "run", certified=True)
             _, rows, _ = load_run(root / "run")
             self.assertEqual(len(calls), 1)
             self.assertEqual(rows[0]["results"], [])
@@ -355,7 +355,7 @@ def test_subprocess_timeout_retries_and_finishes_the_complete_matrix():
         with (patch('harness.web_search.runner.subprocess.run',side_effect=subprocess_call),
               patch('harness.web_search.runner.load_runtime_env'),
               patch.dict(os.environ, DEEPSEEK_API_KEY='fixture')):
-            run(profile_path,root/'run')
+            run(profile_path,root/'run', certified=True)
         _, rows, receipt = load_run(root/'run')
         assert len(rows) == 1 and receipt['certified']
         assert len(provider_calls) == 2
@@ -365,8 +365,7 @@ def test_subprocess_timeout_retries_and_finishes_the_complete_matrix():
         assert (root/'run'/rows[0]['attempts'][0]['evidence']['path']).read_bytes() == b'partial upstream response'
 
 
-def test_certified_entry_dispatch_keeps_diagnostic_collection_uncertified(tmp_path):
-    from harness.web_fetch.certification import main as certified_main
+def test_direct_diagnostic_collection_remains_uncertified(tmp_path):
     profile_path = CollectionScenarios().profile(tmp_path)
     profile = json.loads(profile_path.read_text())
     profile['methods'] = [profile['methods'][1]]
@@ -380,7 +379,8 @@ def test_certified_entry_dispatch_keeps_diagnostic_collection_uncertified(tmp_pa
     with (patch('harness.web_search.runner.http_call',side_effect=lambda url,body=None,*args,**kwargs:http(url,body)),
           patch('harness.web_search.runner.load_runtime_env'),
           patch.dict(os.environ,DEEPSEEK_API_KEY='fixture')):
-        certified_main(['web-search','--profile',str(profile_path),'--output',str(tmp_path/'run'),'--diagnostic'])
+        from harness.web_search.runner import main as direct_main
+        direct_main(['--profile',str(profile_path),'--output',str(tmp_path/'run'),'--diagnostic'])
     receipt = json.loads((tmp_path/'run/receipt.json').read_text())
     assert receipt['complete'] is True
     assert receipt['certified'] is False

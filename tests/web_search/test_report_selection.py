@@ -92,7 +92,7 @@ def test_comparison_report_has_owned_chapters_and_bound_populations(tmp_path):
     home = BeautifulSoup((output / 'index.html').read_text(), 'html.parser')
     assert len(home.select('[data-executive]')) == 1
     assert len(home.select('[data-discovery] tbody tr')) == 1
-    assert [node['data-population'] for node in home.select('[data-population]')] == ['custom']
+    assert [node['data-population'] for node in home.select('[data-population]')] == ['overall', 'scenario']
     assert not home.select('[data-modes]')
     assert 'Chapter-specific text.' not in home.get_text()
     assert '章节专属说明。' in (output / 'capabilities.html').read_text()
