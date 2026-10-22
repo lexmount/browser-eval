@@ -287,6 +287,10 @@ if (site) {
     fs.readFileSync(path.join(site, "data/model.json"), "utf8"),
   );
   for (const lang of languages) {
+    const changedInputs = render({...measured, input_definition_variants: {first: {}, second: {}}}, lang, "inputVersionNote()");
+    assert.ok(changedInputs.includes('data-input-definition-variants="2"'));
+    assert.ok(changedInputs.includes(String(measured.task_count - 2)));
+    assert.equal(render({...measured, input_definition_variants: {}}, lang, "inputVersionNote()"), "");
     for (const [off, on, official, layoutNet, versionNet] of [
       [4, 2, 3, -2, -1], [1, 4, 2, 3, 2], [2, 2, 2, 0, 0],
     ]) {
@@ -347,7 +351,7 @@ if (site) {
       for (let page of ["home()", "guidePage()"]) {
         const html = render(measured, lang, page);
         resourceHighlights(html);
-        assert.ok(html.includes("moli-all-success-resources-"));
+        assert.ok(html.includes("comparison-all-success-resources-"));
         assert.equal((html.match(/data-combined-chart/g) || []).length, 1);
         assert.equal(
           (html.match(/data-functional-method=/g) || []).length,

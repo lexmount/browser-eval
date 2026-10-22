@@ -347,7 +347,7 @@ function functionalMethodSummary() {
   );
 }
 function combinedSummaryChart() {
-  const chart = `moli-all-success-resources-${zh ? "zh" : "en"}.svg`;
+  const chart = `comparison-all-success-resources-${zh ? "zh" : "en"}.svg`;
   return `<figure class="summary-chart" data-combined-chart><img src="${base}assets/${chart}" alt="${esc(zh ? `${M.functional_methods.length} 种固定配置的成功率与资源，顺序与总表一致，以 1.1.4 关闭布局为基线` : `${M.functional_methods.length} fixed configurations, aligned with the summary table; baseline: 1.1.4 layout off`)}"></figure>`;
 }
 function resourceBuildNote() {
@@ -533,10 +533,11 @@ function unifiedResourceSection() {
       zh ? "1.1.4 / 1.1.8 资源证据" : "1.1.4 / 1.1.8 resource evidence",
     ],
     [
-      M.linux_resource_profiles.evidence,
+      M.linux_resource_profiles?.evidence,
       zh ? "1.1.9 测量与校准证据" : "1.1.9 measurements and calibration",
     ],
   ]
+    .filter(([evidence]) => evidence?.url && evidence?.sha256)
     .map(
       ([evidence, label]) =>
         `<button data-evidence="${esc(evidence.url)}" data-sha="${esc(evidence.sha256)}" data-title="${esc(label)}">${esc(label)}</button>`,
@@ -714,6 +715,15 @@ function statusChip(s) {
 function simpleCard(label, value, detail) {
   return card(label, `<span>${value}</span>`, esc(detail));
 }
+function inputVersionNote() {
+  const count = Object.keys(M.input_definition_variants || {}).length;
+  if (!count) return "";
+  const shared = M.task_count - count;
+  return `<p class="scope-note" data-input-definition-variants="${count}">${esc(zh
+    ? `${count} 题在不同配置中使用了不同版本的任务定义，其余 ${shared} 题定义一致。表中保留各配置按当时任务版本取得的成绩。`
+    : `${count} tasks used different definition versions across configurations; the other ${shared} used identical definitions. Scores retain each configuration's measured task version.`)}</p>`;
+}
+
 function home() {
   return (
     hero(
@@ -722,6 +732,7 @@ function home() {
       `<a class="button" href="${link("analysis")}">${esc(T.nav.analysis)}</a><a class="button secondary" href="${link("method")}">${esc(T.method)}</a>`,
     ) +
     functionalMethodSummary() +
+    inputVersionNote() +
     combinedSummaryChart() +
     `<details class="resource-disclosure"><summary>${esc(zh ? "查看完整资源统计与测量范围" : "Inspect resource statistics and measurement scope")}</summary>${candidateResourceSection()}</details>` +
     section(
@@ -1481,6 +1492,7 @@ function guidePage() {
   return (
     hero(T.nav.guide, reportSubtitle()) +
     functionalMethodSummary() +
+    inputVersionNote() +
     combinedSummaryChart() +
     (relations.length ? section(
       zh ? "配置之间的通过与失败变化" : "Pass and failure changes between configurations",

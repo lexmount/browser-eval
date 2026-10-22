@@ -382,3 +382,26 @@ def test_measurement_display_policy_does_not_grant_certification():
  assert '不可用于排名' in local_audit_banner(local)
  local['comparison']['presentation']={'ranking':'saved_task_pass_rate'}
  assert 'data-ranking-scope="saved-task-pass-rate"' in local_audit_banner(local)
+
+
+def test_input_suite_comparison_uses_declared_membership_and_selected_denominators():
+ from harness.web_fetch.report import input_suite_comparison
+ from bs4 import BeautifulSoup
+ cases={cid:{'id':cid,'task_kind':'body'} for cid in ['misleading-id','other-id']}
+ dataset={'comparison':{'input_sources':[
+  {'path':'first/dataset.json','case_ids':['other-id','unselected-parent-case']},
+  {'path':'second/dataset.json','case_ids':['misleading-id']}],
+  'report_suite_labels':{'first/dataset.json':{'zh':'正文','en':'Body'}}}}
+ rows=[{'case_id':cid,'provider':provider,'ok':True,'metrics':{'content_pass':passed}}
+  for provider,passed in [('one',True),('two',False)] for cid in cases]
+ html=input_suite_comparison(dataset,cases,rows); soup=BeautifulSoup(html,'html.parser')
+ assert '正文' in html and 'n=1' in html and 'n=2' not in html
+ assert len(soup.select('.comparison-winner'))==2
+ assert [cell['data-sort'] for cell in soup.select('tbody tr:first-child td[data-sort]')]==['1.0','1.0']
+ for source in dataset['comparison']['input_sources']:source['case_ids']=['misleading-id']
+ import pytest
+ with pytest.raises(ValueError,match='overlapping'):
+  input_suite_comparison(dataset,cases,rows)
+ dataset['comparison']['input_sources']=dataset['comparison']['input_sources'][:1]
+ with pytest.raises(ValueError,match='omits'):
+  input_suite_comparison(dataset,cases,rows)

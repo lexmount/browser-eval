@@ -36,7 +36,7 @@ from .report_components import (
  tabs,
  task_instruction,
 )
-from .report_interfaces import HEADLESS_ACCESS, method_access, method_version, method_provenance
+from .report_interfaces import HEADLESS_ACCESS, method_access, method_version, method_versions, method_provenance
 from .report_methods import PROFILES, adoption_counts
 from .report_resources import render_resource_comparison
 from .report_style import STYLE
@@ -1919,6 +1919,43 @@ def title_diagnostics(groups,selected,base,identifier):
   '<p>该诊断回答“已经返回的条目标题是否完整、干净”，不衡量榜单召回率、实时性或整页正文质量。</p>'+steps
   +table(['方法','标题完整度','标题纯净度','标题 F1','标题参考覆盖（可评分 / 返回）'],rows,identifier+'-titles',True,metrics=[])+ '</details>')
 
+def input_suite_comparison(dataset, cases, records):
+ """Compare the selected input groups declared by the frozen source inventory."""
+ sources=dataset.get('comparison',{}).get('input_sources',[])
+ if not sources or not any('case_ids' in source for source in sources):return ''
+ labels=dataset.get('comparison',{}).get('report_suite_labels',{})
+ selected=set(cases);seen=set();groups=[]
+ for index,source in enumerate(sources,1):
+  ids=set(source.get('case_ids',[])) & selected
+  if seen & ids:raise ValueError('Input suite comparison contains overlapping tasks')
+  seen |= ids
+  if ids:
+   label=labels.get(source.get('path'),{})
+   title=model_text(label.get('zh',f'输入组 {index}'),label.get('en',f'Input group {index}'))
+   groups.append((ids,title))
+ if seen != selected:raise ValueError('Input suite comparison omits selected tasks')
+ providers=sorted({row['provider'] for row in records});rows=[]
+ for provider in providers:
+  values=cell(link('providers/'+provider+'.html',provider_label(provider)))
+  for ids,_ in groups:
+   subset=[row for row in records if row['provider']==provider and row['case_id'] in ids]
+   if {row['case_id'] for row in subset} != ids or len(subset)!=len(ids):
+    raise ValueError('Input suite comparison requires one result per method and task')
+   available=[row for row in subset if measured(row,cases[row['case_id']])]
+   passed=sum(succeeded(row,cases[row['case_id']]) for row in available)
+   value=f'{passed}/{len(available)} · '+rate(passed,len(available))
+   if len(available)!=len(ids):value+=' · '+model_text(f'{len(ids)-len(available)} 题未评分',f'{len(ids)-len(available)} unscored tasks')
+   values+=cell(value,passed/len(available) if available else -1)
+  rows.append(('',values))
+ directions={index+1:(f'input-suite-{index+1}','max') for index in range(len(groups))}
+ rows=comparative_rows(rows,directions)
+ return section(model_text('按输入组比较','Comparison by input group'),
+  '<p>'+model_text('按冻结输入清单分组；分母是本轮选中的可评分任务。这些样本用于检查特定场景，不代表随机网页分布。',
+   'Groups follow the frozen input inventory; denominators count selected, scored tasks. These samples test particular scenarios and do not represent randomly sampled webpages.')+'</p>'+
+  table([model_text('方法','Method')]+[title+f' · n={len(ids)}' for ids,title in groups],rows,'input-suite-comparison',metrics=[]),
+  'input-suite-comparison-section')
+
+
 def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None):
  excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
  records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
@@ -2172,6 +2209,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  if score_audit:overall_title='任务通过情况'
  budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
  home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None),'overall-ranking')
+ home+=input_suite_comparison(dataset,cases,records)
  if diagnostic and not score_audit:
   home+=result_ledger_section(out,records)
   low=[r for r in records if not r['metrics'].get('evaluation_excluded') and succeeded(r,cases[r['case_id']]) and cases[r['case_id']].get('ground_truth_main_content') and r['metrics'].get('word_precision') is not None and r['metrics']['word_precision']<.3]
@@ -2806,7 +2844,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  provider_rows=[]
  for name in sorted({r['provider'] for r in records}):
   subset=[r for r in records if r['provider']==name]
-  versions=sorted({str(value) for r in subset if (value:=method_version(r,provenance))})
+  versions=method_versions(subset,provenance)
   identities=[p.get('implementation_identity',{}) for m in manifests for p in m.get('providers',[]) if p.get('name')==name]
   versions=versions or sorted({str(identity['reported_version']) for identity in identities if identity.get('reported_version')})
   versions=versions or sorted({str(identity['repository']['head']) for identity in identities if identity.get('repository',{}).get('head')})

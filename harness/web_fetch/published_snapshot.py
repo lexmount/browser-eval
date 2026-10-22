@@ -191,6 +191,8 @@ def build_snapshot_audit(source, output, *, profile):
             (staging/'report-assets').mkdir(exist_ok=True)
             shutil.copy2(inputs['release_history'],staging/'report-assets/report-changes.json')
         comparison = dataset.setdefault('comparison', {})
+        if config.get('report_suite_labels'):
+            comparison['report_suite_labels'] = config['report_suite_labels']
         if 'method_registry' in inputs:
             comparison['method_registry'] = json.loads(inputs['method_registry'].read_text())
         for key in ('independent_review', 'report_interpretation'):

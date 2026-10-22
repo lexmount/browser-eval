@@ -58,5 +58,16 @@
       "profile": "release",
       "target": "aarch64-unknown-linux-gnu"
     }
+  },
+  "paths": {
+    "cohort": "runs/moli-1.1.8-failures-linux/report-cohort.json",
+    "source": "scripts/moli_report",
+    "output": "reports/moli-1.1.8-failures-site",
+    "runner": "work/moli-1.1.8-failures-linux",
+    "version_runs": "runs/moli-114-118-memory-repro",
+    "version_candidate": "runs/moli-114-118-memory-repro/114_off_differential_candidate_20260920",
+    "vendor_dir": "reports/moli-1.1.8-failures-src",
+    "functional_correction": "runs/moli-method-corrections-20260920",
+    "layout_policy_runner": "work/lexbench-layout-policy-v3"
   }
 }

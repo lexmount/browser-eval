@@ -185,6 +185,7 @@ def test_report_rejects_changed_protocol_and_partial_scope_before_output(
             sys.executable,
             *(["-O"] if optimized else []),
             str(root / "scripts/moli_report/build.py"),
+            "--profile", str(Path(__file__).resolve().parents[1] / "evaluation/moli/current-report.json"),
             "--cohort",
             str(evidence / "report-cohort.json"),
             "--output",
@@ -240,6 +241,7 @@ def test_report_rejects_certificate_paths_outside_declared_regular_evidence(tmp_
         [
             sys.executable,
             str(Path(__file__).resolve().parents[1] / "scripts/moli_report/build.py"),
+            "--profile", str(Path(__file__).resolve().parents[1] / "evaluation/moli/current-report.json"),
             "--cohort",
             str(evidence / "report-cohort.json"),
             "--output",
@@ -369,3 +371,61 @@ def test_matrix_results_without_hash_binding_are_rejected_before_reading(tmp_pat
     monkeypatch.setattr(Path, "read_bytes", read_bytes)
     with pytest.raises(ValueError, match="results are missing their hash binding"):
         load_matrix(directory, {}, {})
+
+
+def test_report_requires_a_profile_instead_of_selecting_a_private_instance(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run([sys.executable, str(root / 'scripts/moli_report/build.py')],
+                            cwd=tmp_path, text=True, capture_output=True)
+    assert result.returncode != 0
+    assert '--profile' in result.stderr and 'required' in result.stderr
+
+
+def test_profile_selects_external_evidence_and_output_without_legacy_paths(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    evidence = tmp_path / 'other-product'
+    write_json(evidence / 'report-cohort.json', {'strata': {}})
+    write_json(evidence / 'report-runs.json', {})
+    write_json(evidence / 'protocol.json', {})
+    write_json(evidence / 'certification.json', {'protocol_sha256': '0' * 64})
+    profile = tmp_path / 'profile.json'
+    write_json(profile, {'resource_population': {'tasks': 1, 'attempts_per_task': 1,
+        'chart_tasks': 1, 'chart_calls': 1}, 'paths': {
+        'cohort': str(evidence / 'report-cohort.json'), 'output': str(tmp_path / 'other-report'),
+        'source': str(root / 'scripts/moli_report'), 'runner': str(evidence),
+        'version_runs': str(evidence), 'version_candidate': str(evidence / 'candidate'),
+        'vendor_dir': str(evidence), 'functional_correction': str(evidence),
+        'layout_policy_runner': str(evidence)}})
+    result = subprocess.run([sys.executable, str(root / 'scripts/moli_report/build.py'),
+                             '--profile', str(profile)], cwd=tmp_path, text=True, capture_output=True)
+    assert result.returncode != 0
+    assert 'Protocol hash mismatch' in result.stderr
+    assert not (tmp_path / 'other-report').exists()
+
+
+@pytest.mark.parametrize('change', ['none', 'attempt', 'source'])
+def test_comparison_reads_only_the_declared_task_bytes(tmp_path, change):
+    from harness.lexbench.report import read_comparison_task
+    frozen = b'{"task_id":"one","expected":"original"}'
+    path = tmp_path / 'one.json'
+    path.write_bytes(frozen)
+    digest = hashlib.sha256(frozen).hexdigest()
+    expected = 'a' * 64 if change == 'attempt' else digest
+    if change == 'source':
+        path.write_bytes(b'{"task_id":"one","expected":"different"}')
+    if change == 'none':
+        assert read_comparison_task([tmp_path], 'one.json', expected_sha256=expected) == frozen
+    else:
+        with pytest.raises(ValueError, match='[Tt]ask'):
+            read_comparison_task([tmp_path], 'one.json', expected_sha256=expected)
+
+
+def test_comparison_selects_the_bound_version_when_a_working_copy_changed(tmp_path):
+    from harness.lexbench.report import read_comparison_task
+    first, second = tmp_path / 'workspace', tmp_path / 'frozen'
+    first.mkdir(); second.mkdir()
+    (first / 'one.json').write_bytes(b'changed workspace')
+    data = b'original frozen input'
+    (second / 'one.json').write_bytes(data)
+    assert read_comparison_task([first, second], 'one.json',
+        expected_sha256=hashlib.sha256(data).hexdigest()) == data

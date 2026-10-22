@@ -175,7 +175,7 @@ def validate(model, site, check_files=True):
         for language in languages:
             expected = pathlib.Path(directory) / f"{language}.svg"
             render_chart(combined, expected, ("memory", "cpu"), language)
-            actual = site / f"assets/moli-all-success-resources-{language}.svg"
+            actual = site / f"assets/comparison-all-success-resources-{language}.svg"
             if not actual.is_file() or actual.read_bytes() != expected.read_bytes():
                 fail("combined chart does not match measured registry")
     candidates = model.get("fixed_candidates") or {}
@@ -518,7 +518,7 @@ def validate(model, site, check_files=True):
                 ):
                     fail("macOS chart metric or change")
         for lang in languages:
-            path = site / f"assets/moli-macos-success-resources-{lang}.svg"
+            path = site / f"assets/comparison-macos-success-resources-{lang}.svg"
             if (
                 not path.is_file()
                 or "RSS" not in path.read_text()
@@ -758,9 +758,9 @@ def validate(model, site, check_files=True):
     ):
         fail("version comparison data target")
     charts = {
-        "zh": (site / "assets/moli-version-success-resources-zh.svg", "372 题成功率与资源消耗"),
+        "zh": (site / "assets/comparison-version-success-resources-zh.svg", "372 题成功率与资源消耗"),
         "en": (
-            site / "assets/moli-version-success-resources-en.svg",
+            site / "assets/comparison-version-success-resources-en.svg",
             "Success on 372 cases vs. resource use",
         ),
     }

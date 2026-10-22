@@ -120,6 +120,20 @@ def method_version(record, provenance=None):
  return value or meta.get('binary_version') or meta.get('moli_version') or meta.get('library_version') or meta.get('version')
 
 
+def method_versions(records, provenance=None):
+ """Keep distinct measured binaries visible when their reported versions coincide."""
+ versions={}
+ for record in records:
+  version=method_version(record,provenance)
+  if version:
+   versions.setdefault(str(version),set())
+   digest=(record.get('provider_metadata') or {}).get('binary_sha256')
+   if digest:versions[str(version)].add(str(digest))
+ multiple=len({digest for hashes in versions.values() for digest in hashes})>1
+ return [version+(' ['+', '.join(sorted(digest[:8] for digest in hashes))+']'
+                 if multiple and hashes else '') for version,hashes in sorted(versions.items())]
+
+
 def method_access(name, records):
  registration=browser_method_registry().get(name,{})
  if registration.get('report_access') is not None:
