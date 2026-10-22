@@ -249,3 +249,32 @@ def test_wcxb_leaders_and_interfaces_follow_participants(tmp_path, tied):
         for name in ('Moli 7.0.0', 'Moli 7.0.1'):
             assert name in method.get_text()
             assert name in interface
+
+
+@pytest.mark.parametrize('tied', [False, True])
+def test_wcxb_release_highlights_accept_actual_ties_and_reject_corruption(tmp_path, tied):
+    from harness.web_fetch.wcxb_report_check import require_comparison_highlights
+
+    inputs = create_report_inputs(tmp_path)
+    for index, stats in enumerate(inputs[2]['providers'].values()):
+        for key in ('quality_precision', 'quality_recall', 'quality_f1'):
+            stats[key] = 1.0 if tied else 1.0 - index * 0.1
+        for key in ('mean_latency_ms', 'p50_latency_ms', 'p95_latency_ms'):
+            stats[key] = 11.0 if tied else 11.0 + index
+    generate_wcxb(*inputs, include_english=True)
+    for prefix in ('', 'en/'):
+        source = (inputs[0] / prefix / 'index.html').read_text()
+        require_comparison_highlights(source)
+        page = BeautifulSoup(source, 'html.parser')
+        marked = page.select('#wcxb-core .comparison-winner')
+        assert bool(marked) is not tied
+        unmarked = next(cell for cell in page.select('#wcxb-core td[data-metric]')
+                        if not cell.select_one('.comparison-winner'))
+        unmarked.append(BeautifulSoup('<strong class="comparison-winner">wrong</strong>', 'html.parser'))
+        with pytest.raises(ValueError, match='highlight'):
+            require_comparison_highlights(page)
+        if not tied:
+            page = BeautifulSoup(source, 'html.parser')
+            page.select_one('#wcxb-core .comparison-winner').unwrap()
+            with pytest.raises(ValueError, match='highlight'):
+                require_comparison_highlights(page)

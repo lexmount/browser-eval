@@ -22,6 +22,34 @@ from harness.web_fetch.storage import data_home
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def require_comparison_highlights(html):
+    """Validate actual highlights and exercise applicable corruptions on copies."""
+    source = str(html)
+    home = check_presentation(source)
+    cells = home.select('#wcxb-core td[data-metric-direction][data-sort]')
+    require(bool(cells), 'Core comparison lacks numeric cells')
+    winner = home.select_one('#wcxb-core .comparison-winner')
+    if winner is not None:
+        winner.unwrap()
+        try:
+            check_presentation(home)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('A missing comparison highlight was accepted')
+    home = BeautifulSoup(source, 'html.parser')
+    unmarked = next((cell for cell in home.select('#wcxb-core td[data-metric-direction][data-sort]')
+                     if cell.select_one('.comparison-winner') is None), None)
+    if unmarked is not None:
+        unmarked.append(BeautifulSoup('<strong class="comparison-winner">wrong</strong>', 'html.parser'))
+        try:
+            check_presentation(home)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('An incorrect comparison highlight was accepted')
+
+
 class Page(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -395,29 +423,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
             pass
         else:
             raise AssertionError('A broken bilingual navigation link was accepted')
-    # Negative controls ensure the semantic contract rejects missing or wrong highlights.
-    home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
-    winner = home.select_one('#wcxb-core .comparison-winner')
-    require(winner is not None, 'No numeric winner for negative control')
-    winner.unwrap()
-    try:
-        check_presentation(home)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError('A missing comparison highlight was accepted')
-    home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
-    first = home.select_one('#wcxb-core .comparison-winner').find_parent('td')
-    metric = first['data-metric']
-    other = next(cell for cell in home.select('#wcxb-core td[data-metric]')
-                 if cell['data-metric'] == metric and cell is not first)
-    other.append(BeautifulSoup('<strong class="comparison-winner">wrong</strong>', 'html.parser'))
-    try:
-        check_presentation(home)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError('An incorrect comparison highlight was accepted')
+    require_comparison_highlights((root / 'index.html').read_text())
     analysis = require_analysis_controls((root / 'analysis/index.html').read_text(), len(qualified) * len(providers))
     analysis.select_one('#diagnosis-dialog [data-diagnosis-link]').decompose()
     try:
@@ -442,7 +448,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     for lang, prefix in language_pairs:
         source = guide_sources[lang]
         for selector in ('#guide-results tbody tr', '#guide-cases a',
-                         '#guide-conclusion', '#guide-results .comparison-winner'):
+                         '#guide-conclusion'):
             guide = BeautifulSoup(source, 'html.parser')
             target = guide.select_one(selector)
             require(target is not None, 'Guide lacks required interpretation evidence: ' + selector)
