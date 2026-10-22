@@ -92,7 +92,7 @@ def test_comparison_report_has_owned_chapters_and_bound_populations(tmp_path):
     home = BeautifulSoup((output / 'index.html').read_text(), 'html.parser')
     assert len(home.select('[data-executive]')) == 1
     assert len(home.select('[data-discovery] tbody tr')) == 1
-    assert not home.select('[data-population]')
+    assert [node['data-population'] for node in home.select('[data-population]')] == ['custom']
     assert not home.select('[data-modes]')
     assert 'Chapter-specific text.' not in home.get_text()
     assert '章节专属说明。' in (output / 'capabilities.html').read_text()
@@ -189,6 +189,19 @@ def test_headline_subgroups_show_actual_quality_counts_and_ranks():
         dict(groups[1], benchmark_root=True), groups[2]]}
     home = BeautifulSoup(population_summary(profile, rows, independent, False), "html.parser")
     assert [node["data-population"] for node in home.select("[data-population]")] == ["custom", "factual"]
+    from harness.web_search.report import executive_table
+    grades = [
+        {"method": "a", "case_id": "s", "ndcg": 1.0, "precision": 0.4, "success": True},
+        {"method": "b", "case_id": "s", "ndcg": 0.0, "precision": 0.0, "success": False},
+    ]
+    landing = BeautifulSoup(executive_table(profile, rows, independent, grades, True), "html.parser")
+    assert [node["data-population"] for node in landing.select("[data-population]")] == ["custom", "factual"]
+    custom = landing.select_one('[data-population="custom"]')
+    assert not custom.find_parent("details")
+    assert [x.get_text().replace("★ ", "") for x in custom.select("tbody tr")[0].select("td")][1:4] == ["100.0", "2.00 / 5", "1/1"]
+    assert [x.get_text() for x in custom.select("tbody tr")[1].select("td")][1:4] == ["0.0", "0.00 / 5", "0/1"]
+    assert landing.select_one('[data-population="factual"]').select_one("tbody td:nth-child(2)").get_text().replace("★ ", "") == "1/1 · 100.0%"
+    assert landing.select_one('a[href="quality.html#relevance-scores"]')
     from harness.web_search.report import interpretation_summary_table
     interpretation = BeautifulSoup(interpretation_summary_table(profile, rows, False, independent), "html.parser")
     assert [node["data-population"] for node in interpretation.select("[data-population]")] == ["custom", "factual"]
