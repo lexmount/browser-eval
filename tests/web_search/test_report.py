@@ -13,6 +13,31 @@ from harness.web_search.report import build, check, fairness_table, load_run, re
 
 
 class ReportScenarios(unittest.TestCase):
+    def test_reader_routes_have_distinct_owners_and_keep_evidence(self):
+        content = self.root / "concise-content.json"
+        content.write_text(json.dumps({"presentation": "comparison-report", "reading_model": True,
+                                       "sections": []}))
+        build(self.out, source=self.root / "fixture", content=content)
+        manifest = json.loads((self.out / "manifest.json").read_text())
+        routes = {route for route in manifest["routes"] if "/" not in route}
+        self.assertEqual(routes, {"index.html", "capabilities.html", "quality.html", "performance.html", "dataset.html", "results.html", "research.html"})
+        home = BeautifulSoup((self.out / "index.html").read_text(), "html.parser")
+        self.assertEqual(len(home.select('[data-executive]')), 1)
+        self.assertFalse(home.select('[data-populations]'))
+        self.assertEqual(len(home.select('[data-executive] tbody tr')), 2)
+        nav = [a['href'] for a in home.select('nav a')]
+        self.assertEqual(nav, ['index.html', 'capabilities.html', 'quality.html', 'performance.html', 'dataset.html', 'results.html'])
+        performance = BeautifulSoup((self.out / "performance.html").read_text(), "html.parser")
+        self.assertEqual(len(performance.select('[data-cost-budget]')), 1)
+        self.assertEqual(len(performance.select('[data-timing-decomposition]')), 1)
+        self.assertTrue(any('details/' in route for route in manifest['routes']))
+        self.assertTrue(check(self.out))
+        # Missing a primary reading route cannot be hidden behind a successful build.
+        home.select_one('nav a[href="quality.html"]').decompose()
+        (self.out / 'index.html').write_text(str(home))
+        with self.assertRaisesRegex(ValueError, 'Quality page'):
+            check(self.out)
+
     def test_reviewed_report_does_not_repeat_collection_counts_in_interpretation(self):
         from harness.web_search.report import cohort_summary
         profile = {"report_cohorts": [{"id": "public", "case_ids": ["good", "bad"]}],
@@ -47,7 +72,7 @@ class ReportScenarios(unittest.TestCase):
         self.assertEqual(active["report_cohorts"][0]["case_ids"], ["valid"])
         self.assertEqual(metric_populations(active, authored)[1]["case_ids"], ["valid"])
         text = BeautifulSoup(dataset_context(active, authored, True), "html.parser").get_text()
-        self.assertIn("当前有效 1 题", text)
+        self.assertIn("公开事实集1", text)
         self.assertNotIn("保留 2 题", text)
         self.assertEqual(json.dumps([profile, content], sort_keys=True), before)
 
@@ -649,9 +674,11 @@ def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
     content = tmp_path / 'content.json'; content.write_text(json.dumps({'presentation':'comparison-report','reading_model':True,'sections':[]}))
     output = tmp_path / 'final'; build(output, source=source, content=content, relevance=labels)
     home = BeautifulSoup((output/'index.html').read_text(),'html.parser')
-    headers = [h.get_text() for h in home.select('[data-populations] th')]
-    assert '搜索质量分（0–100）' in headers and '每题可用结果（条/5）' in headers
-    assert home.select_one('[data-populations] tbody td:nth-child(2)').get_text().strip('★ ') == '100.0'
+    headers = [h.get_text() for h in home.select('[data-executive] th')]
+    assert '质量分 /100 ↑' in headers
+    quality = BeautifulSoup((output/'quality.html').read_text(), 'html.parser')
+    assert '可用结果比例' in quality.get_text() and '直接满足率' in quality.get_text()
+    assert home.select_one('[data-executive] tbody td:nth-child(2)').get_text().strip('★ ') == '100.0'
     result = BeautifulSoup((output/'results.html').read_text(),'html.parser')
     assert not result.select('[data-method-filter]')  # No conflicting duplicate legacy inventory.
     data = json.loads(result.select_one('[data-comparison-data]').string)

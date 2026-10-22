@@ -90,12 +90,14 @@ def test_comparison_report_has_owned_chapters_and_bound_populations(tmp_path):
     output = tmp_path / 'comparison'
     build(output, source=tmp_path / 'fixture', content=source)
     home = BeautifulSoup((output / 'index.html').read_text(), 'html.parser')
-    assert len(home.select('[data-population]')) == 2
+    assert len(home.select('[data-executive]')) == 1
+    assert len(home.select('[data-discovery] tbody tr')) == 1
+    assert not home.select('[data-population]')
     assert not home.select('[data-modes]')
     assert 'Chapter-specific text.' not in home.get_text()
     assert '章节专属说明。' in (output / 'capabilities.html').read_text()
     assert check(output)
-    home.select_one('[data-population] td').string = 'invented method'
+    home.select_one('[data-executive] td').string = 'invented method'
     (output / 'index.html').write_text(str(home))
     with pytest.raises(ValueError, match='Population summary'):
         check(output)
@@ -212,7 +214,7 @@ def test_reference_quarantine_is_common_and_never_removes_latency_or_cost():
         assert text[1:3] == ["1/1 · 100.0%", "1/1 · 100.0%"]
         assert text[3] == "500.00"
         assert text[-1] == "0.02 元"
-    assert "全部 2 题" in soup.select_one("[data-quality-exclusions]").get_text()
+    assert "包含已隔离题的实际请求" in soup.select_one("[data-quality-exclusions]").get_text()
 
 
 def test_collection_description_separates_retries_from_logical_results(tmp_path):

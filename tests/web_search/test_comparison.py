@@ -65,7 +65,7 @@ def test_safe_serialization_registry_labels_links_and_pagination():
     assert not dom.select_one('[data-output-pages]').contents
     assert 'slice(page*size,(page+1)*size)' in page
     assert 'matches.slice(page*size,(page+1)*size)' in page
-    assert 'const size=3' in page
+    assert 'const size=1' in page
 
 
 def test_result_view_marks_exact_source_and_answer_evidence_without_a_judge():
@@ -100,7 +100,7 @@ def test_benchmark_and_task_type_filters_are_separate():
     page = render_comparison(p, rows, True)
     dom = BeautifulSoup(page, "html.parser")
     assert [o.text for o in dom.select("[data-output-benchmark] option")] == [
-        "两套评测 · 3", "自建场景集 · 2", "SimpleQA 检索诊断 · 1"
+        "两套评测 · 3", "自建场景集 · 2", "公开事实题"
     ]
     assert [o.text for o in dom.select("[data-output-check] option")] == [
         "全部题型", "目标网页发现", "指定网站约束", "通用网页查询", "事实证据"
@@ -169,3 +169,27 @@ def test_answer_beyond_body_excerpt_does_not_highlight_unmatched_preview():
     assert item["answer_fields"]["content"] is False
     assert item["answer_outside_preview"] is True
     assert "Ada" not in item["content"]
+
+
+@pytest.mark.parametrize('zh', [True, False])
+def test_one_query_per_output_page_preserves_all_providers_and_full_text(zh):
+    from harness.reporting.visual import browser_executable
+    from playwright.sync_api import sync_playwright
+    profile, rows = matrix()
+    with sync_playwright() as engine:
+        browser = engine.chromium.launch(executable_path=browser_executable(), headless=True)
+        try:
+            page = browser.new_page()
+            page.set_content(render_comparison(profile, rows, zh))
+            assert page.locator('.compare-task').count() == 1
+            assert page.locator('.compare-task h3').inner_text() == 'Find a page'
+            assert page.locator('.compare-task .compare-method').count() == 3
+            assert 's' * 10000 in page.locator('.compare-task').text_content()
+            page.locator('[data-output-next]').click()
+            assert page.locator('.compare-task').count() == 1
+            assert page.locator('.compare-task h3').inner_text() == 'Explore'
+            assert page.locator('.compare-task .compare-method').count() == 3
+            page.locator('[data-output-prev]').click()
+            assert page.locator('.compare-task h3').inner_text() == 'Find a page'
+        finally:
+            browser.close()

@@ -188,3 +188,13 @@ A completed independent reference review may quarantine a defective factual quer
 from every participant’s quality denominator. The original task, response and
 metrics remain inspectable; all-call latency and cost retain the entire cohort.
 Each exclusion must bind a dataset finding and an explicit adjudication.
+
+### Comparison report reading layout
+
+The comparison home owns the compact quality/latency/price summary and same-scope
+page/site discovery comparison. Detailed relevance and same-query specimens belong
+to the quality page; collection-specific timing, server diagnosis and billing share
+one performance page. The dataset page owns current inputs and provenance; the result
+explorer shows one query per output page without truncating full summaries or dropping
+providers. Methodology and independent review remain linked appendices. Redundant
+standalone cost and interpretation routes are not generated in this layout.
