@@ -1953,6 +1953,17 @@ def title_diagnostics(groups,selected,base,identifier):
   '<p>该诊断回答“已经返回的条目标题是否完整、干净”，不衡量榜单召回率、实时性或整页正文质量。</p>'+steps
   +table(['方法','标题完整度','标题纯净度','标题 F1','标题参考覆盖（可评分 / 返回）'],rows,identifier+'-titles',True,metrics=[])+ '</details>')
 
+def report_scope_disclosure(dataset, *, prefix=''):
+ """Render profile-authored scope notes without embedding cohort facts in code."""
+ scope=dataset.get('comparison',{}).get('report_scope_disclosure',{})
+ if not scope:return ''
+ paragraphs=''.join('<p>'+esc(model_text(item['zh'],item['en']))+'</p>' for item in scope['paragraphs'])
+ attachments=' · '.join(link(prefix+item['path'],model_text(item['zh'],item['en'])) for item in scope.get('attachments',[]))
+ return section(model_text('样本与复现范围','Sample and reproduction scope'),
+  '<div data-report-scope-disclosure>'+paragraphs+('<p>'+attachments+'</p>' if attachments else '')+'</div>',
+  'report-scope-disclosure')
+
+
 def input_suite_comparison(dataset, cases, records):
  """Compare the selected input groups declared by the frozen source inventory."""
  sources=dataset.get('comparison',{}).get('input_sources',[])
@@ -2233,6 +2244,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   guide=render_explainer(out,cases,records,table=table,cell=cell,link=link,authored=authored_interpretation)
  from .report_reading import render_archived_reading
  guide=render_archived_reading(out) or guide
+ guide=report_scope_disclosure(dataset,prefix='../')+guide
  write(out,'guide/index.html','报告解读',guide)
  panels=[]
  for track,label in tracks:
@@ -2243,6 +2255,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  if score_audit:overall_title='任务通过情况'
  budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
  home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None),'overall-ranking')
+ home+=report_scope_disclosure(dataset)
  home+=input_suite_comparison(dataset,cases,records)
  if diagnostic and not score_audit:
   home+=result_ledger_section(out,records)
@@ -2909,6 +2922,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  from .report_components import render_acceptance_scope
  if dataset.get('cases'):
   methodology+=render_acceptance_scope({case['id']:case for case in dataset['cases']},records)
+ methodology+=report_scope_disclosure(dataset,prefix='../')
  score_binding=dataset.get('comparison',{}).get('score_audit')
  if score_binding:
   methodology+=section('数据范围','<div data-scoring-input-scope><p>'+esc(f'本报告使用原有 {score_binding["total_attempts"]} 条调用记录和耗时，没有新增浏览器调用。其中 {score_binding["projected_scoring_inputs"]} 条评分输入为公开脱敏副本，{score_binding["recovered_originals"]} 条为按原哈希恢复的输出。逐项核对范围为 {score_binding["reviewed_attempts"]}/{score_binding["total_attempts"]} 条判定变化。')+'</p><p>'+link('../audit/index.html','输入差异与逐题验收记录')+'</p></div>')
