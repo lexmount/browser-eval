@@ -48,10 +48,11 @@ def test_report_uses_only_measured_methods_and_includes_all_hosted_accounts():
 
 
 def test_unknown_method_has_explicit_missing_access():
-    access = method_access('unknown-method', [])
-    assert access['type'] == 'unknown'
-    assert 'Not registered' in access['account']
-    assert access['env_vars'] == []
+    for language, label in (('zh', '未登记'), ('en', 'Not registered')):
+        access = method_access('unknown-method', [], language=language)
+        assert access['type'] == 'unknown'
+        assert access['account'] == label
+        assert access['env_vars'] == []
     assert 'unknown-method' in render_account_requirements([{'provider': 'unknown-method'}])
 
 
