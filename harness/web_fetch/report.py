@@ -3057,8 +3057,8 @@ def _wmb_latency_rerun(diagnostic,english=False,prefix='',formal_round=None):
    content='<strong class="comparison-winner">'+ms(value)+'</strong>' if won else ms(value)
    values.append(cell(content,value).replace('<td',f'<td data-metric="rerun-{key}" data-metric-direction="min"',1))
   rows.append(('',cell(esc(version))+cell(f"{run['n']}/{run['calls']}")+''.join(values)))
- body='<p>'+h('下表使用证据中登记的版本、成功调用数和全部调用数。共同任务、调用顺序与选定轮次以绑定收据为准；失败调用仍保留。',
-              'The table uses the recorded versions, successful calls and total calls. Matched tasks, call order and the selected round follow the bound receipts; failed calls remain retained.')+'</p>'
+ body='<p>'+h('三项耗时均来自成功且有正文的调用；成功数和全部调用数并列展示。版本、共同任务、调用顺序与选定轮次以绑定收据为准，失败调用仍保留。',
+              'Mean, P50 and P95 use successful calls with body text; successful and total call counts are shown together. Versions, matched tasks, call order and the selected round follow the bound receipts; failed calls remain retained.')+'</p>'
  if formal_round is not None:
   body+=f'<p class="source-note" data-timing-context="separate-diagnostic" data-formal-round="{int(formal_round)}">'+h(f'本表保留较早的诊断数据。正式主页耗时来自另一份认证收据预先选定的第 {formal_round} 轮；两者的调用和环境条件分别绑定，不混为同一次测量。',f'This table retains an earlier diagnostic. Formal home-page timing comes from preselected round {formal_round} of a separate certified receipt. Their calls and environment conditions are bound separately and are not one measurement.')+'</p>'
  body+=table([h('版本','Version'),h('成功调用 / 全部调用','Successful / all calls'),h('均值耗时','Mean latency'),h('P50 耗时','P50 latency'),h('P95 耗时','P95 latency')],rows,cls='wmb-rerun-table',metrics=[])
@@ -3358,7 +3358,7 @@ def _wmb_result_detail(r,c,output,reference,labels,metric_labels,failure_notes,c
 @with_measured_method_labels
 def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,manifests:list,review:dict|None=None,research:dict|None=None,corrections:dict|None=None,adoption_data:dict|None=None,fixture_correction:dict|None=None,teds_revision:tuple|None=None,anomaly_review:dict|None=None,latency_diagnostic:dict|None=None,*,include_english:bool=False,report_content:dict|None=None):
  """Render the current WebMainBench report with the established report shell."""
- from .report_changes import ROOT, render_webmainbench_history, webmainbench_history
+ from .report_changes import render_webmainbench_history
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
  (out/'assets/report.js').write_text(JS,encoding='utf-8')
@@ -3655,7 +3655,7 @@ flowchart LR
 
   release_path=out/'report-changes.json'
   if not release_path.is_file():
-   release_data={'schema_version':2,'releases':webmainbench_history(json.loads((ROOT/'research/report-changes.json').read_text(encoding='utf-8')))}
+   release_data={'schema_version':2,'releases':[]}
    release_path.write_text(json.dumps(release_data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
   else:
    release_data=json.loads(release_path.read_text(encoding='utf-8'))
@@ -3663,7 +3663,7 @@ flowchart LR
    ('latency-corrections.json','查看逐页纠正收据','Inspect the per-page correction receipt'),
    ('prior-latency-results.jsonl','下载原始逐页结果','Download prior per-page results'),
   ) if latency_corrected else ()
-  changes=render_webmainbench_history(release_data,english,release_links)
+  changes=(render_webmainbench_history(release_data,english,release_links) if release_data.get('releases') else '<p>'+h('尚无发布记录。','No releases recorded.')+'</p>')
   _wmb_write(out,'changes/index.html',h('变更记录','Changes'),changes,english)
 
   account_rows=[]

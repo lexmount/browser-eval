@@ -2262,18 +2262,23 @@ def _trajectory_replay_control(
         return Safe(bilingual_text(zh, en))
 
     result_rows = [
-        [ENGINE_LABELS.get(key, key), f"{value['passes']}/{value['tasks']}"]
+        [str(value.get("label") or key.capitalize()), f"{value['passes']}/{value['tasks']}"]
         for key, value in bridge["effective_results"].items()
         if isinstance(value, dict) and 'tasks' in value and 'passes' in value
     ]
     provenance = bridge["chromium_trajectory_provenance"]
+    source_labels = {
+        "authoritative_successful_browser_use_execution": text("历史成功轨迹", "Historical successful executions"),
+        "expert_repair_spec": text("专家修复轨迹", "Expert-repaired trajectories"),
+    }
     source_rows = [
-        [text("历史成功轨迹", "Historical successful executions"), provenance["successful_browser_use_execution"]],
-        [text("专家修复轨迹", "Expert-repaired trajectories"), provenance["expert_repair_spec"]],
-        *[[origin, count] for origin, count in provenance["successful_browser_use_execution_by_origin"].items()],
+        [source_labels["authoritative_successful_browser_use_execution"], provenance["successful_browser_use_execution"]],
+        [source_labels["expert_repair_spec"], provenance["expert_repair_spec"]],
+        *[[Safe(f'<span data-origin="{_e(origin)}">{_e(origin.replace("_", " × "))}</span>'), count]
+          for origin, count in provenance["successful_browser_use_execution_by_origin"].items()],
     ]
     contract_rows = [
-        [source, counts["official_task_contract"], counts["corrected_replay_contract"]]
+        [source_labels.get(source, source.replace("_", " ")), counts["official_task_contract"], counts["corrected_replay_contract"]]
         for source, counts in bridge["source_contract_counts"].items()
     ]
     body = '<section id="trajectory-replay-control"><h2>' + text(

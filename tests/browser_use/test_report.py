@@ -1592,6 +1592,12 @@ def test_replay_control_uses_selected_counts_and_origin_inventory():
     page = report_module._trajectory_replay_control(bridge)
     english = localize_html(page, PurePosixPath("analysis/index.html"))
     assert "5/7" in page and "3/7" in page
+    bridge["effective_results"]["moli"] = {"tasks": 7, "passes": 4, "label": "Replay browser 9"}
+    from unittest.mock import patch
+    with patch.dict(report_module.ENGINE_LABELS, {"moli": "Unrelated autonomous browser 99"}):
+        isolated = report_module._trajectory_replay_control(bridge)
+    assert "Replay browser 9" in isolated
+    assert "Unrelated autonomous browser 99" not in isolated
     assert "fixture-model_fixture" in page
     assert "recorded_response" in english and "HAR" in english
     for obsolete in ("90/90", "36", "37", "Task 173", "Task 676", "Colima"):

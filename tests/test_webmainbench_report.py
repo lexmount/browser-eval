@@ -361,6 +361,8 @@ class WebMainBenchReportTests(unittest.TestCase):
             changed_summaries = {("fixture-browser" if key == "chromium" else key): value for key, value in summaries.items()}
             changed_manifests = [{**row, "provider": "fixture-browser" if row["provider"] == "chromium" else row["provider"]} for row in manifests]
             generate_webmainbench(other, selected, changed, changed_summaries, changed_manifests, include_english=True)
+            import json
+            assert json.loads((other / "report-changes.json").read_text())["releases"] == []
             for prefix in ("", "en/"):
                 methods = (other / prefix / "adoption/index.html").read_text()
                 assert "Fixture Browser 204" in methods
