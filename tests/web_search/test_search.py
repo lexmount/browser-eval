@@ -308,3 +308,13 @@ class ConstraintOutcomeScenarios(unittest.TestCase):
         self.assertEqual(
             classify({"family": "web"}, {**row, "http_status": 503}), ("fail", "api_error")
         )
+
+
+def test_ten_result_task_uses_the_same_acceptance_as_its_classifier():
+    from harness.web_search.core import classify, task_acceptance
+    case = {"id": "q", "anchors": ["https://example.org/answer"]}
+    row = {"results": [{"url": "https://example.org/" + str(i)} for i in range(9)] + [{"url": case["anchors"][0]}]}
+    assert task_acceptance(case, row, cutoff=10)
+    assert classify(case, row, cutoff=10)[0] == "pass"
+    assert not task_acceptance(case, row, cutoff=5)
+    assert classify(case, row, cutoff=5)[0] == "fail"

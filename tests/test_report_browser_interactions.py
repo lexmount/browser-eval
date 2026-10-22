@@ -1,6 +1,6 @@
 """Real browser checks of maintained report controls on small local fixtures.
 
-One browser/viewport; no provider calls, published report, or screenshot matrix.
+Small component fixtures cover desktop/light and narrow/dark without provider calls or published reports.
 """
 import http.server
 import json
@@ -12,6 +12,12 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 from harness.reporting.visual import browser_executable, local_report_server
+
+
+@pytest.fixture(params=[({"width": 1280, "height": 900}, "light"), ({"width": 390, "height": 844}, "dark")])
+def display(request):
+    viewport, theme = request.param
+    return {"viewport": viewport, "color_scheme": theme}
 
 
 @pytest.fixture(scope="module")
@@ -28,7 +34,7 @@ def browser():
         instance.close()
 
 
-def test_browser_use_sort_filter_restore_and_keyboard_dialog(tmp_path, browser):
+def test_browser_use_sort_filter_restore_and_keyboard_dialog(tmp_path, browser, display):
     from harness.browser_use.report import REPORT_JS
 
     (tmp_path / "app.js").write_text(REPORT_JS)
@@ -45,7 +51,7 @@ def test_browser_use_sort_filter_restore_and_keyboard_dialog(tmp_path, browser):
     <dialog id="detail" aria-label="Evidence"><button onclick="closeDiagnosis('detail')">Close</button>
     <pre>Exact evaluator error</pre></dialog></body></html>''')
     with local_report_server(tmp_path) as origin:
-        page = browser.new_page()
+        page = browser.new_page(**display)
         try:
             page.goto(origin)
             page.locator('th button').click()
@@ -87,7 +93,7 @@ def hosted_preview(root):
         thread.join(timeout=5)
 
 
-def test_replay_real_assets_evidence_dialog_and_private_nested_navigation(tmp_path, browser):
+def test_replay_real_assets_evidence_dialog_and_private_nested_navigation(tmp_path, browser, display):
     from harness.trajectory_replay.webarena_report import _assets, _shell
 
     _assets(tmp_path)
@@ -106,7 +112,7 @@ def test_replay_real_assets_evidence_dialog_and_private_nested_navigation(tmp_pa
     (tmp_path / 'data/results.json').write_text(json.dumps([{'key':'fixture','browser':'Synthetic','task_id':1,'failure_stage':'official_evaluation'}]))
     (tmp_path / 'data/evidence/fixture.json').write_text(json.dumps({'official_evaluation':{'error':'Expected mutation was absent'}}))
     with hosted_preview(tmp_path) as origin:
-        page = browser.new_page()
+        page = browser.new_page(**display)
         try:
             page.goto(origin + 'results.html')
             page.wait_for_selector('[data-results][data-results-ready=true]')
@@ -125,7 +131,7 @@ def test_replay_real_assets_evidence_dialog_and_private_nested_navigation(tmp_pa
             page.close()
 
 
-def test_wcxb_generated_filter_and_diagnosis_keyboard_return(tmp_path, browser):
+def test_wcxb_generated_filter_and_diagnosis_keyboard_return(tmp_path, browser, display):
     from harness.web_fetch.report import generate_wcxb
     from tests.wcxb_fixture import create_report_inputs
 
@@ -133,7 +139,7 @@ def test_wcxb_generated_filter_and_diagnosis_keyboard_return(tmp_path, browser):
     root = inputs[0]
     generate_wcxb(*inputs)
     with local_report_server(root) as origin:
-        page = browser.new_page()
+        page = browser.new_page(**display)
         try:
             page.goto(origin + '/analysis/index.html')
             page.locator('#scope').select_option('all')
@@ -154,7 +160,7 @@ def test_wcxb_generated_filter_and_diagnosis_keyboard_return(tmp_path, browser):
             page.close()
 
 
-def test_moli_actual_evidence_loader_search_and_keyboard_return(tmp_path, browser):
+def test_moli_actual_evidence_loader_search_and_keyboard_return(tmp_path, browser, display):
     from pathlib import Path
 
     source = Path(__file__).resolve().parents[1] / 'scripts/moli_report'
@@ -168,7 +174,7 @@ def test_moli_actual_evidence_loader_search_and_keyboard_return(tmp_path, browse
     (tmp_path / 'data/model.json').write_text(json.dumps({'cases': [], 'functional_methods': []}))
     (tmp_path / 'data/log.txt').write_text('Exact fixture error\nExpected mutation missing')
     with local_report_server(tmp_path) as origin:
-        page = browser.new_page()
+        page = browser.new_page(**display)
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
         try:

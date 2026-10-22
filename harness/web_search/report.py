@@ -117,7 +117,9 @@ def _redact_url_userinfo(raw):
             return match.group(0)
         return match.group(1) + b"REDACTED:REDACTED@" + authority.rsplit(b"@", 1)[1]
 
-    return re.sub(rb'(https?://)([^/?#\s"<>\\,;]+)', replace, raw, flags=re.IGNORECASE)
+    raw = re.sub(rb'(https?://)([^/?#\s"<>\\]*:[^/?#\s"<>\\]*@[^/?#\s"<>\\]+)', replace, raw, flags=re.IGNORECASE)
+    return re.sub(rb"(https?://)([^/?#\s\"<>\\'()]+)", replace, raw, flags=re.IGNORECASE)
+
 
 
 def public_calls(profile, rows, source, sources):
@@ -419,6 +421,8 @@ def build(
     assessment_revision = None
     if authored.get("assessment_revision"):
         from .scoring import apply_report_revision
+        from .scoring import validate_revision_binding
+        validate_revision_binding(authored["assessment_revision"])
         profile, rows, changes = apply_report_revision(profile, rows, authored["assessment_revision"])
         assessment_revision = {"contract": authored["assessment_revision"], "changes": changes, "implementation_sha256": {name: digest((Path(__file__).parent / name).read_bytes()) for name in ("scoring.py", "core.py", "answer_rules.py")}}
     profile, rows = project_comparison(profile, rows, authored)
@@ -609,7 +613,7 @@ def build(
                     link = document.new_tag("a", href=posixpath.join(site_prefix, prefix, target))
                     link.string = label
                     if target == "review.html":
-                        link.string = label + f" · {review_data['case_reviewed']}/{review_data['case_total']}"
+                        link.string = label + f" · {review_data['case_reviewed']}/{review_data['case_total']}" + t(" queries · ", " 题 · ") + f"{review_data['output_reviewed']}/{review_data['output_total']}" + t(" outputs", " 份输出")
                         link['data-review-coverage'] = ''
                         link['data-reviewed-queries'] = f"{review_data['case_reviewed']}/{review_data['case_total']}"
                         link['data-reviewed-outputs'] = f"{review_data['output_reviewed']}/{review_data['output_total']}"
@@ -790,7 +794,7 @@ def build(
                     )
                     + "</section>"
                 )
-        if not reading_sections and authored.get("presentation") != "comparison-report":
+        if not any(c["key"] == "speed" for c in reading_sections) and authored.get("presentation") != "comparison-report":
             body += mode_panel(profile, selected, zh)
         if authored.get("presentation") == "comparison-report":
             body = authored_sections(authored, "lead", lang, rows=selected)
@@ -909,7 +913,7 @@ def build(
         for r in selected:
             cid = r["case_id"]
             c = bycase[cid]
-            status, reason = classify(c, r)
+            status, reason = classify(c, r, cutoff=cutoff)
             query_relevance = next((x for x in (relevance_scores or []) if x["case_id"] == cid and x["method"] == r["method"]), None)
             reason_label = {
                 "api_error": t("API or transport error", "接口或传输错误"),
@@ -1080,6 +1084,21 @@ def build(
             detail += "<h2>" + t("Returned results", "返回结果") + "</h2>"
             for item_index, item in enumerate(r["results"]):
                 detail += f'<article class="specimen"><a href="{esc(item["url"])}">{esc(item["title"])}</a><p>{esc(item["snippet"])}</p><button data-evidence="{ev}" data-result="{item_index}">{t("Summary and content", "查看摘要与正文")}</button></article>'
+            detail_doc = BeautifulSoup(detail, "html.parser")
+            detail_doc.select_one("[data-summary]")["data-result-summary"] = ""
+            for pre in list(detail_doc.select("pre")):
+                if pre.find_parent("details") is None:
+                    disclosure = detail_doc.new_tag("details")
+                    label = detail_doc.new_tag("summary")
+                    label.string = t("Inspect evidence", "查看证据")
+                    pre.wrap(disclosure)
+                    disclosure.insert(0, label)
+            diagnosis_node = detail_doc.new_tag("section", id="result-logs")
+            diagnosis_node["data-failure-diagnosis"] = ""
+            error_node = detail_doc.select_one("[data-error]")
+            error_node["data-kind"] = "error"
+            error_node.parent.wrap(diagnosis_node)
+            detail = '<section data-report-detail="' + ("failed" if status == "fail" else "passed") + '">' + str(detail_doc) + '</section>'
             page(target, cid + " / " + method_labels[r["method"]], detail)
         options = [
             ("fail", t("Target miss / error", "目标未命中／错误")),
@@ -1294,8 +1313,14 @@ def check(output, *, return_data=False, evidence_only=False):
             if prefix + "review.html" not in manifest["routes"]:
                 raise ValueError("Independent review page is missing")
             soup = BeautifulSoup((output / (prefix + "index.html")).read_text(), "html.parser")
-            if not soup.select_one("[data-review-coverage]"):
-                raise ValueError("Independent review coverage is absent from the summary")
+            coverage = soup.select_one("[data-review-coverage]")
+            query_scope = f"{review_data['case_reviewed']}/{review_data['case_total']}"
+            output_scope = f"{review_data['output_reviewed']}/{review_data['output_total']}"
+            if coverage is None or any(value not in coverage.get_text() for value in (query_scope, output_scope)):
+                raise ValueError("Independent review coverage differs from the accepted evidence")
+            for attr, value in (("data-reviewed-queries", query_scope), ("data-reviewed-outputs", output_scope)):
+                if coverage.has_attr(attr) and coverage[attr] != value:
+                    raise ValueError("Independent review coverage differs from the accepted evidence")
             review_page = BeautifulSoup((output / (prefix + "review.html")).read_text(), "html.parser")
             expected = BeautifulSoup(render_summary(review_data, lang == "zh"), "html.parser")
             actual = review_page.select_one("[data-independent-review]")
@@ -1751,8 +1776,12 @@ def release_check(output, visual_receipt):
     if proof["manifest_sha256"] != digest(manifest.read_bytes()):
         raise ValueError("Visual check belongs to a different build")
     report_manifest = json.loads(manifest.read_text())
-    if report_manifest.get("receipt", {}).get("certified"):
-        publication_authority(report_manifest)
+    if not report_manifest.get("receipt", {}).get("synthetic"):
+        if not report_manifest.get("receipt", {}).get("certified"):
+            raise ValueError("A formal release requires certified collection evidence")
+        target = publication_authority(report_manifest)
+        from .profiles import verify_publication_inputs
+        verify_publication_inputs(report_manifest, target)
     from .visual import verify
     return verify(output, visual_receipt)
 
@@ -1851,7 +1880,7 @@ def cohort_summary(profile, rows, zh):
             )
     return (
         "<section data-cohort-summary><h2>"
-        + t("Independent benchmarks, with separate collection cohorts", "两套评测，按采集批次分别查看")
+        + t("Independent benchmarks, with separate collection cohorts", "各评测集的采集批次")
         + "</h2><p>"
         + t(
             f"{len(profile['cases'])} queries and {len(rows)} final logical results, from {sum(len(r.get('attempts') or [r]) for r in rows)} physical requests including retries, across {len(groups)} complete collection batches. The table preserves each batch separately; the combined count is not a new same-window speed trial.",
@@ -2265,7 +2294,7 @@ def source_note(case, zh):
         return case.get("derivation", case["origin"])
     return {
         "user_screenshot": "按所附截图逐字录入；站点命中不代表内容相关。",
-        "community_exact": "公开材料中的原题；本轮三家请求相同数量的结果，可能与原作者设置不同。",
+        "community_exact": "公开材料中的原题；本轮各接口请求相同数量的结果，可能与原作者设置不同。",
         "community_derived": "根据公开讨论另拟的查询，不是原作者的原题。",
         "public_catalog": "公开查询集原题；预定网址只用于检查指定页面发现。",
         "curated": "为覆盖该场景增补的查询。",
@@ -2712,7 +2741,7 @@ def outcome_table(profile, selected, zh):
     rows = []
     for m in profile["methods"]:
         group = [r for r in selected if r["method"] == m["id"]]
-        counts = Counter(classify(cases[r["case_id"]], r)[1] for r in group)
+        counts = Counter(classify(cases[r["case_id"]], r, cutoff=profile["protocol"]["top_k"])[1] for r in group)
         for kind, n in counts.items():
             rows.append(cells([esc(m["label"]), names[kind][int(zh)], str(n), str(len(group))]))
     return (

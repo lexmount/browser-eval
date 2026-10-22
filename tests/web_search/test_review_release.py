@@ -169,3 +169,30 @@ def test_reference_exclusion_cannot_target_a_provider_output(tmp_path):
     evidence["adjudications"][key] = {"opinion_sha256": review.sha(review.encoded(case["dataset_review"])), "resolution": "quarantined", "quality_excluded": True, "reason": "Defect", "evidence": "Source"}
     with pytest.raises(ValueError, match="factual reference defect|receipt differs"):
         review.validate_public_review(profile, rows, evidence)
+
+
+def test_anonymous_opinion_cannot_be_reassigned_to_another_method(tmp_path):
+    _, evidence = audited_fixture(tmp_path)
+    profile, rows = check(tmp_path / "report", return_data=True)
+    opinions = evidence["cases"][0]["output_reviews"]
+    first, second = opinions[:2]
+    for key in ("row_id", "method", "raw_sha256"):
+        first[key], second[key] = second[key], first[key]
+    with pytest.raises(ValueError, match="identity|receipt|opinion"):
+        review.validate_public_review(profile, rows, evidence)
+
+
+def test_summary_rejects_tampered_review_scope(tmp_path):
+    _, evidence = audited_fixture(tmp_path)
+    path = tmp_path / "review.json"
+    review.save(path, evidence)
+    output = tmp_path / "released"
+    content = tmp_path / "content.json"
+    content.write_text(json.dumps({"presentation": "comparison-report"}))
+    build(output, source=tmp_path / "fixture", review=path, content=content)
+    homepage = output / "index.html"
+    doc = BeautifulSoup(homepage.read_text(), "html.parser")
+    doc.select_one("[data-review-coverage]")["data-reviewed-outputs"] = "999/999"
+    homepage.write_text(str(doc))
+    with pytest.raises(ValueError, match="coverage"):
+        check(output)

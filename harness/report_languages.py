@@ -121,7 +121,7 @@ def select_report_language(root: Path, language: str) -> Path:
                 href = urlunsplit(parts._replace(query=urlencode(query)))
                 return match[1] + html.escape(href, quote=True) + match[3]
             text = re.sub(
-                r'<(?:header|nav)\b[^>]*>.*?</(?:header|nav)>',
+                r'<(?P<tag>header|nav)\b[^>]*>.*?</(?P=tag)>',
                 lambda header: re.sub(r'(<a\b[^>]*?\bhref=")([^"]*)(")', chinese_home, header[0]),
                 text, flags=re.S,
             )

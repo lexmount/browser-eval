@@ -100,7 +100,7 @@ def test_benchmark_and_task_type_filters_are_separate():
     page = render_comparison(p, rows, True)
     dom = BeautifulSoup(page, "html.parser")
     assert [o.text for o in dom.select("[data-output-benchmark] option")] == [
-        "两套评测 · 3", "自建场景集 · 2", "公开事实题"
+        "全部题目 · 3", "自建场景集 · 2", "公开事实题 · 1"
     ]
     assert [o.text for o in dom.select("[data-output-check] option")] == [
         "全部题型", "目标网页发现", "指定网站约束", "通用网页查询", "事实证据"

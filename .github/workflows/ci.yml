@@ -42,3 +42,20 @@ jobs:
           uv run --frozen --no-sync playwright install chromium
           export BROWSER_EVAL_TEST_BROWSER_BINARY="$(uv run --frozen --no-sync python -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
           uv run --frozen --no-sync python -m pytest tests/test_browser_observation_contracts.py tests/test_report_browser_interactions.py tests/web_search/test_visual.py -q
+
+  supported-python:
+    name: Base Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.7.8"
+      - run: uv sync --frozen --python ${{ matrix.python }}
+      - run: uv run --frozen --no-sync python -m harness.web_fetch validate --providers fixture

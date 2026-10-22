@@ -33,6 +33,8 @@ def request_cost(method, status, transport_exit, payload):
         if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
             return None
         return price / 1000 if payload["results"] else 0.0
+    if method["billing"] != "http-200":
+        raise ValueError("Unsupported billing policy")
     return price / 1000
 
 
@@ -92,8 +94,8 @@ def normalize(payload, adapter=None):
     return rows
 
 
-def evaluate(case, results):
-    rows = results[:10]
+def evaluate(case, results, *, cutoff=10):
+    rows = results[:cutoff]
     urls = [canonical_url(r["url"]) for r in rows]
     anchors = {canonical_url(u) for u in case.get("anchors", [])}
     aliases = {
@@ -131,12 +133,12 @@ def evaluate(case, results):
         def dcg(values):
             return sum((2**v - 1) / math.log2(i + 2) for i, v in enumerate(values))
 
-        ideal = dcg(sorted(qrels.values(), reverse=True)[:10])
+        ideal = dcg(sorted(qrels.values(), reverse=True)[:cutoff])
         ndcg = dcg(gains) / ideal if ideal else None
     domains = case.get("domains", [])
     metrics = {
         "anchor_hit_5": int(any(r <= 5 for r in ranks)) if anchors else None,
-        "anchor_hit_10": int(bool(ranks)) if anchors else None,
+        "anchor_hit_10": int(any(r <= 10 for r in ranks)) if anchors else None,
         "reciprocal_rank": 1 / min(ranks) if ranks else (0 if anchors else None),
         "ndcg_10": ndcg,
         "domain_precision": sum(any(in_domain(u, d) for d in domains) for u in urls) / len(urls)
@@ -144,12 +146,12 @@ def evaluate(case, results):
         else None,
         "duplicate_rate": 1 - len(set(urls)) / len(urls) if urls else None,
         "result_count": len(rows),
-        "content_coverage": sum(bool(r["content"].strip()) for r in rows) / len(rows)
+        "content_coverage": sum(bool((r.get("content") or "").strip()) for r in rows) / len(rows)
         if rows
         else None,
-        "snippet_chars": sum(len(r["snippet"]) for r in rows),
-        "summary_chars": sum(len(r["summary"]) for r in rows),
-        "content_chars": sum(len(r["content"]) for r in rows),
+        "snippet_chars": sum(len(r.get("snippet") or "") for r in rows),
+        "summary_chars": sum(len(r.get("summary") or "") for r in rows),
+        "content_chars": sum(len(r.get("content") or "") for r in rows),
     }
     if "reference_answer" in case:
         metrics.update(factual_evidence(case, results[:5]))
@@ -248,8 +250,8 @@ def validate_profile(profile):
         ids = [x["id"] for x in items]
         if len(ids) != len(set(ids)) or any(not re.fullmatch("[a-z0-9-]+", v) for v in ids):
             raise ValueError("Duplicate or unsafe IDs")
-    if type(protocol["top_k"]) is not int or protocol["top_k"] < 1 or protocol["rounds"] < 1 or protocol["concurrency"] != 1:
-        raise ValueError("This protocol requires a positive result cutoff and serial calls")
+    if type(protocol["top_k"]) is not int or protocol["top_k"] not in (5, 10) or protocol["rounds"] < 1 or protocol["concurrency"] != 1:
+        raise ValueError("This protocol requires a supported cutoff (5 or 10) and serial calls")
     if protocol["score_round"] not in range(protocol["rounds"]):
         raise ValueError("Invalid score round")
     query_limit = 4096 if protocol.get("preserve_publisher_queries") else 128
@@ -350,15 +352,15 @@ def task_acceptance(case, row, metric="primary", *, quality_excluded=False, cuto
     if value is not None:
         return bool(value)
     safe = [r for r in row.get("results", [])[:cutoff] if str(r.get("url", "")).startswith(("https://", "http://"))]
-    return bool(evaluate(case, safe)["anchor_hit_10"])
+    return bool(evaluate(case, safe, cutoff=cutoff)["reciprocal_rank"])
 
 
-def classify(case, row):
+def classify(case, row, *, cutoff=5):
     """Primary acceptance and diagnostic labels share the same task predicate."""
     if row.get("error") or row.get("http_status", 200) != 200:
         return "fail", "api_error"
     if not row["results"]:
         return "fail", "empty"
-    accepted = task_acceptance(case, row)
+    accepted = task_acceptance(case, row, cutoff=cutoff)
     category = "answer" if "reference_answer" in case else "target" if case.get("anchors") else "domain" if case.get("domains") else "probe"
     return (("pass" if accepted else "fail"), category + ("_hit" if accepted else "_miss")) if accepted is not None else ("probe", "probe")

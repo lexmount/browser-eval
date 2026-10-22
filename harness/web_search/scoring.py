@@ -126,3 +126,14 @@ def apply_identity_correction(profile, rows, correction):
             changes.append({"id": row["id"], "before": row["metrics"], "after": new["metrics"]})
         updated.append(new)
     return revised, updated, changes
+
+
+def validate_revision_binding(revision):
+    """Reader prose cannot introduce or modify an approved scoring revision."""
+    from .core import digest
+    authority = Path(__file__).resolve().parents[2] / "evaluation/web-search/assessment-revisions.json"
+    registered = json.loads(authority.read_text())
+    identity = digest(json.dumps(revision, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode())
+    if identity not in registered["approved_sha256"]:
+        raise ValueError("Assessment revision is not bound by the versioned scoring authority")
+    validate_regressions(revision)

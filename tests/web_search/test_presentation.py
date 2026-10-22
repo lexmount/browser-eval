@@ -73,3 +73,23 @@ def test_factual_reciprocal_rank_is_directional_and_highlighted(tmp_path):
     assert cells[0]['data-metric-direction'] == 'max'
     assert cells[0].select_one('.comparison-winner') is not None
     assert not cells[1].select_one('.comparison-winner')
+
+
+@pytest.mark.parametrize("damage", ["summary", "error", "evidence"])
+def test_public_report_check_rejects_broken_detail_contract(tmp_path, damage):
+    from harness.web_search.example import example
+    from harness.web_search.report import check
+    example(tmp_path)
+    output = tmp_path / "report"
+    detail = next((output / "details").glob("*.html"))
+    doc = BeautifulSoup(detail.read_text(), "html.parser")
+    if damage == "summary":
+        import copy
+        doc.main.append(copy.copy(doc.select_one("[data-result-summary]")))
+    elif damage == "error":
+        doc.select_one("[data-error]").decompose()
+    else:
+        doc.select_one("[data-evidence]")["data-evidence"] = "missing-response.json"
+    detail.write_text(str(doc))
+    with pytest.raises(ValueError):
+        check(output)
