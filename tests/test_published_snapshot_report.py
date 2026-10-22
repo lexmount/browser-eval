@@ -180,7 +180,7 @@ def test_scope_notes_and_definition_artifacts_follow_an_external_instance(tmp_pa
     config=json.loads(profile.read_text())
     artifact=tmp_path/'audit/definition-comparison.json';artifact.parent.mkdir()
     artifact.write_text(json.dumps({'cases':[{'id':'complete','changes':[]}]}))
-    scope={'paragraphs':[{'zh':'压力场景使用观察浏览器参与选样。','en':'The observer browser participated in stress-case selection.'}],
+    scope={'summary':{'zh':'压力集不代表随机网页。','en':'The stress set is not a random web sample.'},'paragraphs':[{'zh':'压力场景使用观察浏览器参与选样。','en':'The observer browser participated in stress-case selection.'}],
            'attachments':[{'path':'audit/definition-comparison.json','sha256':file_sha256(artifact),
                            'zh':'逐题定义差异','en':'Per-task definition differences'}]}
     notes=tmp_path/'scope.json';notes.write_text(json.dumps(scope))
@@ -195,5 +195,10 @@ def test_scope_notes_and_definition_artifacts_follow_an_external_instance(tmp_pa
         page.write_text(original.replace(scope['paragraphs'][0]['zh'],'Omitted selection scope'))
         with pytest.raises(ValueError,match='sample/reproduction scope'):check_snapshot_audit(out)
         page.write_text(original)
+    home=out/'index.html';original=home.read_text()
+    assert original.index('data-report-scope-summary') < original.index('id="overall-ranking"')
+    home.write_text(original.replace(scope['summary']['zh'],'Missing opening scope'))
+    with pytest.raises(ValueError,match='opening sample scope'):check_snapshot_audit(out)
+    home.write_text(original)
     artifact.write_text('{}')
     with pytest.raises(ValueError,match='input changed'):build_snapshot_audit(source,out,profile=profile)
