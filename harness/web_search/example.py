@@ -4,7 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
-from .core import digest, evaluate, normalize, write_json
+from .core import digest, normalize, write_json
+from lexbench_websearch.scoring import evaluate
 from .report import build
 
 

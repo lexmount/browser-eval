@@ -2,25 +2,10 @@ import hashlib
 
 import pytest
 
-from harness.web_search.relevance import score, verify_provenance
+from harness.web_search.relevance import verify_provenance
+from lexbench_websearch.relevance import score
 
 
-def test_pooled_preview_relevance_rewards_useful_first_result_and_penalizes_duplicates():
-    profile = {"protocol": {"top_k": 5}, "cases": [{"id": "q", "family": "web"}],
-               "methods": [{"id": "a"}, {"id": "b"}]}
-    good = "https://example.org/answer"
-    bad = "https://example.org/off-topic"
-    candidate = lambda url: hashlib.sha256(("q\0" + url).encode()).hexdigest()[:12]
-    rows = [{"case_id": "q", "method": "a", "results": [{"url": good}, {"url": bad}]},
-            {"case_id": "q", "method": "b", "results": [{"url": bad}, {"url": good}, {"url": good}]}]
-    labels = {"q": {candidate(good): 3, candidate(bad): 0}}
-    result = score(profile, rows, {"cutoff": 5, "case_ids": ["q"]}, labels)
-    assert result[0]["ndcg"] == 1
-    assert result[0]["precision"] == 0.2
-    assert result[1]["ndcg"] < result[0]["ndcg"]
-    assert result[1]["precision"] == 0.2
-    with pytest.raises(ValueError, match="pooled candidates"):
-        score(profile, rows, {"cutoff": 5, "case_ids": ["q"]}, {"q": {candidate(good): 3}})
 
 
 def test_published_blind_packet_must_match_measured_urls_and_order():
@@ -33,7 +18,7 @@ def test_published_blind_packet_must_match_measured_urls_and_order():
                 "labels": {"q": {candidate: 3}},
                 "blind_candidate_packets": [{"case_id": "q", "candidates": [{"candidate_id": candidate, "url": url}]}],
                 "provider_rankings": {"q": {"a": [candidate]}}}
-    from harness.web_search.relevance import candidate_packet
+    from lexbench_websearch.relevance import candidate_packet
     evidence["blind_candidate_packets"] = candidate_packet(profile, rows)[0]["blind_candidate_packets"]
     verify_provenance(profile, rows, evidence)
     evidence["provider_rankings"]["q"]["a"] = []
@@ -54,23 +39,11 @@ def all_case_fixture():
     return profile, rows
 
 
-def test_full_pool_is_blind_deterministic_and_keeps_empty_queries():
-    from harness.web_search.relevance import candidate_packet
-    p, rows = all_case_fixture()
-    packet, mappings = candidate_packet(p, rows)
-    assert packet["plan"]["case_ids"] == ["question", "empty"]
-    assert len(packet["blind_candidate_packets"][0]["candidates"]) == 1
-    assert packet["blind_candidate_packets"][1]["candidates"] == []
-    assert "vendor-one" not in str(packet)
-    assert "vendor-two" not in str(packet)
-    assert candidate_packet(p, list(reversed(rows)))[0] == packet
-    assert set(mappings["question"]) == {"vendor-one", "vendor-two"}
-    with pytest.raises(ValueError, match="Incomplete"):
-        candidate_packet(p, rows[1:])
 
 
 def test_complete_human_input_scores_all_zero_and_empty_cases_without_dropping_them():
-    from harness.web_search.relevance import candidate_packet, import_annotations
+    from harness.web_search.relevance import import_annotations
+    from lexbench_websearch.relevance import candidate_packet
     p, rows = all_case_fixture()
     packet, _ = candidate_packet(p, rows)
     submission = {"packet_sha256": packet["packet_sha256"],
@@ -92,7 +65,8 @@ def test_complete_human_input_scores_all_zero_and_empty_cases_without_dropping_t
 
 
 def test_candidate_changes_reject_old_annotations():
-    from harness.web_search.relevance import candidate_packet, import_annotations
+    from harness.web_search.relevance import import_annotations
+    from lexbench_websearch.relevance import candidate_packet
     p, rows = all_case_fixture()
     packet, _ = candidate_packet(p, rows)
     rows[0]["results"][0]["snippet"] = "Changed preview"
@@ -115,7 +89,9 @@ def test_annotation_export_escapes_source_markup_and_never_prelabels(tmp_path):
 
 
 def test_frozen_model_labels_require_exact_candidate_coverage_and_quotes():
-    from harness.web_search.relevance import candidate_packet, JUDGE_PROMPT, parse_judgments, verify_provenance
+    from lexbench_websearch.rubric import JUDGE_PROMPT
+    from harness.web_search.relevance import parse_judgments, verify_provenance
+    from lexbench_websearch.relevance import candidate_packet
     import json
     import copy
     profile, rows = all_case_fixture()
@@ -170,7 +146,7 @@ def test_model_evidence_reference_displays_exact_original_not_generated_quote():
 
 
 def test_rank_grades_query_score_and_dataset_average_are_one_chain():
-    from harness.web_search.relevance import query_metrics, summary
+    from lexbench_websearch.relevance import query_metrics, summary
     # A deliberately poor order: the grade-3 document is second, grade-2 third.
     metrics = query_metrics(['irrelevant', 'answer', 'partial'], {'irrelevant': 0, 'answer': 3, 'partial': 2})
     assert metrics['contributions'] == pytest.approx([0, 4.416508275, 1.5])
@@ -185,7 +161,8 @@ def test_rank_grades_query_score_and_dataset_average_are_one_chain():
 
 def test_explicit_source_rules_are_uniform_and_model_cannot_override_them():
     import json
-    from harness.web_search.relevance import candidate_packet, judge_input, parse_judgments
+    from harness.web_search.relevance import judge_input, parse_judgments
+    from lexbench_websearch.relevance import candidate_packet
     p, rows = all_case_fixture()
     p['cases'][0]['domains'] = ['example.org']
     for row in rows:
@@ -221,7 +198,7 @@ def test_empty_selected_field_can_evidence_absence_but_not_positive_relevance():
 
 
 def test_official_repository_is_not_blocked_by_a_diagnostic_target_domain():
-    from harness.web_search.relevance import candidate_packet
+    from lexbench_websearch.relevance import candidate_packet
 
     profile, rows = all_case_fixture()
     profile["cases"][0].update(family="web", domains=["official.example"])
@@ -259,7 +236,7 @@ def test_official_repository_is_not_blocked_by_a_diagnostic_target_domain():
 
 
 def test_web_diagnostic_domain_does_not_become_an_unrequested_source_constraint():
-    from harness.web_search.relevance import candidate_packet
+    from lexbench_websearch.relevance import candidate_packet
 
     profile, rows = all_case_fixture()
     profile["cases"][0].update(family="web", domains=["unrequested.example"])
@@ -271,7 +248,7 @@ def test_web_diagnostic_domain_does_not_become_an_unrequested_source_constraint(
 
 
 def test_source_correction_regressions_execute_through_current_packet_owner():
-    from harness.web_search.scoring import validate_regressions
+    from lexbench_websearch.revisions import validate_regressions
 
     validate_regressions(
         {

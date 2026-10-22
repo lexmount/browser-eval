@@ -1,5 +1,7 @@
 """Small bilingual Web Search report built from frozen calls, never invented scores."""
 
+from lexbench_websearch.inputs import definition_path, implementation_sources
+
 import argparse
 import copy
 import html
@@ -14,30 +16,18 @@ from urllib.parse import urlsplit
 
 from bs4 import BeautifulSoup
 
-from harness.web_fetch.config import ROOT
 from harness.record_io import same_json_record
 from harness.reporting.presentation import check_presentation
 
-from .core import (
-    aggregate,
-    canonical_url,
-    classify,
-    digest,
-    evaluate,
-    in_domain,
-    normalize,
-    request_cost,
-    request_body,
-    validate_profile,
-    verify_bundle,
-    write_json,
-)
-from .evidence_quality import factual_sensitivity, CONTAMINATION_RULE
+from .core import aggregate, digest, normalize, request_cost, request_body, validate_profile, verify_bundle, write_json
+from lexbench_websearch.scoring import canonical_url, classify, evaluate, in_domain
+from lexbench_websearch.evidence_quality import factual_sensitivity, CONTAMINATION_RULE
 from .diagnostics import operational
 from .runner import reference_available, reference_changes
 from .profiles import CURRENT_PROFILE, load_profile, publication_authority
-from .scoring import apply_identity_correction
-from .relevance import score as score_relevance, summary as relevance_summary, verify_provenance
+from lexbench_websearch.revisions import apply_identity_correction
+from .relevance import verify_provenance
+from lexbench_websearch.relevance import score as score_relevance, summary as relevance_summary
 
 STYLE = """
 .dataset-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;align-items:end;margin:20px 0}.dataset-controls label{display:grid;gap:5px}.dataset-controls select,.dataset-controls input{width:100%;min-width:0}
@@ -130,7 +120,6 @@ def _redact_url_userinfo(raw):
         redacted = candidate[:start] + b"REDACTED:REDACTED@" + netloc.rsplit(b"@", 1)[1] + candidate[end:]
         return redacted + token[len(candidate):]
     return re.sub(rb"https?://[^\s\"<>\\]+", replace, raw, flags=re.I)
-
 
 
 def public_calls(profile, rows, source, sources):
@@ -368,7 +357,6 @@ def _check_report_languages(output, manifest):
         raise ValueError("Report language metadata differs from the report manifest")
 
 
-
 def assessment_profile(profile, relevance, review):
     """Describe current assessment without rewriting historical collection metadata."""
     from .review import factual_quality_exclusions
@@ -431,11 +419,11 @@ def build(
         }
     assessment_revision = None
     if authored.get("assessment_revision"):
-        from .scoring import apply_report_revision
-        from .scoring import validate_revision_binding
+        from lexbench_websearch.revisions import apply_report_revision
+        from lexbench_websearch.revisions import validate_revision_binding
         validate_revision_binding(authored["assessment_revision"])
         profile, rows, changes = apply_report_revision(profile, rows, authored["assessment_revision"])
-        assessment_revision = {"contract": authored["assessment_revision"], "changes": changes, "implementation_sha256": {name: digest((Path(__file__).parent / name).read_bytes()) for name in ("scoring.py", "core.py", "answer_rules.py")}}
+        assessment_revision = {"contract": authored["assessment_revision"], "changes": changes, "implementation_sha256": {name: digest(path.read_bytes()) for name, path in implementation_sources().items()}}
     profile, rows = project_comparison(profile, rows, authored)
     materialized_paths = {e["path"] for r in rows for e in [r["evidence"], *[a["evidence"] for a in r.get("attempts", [])]]}
     redactions = [r for r in redactions if r["path"] in materialized_paths]
@@ -486,7 +474,7 @@ def build(
         target = output / "relevance-judgments.json"
         target.write_text(json.dumps(relevance_data, ensure_ascii=False, indent=2), encoding="utf-8")
         bundle.append({"path": target.name, "sha256": digest(target.read_bytes())})
-    notice = ROOT / "evaluation/web-search/NOTICE.txt"
+    notice = definition_path("NOTICE.txt")
     notice_target = output / "query-catalog-license.txt"
     notice_target.write_bytes(notice.read_bytes())
     bundle.append({"path": notice_target.name, "sha256": digest(notice.read_bytes())})
@@ -872,6 +860,9 @@ def build(
             "dataset.html",
             t("Tests and sources", "测试集与来源"),
             dataset_context(dataset_profile, dataset_content, zh)
+            + '<p><a href="https://github.com/lexmount/lexbench-websearch">'
+            + t("LexBench Web Search: datasets, source attribution and scoring", "LexBench Web Search：题库、来源与评分规则")
+            + "</a></p>"
             + provenance_table(dataset_profile, zh)
             + f'<p><a href="{"../" if prefix else ""}query-catalog-license.txt">'
             + t("Public query catalog attribution and license", "公开查询集署名与许可")
@@ -1021,7 +1012,7 @@ def build(
             ]
             detail_metrics = r["metrics"]
             if "reference_answer" in c:
-                from .core import factual_evidence
+                from lexbench_websearch.scoring import factual_evidence
                 detail_metrics = {**r["metrics"], **factual_evidence(c, r["results"], cutoff=cutoff)}
                 metric_labels += [
                     (f"labeled_source_hit_{cutoff}", t(f"Published source in top {cutoff}", f"前 {cutoff} 条找到标注来源")),
@@ -1461,7 +1452,7 @@ def check(output, *, return_data=False, evidence_only=False):
         if changes != expected_changes:
             raise ValueError("Scoring revision provenance mismatch")
         if manifest.get("assessment_revision"):
-            from .scoring import apply_report_revision
+            from lexbench_websearch.revisions import apply_report_revision
             revised, _, _ = apply_report_revision(revised, [], manifest["assessment_revision"]["contract"])
         revised, _ = project_comparison(revised, [], manifest.get("authored") or {})
         if manifest.get("report_assessment"):
@@ -1469,7 +1460,7 @@ def check(output, *, return_data=False, evidence_only=False):
         if revised != manifest["profile"]:
             raise ValueError("Scoring revision profile mismatch")
     elif manifest.get("assessment_revision"):
-        from .scoring import apply_report_revision
+        from lexbench_websearch.revisions import apply_report_revision
         revised, _, _ = apply_report_revision(manifest["collection_profile"], [], manifest["assessment_revision"]["contract"])
         revised, _ = project_comparison(revised, [], manifest.get("authored") or {})
         if manifest.get("report_assessment"):
@@ -1817,7 +1808,7 @@ def origin_group(case):
 def origin_filter(profile, zh):
     counts = Counter(origin_group(c) for c in profile["cases"])
     labels = {
-        "originals": ("Exact community queries", "社区原题"),
+        "originals": ("Post and screenshot transcriptions", "公开帖与截图原题"),
         "community_derived": ("Derived scenarios", "社区场景派生题"),
         "public_catalog": ("Public query catalog", "公开集补充"),
         "curated": ("Curated probes", "自编探针"),
@@ -2572,7 +2563,7 @@ def relevance_panel(profile, scored, evidence, zh):
 
 
 def factual_panel(profile, selected, zh, *, compact=False):
-    from .core import factual_evidence
+    from lexbench_websearch.scoring import factual_evidence
     cutoff = profile["protocol"]["top_k"]
     excluded = set(profile.get('factual_quality_exclusions', []))
     cases = {c['id']: c for c in profile['cases'] if 'reference_answer' in c and c['id'] not in excluded}
@@ -3114,7 +3105,7 @@ def metric_populations(profile, content):
 
 
 def population_summary(profile, selected, content, zh, *, diagnostics=False, relevance_scores=None):
-    from .core import factual_evidence
+    from lexbench_websearch.scoring import factual_evidence
     cutoff = profile["protocol"]["top_k"]
     lang = "zh" if zh else "en"
     independent = content.get("independent_benchmarks")
@@ -3262,6 +3253,15 @@ def dataset_context(profile, content, zh):
         factual = all("reference_answer" in c for c in cases)
         purpose = ("检查给定网页与参考答案文字" if factual else "评价查询结果的相关性") if zh else ("Given-source and reference-answer text checks" if factual else "Query-result relevance")
         rows.append(cells([esc(population.get("label", {"zh": population.get("id", "评测集"), "en": population.get("id", "Benchmark")})["zh" if zh else "en"]), str(len(cases)), purpose]))
-    originals = sum(c.get("provenance_kind") in {"community_exact", "user_screenshot"} for c in profile["cases"])
-    note = (f"含 {originals} 道社区原题。各题的原始查询、来源网址和改编关系列在下表。" if zh else f"Includes {originals} exact community queries. Original queries, source URLs and derivation are listed below.") if originals else ("各题的原始查询、来源网址和参考依据列在下表。" if zh else "Original queries, source URLs and references are listed below.")
+    exact = sum(c.get("provenance_kind") == "community_exact" for c in profile["cases"])
+    screenshots = sum(c.get("provenance_kind") == "user_screenshot" for c in profile["cases"])
+    parts = []
+    if exact:
+        parts.append(f"{exact} 道原题有可追溯的公开来源" if zh else f"{exact} original queries have traceable public sources")
+    if screenshots:
+        parts.append(f"{screenshots} 道题照录自用户截图，原作者与原帖尚未确认" if zh else f"{screenshots} queries were transcribed from user screenshots; their original authors and posts are unconfirmed")
+    note = ("；" if zh else "; ").join(parts)
+    if note:
+        note += "。" if zh else ". "
+    note += "各题的原始查询、来源网址和改编关系列在下表。" if zh else "Original queries, source URLs and derivations are listed below."
     return '<section><h2>' + ("评测集与评估范围" if zh else "Datasets and evaluation scope") + '</h2>' + table(["题库","题数","用途"] if zh else ["Dataset","Queries","Purpose"], rows) + '<p>' + note + '</p></section>'

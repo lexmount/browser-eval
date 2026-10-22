@@ -16,7 +16,7 @@
 
 Browser Eval connects benchmark tasks to browser and service adapters, executes declared comparisons, calls the benchmark scorer on saved outputs and builds inspectable reports. It supports Web Fetch, Browser Trajectory Replay and Browser Use. Task populations and acceptance requirements come from the selected benchmark.
 
-[LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch task suites. WebMainBench, WCXB and WebArena supply other benchmark inputs. Browser Eval provides the execution and reporting machinery; each benchmark retains its own scope, versions and attribution. See [repository boundaries and integration](docs/benchmarks.md).
+[LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch task suites. [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) owns search queries, provenance and retrieval scoring. WebMainBench, WCXB and WebArena supply other benchmark inputs. Browser Eval provides the execution and reporting machinery; each benchmark retains its own scope, versions and attribution. See [repository boundaries and integration](docs/benchmarks.md).
 
 You get an HTML report with comparison tables, task details, responses and logs. Read it locally or publish it through [Artifact Site](https://github.com/lexmount/artifact-site) so others can explore the results online.
 
@@ -65,6 +65,7 @@ Support varies by task type. Check [adapter requirements](docs/provider-contract
 | Suite | What it measures | Availability and entry |
 | --- | --- | --- |
 | Offline fixture / local article | Harness operation, selection, scoring and evidence; no performance ranking | Included; commands below |
+| LexBench Web Search | Search queries, source references and deterministic retrieval scoring | [Benchmark repository](https://github.com/lexmount/lexbench-websearch) · [Integration](docs/benchmarks.md#web-search-integration) |
 | LexBench Web Fetch | Ordinary pages, dynamic content, documents, images/video, popular sites and access restrictions | [Benchmark repository](https://github.com/lexmount/lexbench-webfetch) · [Integration](docs/benchmarks.md); complete historical references require approved external inputs |
 | WebMainBench / WCXB | Extraction fidelity on independently bound frozen HTML and reference content | [Frozen-HTML guide](harness/web_fetch/WEBMAINBENCH.md); obtain source data under its terms and use the suite's certification pipeline |
 | Curated trajectory suite | Identical fixed actions on selected public pages | [Trajectory run guide](examples/trajectory_replay/README.md); uses Docker and live sites |
@@ -153,6 +154,7 @@ Example runs are diagnostic. For a formal benchmark release, follow the selected
 
 | Repository | Role in this work |
 | --- | --- |
+| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Independent search tasks, provenance and scoring |
 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Independent task suites and acceptance contracts for self-authored Web Fetch evaluations |
 | [Moli](https://github.com/lexmount/moli) | Browser evaluated alongside the other implementations |
 | [Artifact Site](https://github.com/lexmount/artifact-site) | Report hosting, versions and sharing; self-hosting supported |
@@ -167,7 +169,7 @@ See [dependency sources and pins](docs/dependencies.md) for exact versions. Inst
 
 ## Contribute
 
-PRs are welcome for adapters, execution fixes, tests, documentation and translations. Changes to LexBench task requirements belong in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch). Start with [CONTRIBUTING](CONTRIBUTING.md), or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
+PRs are welcome for adapters, execution fixes, tests, documentation and translations. Changes to LexBench task requirements belong in the corresponding [Web Fetch](https://github.com/lexmount/lexbench-webfetch) or [Web Search](https://github.com/lexmount/lexbench-websearch) benchmark repository. Start with [CONTRIBUTING](CONTRIBUTING.md), or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
 
 ```bash
 make setup-test

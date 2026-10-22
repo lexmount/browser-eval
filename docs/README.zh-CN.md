@@ -16,7 +16,7 @@
 
 Browser Eval 把 benchmark 任务接到浏览器或服务适配器上，执行预先声明的比较，调用 benchmark 评分器检查保存的输出，并生成可查看证据的报告。它支持 Web Fetch、轨迹重放和 Browser Use；任务范围和验收要求由所选 benchmark 决定。
 
-自建的 Web Fetch 任务集由 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) 维护。WebMainBench、WCXB 和 WebArena 提供其他评测输入。Browser Eval 负责执行与报告，各 benchmark 分别维护范围、版本和来源说明。详见[仓库分工与接入](benchmarks.md)。
+自建的 Web Fetch 任务集由 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) 维护。[LexBench Web Search](https://github.com/lexmount/lexbench-websearch) 维护搜索题库、来源和检索评分。WebMainBench、WCXB 和 WebArena 提供其他评测输入。Browser Eval 负责执行与报告，各 benchmark 分别维护范围、版本和来源说明。详见[仓库分工与接入](benchmarks.md)。
 
 运行后得到 HTML 报告，里面有比较表、任务详情、响应和日志。可以在本地查看，也可以通过 [Artifact Site](https://github.com/lexmount/artifact-site) 发布，让其他人在线查看结果。
 
@@ -65,6 +65,7 @@ flowchart LR
 | 任务集 | 评测内容 | 可用条件与入口 |
 | --- | --- | --- |
 | 离线 fixture / 本地文章 | 检查运行、任务选择、评分和证据，不提供性能排名 | 随仓库提供，命令见下文 |
+| LexBench Web Search | 搜索题目、参考来源和确定性检索评分 | [Benchmark 仓库](https://github.com/lexmount/lexbench-websearch) · [接入说明](benchmarks.md#web-search-integration) |
 | LexBench Web Fetch | 普通网页、动态内容、文档、图片/视频、热门网站、访问限制 | [Benchmark 仓库](https://github.com/lexmount/lexbench-webfetch) · [接入说明](benchmarks.md)；完整历史参考需要获准使用的外部输入 |
 | WebMainBench / WCXB | 独立绑定的冻结 HTML 与参考内容上的提取质量 | [冻结 HTML 说明](../harness/web_fetch/WEBMAINBENCH.md)；按原数据许可获取输入，并使用对应认证流程 |
 | 项目维护的轨迹任务集 | 在指定公开网页上执行相同固定操作 | [轨迹运行说明](../examples/trajectory_replay/README.md)；需要 Docker 和网站访问 |
@@ -152,6 +153,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run --language zh
 
 | 仓库 | 在这项工作中的用途 |
 | --- | --- |
+| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | 独立搜索题库、来源和评分 |
 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | 自建 Web Fetch 评测使用的独立任务集和验收规则 |
 | [Moli](https://github.com/lexmount/moli) | 与其他实现一起接受评测的浏览器 |
 | [Artifact Site](https://github.com/lexmount/artifact-site) | 报告托管、版本管理和分享，支持自行部署 |
@@ -166,7 +168,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run --language zh
 
 ## 参与贡献
 
-欢迎为适配器、执行修复、测试、文档和翻译提交 PR。LexBench 任务要求的修改请提交到 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)。先看[贡献指南](../CONTRIBUTING.md)，或提交带有复现示例的 [issue](https://github.com/lexmount/browser-eval/issues)。
+欢迎为适配器、执行修复、测试、文档和翻译提交 PR。LexBench 任务要求的修改请提交到对应的 [Web Fetch](https://github.com/lexmount/lexbench-webfetch) 或 [Web Search](https://github.com/lexmount/lexbench-websearch) 仓库。先看[贡献指南](../CONTRIBUTING.md)，或提交带有复现示例的 [issue](https://github.com/lexmount/browser-eval/issues)。
 
 ```bash
 make setup-test

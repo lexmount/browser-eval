@@ -132,7 +132,7 @@ SCHEMA = _object(
 
 def make_cases(profile, rows, report):
     """Return full, blinded cases and a private mapping to original row IDs."""
-    from .relevance import candidate_packet
+    from lexbench_websearch.relevance import candidate_packet
 
     methods = {m["id"]: m for m in profile["methods"]}
     hydrated = []
@@ -270,12 +270,12 @@ def _freeze(report, destination, *, model=None, budget=180000, scope="failures",
     full_report_binding = report_binding(
         profile, [{**row, "results": items_by_row[row["id"]]} for row in rows]
     )
-    from .core import classify
+    from lexbench_websearch.scoring import classify
     definitions = {c["id"]: c for c in profile["cases"]}
     states = {r["id"]: classify(definitions[r["case_id"]], r, cutoff=profile["protocol"]["top_k"]) for r in rows}
     full_counts = {"cases": len(cases), "outputs": len(rows), "candidates": sum(len(c["candidates"]) for c in cases)}
     if scope == "failures":
-        from .core import classify
+        from lexbench_websearch.scoring import classify
         definitions = {c["id"]: c for c in profile["cases"]}
         failed = {r["id"] for r in rows if classify(definitions[r["case_id"]], r, cutoff=profile["protocol"]["top_k"])[0] == "fail"}
         for case in cases:
@@ -795,7 +795,7 @@ def validate_public_review(profile, rows, evidence):
             raw_opinion = bytes.fromhex(execution.get("output_bytes_hex", ""))
             if json.loads(raw_opinion) != original or execution.get("packet_sha256") != entry["sha256"] or execution.get("input_sha256") != sha(text.encode()) or execution.get("result_sha256") != sha(raw_opinion):
                 raise ValueError("Independent review input or output receipt differs")
-    from .core import classify
+    from lexbench_websearch.scoring import classify
     definitions = {c["id"]: c for c in profile["cases"]}
     all_rows = {row["id"]: row for row in rows}
     selected_rows = rows if scope == "all" else [r for r in rows if classify(definitions[r["case_id"]], r, cutoff=profile["protocol"]["top_k"])[0] == "fail"]
@@ -914,7 +914,7 @@ def validate_public_review(profile, rows, evidence):
 
 def candidate_packet_for_review(profile, rows):
     # Candidate coverage is a URL pool; no original grades enter this check.
-    from .relevance import candidate_packet
+    from lexbench_websearch.relevance import candidate_packet
 
     packet, rankings = candidate_packet(profile, rows)
     custom = {p["case_id"]: p["candidates"] for p in packet["blind_candidate_packets"]}

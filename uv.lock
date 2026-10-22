@@ -295,6 +295,7 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "fastcdc" },
     { name = "lexbench-webfetch" },
+    { name = "lexbench-websearch" },
     { name = "python-dotenv" },
 ]
 
@@ -354,6 +355,7 @@ requires-dist = [
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
     { name = "lexbench-webfetch", git = "https://github.com/lexmount/lexbench-webfetch.git?rev=2ea8c52df67c39eee2ea5113a63f5da34f102160" },
+    { name = "lexbench-websearch", git = "https://github.com/lexmount/lexbench-websearch.git?rev=2711961dcdc0dff9fcf63244a2bf300fadc45c2b" },
     { name = "markdown", marker = "extra == 'webmainbench-eval'", specifier = ">=3.7,<4" },
     { name = "openai", marker = "extra == 'webmainbench-eval'", specifier = ">=2.8,<4" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
@@ -1936,6 +1938,11 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "soupsieve" },
 ]
+
+[[package]]
+name = "lexbench-websearch"
+version = "0.1.0"
+source = { git = "https://github.com/lexmount/lexbench-websearch.git?rev=2711961dcdc0dff9fcf63244a2bf300fadc45c2b#2711961dcdc0dff9fcf63244a2bf300fadc45c2b" }
 
 [[package]]
 name = "lxml"

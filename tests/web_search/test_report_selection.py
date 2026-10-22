@@ -51,7 +51,7 @@ def test_independent_benchmark_roots_partition_without_an_overall_score():
 
 
 def test_site_population_counts_empty_response_as_constraint_miss():
-    from harness.web_search.core import evaluate
+    from lexbench_websearch.scoring import evaluate
     from harness.web_search.report import population_summary
 
     case = {'id': 'site-empty', 'query': 'site:example.com report', 'domains': ['example.com']}
@@ -162,7 +162,7 @@ def test_additional_reference_exposes_source_date_excerpt_without_precall_claim(
 
 
 def test_headline_subgroups_show_actual_quality_counts_and_ranks():
-    from harness.web_search.core import evaluate
+    from lexbench_websearch.scoring import evaluate
     from harness.web_search.report import population_summary
     cases = [
         {'id': 'f', 'reference_answer': '42', 'reference_urls': ['https://source.org/answer']},
@@ -211,7 +211,7 @@ def test_headline_subgroups_show_actual_quality_counts_and_ranks():
 
 
 def test_reference_quarantine_is_common_and_never_removes_latency_or_cost():
-    from harness.web_search.core import evaluate
+    from lexbench_websearch.scoring import evaluate
     from harness.web_search.report import population_summary
     cases = [{"id": key, "query": key, "reference_answer": "42", "reference_urls": ["https://source.org/answer"]} for key in ("sound", "wrong")]
     profile = {"cases": cases, "methods": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}], "protocol": {"top_k": 5}, "factual_quality_exclusions": ["wrong"]}
