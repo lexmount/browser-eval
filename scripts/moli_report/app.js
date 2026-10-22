@@ -2,192 +2,11 @@
 const root = document.documentElement,
   base = root.dataset.base || "",
   zh = root.lang.startsWith("zh");
-const D = {
-  zh: {
-    nav: {
-      home: "总览",
-      dataset: "评测集",
-      method: "评测方法",
-      analysis: "结果分析",
-      results: "逐题结果",
-      review: "证据与可靠性",
-      guide: "报告解读",
-      reproduce: "环境与复现",
-    },
-    modes: { off: "无布局", on: "开布局" },
-    strata: {
-      raw_read: "原始 CDP 读取",
-      raw_geometry_input: "几何与坐标输入",
-      playwright: "Playwright 常规操作",
-      puppeteer: "Puppeteer 常规操作",
-      agent_tool: "Agent 工具",
-      multi_step: "多步交互",
-      agent_scenario: "Agent 场景",
-    },
-    pass: "通过",
-    fail: "失败",
-    all: "全部",
-    open: "查看",
-    evidence: "证据",
-    missing: "暂无证据",
-    loading: "正在载入…",
-    error: "数据读取失败",
-    noHuman: "未进行独立人工逐次复核",
-    methodLimit:
-      "覆盖 Moli 0.1.1 的全部 372 个所选用例；结果适用于这一失败子集。",
-    more: "查看详情",
-    task: "任务",
-    mode: "模式",
-    attempt: "第 {n} 次",
-    status: "状态",
-    duration: "耗时",
-    cpu: "CPU 时间",
-    pss: "结束 PSS",
-    traffic: "站点下行",
-    failure: "程序错误",
-    source: "脱敏证据",
-    search: "搜索任务、驱动或程序错误",
-    relation: "结果关系",
-    stratum: "任务类型",
-    bothPass: "两种模式均通过",
-    gain: "开启后新增通过用例",
-    mixed: "部分通过，次数相同",
-    bothFail: "两种模式均失败",
-    loss: "开启后退步用例",
-    back: "返回逐题结果",
-    close: "关闭",
-    unavailable: "未提供",
-    start: "查看逐题结果",
-    method: "查看方法",
-    metricNote:
-      "P50 是中位数；P95 是第 95 百分位。耗时为驱动执行与验收的墙钟时间，不含浏览器启动、外围目标检查及最终证据落盘。",
-    winner: "较低",
-    higher: "较高",
-    scope: "适用范围",
-    observed: "观测到的采样最大值",
-    filterFail: "涉及失败或变化",
-    methodIntro:
-      "题目与验收预先冻结，同一构建的两种布局配置只相差是否启用 --layout。默认模式使用低成本模拟几何；--layout 启用按需真实布局，并非持续绘制。可选图片等资源抓取由另一开关控制，未改变。功能与资源独立测量，任务范围和执行次数分别见对应配置表。",
-    analysisIntro: "按相同任务与执行次数配对。成功变化和资源代价分开解读。",
-    guideIntro:
-      "从 Agent 使用者角度，先看能否完成，再看失败等待和完成任务的资源。",
-    details: "展开证据",
-    calibration: "采样校准",
-    resultCount: "显示 {n} / {total} 个任务",
-    rawContract: "原始任务合同",
-    noRows: "没有符合筛选条件的任务。",
-  },
-  en: {
-    nav: {
-      home: "Overview",
-      dataset: "Dataset",
-      method: "Method",
-      analysis: "Analysis",
-      results: "Task results",
-      review: "Evidence quality",
-      guide: "Interpretation",
-      reproduce: "Environment",
-    },
-    modes: { off: "Layout off", on: "Layout on" },
-    strata: {
-      raw_read: "Raw CDP reading",
-      raw_geometry_input: "Geometry and input",
-      playwright: "Playwright operations",
-      puppeteer: "Puppeteer operations",
-      agent_tool: "Agent tools",
-      multi_step: "Multi-step flows",
-      agent_scenario: "Agent scenarios",
-    },
-    pass: "Pass",
-    fail: "Fail",
-    all: "All",
-    open: "Open",
-    evidence: "Evidence",
-    missing: "No evidence available",
-    loading: "Loading…",
-    error: "Could not load data",
-    noHuman: "No independent per-call review",
-    methodLimit:
-      "This cohort includes all 372 cases selected from Moli 0.1.1 failures; results apply to this failure subset.",
-    more: "View details",
-    task: "Task",
-    mode: "Mode",
-    attempt: "Attempt {n}",
-    status: "Status",
-    duration: "Duration",
-    cpu: "CPU time",
-    pss: "Ending PSS",
-    traffic: "Fixture downlink",
-    failure: "Program error",
-    source: "Sanitized evidence",
-    search: "Search task, driver, or program error",
-    relation: "Outcome relation",
-    stratum: "Task family",
-    bothPass: "Both modes pass",
-    gain: "Cases gained with layout",
-    mixed: "Equal partial passes",
-    bothFail: "Both modes fail",
-    loss: "Cases lost with layout",
-    back: "Back to task results",
-    close: "Close",
-    unavailable: "Unavailable",
-    start: "Explore task results",
-    method: "Read methodology",
-    metricNote:
-      "P50 is the median and P95 the 95th percentile. Duration covers driver execution and grading, excluding browser startup, outer target checks and final evidence writing.",
-    winner: "Lower",
-    higher: "Higher",
-    scope: "Scope",
-    observed: "Observed sampled maximum",
-    filterFail: "Failures or changes",
-    methodIntro:
-      "Task contracts were frozen in advance. Within each build, the two layout configurations differ only in Moli's --layout flag. The default uses low-cost mock geometry; --layout enables real geometry on demand rather than continuous painting. Optional image and media fetching is a separate control and was unchanged. Functional and resource experiments declare their task populations and attempt counts separately in the configuration tables.",
-    analysisIntro:
-      "Pair the same task and attempt. Outcome changes and resource costs are interpreted separately.",
-    guideIntro:
-      "For an agent user, completion comes first, followed by failure waiting time and cost on completed tasks.",
-    details: "Expand evidence",
-    calibration: "Profiling calibration",
-    resultCount: "Showing {n} / {total} tasks",
-    rawContract: "Raw task contract",
-    noRows: "No tasks match these filters.",
-  },
-};
-Object.assign(D.zh.strata, {
-  node_cdp_probe: "Node CDP",
-  raw_cdp: "Raw CDP",
-  tool_agent_browser: "agent-browser",
-  thin_cdp_use: "cdp-use",
-  thin_chromedp: "chromedp",
-  thin_chrome_remote_interface: "chrome-remote-interface",
-  thin_ferrum: "Ferrum",
-  mcp_chrome_devtools: "Chrome DevTools MCP",
-  thin_chromiumoxide: "Chromiumoxide",
-  framework_puppeteer: "Puppeteer",
-  framework_playwright: "Playwright",
-  thin_pydoll: "Pydoll",
-  thin_rod: "Rod",
-  framework_stagehand: "Stagehand",
-  webdriver_selenium: "Selenium",
-});
-Object.assign(D.en.strata, {
-  node_cdp_probe: "Node CDP",
-  raw_cdp: "Raw CDP",
-  tool_agent_browser: "agent-browser",
-  thin_cdp_use: "cdp-use",
-  thin_chromedp: "chromedp",
-  thin_chrome_remote_interface: "chrome-remote-interface",
-  thin_ferrum: "Ferrum",
-  mcp_chrome_devtools: "Chrome DevTools MCP",
-  thin_chromiumoxide: "Chromiumoxide",
-  framework_puppeteer: "Puppeteer",
-  framework_playwright: "Playwright",
-  thin_pydoll: "Pydoll",
-  thin_rod: "Rod",
-  framework_stagehand: "Stagehand",
-  webdriver_selenium: "Selenium",
-});
-const T = zh ? D.zh : D.en;
+const D = JSON.parse(document.getElementById("report-messages").textContent);
+
+
+const T = D[zh ? "zh" : "en"];
+const message = (key, values = {}) => T.messages[key].replace(/\{(value\d+)\}/g, (_, name) => String(values[name]));
 let M = null,
   dialog = document.getElementById("evidence-dialog"),
   trigger = null;
@@ -207,41 +26,27 @@ const fmt = (v, d = 0) =>
         minimumFractionDigits: d,
       });
 const population = () =>
-  zh
-    ? `同一组预先固定的 ${M.task_count} 个任务，每种模式各运行 ${M.protocol.k_runs} 次，共 ${M.attempts_per_mode} 次调用。`
-    : `The same ${M.task_count} preselected tasks, ${M.protocol.k_runs} calls each and ${M.attempts_per_mode} calls per mode.`;
+  message("the_same_preselected_tasks_calls_each_and_calls_per_mode", {value0: (M.task_count), value1: (M.protocol.k_runs), value2: (M.attempts_per_mode)});
 const casePopulation = () =>
-  zh
-    ? `通过数按 ${M.task_count} 个用例统计：每题已记录的 ${M.protocol.k_runs} 次无采样执行全部通过，才计为 1 个通过用例。`
-    : `Pass counts use ${M.task_count} cases: a case passes only when all ${M.protocol.k_runs} recorded unprofiled attempts pass.`;
+  message("pass_counts_use_cases_a_case_passes_only_when_all_recorded_unprof", {value0: (M.task_count), value1: (M.protocol.k_runs)});
 const caseVerdict = (n) =>
   statusChip(n === M.protocol.k_runs ? "pass" : "fail");
 const metricPopulation = () =>
-  zh
-    ? `全部 ${M.attempts_per_mode} 次调用，成功与失败都计入；平均、P50 和 P95 使用同一组调用。`
-    : `All ${M.attempts_per_mode} predeclared calls, including failures; Mean, P50 and P95 use the same population.`;
-const reportSubtitle = () => zh
-  ? `比较 ${M.functional_methods.length} 种固定配置在 ${M.task_count} 个所选用例上的成功率，并展示独立资源实验。`
-  : `Compare ${M.functional_methods.length} fixed configurations on ${M.task_count} selected cases, with separate resource experiments.`;
+  message("all_predeclared_calls_including_failures_mean_p50_and_p95_use_the", {value0: (M.attempts_per_mode)});
+const reportSubtitle = () => message("compare_fixed_configurations_on_selected_cases_with_separate_reso", {value0: (M.functional_methods.length), value1: (M.task_count)});
 const reportVersion = () => {
   const versions = [...new Set((M?.functional_methods || []).flatMap((method) =>
     [...(method.label_en || method.label || "").matchAll(/Moli\s+(\d+\.\d+\.\d+)/g)].map((match) => match[1]),
   ))];
   return versions.length ? `Moli ${versions.join(" / ")}` : "Moli";
 };
-const reportTitle = () => zh
-  ? `${reportVersion()} · 成功率与资源对比`
-  : `${reportVersion()} · Compatibility and resources`;
+const reportTitle = () => message("compatibility_and_resources", {value0: (reportVersion())});
 const datasetIntro = () =>
-  zh
-    ? `依据 Moli 0.1.1 原始结果选取全部 372 个失败用例，覆盖 15 类驱动；不使用结果决定入选。`
-    : `All 372 cases selected from Moli 0.1.1 failures are included across 15 driver types, without selection based on current outcomes.`;
+  message("all_372_cases_selected_from_moli_0_1_1_failures_are_included_acro");
 const reproduceIntro = () => {
   const platforms = M.linux_resource_profiles ? "Linux" :
     M.macos_resource || M.official_resource ? "Linux / macOS" : "Linux";
-  return zh
-    ? `${M.task_count} 个功能用例；直接测试的用例每题记录 ${M.protocol.k_runs} 次执行。各配置实际测试的范围和沿用既有证据的范围见表。本报告为诊断实验。资源测量环境：${platforms}。功能和资源测试各自记录浏览器的二进制哈希；通过率对应功能测试使用的构建。`
-    : `${M.task_count} functional cases; directly tested cases have ${M.protocol.k_runs} recorded attempts each. The configuration table identifies directly tested cases and verdicts retained from existing evidence. This is a diagnostic experiment. Resource environments: ${platforms}. Functional and resource experiments bind their binary identities separately; success rates apply to the corresponding functional build.`;
+  return message("functional_cases_directly_tested_cases_have_recorded_attempts_eac", {value0: (M.task_count), value1: (M.protocol.k_runs), value2: (platforms)});
 };
 const ms = (v) =>
   v === null || v === undefined
@@ -299,45 +104,33 @@ function functionalMethodSummary() {
       : "";
     let policy =
       row.policy === "fixed_on"
-        ? zh
-          ? "全程开启"
-          : "Always on"
-        : zh
-          ? "全程关闭"
-          : "Always off";
+        ? message("always_on")
+        : message("always_off");
     let scope = row.inherited_cases
-      ? `${row.direct_cases} ${zh ? "题实测" : "direct"} + ${row.inherited_cases} ${zh ? "题继承共同失败关系" : "shared failures"}`
-      : `${row.direct_cases} ${zh ? "题实测" : "direct cases"}`;
+      ? `${row.direct_cases} ${message("direct")} + ${row.inherited_cases} ${message("shared_failures")}`
+      : `${row.direct_cases} ${message("direct_cases")}`;
     let evidence = row.evidence
-      ? `<div class="method-evidence"><button data-evidence="${esc(row.evidence.url)}" data-sha="${esc(row.evidence.sha256)}" data-title="${esc(zh ? "固定布局功能证据" : "Fixed-layout functional evidence")}">${esc(zh ? "查看逐题证据" : "Inspect case evidence")}</button></div>`
+      ? `<div class="method-evidence"><button data-evidence="${esc(row.evidence.url)}" data-sha="${esc(row.evidence.sha256)}" data-title="${esc(message("fixed_layout_functional_evidence"))}">${esc(message("inspect_case_evidence"))}</button></div>`
       : "";
-    return `<tr data-functional-method="${esc(row.id)}"><td><strong><span class="method-number">${index + 1}</span> ${esc(zh ? row.label : row.label_en)}</strong>${resource ? `<div class="subtle">${esc(resource.platform === "Linux" ? "Docker · Linux" : "macOS")}${row.id === "114_off" ? (zh ? " · 基线" : " · baseline") : ""}</div>` : ""}${evidence}</td><td>${esc(policy)}</td><td>${esc(scope)}</td><td class="num ${unique && row.final_passed_cases === max ? "winner" : ""}" data-functional-final="${row.final_passed_cases}">${fmt(row.final_passed_cases)}/${total} (${fmt((row.final_passed_cases / total) * 100, 1)}%)</td><td class="num">${signed(((row.final_passed_cases - rows[0].final_passed_cases) / total) * 100, 2, zh ? " 个百分点" : " pp")}</td><td class="num">${fmt(row.physical_calls || (row.id === "114_off" ? 3 : total * 3))}</td>${resourceCells}</tr>`;
+    return `<tr data-functional-method="${esc(row.id)}"><td><strong><span class="method-number">${index + 1}</span> ${esc(zh ? row.label : row.label_en)}</strong>${resource ? `<div class="subtle">${esc(resource.platform === "Linux" ? "Docker · Linux" : "macOS")}${row.id === "114_off" ? (message("baseline")) : ""}</div>` : ""}${evidence}</td><td>${esc(policy)}</td><td>${esc(scope)}</td><td class="num ${unique && row.final_passed_cases === max ? "winner" : ""}" data-functional-final="${row.final_passed_cases}">${fmt(row.final_passed_cases)}/${total} (${fmt((row.final_passed_cases / total) * 100, 1)}%)</td><td class="num">${signed(((row.final_passed_cases - rows[0].final_passed_cases) / total) * 100, 2, message("pp"))}</td><td class="num">${fmt(row.physical_calls || (row.id === "114_off" ? 3 : total * 3))}</td>${resourceCells}</tr>`;
   });
   return section(
-    zh
-      ? `${rows.length} 种固定配置的成功率`
-      : `Success rates for ${rows.length} fixed configurations`,
+    message("success_rates_for_fixed_configurations", {value0: (rows.length)}),
     M.resource_metrics
-      ? zh
-        ? `${total} 题，每题 3/3 通过才算成功；资源列使用固定 209 题样本，统一为 Linux 进程树 PSS 与 CPU 时间。基线：1.1.4 关闭 layout；绿色为唯一最优值。`
-        : `${total} cases; all 3 attempts must pass. Resources use the fixed 209-task sample and Linux process-tree PSS and CPU time. Baseline: 1.1.4 layout off; green marks each unique optimum.`
-      : zh
-        ? `${total} 题，每题 3/3 通过才算成功；资源列使用固定 209 题样本。基线：1.1.4 关闭 layout。— 表示执行环境不同，不计算资源涨幅；绿色为同环境唯一最优值。`
-        : `${total} cases; all 3 attempts must pass. Resources use the fixed 209-task sample. Baseline: 1.1.4 layout off. — denotes incompatible execution environments; green marks the unique optimum within each environment.`,
+      ? message("cases_all_3_attempts_must_pass_resources_use_the_fixed_209_task_s", {value0: (total)})
+      : message("cases_all_3_attempts_must_pass_resources_use_the_fixed_209_task_s_49ab3d", {value0: (total)}),
     table(
       [
-        zh ? "方法" : "Method",
-        zh ? "布局" : "Layout",
-        zh ? "证据范围" : "Evidence scope",
-        zh ? "通过用例" : "Passed cases",
-        zh ? "通过率变化" : "Success-rate change",
-        zh ? "调用数" : "Calls",
+        message("method"),
+        message("layout"),
+        message("evidence_scope"),
+        message("passed_cases"),
+        message("success_rate_change"),
+        message("calls"),
         ...(resourceRows.length
           ? [
-              zh
-                ? "峰值内存 P50 / 基线变化"
-                : "Peak memory P50 / baseline change",
-              zh ? "CPU 均值 / 基线变化" : "Mean CPU / baseline change",
+              message("peak_memory_p50_baseline_change"),
+              message("mean_cpu_baseline_change"),
             ]
           : []),
       ],
@@ -346,14 +139,16 @@ function functionalMethodSummary() {
     ),
   );
 }
+function configurationLabel(id) {
+  const method = M.functional_methods.find((row) => row.id === id);
+  return method ? (zh ? method.label : method.label_en) : id;
+}
 function combinedSummaryChart() {
   const chart = `comparison-all-success-resources-${zh ? "zh" : "en"}.svg`;
-  return `<figure class="summary-chart" data-combined-chart><img src="${base}assets/${chart}" alt="${esc(zh ? `${M.functional_methods.length} 种固定配置的成功率与资源，顺序与总表一致，以 1.1.4 关闭布局为基线` : `${M.functional_methods.length} fixed configurations, aligned with the summary table; baseline: 1.1.4 layout off`)}"></figure>`;
+  return `<figure class="summary-chart" data-combined-chart><img src="${base}assets/${chart}" alt="${esc(message("summary_chart", {value0: M.functional_methods.length, value1: configurationLabel(M.version_comparison?.baseline || M.functional_methods[0]?.id)}))}"></figure>`;
 }
 function resourceBuildNote() {
-  return zh
-    ? "资源按执行环境分别比较。功能和资源测试各自记录浏览器构建；通过率对应功能测试使用的构建，哈希和证据见评测方法。"
-    : "Resources are compared within each execution environment. Functional and resource experiments bind build identities separately; success rates apply to the corresponding functional build. See the method page for build identities and evidence.";
+  return message("resources_are_compared_within_each_execution_environment_function");
 }
 function macosResourceMethods() {
   let result = [];
@@ -382,20 +177,20 @@ function candidateResourceSection() {
     scopes = [
       [
         "all_predeclared_calls",
-        zh ? "557 题全部调用" : "All calls on 557 tasks",
+        message("all_calls_on_557_tasks"),
         2785,
       ],
       [
         "frozen_historical_common_pass_calls",
-        zh ? "图表样本：209 题" : "Chart sample: 209 tasks",
+        message("chart_sample_209_tasks"),
         1045,
       ],
     ];
   let specs = [
-    ["rss_peak_mib", "mean", zh ? "峰值 RSS 均值" : "Peak RSS mean", "MiB"],
-    ["rss_peak_mib", "p50", zh ? "峰值 RSS P50" : "Peak RSS P50", "MiB"],
-    ["rss_peak_mib", "p95", zh ? "峰值 RSS P95" : "Peak RSS P95", "MiB"],
-    ["cpu_time_ms", "mean", zh ? "CPU 均值" : "CPU mean", "ms"],
+    ["rss_peak_mib", "mean", message("peak_rss_mean"), "MiB"],
+    ["rss_peak_mib", "p50", message("peak_rss_p50"), "MiB"],
+    ["rss_peak_mib", "p95", message("peak_rss_p95"), "MiB"],
+    ["cpu_time_ms", "mean", message("cpu_mean"), "ms"],
     ["cpu_time_ms", "p50", zh ? "CPU P50" : "CPU P50", "ms"],
     ["cpu_time_ms", "p95", zh ? "CPU P95" : "CPU P95", "ms"],
   ];
@@ -410,7 +205,7 @@ function candidateResourceSection() {
       let winners = methods.filter(
         (x) => x.config.metrics[scope][metric][stat] === minFor(metric, stat),
       );
-      return winners.length === 1 ? winners[0].label : zh ? "并列" : "Tie";
+      return winners.length === 1 ? winners[0].label : message("tie");
     };
     let rows = methods.map((item) => {
       const reference =
@@ -423,14 +218,14 @@ function candidateResourceSection() {
       return `<tr data-macos-method="${esc(item.id)}"><td><strong>${esc(item.label)}</strong></td><td class="num">${fmt(calls)}</td>${specs.map(([metric, stat, label, unit]) => `<td class="num ${unique(metric, stat, m[metric][stat]) ? "winner" : ""}" data-resource-metric="${metric}-${stat}" data-population="${scope}" data-value="${m[metric][stat]}">${fmt(m[metric][stat], 2)} ${unit}</td>`).join("")}<td class="num">${signed((m.rss_peak_mib.p50 / b.rss_peak_mib.p50 - 1) * 100, 2)}</td><td class="num">${signed((m.cpu_time_ms.mean / b.cpu_time_ms.mean - 1) * 100, 2)}</td></tr>`;
     });
     return (
-      `<h3>${esc(title)}</h3><p>${esc(zh ? `峰值 RSS P50 最低：${leader("rss_peak_mib", "p50")}；单次 CPU 均值最低：${leader("cpu_time_ms", "mean")}。资源最低与通过率最高分别判断。` : `Lowest peak RSS P50: ${leader("rss_peak_mib", "p50")}; lowest mean CPU per call: ${leader("cpu_time_ms", "mean")}. Resource minima and task success are evaluated separately.`)}</p>` +
+      `<h3>${esc(title)}</h3><p>${esc(message("lowest_peak_rss_p50_lowest_mean_cpu_per_call_resource_minima_and_", {value0: (leader("rss_peak_mib", "p50")), value1: (leader("cpu_time_ms", "mean"))}))}</p>` +
       table(
         [
-          zh ? "方法" : "Method",
-          zh ? "调用数" : "Calls",
+          message("method"),
+          message("calls"),
           ...specs.map((x) => x[2]),
-          zh ? "峰值 RSS P50 变化" : "Peak RSS P50 change",
-          zh ? "CPU 均值变化" : "CPU mean change",
+          message("peak_rss_p50_change"),
+          message("cpu_mean_change"),
         ],
         rows,
         "candidate-resource-table",
@@ -438,46 +233,42 @@ function candidateResourceSection() {
     );
   });
   const referenceLabel = methods.some((x) => x.id === "119_official_off")
-    ? zh
-      ? "相同 layout 设置的 Moli 1.1.9"
-      : "Moli 1.1.9 with the same layout setting"
+    ? message("moli_1_1_9_with_the_same_layout_setting")
     : baseline.label;
-  let intro = zh
-    ? `资源实验与 372 题成功率测试分开：每个配置固定 layout，557 题各执行 5 次。P50 是中位数，P95 是第 95 百分位；每组统计包含同一批成功与失败调用。变化基准：${referenceLabel}。macOS 测量进程树 RSS；Linux PSS 另表展示。`
-    : `Resources are measured separately from success on 372 cases: each configuration fixes layout and runs 557 tasks five times. P50 is the median and P95 the 95th percentile; every metric in a scope includes the same passing and failing calls. Change baseline: ${referenceLabel}. macOS measures process-tree RSS; Linux PSS is shown separately.`;
+  let intro = message("resources_are_measured_separately_from_success_on_372_cases_each_", {value0: (referenceLabel)});
   let evidence = methods
     .filter((x, i, a) => a.findIndex((y) => y.resource === x.resource) === i)
     .map(
       (x) =>
-        `<button data-evidence="${esc(x.resource.evidence.url)}" data-sha="${esc(x.resource.evidence.sha256)}" data-title="${esc(x.label)}">${esc(!x.id.startsWith("119_official_") ? (zh ? "修复版资源证据" : "Patched resource evidence") : zh ? "1.1.9 资源证据" : "1.1.9 resource evidence")}</button>`,
+        `<button data-evidence="${esc(x.resource.evidence.url)}" data-sha="${esc(x.resource.evidence.sha256)}" data-title="${esc(x.label)}">${esc(!x.id.startsWith("119_official_") ? (message("patched_resource_evidence")) : message("1_1_9_resource_evidence"))}</button>`,
     )
     .join(" ");
   if (M.resource_matrix) {
     const item = M.resource_matrix.evidence;
-    evidence += ` <button data-evidence="${esc(item.url)}" data-sha="${esc(item.sha256)}" data-title="${esc(zh ? "资源对照调用矩阵" : "Matched resource call matrix")}">${esc(zh ? "串行对照与构建证据" : "Serial comparison and build evidence")}</button>`;
+    evidence += ` <button data-evidence="${esc(item.url)}" data-sha="${esc(item.sha256)}" data-title="${esc(message("matched_resource_call_matrix"))}">${esc(message("serial_comparison_and_build_evidence"))}</button>`;
   }
   return section(
-    zh ? "Moli 1.1.9 资源统计" : "Moli 1.1.9 resource statistics",
+    message("moli_1_1_9_resource_statistics"),
     intro,
     tables.join("") +
-      `<p>${esc(zh ? "四组均使用 release 构建，共享同一主机，各自保留独立浏览器进程和采样。任务调用按配置轮换、串行执行，只统计当前配置的进程树。CPU 为用户态与内核态时间之和。" : "All four release configurations share one host and retain separate browser processes and samplers. Task calls run serially in rotating order; each measurement covers only its own process tree. CPU is user plus system time.")}</p><div class="panel">${evidence}</div>`,
+      `<p>${esc(message("all_four_release_configurations_share_one_host_and_retain_separat"))}</p><div class="panel">${evidence}</div>`,
   );
 }
 function unifiedResourceSection() {
   const methods = M.functional_methods;
   const specs = [
-    ["pss_peak_mib", "mean", zh ? "峰值 PSS 均值" : "Peak PSS mean", "MiB"],
-    ["pss_peak_mib", "p50", zh ? "峰值 PSS P50" : "Peak PSS P50", "MiB"],
-    ["pss_peak_mib", "p95", zh ? "峰值 PSS P95" : "Peak PSS P95", "MiB"],
-    ["cpu_time_ms", "mean", zh ? "CPU 均值" : "CPU mean", "ms"],
+    ["pss_peak_mib", "mean", message("peak_pss_mean"), "MiB"],
+    ["pss_peak_mib", "p50", message("peak_pss_p50"), "MiB"],
+    ["pss_peak_mib", "p95", message("peak_pss_p95"), "MiB"],
+    ["cpu_time_ms", "mean", message("cpu_mean"), "ms"],
     ["cpu_time_ms", "p50", zh ? "CPU P50" : "CPU P50", "ms"],
     ["cpu_time_ms", "p95", zh ? "CPU P95" : "CPU P95", "ms"],
   ];
   let content = [
-    ["all_predeclared_calls", zh ? "557 题全部调用" : "All calls on 557 tasks"],
+    ["all_predeclared_calls", message("all_calls_on_557_tasks")],
     [
       "frozen_historical_common_pass_calls",
-      zh ? "图表样本：209 题" : "Chart sample: 209 tasks",
+      message("chart_sample_209_tasks"),
     ],
   ]
     .map(([scope, title]) => {
@@ -495,9 +286,7 @@ function unifiedResourceSection() {
           ? zh
             ? found[0].label
             : found[0].label_en
-          : zh
-            ? "并列"
-            : "Tie";
+          : message("tie");
       };
       const baseline = M.resource_metrics["114_off"][scope];
       const rows = methods.map((method) => {
@@ -512,14 +301,14 @@ function unifiedResourceSection() {
         return `<tr data-resource-method="${esc(method.id)}"><td><strong>${esc(zh ? method.label : method.label_en)}</strong></td><td class="num">${fmt(values.pss_peak_mib.n)}</td>${cells}<td class="num">${signed((values.pss_peak_mib.p50 / baseline.pss_peak_mib.p50 - 1) * 100, 2)}</td><td class="num">${signed((values.cpu_time_ms.mean / baseline.cpu_time_ms.mean - 1) * 100, 2)}</td></tr>`;
       });
       return (
-        `<h3>${esc(title)}</h3><p>${esc(zh ? `峰值 PSS P50 最低：${winnerName("pss_peak_mib", "p50")}；单次 CPU 均值最低：${winnerName("cpu_time_ms", "mean")}。资源消耗与通过率分别比较。` : `Lowest peak PSS P50: ${winnerName("pss_peak_mib", "p50")}; lowest mean CPU per call: ${winnerName("cpu_time_ms", "mean")}. Resource consumption and success are compared separately.`)}</p>` +
+        `<h3>${esc(title)}</h3><p>${esc(message("lowest_peak_pss_p50_lowest_mean_cpu_per_call_resource_consumption", {value0: (winnerName("pss_peak_mib", "p50")), value1: (winnerName("cpu_time_ms", "mean"))}))}</p>` +
         table(
           [
-            zh ? "方法" : "Method",
-            zh ? "调用数" : "Calls",
+            message("method"),
+            message("calls"),
             ...specs.map((s) => s[2]),
-            zh ? "PSS P50 变化" : "PSS P50 change",
-            zh ? "CPU 均值变化" : "Mean CPU change",
+            message("pss_p50_change"),
+            message("mean_cpu_change"),
           ],
           rows,
           "unified-resource-table",
@@ -530,11 +319,11 @@ function unifiedResourceSection() {
   content += `<p>${[
     [
       M.resource_metrics_source,
-      zh ? "1.1.4 / 1.1.8 资源证据" : "1.1.4 / 1.1.8 resource evidence",
+      message("1_1_4_1_1_8_resource_evidence"),
     ],
     [
       M.linux_resource_profiles?.evidence,
-      zh ? "1.1.9 测量与校准证据" : "1.1.9 measurements and calibration",
+      message("1_1_9_measurements_and_calibration"),
     ],
   ]
     .filter(([evidence]) => evidence?.url && evidence?.sha256)
@@ -544,27 +333,15 @@ function unifiedResourceSection() {
     )
     .join(" ")}</p>`;
   return section(
-    zh ? "七种配置的资源统计" : "Resource statistics for seven configurations",
-    zh
-      ? "各指标使用同一批成功与失败调用；P50 为中位数，P95 为第 95 百分位。全部变化以 1.1.4 关闭 layout 为基准。"
-      : "All metrics include the same passing and failing calls. P50 is the median and P95 the 95th percentile. Every change uses 1.1.4 with layout off as its baseline.",
+    message("resource_statistics_for_seven_configurations"),
+    message("all_metrics_include_the_same_passing_and_failing_calls_p50_is_the"),
     content,
   );
 }
 function unifiedResourceMethodology() {
-  const paragraphs = zh
-    ? [
-        "资源测试独立使用 557 题，每题执行五次，每种配置共 2,785 次调用。图和总表使用事先固定的 209 题、1,045 次调用；完整资源表另列全部 557 题。每个统计范围都保留成功与失败调用。",
-        "七种配置都在 Mac 主机上的 Docker Linux 环境中测量，使用 Linux ARM64 release 二进制和同一资源采集方法。PSS 通过 /proc/PID/smaps_rollup 采集并按进程树求和，CPU 为该进程树的用户态与内核态 CPU 时间之和。250 ms 采集间隔，jobs=1，各配置串行执行。",
-        "官方流程先执行 profiler-off 校准，再执行 profiler-on 测量；报告资源值来自后者，校准用于检查采集器影响。P50 是中位数，P95 是第 95 百分位。全部资源变化以 1.1.4 关闭 layout 为基线，表示对应样本统计值的差异。官网 71 MiB 不参与这七组计算。",
-      ]
-    : [
-        "Resources use a separate 557-task experiment with five attempts per task, or 2,785 calls per configuration. The chart and overview table use 1,045 calls on 209 tasks fixed before execution; the detailed resource tables also show all 557 tasks. Each scope retains passing and failing calls.",
-        "All seven configurations are measured in Docker Linux on the Mac host, using Linux ARM64 release binaries and the same resource collection method. PSS is read from /proc/PID/smaps_rollup and summed over the process tree; CPU is the tree's user plus system CPU time. Sampling uses a 250 ms interval and jobs=1, with configurations executed serially.",
-        "The official procedure runs profiler-off calibration followed by profiler-on measurement. Reported resources come from the latter; calibration checks observer effect. P50 is the median and P95 the 95th percentile. Every resource change uses 1.1.4 with layout off as the baseline and describes the corresponding sample statistic. The website's 71 MiB value is excluded from these seven configurations.",
-      ];
+  const paragraphs = T.resource_methodology;
   return section(
-    zh ? "资源测量与可比范围" : "Resource measurement and comparability",
+    message("resource_measurement_and_comparability"),
     "",
     paragraphs.map((p) => `<p>${esc(p)}</p>`).join(""),
   );
@@ -575,28 +352,28 @@ function resourceGroups() {
     rx = M.network_rx,
     cold = M.cold_start;
   let cpu = table(
-    [zh ? "CPU 指标" : "CPU metric", T.modes.off, T.modes.on],
+    [message("cpu_metric"), T.modes.off, T.modes.on],
     [
       metricRow(
-        zh ? "单次 CPU 均值" : "Mean per-call CPU",
+        message("mean_per_call_cpu"),
         off.cpu_ms_all.mean,
         on.cpu_ms_all.mean,
         ms,
       ),
       metricRow(
-        zh ? "累计 CPU 时间" : "Total CPU time",
+        message("total_cpu_time"),
         off.cpu_ms_all.sum,
         on.cpu_ms_all.sum,
         (v) => fmt(v / 1000, 2) + " s",
       ),
       metricRow(
-        zh ? "单次 CPU P50" : "Per-call CPU P50",
+        message("per_call_cpu_p50"),
         off.cpu_ms_all.p50,
         on.cpu_ms_all.p50,
         ms,
       ),
       metricRow(
-        zh ? "单次 CPU P95" : "Per-call CPU P95",
+        message("per_call_cpu_p95"),
         off.cpu_ms_all.p95,
         on.cpu_ms_all.p95,
         ms,
@@ -604,28 +381,28 @@ function resourceGroups() {
     ],
   );
   let memory = table(
-    [zh ? "内存指标" : "Memory metric", T.modes.off, T.modes.on],
+    [message("memory_metric"), T.modes.off, T.modes.on],
     [
       metricRow(
-        zh ? "观测 PSS 最大值均值" : "Mean observed PSS maximum",
+        message("mean_observed_pss_maximum"),
         off.pss_peak_mib_all.mean,
         on.pss_peak_mib_all.mean,
         (v) => fmt(v, 2) + " MiB",
       ),
       metricRow(
-        zh ? "观测 PSS 最大值 P50" : "Observed PSS maximum P50",
+        message("observed_pss_maximum_p50"),
         off.pss_peak_mib_all.p50,
         on.pss_peak_mib_all.p50,
         (v) => fmt(v, 2) + " MiB",
       ),
       metricRow(
-        zh ? "观测 PSS 最大值 P95" : "Observed PSS maximum P95",
+        message("observed_pss_maximum_p95"),
         off.pss_peak_mib_all.p95,
         on.pss_peak_mib_all.p95,
         (v) => fmt(v, 2) + " MiB",
       ),
       metricRow(
-        zh ? "PSS 增量 P50" : "PSS increase P50",
+        message("pss_increase_p50"),
         off.pss_delta_mib_all.p50,
         on.pss_delta_mib_all.p50,
         (v) => fmt(v, 2) + " MiB",
@@ -634,31 +411,31 @@ function resourceGroups() {
   );
   let network = table(
     [
-      zh ? "站点应用层流量" : "Fixture application traffic",
+      message("fixture_application_traffic"),
       T.modes.off,
       T.modes.on,
     ],
     [
       metricRow(
-        zh ? "下行总量" : "Total downlink",
+        message("total_downlink"),
         off.fixture_tx_bytes_all.sum,
         on.fixture_tx_bytes_all.sum,
         (v) => fmt(v) + " B",
       ),
       metricRow(
-        zh ? "下行 P50" : "Downlink P50",
+        message("downlink_p50"),
         off.fixture_tx_bytes_all.p50,
         on.fixture_tx_bytes_all.p50,
         (v) => fmt(v) + " B",
       ),
       metricRow(
-        zh ? "上行总量" : "Total uplink",
+        message("total_uplink"),
         rx.off.total_bytes,
         rx.on.total_bytes,
         (v) => fmt(v) + " B",
       ),
       metricRow(
-        zh ? "上行 P50" : "Uplink P50",
+        message("uplink_p50"),
         rx.off.p50_bytes,
         rx.on.p50_bytes,
         (v) => fmt(v) + " B",
@@ -667,27 +444,25 @@ function resourceGroups() {
   );
   let startup = table(
     [
-      zh
-        ? `冷启动指标 · 关闭 ${M.cold_start.off.n} / 开启 ${M.cold_start.on.n} 次`
-        : `Cold-start metric · off ${M.cold_start.off.n} / on ${M.cold_start.on.n}`,
+      message("cold_start_metric_off_on", {value0: (M.cold_start.off.n), value1: (M.cold_start.on.n)}),
       T.modes.off,
       T.modes.on,
     ],
     [
       metricRow(
-        zh ? "就绪时间 P50" : "Ready time P50",
+        message("ready_time_p50"),
         cold.off.ready_ms.p50,
         cold.on.ready_ms.p50,
         ms,
       ),
       metricRow(
-        zh ? "启动 CPU P50" : "Launch CPU P50",
+        message("launch_cpu_p50"),
         cold.off.launch_cpu_ms.p50,
         cold.on.launch_cpu_ms.p50,
         ms,
       ),
       metricRow(
-        zh ? "启动观测 PSS P50" : "Launch observed PSS P50",
+        message("launch_observed_pss_p50"),
         cold.off.launch_pss_bytes.p50,
         cold.on.launch_pss_bytes.p50,
         mib,
@@ -696,12 +471,12 @@ function resourceGroups() {
   );
   let leaderOf = (a, b) => {
     let winner = best(a, b, "min");
-    return winner ? T.modes[winner] : zh ? "持平" : "tie";
+    return winner ? T.modes[winner] : message("tie_f4719e");
   };
-  let leader = `<div class="notice"><strong>${esc(zh ? "采样执行中的资源数值" : "Observed profiled resource values")}</strong> · ${esc(zh ? `全部调用 CPU：${leaderOf(off.cpu_ms_all.sum, on.cpu_ms_all.sum)}；观测 PSS 最大值 P50：${leaderOf(off.pss_peak_mib_all.p50, on.pss_peak_mib_all.p50)}；站点下行：${leaderOf(off.fixture_tx_bytes_all.sum, on.fixture_tx_bytes_all.sum)}。这些是采样执行的观测值；主耗时采用无采样轮。` : `All-call CPU: ${leaderOf(off.cpu_ms_all.sum, on.cpu_ms_all.sum)}; observed PSS maximum P50: ${leaderOf(off.pss_peak_mib_all.p50, on.pss_peak_mib_all.p50)}; fixture downlink: ${leaderOf(off.fixture_tx_bytes_all.sum, on.fixture_tx_bytes_all.sum)}. These are profiled observations; primary duration uses unprofiled calls.`)}</div>`;
+  let leader = `<div class="notice"><strong>${esc(message("observed_profiled_resource_values"))}</strong> · ${esc(message("all_call_cpu_observed_pss_maximum_p50_fixture_downlink_these_are_", {value0: (leaderOf(off.cpu_ms_all.sum, on.cpu_ms_all.sum)), value1: (leaderOf(off.pss_peak_mib_all.p50, on.pss_peak_mib_all.p50)), value2: (leaderOf(off.fixture_tx_bytes_all.sum, on.fixture_tx_bytes_all.sum))}))}</div>`;
   return (
     leader +
-    `<div class="grid"><div data-resource-group="cpu"><h3>${esc(zh ? "CPU 与计算" : "CPU and computation")}</h3>${cpu}</div><div data-resource-group="memory"><h3>${esc(zh ? "内存" : "Memory")}</h3>${memory}</div><div data-resource-group="network"><h3>${esc(zh ? "网络流量" : "Network traffic")}</h3>${network}</div><div data-resource-group="startup"><h3>${esc(zh ? "冷启动" : "Cold start")}</h3>${startup}</div></div>`
+    `<div class="grid"><div data-resource-group="cpu"><h3>${esc(message("cpu_and_computation"))}</h3>${cpu}</div><div data-resource-group="memory"><h3>${esc(message("memory"))}</h3>${memory}</div><div data-resource-group="network"><h3>${esc(message("network_traffic"))}</h3>${network}</div><div data-resource-group="startup"><h3>${esc(message("cold_start"))}</h3>${startup}</div></div>`
   );
 }
 function pairStatus(c) {
@@ -719,9 +494,7 @@ function inputVersionNote() {
   const count = Object.keys(M.input_definition_variants || {}).length;
   if (!count) return "";
   const shared = M.task_count - count;
-  return `<p class="scope-note" data-input-definition-variants="${count}">${esc(zh
-    ? `${count} 题在不同配置中使用了不同版本的任务定义，其余 ${shared} 题定义一致。表中保留各配置按当时任务版本取得的成绩。`
-    : `${count} tasks used different definition versions across configurations; the other ${shared} used identical definitions. Scores retain each configuration's measured task version.`)}</p>`;
+  return `<p class="scope-note" data-input-definition-variants="${count}">${esc(message("tasks_used_different_definition_versions_across_configurations_th", {value0: (count), value1: (shared)}))}</p>`;
 }
 
 function home() {
@@ -734,11 +507,11 @@ function home() {
     functionalMethodSummary() +
     inputVersionNote() +
     combinedSummaryChart() +
-    `<details class="resource-disclosure"><summary>${esc(zh ? "查看完整资源统计与测量范围" : "Inspect resource statistics and measurement scope")}</summary>${candidateResourceSection()}</details>` +
+    `<details class="resource-disclosure"><summary>${esc(message("inspect_resource_statistics_and_measurement_scope"))}</summary>${candidateResourceSection()}</details>` +
     section(
-      zh ? "如何查看结果" : "Explore the results",
+      message("explore_the_results"),
       "",
-      `<p>${esc(resourceBuildNote())}</p><a href="${link("analysis")}">${esc(zh ? "比较新增通过与仍然失败的用例" : "Compare gained passes and remaining failures")}</a> · <a href="${link("guide")}">${esc(T.nav.guide)}</a> · <a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
+      `<p>${esc(resourceBuildNote())}</p><a href="${link("analysis")}">${esc(message("compare_gained_passes_and_remaining_failures"))}</a> · <a href="${link("guide")}">${esc(T.nav.guide)}</a> · <a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
     )
   );
 }
@@ -747,14 +520,14 @@ function successfulDuration() {
     b = M.metrics.on.baseline;
   return table(
     [
-      zh ? "成功调用耗时" : "Accepted-call duration",
+      message("accepted_call_duration"),
       `${T.modes.off} · n=${a.passes}`,
       `${T.modes.on} · n=${b.passes}`,
     ],
     [
-      ["mean", zh ? "成功调用平均耗时" : "Mean accepted-call duration"],
-      ["p50", zh ? "成功调用 P50 耗时" : "Accepted-call P50 duration"],
-      ["p95", zh ? "成功调用 P95 耗时" : "Accepted-call P95 duration"],
+      ["mean", message("mean_accepted_call_duration")],
+      ["p50", message("accepted_call_p50_duration")],
+      ["p95", message("accepted_call_p95_duration")],
     ].map(([key, label]) =>
       metricRow(label, a.duration_ms_pass[key], b.duration_ms_pass[key], ms),
     ),
@@ -766,14 +539,14 @@ function strataTable() {
       off = a.filter((c) => c.off_passes === M.protocol.k_runs).length,
       on = a.filter((c) => c.on_passes === M.protocol.k_runs).length,
       total = a.length;
-    return `<tr><td><a href="${link("results")}&stratum=${encodeURIComponent(s)}">${esc(T.strata[s] || s)}</a><div class="subtle">${a.length} ${zh ? "题" : "tasks"}</div></td><td class="num">${off}/${total}</td><td class="num">${on}/${total}</td><td><div class="bar" aria-label="${off} / ${on}"><span class="pass" style="width:${(on / total) * 100}%"></span><span class="fail" style="width:${((total - on) / total) * 100}%"></span></div></td></tr>`;
+    return `<tr><td><a href="${link("results")}&stratum=${encodeURIComponent(s)}">${esc(T.strata[s] || s)}</a><div class="subtle">${a.length} ${message("tasks")}</div></td><td class="num">${off}/${total}</td><td class="num">${on}/${total}</td><td><div class="bar" aria-label="${off} / ${on}"><span class="pass" style="width:${(on / total) * 100}%"></span><span class="fail" style="width:${((total - on) / total) * 100}%"></span></div></td></tr>`;
   });
   return table(
     [
-      zh ? "任务类别" : "Family",
+      message("family"),
       T.modes.off,
       T.modes.on,
-      zh ? "开布局通过占比" : "Layout-on pass share",
+      message("layout_on_pass_share"),
     ],
     rows,
   );
@@ -795,15 +568,15 @@ function inventory(kind) {
   return (
     hero(title, intro) +
     section(
-      zh ? "查找与筛选" : "Find and filter",
+      message("find_and_filter"),
       "",
       filters + `<div id="inventory-table"></div>`,
     ) +
     (kind === "dataset"
       ? section(
-          zh ? "选择规则" : "Selection rule",
+          message("selection_rule"),
           T.methodLimit,
-          `<div class="panel"><p>${esc(zh ? "选取 1,928 题中未能三次全部通过的全部 372 题。保留 Chrome 未通过的题目；Chrome 的结果不作为排除依据。两个布局组使用同一组冻结任务与验收规则。" : M.selection)}</p><p class="subtle">SHA-256: <code>${esc(M.manifest_sha256)}</code></p></div>`,
+          `<div class="panel"><p>${esc(M.selection)}</p><p class="subtle">SHA-256: <code>${esc(M.manifest_sha256)}</code></p></div>`,
         )
       : "")
   );
@@ -852,7 +625,7 @@ function renderInventory() {
   if (dataset) {
     document.getElementById("relation").closest("label").hidden = true;
     document.getElementById("inventory-table").innerHTML = table(
-      [T.task, T.stratum, zh ? "子集" : "Subset", T.rawContract],
+      [T.task, T.stratum, message("subset"), T.rawContract],
       rows.map(
         (c) =>
           `<tr><td>${esc(c.title)}<div class="subtle"><code>${esc(c.id)}</code></div></td><td>${esc(T.strata[c.stratum] || c.stratum)}</td><td>${esc(c.subset)}</td><td><a href="${link("contract/" + c.id)}">${esc(T.open)}</a></td></tr>`,
@@ -912,15 +685,15 @@ function pairedAttempts(c) {
   });
   return table(
     [
-      zh ? "序号" : "Attempt",
-      zh ? "无布局状态" : "Off status",
-      zh ? "开布局状态" : "On status",
-      zh ? "无布局耗时" : "Off duration",
-      zh ? "开布局耗时" : "On duration",
-      zh ? "无布局 CPU" : "Off CPU",
-      zh ? "开布局 CPU" : "On CPU",
-      zh ? "无布局结束 PSS" : "Off ending PSS",
-      zh ? "开布局结束 PSS" : "On ending PSS",
+      message("attempt"),
+      message("off_status"),
+      message("on_status"),
+      message("off_duration"),
+      message("on_duration"),
+      message("off_cpu"),
+      message("on_cpu"),
+      message("off_ending_pss"),
+      message("on_ending_pss"),
     ],
     rows,
     "paired-matrix",
@@ -929,20 +702,20 @@ function pairedAttempts(c) {
 async function taskPage(id, contract = false) {
   let c = await getCase(id);
   let f = facts([
-    [zh ? "任务 ID" : "Task ID", `<code>${esc(c.id)}</code>`],
-    [zh ? "子集" : "Subset", esc(c.subset)],
+    [message("task_id"), `<code>${esc(c.id)}</code>`],
+    [message("subset"), esc(c.subset)],
     [
-      zh ? "任务定义 SHA-256" : "Task SHA-256",
+      message("task_sha_256"),
       `<code>${esc(c.task_sha256)}</code>`,
     ],
     [
-      zh ? "协议特性" : "Features",
+      message("features"),
       c.features.map((x) => `<span class="tag">${esc(x)}</span>`).join(" ") ||
         "—",
     ],
   ]);
   let results = table(
-    [T.mode, zh ? "用例判定" : "Case verdict", T.open],
+    [T.mode, message("case_verdict"), T.open],
     ["off", "on"].map(
       (m) =>
         `<tr><td>${esc(T.modes[m])}</td><td>${caseVerdict(c.modes[m].passes)}</td><td><a href="${link("result/" + id + "/" + m)}">${esc(T.more)} →</a></td></tr>`,
@@ -954,27 +727,25 @@ async function taskPage(id, contract = false) {
     (contract
       ? ""
       : section(
-          zh ? "同题结果" : "Same-task results",
+          message("same_task_results"),
           casePopulation(),
           results,
         ) +
         section(
-          zh ? "逐次配对" : "Paired attempts",
-          zh
-            ? "耗时来自无采样轮；CPU 和结束 PSS 来自同题同次的资源采样轮。点击状态可直达对应调用的证据。"
-            : "Duration comes from the unprofiled run; CPU and ending PSS come from the matching profiled call. Open a status to inspect that exact call's evidence.",
+          message("paired_attempts"),
+          message("duration_comes_from_the_unprofiled_run_cpu_and_ending_pss_come_fr"),
           pairedAttempts(c),
         )) +
     (contract
       ? section(
           T.rawContract,
           "",
-          `<div class="detail-grid"><div class="panel">${f}</div><div class="panel"><h3>${esc(zh ? "驱动步骤" : "Driver steps")}</h3><pre>${esc(JSON.stringify(c.driver, null, 2))}</pre></div></div>`,
+          `<div class="detail-grid"><div class="panel">${f}</div><div class="panel"><h3>${esc(message("driver_steps"))}</h3><pre>${esc(JSON.stringify(c.driver, null, 2))}</pre></div></div>`,
         ) +
         section(
-          zh ? "验收合同" : "Acceptance contract",
+          message("acceptance_contract"),
           "",
-          `<div class="grid two"><div class="panel"><h3>${esc(zh ? "场景" : "Scene")}</h3><pre>${esc(JSON.stringify(c.scene, null, 2))}</pre></div><div class="panel"><h3>${esc(zh ? "评分规则" : "Grader")}</h3><pre>${esc(JSON.stringify(c.grader, null, 2))}</pre></div></div>`,
+          `<div class="grid two"><div class="panel"><h3>${esc(message("scene"))}</h3><pre>${esc(JSON.stringify(c.scene, null, 2))}</pre></div><div class="panel"><h3>${esc(message("grader"))}</h3><pre>${esc(JSON.stringify(c.grader, null, 2))}</pre></div></div>`,
         )
       : section(
           T.rawContract,
@@ -989,12 +760,8 @@ function evidenceButtons(a, mode, id) {
     let files = a.evidence[phase] || {},
       phaseName =
         phase === "baseline"
-          ? zh
-            ? "无采样"
-            : "Unprofiled"
-          : zh
-            ? "资源采样"
-            : "Profiled";
+          ? message("unprofiled")
+          : message("profiled");
     for (let [name, info] of Object.entries(files))
       groups.push(
         `<button type="button" data-evidence="${esc(info.url)}" data-find="${esc((a.failure?.detail || " ").split(":").at(-1).trim())}" data-sha="${esc(info.sha256)}" data-title="${esc(id)} · ${esc(T.modes[mode])} · ${a.ordinal} · ${phaseName} · ${name}">${esc(phaseName + " · " + name)}</button>`,
@@ -1005,23 +772,23 @@ function evidenceButtons(a, mode, id) {
 function attemptCard(a, mode, id) {
   let r = a.resource || {},
     err = a.failure?.detail || "",
-    details = `<div class="detail-grid"><div><h3>${esc(zh ? "评分与响应" : "Verdict and response")}</h3>${facts(
+    details = `<div class="detail-grid"><div><h3>${esc(message("verdict_and_response"))}</h3>${facts(
       [
         [T.status, statusChip(a.status)],
-        [zh ? "采样轮状态" : "Profiled verdict", statusChip(a.profile_status)],
+        [message("profiled_verdict"), statusChip(a.profile_status)],
         [T.duration, esc(ms(a.duration_ms))],
-        [zh ? "响应" : "Answer", `<code>${esc(a.answer || "—")}</code>`],
+        [message("answer"), `<code>${esc(a.answer || "—")}</code>`],
         [T.failure, esc(a.failure?.class || "—")],
       ],
-    )}</div><div><h3>${esc(zh ? "Moli 资源" : "Moli resources")}</h3>${facts([
+    )}</div><div><h3>${esc(message("moli_resources"))}</h3>${facts([
       [T.cpu, esc(ms(r.cpu_total_ms))],
       [T.pss, esc(mib(r.pss_end_bytes))],
       [
-        zh ? "观测 PSS 最大值" : "Observed PSS maximum",
+        message("observed_pss_maximum"),
         esc(mib(r.pss_peak_bytes)),
       ],
       [T.traffic, esc(fmt(r.fixture_tx_bytes) + " B")],
-      [zh ? "采样点" : "Samples", esc(fmt(r.samples_seen))],
+      [message("samples"), esc(fmt(r.samples_seen))],
     ])}</div></div>${err ? `<div class="error-message"><strong>${esc(T.failure)}:</strong> ${esc(err)}</div>` : ""}<div class="evidence-links">${evidenceButtons(a, mode, id)}</div>`;
   return `<div class="attempt" data-report-detail="${esc(id)}-${mode}-${a.ordinal}"><div class="attempt-head"><strong>${esc(T.attempt.replace("{n}", a.ordinal))}</strong>${statusChip(a.status)}<span class="scalar">${esc(ms(a.duration_ms))} · ${esc(ms(r.cpu_total_ms))} CPU</span></div><details><summary>${esc(T.details)}</summary>${details}</details></div>`;
 }
@@ -1031,39 +798,35 @@ async function resultPage(id, mode) {
     x = c.modes[mode],
     y = c.modes[mode === "off" ? "on" : "off"];
   let firstFail = x.attempts.find((a) => a.status !== "pass");
-  let summary = `<div class="result-summary">${card(zh ? "用例判定" : "Case verdict", caseVerdict(x.passes), zh ? `${x.passes}/${M.protocol.k_runs} 次执行通过；全部通过才计通过用例` : `${x.passes}/${M.protocol.k_runs} attempts passed; all must pass`)}${card(T.duration, ms(x.attempts.reduce((n, a) => n + a.duration_ms, 0)), zh ? `${M.protocol.k_runs} 次总耗时` : `Total for ${M.protocol.k_runs} calls`)}${card(T.relation, esc(T[pairStatus({ off_passes: c.modes.off.passes, on_passes: c.modes.on.passes })]), zh ? "与另一模式比较" : "Compared with the other mode")}</div>`;
+  let summary = `<div class="result-summary">${card(message("case_verdict"), caseVerdict(x.passes), message("attempts_passed_all_must_pass", {value0: (x.passes), value1: (M.protocol.k_runs)}))}${card(T.duration, ms(x.attempts.reduce((n, a) => n + a.duration_ms, 0)), message("total_for_calls", {value0: (M.protocol.k_runs)}))}${card(T.relation, esc(T[pairStatus({ off_passes: c.modes.off.passes, on_passes: c.modes.on.passes })]), message("compared_with_the_other_mode"))}</div>`;
   let locator = firstFail
-    ? `<div class="notice warn"><strong>${esc(zh ? "失败定位" : "Failure locator")}</strong> · ${esc(T.attempt.replace("{n}", firstFail.ordinal))} · ${esc(firstFail.failure.class || T.unavailable)}<div class="mini">${esc(firstFail.failure.detail || T.unavailable)}</div></div>`
-    : `<div class="notice">${esc(zh ? `本模式 ${M.protocol.k_runs} 次调用均通过。` : `All ${M.protocol.k_runs} calls passed in this mode.`)}</div>`;
+    ? `<div class="notice warn"><strong>${esc(message("failure_locator"))}</strong> · ${esc(T.attempt.replace("{n}", firstFail.ordinal))} · ${esc(firstFail.failure.class || T.unavailable)}<div class="mini">${esc(firstFail.failure.detail || T.unavailable)}</div></div>`
+    : `<div class="notice">${esc(message("all_calls_passed_in_this_mode", {value0: (M.protocol.k_runs)}))}</div>`;
   return (
     `<div class="breadcrumb"><a href="${link("results")}">${esc(T.nav.results)}</a> / <a href="${link("task/" + id)}">${esc(id)}</a> / ${esc(T.modes[mode])}</div>` +
     hero(c.title, `${T.modes[mode]} · ${c.subset}`) +
-    section(zh ? "结果摘要" : "Result summary", "", summary + locator) +
+    section(message("result_summary"), "", summary + locator) +
     section(
-      zh ? "运行标识" : "Run identities",
+      message("run_identities"),
       "",
       `<div class="panel">${facts([
         [
-          zh ? "无采样轮" : "Unprofiled run",
+          message("unprofiled_run"),
           `<code>${esc(M.runs[mode + "_baseline"].run_id)}</code>`,
         ],
         [
-          zh ? "资源采样轮" : "Profiled run",
+          message("profiled_run"),
           `<code>${esc(M.runs[mode + "_engine"].run_id)}</code>`,
         ],
       ])}</div>`,
     ) +
     section(
-      zh
-        ? `${M.protocol.k_runs} 次调用与证据`
-        : `${M.protocol.k_runs} calls and evidence`,
-      zh
-        ? "每次调用保留无采样的结果与耗时，以及同题同次资源采样值。点击证据可查看原始评分、输出、日志或 CDP 消息。"
-        : "Each call pairs the unprofiled verdict and duration with the profiled resource observation. Open evidence for exact grader, output, log or CDP data.",
+      message("calls_and_evidence", {value0: (M.protocol.k_runs)}),
+      message("each_call_pairs_the_unprofiled_verdict_and_duration_with_the_prof"),
       `<div class="attempts">${x.attempts.map((a) => attemptCard(a, mode, id)).join("")}</div>`,
     ) +
     section(
-      zh ? "另一模式" : "Other mode",
+      message("other_mode"),
       "",
       `<div class="panel"><a href="${link("result/" + id + "/" + (mode === "off" ? "on" : "off"))}">${esc(T.modes[mode === "off" ? "on" : "off"])} · ${y.passes === M.protocol.k_runs ? T.pass : T.fail} →</a></div>`,
     )
@@ -1073,95 +836,69 @@ function methodPage() {
   return (
     hero(
       T.nav.method,
-      zh
-        ? "固定任务、固定布局与独立资源实验。"
-        : "Fixed tasks, fixed layout and a separate resource experiment.",
+      message("fixed_tasks_fixed_layout_and_a_separate_resource_experiment"),
     ) +
     section(
-      zh ? "评测流程" : "Evaluation protocol",
+      message("evaluation_protocol"),
       "",
       `<div class="protocol-diagram"><pre class="mermaid">flowchart TB
-A["${zh ? "冻结任务、二进制与验收规则" : "Freeze tasks, binaries and acceptance rules"}"] --> B["${zh ? "固定版本与 layout 配置" : "Fix version and layout configuration"}"]
-B --> C["${zh ? "功能：372 题，每题 3 次" : "Functional: 372 cases, three attempts each"}"]
-B --> D["${zh ? "资源：557 题，每题 5 次" : "Resources: 557 tasks, five calls each"}"]
-C --> E["${zh ? "三次全部通过才算通过" : "A case passes only when all three attempts pass"}"]
-D --> F["${zh ? "全部调用统计与固定 209 题图表样本" : "All-call statistics and fixed 209-task chart sample"}"]
-E --> G["${zh ? "配置总表与总图" : "Configuration table and chart"}"]
+A["${message("freeze_tasks_binaries_and_acceptance_rules")}"] --> B["${message("fix_version_and_layout_configuration")}"]
+B --> C["${message("functional_372_cases_three_attempts_each")}"]
+B --> D["${message("resources_557_tasks_five_calls_each")}"]
+C --> E["${message("a_case_passes_only_when_all_three_attempts_pass")}"]
+D --> F["${message("all_call_statistics_and_fixed_209_task_chart_sample")}"]
+E --> G["${message("configuration_table_and_chart")}"]
 F --> G</pre></div>`,
     ) +
     section(
-      zh ? "功能评分与基线" : "Functional scoring and baseline",
+      message("functional_scoring_and_baseline"),
       "",
-      `<p>${esc(zh ? "所有配置共用 372 题分母。每题三次执行全部通过运行与验收检查，才记为一个通过用例。1.1.8 的两种布局、修复版 1.1.9 的两种布局和 1.1.9 的两种布局均覆盖全部 372 题。" : "All configurations use the same 372-case denominator. A case passes only when execution and acceptance checks pass in all three attempts. Both 1.1.8 layouts, both patched 1.1.9 layouts and both 1.1.9 layouts directly cover all 372 cases.")}</p><p>${esc(zh ? "1.1.4 关闭布局为基线：对 1.1.8 关闭布局唯一通过的候选题实测三次，均失败；其余 371 题沿用共同失败关系。因此表中的 0/372 包含 1 题直接验证和 371 题继承结果，并非对 1.1.4 的完整重测。基线通过率为 0%，通过率变化用百分点表示。" : "Layout-off 1.1.4 is the baseline: the sole candidate passed by layout-off 1.1.8 failed all three direct checks; the other 371 retain the shared-failure relation. Its 0/372 consists of one directly checked case and 371 inherited outcomes, not a complete 1.1.4 rerun. Because baseline success is zero, success changes are expressed in percentage points.")}</p>`,
+      `<p>${esc(message("all_configurations_use_the_same_372_case_denominator_a_case_passe"))}</p><p>${esc(message("layout_off_1_1_4_is_the_baseline_the_sole_candidate_passed_by_lay"))}</p>`,
     ) +
     section(
-      zh ? "任务来源与适用范围" : "Task selection and scope",
+      message("task_selection_and_scope"),
       "",
-      `<p>${esc(zh ? "372 题选自 Moli 0.1.1 在 1,928 题中未达到三次全部通过的全部用例，覆盖 15 类驱动。Chrome 结果不影响入选。其余 1,556 题不在评测范围内，这里的通过率不代表完整 1,928 题的通过率。" : "The 372 cases are all cases from the 1,928-case suite that Moli 0.1.1 did not pass in all three attempts, spanning 15 driver types. Chrome outcomes do not affect selection. The other 1,556 cases are outside this evaluation, so these rates do not describe the full suite.")}</p><a href="${link("dataset")}">${esc(T.nav.dataset)}</a>`,
+      `<p>${esc(message("the_372_cases_are_all_cases_from_the_1_928_case_suite_that_moli_0"))}</p><a href="${link("dataset")}">${esc(T.nav.dataset)}</a>`,
     ) +
     (M.linux_resource_profiles
       ? unifiedResourceMethodology()
       : section(
-          zh ? "资源测量与可比范围" : "Resource measurement and comparability",
+          message("resource_measurement_and_comparability"),
           "",
-          `<p>${esc(zh ? "资源实验单独执行 557 题，每题五次，每种配置共 2,785 次调用。图和总表使用运行前固定的 209 题、1,045 次样本；完整资源表另列全部 557 题。P50 是中位数，P95 是第 95 百分位。" : "Resources use a separate 557-task experiment with five calls per task, or 2,785 calls per configuration. The chart and overview table use 1,045 calls on 209 tasks fixed before execution; detailed resource tables also show all 557 tasks. P50 is the median and P95 the 95th percentile.")}</p><p>${esc(zh ? "1.1.4 / 1.1.8 在 Mac 发起的 Docker Linux 容器中执行，使用 Linux ARM64 二进制并采集 PSS；1.1.9 在 macOS 原生执行，使用 Mach-O ARM64 二进制并采集 RSS。七组均为本次系列的复测数据，非官网 71 MiB 数据；同一宿主机不等于相同执行环境。CPU 为进程树用户态与内核态时间之和。跨平台的内存和 CPU 不计算相对 1.1.4 的百分比变化；同平台百分比是样本数值对照。四组 macOS 资源配置均为 release 构建，使用同一冻结调用矩阵，逐次轮换顺序并串行执行。" : "Moli 1.1.4 / 1.1.8 run in Docker Linux containers launched from the Mac, using Linux ARM64 binaries and PSS sampling. Moli 1.1.9 runs natively on macOS with Mach-O ARM64 binaries and RSS sampling. All seven configurations are reruns in this series, not the website’s 71 MiB result. Sharing a host does not imply an identical execution environment. CPU is process-tree user plus system time. Cross-platform memory and CPU changes relative to 1.1.4 are not calculated; same-platform percentages describe the measured sample. All four macOS resource configurations use release builds and one frozen call matrix, executed serially with rotating order.")}</p>`,
+          `<p>${esc(message("resources_use_a_separate_557_task_experiment_with_five_calls_per_"))}</p><p>${esc(message("moli_1_1_4_1_1_8_run_in_docker_linux_containers_launched_from_the"))}</p>`,
         )) +
     section(
-      zh ? "RSS 与 PSS：指标口径" : "RSS and PSS: memory definitions",
-      zh
-        ? "两者均以 MiB 展示，但共享内存的计数方式不同，不能互换或按固定比例换算。"
-        : "Both use MiB, but account for shared memory differently and cannot be interchanged or converted by a fixed ratio.",
+      message("rss_and_pss_memory_definitions"),
+      message("both_use_mib_but_account_for_shared_memory_differently_and_cannot"),
       table(
-        [zh ? "对比项" : "Property", "RSS", "PSS"],
+        [message("property"), "RSS", "PSS"],
         [
           [
-            zh ? "统计内容" : "What is counted",
-            zh
-              ? "进程当前驻留物理内存中的页"
-              : "Pages currently resident in physical memory for the process",
-            zh
-              ? "私有驻留页，加上按共享进程数分摊的共享驻留页"
-              : "Private resident pages plus a proportional share of shared resident pages",
+            message("what_is_counted"),
+            message("pages_currently_resident_in_physical_memory_for_the_process"),
+            message("private_resident_pages_plus_a_proportional_share_of_shared_reside"),
           ],
           [
-            zh ? "共享页" : "Shared pages",
-            zh
-              ? "每个映射进程都计入；进程树求和会重复计入共享页"
-              : "Counted for each mapping process; process-tree sums can count shared pages multiple times",
-            zh
-              ? "按共享份额计入，减少进程间重复计算"
-              : "Counted proportionally, reducing double counting across processes",
+            message("shared_pages"),
+            message("counted_for_each_mapping_process_process_tree_sums_can_count_shar"),
+            message("counted_proportionally_reducing_double_counting_across_processes"),
           ],
           [
-            zh ? "示例" : "Example",
-            zh
-              ? "20 MiB 私有页＋与另一进程共享的 10 MiB：RSS＝30 MiB"
-              : "20 MiB private plus 10 MiB shared equally with one other process: RSS = 30 MiB",
-            zh
-              ? "同例：PSS＝20＋10÷2＝25 MiB"
-              : "Same example: PSS = 20 + 10 / 2 = 25 MiB",
+            message("example"),
+            message("20_mib_private_plus_10_mib_shared_equally_with_one_other_process_"),
+            message("same_example_pss_20_10_2_25_mib"),
           ],
           [
-            zh ? "本报告采集" : "Collection in this report",
+            message("collection_in_this_report"),
             M.linux_resource_profiles
-              ? zh
-                ? "本报告资源对比统一使用 PSS"
-                : "This report consistently compares PSS"
-              : zh
-                ? "macOS：ps 的 rss 字段，按进程树求和"
-                : "macOS: ps rss field, summed over the process tree",
-            zh
-              ? "Linux：/proc/PID/smaps_rollup 的 Pss 字段，按进程树求和"
-              : "Linux: Pss in /proc/PID/smaps_rollup, summed over the process tree",
+              ? message("this_report_consistently_compares_pss")
+              : message("macos_ps_rss_field_summed_over_the_process_tree"),
+            message("linux_pss_in_proc_pid_smaps_rollup_summed_over_the_process_tree"),
           ],
           [
-            zh ? "比较条件" : "Comparison conditions",
-            zh
-              ? "相同执行环境、采样与任务范围；CPU 时间也须采用一致条件"
-              : "Matching execution environment, sampling and task scope; CPU comparisons also require consistent conditions",
-            zh
-              ? "相同条件，且保持共享进程环境一致；PSS 不等于 RSS"
-              : "Matching conditions and shared-process environment; PSS is not RSS",
+            message("comparison_conditions"),
+            message("matching_execution_environment_sampling_and_task_scope_cpu_compar"),
+            message("matching_conditions_and_shared_process_environment_pss_is_not_rss"),
           ],
         ].map(
           (cells) =>
@@ -1169,12 +906,12 @@ F --> G</pre></div>`,
         ),
         "memory-definition-table",
       ) +
-        `<p class="subtle"><a href="https://docs.kernel.org/filesystems/proc.html">${esc(zh ? "Linux 内核：RSS 与 PSS 定义" : "Linux kernel: RSS and PSS definitions")}</a> · <a href="https://developer.apple.com/library/archive/documentation/Performance/Conceptual/ManagingMemory/Articles/VMPages.html">${esc(zh ? "Apple：驻留内存与共享映射" : "Apple: resident memory and shared mappings")}</a></p>`,
+        `<p class="subtle"><a href="https://docs.kernel.org/filesystems/proc.html">${esc(message("linux_kernel_rss_and_pss_definitions"))}</a> · <a href="https://developer.apple.com/library/archive/documentation/Performance/Conceptual/ManagingMemory/Articles/VMPages.html">${esc(message("apple_resident_memory_and_shared_mappings"))}</a></p>`,
     ) +
     section(
-      zh ? "执行与证据" : "Execution and evidence",
+      message("execution_and_evidence"),
       "",
-      `<p>${esc(zh ? "资源实验全局同时只执行一次任务调用。功能与资源分别绑定构建身份；成功率适用于对应的功能构建。任务定义、程序判定、标准输出与错误日志可从逐题详情检查。未进行独立人工逐次复核。" : "The resource experiment executes one task call globally at a time. Functional and resource measurements bind their build identities separately. Success applies to the corresponding functional build. Task definitions, program verdicts, stdout and error logs are available in task details. No independent per-call human review was performed.")}</p><a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
+      `<p>${esc(message("the_resource_experiment_executes_one_task_call_globally_at_a_time"))}</p><a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
     )
   );
 }
@@ -1193,19 +930,15 @@ function costSection() {
       .reduce((n, c) => n + c.off_duration_ms - c.on_duration_ms, 0),
     share = total === 0 ? "—" : fmt((top / total) * 100, 1);
   return section(
-    zh ? "耗时下降来自哪些任务" : "Where the time reduction came from",
-    zh
-      ? `以下三题贡献净耗时变化的 ${share}%。正值表示开启布局后耗时下降；负值表示增加。CPU 差值来自开启资源采集的调用，耗时差值来自关闭资源采集的调用。`
-      : `These three tasks account for ${share}% of the net duration change. Positive differences mean lower duration with layout; negative values mean higher duration. CPU differences use profiled calls and duration differences use unprofiled calls.`,
+    message("where_the_time_reduction_came_from"),
+    message("these_three_tasks_account_for_of_the_net_duration_change_positive", {value0: (share)}),
     table(
       [
         T.task,
-        zh ? "用例判定" : "Case verdict",
-        zh
-          ? `${M.protocol.k_runs} 次总耗时`
-          : `${M.protocol.k_runs}-call duration`,
-        zh ? "耗时减少" : "Time reduction",
-        zh ? "CPU 减少" : "CPU reduction",
+        message("case_verdict"),
+        message("call_duration", {value0: (M.protocol.k_runs)}),
+        message("time_reduction"),
+        message("cpu_reduction"),
       ],
       rows,
       "cost-contributors",
@@ -1218,19 +951,17 @@ function fixedRelations() {
       [
         "119_off",
         "119_on",
-        zh
-          ? "同一修复版：开启 layout 的变化"
-          : "Same patched build: enabling layout",
+        message("same_patched_build_enabling_layout"),
       ],
       [
         "119_official_on",
         "119_on",
-        zh ? "同为开启 layout：修复版与 1.1.9" : "Layout on: patched vs. 1.1.9",
+        message("layout_on_patched_vs_1_1_9"),
       ],
       [
         "119_official_off",
         "119_official_on",
-        zh ? "1.1.9：开启 layout 的变化" : "1.1.9: enabling layout",
+        message("1_1_9_enabling_layout"),
       ],
     ];
   return pairs
@@ -1253,21 +984,19 @@ function fixedComparisonSection() {
       `<tr><td>${esc(p.label)}</td><td class="num">${p.counts.gain}</td><td class="num">${p.counts.loss}</td><td class="num">${p.counts.bothPass}</td><td class="num">${p.counts.bothFail}</td></tr>`,
   );
   return section(
-    zh ? "布局变化与版本变化" : "Layout changes and version changes",
-    zh
-      ? "同一修复版的开关对照用于判断布局变化；固定开启 layout 的 1.1.9 与修复版对照用于定位版本间变化。下表保留新增通过和退步，不能只看净增加。"
-      : "Compare layout off/on within the patched build to measure layout changes. Compare 1.1.9 and patched 1.1.9 with layout on to locate version differences. Gains and losses are both retained.",
+    message("layout_changes_and_version_changes"),
+    message("compare_layout_off_on_within_the_patched_build_to_measure_layout_"),
     table(
       [
-        zh ? "对照" : "Comparison",
-        zh ? "新增通过" : "Gained",
-        zh ? "退步" : "Lost",
-        zh ? "均通过" : "Both pass",
-        zh ? "均失败" : "Both fail",
+        message("comparison"),
+        message("gained"),
+        message("lost"),
+        message("both_pass"),
+        message("both_fail"),
       ],
       rows,
     ) +
-      `<div class="filters"><label>${esc(zh ? "对照" : "Comparison")}<select id="fixed-relation">${pairs.map((p, i) => `<option value="${i}">${esc(p.label)}</option>`).join("")}</select></label><label>${esc(zh ? "结果关系" : "Outcome relation")}<select id="fixed-outcome"><option value="gain">${esc(zh ? "新增通过" : "Gained")}</option><option value="loss">${esc(zh ? "退步" : "Lost")}</option><option value="bothFail">${esc(zh ? "均失败" : "Both fail")}</option><option value="bothPass">${esc(zh ? "均通过" : "Both pass")}</option><option value="all">${esc(T.all)}</option></select></label></div><div id="fixed-explorer"></div>`,
+      `<div class="filters"><label>${esc(message("comparison"))}<select id="fixed-relation">${pairs.map((p, i) => `<option value="${i}">${esc(p.label)}</option>`).join("")}</select></label><label>${esc(message("outcome_relation"))}<select id="fixed-outcome"><option value="gain">${esc(message("gained"))}</option><option value="loss">${esc(message("lost"))}</option><option value="bothFail">${esc(message("both_fail"))}</option><option value="bothPass">${esc(message("both_pass"))}</option><option value="all">${esc(T.all)}</option></select></label></div><div id="fixed-explorer"></div>`,
   );
 }
 function wireFixedExplorer() {
@@ -1310,9 +1039,9 @@ async function fixedCasePage(id) {
     methods = M.functional_methods.filter((x) => c.methods[x.id]);
   let summary = table(
     [
-      zh ? "方法" : "Method",
-      zh ? "通过次数" : "Passed attempts",
-      zh ? "用例判定" : "Case verdict",
+      message("method"),
+      message("passed_attempts"),
+      message("case_verdict"),
     ],
     methods.map(
       (m) =>
@@ -1341,17 +1070,17 @@ async function fixedCasePage(id) {
   return (
     `<div class="breadcrumb"><a href="${link("analysis")}">${esc(T.nav.analysis)}</a> / <code>${esc(id)}</code></div>` +
     hero(c.title, id) +
-    section(zh ? "结果摘要" : "Result summary", "", summary) +
+    section(message("result_summary"), "", summary) +
     section(
-      zh ? "任务要求" : "Task requirements for this comparison",
+      message("task_requirements_for_this_comparison"),
       c.task_definition.description,
-      `<details><summary>${esc(zh ? "查看冻结任务定义" : "Inspect frozen task definition")}</summary><p>SHA-256: <code>${esc(c.task_sha256)}</code></p><pre>${esc(JSON.stringify(c.task_definition, null, 2))}</pre></details>`,
+      `<details><summary>${esc(message("inspect_frozen_task_definition"))}</summary><p>SHA-256: <code>${esc(c.task_sha256)}</code></p><pre>${esc(JSON.stringify(c.task_definition, null, 2))}</pre></details>`,
     ) +
     details +
     section(
-      zh ? "同题版本对照" : "Same-task version comparison",
+      message("same_task_version_comparison"),
       "",
-      `<a href="${link("task/" + id)}">${esc(zh ? "查看 1.1.8 任务要求与结果" : "View 1.1.8 task requirements and results")}</a>`,
+      `<a href="${link("task/" + id)}">${esc(message("view_1_1_8_task_requirements_and_results"))}</a>`,
     )
   );
 }
@@ -1371,7 +1100,7 @@ function analysisPage() {
     hero(T.nav.analysis, T.analysisIntro) +
     fixedComparisonSection() +
     section(
-      zh ? "1.1.8 用例通过关系" : "Moli 1.1.8 case outcomes",
+      message("moli_1_1_8_case_outcomes"),
       casePopulation(),
       `<div class="grid two">${[
         ["gain", p.off_fail_on_pass],
@@ -1382,15 +1111,15 @@ function analysisPage() {
         .map(([key, n]) => card(T[key], `${n} / ${M.task_count}`, ""))
         .join("")}</div>`,
     ) +
-    section(zh ? "新增通过的用例" : "Cases gained", "", changed(gains)) +
-    section(zh ? "退步的用例" : "Cases lost", "", changed(losses)) +
+    section(message("cases_gained"), "", changed(gains)) +
+    section(message("cases_lost"), "", changed(losses)) +
     section(
-      zh ? "失败证据" : "Failure evidence",
+      message("failure_evidence"),
       "",
-      `<div class="notice"><a href="${link("results")}">${esc(zh ? "打开失败筛选，查看每题的程序错误和完整日志。" : "Open the failure filter for exact program errors and full logs.")}</a></div>`,
+      `<div class="notice"><a href="${link("results")}">${esc(message("open_the_failure_filter_for_exact_program_errors_and_full_logs"))}</a></div>`,
     ) +
     costSection() +
-    section(zh ? "任务类型比较" : "By task family", "", strataTable())
+    section(message("by_task_family"), "", strataTable())
   );
 }
 function candidateResourceQuality() {
@@ -1399,20 +1128,18 @@ function candidateResourceQuality() {
       .filter((m) => M.linux_resource_profiles.configurations[m.id])
       .map((method) => {
         const config = M.linux_resource_profiles.configurations[method.id];
-        return `<tr><td>${esc(zh ? method.label : method.label_en)}</td><td>${fmt(config.metrics.all_predeclared_calls.pss_peak_mib.n)}/2,785</td><td>${fmt(config.metrics.all_predeclared_calls.cpu_time_ms.n)}/2,785</td><td>${esc(config.calibration.acceptable ? (zh ? "通过" : "Pass") : zh ? "失败" : "Fail")}</td><td>${esc(Object.values(config.host).every((h) => !h.polluted) ? (zh ? "通过" : "Pass") : zh ? "失败" : "Fail")}</td></tr>`;
+        return `<tr><td>${esc(zh ? method.label : method.label_en)}</td><td>${fmt(config.metrics.all_predeclared_calls.pss_peak_mib.n)}/2,785</td><td>${fmt(config.metrics.all_predeclared_calls.cpu_time_ms.n)}/2,785</td><td>${esc(config.calibration.acceptable ? (message("pass")) : message("fail"))}</td><td>${esc(Object.values(config.host).every((h) => !h.polluted) ? (message("pass")) : message("fail"))}</td></tr>`;
       });
     return section(
-      zh ? "1.1.9 资源测量质量" : "1.1.9 resource measurement quality",
-      zh
-        ? "按官方流程执行 profiler-off 校准和 profiler-on 测量；核验完整题目范围、构建身份、PSS/CPU 覆盖、采集器影响和宿主机负载。"
-        : "The official procedure pairs profiler-off calibration with profiler-on measurement and checks task coverage, build identity, PSS/CPU availability, observer effect and host load.",
+      message("1_1_9_resource_measurement_quality"),
+      message("the_official_procedure_pairs_profiler_off_calibration_with_profil"),
       table(
         [
-          zh ? "配置" : "Configuration",
-          zh ? "PSS 覆盖" : "PSS coverage",
-          zh ? "CPU 覆盖" : "CPU coverage",
-          zh ? "采集器校准" : "Profiler calibration",
-          zh ? "宿主机检查" : "Host check",
+          message("configuration"),
+          message("pss_coverage"),
+          message("cpu_coverage"),
+          message("profiler_calibration"),
+          message("host_check"),
         ],
         rows,
       ),
@@ -1423,19 +1150,17 @@ function candidateResourceQuality() {
   let rows = methods.map((item) => {
     let m = item.config.metrics.all_predeclared_calls,
       h = item.config.quality;
-    return `<tr><td>${esc(item.label)}</td><td>${fmt(m.rss_peak_mib.n)}/2,785</td><td>${fmt(m.cpu_time_ms.n)}/2,785</td><td>${esc(h.profiled_host.polluted ? (zh ? "未通过" : "Failed") : zh ? "通过" : "Pass")}</td></tr>`;
+    return `<tr><td>${esc(item.label)}</td><td>${fmt(m.rss_peak_mib.n)}/2,785</td><td>${fmt(m.cpu_time_ms.n)}/2,785</td><td>${esc(h.profiled_host.polluted ? (message("failed")) : message("pass"))}</td></tr>`;
   });
   return section(
-    zh ? "Moli 1.1.9 资源证据质量" : "Moli 1.1.9 resource evidence quality",
-    zh
-      ? "每个固定配置测一轮，核验完整任务矩阵、二进制身份、资源覆盖与宿主机观测。未单独测量采样器带来的耗时影响。"
-      : "Each fixed configuration has one measured run. Checks cover the complete task matrix, binary identity, resource coverage, and host observations. Profiler overhead was not separately measured.",
+    message("moli_1_1_9_resource_evidence_quality"),
+    message("each_fixed_configuration_has_one_measured_run_checks_cover_the_co"),
     table(
       [
-        zh ? "配置" : "Configuration",
-        zh ? "RSS 覆盖" : "RSS coverage",
-        zh ? "CPU 覆盖" : "CPU coverage",
-        zh ? "宿主机检查" : "Host check",
+        message("configuration"),
+        message("rss_coverage"),
+        message("cpu_coverage"),
+        message("host_check"),
       ],
       rows,
     ),
@@ -1449,19 +1174,17 @@ function reviewPage() {
   return (
     hero(
       T.nav.review,
-      zh
-        ? "核对评测覆盖、二进制身份与证据来源。"
-        : "Verify evaluation coverage, binary identities and evidence sources.",
+      message("verify_evaluation_coverage_binary_identities_and_evidence_sources"),
     ) +
     section(
-      zh ? "功能证据覆盖" : "Functional evidence coverage",
+      message("functional_evidence_coverage"),
       "",
       table(
         [
-          zh ? "方法" : "Method",
-          zh ? "直接验证题数" : "Direct cases",
-          zh ? "继承结果题数" : "Inherited cases",
-          zh ? "调用数" : "Calls",
+          message("method"),
+          message("direct_cases_5505c5"),
+          message("inherited_cases"),
+          message("calls"),
           "SHA-256",
         ],
         rows,
@@ -1469,9 +1192,9 @@ function reviewPage() {
     ) +
     candidateResourceQuality() +
     section(
-      zh ? "评分与复核范围" : "Scoring and review coverage",
+      message("scoring_and_review_coverage"),
       "",
-      `<p>${esc(zh ? "结果来自冻结验收规则的程序判定。报告检查调用矩阵、版本和任务哈希、资源样本数、聚合数值及证据文件完整性。未进行独立人工逐次复核；程序通过结果不等同于人工审查结论。" : "Outcomes come from programmatic evaluation against frozen acceptance rules. Report checks cover call matrices, binary and task hashes, resource sample counts, aggregates and evidence integrity. No independent per-call human review was performed; program passes are not human-review conclusions.")}</p><a href="${base}data/model.json">${esc(zh ? "下载完整数据与证据索引" : "Download the data model and evidence index")}</a>`,
+      `<p>${esc(message("outcomes_come_from_programmatic_evaluation_against_frozen_accepta"))}</p><a href="${base}data/model.json">${esc(message("download_the_data_model_and_evidence_index"))}</a>`,
     )
   );
 }
@@ -1487,7 +1210,7 @@ function guidePage() {
   };
   const relationText = relations.map((r) => {
     const net = r.counts.gain - r.counts.loss;
-    return `<p data-relation-from="${esc(r.a)}" data-relation-to="${esc(r.b)}" data-relation-net="${net}"><strong>${esc(methodLabel(r.a))} → ${esc(methodLabel(r.b))}</strong>：${esc(zh ? `新增通过 ${r.counts.gain} 题，退步 ${r.counts.loss} 题，通过数净变化 ${signed(net, 0, " 题")}。` : `${r.counts.gain} cases gained, ${r.counts.loss} lost; net change ${signed(net, 0, " cases")}.`)}</p>`;
+    return `<p data-relation-from="${esc(r.a)}" data-relation-to="${esc(r.b)}" data-relation-net="${net}"><strong>${esc(methodLabel(r.a))} → ${esc(methodLabel(r.b))}</strong>：${esc(message("outcome_relation", {value0: r.counts.gain, value1: r.counts.loss, value2: signed(net, 0, "")}))}</p>`;
   }).join("");
   return (
     hero(T.nav.guide, reportSubtitle()) +
@@ -1495,18 +1218,18 @@ function guidePage() {
     inputVersionNote() +
     combinedSummaryChart() +
     (relations.length ? section(
-      zh ? "配置之间的通过与失败变化" : "Pass and failure changes between configurations",
+      message("pass_and_failure_changes_between_configurations"),
       "",
-      relationText + `<a href="${link("analysis")}">${esc(zh ? "查看对应的新增通过和失败用例" : "Inspect gained passes and failures")}</a>`,
+      relationText + `<a href="${link("analysis")}">${esc(message("inspect_gained_passes_and_failures"))}</a>`,
     ) : "") +
     section(
-      zh ? "如何理解一个通过结果" : "What a passed case means",
+      message("what_a_passed_case_means"),
       casePopulation(),
-      `<p>${esc(zh ? "每个任务定义固定操作和验收条件。单次工具返回成功后，仍须由评分器检查是否满足任务要求。" : "Each task defines fixed actions and acceptance conditions. After a successful tool response, the evaluator checks whether the task requirements were met.")}</p>${example ? `<p><code>${esc(example.id)}</code> · ${esc(methodLabel(selected.a))} ${example.passes[selected.a]}/${M.protocol.k_runs} → ${esc(methodLabel(selected.b))} ${example.passes[selected.b]}/${M.protocol.k_runs} <a href="${link("fixed/" + example.id)}">${esc(zh ? "检查任务要求、实际输出和评分证据" : "Inspect requirements, actual output and evaluator evidence")}</a></p>` : ""}`,
+      `<p>${esc(message("each_task_defines_fixed_actions_and_acceptance_conditions_after_a"))}</p>${example ? `<p><code>${esc(example.id)}</code> · ${esc(methodLabel(selected.a))} ${example.passes[selected.a]}/${M.protocol.k_runs} → ${esc(methodLabel(selected.b))} ${example.passes[selected.b]}/${M.protocol.k_runs} <a href="${link("fixed/" + example.id)}">${esc(message("inspect_requirements_actual_output_and_evaluator_evidence"))}</a></p>` : ""}`,
     ) +
     candidateResourceSection() +
     section(
-      zh ? "适用范围与证据" : "Scope and evidence",
+      message("scope_and_evidence"),
       "",
       `<p>${esc(reproduceIntro())}</p><p>${esc(T.noHuman)}</p><a href="${link("analysis")}">${esc(T.nav.analysis)}</a> · <a href="${link("method")}">${esc(T.nav.method)}</a> · <a href="${link("review")}">${esc(T.nav.review)}</a>`,
     )
@@ -1523,22 +1246,18 @@ function candidateReproductionSection() {
         return `<tr><td>${esc(zh ? method.label : method.label_en)}</td><td><code>${esc(run.run_id)}</code></td><td>${fmt(run.rows)}/2,785</td><td><code>${esc(build.sha256)}</code></td></tr>`;
       });
     return section(
-      zh
-        ? "1.1.9 Linux release 资源复现"
-        : "Reproduce 1.1.9 Linux release resources",
-      zh
-        ? "Mac 主机上的固定 Docker Linux 镜像；557 题、每题五次、jobs=1，250 ms PSS 采集间隔。测量前冻结任务、依赖和二进制哈希；各配置独立容器、串行执行。"
-        : "A fixed Docker Linux image on the Mac host; 557 tasks, five attempts each, jobs=1 and a 250 ms PSS interval. Tasks, dependencies and binary hashes are frozen before execution. Configurations run serially in independent containers.",
+      message("reproduce_1_1_9_linux_release_resources"),
+      message("a_fixed_docker_linux_image_on_the_mac_host_557_tasks_five_attempt"),
       table(
         [
-          zh ? "配置" : "Configuration",
-          zh ? "测量 ID" : "Measurement ID",
-          zh ? "调用数" : "Calls",
-          zh ? "资源二进制 SHA-256" : "Resource binary SHA-256",
+          message("configuration"),
+          message("measurement_id"),
+          message("calls"),
+          message("resource_binary_sha_256"),
         ],
         rows,
       ) +
-        `<p><button data-evidence="reproduction/run_linux_resource_profiles.py" data-sha="${esc(profiles.receipt.orchestrator_sha256)}" data-title="${esc(zh ? "资源测量脚本" : "Resource measurement script")}">${esc(zh ? "查看资源测量脚本" : "Inspect the resource measurement script")}</button></p>`,
+        `<p><button data-evidence="reproduction/run_linux_resource_profiles.py" data-sha="${esc(profiles.receipt.orchestrator_sha256)}" data-title="${esc(message("resource_measurement_script"))}">${esc(message("inspect_the_resource_measurement_script"))}</button></p>`,
     );
   }
   let methods = macosResourceMethods();
@@ -1548,22 +1267,20 @@ function candidateReproductionSection() {
     return `<tr><td>${esc(item.label)}</td><td><code>${esc(run.run_id)}</code></td><td>2,785/2,785</td><td><code>${esc(run.manifest_sha256.slice(0, 16))}</code></td><td><code>${esc(item.resource.summary.candidate.binary_sha256)}</code></td></tr>`;
   });
   return section(
-    zh ? "Moli 1.1.9 资源运行身份" : "Moli 1.1.9 resource run identities",
-    zh
-      ? "每个固定配置执行 557 题 × 5 次；任务、种子与资源采样协议相同。"
-      : "Each fixed configuration runs 557 tasks × 5 calls with the same tasks, seed and sampling protocol.",
+    message("moli_1_1_9_resource_run_identities"),
+    message("each_fixed_configuration_runs_557_tasks_5_calls_with_the_same_tas"),
     table(
       [
-        zh ? "配置" : "Configuration",
-        zh ? "运行 ID" : "Run ID",
-        zh ? "覆盖" : "Coverage",
-        zh ? "清单 SHA-256 前缀" : "Manifest SHA-256 prefix",
-        zh ? "二进制 SHA-256" : "Binary SHA-256",
+        message("configuration"),
+        message("run_id"),
+        message("coverage"),
+        message("manifest_sha_256_prefix"),
+        message("binary_sha_256"),
       ],
       rows,
     ) +
       (M.resource_matrix
-        ? `<p><button data-evidence="reproduction/run_resource_matrix.py" data-sha="${esc(M.resource_matrix.receipt.orchestrator_sha256)}" data-title="${esc(zh ? "资源测量脚本" : "Resource measurement script")}">${esc(zh ? "查看本次资源测量使用的脚本" : "Inspect the script used for these resource measurements")}</button></p>`
+        ? `<p><button data-evidence="reproduction/run_resource_matrix.py" data-sha="${esc(M.resource_matrix.receipt.orchestrator_sha256)}" data-title="${esc(message("resource_measurement_script"))}">${esc(message("inspect_the_script_used_for_these_resource_measurements"))}</button></p>`
         : ""),
   );
 }
@@ -1575,38 +1292,38 @@ function reproducePage() {
   return (
     hero(T.nav.reproduce, reproduceIntro()) +
     section(
-      zh ? "运行身份" : "Run identities",
+      message("run_identities_0df143"),
       "",
       table(
         [
           T.mode,
-          zh ? "运行 ID" : "Run ID",
-          zh ? "结果覆盖" : "Coverage",
-          zh ? "清单哈希前缀" : "Manifest hash prefix",
+          message("run_id"),
+          message("coverage_c8f31d"),
+          message("manifest_hash_prefix"),
         ],
         rows,
       ),
     ) +
     candidateReproductionSection() +
     section(
-      zh ? "复现要点" : "Reproduction controls",
+      message("reproduction_controls"),
       "",
-      `<div class="panel"><p>${esc(zh ? "使用官方 Moli 1.1.8 Linux aarch64 二进制，核对 SHA-256。固定任务文件、种子、单工作进程、相同任务顺序和 Docker 镜像。两种模式分别执行无采样与 500 ms 采样轮，每题每轮三次，比较采样前后判定。" : "Use official Moli 1.1.8 Linux aarch64, verify SHA-256, and freeze tasks, seed, one-worker order and Docker image. Run each mode unprofiled and with 500 ms profiling, three attempts per case per round, then compare verdicts.")}</p>${facts(
+      `<div class="panel"><p>${esc(message("use_official_moli_1_1_8_linux_aarch64_verify_sha_256_and_freeze_t"))}</p>${facts(
         [
           [
-            zh ? "宿主机" : "Host",
+            message("host"),
             esc(
               `${M.environment.macos.cpu} · ${M.environment.macos.logical_cpus} logical CPUs · ${M.environment.macos.memory_bytes / 1073741824} GiB`,
             ),
           ],
           [
-            zh ? "Linux 虚拟机" : "Linux VM",
+            message("linux_vm"),
             esc(
               `${M.environment.linux_vm.virtualization} · ${M.environment.linux_vm.cpu_count} vCPU · ${fmt(M.environment.linux_vm.memory_bytes / 1073741824, 2)} GiB · aarch64`,
             ),
           ],
           [
-            zh ? "容器镜像 SHA-256" : "Container image SHA-256",
+            message("container_image_sha_256"),
             `<code>${esc(M.environment.image_id)}</code>`,
           ],
           [
@@ -1614,34 +1331,34 @@ function reproducePage() {
             `<code>${esc(M.binary_sha256)}</code>`,
           ],
           [
-            zh ? "任务清单 SHA-256" : "Task manifest SHA-256",
+            message("task_manifest_sha_256"),
             `<code>${esc(M.manifest_sha256)}</code>`,
           ],
           [
-            zh ? "评测器源码 SHA-256" : "Runner source SHA-256",
+            message("runner_source_sha_256"),
             `<code>${esc(M.protocol.runner_sha256)}</code>`,
           ],
           [
-            zh ? "测试站点 SHA-256" : "Fixture tree SHA-256",
+            message("fixture_tree_sha_256"),
             `<code>${esc(M.protocol.fixtures_sha256)}</code>`,
           ],
-          [zh ? "随机种子" : "Seed", `<code>${esc(M.protocol.seed)}</code>`],
+          [message("seed"), `<code>${esc(M.protocol.seed)}</code>`],
           [
-            zh ? "每题调用次数与并发" : "Calls per task and concurrency",
+            message("calls_per_task_and_concurrency"),
             `${M.protocol.k_runs} / ${M.protocol.jobs}`,
           ],
         ],
-      )}<p><a href="${base}reproduction/cohort.json">${esc(zh ? "下载冻结任务集" : "Download frozen cohort")}</a> · <a href="${base}reproduction/run.py">${esc(zh ? "下载复现脚本" : "Download reproduction script")}</a></p><p><a href="${base}data/model.json">${esc(zh ? "下载报告数据模型" : "Download report data model")}</a></p></div>`,
+      )}<p><a href="${base}reproduction/cohort.json">${esc(message("download_frozen_cohort"))}</a> · <a href="${base}reproduction/run.py">${esc(message("download_reproduction_script"))}</a></p><p><a href="${base}data/model.json">${esc(message("download_report_data_model"))}</a></p></div>`,
     )
   );
 }
 function setNav(page) {
   document
     .getElementById("menu-toggle")
-    .setAttribute("aria-label", zh ? "展开或收起导航" : "Toggle navigation");
+    .setAttribute("aria-label", message("toggle_navigation"));
   document
     .getElementById("site-nav")
-    .setAttribute("aria-label", zh ? "报告导航" : "Report navigation");
+    .setAttribute("aria-label", message("report_navigation"));
   document.getElementById("site-nav").innerHTML = Object.entries(T.nav)
     .map(
       ([k, v]) =>
@@ -1650,23 +1367,15 @@ function setNav(page) {
     .join("");
   let other = zh ? "en/index.html" : "index.html";
   document.getElementById("language").href = base + other + location.hash;
-  document.getElementById("language").textContent = zh ? "EN" : "中文";
-  document.querySelector(".skip").textContent = zh
-    ? "跳到正文"
-    : "Skip to content";
+  document.getElementById("language").textContent = message("language_label");
+  document.querySelector(".skip").textContent = message("skip_to_content");
   document
     .getElementById("theme")
-    .setAttribute("aria-label", zh ? "切换明暗主题" : "Toggle theme");
+    .setAttribute("aria-label", message("toggle_theme"));
   document.getElementById("dialog-close").setAttribute("aria-label", T.close);
-  document.querySelector(".brand small").textContent = zh
-    ? "/ 版本与布局"
-    : "/ Versions and layout";
-  document.querySelector(".footer span").textContent = zh
-    ? `${reportVersion()} · 成功率与资源实验`
-    : `${reportVersion()} · compatibility and resource study`;
-  document.querySelector(".footer a").textContent = zh
-    ? "方法与证据"
-    : "Method & evidence";
+  document.querySelector(".brand small").textContent = message("versions_and_layout");
+  document.querySelector(".footer span").textContent = message("compatibility_and_resource_study", {value0: (reportVersion())});
+  document.querySelector(".footer a").textContent = message("method_evidence");
 }
 async function render() {
   let r = route(),
@@ -1754,7 +1463,7 @@ async function showDiagnosis(button) {
   let id = button.dataset.diagnosis,
     mode = button.dataset.mode;
   document.getElementById("evidence-title").textContent =
-    (zh ? "失败诊断" : "Failure diagnosis") + " · " + T.modes[mode];
+    (message("failure_diagnosis")) + " · " + T.modes[mode];
   document.getElementById("evidence-body").textContent = T.loading;
   dialog.showModal();
   try {
@@ -1769,10 +1478,10 @@ async function showDiagnosis(button) {
         [T.task, "<code>" + esc(id) + "</code>"],
         [T.attempt.replace("{n}", a.ordinal), esc(T.modes[mode])],
         [
-          zh ? "程序分类" : "Program classification",
+          message("program_classification"),
           esc(a.failure.class || T.unavailable),
         ],
-        [zh ? "独立复核原因" : "Independently reviewed cause", esc(T.noHuman)],
+        [message("independently_reviewed_cause"), esc(T.noHuman)],
       ]) +
       '<div class="error-message">' +
       esc(a.failure.detail || T.unavailable) +
@@ -1781,7 +1490,7 @@ async function showDiagnosis(button) {
       "&attempt=" +
       a.ordinal +
       '">' +
-      esc(zh ? "完整结果与对应调用" : "Full result and exact attempt") +
+      esc(message("full_result_and_exact_attempt")) +
       ' →</a></p><div class="evidence-links">' +
       evidenceButtons(a, mode, id) +
       "</div>";
@@ -1815,7 +1524,7 @@ document.addEventListener("click", async (e) => {
     if (!resp.ok) throw Error("Evidence unavailable");
     let raw = await resp.text();
     document.getElementById("evidence-body").innerHTML =
-      `<p class="subtle">SHA-256: <code>${esc(b.dataset.sha)}</code></p><div class="evidence-search"><label for="evidence-query">${esc(zh ? "查找证据" : "Find in evidence")}</label><input id="evidence-query" type="search"><span id="evidence-matches" class="subtle"></span></div><pre id="evidence-text">${esc(raw)}</pre><p><a href="${base + encodeURI(b.dataset.evidence)}" target="_blank" rel="noopener">${esc(T.source)} ↗</a></p>`;
+      `<p class="subtle">SHA-256: <code>${esc(b.dataset.sha)}</code></p><div class="evidence-search"><label for="evidence-query">${esc(message("find_in_evidence"))}</label><input id="evidence-query" type="search"><span id="evidence-matches" class="subtle"></span></div><pre id="evidence-text">${esc(raw)}</pre><p><a href="${base + encodeURI(b.dataset.evidence)}" target="_blank" rel="noopener">${esc(T.source)} ↗</a></p>`;
     let field = document.getElementById("evidence-query"),
       content = document.getElementById("evidence-text");
     let find = () => {
@@ -1831,12 +1540,8 @@ document.addEventListener("click", async (e) => {
             esc(raw.slice(index + needle.length));
       document.getElementById("evidence-matches").textContent = needle
         ? index < 0
-          ? zh
-            ? "未找到"
-            : "No match"
-          : zh
-            ? "已定位首处"
-            : "First match located"
+          ? message("no_match")
+          : message("first_match_located")
         : "";
       content.querySelector("mark")?.scrollIntoView({ block: "center" });
     };

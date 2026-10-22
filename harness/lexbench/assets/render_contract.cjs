@@ -21,7 +21,9 @@ function render(model, lang, expression) {
   let context = {
     document: {
       documentElement: { dataset: { base: "" }, lang },
-      getElementById: () => null,
+      getElementById: (id) => id === "report-messages" ? { textContent: site
+        ? fs.readFileSync(path.join(site, "index.html"), "utf8").match(/id="report-messages">([\s\S]*?)<\/script>/)[1]
+        : fs.readFileSync(path.join(path.dirname(app), "messages.json"), "utf8") } : null,
     },
     location: { hash: "" },
     MODEL: model,

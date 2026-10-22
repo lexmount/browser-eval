@@ -65,7 +65,8 @@ def write_presentation(source, output, combined, version, macos=None, *, include
     for language, base, entry in entries:
         target = output / entry
         target.parent.mkdir(exist_ok=True)
-        shell = template.replace("{{lang}}", language).replace("{{base}}", base)
+        messages = (source / "messages.json").read_text().replace("<", "\\u003c")
+        shell = template.replace("{{lang}}", language).replace("{{base}}", base).replace("{{messages}}", messages)
         for name in ("style.css", "app.js"):
             digest = hashlib.sha256((source / name).read_bytes()).hexdigest()[:12]
             shell = shell.replace(name, f"{name}?v={digest}")

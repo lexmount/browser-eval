@@ -338,7 +338,7 @@ def main(*, root: Path | None = None):
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--create", action="store_true")
     mode.add_argument("--update", action="store_true")
-    parser.add_argument("--profile", type=Path, default=root / "evaluation/current-report.json")
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, default=root / "publish/artifact-hub-receipt.json")
     parser.add_argument("--archive", type=Path, default=root / "publish/webfetch-sites.zip")
     parser.add_argument("--source", type=Path, default=root / "reports/webfetch")

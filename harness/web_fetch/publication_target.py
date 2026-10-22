@@ -53,7 +53,7 @@ def publication_base(
 
 
 def current_publication_target(
-    profile_path=ROOT / "evaluation/current-report.json", *, require_bound=True
+    profile_path: Path, *, require_bound=True
 ):
     profile = json.loads(Path(profile_path).read_text())
     base = profile.get("artifact_hub_base_url", DEFAULT_BASE)
@@ -87,10 +87,9 @@ def public_report_url(profile_path: Path | None = None) -> str:
     override = os.environ.get("WEBFETCH_REPORT_PUBLIC_URL")
     if override:
         return override.rstrip("/")
-    selected = profile_path or ROOT / "evaluation/current-report.json"
-    if profile_path is None and not selected.is_file():
+    if profile_path is None:
         return ""
-    base, slug = current_publication_target(selected, require_bound=False)
+    base, slug = current_publication_target(profile_path, require_bound=False)
     return f"{base}/api/preview/{slug}" if slug else ""
 
 

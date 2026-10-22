@@ -18,7 +18,6 @@ from harness.reporting.links import check as check_links
 from harness.reporting.publication import package_archive
 
 ATTESTATION = Path("publish/browser-use-sites.attestation.json")
-PROFILE = Path("evaluation/browser-use/current-report.json")
 VISUAL_RECEIPT = Path("publish/browser-use-visual-qa.json")
 
 
@@ -59,15 +58,17 @@ def package(
     profile_path: Path | None = None,
 ) -> dict:
     authority = authority_root if authority_root is not None else Path(__file__).parents[2]
-    profile = profile_path or authority / PROFILE
+    if profile_path is None and authority_root is None:
+        raise ValueError("An explicit report profile is required; pass --profile")
+    profile = profile_path or authority / "evaluation/browser-use/current-report.json"
     names = ("manifest.json", "run-config.json", "attempts.jsonl", "result-review.json")
-    inputs = [authority / "evaluation", authority / "research", profile]
+    inputs = [profile]
     profile_data = json.loads(profile.read_text())
-    history_path, _ = bound_json_asset(profile_data.get("report_history"), root=authority)
+    history_path, _ = bound_json_asset(profile_data.get("report_history"), root=profile.parent)
     if history_path is not None:
         inputs.append(history_path)
-    inputs.append(report_selection_path(profile_data, authority_root=authority))
-    review = review_path(profile_data, authority_root=authority)
+    inputs.append(report_selection_path(profile_data, authority_root=profile.parent))
+    review = review_path(profile_data, authority_root=profile.parent)
     if review.is_file():
         inputs.append(review)
     frozen = profile_data.get("official_dataset")
@@ -103,7 +104,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("publish/browser-use-sites.zip"))
     parser.add_argument("--visual-receipt", type=Path, default=VISUAL_RECEIPT)
     parser.add_argument("--authority-root", type=Path)
-    parser.add_argument("--profile", type=Path)
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument("--attestation", type=Path, default=ATTESTATION)
     args = parser.parse_args()
     package(

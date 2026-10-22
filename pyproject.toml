@@ -101,8 +101,10 @@ include = ["harness*"]
 
 [tool.setuptools.package-data]
 "harness" = ["licenses/*.txt"]
+"harness.trajectory_replay" = ["messages.json"]
+"harness.browser_use" = ["report-translations.json"]
 "harness.lexbench" = ["assets/*.js", "assets/*.cjs"]
-"harness.web_fetch" = ["data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]
+"harness.web_fetch" = ["report-translations.json", "data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]
 "harness.web_fetch.workers" = ["*.mts", "*.mjs", "*.c"]
 "harness.environments.webarena" = ["runtime/*.ini"]
 

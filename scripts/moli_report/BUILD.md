@@ -10,7 +10,7 @@ Build from validated fixed-layout functional summaries and the complete resource
 
 ```sh
 uv run --frozen python scripts/moli_report/build.py \
-  --profile evaluation/moli/current-report.json \
+  --profile /path/to/report-profile.json \
   --output /tmp/moli-report-release \
   --fixed-summary 119_off /path/to/patched-off-summary.json \
   --fixed-summary 119_on /path/to/patched-on-summary.json \
@@ -40,7 +40,7 @@ uv run --frozen python scripts/moli_report/run.py \
 
 The default operation validates inputs and prints the Docker command. `--execute` starts the selected run; it preserves existing runs and rechecks frozen inputs afterward. The protocol and cohort must describe the same complete 372-case, three-attempt scope. Report bundles include this module as `reproduction/run.py`, with adjacent `cohort.json` and `protocol.json` as defaults; install Browser Eval before using it. Python optimization does not disable input checks. Historical source and measured-call bindings are unchanged.
 
-The four 1.1.9 resource configurations are release builds bound by `resource_builds` in `evaluation/moli/current-report.json`. Functional evidence binds its own binary identity. Do not relabel retained functional outcomes as a new build's measured accuracy.
+The four 1.1.9 resource configurations are release builds bound by `resource_builds` in `/path/to/report-profile.json`. Functional evidence binds its own binary identity. Do not relabel retained functional outcomes as a new build's measured accuracy.
 
 `uv run --frozen python scripts/moli_report/run_linux_resource_profiles.py --protocol /path/to/frozen-protocol.json --output /path/to/new-evidence-directory` executes the unchanged Lexbench driver and resource collector. Freeze 557 task definitions, fixtures, runner files, four binary hashes, five attempts, jobs=1, the seed and the 250 ms interval before execution. Each configuration has an independent container; all runs execute serially. The official profiler-off calibration precedes the profiler-on measurement. Resource values come from the latter. The builder verifies all 11,140 measured calls and their calibration pairs, checks the frozen 1,045-call chart population, recomputes aggregates and rejects missing or changed evidence. Keep all measured files outside Git.
 

@@ -2664,7 +2664,7 @@ def build_main(argv=None) -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--results", required=True)
-    parser.add_argument("--profile", type=Path, default=Path("evaluation/trajectory-replay/webarena-verified/current-run.json"))
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument("--dataset", type=Path)
     parser.add_argument("--review", type=Path)
     parser.add_argument("--output", default="reports/trajectory-replay")

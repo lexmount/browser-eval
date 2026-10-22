@@ -136,8 +136,6 @@ def main(argv: list[str] | None = None) -> None:
     if argv[:1] == ["wcxb-latency"]:
         from .wcxb_latency import certify
         options = argv[1:]
-        if not any(value == "--profile" or value.startswith("--profile=") for value in options):
-            options = [*options, "--profile", str(ROOT / "evaluation/wcxb/current-report.json")]
         certify(options)
         return
     parser = argparse.ArgumentParser(description=__doc__)
@@ -390,6 +388,7 @@ def main(argv: list[str] | None = None) -> None:
 def run_wcxb(argv: list[str]) -> None:
     """Certify a complete WCXB matrix, reusing unchanged certified methods."""
     parser = argparse.ArgumentParser(description="Certify WCXB test cohort")
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--sample-manifest", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
@@ -413,7 +412,7 @@ def run_wcxb(argv: list[str]) -> None:
     from harness.web_fetch.wcxb_dataset import validate_manifest
 
     manifest = json.loads(args.sample_manifest.read_text())
-    profile = json.loads((ROOT / "evaluation/wcxb/current-report.json").read_text())
+    profile = json.loads(args.profile.read_text())
     if (
         profile.get("comparison_kind") != "wcxb_frozen_html_to_markdown"
         or profile.get("providers") != list(WCXB_PROVIDERS)
@@ -500,6 +499,8 @@ def run_wcxb(argv: list[str]) -> None:
             [
                 "--benchmark",
                 "wcxb",
+                "--profile",
+                str(args.profile),
                 "--dataset",
                 str(args.dataset),
                 "--provider",

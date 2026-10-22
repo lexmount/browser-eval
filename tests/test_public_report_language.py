@@ -131,7 +131,9 @@ def test_make_language_override_is_only_explicit(tmp_path, monkeypatch, target, 
     make = shutil.which("make")
     if not make or subprocess.run([make, "--version"], capture_output=True).returncode:
         pytest.skip("Make is not installed")
-    args = [make, "--no-print-directory", "-n", "-f", str(ROOT / "Makefile"), target, "EVIDENCE=" + str(tmp_path), "OUTPUT=" + str(tmp_path / "report")]
+    profile = tmp_path / "instance.json"
+    profile.write_text(json.dumps({"providers": [], "frozen_inputs": True}))
+    args = [make, "PROFILE=" + str(profile), "--no-print-directory", "-n", "-f", str(ROOT / "Makefile"), target, "EVIDENCE=" + str(tmp_path), "OUTPUT=" + str(tmp_path / "report")]
     if language:
         args += ["REPORT_LANGUAGE=" + language]
     env = {key: value for key, value in os.environ.items() if key not in {"REPORT_LANGUAGE", "MAKEFLAGS"}}

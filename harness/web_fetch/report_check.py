@@ -359,7 +359,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     if d.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown":
         from harness.web_fetch.webmainbench_report_check import check_sample_report
 
-        check_sample_report(root, d, rs, authority_root=repository)
+        check_sample_report(root, d, rs, authority_root=repository, profile_path=profile_path)
         return (
             "PASS: WebMainBench preselected-200 matrix, sample, scores, retries, "
             "declared-language routes and reference assets verified"
@@ -423,9 +423,9 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         canonical_dataset = repository / "evaluation/dataset.json"
     if d.get("comparison", {}).get("kind") in {"headless_html", "headless_markdown"}:
         headless = json.loads((repository / "configs/providers.headless.json").read_text())
-        profile = json.loads(
-            (profile_path or repository / "evaluation/current-report.json").read_text()
-        )
+        if profile_path is None:
+            raise ValueError("Headless report checks require --profile")
+        profile = json.loads(profile_path.read_text())
         if profile.get("comparison_kind") not in {"headless_html", "headless_markdown"}:
             raise ValueError(
                 "Legacy headless report cannot be checked against a different "
@@ -796,14 +796,14 @@ def main(argv=None, *, authority_root: Path | None = None):
         print(result)
 
 
-def check_revision(out: Path, *, authority_root: Path):
+def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None = None):
     reject_evidence_symlinks(out)
     out = out.resolve()
     repository = authority_root.resolve()
     if (out / "wcxb-score-summary.json").is_file():
         from harness.web_fetch.wcxb_report_check import check as check_wcxb
 
-        check_wcxb(out, authority_root=repository)
+        check_wcxb(out, authority_root=repository, profile_path=profile_path)
         return "PASS: WCXB release scope and report acceptance checks verified"
     dataset = json.loads((out / "dataset.json").read_text())
     from bs4 import BeautifulSoup
@@ -811,7 +811,7 @@ def check_revision(out: Path, *, authority_root: Path):
     if dataset.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown":
         from harness.web_fetch.webmainbench_report_check import check_sample_report
 
-        check_sample_report(out, authority_root=repository)
+        check_sample_report(out, authority_root=repository, profile_path=profile_path)
         return (
             "PASS: WebMainBench preselected-200 release scope and report acceptance checks verified"
         )
@@ -991,9 +991,10 @@ def check_revision(out: Path, *, authority_root: Path):
 def revision_main(argv=None, *, authority_root: Path | None = None):
     parser = argparse.ArgumentParser(description="Report presentation and adoption checks")
     parser.add_argument("root", type=Path, nargs="?")
+    parser.add_argument("--profile", type=Path)
     parser.add_argument("--authority-root", type=Path, default=authority_root or Path.cwd())
     args = parser.parse_args(argv)
     result = check_revision(
-        args.root or args.authority_root / "reports/webfetch", authority_root=args.authority_root
+        args.root or args.authority_root / "reports/webfetch", authority_root=args.authority_root, profile_path=args.profile
     )
     print(result)

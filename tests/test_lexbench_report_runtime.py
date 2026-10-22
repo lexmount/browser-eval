@@ -20,6 +20,16 @@ def write_json(path, value):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def report_profile(root):
+    path = root / "report-profile.json"
+    write_json(path, {
+        "functional_population": {"cases": 2, "attempts_per_case": 3},
+        "resource_population": {"tasks": 1, "attempts_per_task": 1, "chart_tasks": 1, "chart_calls": 1},
+        "paths": {key: str(root / key) for key in ("cohort", "source", "output", "vendor_dir", "functional_correction", "runner", "version_runs", "version_candidate", "layout_policy_runner")},
+    })
+    return path
+
+
 def saved_profiles(tmp_path):
     runner = tmp_path / "historical-inputs"
     (runner / "runner").mkdir(parents=True)
@@ -185,7 +195,7 @@ def test_report_rejects_changed_protocol_and_partial_scope_before_output(
             sys.executable,
             *(["-O"] if optimized else []),
             str(root / "scripts/moli_report/build.py"),
-            "--profile", str(Path(__file__).resolve().parents[1] / "evaluation/moli/current-report.json"),
+            "--profile", str(report_profile(tmp_path)),
             "--cohort",
             str(evidence / "report-cohort.json"),
             "--output",
@@ -241,7 +251,7 @@ def test_report_rejects_certificate_paths_outside_declared_regular_evidence(tmp_
         [
             sys.executable,
             str(Path(__file__).resolve().parents[1] / "scripts/moli_report/build.py"),
-            "--profile", str(Path(__file__).resolve().parents[1] / "evaluation/moli/current-report.json"),
+            "--profile", str(report_profile(tmp_path)),
             "--cohort",
             str(evidence / "report-cohort.json"),
             "--output",

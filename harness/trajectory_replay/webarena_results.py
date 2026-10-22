@@ -632,7 +632,7 @@ def main_merge(argv=None) -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile",
-                        default="evaluation/trajectory-replay/webarena-verified/current-run.json")
+                        required=True)
     parser.add_argument("--seeds", required=True)
     parser.add_argument("--qualified-dataset", required=True)
     parser.add_argument("--base-receipt", required=True)

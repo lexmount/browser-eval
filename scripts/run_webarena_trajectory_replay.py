@@ -7,11 +7,11 @@ import argparse
 
 from harness.trajectory_replay.webarena_replay import run_replay_suite
 
-CURRENT_PROFILE = "evaluation/trajectory-replay/webarena-verified/current-run.json"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--profile", required=True)
     parser.add_argument("--seeds", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--cowagent-repo", required=True)
@@ -58,7 +58,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     run_replay_suite(
-        profile_path=CURRENT_PROFILE,
+        profile_path=args.profile,
         seed_manifest_path=args.seeds,
         output_dir=args.output,
         cowagent_repo=args.cowagent_repo,

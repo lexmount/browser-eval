@@ -207,7 +207,7 @@ def test_profile_binding_interruption_resumes_without_another_commit(report, mon
 def test_package_only_cli_never_publishes_or_loads_credentials(report, monkeypatch, capsys):
     paths, _profile, checks = report
     monkeypatch.setattr(release, 'publish', lambda **_kwargs: pytest.fail('package-only published'))
-    release.main(['--package-only', '--authority-root', str(paths['authority_root']),
+    release.main(['--package-only', '--profile', str(_profile), '--authority-root', str(paths['authority_root']),
                   '--source', str(paths['source']), '--work', str(paths['work'])])
     result = json.loads(capsys.readouterr().out)
     assert result['files'] == 2

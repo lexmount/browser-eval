@@ -1031,16 +1031,16 @@ def main(argv=None):
         "--release", action="store_true", help="Require the complete bound method matrix"
     )
     parser.add_argument(
-        "--profile", type=pathlib.Path, help="Release profile (defaults to the repository profile)"
+        "--profile", type=pathlib.Path, help="External release profile"
     )
     args = parser.parse_args(argv)
     if args.profile is not None and not args.release:
         parser.error("--profile requires --release")
     profile = None
     if args.release:
-        profile_path = args.profile or (
-            pathlib.Path(__file__).resolve().parents[2] / "evaluation/moli/current-report.json"
-        )
+        if args.profile is None:
+            parser.error("--release requires --profile")
+        profile_path = args.profile
         if not profile_path.is_file():
             parser.error("Release profile is unavailable; supply --profile")
         profile = json.loads(profile_path.read_bytes())

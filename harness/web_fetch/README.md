@@ -117,12 +117,18 @@ home, outside Git.
 ## WCXB scoring
 
 `wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is
-`scripts/score_wcxb_results.py`; `--profile` selects an explicit experiment profile
-and defaults to `evaluation/wcxb/current-report.json`. The profile's ordered
+`scripts/score_wcxb_results.py`; the required `--profile` argument selects an
+external experiment profile. The profile's ordered
 participants must match the cohort certificate exactly. Adding or renaming a
 participant in a separately certified cohort requires data changes rather than
 scorer branches. This scoring option does not change the current report's
 publication authority or the certification runner's supported participants.
+
+For WCXB execution, the external profile also declares `expected_versions`, a
+map from each participant ID to its exact reported CLI version. Use `null` only
+for an interface that exposes no version. This machine identity is separate from
+the display label and the profile-bound binary hash. No historical report supplies
+a default browser version.
 
 The scorer loads the profile-pinned evaluator bytes and validates the complete
 source-qualified scope, execution identity, logical outputs, every retained
@@ -991,7 +997,7 @@ uv run --frozen python scripts/assemble_webmainbench_evidence.py \
   --source-root /absolute/path/provider-shards \
   --dataset /absolute/path/WebMainBench_545.jsonl \
   --sample-manifest evaluation/public-webmainbench-200.json \
-  --profile evaluation/current-report.json \
+  --profile /absolute/path/report-profile.json \
   --review /absolute/path/passing-review.json \
   --output /absolute/path/new-assembled-evidence
 ```

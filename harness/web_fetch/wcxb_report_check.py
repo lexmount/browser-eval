@@ -299,9 +299,12 @@ def check_bound_interpretation(root: Path, binding: dict) -> None:
 def check(root: Path, *, authority_root: Path | None = None, profile_path: Path | None = None) -> None:
     root = root.resolve()
     repository = (authority_root or ROOT).resolve()
-    profile_path = profile_path or repository / "evaluation/wcxb/current-report.json"
+    if profile_path is None:
+        if authority_root is None:
+            raise ValueError("Select an external report instance with --profile or --authority-root")
+        profile_path = repository / "evaluation/wcxb/current-report.json"
     if not profile_path.is_file():
-        raise ValueError("WCXB release authority is missing; pass --authority-root pointing to the repository")
+        raise ValueError("WCXB release authority is missing; pass --authority-root pointing to the selected instance bundle")
     reject_evidence_symlinks(profile_path)
     profile = json.loads(profile_path.read_text())
     comparison = profile.get('paired_comparison') or {}

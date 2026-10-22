@@ -14,11 +14,12 @@ Include the task ID, method and versions, OS, command and sanitized error. Remov
 | LexBench Web Fetch task requirements | [Benchmark repository](https://github.com/lexmount/lexbench-webfetch), applied to every method |
 | Scoring fix | Shared scorer, scenario regressions and a recorded correction reason |
 | New browser, version or sample size | Configuration or registry; reuse the runner and renderer |
-| New report instance | The existing track's profile, external evidence and report content; reuse its build and release commands |
+| New report instance | An external instance profile, evidence and report content; reuse its build and release commands |
 | Reusable logic | `harness/`; `scripts/` stays a thin command entry point |
 
-Keep interface translations, original-language task text and multilingual test
-fixtures. Keep measured counts, host facts and report-specific interpretation out
+Use English for identifiers, comments and docstrings. Store report interface text
+in language catalogs, and select it through the existing report language contract.
+Keep original-language task text, source quotations and multilingual test fixtures. Keep measured counts, host facts and report-specific interpretation out
 of shared renderers: read them from the selected profile and bound evidence.
 Published historical reports retain their own content and provenance.
 

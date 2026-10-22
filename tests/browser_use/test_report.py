@@ -567,7 +567,15 @@ def test_replay_bridge_checks_trajectory_profile_hash(tmp_path: Path) -> None:
 
 
 def test_replay_bridge_accepts_current_bound_profile() -> None:
-    profile = json.loads(Path("evaluation/browser-use/current-report.json").read_text())
+    bridge_source = Path("research/browser-use-trajectory-replay-bridge.json")
+    bridge_data = json.loads(bridge_source.read_text())
+    profile = {
+        "selection_sha256": bridge_data["selection_sha256"],
+        "trajectory_replay_bridge": {
+            "source_path": str(bridge_source.resolve()),
+            "source_sha256": report_module._sha256(bridge_source),
+        },
+    }
     bridge = report_module._load_trajectory_replay_bridge(
         profile, selection_sha256=profile["selection_sha256"]
     )
@@ -930,15 +938,21 @@ def _use_single_model_profile(monkeypatch) -> None:
     real_read_json = report_module._read_json
 
     def read_json(path: Path) -> dict:
-        value = real_read_json(path)
-        if path == Path("evaluation/browser-use/current-report.json"):
+        if path == Path("fixture-profile.json"):
+            value = {
+                "engines": ["chromium", "moli"],
+                "engine_labels": {"chromium": "Chromium", "moli": "Moli 1.1.3"},
+                "baseline_engine": "chromium",
+                "models": ["gpt-5.6-sol"],
+                "model_labels": {"gpt-5.6-sol": "GPT-5.6 Sol"},
+            }
             return {
                 **value,
                 "models": ["gpt-5.6-sol"],
                 "model_labels": {"gpt-5.6-sol": "GPT-5.6 Sol"},
                 "trajectory_replay_bridge": {},
             }
-        return value
+        return real_read_json(path)
 
     monkeypatch.setattr(report_module, "_read_json", read_json)
     monkeypatch.setattr(
@@ -1036,6 +1050,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         evidence=evidence,
         output=output,
         selection_path=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+        profile_path=Path("fixture-profile.json"),
         language=language,
     )
     if language is not None:
@@ -1327,6 +1342,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
         evidence=evidence,
         output=output,
         selection_path=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+        profile_path=Path("fixture-profile.json"),
     )
     text = (output / "reproduce/index.html").read_text(encoding="utf-8")
 
@@ -1469,7 +1485,7 @@ def test_joint_report_builds_two_model_by_two_browser_matrix(tmp_path: Path, mon
     real_read_json = report_module._read_json
 
     def read_json(path: Path) -> dict:
-        if path == Path("evaluation/browser-use/current-report.json"):
+        if path == Path("fixture-profile.json"):
             return {
                 "engines": ["chromium", "moli"],
                 "engine_labels": {"chromium": "Chromium", "moli": "Moli"},
@@ -1494,6 +1510,7 @@ def test_joint_report_builds_two_model_by_two_browser_matrix(tmp_path: Path, mon
         evidence=[model_a, model_b],
         output=output,
         selection_path=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+        profile_path=Path("fixture-profile.json"),
     )
 
     data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))

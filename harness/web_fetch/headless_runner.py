@@ -316,7 +316,8 @@ def check_evidence(
     canonical_dataset = canonical_dataset or ROOT / "evaluation/dataset.json"
     provider_config = provider_config or ROOT / "configs/providers.headless.json"
     provenance_path = provenance_path or ROOT / "research/headless-implementation-provenance.json"
-    report_profile = report_profile or ROOT / "evaluation/current-report.json"
+    if report_profile is None:
+        raise ValueError("Rescoring requires an explicit report_profile")
 
     dataset, typed = load_dataset(root / "dataset.json")
     cases = {c["id"]: c for c in dataset["cases"]}

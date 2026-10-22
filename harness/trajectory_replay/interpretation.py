@@ -7,12 +7,14 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
+from harness.reporting.locales import translate
 from harness.trajectory_replay.failure_matrix import (
     browser_failure_profile,
     failure_category_matrix,
     failure_signature_cards,
 )
 
+MESSAGES = Path(__file__).with_name("messages.json")
 
 def _report_page_url(report_url: str, relative: str) -> str:
     base = urlsplit(report_url)
@@ -23,7 +25,6 @@ def _report_page_url(report_url: str, relative: str) -> str:
 
 def _outcome_chart(methods: dict, rows: list[dict], lang: str) -> str:
     """Render exact pass counts as a slide-friendly visual, not another data table."""
-    zh = lang == "zh"
     entries = []
     for key, method in methods.items():
         selected = [row for row in rows if row["participant_id"] == key]
@@ -36,7 +37,7 @@ def _outcome_chart(methods: dict, rows: list[dict], lang: str) -> str:
             f'<div class="outcome-track" aria-label="{rate:.1f}%"><i style="width:'
             f'{rate:.2f}%"></i></div></li>'
         )
-    caption = "官方通过数／各配置任务数" if zh else "Official passes / tasks per configuration"
+    caption = translate(MESSAGES, "outcome_caption", lang)
     return (
         f"""<figure class="outcome-chart" data-outcome-chart><ol>{''.join(entries)}"""
         f'</ol><figcaption>{caption}</figcaption></figure>'
@@ -85,11 +86,7 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
                 browser_failure_profile(methods, rows, lang, section["participant"])
             )
         elif section.get("data") == "contract_changes":
-            headers = (
-                ("题目", "原合同", "改动及影响")
-                if lang == "zh"
-                else ("Task", "Original contract", "Change and effect")
-            )
+            headers = translate(MESSAGES, "contract_columns", lang)
             body.append(_table(headers, [
                 [f'#{row["task_id"]}', row[f"before_{lang}"], row[f"after_{lang}"]]
                 for row in audit["task_contract_changes"]
@@ -105,12 +102,8 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
                 raise ValueError("article figure is missing or symlinked")
             src = ("data:image/png;base64," + base64.b64encode(image.read_bytes()).decode()
                    if standalone else image_prefix + filename)
-            figure_link = "下载原尺寸图" if lang == "zh" else "Download full-size diagram"
-            scroll_label = (
-                "机制图，可横向滚动查看"
-                if lang == "zh"
-                else "Mechanism diagram, scroll horizontally to read"
-            )
+            figure_link = translate(MESSAGES, "download_figure", lang)
+            scroll_label = translate(MESSAGES, "diagram_region", lang)
             download_href = (
                 _report_page_url(report_url, image_prefix + filename)
                 if standalone else src
@@ -151,7 +144,7 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
                 if set(citation["label"]) != {"zh", "en"}:
                     raise ValueError("article source requires both languages")
                 links.append(f'<a href="{e(citation["url"])}">{e(citation["label"][lang])}</a>')
-            label = "源码与测试" if lang == "zh" else "Source and tests"
+            label = translate(MESSAGES, "source_and_tests", lang)
             body.append(f'<p class="article-sources">{label}: ' + " · ".join(links) + '</p>')
         body.append("</section>")
     body.append("</article>")

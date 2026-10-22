@@ -1,0 +1,24 @@
+{
+  "en": {
+    "outcome_caption": "Official passes / tasks per configuration",
+    "contract_columns": [
+      "Task",
+      "Original contract",
+      "Change and effect"
+    ],
+    "download_figure": "Download full-size diagram",
+    "diagram_region": "Mechanism diagram, scroll horizontally to read",
+    "source_and_tests": "Source and tests"
+  },
+  "zh": {
+    "outcome_caption": "官方通过数／各配置任务数",
+    "contract_columns": [
+      "题目",
+      "原合同",
+      "改动及影响"
+    ],
+    "download_figure": "下载原尺寸图",
+    "diagram_region": "机制图，可横向滚动查看",
+    "source_and_tests": "源码与测试"
+  }
+}

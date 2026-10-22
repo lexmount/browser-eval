@@ -88,10 +88,10 @@ def package(source: Path, archive: Path, receipt: Path, *, authority_root: Path,
                            validate=validate, attest=attest, excluded=['.generated-report'])
 
 
-def publish(*, source: Path, authority_root: Path, work: Path, transport=None) -> dict:
+def publish(*, source: Path, authority_root: Path, work: Path, transport=None, profile_path: Path | None = None) -> dict:
     """Resume the same staged update and verify every deployed byte before binding it."""
-    profile_path = authority_root / 'evaluation/wcxb/current-report.json'
-    binding_path = authority_root / 'evaluation/wcxb/report-content-binding.json'
+    profile_path = profile_path or authority_root / 'evaluation/wcxb/current-report.json'
+    binding_path = profile_path.with_name('report-content-binding.json')
     reject_evidence_symlinks(profile_path)
     profile_bytes = profile_path.read_bytes()
     profile = json.loads(profile_bytes)
@@ -102,7 +102,7 @@ def publish(*, source: Path, authority_root: Path, work: Path, transport=None) -
         raise ValueError('WCXB publication requires a bound site')
     share_path, _ = public_share_context(base, profile.get('artifact_hub_share_url', ''))
     archive, proof = work / 'wcxb-current.zip', work / 'wcxb-package.json'
-    attestation = package(source, archive, proof, authority_root=authority_root)
+    attestation = package(source, archive, proof, authority_root=authority_root, profile_path=profile_path)
     identity = {'base_url': base, 'slug': slug,
                 'archive_sha256': attestation['archive_sha256']}
     # The release identifies the operation; its mutable live version is a guard.
@@ -200,13 +200,11 @@ def main(argv=None, *, root: Path | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--authority-root', type=Path, default=root or Path.cwd())
     parser.add_argument('--source', type=Path)
-    parser.add_argument('--profile', type=Path, help='external WCXB instance profile for local packaging')
+    parser.add_argument('--profile', type=Path, required=True, help='external WCXB instance profile')
     parser.add_argument('--package-only', action='store_true', help='validate and create a local archive without publishing')
     parser.add_argument('--work', type=Path, default=data_home() / 'publication')
     args = parser.parse_args(argv)
     authority = args.authority_root.absolute()
-    if args.profile and not args.package_only:
-        parser.error('--profile currently requires --package-only')
     if args.package_only:
         archive, receipt = args.work / 'wcxb-current.zip', args.work / 'wcxb-package.json'
         proof = package(args.source or authority / 'reports/wcxb', archive, receipt,
@@ -215,7 +213,7 @@ def main(argv=None, *, root: Path | None = None) -> None:
                           'files': len(proof['files'])}))
         return
     print(json.dumps(publish(source=args.source or authority / 'reports/wcxb',
-                             authority_root=authority, work=args.work), ensure_ascii=False))
+                             authority_root=authority, work=args.work, profile_path=args.profile), ensure_ascii=False))
 
 
 if __name__ == '__main__':

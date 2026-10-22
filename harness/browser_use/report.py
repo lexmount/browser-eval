@@ -2851,7 +2851,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
 
     from .report_i18n import bilingual_text
     include_english = includes_english(language, include_english)
-    profile_path = profile_path or Path("evaluation/browser-use/current-report.json")
+    if profile_path is None:
+        raise ValueError("An explicit report profile is required; pass --profile")
     if profile_path.is_symlink():
         raise ValueError("Symlinked report profile is forbidden")
     profile = _read_json(profile_path)
@@ -3024,7 +3025,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             _page(title="首页", active="home", body=home), encoding="utf-8"
         )
         _, release_data = bound_json_asset(
-            profile.get("report_history"), root=Path(__file__).parents[2])
+            profile.get("report_history"), root=profile_path.parent)
         releases = release_data.get("browser_use_releases") or []
         changes = _hero(
             "Report releases",
@@ -4020,7 +4021,7 @@ def main() -> None:
         help="isolated evidence directory for one model; repeat once per model",
     )
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--profile", type=Path)
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument(
         "--selection",
         type=Path,
@@ -4030,7 +4031,7 @@ def main() -> None:
     add_language_argument(parser)
     parser.add_argument("--include-english", action="store_true", help="Generate both editions; --language selects the homepage")
     args = parser.parse_args()
-    configuration = _read_json(args.profile or Path("evaluation/browser-use/current-report.json"))
+    configuration = _read_json(args.profile)
     selection_path = report_selection_path(configuration, args.selection)
     print(build_report(evidence=args.evidence, output=args.output, selection_path=selection_path, include_english=args.include_english, language=args.language or primary_report_language(args.output), profile_path=args.profile))
 

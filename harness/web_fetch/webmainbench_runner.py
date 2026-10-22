@@ -398,12 +398,14 @@ def run(args: argparse.Namespace) -> None:
         records = [r for r in records if r["track_id"] in selected]
         selection_binding = {"sha256": sha256_bytes(sample_bytes), "case_count": len(records),
                              "scope": sample.get('scope'), "seed": sample.get('seed')}
-        wcxb_versions = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())['versions']
-        # The pinned PR source predates v1.1.8 and reports 1.1.7. Its identity
-        # is bound separately by source commit and binary hash in the profile.
-        expected_versions = {"lightpanda": "0.4.1", "obscura": "0.2.2",
-                             "moli": wcxb_versions['moli'], "moli-pr643": "1.1.7",
-                             "chromium": "153.0.8010.47"}
+        if args.profile is None:
+            raise ValueError("WCXB execution requires an explicit --profile")
+        profile = json.loads(args.profile.read_text())
+        expected_versions = profile.get('expected_versions')
+        if (not isinstance(expected_versions, dict)
+                or set(expected_versions) != set(profile['providers'])
+                or args.provider not in profile['providers']):
+            raise ValueError("The run profile must declare expected_versions for every participant")
         dataset_id = sample['dataset_id']
     else:
         records = load_source(args.dataset, selected, args.expected_dataset_sha256)
@@ -572,6 +574,7 @@ def main() -> None:
     parser.add_argument("--limit", type=int)
     parser.add_argument("--timeout", type=float, default=45.0)
     add_failure_retry_argument(parser)
+    parser.add_argument("--profile", type=Path, help="External WCXB run profile")
     parser.add_argument("--expected-version", help="Exact release version required for this provider")
     parser.add_argument(
         "--expected-dataset-sha256",

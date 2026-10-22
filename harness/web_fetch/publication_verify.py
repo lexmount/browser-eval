@@ -238,7 +238,7 @@ def main(*, root: Path | None = None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--expected-archive", type=Path)
     parser.add_argument("--slug", required=True)
-    parser.add_argument("--profile", type=Path, default=root / "evaluation/current-report.json")
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument(
         "--base-url",
         default=os.environ.get("ARTIFACT_SITE_BASE_URL", os.environ.get("ARTIFACT_HUB_BASE_URL")),

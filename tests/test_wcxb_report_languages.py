@@ -44,7 +44,11 @@ def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include
     monkeypatch.setattr(report_build, 'build_wcxb_report',
                         lambda *args, **kwargs: captured.append(kwargs) or tmp_path / 'index.html')
     root = Path(__file__).resolve().parents[1]
-    argv = [str(root / 'scripts/build_report.py'), '--wcxb', '--evidence', str(tmp_path),
+    profile = tmp_path / 'instance.json'
+    profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown', 'sample_manifest': 'sample.json'}))
+    binding = {'kind': 'test-content'}
+    (tmp_path / 'report-content-binding.json').write_text(json.dumps(binding))
+    argv = [str(root / 'scripts/build_report.py'), '--profile', str(profile), '--wcxb', '--evidence', str(tmp_path),
             '--output', str(tmp_path / 'new-report')]
     if include_english:
         argv.append('--include-english')
@@ -52,7 +56,6 @@ def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include
     with pytest.raises(SystemExit) as result:
         runpy.run_path(argv[0], run_name='__main__')
     assert result.value.code == 0
-    binding = json.loads((root / 'evaluation/wcxb/report-content-binding.json').read_text())
     assert captured == [{'include_english': include_english, 'language': 'en', 'authority_root': root,
                          'content_binding': binding}]
 

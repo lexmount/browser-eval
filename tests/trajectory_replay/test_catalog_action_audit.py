@@ -157,11 +157,11 @@ def test_catalog_release_gate_runs_live_action_audit(monkeypatch, tmp_path: Path
         "validate_catalog_report_profile",
         lambda _profile, _data_home: {
             "evidence_root": "run",
-                "accepted_catalog": {"path": "catalog.json"},
-                "accepted_portable_suite": {"path": "suite.json"},
-                "report_manifest_path": "report/manifest.json",
-                "report_archive_path": "report.zip",
-                "publication": {"share_url": "https://artifact.example/report"},
+            "accepted_catalog": {"path": "catalog.json"},
+            "accepted_portable_suite": {"path": "suite.json"},
+            "report_manifest_path": "report/manifest.json",
+            "report_archive_path": "report.zip",
+            "publication": {"share_url": "https://artifact.example/report"},
         },
     )
     monkeypatch.setattr(
@@ -177,9 +177,7 @@ def test_catalog_release_gate_runs_live_action_audit(monkeypatch, tmp_path: Path
     monkeypatch.setattr(
         catalog_release,
         "validate_catalog_comparison_release",
-        lambda *args: {
-            "publication": {"share_url": "https://artifact.example/comparison"}
-        },
+        lambda *args: {"publication": {"share_url": "https://artifact.example/comparison"}},
     )
     monkeypatch.setattr(
         "sys.argv",
@@ -187,6 +185,8 @@ def test_catalog_release_gate_runs_live_action_audit(monkeypatch, tmp_path: Path
             "release-check",
             "--profile",
             str(profile),
+            "--comparison-release",
+            str(tmp_path / "comparison.json"),
             "--data-home",
             str(data_home),
         ],

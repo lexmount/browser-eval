@@ -11,7 +11,7 @@ WebArena-Verified 1.2.3 supplies tasks and evaluators as a dependency. Official 
 
 For a new experiment, run `uv run --frozen python scripts/lock_webarena_images.py --output /absolute/path/new-images.json`. It reuses environment site definitions, verifies registry digests and manifest bytes, and writes only a new file. Historical experiments use their bound image locks; resolving `latest` again does not reproduce an old image.
 
-Git alone cannot restore a previous run byte for byte. Screenshots, HAR, attempts, manifests and summaries remain outside Git. `evaluation/browser-use-public/current-report.json` retains current public results and external evidence hashes to verify report bindings, not to replace a new run.
+Git alone cannot restore a previous run byte for byte. Screenshots, HAR, attempts, manifests and summaries remain outside Git. The external report profile binds its result population and evidence hashes; pass it explicitly with `--profile` when packaging or publishing.
 
 The public recording inventory contains 179 candidates: 30 `eligible` and 149 `skipped`. Formal runners execute only eligible tasks; candidate count is not the run denominator.
 

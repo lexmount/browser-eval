@@ -180,14 +180,17 @@ def test_explicit_wcxb_profile_dispatches_to_wcxb_gate(tmp_path):
     (tmp_path / "wcxb-score-summary.json").write_text("{}")
     write_json(tmp_path / "sample-manifest.json", {"cases": []})
     (tmp_path / "index.html").write_text('<h1>Synthetic WCXB report</h1>')
-    write_inventory(tmp_path, json.loads((SCRIPT.parents[1] / "evaluation/wcxb/current-report.json").read_bytes()))
+    profile = tmp_path / "selected-profile.json"
+    profile.write_text(json.dumps({"comparison_kind": "wcxb_frozen_html_to_markdown"}))
+    (tmp_path / "report-content-binding.json").write_text("{}")
+    write_inventory(tmp_path, json.loads(profile.read_bytes()))
     result = subprocess.run(
         [
             sys.executable,
             str(SCRIPT),
             str(tmp_path),
             "--profile",
-            "evaluation/wcxb/current-report.json",
+            str(profile),
         ],
         capture_output=True,
         text=True,

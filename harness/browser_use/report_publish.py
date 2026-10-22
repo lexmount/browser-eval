@@ -31,7 +31,7 @@ from harness.web_fetch.safety import reject_evidence_symlinks
 ARCHIVE = Path("publish/browser-use-sites.zip")
 ATTESTATION = Path("publish/browser-use-sites.attestation.json")
 RECEIPT = Path("publish/browser-use-artifact-hub-receipt.json")
-PROFILE = Path("evaluation/browser-use/current-report.json")
+PROFILE: Path | None = None
 OPERATION_JOURNAL = Path("publish/browser-use-artifact-site-operation-pending.json")
 BINDING_JOURNAL = Path("publish/browser-use-artifact-site-binding-pending.json")
 PUBLIC_REPORT_MARKER = "<title>首页 · Browser Use 评测</title>"
@@ -402,7 +402,7 @@ def cli() -> None:
     )
     parser.add_argument("--archive", type=Path, default=ARCHIVE)
     parser.add_argument("--attestation", type=Path, default=ATTESTATION)
-    parser.add_argument("--profile", type=Path, default=PROFILE)
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, default=RECEIPT)
     parser.add_argument("--binding-journal", type=Path, default=BINDING_JOURNAL)
     parser.add_argument("--operation-journal", type=Path, default=OPERATION_JOURNAL)

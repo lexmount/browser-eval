@@ -356,15 +356,20 @@ def check(
     for evidence in [evidence_dir] if isinstance(evidence_dir, Path) else evidence_dir:
         reject_evidence_symlinks(evidence)
     repository = authority_root if authority_root is not None else Path(__file__).parents[2]
-    profile_path = profile_path or contained_path(
-        repository, "evaluation/browser-use/current-report.json", reject_symlinks=True
-    )
+    if profile_path is None:
+        if authority_root is None:
+            raise ValueError(
+                "An explicit report profile is required; pass --profile or --authority-root"
+            )
+        profile_path = contained_path(
+            authority_root, "evaluation/browser-use/current-report.json", reject_symlinks=True
+        )
     if profile_path.is_symlink():
         raise ValueError("Symlinked report profile is forbidden")
     if not profile_path.is_file():
         raise ValueError(
             "Browser Use release authority is missing; pass --authority-root "
-            "with the repository's bound evaluation and research files"
+            "with the selected instance's bound evaluation and research files"
         )
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
     if profile.get("schema") != "lex_browser_use_current_report/2":
@@ -372,9 +377,12 @@ def check(
     frozen = profile.get("official_dataset")
     if frozen:
         dataset_path = Path(frozen["path"])
-        if (dataset_path.is_symlink() or not dataset_path.is_file()
-                or _sha256(dataset_path) != frozen.get("sha256")
-                or frozen.get("sha256") != profile.get("official_data_checksum")):
+        if (
+            dataset_path.is_symlink()
+            or not dataset_path.is_file()
+            or _sha256(dataset_path) != frozen.get("sha256")
+            or frozen.get("sha256") != profile.get("official_data_checksum")
+        ):
             raise ValueError("Frozen official dataset differs from the instance profile")
     selection_path = report_selection_path(profile, selection_path, authority_root=repository)
     if selection_path.is_symlink():

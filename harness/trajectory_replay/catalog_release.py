@@ -21,7 +21,7 @@ def main() -> None:
     parser.add_argument(
         "--profile",
         type=Path,
-        default=Path("evaluation/trajectory-replay/webarena-verified-full/current-report.json"),
+        required=True,
     )
     parser.add_argument(
         "--data-home",
@@ -44,9 +44,7 @@ def main() -> None:
     parser.add_argument(
         "--comparison-release",
         type=Path,
-        default=Path(
-            "evaluation/trajectory-replay/webarena-verified-full/current-comparison.json"
-        ),
+        required=True,
     )
     args = parser.parse_args()
     verify_webarena_runtime_source()

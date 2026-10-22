@@ -365,7 +365,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                  local_audit: bool = False, authored_interpretation: bool | None = None,
                  diagnostic_preview: bool = False, language: str | None = None,
                  show_local_status_banners: bool = True,
-                 presentation_binding: Path | None = None) -> Path:
+                 presentation_binding: Path | None = None, profile_path: Path | None = None) -> Path:
     from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
@@ -389,7 +389,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         require_certifiable_evidence(dataset_probe)
     if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
         return build_webmainbench_report(source, output, include_english=include_english,
-                                         language=language)
+                                         language=language, profile_path=profile_path)
     if not local_audit:
         require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
@@ -868,14 +868,17 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
 
 
 def build_webmainbench_report(source: Path, output: Path, *, include_english: bool = False,
-                                language: str | None = None) -> Path:
+                                language: str | None = None, profile_path: Path | None = None) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
     from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     from harness.reporting.assets import copy_bound_assets, load_bound_content
 
     authority = Path(__file__).resolve().parents[2]
-    content_binding_path = authority / 'evaluation/webmainbench-content-binding.json'
+    if profile_path is None:
+        raise ValueError('WebMainBench report builds require an explicit profile_path')
+    profile = json.loads(profile_path.read_text())
+    content_binding_path = profile_path.parent / 'webmainbench-content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_source = data_home() / 'report-assets/webmainbench-sample'
     report_content = load_bound_content(
@@ -885,7 +888,8 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     teds_revision = validate_teds_revision_if_present(source, records)
     summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
     manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
-    latency_diagnostic = load_latency_diagnostic(source, dataset, records, manifests)
+    latency_diagnostic = load_latency_diagnostic(source, dataset, records, manifests,
+        (profile.get('latency_diagnostic') or {}).get('manifest_sha256'))
     review_path = source / 'result-review.json'
     review = json.loads(review_path.read_text()) if review_path.is_file() else None
     if review is not None and review.get('bindings', {}).get('results_jsonl_sha256') != file_sha256(prior_results_path(source)):
@@ -898,7 +902,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     corrections = json.loads(corrections_path.read_text(encoding='utf-8'))
     anomaly_review_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-anomaly-review.json'
     anomaly_review = json.loads(anomaly_review_path.read_text(encoding='utf-8'))
-    release_path = Path(__file__).resolve().parents[2] / 'research/report-changes.json'
+    release_path = profile_path.parent.parent / 'research/report-changes.json'
     release_history = webmainbench_history(json.loads(release_path.read_text(encoding='utf-8')))
     fixture_correction_path = source / 'fixture-correction.json'
     fixture_correction = json.loads(fixture_correction_path.read_text(encoding='utf-8')) if fixture_correction_path.is_file() else None
@@ -1000,7 +1004,7 @@ def public_webmainbench_scoring_projection(records: list[dict]) -> list[dict]:
     return projected
 
 
-def build_webmainbench_full_report(source: Path, output: Path) -> Path:
+def build_webmainbench_full_report(source: Path, output: Path, *, authority_root: Path | None = None) -> Path:
     """Build the separately bound complete 545-case report from certified evidence."""
     from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
 
@@ -1011,7 +1015,10 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     )
     if source.is_symlink() or any(path.is_symlink() for path in source.rglob('*')):
         raise ValueError('Symlinked report evidence is forbidden')
-    profile_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/current-report.json'
+    if authority_root is None:
+        raise ValueError('Full-cohort builds require an external --authority-root bundle')
+    authority_root = authority_root.resolve()
+    profile_path = authority_root / 'evaluation/webmainbench-full/current-report.json'
     profile = json.loads(profile_path.read_text(encoding='utf-8'))
     certificate = json.loads((source / 'cohort-certificate.json').read_text(encoding='utf-8'))
     scoring_certificate = json.loads((source / 'scoring-certificate.json').read_text(encoding='utf-8'))
@@ -1026,7 +1033,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         raise ValueError('Complete scoring certificate mismatch')
     dataset = json.loads((source / 'dataset.json').read_text(encoding='utf-8'))
     records = read_jsonl(source / 'results.jsonl')
-    repo = Path(__file__).resolve().parents[2]
+    repo = authority_root
     registry_path = repo / 'evaluation/webmainbench-full/moli-variants.json'
     registry = json.loads(registry_path.read_text(encoding='utf-8'))
     from .webmainbench_evidence import read_method_binding
@@ -1087,12 +1094,12 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         validate_reference_revision(source)
     if (source / 'scoring-correction.json').is_file():
         validate_webmainbench_scoring_revision(source)
-    content_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/content-binding.json'
+    content_binding_path = authority_root / 'evaluation/webmainbench-full/content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
     from harness.reporting.assets import load_bound_content
     load_bound_content(data_home() / 'report-assets/webmainbench-full', content_binding)
-    failure_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/failure-analysis-binding.json'
+    failure_binding_path = authority_root / 'evaluation/webmainbench-full/failure-analysis-binding.json'
     failure_binding = json.loads(failure_binding_path.read_text(encoding='utf-8'))
     failure_path = data_home() / 'report-assets/webmainbench-full' / failure_binding['relative_path']
     if digest(failure_path) != failure_binding['sha256']:
@@ -1201,7 +1208,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         from harness.web_fetch.webmainbench_report_check import (
             check as check_webmainbench_full,
         )
-        check_webmainbench_full(staging)
+        check_webmainbench_full(staging, authority_root=authority_root)
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
             output.rename(backup)

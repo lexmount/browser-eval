@@ -603,7 +603,7 @@ def main(*, root: Path | None = None) -> None:
     parser.add_argument("--sample-manifest", type=Path, required=True)
     parser.add_argument("--evidence-root", type=Path, required=True)
     parser.add_argument(
-        "--profile", type=Path, default=(root or Path.cwd()) / "evaluation/wcxb/current-report.json"
+        "--profile", type=Path, required=True
     )
     args = parser.parse_args()
     score(

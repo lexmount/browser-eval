@@ -176,7 +176,9 @@ def report(tmp_path):
             lang,
         )
     save(site, "reproduction/plot_version_summary.py", b"# synthetic chart source\n")
-    save(site, "index.html", b'<html lang="zh-CN"></html>')
+    messages = (ROOT / 'scripts/moli_report/messages.json').read_text().replace('<', '\\u003c')
+    shell = '<script type="application/json" id="report-messages">' + messages + '</script>'
+    save(site, "index.html", ('<html lang="zh-CN">' + shell + '</html>').encode())
     save(site, "en/index.html", b'<html lang="en"></html>')
     save(site, "README.md", b"Synthetic offline evidence")
     save(site, "app.js", (ROOT / "scripts/moli_report/app.js").read_bytes())

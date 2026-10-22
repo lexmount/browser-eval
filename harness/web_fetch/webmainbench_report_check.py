@@ -22,6 +22,7 @@ from lexbench_webfetch.metrics import percentile
 from harness.web_fetch.report import ERROR_PAGE, EXTRA, JS, STYLE
 from harness.web_fetch.report_changes import webmainbench_history
 from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision_if_present
 from harness.web_fetch.webmainbench_evidence import retry_chain_matches
 from harness.web_fetch.webmainbench_latency_correction import (
@@ -32,11 +33,12 @@ from harness.web_fetch.webmainbench_latency_correction import (
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def validate_sample_content(root: Path, *, authority_root: Path) -> None:
+def validate_sample_content(root: Path, *, authority_root: Path, binding_path: Path | None = None) -> None:
     from harness.reporting.assets import load_bound_content
 
-    expected = contained_path(authority_root, 'evaluation/webmainbench-content-binding.json',
-                              reject_symlinks=True).read_bytes()
+    selected = binding_path or contained_path(authority_root, 'evaluation/webmainbench-content-binding.json', reject_symlinks=True)
+    reject_evidence_symlinks(selected)
+    expected = selected.read_bytes()
     actual = contained_path(root, 'report-content-binding.json',
                             reject_symlinks=True).read_bytes()
     if actual != expected:
@@ -52,10 +54,12 @@ def validate_sample_content(root: Path, *, authority_root: Path) -> None:
 
 
 def authority_directory(authority_root: Path | None, profile: str) -> Path:
-    repository = (authority_root or ROOT).resolve()
+    if authority_root is None:
+        raise ValueError("Select an external authority bundle with --authority-root")
+    repository = authority_root.resolve()
     if not (repository / profile).is_file():
         raise ValueError("WebMainBench release authority is missing; pass --authority-root "
-                         "pointing to the repository")
+                         "pointing to the selected instance bundle")
     return repository
 
 
@@ -514,15 +518,17 @@ def check_teds_warnings(root: Path, impossible_teds: int) -> None:
 
 def check_sample_report(root: Path, dataset: dict | None = None,
                         records: list[dict] | None = None, *,
-                        authority_root: Path | None = None) -> None:
-    repo = authority_directory(authority_root, "evaluation/current-report.json")
+                        authority_root: Path | None = None, profile_path: Path | None = None) -> None:
+    repo = (profile_path.parent.parent if profile_path is not None else
+            authority_directory(authority_root, "evaluation/current-report.json"))
+    profile_path = profile_path or repo / "evaluation/current-report.json"
     check_language_contract(root)
     language_pairs = (('', 'zh'), ('en/', 'en')) if 'en' in generated_languages(root) else (('', 'zh'),)
     prefixes = tuple(prefix for prefix, _ in language_pairs)
     dataset = dataset or json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = records or read_jsonl(root / "results.jsonl")
     latency_correction = validate_latency_correction(root)
-    current_profile = json.loads((repo / 'evaluation/current-report.json').read_text())
+    current_profile = json.loads(profile_path.read_text())
     diagnostic_profile = current_profile.get('latency_diagnostic')
     diagnostic_path = root / 'latency-diagnostic.json'
     if diagnostic_profile and not diagnostic_path.is_file():
@@ -877,7 +883,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         raise ValueError("Report CSS differs from the reviewed reference-shell extension")
     if digest(root / "assets" / "report.js") != EXPECTED_SCRIPT_SHA256:
         raise ValueError("Report JavaScript differs from the reviewed inspection controls")
-    validate_sample_content(root, authority_root=repo)
+    validate_sample_content(root, authority_root=authority_root or repo, binding_path=profile_path.parent / "webmainbench-content-binding.json")
 
 
 
@@ -894,6 +900,7 @@ def sample_main():
     parser = argparse.ArgumentParser(description="Check a frozen WebMainBench sample report")
     parser.add_argument("report", type=Path)
     parser.add_argument("--authority-root", type=Path)
+    parser.add_argument("--profile", type=Path)
     args = parser.parse_args()
-    check_sample_report(args.report, authority_root=args.authority_root)
+    check_sample_report(args.report, authority_root=args.authority_root, profile_path=args.profile)
     print("WebMainBench sample report release gate passed")

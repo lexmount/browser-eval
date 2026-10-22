@@ -20,7 +20,7 @@ from harness.trajectory_replay.webarena_report_check import check as check_repor
 from harness.trajectory_replay.webarena_report_visual import check as check_visual
 from harness.trajectory_replay.webarena_report_visual import receipt_is_current
 
-PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
+PROFILE: Path | None = None
 REVIEW = Path("research/trajectory-replay-failure-review.json")
 ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
 ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
@@ -76,6 +76,8 @@ def package(
                            attestation_path=attestation_path)
     packaged = package_report or report
     profile_path = profile_path or PROFILE
+    if profile_path is None:
+        raise ValueError("Select an external report instance with --profile")
     review_path = review_path or REVIEW
     attestation_path = attestation_path or ATTESTATION
     if not evidence.is_file():
@@ -148,7 +150,7 @@ def main() -> None:
     parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=ARCHIVE)
     parser.add_argument("--visual-receipt", type=Path, default=VISUAL_RECEIPT)
-    parser.add_argument("--profile", type=Path, default=PROFILE)
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument("--review", type=Path, default=REVIEW)
     parser.add_argument("--attestation", type=Path, default=ATTESTATION)
     args = parser.parse_args()
