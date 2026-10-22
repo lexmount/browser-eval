@@ -214,3 +214,38 @@ def test_wcxb_public_build_uses_bound_optional_case_and_profile_participants(tmp
     assert set(json.loads((output / 'evidence/case-001.json').read_text())['outputs']) == set(profile['providers'])
     assert before == {p.relative_to(source): hashlib.sha256(p.read_bytes()).hexdigest()
                       for p in source.rglob('*') if p.is_file()}
+
+
+@pytest.mark.parametrize('tied', [False, True])
+def test_wcxb_leaders_and_interfaces_follow_participants(tmp_path, tied):
+    inputs = list(create_report_inputs(tmp_path))
+    root, rows, summary, _, identities, profile, _ = inputs
+    participants = ('moli', 'moli-pr643')
+    inputs[1] = [row for row in rows if row['provider'] in participants]
+    summary['providers'] = {p: summary['providers'][p] for p in participants}
+    inputs[4] = {p: identities[p] for p in participants}
+    profile['providers'] = list(participants)
+    for index, provider in enumerate(participants):
+        inputs[4][provider].update(engine='moli', reported_version=f'7.0.{index}')
+        summary['providers'][provider]['quality_f1'] = 1.0 if tied else 0.8 + index * 0.1
+        summary['providers'][provider]['mean_latency_ms'] = 11 if tied else 12 - index
+    generate_wcxb(*inputs, include_english=True)
+    for prefix in ('', 'en/'):
+        home = BeautifulSoup((root / prefix / 'index.html').read_text(), 'html.parser')
+        lead = home.select_one('main section p').get_text()
+        assert 'Moli 7.0.1' in lead
+        assert ('Moli 7.0.0' in lead) == tied
+        for term in (('并列最高', '并列最短') if not prefix else ('tie for the highest', 'tie for the shortest')):
+            assert (term in lead) == tied
+        for metric in ('f1', 'mean'):
+            marked = home.select(f'#wcxb-core td[data-metric="{metric}"] .comparison-winner')
+            assert len(marked) == (0 if tied else 1)
+        method = BeautifulSoup((root / prefix / 'methodology/index.html').read_text(), 'html.parser')
+        adoption = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(), 'html.parser')
+        interface = adoption.select_one('main pre').get_text()
+        for name in ('Kitesurf', 'Lightpanda', 'Obscura', 'Chromium'):
+            assert name not in method.select_one('main').get_text()
+            assert name not in interface
+        for name in ('Moli 7.0.0', 'Moli 7.0.1'):
+            assert name in method.get_text()
+            assert name in interface
