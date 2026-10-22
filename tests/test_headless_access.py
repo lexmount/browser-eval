@@ -3,13 +3,13 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from harness.web_fetch.report_interfaces import HEADLESS_ACCESS, SPECS, render_interfaces
+from harness.web_fetch.report_interfaces import SPECS, render_interfaces
+from harness.web_fetch.methods import method_access
 
 
 class HeadlessAccessTests(unittest.TestCase):
     def test_all_measured_engines_have_account_and_official_sources(self):
-        self.assertEqual(set(HEADLESS_ACCESS),
-                         {'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','moli-1.1.11','moli-pr643','chromium'})
+        accesses = {name: method_access(name, []) for name in SPECS}
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'adoption').mkdir()
@@ -18,8 +18,8 @@ class HeadlessAccessTests(unittest.TestCase):
                  'artifact_path':'body.txt','provider_metadata':{'api_token':'credential-canary',
                  'headers':{'Authorization':'Bearer credential-canary'},'engine':'kitesurf'}}
             body = render_interfaces(root, [row])
-            self.assertEqual(body.count('<h3>账号与获取入口</h3>'), len(set(SPECS) & set(HEADLESS_ACCESS)))
-            for name, access in HEADLESS_ACCESS.items():
+            self.assertEqual(body.count('<h3>账号与获取入口</h3>'), len(SPECS))
+            for name, access in accesses.items():
                 if name in SPECS:
                     saved = json.loads((root / f'adoption/interfaces/{name}.json').read_text())
                     self.assertEqual(saved['access']['account'], access['account'])
@@ -48,7 +48,7 @@ class HeadlessAccessTests(unittest.TestCase):
         self.assertEqual(SPECS['chromium']['request']['wait_until'], 'load')
 
     def test_executable_version_is_not_replaced_by_cdp_compatibility_version(self):
-        from harness.web_fetch.report_interfaces import method_version
+        from harness.web_fetch.methods import method_version
         for name,version,compat in [('moli','1.1.15','145.0.0.0'),('lightpanda','1.0.0','124.0.6367.29'),('obscura','0.2.4','145.0.0.0')]:
             row={'provider':name,'provider_metadata':{'binary_sha256':'hash','browser_version':compat}}
             self.assertEqual(method_version(row,{'hash':{'version':version}}),version)
@@ -61,3 +61,19 @@ class HeadlessAccessTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+
+def test_interface_authored_fields_use_direct_english(tmp_path, monkeypatch):
+    from html import unescape
+    from pathlib import PurePosixPath
+    from harness.web_fetch.methods import report_method_catalog
+    from harness.web_fetch.report_i18n import localize_html
+    (tmp_path/'adoption').mkdir()
+    body = render_interfaces(tmp_path, [])
+    english = unescape(localize_html(body, PurePosixPath('adoption/index.html')))
+    expected = report_method_catalog('en')['methods']['chromium']['interface']
+    assert expected['notes'] in english
+    assert expected['params'][0][2] in english
+    assert expected['auth'] in english
+    assert '未记录的内部默认值不作推断' not in english

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "external_benchmark_binding",
   "repository": "https://github.com/lexmount/lexbench-webfetch",
-  "revision": "84c177d97da3b82567d9881e377aa728929cf129",
+  "revision": "5ac291a592fec849d86bbb791a80579cc7a6c2c6",
   "ownership": {
     "benchmark": "Task populations, task model, acceptance scoring, file checks, compiler and frozen definitions",
     "harness": "Execution, reference lifecycle, evidence and reports"

@@ -776,7 +776,7 @@ def compact_local_snapshot(source, binding, **options):
         temporary.cleanup()
 
 
-def _project_native_correction(source, original, request):
+def _project_native_correction(source, original, request, *, historical_scoring_source=None):
     """One projection path for preparing and verifying an offline correction."""
     from .native_projection import project_native_answer, project_native_result_fields
     from .publication_privacy import original_evidence_size
@@ -788,7 +788,7 @@ def _project_native_correction(source, original, request):
     declaration = request['projection']
     payload = (native.read_bytes() if declaration.get('source_format') == 'bytes'
                else json.loads(native.read_bytes()))
-    text, fields = project_native_answer(payload, declaration)
+    text, fields = project_native_answer(payload, declaration, historical_scoring_source=historical_scoring_source)
     diagnostic = None
     if any(spec.get('format') == 'fetch_log_final_url'
            for spec in declaration.get('result_fields', {}).values()):
@@ -805,11 +805,11 @@ def _project_native_correction(source, original, request):
     return native, text, fields, result_fields
 
 
-def _require_native_answer_correction(source, original, corrected, proof):
+def _require_native_answer_correction(source, original, corrected, proof, *, historical_scoring_source=None):
     """Verify a derived answer against the same immutable native response."""
     if proof.get('attempt_id') != original['attempt_id']:
         raise ValueError('Native answer correction lost its attempt identity')
-    native, text, fields, result_fields = _project_native_correction(source, original, proof)
+    native, text, fields, result_fields = _project_native_correction(source, original, proof, historical_scoring_source=historical_scoring_source)
     metadata = original.get('provider_metadata', {})
     before = proof['original_artifact']
     after = proof['corrected_artifact']
@@ -975,7 +975,8 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
     for identifier, old in old_rows.items():
         new = new_rows[identifier]
         if identifier in corrected_answers:
-            _require_native_answer_correction(source, old, new, corrected_answers[identifier])
+            _require_native_answer_correction(source, old, new, corrected_answers[identifier],
+                                              historical_scoring_source=receipt['scoring_source_sha256'])
         elif identifier in corrected_contexts:
             _require_native_context_correction(source, old, new, corrected_contexts[identifier])
         elif ({k: v for k, v in old.items() if k not in {'metrics', 'scoring', 'diagnosis', 'failure_category'}}

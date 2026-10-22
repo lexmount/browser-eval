@@ -211,3 +211,8 @@ webmainbench-assemble: runtime-check
 .PHONY: test-native-adapters
 test-native-adapters:
 	node --test tests/test_public_dns.mjs tests/test_dsh_output.mjs
+
+.PHONY: bump-lexbench
+bump-lexbench:
+	@test -n "$(REV)" || (echo 'REV=<full merged LexBench commit> is required' >&2; exit 2)
+	$(PY) scripts/bump_lexbench.py --revision "$(REV)" --uv "$(UV)"

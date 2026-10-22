@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import inspect
+from copy import deepcopy
 import importlib.metadata
 import re
 from collections import Counter
@@ -8,6 +11,188 @@ from functools import lru_cache, wraps
 from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
+
+
+def _resolve_catalog_templates(data):
+    """Expand named defaults once; methods override dictionaries and replace lists."""
+    def merge(base, override):
+        result = deepcopy(base)
+        for key, value in override.items():
+            if key == 'extends':
+                continue
+            result[key] = (merge(result[key], value) if isinstance(result.get(key), dict)
+                           and isinstance(value, dict) else deepcopy(value))
+        return result
+
+    templates = data.get('templates', {})
+    def resolve(row, chain=()):
+        parent = row.get('extends')
+        if parent is None:
+            return deepcopy(row)
+        if parent not in templates:
+            raise ValueError('Unknown method template: ' + str(parent))
+        if parent in chain:
+            raise ValueError('Cyclic method template: ' + parent)
+        return merge(resolve(templates[parent], (*chain, parent)), row)
+
+    return {**data, 'methods': {name: resolve(row) for name, row in data['methods'].items()}}
+
+
+@lru_cache(maxsize=1)
+def _raw_report_method_catalog():
+    path = Path(__file__).resolve().parent / "data/report-methods.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("schema_version") != 1:
+        raise ValueError("Unsupported report method registry schema")
+    return _resolve_catalog_templates(data)
+
+
+def _catalog_value(value, path=(), *, language="zh"):
+    if isinstance(value, dict):
+        if set(value) == {"zh", "en"}:
+            if len(path) == 3 and path[0] == "methods" and path[-1] == "label":
+                return value
+            return value[language]
+        return {key: _catalog_value(item, (*path,key), language=language) for key,item in value.items()}
+    if isinstance(value, list):
+        return [_catalog_value(item, (*path,str(index)), language=language) for index,item in enumerate(value)]
+    return value
+
+
+@lru_cache(maxsize=2)
+def report_method_catalog(language="zh"):
+    """Select colocated language fields by identity, never by matching prose."""
+    if language not in {"zh", "en"}:
+        raise ValueError("Unsupported method catalog language: " + language)
+    return _catalog_value(_raw_report_method_catalog(), language=language)
+
+
+_REPORT_RECORDS = ContextVar("webfetch_report_records", default={})
+_REPORT_EXECUTION_CONFIGS = ContextVar("webfetch_report_execution_configs", default={})
+
+
+def frozen_execution_configs(manifests):
+    """Read installation bindings only from bytes named by execution manifests.
+
+    Missing or conflicting configurations remain unavailable. Never publish raw
+    configuration values, which may include credentials and machine paths.
+    """
+    bindings = {}
+    for manifest in manifests:
+        config = {}
+        binary_key = ("resource_binary" if manifest.get("parameters", {}).get("resource_sample_interval_ms") is not None else "binary")
+        source = manifest.get("provider_config_source")
+        digest = manifest.get("provider_config_sha256")
+        if source and digest:
+            path = Path(source)
+            if path.is_file() and not path.is_symlink():
+                raw = path.read_bytes()
+                if hashlib.sha256(raw).hexdigest() == digest:
+                    payload = json.loads(raw)
+                    config = payload.get("providers", {})
+                    # A manifest does not identify which cohort override was
+                    # selected. Do not infer an executable when overrides differ.
+                    config = deepcopy(config)
+                    for cohort in payload.get("cohorts", {}).values():
+                        for name, override in cohort.get("provider_overrides", {}).items():
+                            if any(key in override and override[key] != config.get(name, {}).get(key)
+                                   for key in (binary_key, "engine")):
+                                config.pop(name, None)
+                    if binary_key != "binary":
+                        config = {name: {**value, "binary": value.get(binary_key)}
+                                  for name, value in config.items()}
+        for provider in manifest.get("providers", []):
+            name = provider["name"]
+            value = config.get(name)
+            if name in bindings and bindings[name] != value:
+                bindings[name] = None
+            else:
+                bindings[name] = value
+    return bindings
+
+
+def _browser_installation_access(name, selected, registered, access, language):
+    if registered.get("kind") != "browser" or access.get("type") != "local":
+        return access
+    measured = selected or _REPORT_RECORDS.get().get(name)
+    config = (_REPORT_EXECUTION_CONFIGS.get().get(name) if measured
+              else browser_method_registry().get(name))
+    engine = (measured or {}).get("provider_metadata", {}).get("engine")
+    if config and engine and config.get("engine") != engine:
+        config = None
+    binary = config.get("binary") if config else None
+    variables = []
+    if binary is None:
+        explanation = ("未找到可核验的执行配置，安装变量未记录。" if language == "zh" else
+                       "A verifiable execution configuration is unavailable; installation variables were not recorded.")
+    else:
+        match = re.fullmatch(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?}", str(binary))
+        if match:
+            variables = [match.group(1)]
+            explanation = (("安装与执行记录版本一致的程序，通过 " + match.group(1) + " 指定程序位置。")
+                           if language == "zh" else
+                           ("Install the recorded program version and set " + match.group(1) + " to its location."))
+        else:
+            explanation = ("执行配置直接指定程序位置，未使用安装环境变量。" if language == "zh" else
+                           "The execution configuration specifies the executable directly, without an installation environment variable.")
+    return {**access, "env_vars": variables, "configuration": explanation}
+
+
+def report_method(name, record=None, *, language="zh"):
+    """Resolve run IDs through recorded identity and the execution registry."""
+    methods = (report_method_catalog() if language == "zh" else report_method_catalog(language))["methods"]
+    record = record or _REPORT_RECORDS.get().get(name, {})
+    metadata = record.get("provider_metadata") or {}
+    if metadata.get("engine"):
+        return methods.get(metadata["engine"], {})
+    execution = browser_method_registry().get(name, {})
+    for key in (execution.get("engine"), name):
+        if key in methods:
+            return methods[key]
+    provider_type = record.get("provider_type", execution.get("type"))
+    matches = [item for item in methods.values()
+               if provider_type in item.get("adapter_types", [])]
+    if len(matches) > 1:
+        raise ValueError(f"Ambiguous report method for adapter {provider_type!r}; record an engine")
+    return matches[0] if matches else {}
+
+
+def normalized_method_version(registered, version):
+    """Normalize presentation only; preserve the full recorded build suffix."""
+    value = str(version).strip()
+    prefix = registered.get("version_prefix")
+    if prefix and value.casefold().startswith(prefix.casefold() + " "):
+        value = value[len(prefix):].strip()
+    return value
+
+
+def versioned_method_label(registered, base, version):
+    value = normalized_method_version(registered, version)
+    return registered.get("label_template", "{label} {version}").format(
+        label=base, version=value)
+
+
+def method_access(name, records, *, language="zh"):
+    selected = next((row for row in records if row.get("provider") == name), None)
+    registered = report_method(name, selected, language=language)
+    access = registered.get("access")
+    if access:
+        access = _browser_installation_access(name, selected, registered, access, language)
+        template = registered.get("release_url_template")
+        versions = {normalized_method_version(registered, value) if value else None
+                    for row in records if row.get("provider") == name
+                    for value in [method_version(row)]}
+        if template and len(versions) == 1 and None not in versions:
+            version = next(iter(versions))
+            # A build suffix is not proof that a corresponding release exists.
+            if re.fullmatch(r"\d+\.\d+\.\d+", version):
+                return {**access, "links": [(versioned_method_label(
+                    registered, registered["label"][language], version),
+                    template.format(version=version))]}
+        return access
+    return {"type": "unknown", "account": "未登记 / Not registered",
+            "configuration": "Account and installation requirements have not been registered.",
+            "env_vars": [], "links": []}
 
 
 @lru_cache(maxsize=1)
@@ -27,111 +212,146 @@ def browser_method_registry():
     return json.loads(path.read_text())["providers"]
 
 
-def native_browser_engine(name):
-    return browser_method_registry().get(name, {}).get("engine")
+def native_browser_engine(name, record=None):
+    record = record or _REPORT_RECORDS.get().get(name, {})
+    recorded = (record.get("provider_metadata") or {}).get("engine")
+    if recorded:
+        return recorded
+    configured = browser_method_registry().get(name, {}).get("engine")
+    if configured:
+        return configured
+    if report_method_catalog()["methods"].get(name, {}).get("kind") == "browser":
+        return name
+    return None
 
 
-def browser_method_label(name):
-    return _MEASURED_LABELS.get().get(
-        name, browser_method_registry().get(name, {}).get("label", name)
-    )
+def browser_method_label(name, *, language="zh"):
+    measured = _MEASURED_LABELS.get().get(name)
+    if measured:
+        return measured[language]
+    record = _REPORT_RECORDS.get().get(name, {})
+    engine = (record.get("provider_metadata") or {}).get("engine")
+    if engine:
+        return report_method(name, record).get("label", {}).get(language, engine)
+    return (browser_method_registry().get(name, {}).get("label")
+            or report_method(name).get("label", {}).get(language, name))
 
 
 _MEASURED_LABELS = ContextVar("webfetch_measured_labels", default={})
 
 
 def measured_method_label(name, fallback):
-    return _MEASURED_LABELS.get().get(name, fallback)
+    return _MEASURED_LABELS.get().get(name, {}).get("zh", fallback)
+
+
+def method_version(record, provenance=None, *, language="zh"):
+    """Prefer the recorded executable version; CDP compatibility is not an identity."""
+    metadata = record.get("provider_metadata") or {}
+    registered = report_method(record.get("provider", ""), record, language=language)
+    policy = registered.get("version_policy")
+    if metadata.get("reported_version"):
+        return str(metadata["reported_version"])
+    bound = (provenance or {}).get(metadata.get("binary_sha256"), {})
+    if bound.get("version"):
+        return str(bound["version"])
+    for key in ("binary_version", "library_version", "version"):
+        if metadata.get(key):
+            return str(metadata[key])
+    if policy == "hosted":
+        return registered.get("version_unavailable")
+    browser_version = metadata.get("browser_version")
+    if policy == "native" and re.fullmatch(r"\d+\.\d+\.\d+\.\d+", str(browser_version)):
+        return None
+    return str(browser_version) if browser_version else None
 
 
 def with_measured_method_labels(render):
-    """Scope Moli version labels to the actual report's hash-bound binaries."""
+    """Scope all participant labels to recorded versions and binary identities."""
+    signature = inspect.signature(render)
     @wraps(render)
     def wrapped(out, dataset, records, *args, **kwargs):
         path = Path(out) / "implementation-provenance.json"
         provenance = json.loads(path.read_text()) if path.is_file() else {}
-        identities = {
-            item["binary_sha256"]: item["version"]
-            for item in provenance.get("implementations", [])
-            if item.get("version") and item.get("binary_sha256")
-        }
+        identities = {item["binary_sha256"]: item for item in provenance.get("implementations", [])
+                      if item.get("binary_sha256")}
+        records_token = _REPORT_RECORDS.set({row["provider"]: row for row in records})
+        arguments = signature.bind(out, dataset, records, *args, **kwargs).arguments
+        configs_token = _REPORT_EXECUTION_CONFIGS.set(
+            frozen_execution_configs(arguments["manifests"]) if "manifests" in arguments
+            else _REPORT_EXECUTION_CONFIGS.get())
         labels = {}
-        for name in {r["provider"] for r in records}:
-            if native_browser_engine(name) != "moli":
-                continue
-            subset = [r for r in records if r["provider"] == name]
-            versions = [
-                identities.get(r.get("provider_metadata", {}).get("binary_sha256"))
-                for r in subset
-            ]
-            if versions and all(versions):
-                counts = Counter(versions)
-                if len(counts) == 1:
-                    labels[name] = "Moli " + next(iter(counts))
-                else:
-                    releases = [
-                        match.group(1) if (match := re.match(r"^(\d+\.\d+\.\d+)", version)) else None
-                        for version in counts
-                    ]
-                    if None not in releases and len(set(releases)) == 1:
-                        release = releases[0]
-                        configured = browser_method_registry().get(name, {}).get("label", "")
-                        qualifier = "（候选版）" if "candidate" in configured.lower() else ""
-                        labels[name] = f"Moli {release}{qualifier}"
-                    else:
-                        labels[name] = "Moli 多构建结果（" + "；".join(
-                            f"{count} 例 {version}" for version, count in sorted(counts.items())
-                        ) + "）"
-        token = _MEASURED_LABELS.set(labels)
         try:
-            return render(out, dataset, records, *args, **kwargs)
+            for name in {row["provider"] for row in records}:
+                registered = report_method(name)
+                subset = [row for row in records if row["provider"] == name]
+                versions = [normalized_method_version(registered, value) if value else None
+                            for row in subset for value in [method_version(row, identities)]]
+                if not versions or not all(versions):
+                    continue
+                metadata = subset[0].get("provider_metadata") or {}
+                execution = browser_method_registry().get(name, {})
+                preserve_name = (name not in report_method_catalog()["methods"]
+                                 and not metadata.get("engine") and not execution.get("engine"))
+                channels = {row.get("provider_metadata", {}).get(
+                    "release_channel", execution.get("release_channel")) for row in subset}
+                labels[name] = {}
+                for language in ("zh", "en"):
+                    counts = Counter(normalized_method_version(registered, method_version(
+                        row, identities, language=language)) for row in subset)
+                    releases = [match.group(1) if (match := re.match(
+                        r"^(\d+\.\d+\.\d+)", version)) else None for version in counts]
+                    base = name if preserve_name else registered.get("label", {}).get(
+                        language, metadata.get("engine") or name)
+                    def label(version):
+                        return versioned_method_label(registered, base, version)
+                    if len(counts) == 1:
+                        value = label(next(iter(counts)))
+                    elif None not in releases and len(set(releases)) == 1:
+                        qualifier = ("（候选版）" if language == "zh" else " (candidate build)") if channels == {"candidate"} else ""
+                        value = label(releases[0]) + qualifier
+                    elif language == "zh":
+                        value = base + " 多构建结果（" + "；".join(
+                            f"{count} 例 {version}" for version, count in sorted(counts.items())) + "）"
+                    else:
+                        value = base + " mixed builds (" + "; ".join(
+                            f"{count} {'case' if count == 1 else 'cases'}: {version}" for version, count in sorted(counts.items())) + ")"
+                    labels[name][language] = value
+            token = _MEASURED_LABELS.set(labels)
+            try:
+                return render(out, dataset, records, *args, **kwargs)
+            finally:
+                _MEASURED_LABELS.reset(token)
         finally:
-            _MEASURED_LABELS.reset(token)
+            _REPORT_EXECUTION_CONFIGS.reset(configs_token)
+            _REPORT_RECORDS.reset(records_token)
     return wrapped
 
 
-METHOD_REGISTRY: dict[str, dict[str, Any]] = {
-    "http": {"endpoint":"HTTP GET","contract":"已知 URL → HTML 文本或文件任务的原始字节","output":"HTML 提取文本；文件任务保留响应字节","freshness":"每次独立请求，不执行页面 JavaScript","leaderboard":"独立 HTTP 对照"},
-    "headless_html": {"endpoint":"browser HTML → node-html-markdown 2.0.0","contract":"已知 URL → DOM HTML → Markdown","output":"Markdown；独立保存 HTML 和诊断","freshness":"每次新进程/会话；domcontentloaded；45 秒外层预算","leaderboard":"六类任务分别验收","report":{"observed_routes":True}},
-    "headless_markdown": {"endpoint":"各方法最快的正式任务原生产物路径","contract":"已知 URL → 正文 Markdown/文本，或文件任务的原始字节","output":"正文 Markdown/文本；文件任务为原始字节；保留接口与阶段诊断","freshness":"每次新进程/会话；45 秒端到端预算","leaderboard":"六类任务分别验收","report":{"observed_routes":True}},
-    "moli_webfetch": {"source_url":"https://github.com/lexmount/moli","endpoint":"moli fetch（网页、文档正文、结构与网页内嵌媒体用原生 Markdown，直接媒体文件用原始响应）","contract":"已知 URL → 原生 Markdown 或原文件字节","output":"stdout Markdown/字节；stderr 独立诊断","freshness":"每次启动独立进程；结构完成条件只控制官方等待参数","leaderboard":"七类任务分别验收","report":{"reported_version":{"pattern":r"^moli\s+","replacement":"Moli "},"profiles":[{"metadata_equals":{"dump":"markdown","route":"dynamic_native_markdown","wait_until":"domstable","wait.strategy":"native_task_family_completion","layout":True,"with_frames":True},"endpoint":"moli fetch --dump markdown --layout --with-frames --wait-until domstable URL","freshness":"每例启动一个独立进程；动态网站正文统一等待 Moli 原生 DOM 稳定信号，并启用原生页面布局和已加载子文档。","configuration":"本轮 {record_count} 个动态网站正文任务统一使用 Moli 原生 Markdown、--layout、--with-frames 和 domstable。除目标 URL 外，没有逐题等待元素、延迟、提取脚本或特殊参数，也没有启用理解模型、格式回退或付费后备方法。"},{"metadata_equals":{"dump":"markdown","route":"dynamic_native_markdown","wait_until":"done","wait.strategy":"native_default_completion"},"endpoint":"moli fetch --dump markdown --wait-until done URL","freshness":"每例启动一个独立进程；由 Moli 的默认 done 完成方式决定何时交付内容。","configuration":"本轮 {record_count} 例统一使用 Moli 原生 Markdown 和默认 done 完成方式。除目标 URL 外，没有逐例等待元素、额外等待时间、提取脚本或特殊参数，也没有启用理解模型、格式回退或付费后备方法。"}]}},
-    "cowagent_builtin": {"endpoint":"仓库内 WebFetch.execute","contract":"已知 URL → 可读文本/文档文字","output":"纯文本","freshness":"实时请求","leaderboard":"可读正文"},
-    "lexmount": {"endpoint":"POST https://api.lexmount.com/v1/extract","contract":"已知 URL → 主正文 + 元数据","output":"main_text","freshness":"托管实时抓取","leaderboard":"可读正文"},
-    "lexmount_cn": {"endpoint":"POST https://api.lexmount.cn/v1/extract","contract":"已知 URL → 主正文 + 元数据","output":"main_text","freshness":"中国区托管实时抓取","leaderboard":"可读正文"},
-    "firecrawl": {"endpoint":"POST https://api.firecrawl.dev/v2/scrape","contract":"已知 URL → Markdown/资源地址，或原文件字节","output":"Markdown/资源地址；视频资源题另请求 video；文件题为 rawBase64 解码字节","freshness":"maxAge=0；动态题使用预声明 Actions 等待","leaderboard":"六类任务分别验收","report":{"pricing_anchor":"pricing-firecrawl","configuration":"正文与资源题请求 Markdown、links、images；原文件题改用唯一 rawBase64 格式并验收解码字节。动态顶层选择器使用 wait action，数量与 iframe 条件明确标为未完整执行。未启用额外的理解模型或付费后备方法。"}},
-    "tavily_extract": {"endpoint":"POST https://api.tavily.com/extract","contract":"已知 URL → raw_content","output":"Markdown（advanced）","freshness":"供应商实时抽取","leaderboard":"可读正文","report":{"pricing_anchor":"pricing-tavily","configuration":"本轮请求 Markdown；图片资源仅来自同一 Extract 响应的 images 字段。未启用额外的理解模型或付费后备方法。"}},
-    "exa_contents": {"endpoint":"POST https://api.exa.ai/contents","contract":"已知 URL → 正文文本","output":"纯文本","freshness":"maxAgeHours=0","leaderboard":"可读正文","report":{"pricing_anchor":"pricing-exa","configuration":"本轮请求正文文本；资源链接仅来自同一 Contents 响应的 extras 字段。未启用额外的理解模型或付费后备方法。"}},
-    "cloudflare_markdown": {"endpoint":"POST /accounts/{id}/browser-rendering/markdown 或 /scrape；直接文档 POST /accounts/{id}/ai/tomarkdown","contract":"已知 URL → 网页正文、页面资源地址或直接文档文字","output":"Browser Run Markdown / DOM 资源地址；Workers AI 文档 Markdown","freshness":"Quick Actions 默认最多缓存 5 秒；waitUntil=networkidle2；文档下载与转换同一预算","leaderboard":"六类任务分别验收","report":{"pricing_anchor":"pricing-cloudflare-markdown"}},
-    "cloudflare_content": {"endpoint":"POST /accounts/{id}/browser-rendering/content","contract":"已知 URL → 含 head 的完整渲染 HTML","output":"渲染 HTML","freshness":"Quick Actions 默认最多缓存 5 秒；waitUntil=networkidle2","leaderboard":"HTML 诊断"},
-    "openclaw_builtin": {"endpoint":"OpenClaw createWebFetchTool","contract":"HTTP GET + Readability 正文抽取（关闭 Firecrawl 回退）","output":"Markdown","freshness":"cacheTtlMinutes=0","leaderboard":"可读正文"},
-    "deepseek_harness_builtin": {"endpoint":"DeepSeek Harness ctx.tools.execute(web_fetch)","contract":"匿名 HTTP provider + Turndown","output":"Markdown","freshness":"实时请求","leaderboard":"可读正文","report":{"profiles":[{"metadata_equals":{"output_projection":"declared_body"},"endpoint":"DeepSeek Harness ctx.tools.execute(web_fetch) → value.body.content","contract":"已知 URL → 原生声明 HTML/文本正文 → 共有解析","output":"声明正文；完整工具回包和展示文本独立保存"}]}},
-    "langchain_webbase": {"endpoint":"LangChain WebBaseLoader.load()","contract":"HTTP + BeautifulSoup 网页文本加载器","output":"纯文本","freshness":"实时请求","leaderboard":"可读正文"},
-    "crawl4ai": {"endpoint":"Crawl4AI AsyncWebCrawler.arun()","contract":"本地浏览器渲染 + Markdown 抽取","output":"Markdown","freshness":"cache_mode=BYPASS","leaderboard":"可读正文"},
-    "fixture": {"endpoint":"本地 fixture","contract":"确定性安装测试","output":"纯文本","freshness":"固定","leaderboard":"离线诊断"},
-}
+METHOD_REGISTRY = report_method_catalog()["adapters"]
 
 
 def is_browser_comparison(records: list[dict[str, Any]]) -> bool:
     """Recognize browser cohorts independently of their task-specific adapters."""
-    types = {row.get("provider_type") for row in records}
-    return bool(types & {"headless_html", "headless_markdown"}) and types <= {
-        "headless_html", "headless_markdown", "moli_webfetch"}
+    roles = [
+        "primary" if report_method(row.get("provider", ""), row).get("kind") == "browser"
+        else method_info(row.get("provider_type", "")).get("browser_cohort_role")
+        for row in records
+    ]
+    return "primary" in roles and all(role in {"primary", "companion"} for role in roles)
 
 
-def method_info(provider_type: str) -> dict[str, Any]:
-    return METHOD_REGISTRY.get(provider_type, {"endpoint":"未记录","contract":"未知","output":"未知","freshness":"未知","leaderboard":"未分类"})
+def method_info(provider_type: str, *, language="zh") -> dict[str, Any]:
+    registry = METHOD_REGISTRY if language == "zh" else report_method_catalog(language)["adapters"]
+    missing = {"endpoint":"未记录","contract":"未知","output":"未知","freshness":"未知","leaderboard":"未分类"} if language == "zh" else {
+        "endpoint":"Not recorded", "contract":"Unknown", "output":"Unknown",
+        "freshness":"Unknown", "leaderboard":"Unclassified"}
+    return registry.get(provider_type, missing)
 
 
-ROUTE_LABELS = {
-    "cloudflare_native_markdown": "Cloudflare Browser Run /markdown 直接返回 Markdown",
-    "lightpanda_native_markdown": "Lightpanda CLI 直接返回 Markdown",
-    "obscura_native_markdown": "Obscura CLI 直接返回 Markdown",
-    "moli_native_markdown": "Moli CLI 直接返回 Markdown",
-    "node-html-markdown": "浏览器渲染 DOM → node-html-markdown 2.0.0",
-}
+ROUTE_LABELS = report_method_catalog()["route_labels"]
 
 
-def _metadata_matches(metadata: dict[str, Any], expected: dict[str, Any]) -> bool:
+def metadata_matches(metadata: dict[str, Any], expected: dict[str, Any]) -> bool:
     for path, value in expected.items():
         current: Any = metadata
         for key in path.split("."):
@@ -143,26 +363,19 @@ def _metadata_matches(metadata: dict[str, Any], expected: dict[str, Any]) -> boo
     return True
 
 
-def method_page_model(name: str, label: str, records: list[dict[str, Any]]) -> dict[str, str]:
+def method_page_model(name: str, label: str, records: list[dict[str, Any]], *, language="zh") -> dict[str, str]:
     """Resolve method-specific evidence into provider-neutral page fields."""
     if not records:
         raise ValueError("method page requires at least one record")
-    info = method_info(records[0].get("provider_type", ""))
+    info = method_info(records[0].get("provider_type", ""), language=language)
     report = info.get("report", {})
-    versions = sorted({
-        str(record.get("provider_metadata", {}).get("reported_version", "")).strip()
-        for record in records
-        if str(record.get("provider_metadata", {}).get("reported_version", "")).strip()
-    })
+    registered = report_method(name, records[0], language=language)
+    versions = {method_version(row, language=language) for row in records}
     title = label
-    version_rule = report.get("reported_version")
-    if version_rule and len(versions) == 1:
-        version = re.sub(
-            version_rule["pattern"], version_rule.get("replacement", ""), versions[0],
-            flags=re.I,
-        )
+    if len(versions) == 1 and None not in versions:
+        version = normalized_method_version(registered, next(iter(versions)))
         if version not in title:
-            title += f" · {version}"
+            title = versioned_method_label(registered, label, version)
     model = {
         "title": title,
         "contract": info["contract"],
@@ -170,28 +383,33 @@ def method_page_model(name: str, label: str, records: list[dict[str, Any]]) -> d
         "freshness": info["freshness"],
         "configuration": report.get(
             "configuration",
-            "调用参数与交付路线以本次配置和逐例记录为准。",
+            "调用参数与交付路线以本次配置和逐例记录为准。" if language == "zh" else "Call parameters and delivery routes follow this run’s configuration and per-case records.",
         ),
         "pricing_anchor": report.get("pricing_anchor", "method-guide-pricing"),
     }
     metadata = [record.get("provider_metadata", {}) for record in records]
     if report.get("observed_routes"):
+        route_labels = ROUTE_LABELS if language == "zh" else report_method_catalog(language)["route_labels"]
         extractors = sorted({
-            ROUTE_LABELS.get(item.get("extractor"), item.get("extractor"))
+            route_labels.get(item.get("extractor"), item.get("extractor"))
             for item in metadata if item.get("extractor")
         })
         contracts = sorted({str(item.get("output_contract")) for item in metadata
                             if item.get("output_contract")})
         route_count = sum(bool(item.get("extractor")) for item in metadata)
         output_count = sum(bool(item.get("output_contract")) for item in metadata)
-        route = "；".join(extractors) or "未记录"
-        output = "、".join(contracts) or "未记录"
+        missing = "未记录" if language == "zh" else "Not recorded"
+        route = ("；" if language == "zh" else "; ").join(extractors) or missing
+        output = ("、" if language == "zh" else ", ").join(contracts) or missing
         model["configuration"] = (
             f"交付路线（{route_count}/{len(records)} 条记录）：{route}；"
             f"输出格式（{output_count}/{len(records)} 条记录）：{output}。"
+        ) if language == "zh" else (
+            f"Delivery route ({route_count}/{len(records)} records): {route}; "
+            f"output format ({output_count}/{len(records)} records): {output}."
         )
     for profile in report.get("profiles", []):
-        if metadata and all(_metadata_matches(item, profile["metadata_equals"])
+        if metadata and all(metadata_matches(item, profile["metadata_equals"])
                             for item in metadata):
             for field in ("endpoint", "freshness", "configuration"):
                 if field in profile:

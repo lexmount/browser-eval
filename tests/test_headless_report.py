@@ -96,8 +96,15 @@ class HeadlessReportTests(unittest.TestCase):
         self.assertTrue(result['winner_tied'])
         english = localize_html(page, PurePosixPath('guide/index.html'))
         self.assertIn('Resource-efficiency co-leaders in this run', english)
-        self.assertIn('Moli 1.1.15 · independent resource cohort, Lightpanda, Obscura, Chromium', english)
+        self.assertIn('Moli, Lightpanda, Obscura, Chromium', english)
         self.assertNotIn('资源效率并列领先', english)
+        self.assertNotIn('1.1.15', page)
+        self.assertNotIn('1.1.15', english)
+        self.assertIn('sample interval was not recorded', english)
+        summary['environment'] = {'sample_interval_ms': 125}
+        recorded, _ = render_resource_comparison(summary, providers)
+        self.assertIn('125 ms', recorded)
+        self.assertNotIn('50 ms', recorded)
 
     def test_resource_table_excludes_unobservable_remote_provider(self):
         resource_providers = ['moli', 'chromium', 'lightpanda', 'obscura']
@@ -836,6 +843,16 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             self.assertIn('统一解析策略不保证', body)
             self.assertNotIn('150 道',body)
             self.assertNotIn('1.1.5',body)
+            from bs4 import BeautifulSoup
+            self.assertNotIn('<span',BeautifulSoup(body,'html.parser').get_text())
+            from pathlib import PurePosixPath
+            from harness.web_fetch.report_i18n import localize_html
+            english=BeautifulSoup(localize_html(body,PurePosixPath('guide/index.html')),'html.parser')
+            retry=english.find(id='timing-boundary').find('p').get_text()
+            self.assertIn('The retry limit follows the execution configuration',retry)
+            self.assertNotRegex(retry,r'[\u4e00-\u9fff]')
+            for stale in ('45 秒','90 秒','45 seconds','90 seconds'):
+                self.assertNotIn(stale,body)
 
     def test_interpretation_bounds_long_program_errors_without_changing_evidence(self):
         from bs4 import BeautifulSoup
@@ -1009,6 +1026,11 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             (source/'dataset.json').write_text(json.dumps(measured))
             before=(source/'results.jsonl').read_bytes()
             build_report(source,report)
+            for relative in ('guide/index.html','guide/article.html'):
+                page=(report/relative).read_text()
+                for stale in ('45 秒','90 秒','45 seconds','90 seconds'):
+                    self.assertNotIn(stale,page)
+            self.assertIn('5 秒',(report/'methodology/index.html').read_text())
             self.assertEqual((report/'results.jsonl').read_bytes(),before)
             analysis=(report/'analysis/index.html').read_text()
             self.assertNotIn('已核验判定',analysis,
@@ -1094,3 +1116,22 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'differs from binding'):
                 build_report(source,root/'tampered-report')
             self.assertFalse((root/'tampered-report').exists())
+
+
+def test_resource_notes_localize_with_recorded_or_missing_sample_interval():
+    from harness.web_fetch.report_i18n import untranslated_english_narrative
+    keys = {key for _, metrics in GROUPS for _, key, _, _, _ in metrics}
+    for interval in (None, 23):
+        summary = {'rows': [{'provider': 'fixture', 'metrics': {
+            key: {'mean': 1, 'p50': 1, 'p95': 1} for key in keys}}],
+            'providers': ['fixture'], 'common_pass_cases': ['a'], 'planned_cases': ['a'],
+            'environment': {'sample_interval_ms': interval}}
+        page, _ = render_resource_comparison(summary, ['fixture', 'remote-fixture'])
+        english = localize_html(page, PurePosixPath('guide/index.html'))
+        assert not untranslated_english_narrative(english)
+        assert 'remote-fixture' in english
+        assert 'Kitesurf' not in english
+        assert 'CPU utilization and transfer rates are not ranked as lower-is-better' in english
+        assert ('every 23 ms' if interval else 'sample interval was not recorded') in english
+        measured_only, _ = render_resource_comparison(summary, ['fixture'])
+        assert 'remote-fixture' not in measured_only

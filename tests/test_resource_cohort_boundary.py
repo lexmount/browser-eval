@@ -233,3 +233,29 @@ def test_resource_release_checks_populations_measurements_and_unique_highlights(
     else:
         with pytest.raises(ValueError):
             check_resource_presentation(str(soup),summary)
+
+
+def test_resource_sampling_note_follows_recorded_interval(runs):
+    _, resource, records = runs
+    dataset = json.loads((resource / 'dataset.json').read_text())
+    batches = json.loads((resource / 'execution.json').read_text())['batches']
+    for row in records:
+        row['provider_metadata']['resource_environment']['sample_interval_ms'] = 125
+    summary = build_summary(dataset, records, batches)
+    assert '125 ms' in summary['sampling_limit']
+    assert '50 ms' not in summary['sampling_limit']
+
+
+@pytest.mark.parametrize('interval', [None, 0, -1, True, '50', float('nan'), float('inf')])
+def test_resource_summary_rejects_missing_or_invalid_sampling_evidence(runs, interval):
+    _, resource, records = runs
+    dataset = json.loads((resource / 'dataset.json').read_text())
+    batches = json.loads((resource / 'execution.json').read_text())['batches']
+    for row in records:
+        environment = row['provider_metadata']['resource_environment']
+        if interval is None:
+            environment.pop('sample_interval_ms')
+        else:
+            environment['sample_interval_ms'] = interval
+    with pytest.raises(ValueError, match='recorded positive sample_interval_ms'):
+        build_summary(dataset, records, batches)
