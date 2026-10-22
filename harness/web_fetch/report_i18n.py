@@ -264,7 +264,6 @@ TEXT = {
     "核验初次加载范围：稳定内容锚点（稳定标题、栏目、说明）与条目的必需字段、数量、唯一性和类型共同决定任务通过。频繁变化的名单、条目标题和价格按声明的结构与类型核验，不固定旧快照取值。HTTP 页面壳不通过；渲染、内嵌数据和公开 API 均可作为实现路径。全文质量仅在有完整、可比的参考时另算。 已登记正文覆盖规则的案例，还须在最多 5 个参考区域中逐区达到 80% 词语计数覆盖，不能只返回标题或开头。 Ajax | Web Scraper Test Sites 的字段覆盖要求：price至少 6 条、description至少 6 条、reviews至少 6 条，各归属于完整且唯一的记录。 React · 商品与分期信息 的字段覆盖要求：分期至少 15 条、配送至少 13 条，各归属于完整且唯一的记录。": "Initial-load acceptance combines stable content anchors (stable headings, sections, and explanations) with each record's required fields, count, uniqueness, and types. Frequently changing lists, item titles, and prices are checked against declared structure and types rather than frozen snapshot values. An HTTP shell alone fails; rendering, embedded data, and public APIs are all valid implementation routes. Full-text quality is calculated separately only when a complete comparable reference exists. Cases with registered body-coverage rules must also reach 80% token-count coverage in each of up to 5 reference regions; returning only a title or opening section is insufficient. For Ajax | Web Scraper Test Sites, field coverage requires at least 6 price, 6 description, and 6 review values, each belonging to a complete unique record. For React · 商品与分期信息, field coverage requires at least 15 installment entries and 13 delivery entries, each belonging to a complete unique record.",
     "新增25例结果审核 25/25；未决 0；75例沿用既有审核记录": "Added 25-case result review: 25/25; 0 unresolved. Existing audit records are retained for the prior 75 cases",
     "本地审核版": "Local audit build",
-    "本页合并两个不同日期的 Moli 调用批次，保留每例的真实调用时间。本次仅更换报告展示代码，没有新增 Moli 调用，也不代表正式发布。": "This page combines two Moli call cohorts from different dates and retains each case's actual call time. This build only changes report presentation code, makes no new Moli calls, and is not a formal release.",
     "Moli Web Fetch 实测：五款浏览器，150 道任务": "Moli Web Fetch benchmark: five browsers, 150 tasks",
     "解读突出耗时减少比例并增加三张信息图": "Interpretation highlights latency reductions and adds three infographics",
     "首屏以 Chromium 为基准展示均值、P50、P95 的耗时减少比例；以结果总览和两张流程图替代重复总结与部分流程文字，标题改为直接的内容名称。": "The opening now shows reductions in mean, P50, and P95 latency relative to Chromium. A results overview and two flow diagrams replace repeated summaries and some procedural prose, and the title now names the subject directly.",
@@ -2604,8 +2603,6 @@ TEXT.update({
 })
 
 
-TEXT.update({
-})
 
 
 TEXT.update({
@@ -2740,10 +2737,6 @@ TEXT.update({
     "注册 Cloudflare，复制 Account ID；创建覆盖 Account → Browser Rendering → Edit 与 Account → Workers AI → Read 的自定义 token。官方 Workers AI REST 入门建议 Read 和 Edit 都授予；运行前用 GET /client/v4/user/tokens/verify 验证。": "Register with Cloudflare and copy the Account ID. Create a custom token covering Account → Browser Rendering → Edit and Account → Workers AI → Read. The Workers AI REST getting-started guide recommends both Read and Edit; verify the token at GET /client/v4/user/tokens/verify before running.",
 })
 
-TEXT.update({
-    "40 条新物理调用取代同一方法—题目的旧权威结果；其余 1,460 条沿用旧调用。document-05 的 Markdown 表格分隔行在所有方法共用的格式归一化中按排版处理，保存输出离线复评分。": "Forty new physical calls supersede the old authoritative results for the same method–task pairs; the other 1,460 calls are inherited. The Markdown table divider in document-05 is treated as layout by shared normalization across all methods, with saved outputs rescored offline.",
-    "40 条新结果先隐藏机器判定逐条独立核验；未变化的 1,460 条沿用哈希绑定的旧逐条核验。image-04 按同资产缩略图域名迁移裁决，并在公共资源规则中同时拒绝缺少缩略图标识的近似地址。": "The 40 new results were independently checked one by one with machine judgments hidden; 1,460 unchanged results inherit hash-bound earlier individual reviews. image-04 was adjudicated as a thumbnail-host migration of the same asset, while shared resource rules also reject similar URLs lacking a thumbnail marker.",
-})
 
 PHRASES.update({
     "原有资料核对日期：": "Existing sources checked: ",
@@ -2829,8 +2822,6 @@ TEXT.update({
 })
 
 
-TEXT.update({
-})
 
 
 TEXT.update({
