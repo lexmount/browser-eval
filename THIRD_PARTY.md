@@ -1,6 +1,6 @@
 # Third-party content and licenses
 
-The root MIT license covers project-owned code and documentation. It does not replace licenses for third-party code, pages, images, documents or datasets. Existing copyright notices and directory licenses remain in effect.
+The root Apache-2.0 license covers project-owned code and documentation. It does not replace licenses for third-party code, pages, images, documents or datasets. Existing copyright notices and directory licenses remain in effect.
 
 | Content | Source and binding | Distribution boundary |
 | --- | --- | --- |

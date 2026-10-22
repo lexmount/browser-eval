@@ -5,7 +5,7 @@
 **English** · [简体中文](docs/README.zh-CN.md)
 
 [![CI](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/code-MIT-51735b)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
 
 [Quickstart](#quickstart) · [Benchmarks](docs/benchmarks.md) · [Reports](#read-and-share-a-report) · [Contributing](CONTRIBUTING.md)
@@ -170,7 +170,7 @@ make ci
 
 Historical pages and measured outputs live outside Git. For reproducing past runs, see [reference inputs](docs/reference-inputs.md). For code layout and release internals, see [architecture](docs/architecture.md).
 
-Project code is [MIT licensed](LICENSE). [THIRD_PARTY](THIRD_PARTY.md) covers data rights and attribution; [SECURITY](SECURITY.md) covers credentials and untrusted content.
+Project code is [Apache 2.0 licensed](LICENSE). [THIRD_PARTY](THIRD_PARTY.md) covers data rights and attribution; [SECURITY](SECURITY.md) covers credentials and untrusted content.
 
 ## Cite Browser Eval
 
