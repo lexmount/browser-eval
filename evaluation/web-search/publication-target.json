@@ -60,6 +60,38 @@
     "delivery_index": {
       "path": "web-search/20261021-search-api-three-provider-report/published/ver_d80cdec0f0294c018574e4ed062e3196/delivery-index.json",
       "sha256": "099b3f00fbadfe3dec6745fe29703af7847c98b4ea5dd3085f7fe2e92a545e94"
+    },
+    "reference_additions": {
+      "path": "web-search/20261021-search-api-three-provider-report/scenario-additions.json",
+      "sha256": "44b63a8f1251ebbf24d259a49f621813ddaeb034ac11fd4b7d28fc6c1376e118"
+    },
+    "explicit_source_requirements": {
+      "path": "web-search/20261021-search-api-three-provider-report/explicit-source-requirements.json",
+      "sha256": "274e9f2e820f241dfe7bccee7d8d52edb71d3a1e3e13d274d52cdc8464d56840"
+    },
+    "reference_adjudications": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/dataset-adjudications.json",
+      "sha256": "c5c9e4b55975f6ee22c36066a83cb2c58226d7c9bdd30e7910ee25167a5c677b"
+    },
+    "source_policy_correction": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/source-policy-correction.json",
+      "sha256": "be034596efc2e48353c631435ea2021549e826a341a09d70bdd4bcb4b648e40a"
+    },
+    "contamination_correction": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/contamination-correction.json",
+      "sha256": "e1f60a99128a6afec911e44d66659bb75aec8f60fa0af6d0604d3d14849eba29"
+    },
+    "contamination_validation": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/contamination-validation.json",
+      "sha256": "53d59e6148e9fb782d1aad23e3cb8fbc7bf7863b5ecc92cc2b555dc28ac1c515"
+    },
+    "grade_sensitivity": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/grade-sensitivity.json",
+      "sha256": "00f6cb66ee5e9ce902553affb96a6b5de9f6e9e499089271d09e988e6ec8226e"
+    },
+    "pipeline_audit": {
+      "path": "web-search/20261021-search-api-three-provider-report/published/ver_6d5f12af5e344a8ea9eab8c83cc9c47f/pipeline-audit.json",
+      "sha256": "e109ac12f6fb229edd9df1b9228c4a4749d4f0247ffca8552abdcb4c09133f73"
     }
   },
   "populations": {
@@ -94,5 +126,21 @@
       "fixed": 5,
       "quarantined": 409
     }
+  },
+  "correction_history": {
+    "source_version": "ver_f4ab1e476d2b4190a7350932d7934ec6",
+    "source_commit": "7443b169f7d55fa4663c98c180b0e5f3e3bf0448",
+    "superseded_physical_calls": 89,
+    "quality_judge": "Aliyun/deepseek-v4.1-flash-1017",
+    "binding_names": [
+      "reference_additions",
+      "explicit_source_requirements",
+      "reference_adjudications",
+      "source_policy_correction",
+      "contamination_correction",
+      "contamination_validation",
+      "grade_sensitivity",
+      "pipeline_audit"
+    ]
   }
 }

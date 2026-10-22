@@ -250,6 +250,8 @@ def validate_profile(profile):
         canonical_url(method["endpoint"])
         from .adapters import adapter_for
         adapter_for(method["adapter"])
+        if method.get("billing", "unknown") not in {"unknown", "http-200", "http-200-nonempty"}:
+            raise ValueError("Unsupported billing policy")
         for case in cases:
             query = request_body(method["adapter"], case, protocol, method.get("output_options"))["query"]
             if not query.strip() or len(query) > query_limit:

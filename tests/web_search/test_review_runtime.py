@@ -34,13 +34,21 @@ def test_real_child_is_isolated_then_reused(tmp_path, monkeypatch):
     monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'account'))
     monkeypatch.setenv('REVIEW_SECRET', 'must-not-reach-child')
     _, root, contract = example(tmp_path)
+    account = tmp_path / "account"
+    account.mkdir(exist_ok=True)
+    (account / "auth.json").write_text("fixture credential")
     backend = stub_backend(root, contract)
     assert review.run(root, workers=1, limit=1, executable=backend) == [('0001', 'completed')]
     status = json.loads((root / 'jobs/0001/status.json').read_bytes())
     observed = json.loads((root / 'jobs/0001/attempt-001/observed.json').read_bytes())
-    assert observed['environment']['CODEX_HOME'] == str((root / 'codex-home').resolve())
+    from pathlib import Path
+    isolated = Path(observed['environment']['CODEX_HOME'])
+    assert not isolated.exists()
+    assert observed['environment']['HOME'] != str(Path.home())
+    assert not (root / 'codex-home/auth.json').exists()
+    assert '--json' in observed['args']
     assert 'REVIEW_SECRET' not in observed['environment']
-    assert 'mcp_servers' not in (root / 'codex-home/config.toml').read_text()
+    assert 'mcp_servers' not in observed.get('config', '')
     assert 'web_search="disabled"' in observed['args']
     for feature in ('shell_tool', 'unified_exec', 'apps', 'plugins', 'view_image', 'browser_use', 'computer_use', 'multi_agent'):
         i = observed['args'].index(feature)

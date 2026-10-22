@@ -67,3 +67,17 @@ def test_correction_provenance_executes_paired_controls_and_rejects_unknown_ids(
         validate_regressions({'root_cause':'fixture','regression_ids':['invented-control']})
     with pytest.raises(ValueError, match='unique'):
         validate_regressions({'root_cause':'fixture','regression_ids':[next(iter(registry))]*2})
+
+
+def test_approved_revision_runs_its_controls_and_rejects_changed_content(tmp_path, monkeypatch):
+    import pytest
+    from harness.web_search import scoring
+    from harness.web_search.core import digest
+    revision = {'root_cause': 'Missing independently supplied reference', 'regression_ids': ['annotations-preserve-calls']}
+    identity = digest(json.dumps(revision, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode())
+    authority = tmp_path / 'authority.json'
+    authority.write_text(json.dumps({'approved_sha256': [identity]}))
+    monkeypatch.setattr(scoring, 'REVISION_AUTHORITY_PATH', authority)
+    scoring.validate_revision_binding(revision)
+    with pytest.raises(ValueError, match='versioned scoring authority'):
+        scoring.validate_revision_binding(dict(revision, root_cause='Changed decision'))

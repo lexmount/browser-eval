@@ -377,7 +377,7 @@ def assessment_profile(profile, relevance, review):
     if relevance:
         protocol["quality"] = "Frozen pooled title/snippet relevance grades (0..3); deterministic aggregation. See report_assessment for judge provenance."
     if review:
-        protocol["review"] = "Complete independent Codex result review with per-output opinions and finding adjudications." if review["scope"] == "all" else "Failure-only result audit; successful outputs outside the review are counted explicitly."
+        protocol["review"] = "Complete result audit with per-output opinions and finding adjudications." if review["scope"] == "all" else "Failure-only result audit; successful outputs outside the review are counted explicitly."
     return dict(profile, protocol=protocol, **({"independent_result_review_scope": review["scope"], "factual_quality_exclusions": exclusions} if review else {}))
 
 def build(
@@ -813,8 +813,8 @@ def build(
                 page(chapter_key + ".html", chapter_title, chapter_body)
         if review_data and authored.get("presentation") != "comparison-report":
             body += f'<p data-review-coverage data-reviewed-queries="{review_data["case_reviewed"]}/{review_data["case_total"]}" data-reviewed-outputs="{review_data["output_reviewed"]}/{review_data["output_total"]}"><a href="review.html">' + t(
-                f"Codex reviewed {review_data['case_reviewed']}/{review_data['case_total']} queries and {review_data['output_reviewed']}/{review_data['output_total']} outputs",
-                f"Codex 已审查 {review_data['case_reviewed']}/{review_data['case_total']} 题、{review_data['output_reviewed']}/{review_data['output_total']} 份接口输出") + '</a></p>'
+                f"Reviewed {review_data['case_reviewed']}/{review_data['case_total']} queries and {review_data['output_reviewed']}/{review_data['output_total']} outputs",
+                f"已复核 {review_data['case_reviewed']}/{review_data['case_total']} 题、{review_data['output_reviewed']}/{review_data['output_total']} 份接口输出") + '</a></p>'
         page(
             "index.html",
             authored.get("title", {}).get(lang)
@@ -1019,20 +1019,23 @@ def build(
                 ("duplicate_rate", t("Duplicate-document fraction", "重复文档占比")),
                 ("content_coverage", t("Results containing content", "含正文的结果占比")),
             ]
+            detail_metrics = r["metrics"]
             if "reference_answer" in c:
+                from .core import factual_evidence
+                detail_metrics = {**r["metrics"], **factual_evidence(c, r["results"], cutoff=cutoff)}
                 metric_labels += [
-                    ("labeled_source_hit_5", t("Published source in top 5", "前 5 条找到标注来源")),
-                    ("labeled_source_rr_5", t("Published-source reciprocal rank in top 5", "前 5 条标注来源排名倒数")),
-                    ("answer_in_preview_5", t("Answer phrase in title/snippet", "标题／短摘要出现答案")),
-                    ("answer_in_delivered_text_5", t("Answer phrase in delivered text", "全部交付文字出现答案")),
+                    (f"labeled_source_hit_{cutoff}", t(f"Published source in top {cutoff}", f"前 {cutoff} 条找到标注来源")),
+                    (f"labeled_source_rr_{cutoff}", t(f"Published-source reciprocal rank in top {cutoff}", f"前 {cutoff} 条标注来源排名倒数")),
+                    (f"answer_in_preview_{cutoff}", t("Answer phrase in title/snippet", "标题／短摘要出现答案")),
+                    (f"answer_in_delivered_text_{cutoff}", t("Answer phrase in delivered text", "全部交付文字出现答案")),
                 ]
             if "reference_answer" in c:
-                sensitivity = factual_sensitivity(c, r["results"])
+                sensitivity = factual_sensitivity(c, r["results"], cutoff=cutoff)
                 detail += '<p>' + t("Post-hoc benchmark-mirror exclusion; blanked ranks: ", "事后评测数据排除；留空的位置：") + esc(str(sensitivity["excluded_ranks"])) + '</p>'
-                detail += table([t("After mirror exclusion", "排除镜像后"), t("Value", "数值")], [cells([t("Answer in preview", "短摘要／标题出现答案"), str(sensitivity["metrics"]["answer_in_preview_5"])]), cells([t("Answer in all text", "全部文字出现答案"), str(sensitivity["metrics"]["answer_in_delivered_text_5"])])])
+                detail += table([t("After mirror exclusion", "排除镜像后"), t("Value", "数值")], [cells([t("Answer in preview", "短摘要／标题出现答案"), str(sensitivity["metrics"][f"answer_in_preview_{cutoff}"])]), cells([t("Answer in all text", "全部文字出现答案"), str(sensitivity["metrics"][f"answer_in_delivered_text_{cutoff}"])])])
             detail += table(
                 [t("Metric", "指标"), t("Value", "数值")],
-                [cells([label, fmt(r["metrics"][key])]) for key, label in metric_labels],
+                [cells([label, fmt(detail_metrics[key])]) for key, label in metric_labels],
             )
 
             detail += (
@@ -1585,6 +1588,9 @@ def check(output, *, return_data=False, evidence_only=False):
             actual_table = soup.select_one("table")
             if actual_table is None or str(actual_table) != str(expected_table):
                 raise ValueError("Interpretation core comparison differs from evidence")
+            expected_factual = BeautifulSoup(factual_panel(manifest["profile"], selected, soup.html["lang"] == "zh"), "html.parser").select_one("[data-factual]")
+            if str(soup.select_one("[data-factual]")) != str(expected_factual):
+                raise ValueError("Interpretation factual evidence differs from measured inputs")
         if route.endswith("cost.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report":
             expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh"), "html.parser").select_one("[data-cost-budget]")
             if str(soup.select_one("[data-cost-budget]")) != str(expected_cost):
@@ -1605,7 +1611,6 @@ def check(output, *, return_data=False, evidence_only=False):
                 raise ValueError("Discovery comparison differs from measured inputs")
         if route.endswith("index.html") and not comparison_home:
             for selector, renderer in (
-                ("[data-factual]", factual_panel),
                 ("[data-modes]", mode_panel),
             ):
                 score_rows = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
@@ -1785,6 +1790,8 @@ def release_check(output, visual_receipt, *, publication_plan=None):
             verify_plan(output, publication_plan.parent)
         else:
             target = publication_authority(report_manifest)
+            if target["bindings"].get("report_manifest", {}).get("sha256") != digest(manifest.read_bytes()):
+                raise ValueError("A changed report requires a new publication plan")
             from .profiles import verify_publication_inputs
             verify_publication_inputs(report_manifest, target)
     from .visual import verify
@@ -2548,7 +2555,7 @@ def relevance_panel(profile, scored, evidence, zh):
         f"人工标注者：{audit['name']}。指标计算使用固定标签，不调用模型。"
         if zh else f"Human annotator: {audit['name']}. Metric calculation uses fixed labels without model calls."
     )
-    denominator = ("空结果、不足五条和候选池全为 0 级的题目都留在分母中。" if zh else "Empty responses, missing slots and all-zero candidate pools remain in the denominator.")
+    denominator = (f"空结果、不足 {cutoff} 条和候选池全为 0 级的题目都留在分母中。" if zh else "Empty responses, missing slots and all-zero candidate pools remain in the denominator.")
     panel = ('<section class="specimen" id="relevance-scores" data-relevance><h3>' + esc(title) + '</h3>' + bars
              + ('' if profile.get("comparison_selection") else '<p>' + esc(definitions) + '</p>')
              + '<details><summary>' + ("可用结果与直接满足比例" if zh else "Useful results and direct matches") + '</summary>' + table(["题型" if zh else "Category", "服务" if zh else "Provider", "题数" if zh else "Queries", "搜索质量分（0–100）" if zh else "Ranking quality /100", "可用结果比例" if zh else "Useful-result fraction", "直接满足率" if zh else "Direct-match rate"], rows) + '</details>'
@@ -2606,7 +2613,7 @@ def factual_panel(profile, selected, zh, *, compact=False):
     body = '<section data-factual><h3>' + (
         ('公开事实题：题库给定网页与答案文字' if zh else 'Public factual questions: sources and answer cues') if projected else ('公开事实题：基础接口的证据发现' if zh else 'Public factual questions: basic-API evidence discovery')
     ) + '</h3><p>' + (
-        f'前 {cutoff} 条中找到题库列出的任一支持网址，就记一次来源命中。MRR 是首个命中位置的倒数：第 1 条得 1，第 2 条得 0.5，未命中得 0，再对全部题取平均。答案线索只检查各接口共有的标题与短摘要。失败、空结果和不足五条都保留，不补齐、不换题。'
+        f'前 {cutoff} 条中找到题库列出的任一支持网址，就记一次来源命中。MRR 是首个命中位置的倒数：第 1 条得 1，第 2 条得 0.5，未命中得 0，再对全部题取平均。答案线索只检查各接口共有的标题与短摘要。失败、空结果和不足 {cutoff} 条都保留，不补齐、不换题。'
         if zh else
         f'A source hit means at least one published supporting URL appears in the top {cutoff}. MRR averages reciprocal first-hit rank: 1 for rank one, 0.5 for rank two and zero for a miss. Answer cues use only shared titles and snippets. Failures, empties and short lists remain in the population.'
     ) + '</p>' + table(

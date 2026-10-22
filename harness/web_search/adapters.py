@@ -14,7 +14,7 @@ class Adapter:
 
     def cost(self, method, status, transport_exit, payload):
         price = method.get("price_per_1000")
-        policy = method.get("billing")
+        policy = method.get("billing", "unknown")
         if policy not in {"unknown", "http-200", "http-200-nonempty"}:
             raise ValueError("Unsupported billing policy")
         if policy == "unknown" or price is None or transport_exit:
@@ -22,7 +22,10 @@ class Adapter:
         if status != 200:
             return 0.0
         if policy == "http-200-nonempty":
-            payload = self.response(payload) if self.response else payload
+            try:
+                payload = self.response(payload) if self.response else payload
+            except (ValueError, AttributeError, TypeError):
+                return None
             if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
                 return None
             return price / 1000 if payload["results"] else 0.0
