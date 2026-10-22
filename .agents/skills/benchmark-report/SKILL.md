@@ -89,3 +89,9 @@ blind inputs, raw responses and quoted scoring evidence. Label the result as mod
 preview relevance rather than human gold judgments. Both routes import through
 `--relevance`; neither may substitute nonempty responses or URL checks for labels.
 Keep empty queries and all-zero pools in the score population.
+
+For Search comparison reports, keep decision summaries distinct from complete result
+and audit inventories. A subset discovery claim must show every selected provider
+on that same subset; the headline relevance score covers the full declared relevance
+population. Give quality, collection timing/billing, input provenance and original
+responses distinct owners, and remove duplicate reading routes when consolidating them.

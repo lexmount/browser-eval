@@ -14,8 +14,8 @@ def report_fixture(root):
         'primary_language': 'zh', 'languages': ['zh'],
         'authored': {'presentation': 'comparison-report'},
     }))
-    for filename in ('index', 'dataset', 'results', 'interpretation', 'performance',
-                     'research', 'capabilities', 'quality', 'cost'):
+    for filename in ('index', 'dataset', 'results', 'performance',
+                     'research', 'capabilities', 'quality'):
         (root / (filename + '.html')).write_text(
             '<!doctype html><meta charset="utf-8"><main><h1>' + filename + '</h1></main>')
 
@@ -41,9 +41,9 @@ def test_capture_produces_complete_bound_proof_and_rejects_tampering(tmp_path, m
     visual.capture(root, receipt)
     assert visual.verify(root, receipt)
     original = json.loads(receipt.read_text())
-    assert len(original['captures']) == (18 if primary == 'en' else 9)
+    assert len(original['captures']) == (14 if primary == 'en' else 7)
     assert next(item['route'] for item in original['captures'] if item['language'] == primary and item['route_class'] == 'home') == 'index.html'
-    assert {capture['route_class'] for capture in original['captures']} >= {'quality', 'cost'}
+    assert {capture['route_class'] for capture in original['captures']} >= {'quality', 'performance'}
     assert original['browser_version']
     assert set(original['producer_sources']) == {'harness/web_search/visual.py', 'harness/reporting/visual.py'}
     assert all('readable' not in capture for capture in original['captures'])
@@ -95,7 +95,7 @@ def test_standalone_routes_follow_saved_primary_language(tmp_path, primary, lang
         for page in root.glob('*.html'):
             (root / secondary / page.name).write_bytes(page.read_bytes())
     routes = visual.routes(root)
-    assert len(routes) == 9 * len(languages)
+    assert len(routes) == 7 * len(languages)
     assert {lang for lang, _, _ in routes} == set(languages)
     assert next(route for lang, chapter, route in routes if lang == primary and chapter == 'home') == 'index.html'
     if secondary:

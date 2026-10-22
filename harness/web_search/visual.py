@@ -28,12 +28,14 @@ def producer_sources() -> dict[str, str]:
 def routes(report: Path) -> list[tuple[str, str, str]]:
     manifest = json.loads((report / 'manifest.json').read_text())
     standalone = (manifest.get('authored') or {}).get('presentation') == 'comparison-report'
-    chapters = [('home', 'index.html'), ('dataset', 'dataset.html'),
-                ('results', 'results.html'), ('interpretation', 'interpretation.html'),
-                ('performance', 'performance.html'), ('method', 'research.html')]
     if standalone:
-        chapters += [('capabilities', 'capabilities.html'), ('quality', 'quality.html'),
-                     ('cost', 'cost.html')]
+        chapters = [('home', 'index.html'), ('capabilities', 'capabilities.html'),
+                    ('quality', 'quality.html'), ('performance', 'performance.html'),
+                    ('dataset', 'dataset.html'), ('results', 'results.html'), ('method', 'research.html')]
+    else:
+        chapters = [('home', 'index.html'), ('dataset', 'dataset.html'),
+                    ('results', 'results.html'), ('interpretation', 'interpretation.html'),
+                    ('performance', 'performance.html'), ('method', 'research.html')]
     if manifest.get('independent_review_sha256'):
         chapters += [('review', 'review.html')]
     languages = manifest.get('languages') or [manifest['primary_language']]

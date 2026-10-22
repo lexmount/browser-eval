@@ -874,11 +874,11 @@ def render_summary(evidence, zh=True):
         "no-change": ("核查后保持原结果", "No change"),
         "quarantined": ("隔离诊断", "Quarantined"),
     }
-    body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + ("全部发现已完成裁决，未处理项：0。" if zh else "All findings adjudicated; unresolved: 0.") + "</p><ul>"
+    body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + ("全部发现已完成裁决，未处理项：0。" if zh else "All findings adjudicated; unresolved: 0.") + "</p><details><summary>" + ("审查发现的处理分类（同题可有多项）" if zh else "Finding dispositions (multiple findings per query)") + "</summary><ul>"
     for key, value in sorted(counts.items()):
         body += f"<li>{labels[key][0 if zh else 1]}：{value}" + (" 条发现" if zh else " findings") + "</li>"
     body += (
-        "</ul><p>"
+        "</ul></details><p>"
         + (
             "审查覆盖全部接口输出，包括空结果和失败。接口表现按评分规则另行计算；每条审查发现均附处理结论和证据。"
             if zh
@@ -889,7 +889,7 @@ def render_summary(evidence, zh=True):
     from html import escape
     reference_cases = [c for c in evidence["cases"] if c["dataset_review"]["status"] == "issue"]
     if reference_cases:
-        body += '<h3>' + ("参考答案与题意核查" if zh else "Reference and question decisions") + '</h3><div class="scroll inventory"><table><thead><tr>'
+        body += '<details><summary>' + ("逐题参考核查与裁决" if zh else "Per-query reference decisions") + '</summary><div class="scroll inventory"><table><thead><tr>'
         for label in (("题目", "处理", "依据") if zh else ("Query", "Decision", "Basis")):
             body += '<th>' + label + '</th>'
         body += '</tr></thead><tbody>'
@@ -900,7 +900,7 @@ def render_summary(evidence, zh=True):
             if decision.get("quality_excluded"):
                 label = "三家共同隔离质量统计" if zh else "Excluded from every method’s quality denominator"
             body += '<tr><td><a href="' + escape(target) + '">' + escape(case["case_id"]) + '</a></td><td>' + escape(label) + '</td><td>' + escape(decision["reason"]) + '</td></tr>'
-        body += '</tbody></table></div>'
+        body += '</tbody></table></div></details>'
     body += (
         '<p><a href="independent-review.json">'
         + ("下载完整审查记录" if zh else "Complete review record")
@@ -927,15 +927,7 @@ def render_detail(evidence, row_id, zh=True):
                 "本题已从三家质量汇总共同隔离。下方保留原题和原始检查值；耗时与费用仍计入全体。"
                 if zh else "This query is quarantined from every method’s quality summary. Original inputs and diagnostics remain below; latency and cost remain included."
             ) + " " + escape(decision["reason"]) + '</p>'
-        body += (
-            "<p>"
-            + escape(opinion["reason"])
-            + "</p><details><summary>"
-            + ("审查证据与处理结果" if zh else "Evidence and decisions")
-            + "</summary><p>"
-            + escape(opinion["evidence"])
-            + "</p>"
-        )
+        body += '<details><summary>' + ('原始审查意见、证据与裁决' if zh else 'Original review opinion, evidence and decisions') + '</summary><p>' + escape(opinion['reason']) + '</p><p>' + escape(opinion['evidence']) + '</p>'
         if case["dataset_review"]["status"] == "issue":
             from urllib.parse import urlsplit
 

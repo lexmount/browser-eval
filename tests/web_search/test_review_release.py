@@ -67,7 +67,14 @@ def test_review_release_counts_failures_and_retains_opinions(tmp_path, layout):
     build(out, source=tmp_path / "fixture", review=path, content=content)
     assert check(out)
     soup = BeautifulSoup((out / "index.html").read_text(), "html.parser")
-    assert "4/4" in soup.select_one("[data-review-coverage]").get_text()
+    coverage = soup.select_one("[data-review-coverage]")
+    assert coverage is not None
+    if layout == 'comparison-report':
+        assert coverage['data-reviewed-queries'] == f"{evidence['case_reviewed']}/{evidence['case_total']}"
+        assert coverage['data-reviewed-outputs'] == "4/4"
+    else:
+        assert "4/4" in coverage.get_text()
+    assert soup.select_one('a[href="review.html"]')
     manifest = json.loads((out / "manifest.json").read_bytes())
     assert "review.html" in manifest["routes"]
     assert "Complete independent Codex" in manifest["profile"]["protocol"]["review"]

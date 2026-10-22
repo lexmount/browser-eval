@@ -192,7 +192,7 @@ SCRIPT = r"""
 const root=document.querySelector('[data-search-comparison]');if(!root)return;
 const data=JSON.parse(root.querySelector('[data-comparison-data]').textContent),L=JSON.parse(root.dataset.labels),$=s=>root.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let page=0,relationPage=0,focusedId=null;const size=3,relationSize=10;
+let page=0,relationPage=0,focusedId=null;const size=1,relationSize=10;
 const selected=()=>[...root.querySelectorAll('[data-compare-method]:checked')].map(x=>x.value).filter(x=>x!==$('[data-compare-baseline]').value);
 const relation=(base,others)=>{if(base==null||!others.length||others.some(v=>v==null))return 'unknown';if(base&&others.every(Boolean))return 'all_pass';if(base&&others.every(v=>!v))return 'baseline_only';if(!base&&others.every(Boolean))return 'comparison_only';if(!base&&others.every(v=>!v))return 'all_fail';return 'mixed'};
 const effectiveMetric=(c,m)=>m==='primary'?(c.has_relevance?'quality':c.benchmark==='factual'?'answer':c.check_types.includes('target')?'source':c.check_types.includes('site')?'site':'unscored'):m;
