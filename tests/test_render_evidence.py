@@ -190,3 +190,30 @@ class DeclaredContentReferenceTests(unittest.TestCase):
         self.assertFalse(validate_render_reference(case, '<main>Loading</main>', 'Home Terms')['valid'])
         case['ground_truth_main_content'] = 'Home Terms'
         self.assertFalse(validate_render_reference(case, '<main>Loading</main>', 'revenue = 123')['valid'])
+
+
+    def test_declared_dashboard_fields_require_values_in_both_source_surfaces(self):
+        case = {'id': 'dashboard', 'url': 'https://example.test/',
+                'ground_truth_main_content': 'Submitted: 123\nApproved: 98',
+                'acceptance_contract': {'version': 1, 'schema': 'body_text',
+                    'minimum_records': 0, 'stable_text_anchors': [
+                        {'id': 'submitted', 'alternatives': ['Submitted']}]},
+                'composite_acceptance': {'version': 1, 'groups': [
+                    {'id': 'counts', 'kind': 'field_report', 'required_fields': [
+                        {'id': 'submitted', 'kind': 'integer', 'aliases': ['Submitted']},
+                        {'id': 'approved', 'kind': 'integer', 'aliases': ['Approved']}]}]},
+                'source_benchmark': {'render_evidence': {
+                    'scope': 'Submitted and approved counts', 'rendered_truncated': False,
+                    'completion': {'condition': 'Counts loaded', 'satisfied': True, 'timeout_ms': 10000}}}}
+        full = case['ground_truth_main_content']
+        self.assertTrue(validate_render_reference(case, '<main>Loading</main>', full)['valid'])
+        for invalid in ('Submitted: -\nApproved: -', 'Submitted: 123', 'Privacy Terms'):
+            with self.subTest(invalid=invalid):
+                self.assertFalse(validate_render_reference(case, '<main>Loading</main>', invalid)['valid'])
+                case['ground_truth_main_content'] = invalid
+                self.assertFalse(validate_render_reference(case, '<main>Loading</main>', full)['valid'])
+                case['ground_truth_main_content'] = full
+        case['acceptance_contract']['stable_text_anchors'][0]['alternatives'] = ['Quarterly totals']
+        self.assertFalse(validate_render_reference(case, '<main>Loading</main>', full)['valid'])
+        del case['acceptance_contract']
+        self.assertTrue(validate_render_reference(case, '<main>Loading</main>', full)['valid'])

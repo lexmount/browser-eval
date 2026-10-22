@@ -119,7 +119,10 @@ def validate_render_reference(
         facts.append({"id": identifier, "alternatives": alternatives})
     body_requirements = get("body_requirements", {}) or {}
     required_patterns = get("required_patterns", []) or []
-    if not facts and not (body_requirements or required_patterns or get("acceptance_contract")):
+    acceptance_contract = get("acceptance_contract", {}) or {}
+    composite_acceptance = get("composite_acceptance", {}) or {}
+    if not facts and not (body_requirements or required_patterns or acceptance_contract
+                          or composite_acceptance):
         errors.append("required_facts_empty")
     texts = {"initial_visible": _initial_visible(html),
              "initial_payload": _payload_candidates(html),
@@ -149,15 +152,22 @@ def validate_render_reference(
         for group in coverage[key]["groups"]:
             if not group["pass"]:
                 errors.append(f"{key}_missing_fact:{group['id']}")
-    if body_requirements or required_patterns:
+    if body_requirements or required_patterns or acceptance_contract or composite_acceptance:
         from lexbench_webfetch.metrics import evaluate_content
         for key in ("reference", "rendered"):
             checks = evaluate_content(texts[key], [], body_requirements=body_requirements,
-                                      required_patterns=required_patterns)
+                                      required_patterns=required_patterns,
+                                      acceptance_contract=acceptance_contract,
+                                      composite_acceptance=composite_acceptance,
+                                      base_url=get("url", ""))
             if not checks["body_coverage_pass"]:
                 errors.append(f"{key}_body_requirements_not_met")
             if not all(row['pass'] for row in checks['pattern_results']):
                 errors.append(f"{key}_pattern_requirements_not_met")
+            for field, label in (("stable_task_pass", "record"),
+                                 ("composite_acceptance_pass", "composite")):
+                if checks.get(field) is False:
+                    errors.append(f"{key}_{label}_requirements_not_met")
     evidence = (get("source_benchmark", {}) or {}).get("render_evidence", {})
     completion = evidence.get("completion", {})
     condition = completion.get("condition")
