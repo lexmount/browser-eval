@@ -123,7 +123,8 @@ Explicit `source_verification.reference_mode: live_exact` applies to every track
 and output kind, including stable contracts and mixed text/resource deliveries.
 A required live reference must exist before execution. Without that declaration,
 compiled references remain frozen. Rendered-reference checks apply the declared
-body regions and patterns as well as facts; a fact group is optional when another
+body regions, record contracts, composite fields and patterns as well as facts;
+a fact group is optional when another
 content requirement establishes the source scope.
 
 ## WCXB scoring
@@ -531,9 +532,10 @@ For each case, independently capture and retain:
    Use scoped visible text/DOM evidence, not script-containing `textContent`.
    Save the rendered DOM or screenshot alongside text when useful for review.
 3. The complete reference for that declared scope, derived independently of
-   provider outputs. Freeze required fact groups before scoring; every group
-   needs at least one nonempty alternative and must occur in both reference and
-   rendered text. Include tail/item-count checks to catch partial lists.
+   provider outputs. Freeze the applicable body, record, field, pattern or fact
+   requirements before scoring and check them against both reference and rendered
+   text. Each declared fact group needs a nonempty alternative. Include tail and
+   item-count checks to catch partial lists.
 
 Use a condition such as “12 product cards visible and loading indicator gone,
 within 10 seconds,” not merely `networkidle` or a fixed sleep. A delayed request
@@ -568,7 +570,9 @@ The result includes exact SHA-256 hashes of initial HTML, rendered text and
 `ground_truth_main_content`, plus group-by-group coverage for initial static
 DOM text, initial payload candidates, rendered text and reference. Matching
 uses the scoring normalizer and numeric boundaries; all groups are mandatory
-regardless of `fact_coverage_threshold`. Empty facts are invalid, not 100%.
+regardless of `fact_coverage_threshold`. Without fact groups, another declared
+content requirement must supply acceptance. Numeric fields require values;
+labels or loading placeholders do not establish a completed dashboard.
 
 Classifications describe the required facts, not the entire page:
 
@@ -578,7 +582,8 @@ Classifications describe the required facts, not the entire page:
   on these facts alone. It includes hidden/template/metadata content.
 - `partial_initial_content`: only some groups found in the initial response.
 - `absent_from_initial_evidence`: no groups found by this mechanical audit.
-- `unclassified`: no required facts were supplied; validation fails.
+- `unclassified`: no fact groups were supplied. Other declared content checks
+  still determine validity.
 
 The static visibility proxy excludes scripts, head, templates, noscript and
 explicitly hidden elements; it cannot compute stylesheets, layout or browser
@@ -586,7 +591,7 @@ HTML repair. Payload detection recognizes source literals and JSON string
 escapes, not arbitrary expressions, compression or external scripts. Therefore
 absence is not proof of JS necessity: a follow-up HTTP/API request may suffice.
 `js_required_proven` is always false. Likewise, `valid` checks declared
-completion and fact/length gates; it does not independently verify the declared
+completion, length and declared content gates; it does not independently verify the declared
 capture outcome or prove full-page completeness. Retain the actual evidence.
 
 Run the synthetic checks without credentials or network:
