@@ -420,3 +420,16 @@ def test_catalog_descriptions_do_not_claim_measured_run_settings():
     for text in ('本轮使用默认参数', 'THIS RUN uses a timeout'):
         assert violations({'methods': {'new': {'profile': {'description': text}}}})
         assert not violations({'adapters': {'new': {'report': {'description': text}}}})
+
+
+@pytest.mark.parametrize('language, expected_sha256', [
+    ('zh', 'ae5ce513ca4b1a0abb08df6d9d20ccb1a7c20e026b10a278405e92731692db36'),
+    ('en', '365bc45aa0d7378ba1e0600633d26b418ae4fec7c85d23108309f056191e7e9d'),
+])
+def test_moli_template_preserves_complete_localized_catalog(language, expected_sha256):
+    import hashlib
+    # Full resolved Moli entries at 20e74000, before template deduplication.
+    # Canonical hashes cover every field and list order without copying the catalog.
+    entry = report_method_catalog(language)['methods']['moli']
+    canonical = json.dumps(entry, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
+    assert hashlib.sha256(canonical.encode()).hexdigest() == expected_sha256
