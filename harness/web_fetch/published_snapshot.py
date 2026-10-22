@@ -191,14 +191,6 @@ def build_snapshot_audit(source, output, *, profile):
             (staging/'report-assets').mkdir(exist_ok=True)
             shutil.copy2(inputs['release_history'],staging/'report-assets/report-changes.json')
         comparison = dataset.setdefault('comparison', {})
-        if 'scope_disclosure' in inputs:
-            disclosure=json.loads(inputs['scope_disclosure'].read_text())
-            for item in disclosure.get('attachments',[]):
-                artifact=_bound(Path(profile).parent,item)
-                destination=contained_path(staging,item['path'],reject_symlinks=True)
-                destination.parent.mkdir(parents=True,exist_ok=True)
-                shutil.copy2(artifact,destination)
-            comparison['report_scope_disclosure']=disclosure
         if config.get('report_suite_labels'):
             comparison['report_suite_labels'] = config['report_suite_labels']
         if 'method_registry' in inputs:
@@ -268,17 +260,6 @@ def check_snapshot_audit(root):
     expected_scope = [binding[key] for key in ['total_attempts','projected_scoring_inputs','recovered_originals','reviewed_attempts']]
     if scope is None or any(str(value) not in scope.get_text() for value in expected_scope):
         raise ValueError('Snapshot report lost its scoring input scope')
-    disclosure=dataset['comparison'].get('report_scope_disclosure',{})
-    for item in disclosure.get('attachments',[]):
-        _bound(root,item)
-    if disclosure:
-        for route in ['index.html','guide/index.html','methodology/index.html']:
-            page=BeautifulSoup((root/route).read_text(),'html.parser')
-            note=page.select_one('[data-report-scope-disclosure]')
-            prefix='' if route=='index.html' else '../'
-            if (note is None or any(item['zh'] not in note.get_text() for item in disclosure['paragraphs'])
-                    or any(note.find('a',href=prefix+item['path']) is None for item in disclosure.get('attachments',[]))):
-                raise ValueError('Snapshot report lost its sample/reproduction scope: '+route)
     audit_html = BeautifulSoup((root/'audit/index.html').read_text(), 'html.parser')
     from .report_explainer import check_current_browser_article
     from harness.reporting.presentation import check_presentation

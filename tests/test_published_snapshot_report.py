@@ -173,27 +173,3 @@ def test_annotation_version_is_distinct_and_matches_report_rules(tmp_path,defect
         build_snapshot_audit(source,output,profile=profile)
         assert '2 saved calls' in check_snapshot_audit(output)
         assert (output/'audit/annotation-definition.json').read_bytes()==revision_path.read_bytes()
-
-
-def test_scope_notes_and_definition_artifacts_follow_an_external_instance(tmp_path):
-    source,profile=example(tmp_path)
-    config=json.loads(profile.read_text())
-    artifact=tmp_path/'audit/definition-comparison.json';artifact.parent.mkdir()
-    artifact.write_text(json.dumps({'cases':[{'id':'complete','changes':[]}]}))
-    scope={'paragraphs':[{'zh':'压力场景使用观察浏览器参与选样。','en':'The observer browser participated in stress-case selection.'}],
-           'attachments':[{'path':'audit/definition-comparison.json','sha256':file_sha256(artifact),
-                           'zh':'逐题定义差异','en':'Per-task definition differences'}]}
-    notes=tmp_path/'scope.json';notes.write_text(json.dumps(scope))
-    config['inputs']['scope_disclosure']={'path':'scope.json','sha256':file_sha256(notes)}
-    profile.write_text(json.dumps(config))
-    out=tmp_path/'report';build_snapshot_audit(source,out,profile=profile)
-    assert (out/'audit/definition-comparison.json').read_bytes()==artifact.read_bytes()
-    assert '2 saved calls' in check_snapshot_audit(out)
-    for route in ['index.html','guide/index.html','methodology/index.html']:
-        page=out/route;original=page.read_text()
-        assert scope['paragraphs'][0]['zh'] in original
-        page.write_text(original.replace(scope['paragraphs'][0]['zh'],'Omitted selection scope'))
-        with pytest.raises(ValueError,match='sample/reproduction scope'):check_snapshot_audit(out)
-        page.write_text(original)
-    artifact.write_text('{}')
-    with pytest.raises(ValueError,match='input changed'):build_snapshot_audit(source,out,profile=profile)
