@@ -117,7 +117,7 @@ def test_optional_result_fields_preserve_empty_but_reject_invented_defaults():
 ])
 def test_attribute_projection_preserves_commas_inside_urls(attribute, expected):
     declaration = {'schema_version': 2, 'content_format': 'empty', 'answer_fields': {
-        'images': {'pointer': ['elements'], 'format': 'html_attribute_urls',
+        'images': {'pointer': ['elements'], 'format': 'html_attribute_urls', 'srcset_parser': 'html-candidates-v1',
                    'base_url': 'https://example.test/page'}}}
     payload = {'elements': [{'results': [{'attributes': [{'name': 'srcset', 'value': attribute}]}]}]}
     assert project_native_answer(payload, declaration)[1]['images'] == sorted(expected)
@@ -165,3 +165,62 @@ def test_projection_controls_cover_public_persistence_and_saved_verification(tmp
         'artifact_path': str(artifact), 'provider_metadata': result.metadata,
         'metrics': {'content_sha256': hashlib.sha256(row['artifact'].encode()).hexdigest()}}
     verify_saved_native_answer(tmp_path, record)
+
+
+@pytest.mark.parametrize('source', [
+    'b17fc68566409232d3840f69aa4511c6dcdfd154c774eb169ea43787659496f7',
+    'bd08ad5ba4a6ef6962391ef0ea6f3ed7cccaac3294708de87cfd1b9e95d6969c',
+])
+def test_historical_srcset_replay_is_source_bound_and_exact(tmp_path, source):
+    from harness.web_fetch.native_routes import verify_saved_native_answer
+    payload = {'elements': [{'results': [{'attributes': [
+        {'name': 'srcset', 'value': '/image?crop=10,20 1x, /large.png 2x'}]}]}]}
+    declaration = {'schema_version': 2, 'content_format': 'empty', 'answer_fields': {
+        'images': {'pointer': ['elements'], 'format': 'html_attribute_urls',
+                   'base_url': 'https://example.test/page'}}}
+    expected = ['https://example.test/20', 'https://example.test/image?crop=10',
+                'https://example.test/large.png']
+    raw = json.dumps(payload).encode()
+    (tmp_path / 'answer.txt').write_bytes(b'')
+    (tmp_path / 'raw.json').write_bytes(raw)
+    metadata = {'native_answer_projection': declaration, 'images': expected,
+                'raw_response_path': 'raw.json', 'raw_response_sha256': hashlib.sha256(raw).hexdigest()}
+    record = {'ok': True, 'url': 'https://example.test/page', 'artifact_path': 'answer.txt',
+              'provider_metadata': metadata, 'metrics': {
+                  'content_sha256': hashlib.sha256(b'').hexdigest(), 'scoring_source_sha256': source}}
+    frozen = deepcopy(record)
+    verify_saved_native_answer(tmp_path, record)
+    assert record == frozen
+    assert (tmp_path / 'raw.json').read_bytes() == raw
+    # The new parser's answer must not rescue a mismatching historical receipt.
+    metadata['images'] = ['https://example.test/image?crop=10,20', 'https://example.test/large.png']
+    with pytest.raises(ValueError, match='differs from its declared native field projection'):
+        verify_saved_native_answer(tmp_path, record)
+    metadata['images'] = expected
+    record['metrics']['scoring_source_sha256'] = '0' * 64
+    with pytest.raises(ValueError, match='lacks a recognized parser binding'):
+        verify_saved_native_answer(tmp_path, record)
+    record['metrics']['scoring_source_sha256'] = source
+    declaration['answer_fields']['images']['srcset_parser'] = 'html-candidates-v1'
+    with pytest.raises(ValueError, match='differs from its bound semantics'):
+        verify_saved_native_answer(tmp_path, record)
+
+
+@pytest.mark.parametrize('parser', [None, '', 1, True, 'future-v9', 'comma-split-v1'])
+def test_current_srcset_rejects_absent_or_unknown_parser(parser):
+    spec = {'pointer': ['elements'], 'format': 'html_attribute_urls',
+            'base_url': 'https://example.test/'}
+    if parser is not None:
+        spec['srcset_parser'] = parser
+    declaration = {'schema_version': 2, 'content_format': 'empty', 'answer_fields': {'images': spec}}
+    payload = {'elements': [{'results': [{'attributes': [{'name': 'srcset', 'value': '/one.png 1x'}]}]}]}
+    with pytest.raises(ValueError, match='srcset'):
+        project_native_answer(payload, declaration)
+
+
+def test_acquisition_declares_current_srcset_semantics():
+    from harness.web_fetch.native_projection import native_answer_projection
+    declaration = native_answer_projection('cloudflare_markdown',
+        {'track': 'image', 'task_kind': 'resource', 'url': 'https://example.test/'},
+        {'success': True, 'result': []}, 200)
+    assert declaration['answer_fields']['images']['srcset_parser'] == 'html-candidates-v1'

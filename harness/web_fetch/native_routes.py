@@ -567,7 +567,8 @@ def verify_saved_native_answer(root, record, *, cases_by_id=None):
         title=record.get('title') if declaration.get('schema_version') == 2 else None,
         final_url=record.get('final_url') if declaration.get('schema_version') == 2 else None,
         request_url=record.get('url'),
-        diagnostic=diagnostic, transport_receipt=metadata.get('source_transport_receipt'))
+        diagnostic=diagnostic, transport_receipt=metadata.get('source_transport_receipt'),
+        historical_scoring_source=record.get('metrics', {}).get('scoring_source_sha256'))
     if files or 'file_evaluation' in metadata:
         from lexbench_webfetch.file_acceptance import evaluate_files
         source_verification = {}

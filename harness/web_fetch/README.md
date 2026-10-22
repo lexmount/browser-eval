@@ -1378,3 +1378,34 @@ An adapter may declare `task_mode_provider_type` when its planned task modes
 use an existing execution selector contract under a different transport name.
 For example, the Moli WebFetch transport uses the native Markdown task-mode
 contract. This mapping does not override recorded output routes or waits.
+
+
+### Native resource projection versions
+
+New `html_attribute_urls` declarations record `srcset_parser: html-candidates-v1`.
+This keeps commas inside URLs, recognizes candidate descriptors and preserves
+`data:` URLs. Changing these semantics requires a new parser identity; keep
+previous identities reproducible. New calls and offline correction requests
+must declare their parser instead of inheriting whichever dependency is installed.
+
+Historical declarations without a parser can replay `srcset` only when their
+bound scoring-source identity is registered in
+`harness/web_fetch/data/native-projection-history.json`. Those historical scorers
+included the projection implementation in their source hash. The registry names
+the exact Git revision, projection source path and source SHA-256; it contains
+no task IDs, measured outputs or result-dependent exceptions. The retained
+comma-splitting behavior is for verifying historical receipts, not new calls.
+Unknown identities and conflicting explicit parser declarations fail closed.
+URL attributes other than `srcset` do not depend on this parser selection.
+
+Revision-chain validation uses the correction receipt's scoring-source identity,
+not a later rescore's identity. Saved-answer validation uses the record's bound
+scoring identity. Both compare the complete reconstructed answer with the saved
+answer; neither tries another parser after a mismatch. No historical results,
+raw responses, scores or receipts are rewritten by this compatibility reader.
+
+Before registering another historical identity, recompute its scoring-source
+hash from the exact ordered source list in that revision's `scoring.py` and
+verify the projection source hash. A matching saved output alone is insufficient.
+The source-bound replay and rejection controls are in
+`tests/test_native_answer_projection.py`.
