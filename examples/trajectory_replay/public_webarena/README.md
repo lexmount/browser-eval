@@ -48,8 +48,8 @@ the suite, qualification reasons, evaluator rules, source bindings, and a saniti
 publication summary. Use `verify_metrics.py` to audit raw measurements and
 `rebuild_report.py` to render from existing attempts; neither reruns browsers.
 
-Publishing uses the site and expected version in
-`evaluation/browser-use-public/current-report.json`. The package attestation binds
+Publishing uses the site and expected version in the external report profile
+selected with `--profile`. The package attestation binds
 that profile and the complete archive. Interrupted submissions retain a private
 operation journal and receipt; retrying the release resumes the same submission.
 The profile advances only after the exported version and every packaged file have
