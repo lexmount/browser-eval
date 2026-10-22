@@ -6,7 +6,15 @@ const D = JSON.parse(document.getElementById("report-messages").textContent);
 
 
 const T = D[zh ? "zh" : "en"];
-const message = (key, values = {}) => T.messages[key].replace(/\{(value\d+)\}/g, (_, name) => String(values[name]));
+const message = (key, values = {}) => {
+  const text = T.messages[key];
+  if (typeof text !== "string") throw Error(`Missing report message: ${key}`);
+  return text.replace(/\{(value\d+)\}/g, (_, name) => {
+    if (!Object.hasOwn(values, name) || values[name] === undefined)
+      throw Error(`Missing report message parameter: ${key}.${name}`);
+    return String(values[name]);
+  });
+};
 let M = null,
   dialog = document.getElementById("evidence-dialog"),
   trigger = null;
@@ -1210,7 +1218,7 @@ function guidePage() {
   };
   const relationText = relations.map((r) => {
     const net = r.counts.gain - r.counts.loss;
-    return `<p data-relation-from="${esc(r.a)}" data-relation-to="${esc(r.b)}" data-relation-net="${net}"><strong>${esc(methodLabel(r.a))} → ${esc(methodLabel(r.b))}</strong>：${esc(message("outcome_relation", {value0: r.counts.gain, value1: r.counts.loss, value2: signed(net, 0, "")}))}</p>`;
+    return `<p data-relation-from="${esc(r.a)}" data-relation-to="${esc(r.b)}" data-relation-net="${net}"><strong>${esc(methodLabel(r.a))} → ${esc(methodLabel(r.b))}</strong>：${esc(message("outcome_change_summary", {value0: r.counts.gain, value1: r.counts.loss, value2: signed(net, 0, "")}))}</p>`;
   }).join("");
   return (
     hero(T.nav.guide, reportSubtitle()) +

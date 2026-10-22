@@ -279,7 +279,7 @@
       "lost": "退步",
       "both_pass": "均通过",
       "both_fail": "均失败",
-      "outcome_relation": "新增通过 {value0} 题，退步 {value1} 题，通过数净变化 {value2} 题。",
+      "outcome_relation": "结果关系",
       "passed_attempts": "通过次数",
       "task_requirements_for_this_comparison": "任务要求",
       "inspect_frozen_task_definition": "查看冻结任务定义",
@@ -361,7 +361,8 @@
       "find_in_evidence": "查找证据",
       "no_match": "未找到",
       "first_match_located": "已定位首处",
-      "summary_chart": "{value0} 种固定配置的成功率与资源，顺序与总表一致，基线：{value1}"
+      "summary_chart": "{value0} 种固定配置的成功率与资源，顺序与总表一致，基线：{value1}",
+      "outcome_change_summary": "新增通过 {value0} 题，退步 {value1} 题，通过数净变化 {value2} 题。"
     },
     "resource_methodology": [
       "资源测试独立使用 557 题，每题执行五次，每种配置共 2,785 次调用。图和总表使用事先固定的 209 题、1,045 次调用；完整资源表另列全部 557 题。每个统计范围都保留成功与失败调用。",
@@ -649,7 +650,7 @@
       "lost": "Lost",
       "both_pass": "Both pass",
       "both_fail": "Both fail",
-      "outcome_relation": "{value0} cases gained, {value1} lost; net change {value2} cases.",
+      "outcome_relation": "Outcome relation",
       "passed_attempts": "Passed attempts",
       "task_requirements_for_this_comparison": "Task requirements for this comparison",
       "inspect_frozen_task_definition": "Inspect frozen task definition",
@@ -731,7 +732,8 @@
       "find_in_evidence": "Find in evidence",
       "no_match": "No match",
       "first_match_located": "First match located",
-      "summary_chart": "{value0} fixed configurations, aligned with the summary table; baseline: {value1}"
+      "summary_chart": "{value0} fixed configurations, aligned with the summary table; baseline: {value1}",
+      "outcome_change_summary": "{value0} cases gained, {value1} lost; net change {value2} cases."
     },
     "resource_methodology": [
       "Resources use a separate 557-task experiment with five attempts per task, or 2,785 calls per configuration. The chart and overview table use 1,045 calls on 209 tasks fixed before execution; the detailed resource tables also show all 557 tasks. Each scope retains passing and failing calls.",

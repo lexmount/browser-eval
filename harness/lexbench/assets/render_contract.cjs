@@ -106,6 +106,10 @@ const model = {
   ],
 };
 for (let lang of languages) {
+  const comparison = render(model, lang, "fixedComparisonSection()");
+  assert.ok(comparison.includes(lang === "zh" ? "结果关系" : "Outcome relation"));
+  assert.ok(!comparison.includes("undefined"));
+  assert.throws(() => render(model, lang, 'message("summary_chart")'), /Missing report message parameter/);
   const html = render(model, lang, "candidateResourceSection()");
   resourceHighlights(html);
   assert.throws(() => resourceHighlights(html.replace("num winner", "num")));
