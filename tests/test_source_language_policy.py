@@ -1,6 +1,8 @@
 """Implementation language and localized content have different boundaries."""
 from pathlib import Path
 
+import pytest
+
 from harness.reporting.source_policy import check_source_languages
 
 
@@ -19,13 +21,18 @@ def test_comments_identifiers_and_docstrings_fail_but_source_text_survives(tmp_p
     assert check_source_languages(tmp_path) == []
 
 
-def test_catalog_renderer_rejects_inline_messages_without_banning_chinese_catalogs(tmp_path):
-    source = tmp_path / 'scripts/moli_report'
-    source.mkdir(parents=True)
-    (source / 'app.js').write_text('const label = "结果";')
+@pytest.mark.parametrize("relative", [
+    "scripts/moli_report/app.js", "harness/trajectory_replay/interpretation.py",
+    "harness/web_fetch/methods.py", "harness/web_fetch/report_interfaces.py",
+])
+def test_catalog_renderer_rejects_inline_messages_without_banning_chinese_catalogs(tmp_path, relative):
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True)
+    prefix = 'const ' if path.suffix == '.js' else ''
+    path.write_text(prefix + 'label = "结果";')
     assert len(check_source_languages(tmp_path)) == 1
-    (source / 'app.js').write_text('const label = messages.result;')
-    (source / 'messages.json').write_text('{"zh": {"result": "结果"}}')
+    path.write_text(prefix + 'label = messages.result;')
+    path.with_name('messages.json').write_text('{"zh": {"result": "结果"}}')
     assert check_source_languages(tmp_path) == []
 
 

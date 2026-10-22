@@ -122,19 +122,16 @@ def _browser_installation_access(name, selected, registered, access, language):
         config = None
     binary = config.get("binary") if config else None
     variables = []
+    messages = report_method_catalog(language)["messages"]
     if binary is None:
-        explanation = ("未找到可核验的执行配置，安装变量未记录。" if language == "zh" else
-                       "A verifiable execution configuration is unavailable; installation variables were not recorded.")
+        explanation = messages["installation_unrecorded"]
     else:
         match = re.fullmatch(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?}", str(binary))
         if match:
             variables = [match.group(1)]
-            explanation = (("安装与执行记录版本一致的程序，通过 " + match.group(1) + " 指定程序位置。")
-                           if language == "zh" else
-                           ("Install the recorded program version and set " + match.group(1) + " to its location."))
+            explanation = messages["installation_variable"].format(variable=match.group(1))
         else:
-            explanation = ("执行配置直接指定程序位置，未使用安装环境变量。" if language == "zh" else
-                           "The execution configuration specifies the executable directly, without an installation environment variable.")
+            explanation = messages["installation_direct"]
     return {**access, "env_vars": variables, "configuration": explanation}
 
 
@@ -160,9 +157,12 @@ def report_method(name, record=None, *, language="zh"):
 def normalized_method_version(registered, version):
     """Normalize presentation only; preserve the full recorded build suffix."""
     value = str(version).strip()
-    prefix = registered.get("version_prefix")
-    if prefix and value.casefold().startswith(prefix.casefold() + " "):
-        value = value[len(prefix):].strip()
+    labels = registered.get("label", {})
+    prefixes = [registered.get("version_prefix"), *(labels.values() if isinstance(labels, dict) else [labels])]
+    for prefix in sorted({str(item) for item in prefixes if item}, key=len, reverse=True):
+        if value.casefold().startswith(prefix.casefold() + " "):
+            value = value[len(prefix):].strip()
+            break
     return value
 
 
@@ -332,17 +332,19 @@ def with_measured_method_labels(render):
                         language, metadata.get("engine") or name)
                     def label(version):
                         return versioned_method_label(registered, base, version)
+                    messages = report_method_catalog(language)["messages"]
+                    messages = report_method_catalog(language)["messages"]
+                    messages = report_method_catalog(language)["messages"]
                     if len(counts) == 1:
                         value = label(next(iter(counts)))
                     elif None not in releases and len(set(releases)) == 1:
-                        qualifier = ("（候选版）" if language == "zh" else " (candidate build)") if channels == {"candidate"} else ""
+                        qualifier = messages["candidate_suffix"] if channels == {"candidate"} else ""
                         value = label(releases[0]) + qualifier
-                    elif language == "zh":
-                        value = base + " 多构建结果（" + "；".join(
-                            f"{count} 例 {version}" for version, count in sorted(counts.items())) + "）"
                     else:
-                        value = base + " mixed builds (" + "; ".join(
-                            f"{count} {'case' if count == 1 else 'cases'}: {version}" for version, count in sorted(counts.items())) + ")"
+                        parts = [messages["mixed_count_one" if count == 1 else "mixed_count_many"].format(
+                            count=count, version=version) for version, count in sorted(counts.items())]
+                        value = messages["mixed_builds"].format(
+                            label=base, counts=messages["separator"].join(parts))
                     labels[name][language] = value
             token = _MEASURED_LABELS.set(labels)
             try:
@@ -381,10 +383,8 @@ def is_browser_comparison(records: list[dict[str, Any]]) -> bool:
 
 def method_info(provider_type: str, *, language="zh") -> dict[str, Any]:
     registry = METHOD_REGISTRY if language == "zh" else report_method_catalog(language)["adapters"]
-    missing = {"endpoint":"未记录","contract":"未知","output":"未知","freshness":"未知","leaderboard":"未分类"} if language == "zh" else {
-        "endpoint":"Not recorded", "contract":"Unknown", "output":"Unknown",
-        "freshness":"Unknown", "leaderboard":"Unclassified"}
-    return registry.get(provider_type, missing)
+    return registry.get(provider_type, report_method_catalog(language)["unregistered_adapter"])
+
 
 
 ROUTE_LABELS = report_method_catalog()["route_labels"]
@@ -422,7 +422,7 @@ def method_page_model(name: str, label: str, records: list[dict[str, Any]], *, l
         "freshness": info["freshness"],
         "configuration": report.get(
             "configuration",
-            "调用参数与交付路线以本次配置和逐例记录为准。" if language == "zh" else "Call parameters and delivery routes follow this run’s configuration and per-case records.",
+            report_method_catalog(language)["messages"]["configuration_default"],
         ),
         "pricing_anchor": report.get("pricing_anchor", "method-guide-pricing"),
     }
@@ -437,16 +437,12 @@ def method_page_model(name: str, label: str, records: list[dict[str, Any]], *, l
                             if item.get("output_contract")})
         route_count = sum(bool(item.get("extractor")) for item in metadata)
         output_count = sum(bool(item.get("output_contract")) for item in metadata)
-        missing = "未记录" if language == "zh" else "Not recorded"
-        route = ("；" if language == "zh" else "; ").join(extractors) or missing
-        output = ("、" if language == "zh" else ", ").join(contracts) or missing
-        model["configuration"] = (
-            f"交付路线（{route_count}/{len(records)} 条记录）：{route}；"
-            f"输出格式（{output_count}/{len(records)} 条记录）：{output}。"
-        ) if language == "zh" else (
-            f"Delivery route ({route_count}/{len(records)} records): {route}; "
-            f"output format ({output_count}/{len(records)} records): {output}."
-        )
+        messages = report_method_catalog(language)["messages"]
+        route = messages["separator"].join(extractors) or messages["not_recorded"]
+        output = messages["list_separator"].join(contracts) or messages["not_recorded"]
+        model["configuration"] = messages["configuration_observed"].format(
+            route_count=route_count, record_count=len(records), route=route,
+            output_count=output_count, output=output)
     for profile in report.get("profiles", []):
         if metadata and all(metadata_matches(item, profile["metadata_equals"])
                             for item in metadata):

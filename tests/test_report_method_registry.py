@@ -14,7 +14,8 @@ from harness.web_fetch.report_interfaces import method_spec, render_interfaces
 
 @pytest.fixture
 def custom_catalog(monkeypatch):
-    catalog = copy.deepcopy(report_method_catalog())
+    from harness.web_fetch.methods import _raw_report_method_catalog, _catalog_value
+    catalog = copy.deepcopy(_raw_report_method_catalog())
     catalog['methods']['acme-fetch'] = {
         'label': {'zh': 'Acme Fetch', 'en': 'Acme Fetch'},
         'kind': 'browser', 'label_template': '{label} {version}',
@@ -28,8 +29,8 @@ def custom_catalog(monkeypatch):
                       'request': {'url': 'https://example.com/'},
                       'source': 'https://example.com/acme', 'notes': 'Synthetic registration.'},
     }
-    monkeypatch.setattr('harness.web_fetch.methods.report_method_catalog', lambda language="zh": catalog)
-    monkeypatch.setattr('harness.web_fetch.report_interfaces.report_method_catalog', lambda language="zh": catalog)
+    monkeypatch.setattr('harness.web_fetch.methods.report_method_catalog', lambda language="zh": _catalog_value(catalog, language=language))
+    monkeypatch.setattr('harness.web_fetch.report_interfaces.report_method_catalog', lambda language="zh": _catalog_value(catalog, language=language))
     return catalog
 
 
@@ -414,9 +415,10 @@ def test_catalog_descriptions_do_not_claim_measured_run_settings():
             return [item for index, child in enumerate(value)
                     for item in violations(child, (*path, str(index)))]
         bound = any(fnmatchcase('.'.join(path), rule) for rule in (
-            'adapters.*.report.*', 'methods.*.runtime_parameters.*.rules.*'))
+            'adapters.*.report.*', 'methods.*.runtime_parameters.*.rules.*', 'messages.*'))
         return [path] if isinstance(value, str) and re.search('本轮|this run', value, re.I) and not bound else []
     assert not violations(data)
+    assert not violations({'messages': {'run_label': {'zh': '本轮输出', 'en': 'This run’s output'}}})
     for text in ('本轮使用默认参数', 'THIS RUN uses a timeout'):
         assert violations({'methods': {'new': {'profile': {'description': text}}}})
         assert not violations({'adapters': {'new': {'report': {'description': text}}}})
@@ -450,3 +452,27 @@ def test_explicit_unknown_engine_does_not_inherit_colliding_product(tmp_path, ve
         return browser_method_label("moli", language="en")
 
     assert render(tmp_path, {}, [row]) == "new-engine" + (" 2.3.4" if version else "")
+
+
+@pytest.mark.parametrize("provider, version, expected", [
+    ("obscura", "obscura 0.2.2", "Obscura 0.2.2"),
+    ("lightpanda", "Lightpanda 0.4.1+build.7", "Lightpanda 0.4.1+build.7"),
+    ("obscura", "0.2.2 (obscura-compatible)", "Obscura 0.2.2 (obscura-compatible)"),
+    ("obscura", "ObscuraTools 2.0", "Obscura ObscuraTools 2.0"),
+])
+def test_reported_product_name_is_not_repeated_or_removed_from_build_suffix(tmp_path, provider, version, expected):
+    @with_measured_method_labels
+    def render(out, dataset, records):
+        return tuple(browser_method_label(provider, language=language) for language in ('zh', 'en'))
+    records = [{'provider': provider, 'provider_metadata': {'engine': provider, 'reported_version': version}}]
+    assert render(tmp_path, {}, records) == (expected, expected)
+
+
+def test_method_message_languages_preserve_parameter_contracts():
+    from string import Formatter
+    from harness.web_fetch.methods import _raw_report_method_catalog
+    for key, entries in _raw_report_method_catalog()['messages'].items():
+        assert set(entries) == {'zh', 'en'}, key
+        fields = [{name for _, name, _, _ in Formatter().parse(entries[language]) if name is not None}
+                  for language in ('zh', 'en')]
+        assert fields[0] == fields[1], key

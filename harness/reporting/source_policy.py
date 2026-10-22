@@ -11,6 +11,8 @@ HAN = re.compile(r"[\u3400-\u9fff]")
 CATALOG_RENDERERS = (
     "scripts/moli_report/app.js",
     "harness/trajectory_replay/interpretation.py",
+    "harness/web_fetch/methods.py",
+    "harness/web_fetch/report_interfaces.py",
 )
 
 
