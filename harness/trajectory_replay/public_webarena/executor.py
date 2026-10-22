@@ -325,23 +325,25 @@ def execute_steps(
                     )
                 if navigation_response_observer is not None:
                     navigation_response_observer(response)
-                # BrowserTool returns after DOMContentLoaded, then gives ordinary
-                # background requests a short chance to settle.  Network idle is
-                # deliberately best effort: analytics or streaming requests must
-                # not turn a completed navigation into a failed replay action.
-                try:
-                    action_page.wait_for_load_state(
-                        "networkidle",
-                        timeout=min(action_remaining(), NAVIGATION_NETWORK_IDLE_TIMEOUT_MS),
-                    )
-                except Exception:
-                    pass
-                try:
+                # Settling is optional; reserve at least half the remaining
+                # action budget for layout and the required document observation.
+                # Both waits share this deadline so a busy network cannot consume
+                # the observation budget or start another full grace period.
+                settle_deadline = time.perf_counter() + action_remaining() / 2_000
+                settle_timeout = int((settle_deadline - time.perf_counter()) * 1_000)
+                if settle_timeout > 0:
+                    try:
+                        action_page.wait_for_load_state(
+                            "networkidle",
+                            timeout=min(settle_timeout, NAVIGATION_NETWORK_IDLE_TIMEOUT_MS),
+                        )
+                    except Exception:
+                        pass
+                settle_timeout = int((settle_deadline - time.perf_counter()) * 1_000)
+                if settle_timeout > 0:
                     action_page.wait_for_timeout(
-                        min(action_remaining(), NAVIGATION_RENDER_GRACE_MS)
+                        min(settle_timeout, NAVIGATION_RENDER_GRACE_MS)
                     )
-                except TimeoutError:
-                    pass
                 publish_layout()
                 limit = int(call.get("max_chars", 40_000))
                 if document_observer is None:
