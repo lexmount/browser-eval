@@ -164,7 +164,7 @@ TEXT = {
     "本地诊断结果，不提供名次。": "Local diagnostic results; no ranks are assigned.",
     "任务判定汇总（非排名）": "Task judgments (not a ranking)",
     "按任务类别查看诊断结果": "Diagnostic results by task family",
-    "方法按名称排列，不提供名次。任务判定、内容质量和耗时分别展示。": "Methods are listed by name without ranks. Task judgments, content quality and latency are shown separately.",
+    "默认按任务通过率降序排列，不提供名次。任务判定、内容质量和耗时分别展示。": "Methods are sorted by task pass rate in descending order without ranks. Task judgments, content quality and latency are shown separately.",
     "本地未认证诊断结果，仅展示保存的任务判定与耗时，不用于产品排名。通过不代表返回内容干净；请同时查看全文指标和挑战提示。": "Local uncertified diagnostic results show saved task judgments and latency, not product rankings. Passing does not establish clean content; also inspect full-text metrics and challenge indicators.",
     "诊断指标说明": "Diagnostic metric definitions",
     "无命中": "No matches",

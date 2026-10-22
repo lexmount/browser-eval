@@ -763,10 +763,7 @@ def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
 def link(url,label,english=None):return f'<a href="{esc(safe_href(url))}">{model_text(label,english)}</a>'
 def cell(value,sort=None):return '<td'+(f' data-sort="{sort}"' if sort is not None else '')+f'>{value}</td>'
-EXTRA+='''
-table.ranking:not([data-row-index="false"]) tbody td:nth-child(4),
-table.ranking[data-row-index="false"] tbody td:nth-child(3){color:var(--good);font-weight:800}
-'''
+
 def model_text(value,english=None):
  return esc(value) if english is None else '<span data-report-en="'+esc(english)+'">'+esc(value)+'</span>'
 def rate(a,b):return pct(a/b) if b else '—'
@@ -1742,7 +1739,6 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
   if report_family(cases[r['case_id']])==track:groups[r['provider']].append(r)
  def sort_key(item):
   name,rs=item
-  if diagnostic:return name
   n=sum(measured(r,cases[r['case_id']]) for r in rs)
   return (-sum(succeeded(r,cases[r['case_id']]) for r in rs)/n if n else 1,name)
  rows=[];text_scopes={}
@@ -1808,7 +1804,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
  directions={i:('quality_'+str(i),'max') for i in range(1,len(heads)) if heads[i] not in {'均值','P50','P95','判分完整性','审查结果'}}
  directions.update({i:('latency_'+str(i),'min') for i,h in enumerate(heads) if h in {'均值','P50','P95'}})
  rows=comparative_rows(rows,directions)
- result=table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None,include_index=not diagnostic)
+ result=table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None,include_index=not diagnostic,default_sort=(2+int(not diagnostic),'desc'))
  if text_scopes and len(set(text_scopes.values()))>1:
   result='<details><summary>文字核对覆盖范围</summary><ul>'+''.join('<li>'+esc(name)+f'：{len(scope)}/{len(selected)} 例；'+esc('、'.join(selected[k]['name'] for k in sorted(scope)) or '无文字核对记录')+'</li>' for name,scope in sorted(text_scopes.items()))+'</ul></details>'+result
  if compact:
@@ -1816,7 +1812,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
  if title_scope:result+=title_diagnostics(groups,selected,base,id or 'ranking-'+track)
  result+=matched_latency(groups,cases,base)
  from .report_components import task_pass_guide
- return task_pass_guide(track,base,selected)+'<p class="source-note">'+note+'</p>'+(result if diagnostic else result.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"'))
+ return task_pass_guide(track,base,selected)+'<p class="source-note">'+note+'</p>'+result
 
 def matched_latency(groups,cases,base):
  scopes=[{r['case_id'] for r in rows if succeeded(r,cases[r['case_id']])} for rows in groups.values()]
@@ -1944,8 +1940,8 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   values+=cell(ms(percentile(times,.5)),percentile(times,.5))
   values+=cell(ms(percentile(times,.95)),percentile(times,.95))
   if audit:values+=review_cell(audit,rs)
-  rows.append((passed,name,('',values)))
- rows=[row for _,_,row in sorted(rows,key=lambda x:x[1] if diagnostic else (-x[0],x[1]))]
+  rows.append((passed/n if n else -1,name,('',values)))
+ rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]))]
  tracks=active_tracks(cases)
  heads=['方法','请求成功率','综合任务通过率']+(['无法判定'] if has_unknown else [])+[label for _,label in tracks]+['总耗时均值','总耗时 P50','总耗时 P95']
  if audit:heads+=['审查结果']
@@ -1976,8 +1972,8 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   if _RENDER_CONTEXT.get().score_audit:
    intro=''
    help=help.replace('诊断指标说明','指标说明')
- rendered=table(heads,rows,'ranking-overall',True,'ranking',metrics=[],include_index=not diagnostic)
- return intro+timing_note+help+(rendered if diagnostic else rendered.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"'))
+ rendered=table(heads,rows,'ranking-overall',True,'ranking',metrics=[],include_index=not diagnostic,default_sort=(2+int(not diagnostic),'desc'))
+ return intro+timing_note+help+rendered
 
 def filter_controls(options,all_first=()):
  controls=''
@@ -2186,7 +2182,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
  if (out/'resource-cohort/resource-comparison.json').is_file():
   home+=section('CPU、内存与网络',overview_resources(out),'overall-resources')
- home+=section('按任务类别查看结果' if score_audit else '按任务类别查看诊断结果' if diagnostic else f'{track_label} 类分榜',('<p>任务通过率、内容质量和耗时分别展示。</p>' if score_audit else '<p class="ranking-orientation">方法按名称排列，不提供名次。任务判定、内容质量和耗时分别展示。</p>' if diagnostic else '<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>')+tabs('home-rankings',panels),'results')
+ home+=section('按任务类别查看结果' if score_audit else '按任务类别查看诊断结果' if diagnostic else f'{track_label} 类分榜',('<p>任务通过率、内容质量和耗时分别展示。</p>' if score_audit else '<p class="ranking-orientation">默认按任务通过率降序排列，不提供名次。任务判定、内容质量和耗时分别展示。</p>' if diagnostic else '<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>')+tabs('home-rankings',panels),'results')
  write(out,'index.html','评测报告',home+'</div>')
  controls=filter_controls([('track','类型',tracks),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
  rows=[]

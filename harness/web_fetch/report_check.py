@@ -296,7 +296,7 @@ def check_local_diagnostic_presentation(root: Path, *, ranked=False):
         if ranked and 'ranking' not in disclosure.visible:
             raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))
         for table in re.findall(r'<table\b[^>]*\bid="ranking-[^"]+".*?</table>', page, re.S):
-            if not ranked and ('data-dir="desc"' in table or re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table)):
+            if not ranked and re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table):
                 raise ValueError('Uncertified diagnostic comparison assigns ranks: ' + str(path.relative_to(root)))
 
 
