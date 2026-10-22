@@ -4,7 +4,8 @@ import copy
 
 import pytest
 
-from harness.web_search.relevance import candidate_packet, verify_provenance
+from harness.web_search.relevance import verify_provenance
+from lexbench_websearch.relevance import candidate_packet
 
 
 @pytest.mark.parametrize("field", ["query", "title", "snippet"])

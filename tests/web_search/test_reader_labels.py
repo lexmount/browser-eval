@@ -1,7 +1,7 @@
 """Reader-facing grading units and annotator identity remain explicit."""
 from bs4 import BeautifulSoup
 import pytest
-from harness.web_search.relevance import query_metrics
+from lexbench_websearch.relevance import query_metrics
 from harness.web_search.report import relevance_panel
 
 @pytest.mark.parametrize('zh', [True, False])
@@ -31,3 +31,18 @@ def test_cost_budget_counts_retries_and_keeps_unknown_prices_unknown():
     data = [[c.get_text(' ', strip=True) for c in tr.select('td')] for tr in doc.select('tbody tr')]
     assert data[0][4:7] == ['1', '2', '1']
     assert data[1][1] == '未定价' and data[1][6:] == ['待定', '未定价']
+
+
+def test_source_summary_distinguishes_traceable_posts_from_unattributed_screenshots():
+    from harness.web_search.report import dataset_context
+    profile = {"cases": [
+        {"id": "post", "provenance_kind": "community_exact"},
+        {"id": "screen", "provenance_kind": "user_screenshot"},
+        {"id": "derived", "provenance_kind": "community_derived"},
+    ]}
+    zh = dataset_context(profile, {"presentation": "comparison-report"}, True)
+    en = dataset_context(profile, {"presentation": "comparison-report"}, False)
+    assert "1 道原题有可追溯的公开来源" in zh
+    assert "1 道题照录自用户截图，原作者与原帖尚未确认" in zh
+    assert "1 original queries have traceable public sources" in en
+    assert "2 exact community" not in en

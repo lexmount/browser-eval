@@ -14,7 +14,8 @@ from harness.web_fetch.config import ROOT, load_runtime_env
 from harness.record_io import read_completed_records
 
 from .adapters import adapter_for
-from .core import digest, evaluate, normalize, request_body, request_cost, validate_profile, write_json
+from .core import digest, normalize, request_body, request_cost, validate_profile, write_json
+from lexbench_websearch.scoring import evaluate
 from .profiles import CURRENT_PROFILE, load_profile_bytes
 
 
@@ -134,10 +135,17 @@ def collection_implementation():
     names = (
         "harness/web_search/runner.py", "harness/web_search/core.py",
         "harness/web_search/adapters.py", "harness/web_search/profiles.py",
-        "harness/web_search/answer_rules.py", "harness/web_search/evidence_quality.py",
         "harness/web_fetch/config.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
     )
-    return {name: digest((ROOT / name).read_bytes()) for name in names}
+    sources = {name: ROOT / name for name in names}
+    from lexbench_websearch.inputs import implementation_sources
+    sources.update(implementation_sources())
+    return {name: digest(source.read_bytes()) for name, source in sources.items()}
+
+
+def implementation_source(relative):
+    from lexbench_websearch.inputs import implementation_sources
+    return implementation_sources()[relative] if relative.startswith("dependencies/") else ROOT / relative
 
 
 def validate_resume_implementation(output, contract):
@@ -198,7 +206,7 @@ def prepare_resume(profile_path, output, *, cohort="primary", validate_only=Fals
             shutil.move(call, target)
     source_hashes = {}
     for relative in collection_implementation():
-        source = ROOT / relative
+        source = implementation_source(relative)
         target = archive / "implementation" / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
@@ -256,7 +264,7 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
         for relative in sources:
             target = output / "implementation" / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes((ROOT / relative).read_bytes())
+            target.write_bytes(implementation_source(relative).read_bytes())
         write_json(
             output / "run-contract.json",
             dict(

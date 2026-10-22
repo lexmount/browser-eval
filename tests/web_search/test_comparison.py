@@ -145,7 +145,7 @@ def test_empty_result_is_site_failure_only_when_query_restricts_sites():
 
 def test_human_relevance_is_the_primary_quality_check_when_complete_labels_exist():
     import hashlib
-    from harness.web_search.core import canonical_url
+    from lexbench_websearch.scoring import canonical_url
     p, rows = matrix()
     case = p["cases"][0]
     cid = hashlib.sha256((case["id"] + "\0" + canonical_url(rows[0]["results"][0]["url"])).encode()).hexdigest()[:12]

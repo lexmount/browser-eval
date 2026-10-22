@@ -5,12 +5,12 @@ import json
 import re
 from urllib.parse import urlsplit
 
-from .core import candidate_identity, evaluate, factual_evidence, in_domain
-from .evidence_quality import is_benchmark_page
+from lexbench_websearch.scoring import candidate_identity, evaluate, factual_evidence, in_domain
+from lexbench_websearch.evidence_quality import is_benchmark_page
 
 
 def acceptance(case, row, metric="source", *, quality_excluded=False, cutoff=5, relevance_grades=None):
-    from .core import task_acceptance
+    from lexbench_websearch.scoring import task_acceptance
     return task_acceptance(case, row, metric, quality_excluded=quality_excluded, cutoff=cutoff, relevance_grades=relevance_grades)
 
 
@@ -105,7 +105,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
                               "grade": (labels[case["id"]].get(candidate_identity(case["id"], item["url"])) if case["id"] in labels and _url(item.get("url")) and not (quality_excluded or contaminated) else None),
                               "site_match": not (quality_excluded or contaminated) and any(in_domain(item.get("url", ""), d) for d in case.get("domains", [])),
                               **displayed})
-            from .relevance import query_metrics
+            from lexbench_websearch.relevance import query_metrics
             ranking = [candidate_identity(case["id"], item["url"]) for item in row.get("results", [])[:cutoff] if _url(item.get("url"))]
             query_score = query_metrics(ranking, labels[case["id"]], cutoff) if case["id"] in labels and not quality_excluded else None
             outputs[method["id"]] = {

@@ -3,7 +3,8 @@ import base64
 import hashlib
 import json
 from copy import deepcopy
-from harness.web_search.relevance import JUDGE_PROMPT, judge_input
+from lexbench_websearch.rubric import JUDGE_PROMPT
+from harness.web_search.relevance import judge_input
 
 
 def strict_model_evidence(evidence):

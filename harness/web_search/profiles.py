@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 from harness.web_fetch.config import ROOT
 
 from .core import digest, validate_profile
+from lexbench_websearch.inputs import resolve_profile
 
 CURRENT_PROFILE = ROOT / "evaluation/web-search/current.json"
 
@@ -33,7 +34,7 @@ def _bound(root, binding):
     raw = path.read_bytes()
     if digest(raw) != binding["sha256"]:
         raise ValueError("Historical search profile binding changed")
-    return json.loads(raw)
+    return resolve_profile(json.loads(raw))
 
 
 def current_selection(path=CURRENT_PROFILE, *, root=ROOT):
@@ -61,7 +62,8 @@ def load_profile_bytes(path=CURRENT_PROFILE, *, root=ROOT, cohort="primary"):
     raw = Path(path).read_bytes()
     document = json.loads(raw)
     if document.get("schema") != "web-search-current/1":
-        return raw
+        expanded = resolve_profile(document)
+        return raw if expanded == document else (json.dumps(expanded, ensure_ascii=False, indent=2) + "\n").encode()
     selection = current_selection(path, root=root)
     binding = selection["profile"] if cohort == "primary" else next((c for c in selection.get("supplementary_profiles", []) if c["id"] == cohort), None)
     if binding is None:
@@ -124,7 +126,7 @@ def publication_authority(manifest, path=CURRENT_PROFILE, *, root=ROOT, planned_
         expected_profile = expected[cohort]
         if bindings[prefix + "_profile"] != {k: expected_profile[k] for k in ("path", "sha256")}:
             raise ValueError("Live search target profile differs from the current selection")
-        accepted_profiles = {expected_profile["sha256"]}
+        accepted_profiles = {digest(load_profile_bytes(_inside(root, expected_profile["path"]), root=root))}
         accepted_profiles.add(digest(load_profile_bytes(path, root=root, cohort=cohort)))
         if receipt["profile_sha256"] not in accepted_profiles:
             raise ValueError("Search release uses a different collection profile")

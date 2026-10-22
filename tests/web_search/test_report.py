@@ -103,7 +103,7 @@ class ReportScenarios(unittest.TestCase):
         self.out = self.root / "report"
 
     def test_public_labels_are_scored_for_every_query_and_visible_panel_is_bound(self):
-        from harness.web_search.core import evaluate
+        from lexbench_websearch.scoring import evaluate
         source = self.root / "fixture"
         profile_path = source / "profile.json"
         profile = json.loads(profile_path.read_text())
@@ -232,7 +232,8 @@ class ReportScenarios(unittest.TestCase):
         receipt = json.loads(receipt_path.read_text())
         receipt["profile_sha256"] = digest(profile_path.read_bytes())
         receipt_path.write_text(json.dumps(receipt))
-        from harness.web_search.relevance import candidate_packet, import_annotations
+        from harness.web_search.relevance import import_annotations
+        from lexbench_websearch.relevance import candidate_packet
         measured = [json.loads(line) for line in (source / "results.jsonl").read_text().splitlines()]
         packet, _ = candidate_packet(profile, measured)
         submission = {"packet_sha256": packet["packet_sha256"],
@@ -596,7 +597,7 @@ if __name__ == "__main__":
 
 class RepeatedLatencyScenarios(unittest.TestCase):
     def test_all_rounds_and_unknown_cache_remain_visible(self):
-        from harness.web_search.core import evaluate
+        from lexbench_websearch.scoring import evaluate
         from harness.web_search.report import latency_rounds
 
         profile = {"protocol": {"rounds": 2}, "methods": [{"id": "a", "label": "A"}]}
@@ -660,7 +661,8 @@ def test_dataset_inventory_has_bounded_scroll_for_large_catalogs(tmp_path):
 
 def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
     from harness.web_search.core import digest
-    from harness.web_search.relevance import candidate_packet, import_annotations
+    from harness.web_search.relevance import import_annotations
+    from lexbench_websearch.relevance import candidate_packet
     from harness.web_search.report import build, check
     from harness.web_search.example import example
     import pytest
@@ -710,7 +712,8 @@ def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
 
 
 def test_factual_detail_uses_ten_result_budget_without_changing_frozen_five_metrics(tmp_path):
-    from harness.web_search.core import evaluate, normalize
+    from harness.web_search.core import normalize
+    from lexbench_websearch.scoring import evaluate
     example(tmp_path)
     source = tmp_path / 'fixture'
     profile = json.loads((source / 'profile.json').read_bytes())

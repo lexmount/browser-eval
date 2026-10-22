@@ -607,27 +607,29 @@ def check_visual(root: Path, browser_binary: str) -> None:
     root = root.resolve()
     check_language_contract(root)
     languages = generated_languages(root)
-    score_rows = load_jsonl(root / 'wcxb-scores.jsonl', skip_blank=True)
-    qualified_count = len({row['case_id'] for row in score_rows if row['quality_eligible']})
-    routes = (
-        'index.html',
-        'datasets/index.html',
-        'analysis/index.html',
-        'methodology/index.html',
-        'review/index.html',
-        'guide/index.html',
-        'adoption/index.html',
-        'reproduce/index.html',
-        'changes/index.html',
-        'accounts/index.html',
-    )
+
     checked = 0
     with local_report_server(root) as origin:
+        score_rows = load_jsonl(root / 'wcxb-scores.jsonl', skip_blank=True)
+        providers = list(dict.fromkeys(row['provider'] for row in score_rows))
+        if len(providers) < 2:
+            raise ValueError('WCXB visual comparison requires at least two providers')
+        passing_row = next((row for row in score_rows if row['quality_eligible'] and row['diagnosis'] == 'none'), None)
+        diagnostic_row = next((row for row in score_rows if row['quality_eligible'] and row['diagnosis'] == 'low_precision'), None)
+        if passing_row is None or diagnostic_row is None:
+            raise ValueError('WCXB visual gate requires an unlocated result and a low-precision result')
+        case_id = passing_row['case_id']
+        diagnostic_id = diagnostic_row['case_id']
+        qualified_count = len({row['case_id'] for row in score_rows if row['quality_eligible']})
+        provider_count = len(providers)
+        routes = ('index.html', 'datasets/index.html', 'analysis/index.html',
+                  'methodology/index.html', 'review/index.html', 'guide/index.html',
+                  'adoption/index.html', 'reproduce/index.html', 'changes/index.html',
+                  'accounts/index.html', f'cases/{case_id}.html', f'cases/{diagnostic_id}.html')
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True, executable_path=browser_binary)
             try:
                 for lang in languages:
-                    prefix = 'en/' if lang == 'en' else ''
                     for route in routes:
                         for width in (390, 1365):
                             for dark in (False, True):
@@ -754,11 +756,11 @@ def check_visual(root: Path, browser_binary: str) -> None:
                         page.close()
             finally:
                 browser.close()
-    print(f'PASS: {checked} WCXB top-level pages; languages={languages}')
+    print(f'PASS: {checked} WCXB route, width and theme combinations; languages={languages}')
 
 
 def visual_main(argv=None) -> None:
-    parser = argparse.ArgumentParser(description="Review each WCXB top-level report page once")
+    parser = argparse.ArgumentParser(description="Check WCXB report interactions, themes and viewports")
     parser.add_argument("report", type=Path)
     parser.add_argument("--browser-binary")
     args = parser.parse_args(argv)

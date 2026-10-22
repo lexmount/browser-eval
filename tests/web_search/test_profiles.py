@@ -155,3 +155,19 @@ def test_publication_checks_pinned_files_and_real_population(tmp_path):
     source.write_text("changed")
     with pytest.raises(ValueError, match="binding changed"):
         verify_publication_inputs(manifest, target, data_home=tmp_path)
+
+
+def test_split_benchmark_inputs_preserve_historical_collection_identities():
+    from harness.web_fetch.config import ROOT
+    from harness.web_search.profiles import load_profile_bytes
+    expected = {
+        "execution-primary.json": (149, "a1cd39a6c3ba49a792590da317d53153e8aea0a303b63ed6ca04414d250e8877"),
+        "execution-factual.json": (831, "ad08ff7adf29acdffe28e49179a14f92ec28d3af2fe79ffbc05d721da2d0f74b"),
+    }
+    for filename, (count, sha) in expected.items():
+        path = ROOT / "evaluation/web-search" / filename
+        compact = json.loads(path.read_bytes())
+        assert "benchmark_dataset" in compact["cases"]
+        raw = load_profile_bytes(path)
+        assert digest(raw) == sha
+        assert len(json.loads(raw)["cases"]) == count
