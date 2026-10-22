@@ -36,7 +36,9 @@ class NativeBrowserVariantTests(unittest.TestCase):
         from harness.web_fetch.methods import browser_method_label, browser_method_registry, native_browser_engine
         self.assertEqual(native_browser_engine("moli-candidate"), "moli")
         self.assertEqual(browser_method_label("moli-release"), "Moli release build")
-        self.assertEqual(browser_method_registry()["moli-candidate"]["source_url"],
+        self.assertNotIn("source_url", browser_method_registry()["moli-candidate"])
+        from harness.web_fetch.methods import report_method
+        self.assertEqual(report_method("moli-candidate")["source_url"],
                          "https://github.com/lexmount/moli")
         self.assertNotEqual(browser_method_label("moli-candidate"),
                             browser_method_label("moli-release"))
@@ -190,9 +192,8 @@ class NativeBrowserVariantTests(unittest.TestCase):
         for method in ("moli-webfetch", "moli"):
             description = str(SPECS[method]["params"])
             self.assertIn("内部参数以冻结的调用记录为准", description)
-            self.assertIn("显式模式留出收尾和清理时间", description)
-            self.assertIn("uniform", description)
-            self.assertIn("沿用产品默认值", description)
+            self.assertIn("未记录的内部默认值不作推断", description)
+            self.assertNotIn("45 秒", description)
 
     def test_moli_interface_discloses_observed_explicit_timeout_policy(self):
         from harness.web_fetch.report_i18n import translate_text
@@ -284,7 +285,7 @@ class NativeBrowserVariantTests(unittest.TestCase):
 
 
 def test_same_reported_version_keeps_distinct_measured_builds_visible():
-    from harness.web_fetch.report_interfaces import method_versions
+    from harness.web_fetch.methods import method_versions
     rows = [{'provider': 'other-browser', 'provider_metadata': {
         'reported_version': '2.4.0', 'binary_sha256': value * 64}} for value in ['a', 'b', 'a']]
     assert method_versions(rows) == ['2.4.0 [aaaaaaaa, bbbbbbbb]']

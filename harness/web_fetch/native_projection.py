@@ -9,6 +9,7 @@ import binascii
 import hashlib
 import json
 import re
+from functools import lru_cache
 from urllib.parse import parse_qsl, quote, urljoin, urlsplit
 
 from lexbench_webfetch.paths import validate_http_url
@@ -119,7 +120,7 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
                     'content_format': 'json' if success else 'empty',
                     'result_fields': {'final_url': {'pointer': ['meta', 'finalUrl'], 'fallback': 'request_url'}},
                     'answer_fields': {key: {'pointer': ['result'], 'format': 'html_attribute_urls',
-                                           'base_url': meta.get('finalUrl') or get('url')}} if success else {}}
+                                           'srcset_parser': SRCSET_PARSER, 'base_url': meta.get('finalUrl') or get('url')}} if success else {}}
         text = success and isinstance(payload.get('result', ''), str)
         if not text and not meta:
             return None
@@ -168,7 +169,37 @@ def native_field_value(payload, pointer):
     return value
 
 
-def _attribute_record_urls(groups, base_url):
+SRCSET_PARSER = 'html-candidates-v1'
+
+
+@lru_cache(maxsize=1)
+def _historical_srcset_parsers():
+    registry = json.loads((Path(__file__).parent / 'data/native-projection-history.json').read_text())
+    if registry.get('schema_version') != 2:
+        raise ValueError('Unsupported native projection history schema')
+    parsers = {source: entry['parser'] for source, entry in registry['scoring_sources'].items()}
+    if any(parser not in {SRCSET_PARSER, 'legacy-comma-split'} for parser in parsers.values()):
+        raise ValueError('Unsupported historical srcset parser')
+    return parsers
+
+
+def _srcset_urls(value, parser, historical_scoring_source):
+    # Source identities bind the historical projection, never the resulting answer.
+    historical = _historical_srcset_parsers().get(historical_scoring_source)
+    if parser is not None:
+        if parser != SRCSET_PARSER or historical not in {None, parser}:
+            raise ValueError('Native srcset parser differs from its bound semantics')
+    else:
+        parser = historical
+    if parser == SRCSET_PARSER:
+        from lexbench_webfetch.resource_urls import srcset_urls
+        return srcset_urls(value)
+    if parser == 'legacy-comma-split':
+        return [part.strip().split()[0] for part in value.split(',') if part.strip()]
+    raise ValueError('Native srcset projection lacks a recognized parser binding')
+
+
+def _attribute_record_urls(groups, base_url, *, parser=None, historical_scoring_source=None):
     """Project declared HTML URL attributes without classifying their targets."""
     urls = []
     for group in groups if isinstance(groups, list) else []:
@@ -188,8 +219,8 @@ def _attribute_record_urls(groups, base_url):
                 name = name.casefold()
                 if name not in {'src', 'srcset', 'href', 'data-src', 'data-original'}:
                     continue
-                from lexbench_webfetch.resource_urls import srcset_urls
-                values = srcset_urls(value) if name == 'srcset' else [value]
+                values = (_srcset_urls(value, parser, historical_scoring_source)
+                          if name == 'srcset' else [value])
                 for raw in values:
                     try:
                         urls.append(urljoin(base_url, raw.strip()))
@@ -216,13 +247,14 @@ def _selected(payload, spec):
         return spec['default']
 
 
-def _project_field(payload, spec):
+def _project_field(payload, spec, *, historical_scoring_source=None):
     value = _selected(payload, spec)
     kind = spec.get('format', 'identity')
     if kind == 'identity':
         return value
     if kind == 'html_attribute_urls':
-        return _attribute_record_urls(value, spec['base_url'])
+        return _attribute_record_urls(value, spec['base_url'], parser=spec.get('srcset_parser'),
+                                      historical_scoring_source=historical_scoring_source)
     if kind == 'named_links':
         return [{'text': item['anchor'], 'href': item['url']}
                 for item in value if isinstance(item, dict)
@@ -261,6 +293,9 @@ def _require_field_spec(spec, field):
     """Reject malformed declarations with a field location, before reading data."""
     if not isinstance(spec, dict):
         raise ValueError(field + ' must be an object')
+    if 'srcset_parser' in spec and (spec.get('format') != 'html_attribute_urls'
+                                    or spec['srcset_parser'] != SRCSET_PARSER):
+        raise ValueError(field + '.srcset_parser is unsupported')
     if 'format' in spec and not isinstance(spec['format'], str):
         raise ValueError(field + '.format must be text')
     if 'pointer' not in spec and spec.get('format', 'identity') not in {
@@ -276,7 +311,7 @@ def _require_field_spec(spec, field):
         _require_field_spec(spec['legacy'], field + '.legacy')
 
 
-def project_native_answer(payload, declaration):
+def project_native_answer(payload, declaration, *, historical_scoring_source=None):
     """Select declared native fields; never inspect references or URL meaning."""
     require_native_projection_schema(declaration)
     kind = declaration.get('content_format')
@@ -305,7 +340,7 @@ def project_native_answer(payload, declaration):
     for name, spec in declaration.get('answer_fields', {}).items():
         if name not in SCORE_ANSWER_FIELDS:
             raise ValueError('Unknown native answer metadata field')
-        fields[name] = _project_field(payload, spec)
+        fields[name] = _project_field(payload, spec, historical_scoring_source=historical_scoring_source)
     return content, fields
 
 
@@ -482,7 +517,8 @@ def project_native_result_fields(payload, declaration, *, request_url=None,
 
 
 def require_native_answer_projection(content, metadata, raw_response, *, files=(), title=None, final_url=None,
-                                     request_url=None, diagnostic=None, transport_receipt=None):
+                                     request_url=None, diagnostic=None, transport_receipt=None,
+                                     historical_scoring_source=None):
     """Reject every undeclared score-bearing input, then check exact provenance."""
     declaration = metadata.get('native_answer_projection')
     present = {key for key in SCORE_ANSWER_FIELDS if metadata.get(key)}
@@ -532,7 +568,7 @@ def require_native_answer_projection(content, metadata, raw_response, *, files=(
         for spec in declaration.get('answer_fields', {}).values():
             if spec.get('format') == 'html_attribute_urls' and spec.get('base_url') != (final_url or request_url):
                 raise ValueError('Native resource base URL differs from its verified result URL')
-    expected, fields = project_native_answer(payload, declaration)
+    expected, fields = project_native_answer(payload, declaration, historical_scoring_source=historical_scoring_source)
     if content != expected or any(metadata.get(key) != value for key, value in fields.items()):
         raise ValueError('Scored answer differs from its declared native field projection')
     if [item['data'] for item in files] != project_native_files(payload, declaration):

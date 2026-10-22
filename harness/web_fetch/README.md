@@ -912,6 +912,22 @@ notice. Bilingual release checks require matching routes and values. English
 repair content must be present in the bound asset set for an English build.
 See [report languages](../../docs/report-hosting.md#report-languages) for all builders.
 
+WCXB findings live in the external, hash-bound `report-content.json` guide editions.
+The home page summarizes measured values and links to that interpretation; it must
+not duplicate case-specific findings in Python. Release checks verify the bound
+article, current profile populations and participant rows. Optional-feature receipt
+paths come from the content binding, and their case must belong to the current
+population; the checks do not require a particular outcome. Illustrations and
+examples are validated against the supplied article rather than a fixed inventory.
+
+WCXB display routes use recorded interface metadata and the shared method registry;
+registered request examples are labeled separately from measured routes. Missing
+route evidence stays unavailable. The builder, renderer and release checker reuse
+`wcxb_scoring.paired_latency_methods` to join comparison roles through the profile's
+binary hashes and certified identities. Participant names are not role bindings;
+a missing or ambiguous binary match is rejected. Version aliases require complete
+participant evidence, not another renderer entry.
+
 `wcxb_latency.py` owns paired-call collection, receipt validation and certification.
 The collector uses the profile's complete qualified population, timeout and binary
 hashes. It runs two serial rounds, reverses order per task and selects the final
@@ -1289,3 +1305,134 @@ there is no separate bind command. `archive` and `plan_path` are `Path` objects
 for the prepared main archive and parts manifest; `publications` maps each part
 identifier to its committed publication receipt. This step binds existing uploads;
 it does not upload attachments.
+
+## Report method metadata
+
+`data/report-methods.json` is the shared, packaged catalog for product labels,
+method profiles, adapter contracts, interface examples, access requirements,
+and capability sources. Keep Chinese and English author text together as
+`{"zh": "...", "en": "..."}`. A versioned execution participant resolves to its
+recorded engine or the engine in `configs/providers.headless.json`; adding a
+release of an existing engine does not require another catalog entry.
+
+Saved `reported_version` takes precedence over hash-bound implementation
+provenance and other recorded version fields. A native engine's four-part CDP
+compatibility version is not an executable release. Missing metadata remains
+unavailable; an unregistered method retains its outputs and explicitly reports
+missing descriptive metadata instead of crashing the report.
+
+Interface requests in this catalog are labeled examples. Saved public call logs
+own measured request fields; frozen run contracts own budgets and method scope.
+Do not copy a cohort's task count, timing, or result conclusion into product
+metadata. Source verification dates belong to each source entry, not to a global
+report date. `checked_version` binds a source to the product version that was
+actually checked; use `null` when that identity was not recorded. Reports disclose
+missing or mismatching version coverage without changing measured results.
+
+Each method has one `access` object (`type`, `account`, `configuration`, `links`,
+and `env_vars`). Hosted checklist entries may additionally declare `priority`
+and `required`. Entries with `status: planned` document account preparation but
+are not executable providers and are not added to reports unless measured.
+Product documentation URLs belong to the method catalog. Execution participants
+may have distinct labels and an explicit `release_channel`; they do not override
+the product documentation source. Saved binary hashes and call records own build
+provenance. A shared adapter is a transport, not necessarily one product: when
+multiple products register an adapter type, the record must name its engine.
+
+`observed_routes` matches saved metadata to descriptions; `interface_variants`
+selects request examples from that same evidence. An adapter's `interface_method`
+selects its catalog interface owner. `runtime_parameters` matches recorded policies
+to parameter descriptions; optional numeric fields must be positive and finite.
+`task_interfaces` describes planned routes and waits. The execution selector
+`output_mode_for_case` owns the mode; descriptions do not redefine it.
+Measured call routes and waits override those examples, including missing values.
+`task_capabilities` describes the selected route boundaries without turning task
+success into a product capability claim. Run budgets, delays and retry limits
+come from execution manifests, not this catalog.
+
+Read colocated translations by language and field identity. Keep both languages
+in the owning object rather than copying them into legacy translation maps.
+
+Historical WCXB and WebMainBench entry points remain supported. The legacy
+75 + 25 audit reader validates its explicitly selected frozen evidence contract;
+new matrices use `uniform_native_local_measurement`. These are not unused code
+merely because their contracts describe older evidence.
+
+### Adding a method or release
+
+1. For another release of an existing engine, add or select its execution entry in
+   `configs/providers.headless.json` (or an external provider configuration), bind
+   its executable and expected identity, and collect new evidence. No new product
+   description or renderer branch is needed.
+2. For a new product, add its bilingual presentation and account requirements to
+   `data/report-methods.json`. A method may `extends` a named `templates` entry;
+   dictionaries merge, lists replace, and missing or cyclic parents are rejected.
+   Register its recorded route descriptions and native output contracts.
+3. Configure its executable provider separately. Reusing a transport does not
+   automatically add a new browser implementation to `providers/headless.py`:
+   a new engine needs execution support and tests there. Existing supported
+   adapters can use an external provider configuration without another adapter.
+   New task modes belong in the execution selector; catalog rules only describe
+   the resulting route and any task-specific limitations.
+4. Run the method registry tests and the public build/check commands against a
+   synthetic matrix containing the new participant, then run `make ci`.
+
+Catalog JSON alone supplies presentation, not executable integration. Adapter
+`interface_method` chooses a request-example owner; method `adapter_types`
+resolves product identity only when unambiguous. Known old participants may
+resolve through the execution registry without recorded `engine`; an unknown
+participant sharing an ambiguous adapter must record its engine explicitly.
+
+Execution configuration `source_url` no longer owns documentation links. Move
+that value to the product's catalog `source_url`; old external configuration keys
+are ignored for report links. Binary hashes and saved call receipts remain the
+source of execution provenance.
+
+Hosted examples describe registered defaults, not universal measured settings:
+Tavily `extract_depth` defaults to `advanced`, Exa `text_verbosity` to `full` and
+`max_age_hours` to zero; these can be overridden by configuration. Read saved
+public request logs for the actual call. Adding a report does not require editing
+these defaults. Runtime parameter rules can fill request fields, replace or append
+parameter descriptions, and validate allowed values, patterns and finite numbers.
+
+The `kind` field is a report grouping (native browser or adapter), not a complete
+product taxonomy. It does not select transport or credentials. Keep these concerns
+in their existing execution and access owners rather than duplicating them.
+
+An adapter may declare `task_mode_provider_type` when its planned task modes
+use an existing execution selector contract under a different transport name.
+For example, the Moli WebFetch transport uses the native Markdown task-mode
+contract. This mapping does not override recorded output routes or waits.
+
+
+### Native resource projection versions
+
+New `html_attribute_urls` declarations record `srcset_parser: html-candidates-v1`.
+This keeps commas inside URLs, recognizes candidate descriptors and preserves
+`data:` URLs. Changing these semantics requires a new parser identity; keep
+previous identities reproducible. New calls and offline correction requests
+must declare their parser instead of inheriting whichever dependency is installed.
+
+Historical declarations without a parser can replay `srcset` only when their
+bound scoring-source identity is registered in
+`harness/web_fetch/data/native-projection-history.json`. Those historical scorers
+included the projection implementation in their source hash. The registry maps
+each proven source hash to its parser, including versions
+that already used the current parser but omitted its declaration. It names
+the exact Git revision, projection source path and source SHA-256; it contains
+no task IDs, measured outputs or result-dependent exceptions. The retained
+comma-splitting behavior is for verifying historical receipts, not new calls.
+Unknown identities and conflicting explicit parser declarations fail closed.
+URL attributes other than `srcset` do not depend on this parser selection.
+
+Revision-chain validation uses the correction receipt's scoring-source identity,
+not a later rescore's identity. Saved-answer validation uses the record's bound
+scoring identity. Both compare the complete reconstructed answer with the saved
+answer; neither tries another parser after a mismatch. No historical results,
+raw responses, scores or receipts are rewritten by this compatibility reader.
+
+Before registering another historical identity, recompute its scoring-source
+hash from the exact ordered source list in that revision's `scoring.py` and
+verify the projection source hash. A matching saved output alone is insufficient.
+The source-bound replay and rejection controls are in
+`tests/test_native_answer_projection.py`.

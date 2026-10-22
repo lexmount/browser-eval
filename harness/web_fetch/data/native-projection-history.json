@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "scoring_sources": {
+    "b17fc68566409232d3840f69aa4511c6dcdfd154c774eb169ea43787659496f7": {
+      "parser": "legacy-comma-split",
+      "repository": "https://github.com/lexmount/browser-eval",
+      "revision": "c6c004f7840f3ed10ed370d2abc2ce621eec429c",
+      "projection_source": "harness/web_fetch/response_input.py",
+      "projection_source_sha256": "2ff5b1ab1a879b77eee521dd21aae810f590f9f511b9928dce893e5c2d6d5695"
+    },
+    "bd08ad5ba4a6ef6962391ef0ea6f3ed7cccaac3294708de87cfd1b9e95d6969c": {
+      "parser": "legacy-comma-split",
+      "repository": "https://github.com/lexmount/browser-eval",
+      "revision": "ec71b5252eaf164754d0f852d3a62ca4cbb1196e",
+      "projection_source": "harness/web_fetch/response_input.py",
+      "projection_source_sha256": "a9e9e87fe002e5774775b6b6cccd1aadd400903d5afce262c003f02b086e2871"
+    },
+    "7e1b468e981cfe1da89d443047aff7facd841cd03f00bfc4b016ed67ba292da3": {
+      "parser": "html-candidates-v1",
+      "repository": "https://github.com/lexmount/lexbench-webfetch",
+      "revision": "84c177d97da3b82567d9881e377aa728929cf129",
+      "projection_source": "src/lexbench_webfetch/resource_urls.py",
+      "projection_source_sha256": "d129031a368a5f4031af277b18ff64702dbab086a98f3aaef05e8d7beb254b07",
+      "caller_revision": "28534e24ea3b6f42f19e360d6ba2571bc9a81d60",
+      "caller_source_sha256": "bc16cfb672019597c56b4b976623bb44feb5fa5c3ca7d3eab9bda8970630db60"
+    },
+    "d042394ea0e8c3aa7aed5851663eaf73772fc4357781999e20a87f48e857e00a": {
+      "parser": "legacy-comma-split",
+      "repository": "https://github.com/lexmount/browser-eval",
+      "revision": "4ef472ff151274e9c526be58bf0e056a1591f420",
+      "projection_source": "harness/web_fetch/response_input.py",
+      "projection_source_sha256": "a9e9e87fe002e5774775b6b6cccd1aadd400903d5afce262c003f02b086e2871"
+    }
+  }
+}

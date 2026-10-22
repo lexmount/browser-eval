@@ -34,45 +34,34 @@ NAV = [
 # references and provider output) is deliberately absent from this catalog.
 _TRANSLATIONS = json.loads(Path(__file__).with_name("report-translations.json").read_text(encoding="utf-8"))
 
-TEXT = dict(_TRANSLATIONS['TEXT_0'])
+TEXT = dict(_TRANSLATIONS['TEXT'])
 
 
 # These strings are presentation copy shared by the overview, methodology,
 # provider, review, release-note, and reproduction pages.  Keeping them here
 # (rather than maintaining a second set of report builders) is intentional:
 # both languages still render the same measured rows and evidence objects.
-TEXT.update(dict(_TRANSLATIONS['TEXT_2']))
 
 
 # Remaining interface copy is report prose rather than measured
 # provider output, so the English top-level pages localize it.
-TEXT.update(dict(_TRANSLATIONS['TEXT_3']))
 
 # Reader-facing task-family copy from report_components.py. These strings are
 # rendered on the methodology page and therefore need full English editions;
 # measured task names and prompts remain unchanged.
-TEXT.update(dict(_TRANSLATIONS['TEXT_4']))
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_5']))
 
 
 # Some generated blocks concatenate several fixed sentences into one text node,
 # or split a sentence around an inline link/code element.  These replacements
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
-PHRASES = dict(_TRANSLATIONS['PHRASES_1'])
+PHRASES = dict(_TRANSLATIONS['PHRASES'])
 
 
 # The adoption page carries a large, evidence-bound capability and pricing
 # inventory. Keep its exact-string translations in small data-only modules so
 # the shared localization engine remains reviewable.
-for adoption_text in (
-    _TRANSLATIONS['ADOPTION_TEXT_A'],
-    _TRANSLATIONS['ADOPTION_TEXT_B'],
-    _TRANSLATIONS['ADOPTION_TEXT_C'],
-    _TRANSLATIONS['ADOPTION_TEXT_D'],
-):
-    TEXT.update(adoption_text)
 
 
 def _body_region_summary(match):
@@ -87,6 +76,7 @@ def _body_region_summary(match):
 
 
 REGEX = [
+    (re.compile(r"^新批次启用自身 DEBUG 并捕获网络库日志；旧 (\d+) 条不计入本报告。$"), r"The new batch enabled native DEBUG output and captured network-library logs; \1 earlier records are excluded from this report."),
     (re.compile(r"^每次物理调用预算为 ([\d.]+) 秒，重试后的累计耗时可能超过该预算。$"), r"Each physical call has a \1-second budget; accumulated latency after retries can exceed it."),
     (re.compile(r"^本报告包含 (\d+) 个任务、(\d+) 个逻辑结果，任务通过 (\d+)/(\d+)。结论仅适用于已登记的任务和规则。$"), r"This report contains \1 tasks and \2 logical results, with \3/\4 task passes. Conclusions apply only to the registered tasks and rules."),
     (re.compile(r"^的 F1 为 ([\d.]+%)，但没有满足该例任务规则。零通过表示没有一次满足全部任务门槛，不表示输出与参考毫无词语重合。这里的 F1 对照已保存的样本文本，只诊断文字重合，不承担实时事实核验。词频相似度允许部分文字得分，任务规则检查指定的内容或字段结构；二者应保留各自的含义。$"),
@@ -152,7 +142,6 @@ REGEX = [
     (re.compile(r"^供应商明确声明返回内容已截断：(.*)$"), r"The provider explicitly declares that the returned body is truncated: \1"),
     (re.compile(r"^当前报告共 (\d+) 个案例、(\d+) 种方法和 ([\d,]+) 条权威逻辑结果；其中其他 ([\d,]+) 条未被本次文件补测改写。$"), r"The current report contains \1 tasks, \2 methods, and \3 authoritative logical results; the other \4 results were not changed by this file-task rerun."),
     (re.compile(r"^至少 (\d+) 条不同记录$"), r"At least \1 distinct records"),
-    (re.compile(r"^主结果时间：(.+)（UTC）。Moli 统一采用 1.1.1。产品定位依据各自公开说明；结果仅对应本轮输入、配置与运行条件。$"), lambda m: "Primary-result dates: " + m.group(1).replace(" 至 ", " to ") + " (UTC). Moli uses 1.1.1 throughout. Product descriptions follow each project's public documentation; results apply only to this run's inputs, configurations, and conditions."),
     (re.compile(r"^排除：(.+)$"), r"Exclude: \1"),
     (re.compile(r"^至少 ([\d,]+) 字符$"), r"At least \1 characters"),
     (re.compile(r"^([\d,]+) 字符$"), r"\1 characters"),
@@ -169,7 +158,6 @@ REGEX = [
     (re.compile(r"^(Moli|pypdf) · ([\d.]+) 秒$"), r"\1 · \2 seconds"),
     (re.compile(r"^端到端 ([\d.]+) 秒$"), r"End to end: \1 seconds"),
     (re.compile(r"^输入《Attention Is All You Need》的 PDF 地址，目标是取得论文正文。Moli 获取文件约用 ([\d.]+) 秒，本地 pypdf 提取文字约用 ([\d.]+) 秒，整条路线共 ([\d.]+) 秒，返回 ([\d,]+) 个字符。五段参考正文全部覆盖，本题词级 Precision、Recall、F1 均为 100%。$"), r"The Attention Is All You Need PDF task requires the paper's body text. Moli retrieves the file in about \1 seconds, local pypdf extracts text in about \2 seconds, and the complete path takes \3 seconds, returning \4 characters. All five reference body regions are covered, with word-level precision, recall, and F1 each at 100%."),
-    (re.compile(r"^实测范围：(.+)（UTC）的主结果；Moli 固定采用 1.1.1。本文任务、参考和实际返回均可追溯到独立复核记录。产品说明与版本动态核对日期：2026-09-10。$"), lambda m: "Scope: primary results from " + m.group(1).replace(" 至 ", " to ") + " (UTC); Moli is fixed at 1.1.1. Tasks, references, and actual outputs are traceable to independent review records. Product descriptions and release updates checked on 2026-09-10."),
     (re.compile(r"^代表案例：(.*)$"), r"Representative cases: \1"),
     (re.compile(r"^([\d,]+) 个字符$"), r"\1 characters"),
     (re.compile(r"^([\d,]+) 字节$"), r"\1 bytes"),
@@ -261,38 +249,26 @@ REGEX = [
 
 
 # Current standalone article: authored prose only.
-TEXT.update(dict(_TRANSLATIONS['TEXT_6']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_7']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_8']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_9']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_10']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_11']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_12']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_13']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_14']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_15']))
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_16']))
 
-PHRASES.update(dict(_TRANSLATIONS['PHRASES_17']))
 
 def release_translations(history: dict) -> dict[str, str]:
     """Localize only the structured release records included in this report."""
@@ -330,16 +306,12 @@ REGEX.insert(0, (
 ))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_18']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_19']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_20']))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_21']))
 
 
 REGEX.insert(0, (
@@ -348,9 +320,7 @@ REGEX.insert(0, (
 ))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_22']))
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_23']))
 
 REGEX.insert(0, (
     re.compile(r"^(\d+) 份真实日志文件已保存并通过 SHA-256 校验。$"),
@@ -428,15 +398,12 @@ REGEX.insert(0, (
 ))
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_24']))
 
 REGEX.insert(0, (
     re.compile(r"^资源表覆盖预先确定的全部 (\d+) 个普通网页，包含失败调用。这组任务的通过数：(.*)。各项平均值、P50、P95 使用同一完整范围。$"),
     lambda match: (
         f"The resource table covers all {match.group(1)} predeclared general pages, including failed calls. "
-        "Pass counts: " + match.group(2).replace(
-            "Moli 1.1.15 · 独立资源批次", "Moli 1.1.15 · independent resource cohort"
-        ).replace("，", ", ")
+        "Pass counts: " + match.group(2).replace("，", ", ")
         + ". Mean, P50, and P95 share this complete population."
     ),
 ))
@@ -456,9 +423,7 @@ REGEX.insert(0, (
 ))
 REGEX.insert(0, (
     re.compile(r"^(?:Chromium|Lightpanda|Moli(?: \d+(?:\.\d+)*)?(?: · 独立资源批次)?|Obscura)(?:、(?:Chromium|Lightpanda|Moli(?: \d+(?:\.\d+)*)?(?: · 独立资源批次)?|Obscura))+$"),
-    lambda match: match.group(0).replace(
-        "Moli 1.1.15 · 独立资源批次", "Moli 1.1.15 · independent resource cohort"
-    ).replace("、", ", "),
+    lambda match: match.group(0).replace("、", ", "),
 ))
 REGEX.insert(0, (
     re.compile(r"^(.+) 是本轮资源效率领先者，在 (\d+) 个可按低消耗比较的指标中取得 (\d+) 项最低。这里的资源领先不等于综合任务通过率领先。$"),
@@ -507,7 +472,6 @@ REGEX[:0] = [
     (re.compile(r"^(\d+) 个案例 · (\d+) 次调用，机器判分。本轮未重新核验来源。$"), r"\1 cases · \2 calls, machine-scored. Sources were not reverified for this run."),
     (re.compile(r"^每种方法均使用同一组 (\d+) 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。各方法串行执行，仍受本地与远程环境、网络和产品内部限制影响。$"), r"Each method uses the same \1 tasks, including passes, failures, errors, and timeouts. Latency runs from input to return for a single call, excluding shared cooldown intervals. Each method runs serially and remains subject to local and remote environments, networks, and product limits."),
 ]
-TEXT.update(dict(_TRANSLATIONS['TEXT_25']))
 
 REGEX.extend([
     (re.compile(r"^核验于 (\d{4}-\d{2}-\d{2})。算力、网络、存储、代理和维护成本自担；没有测量这些成本，不把本地调用等同于零成本。官方托管产品或服务价格不属于本地执行模式。$"),
@@ -623,7 +587,7 @@ class Localizer(HTMLParser):
         self.parts.append(f"<!{decl}>")
 
     def handle_starttag(self, tag: str, attrs) -> None:
-        localized = dict(attrs).get('data-report-en') if tag == 'span' else None
+        localized = dict(attrs).get('data-report-en') if tag in {'span', 'option'} else None
         parent_model = any(self.model_text_stack)
         self.model_text_stack.append(localized is not None or parent_model)
         self.translate_stack.append(self._allows_translation(attrs))
@@ -779,21 +743,15 @@ def localize_html(page: str, source: PurePosixPath, *, translations=None) -> str
     return _rewrite_links(localized, source, english)
 
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_26']))
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_27']))
 REGEX.insert(0, (re.compile(r"^源码提交：(.+)$"), r"Source commit: \1"))
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_28']))
-PHRASES.update(dict(_TRANSLATIONS['PHRASES_29']))
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_30']))
 REGEX.insert(0, (re.compile(r"^(\d+) 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。$"), r"Passed / decidable results among \1 planned tasks; each task has equal weight, and undecidable results are excluded from the denominator."))
 REGEX.insert(0, (re.compile('^每种方法均使用同一组 (\\d+) 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。$'), 'Each method uses the same \\1 tasks, including passes, failures, errors, and timeouts. Latency runs from input to return and excludes the common cooldown between calls. Cases execute sequentially within each method; inter-method scheduling and limits are documented in the call-chain audit. Local and remote environments, networks, and product limits still affect latency.'))
 REGEX.insert(0, (re.compile(r"^(\d+)/(\d+) · 复核记录$"), r"\1/\2 · review records"))
 REGEX.insert(0, (re.compile(r"^(\d+) 条通过结果的参考词精确率低于 30%。此比例用于定位检查对象，不是统一失败线；通过不保证干净正文，正文参考的范围和时间也会影响该指标。$"), r"\1 passing results have reference word precision below 30%. This locates inspection candidates, not a universal failure threshold. Passing does not establish clean body text; reference scope and time also affect this metric."))
 
-TEXT.update(dict(_TRANSLATIONS['TEXT_31']))
 
 def write_english_report(out: Path, *, source_routes=None) -> int:
     """Mirror Chinese HTML routes; a scoped refresh preserves other editions."""

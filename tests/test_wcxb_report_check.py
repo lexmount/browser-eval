@@ -69,3 +69,40 @@ def test_primary_language_entry_script_does_not_change_report_content_shape():
     require_bilingual_shape(zh, en, "index.html")
     with pytest.raises(ValueError, match="bilingual"):
         require_bilingual_shape(zh, broken, "index.html")
+
+
+@pytest.mark.parametrize("separate_example", [False, True])
+def test_guide_checks_bound_content_and_current_methods_without_fixed_cases(separate_example):
+    from bs4 import BeautifulSoup
+    from harness.web_fetch.wcxb_report_check import require_guide_interpretation
+
+    anchors = ('guide-results', 'guide-score', 'guide-cases', 'guide-methods',
+               'guide-timing', 'guide-conclusion')
+    html = '<main><nav class="essay-toc">' + ''.join(
+        f'<a href="#{name}">{name}</a>' for name in anchors) + '</nav>'
+    html += '<section id="guide-results"><table><tbody>'
+    for name in ('alpha', 'beta'):
+        html += f'<tr><td><a href="providers/{name}.html">{name}</a></td><td>50.00%</td><td>15 ms</td></tr>'
+    html += '</tbody></table></section><section id="guide-score">Word overlap</section>'
+    html += '<section id="guide-cases"><a href="cases/custom-example.html#alpha">Evidence</a></section>'
+    html += '<section id="guide-methods"><table><tbody><tr><td>alpha</td></tr><tr><td>beta</td></tr></tbody></table></section>'
+    html += '<section id="guide-timing"><a href="research/wcxb-full-paired-latency/calls.jsonl">Calls</a><a href="research/wcxb-full-paired-latency/certification.json">Certificate</a></section>'
+    html += '<section id="guide-conclusion">' + 'This is a synthetic bound finding with independent evidence. ' * 5 + '</section></main>'
+    if separate_example:
+        html = html.replace('<section id="guide-cases"><a', '<section id="guide-cases">Examples</section><section class="sample"><a')
+    summary = {'providers': {p: {'quality_f1': .5, 'mean_latency_ms': 15} for p in ('alpha', 'beta')}}
+    require_guide_interpretation(html, summary, ['alpha', 'beta'], 'en', expected_html=html)
+    for selector in ('a[href*="custom-example"]', '#guide-conclusion', '#guide-results tbody tr'):
+        changed = BeautifulSoup(html, 'html.parser')
+        changed.select_one(selector).decompose()
+        with pytest.raises(ValueError, match='bound interpretation'):
+            require_guide_interpretation(changed, summary, ['alpha', 'beta'], 'en', expected_html=html)
+    missing = BeautifulSoup(html, 'html.parser')
+    missing.select_one('a[href*="custom-example"]').decompose()
+    with pytest.raises(ValueError, match='inspectable source'):
+        require_guide_interpretation(missing, summary, ['alpha', 'beta'], 'en', expected_html=str(missing))
+    # Even authentic prose must agree with the current measured numbers.
+    changed_summary = {'providers': {**summary['providers'], 'alpha': {'quality_f1': .7, 'mean_latency_ms': 15}}}
+    with pytest.raises(ValueError, match='alpha evidence'):
+        require_guide_interpretation(html, changed_summary, ['alpha', 'beta'], 'en', expected_html=html)
+

@@ -325,7 +325,10 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     method_records = [{**records[0], "provider_type": "firecrawl"}]
     method_cases = {actual["id"]: actual}
     page = provider_page_body("firecrawl", method_records, method_cases, [], [], native_default=True)
-    assert "产品内部超时保留默认值" in page
+    assert "产品内部超时保留默认值" not in page
+    assert "内部参数以保存的请求为准" in page
+    assert 'href="../methodology/index.html"' in page
+    assert 'href="../reproduce/index.html"' in page
     assert "Actions" not in page
     assert "Actions" in provider_page_body("firecrawl", method_records, method_cases, [], [])
 

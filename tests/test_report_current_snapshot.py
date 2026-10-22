@@ -62,6 +62,20 @@ def test_call_chain_preserves_authored_log_scope_verbatim():
     assert note in result
 
 
+def test_call_chain_localizes_saved_log_scope_with_variable_counts():
+    for count in (17, 2048):
+        note = f'新批次启用自身 DEBUG 并捕获网络库日志；旧 {count} 条不计入本报告。'
+        dataset = {'comparison': {'call_chain_audit': {'methods': [
+            {'provider': 'fixture', 'native_log_note': note}]}}}
+        original = json.dumps(dataset)
+        page = report.local_call_chain_section(dataset)
+        assert note in page
+        english = localize_html(page, PurePosixPath('reproduce/index.html'))
+        assert f'{count} earlier records are excluded from this report.' in english
+        assert note not in english
+        assert json.dumps(dataset) == original
+
+
 def test_current_review_does_not_repeat_predecessor_scores(tmp_path, monkeypatch):
     old, added = case('retained'), case('added')
     records = [record(old), record(added, passed=False)]
@@ -116,3 +130,22 @@ def test_reproduction_command_runs_through_the_current_public_cli(tmp_path):
     build.assert_called_once()
     assert build.call_args.kwargs['local_audit'] is True
     assert build.call_args.kwargs['presentation_binding'] is not None
+
+
+def test_local_audit_notice_does_not_invent_participant_or_batch_facts():
+    for kind in ('historical_fixture', 'another_fixture'):
+        dataset = {'comparison': {'kind': kind,
+                   'publication_state': 'local_audit_only_not_for_release'}}
+        before = json.dumps(dataset)
+        page = report.local_audit_banner(dataset)
+        english = localize_html(page, PurePosixPath('index.html'))
+        assert '本地审核版' in page
+        assert 'Local audit report' in english
+        assert 'saved records for tool versions, call times and verification scope' in english
+        for output in (page, english):
+            assert 'Moli' not in output
+            assert '两个不同日期' not in output
+            assert 'two Moli call cohorts' not in output
+            assert 'no new Moli calls' not in output
+        assert json.dumps(dataset) == before
+    assert report.local_audit_banner({'comparison': {'publication_state': 'release'}}) == ''

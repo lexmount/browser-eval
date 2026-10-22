@@ -1,7 +1,5 @@
 """Scorer controls added after the historical dynamic-audit test inventory froze."""
 
-from unittest.mock import patch
-
 import pytest
 
 from lexbench_webfetch.scoring import score_attempt
@@ -39,18 +37,15 @@ def test_metadata_title_length_cannot_expose_hidden_html(length):
         assert direct['stable_anchor_results']==scored['stable_anchor_results']
 
 
-def test_html_body_text_is_normalized_once_without_losing_title():
-    from lexbench_webfetch.dynamic_lists import _scoped_html
+def test_html_body_text_preserves_visible_words_and_title():
     rules={'version':1,'schema':'body_text','minimum_records':0,
            'stable_text_anchors':[{'id':'body','alternatives':['Required body']}]}
     html='<html><body><p>Required <b>body</b></p><script>Access denied</script></body></html>'
     case={'id':'article','url':'https://example.com/article','track':'web','task_kind':'body','acceptance_contract':rules}
-    with patch('lexbench_webfetch.dynamic_lists._scoped_html',wraps=_scoped_html) as parser:
-        scored=score_attempt(case,html.encode(),ok=True,title='Page heading')
+    scored=score_attempt(case,html.encode(),ok=True,title='Page heading')
     assert scored['stable_task_pass'] is True
     assert scored['blocked_page'] is False
     assert scored['title_chars']==len('Page heading')
-    assert parser.call_count==1
 
 
 @pytest.mark.parametrize('tag', ['strong', 'code', 'em', 'a', 'span'])

@@ -11,7 +11,6 @@ from urllib.parse import parse_qsl, urlencode, urlsplit
 
 from harness.record_io import file_sha256, load_jsonl
 from harness.report_languages import check_language_contract, generated_languages, visible_numbers
-from harness.reporting.article_assets import ArticleAssetParity
 from harness.reporting.presentation import check_presentation
 from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
 from harness.web_fetch.reliability import require_reliable
@@ -157,7 +156,7 @@ class EnglishNarrative(HTMLParser):
 
 
 class PageShape(HTMLParser):
-    def __init__(self, page=None, assets=None):
+    def __init__(self, page=None):
         super().__init__()
         self.tags = Counter()
         self.ids = set()
@@ -166,16 +165,10 @@ class PageShape(HTMLParser):
         self.skip = 0
         self.numbers = []
         self.page = page
-        self.assets = assets
-        self.figures = []
         self.images = []
         self.english_images = []
 
     def handle_starttag(self, tag, attrs):
-        if tag == "figure":
-            self.figures.append(dict(attrs).get("id"))
-        if self.assets and self.figures:
-            attrs = self.assets.rewrite(self.page, self.figures[-1], tag, attrs)
         values = dict(attrs)
         # This script selects the primary language at the shared entry point;
         # it is not report content and intentionally exists only on that page.
@@ -203,8 +196,6 @@ class PageShape(HTMLParser):
             self.skip += 1
 
     def handle_endtag(self, tag):
-        if tag == "figure" and self.figures:
-            self.figures.pop()
         if tag in {"pre", "code", "script", "style"}:
             self.skip = max(0, self.skip - 1)
 
@@ -569,19 +560,13 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         )
 
     bilingual_issues = []
-    asset_manifest = repository / "research/editorial-figures.json"
-    article_assets = (
-        ArticleAssetParity(root, asset_manifest)
-        if has_english and asset_manifest.exists() and (root / "assets/editorial").exists()
-        else None
-    )
     if has_english:
         for relative in sorted(zh_pages):
             zh_path = root / relative
             en_path = root / "en" / relative
-            zh = PageShape(zh_path, article_assets)
+            zh = PageShape(zh_path)
             zh.feed(zh_path.read_text())
-            en = PageShape(en_path, article_assets)
+            en = PageShape(en_path)
             en.feed(en_path.read_text())
             if zh.tags != en.tags:
                 bilingual_issues.append((relative, "semantic tag counts differ"))

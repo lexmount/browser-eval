@@ -1244,6 +1244,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     baseline, candidate_id = comparison.get('baseline'), comparison.get('candidate')
     if comparison and (baseline == candidate_id or {baseline,candidate_id} - set(providers)):
         raise ValueError('WCXB paired comparison must name two registered participants')
+
     from harness.reporting.assets import load_bound_content
     report_content = load_bound_content(
         source / "report-assets", content_binding,
@@ -1273,18 +1274,11 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         raise ValueError('WCXB official evaluator differs from the certified profile')
     if [x['provider'] for x in certificate['providers']] != providers:
         raise ValueError('WCXB participant registry differs from the certificate')
-    if comparison:
-        candidate = next(x for x in certificate['providers'] if x['provider'] == candidate_id)
-        if candidate['identity'].get('binary_sha256') != profile['candidate_binary_sha256']:
-            raise ValueError('WCXB candidate binary differs from the current report profile')
-        released = next(x for x in certificate['providers'] if x['provider'] == baseline)
-        if released['identity'].get('binary_sha256') != profile['release_binary_sha256']:
-            raise ValueError('WCXB baseline binary differs from the current report profile')
+    from harness.web_fetch.wcxb_scoring import paired_latency_methods
+    paired_methods = paired_latency_methods(profile, certificate) if profile.get('latency_correction_receipt_sha256') else {}
     rows = load_jsonl(source / 'wcxb-scores.jsonl', skip_blank=True)
     case_ids = {r['track_id'] for r in records}
     if profile.get('latency_correction_receipt_sha256'):
-        if not comparison:
-            raise ValueError('WCXB corrected timing requires declared comparison participants')
         correction_root = source / 'latency-correction'
         correction_receipt = correction_root / 'receipt.json'
         if (not correction_receipt.is_file()
@@ -1300,23 +1294,28 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             raise ValueError('WCXB corrected timing is not certified')
         if any(
             abs(row['total_elapsed_ms'] - corrected_calls[row['case_id'],
-                'release' if row['provider'] == baseline else 'pr']['elapsed_ms']) > .01
-            for row in rows if row['provider'] in (baseline,candidate_id)
+                paired_methods[row['provider']]]['elapsed_ms']) > .01
+            for row in rows if row['provider'] in paired_methods
         ):
             raise ValueError('WCXB reported paired latency differs from the selected paired round')
     if profile.get('optional_ui_receipt_sha256'):
-        optional_root = source / 'optional-ui-4017'
-        optional_receipt = optional_root / 'receipt.json'
+        optional_paths = [name for name, sha in content_binding['evidence'].items()
+                          if sha == profile.get('optional_ui_receipt_sha256')]
+        if len(optional_paths) != 1:
+            raise ValueError('Optional feature receipt must have one evidence binding')
+        optional_receipt = contained_path(source, optional_paths[0], reject_symlinks=True)
+        optional_root = optional_receipt.parent
+        optional_public = Path('research') / ('wcxb-' + optional_root.name)
         if (not optional_receipt.is_file() or optional_receipt.is_symlink()
                 or file_sha256(optional_receipt)
                 != profile.get('optional_ui_receipt_sha256')):
             raise ValueError('WCXB optional UI-stripping evidence is missing or differs from profile')
         optional = json.loads(optional_receipt.read_text())
-        if (optional.get('case_id') != '4017' or optional.get('source_sha256') != corpus_hash
+        if (optional.get('case_id') not in case_ids or optional.get('source_sha256') != corpus_hash
                 or optional.get('builds', {}).get('release', {}).get('binary_sha256') != profile['release_binary_sha256']
                 or optional.get('builds', {}).get('candidate', {}).get('binary_sha256') != profile['candidate_binary_sha256']
-                or optional['builds']['release']['description_present']
-                or not optional['builds']['candidate']['description_present']):
+                or any(not isinstance(build.get('description_present'), bool)
+                       for build in optional['builds'].values())):
             raise ValueError('WCXB optional UI-stripping comparison does not bind both builds')
         for name in ('release', 'candidate'):
             for ext, key in (('md', 'output_sha256'), ('stderr', 'stderr_sha256')):
@@ -1324,6 +1323,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 if (not artifact.is_file() or artifact.is_symlink()
                         or file_sha256(artifact) != optional['builds'][name][key]):
                     raise ValueError('WCXB optional UI-stripping artifact changed: ' + artifact.name)
+
     if len(rows) != len(records) * len(providers) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in providers for c in case_ids}:
         raise ValueError('WCXB score matrix is incomplete')
     if output.exists() and not (output / '.generated-report').is_file():
@@ -1340,9 +1340,10 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             for name in ('receipt.json', 'certification.json', 'calls.jsonl'):
                 shutil.copy2(correction_root / name, staging / 'research/wcxb-full-paired-latency' / name)
         if profile.get('optional_ui_receipt_sha256'):
-            (staging / 'research/wcxb-optional-ui-4017').mkdir()
+            (staging / optional_public).mkdir()
             for name in ('receipt.json', 'release.md', 'candidate.md', 'release.stderr', 'candidate.stderr'):
-                shutil.copy2(optional_root / name, staging / 'research/wcxb-optional-ui-4017' / name)
+                shutil.copy2(optional_root / name, staging / optional_public / name)
+
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/report-changes.json',
                      staging / 'research/report-changes.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json',

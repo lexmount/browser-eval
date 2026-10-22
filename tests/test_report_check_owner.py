@@ -105,27 +105,6 @@ def test_bilingual_mismatches_rejected(tmp_path, defect):
         check(root, authority_root=authority)
 
 
-def test_chinese_only_report_does_not_require_english_editorial_assets(tmp_path):
-    root, authority = create_report(tmp_path)
-    (root / "assets/editorial").mkdir(parents=True)
-    (root / "assets/editorial/zh.png").write_bytes(b"Chinese image")
-    write_json(
-        authority / "research/editorial-figures.json",
-        {
-            "figures": [
-                {
-                    "slot": "diagram",
-                    "assets": {
-                        "zh": {"file": "zh.png", "sha256": "unused"},
-                        "en": {"file": "missing-en.png", "sha256": "unused"},
-                    },
-                }
-            ]
-        },
-    )
-    assert check(root, authority_root=authority).startswith("PASS:")
-
-
 def test_explicit_headless_profile_is_not_replaced_by_global_profile(tmp_path):
     root, authority = create_report(tmp_path, headless=True)
     result = run_check(root, authority, True, "--profile", "evaluation/custom/current-report.json")

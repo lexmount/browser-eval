@@ -25,9 +25,21 @@ def write(path, value):
     (5, 2, 18, True),
     (12, 3, 30, True),
     (7, 4, 45, True),
+    (7, 4, 11, True),
 ])
 def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
                                                      case_count, method_count, timeout, failures):
+    from harness.web_fetch.providers.fixture import FixtureProvider
+    original_fetch = FixtureProvider.fetch
+
+    def versioned_fixture(self, case, timeout, **kwargs):
+        result = original_fetch(self, case, timeout, **kwargs)
+        result.metadata.update(reported_version="9.9.9", browser_version="150.0.0.0",
+                               output_contract="native_markdown_resource_urls")
+        return result
+
+    monkeypatch.setattr(FixtureProvider, "fetch", versioned_fixture)
+
     root = Path(__file__).resolve().parents[1]
     evidence = tmp_path / "evidence"
     methods = [f"synthetic-{n}" for n in range(method_count)]
@@ -93,8 +105,32 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
             assert result.code == 0
     manifest = json.loads((output / "report-manifest.json").read_text())
     assert manifest["generated_languages"] == ["zh", "en"]
+    for name in methods:
+        for prefix in ['', 'en/']:
+            page = (output / prefix / f'attempts/{name}__task-{min(1,case_count-1)}__r001.html').read_text()
+            assert name+' 9.9.9' in page
+            assert 'Moli 原生 Markdown' not in page
+            assert 'Moli native Markdown' not in page
+            assert 'native Markdown' in page
     saved = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
     assert len(saved) == case_count * method_count
+    for prefix, unit in (("", "秒"), ("en/", "seconds")):
+        methodology = (output / prefix / "methodology/index.html").read_text()
+        assert f"{timeout} {unit}" in methodology
+        if timeout != 45:
+            assert "45 秒" not in methodology
+        assert "6.1 秒" not in methodology
+    assert all(row["provider_metadata"]["reported_version"] == "9.9.9" for row in saved)
+    if timeout == 30:
+        for page in output.rglob("*.html"):
+            content = page.read_text()
+            for stale in ("45 秒", "45-second", "6.1 秒", "6.1-second",
+                          "node-html-markdown 2.0.0", "40.5 秒"):
+                assert stale not in content, (page.relative_to(output), stale)
+    for prefix in ("", "en/"):
+        home = (output / prefix / "index.html").read_text()
+        assert "synthetic-0 9.9.9" in home
+        assert "synthetic-0 150.0.0.0" not in home
     for prefix in ("", "en/"):
         assert len(list((output / prefix / "attempts").glob("*.html"))) == len(saved)
     assert (output / "local-evidence/input-dataset.json").read_bytes() == frozen.read_bytes()

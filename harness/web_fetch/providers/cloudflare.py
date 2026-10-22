@@ -499,7 +499,7 @@ class CloudflareMarkdownProvider(Provider):
         if not isinstance(payload, dict):
             payload = {}
         envelope_success = payload.get("success") is True
-        from ..native_projection import project_native_answer
+        from ..native_projection import project_native_answer, SRCSET_PARSER
         answer_key = 'images' if case.track == 'image' else 'videos'
         meta = payload.get('meta') if isinstance(payload.get('meta'), dict) else {}
         effective_url = meta.get('finalUrl') or case.url
@@ -508,7 +508,7 @@ class CloudflareMarkdownProvider(Provider):
                           'pointer': ['meta', 'finalUrl'], 'fallback': 'request_url'}},
                       'answer_fields': {answer_key: {
                           'pointer': ['result'], 'format': 'html_attribute_urls',
-                          'base_url': effective_url}}}
+                          'srcset_parser': SRCSET_PARSER, 'base_url': effective_url}}}
         answer, fields = ('', {})
         if envelope_success:
             answer, fields = project_native_answer(payload, projection)

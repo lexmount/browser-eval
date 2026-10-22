@@ -3,12 +3,9 @@ from __future__ import annotations
 
 from html import escape
 
-PROVIDER_NAMES = {
-    'chromium': 'Chromium',
-    'lightpanda': 'Lightpanda',
-    'moli': 'Moli 1.1.15 · 独立资源批次',
-    'obscura': 'Obscura',
-}
+from .methods import report_method
+from .report_components import bilingual_text
+from harness.numbers import positive_number
 
 
 GROUPS = (
@@ -63,6 +60,10 @@ def render_resource_comparison(summary, providers):
         return ('<p>当前证据没有独立的客户端资源测量；不从耗时反推 CPU 或内存。</p>',
                 {'winner': None, 'winner_count': 0, 'ranked_metric_count': 0})
     indexed = {row['provider']: row for row in summary['rows']}
+    def provider_name(provider):
+        # This independent cohort must not borrow versions from the main matrix.
+        label = report_method(provider).get('label', {})
+        return label.get('zh', provider)
     declared = summary.get('providers', list(indexed))
     local = [provider for provider in providers if provider in declared]
     missing = sorted(set(local) - set(indexed))
@@ -83,11 +84,11 @@ def render_resource_comparison(summary, providers):
     leader = max(local, key=lambda provider: wins[provider])
     leaders = [provider for provider in local if wins[provider] == wins[leader]]
     leader_tied = len(leaders) > 1
-    leader_label = '、'.join(PROVIDER_NAMES.get(provider, provider) for provider in leaders)
+    leader_label = '、'.join(provider_name(provider) for provider in leaders)
 
     def lowest(key, statistic):
         best = min(_metric(indexed, provider, key, statistic) for provider in local)
-        labels = '、'.join(PROVIDER_NAMES.get(provider, provider) for provider in local
+        labels = '、'.join(provider_name(provider) for provider in local
                           if _metric(indexed, provider, key, statistic) == best)
         return best, labels
 
@@ -132,7 +133,7 @@ def render_resource_comparison(summary, providers):
                     f'data-sort="{values[provider]}">' + rendered + '</td>')
             rows.append(f'<tr><td>{row_index}</td><td class="resource-metric">' + escape(metric_name) + '</td>'
                         + ''.join(cells) + '</tr>')
-        header = ''.join('<th scope="col">' + escape(PROVIDER_NAMES.get(provider, provider)) + '</th>'
+        header = ''.join('<th scope="col">' + escape(provider_name(provider)) + '</th>'
                          for provider in local)
         sections.append(
             '<section class="resource-group"><h3>' + escape(group_name) + '</h3>'
@@ -143,7 +144,7 @@ def render_resource_comparison(summary, providers):
             + ''.join(rows) + '</tbody></table></div></section>')
 
     count = len(summary['planned_cases'])
-    completions = '，'.join(PROVIDER_NAMES.get(provider, provider) + ' ' +
+    completions = '，'.join(provider_name(provider) + ' ' +
         str(indexed[provider].get('successful_attempts', '—')) + '/' + str(count)
         for provider in local)
     sample = (f'<p class="resource-sample" data-resource-population="all_declared_calls" '
@@ -152,11 +153,25 @@ def render_resource_comparison(summary, providers):
               '<p>所列配置共同通过 '
               f'<strong>{len(summary["common_pass_cases"])}/{count}</strong>；'
               '这项交集只作附加诊断，不用于选择资源表的样本。各方法成功调用的条件统计另保留在资源证据中。</p>')
-    caveat = ('<p class="callout"><b>可比边界：</b>每次调用使用一次性 Linux 客户端容器、cgroup v2 与独立网络命名空间；'
-              '宿主控制器和容器启停不计入。Kitesurf 的远端浏览器 CPU、内存和远端上游流量不可见，'
-              '因此不进入资源表或本地引擎资源排名。</p>'
-              '<p class="source-note">CPU 与网络总量来自累计计数；内存与瞬时速率按 50 ms 采样，可能遗漏更短尖峰。'
-              'CPU 占用、传输速率不按“越低越好”评选。完整方法与逐次证据见环境与复现页。</p>')
+    interval = summary.get('environment', {}).get('sample_interval_ms')
+    sampling_note = bilingual_text(
+        f'CPU 与网络总量来自累计计数；内存与瞬时速率按 {interval:g} ms 采样，可能遗漏更短尖峰。'
+        if positive_number(interval) else 'CPU 与网络总量来自累计计数；采样间隔未记录，不能据此判断短时尖峰覆盖。',
+        f'CPU and network totals come from cumulative counters. Memory and instantaneous rates are sampled every {interval:g} ms and may miss shorter spikes.'
+        if positive_number(interval) else 'CPU and network totals come from cumulative counters. The sample interval was not recorded, so short-lived peak coverage is unknown.')
+    unmeasured = [provider for provider in providers if provider not in declared]
+    scope_note = bilingual_text(
+        '每次调用使用一次性 Linux 客户端容器、cgroup v2 与独立网络命名空间；宿主控制器和容器启停不计入。不可见的远端 CPU、内存和上游流量不能计为本地资源测量。',
+        'Each call uses a disposable Linux client container, cgroup v2 and a dedicated network namespace; the host controller and container lifecycle are excluded. Unobservable remote CPU, memory and upstream traffic cannot count as local resource measurements.')
+    if unmeasured:
+        scope_note += bilingual_text(
+            '未列入本资源测量范围的方法：'+ '、'.join(provider_name(provider) for provider in unmeasured)+'。',
+            'Methods outside this resource cohort: '+ ', '.join(
+                report_method(provider).get('label', {}).get('en', provider) for provider in unmeasured)+'.')
+    caveat = ('<p class="callout"><b>'+bilingual_text('可比边界：', 'Comparison scope: ')+
+              '</b>'+scope_note+'</p><p class="source-note">'+sampling_note+
+              bilingual_text('CPU 占用、传输速率不按“越低越好”评选。完整方法与逐次证据见环境与复现页。',
+                  'CPU utilization and transfer rates are not ranked as lower-is-better. See Methodology and Reproduction for full methods and per-call evidence.')+'</p>')
     return headline + cards + sample + '<div class="resource-groups">' + ''.join(sections) + '</div>' + caveat, {
         'winner': leader,
         'winner_label': leader_label,
