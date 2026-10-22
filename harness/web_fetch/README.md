@@ -911,6 +911,14 @@ paths come from the content binding, and their case must belong to the current
 population; the checks do not require a particular outcome. Illustrations and
 examples are validated against the supplied article rather than a fixed inventory.
 
+WCXB display routes use recorded interface metadata and the shared method registry;
+registered request examples are labeled separately from measured routes. Missing
+route evidence stays unavailable. The builder, renderer and release checker reuse
+`wcxb_scoring.paired_latency_methods` to join comparison roles through the profile's
+binary hashes and certified identities. Participant names are not role bindings;
+a missing or ambiguous binary match is rejected. Version aliases require complete
+participant evidence, not another renderer entry.
+
 `wcxb_latency.py` owns paired-call collection, receipt validation and certification.
 The collector uses the profile's complete qualified population, timeout and binary
 hashes. It runs two serial rounds, reverses order per task and selects the final

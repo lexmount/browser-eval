@@ -139,21 +139,22 @@ def require_analysis_controls(html: str | BeautifulSoup, result_count: int) -> B
 
 
 def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
-                                paired_latency: dict, lang: str) -> BeautifulSoup:
+                                paired_latency: dict, lang: str, paired_methods: dict) -> BeautifulSoup:
     """Keep the version comparison readable and its timing caveat beside the table."""
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
     core = soup.select_one('#wcxb-core')
-    contexts = soup.select('#moli-latency-context')
+    contexts = soup.select('#paired-latency-context')
     require(not soup.select('#moli-change'), 'Report-specific findings belong in bound interpretation content')
     require(core is not None and len(contexts) == 1,
-            'Home Moli comparison or timing context is missing or duplicated')
+            'Home paired comparison or timing context is missing or duplicated')
     context = contexts[0]
     require(core.find_parent('section') == context.find_parent('section'),
-            'Moli timing context must be beside the core comparison')
-    require(core.find_next(id='moli-latency-context') == context,
-            'Moli timing context must follow the core comparison')
-    release = summary['providers']['moli']['mean_latency_ms']
-    candidate = summary['providers']['moli-pr643']['mean_latency_ms']
+            'Paired timing context must be beside the core comparison')
+    require(core.find_next(id='paired-latency-context') == context,
+            'Paired timing context must follow the core comparison')
+    pair = {role: provider for provider, role in paired_methods.items()}
+    release = summary['providers'][pair['release']]['mean_latency_ms']
+    candidate = summary['providers'][pair['pr']]['mean_latency_ms']
     required = (f'{release:,.0f} ms', f'{candidate:,.0f} ms',
                 f'{paired_latency["paired_delta_mean_ms"]:+.1f} ms')
     context_text = context.get_text(' ', strip=True)
@@ -270,12 +271,8 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     require(summary['benchmark'] == sample['dataset_id'] == certificate['benchmark'], 'WCXB certified dataset identity differs')
     require({(r['provider'], r['case_id']) for r in scores} == {(p, c) for p in providers for c in case_ids}, 'WCXB method-case matrix differs')
     require([r['provider'] for r in certificate['providers']] == providers, 'WCXB certificate participants differ')
-    candidate = next(r for r in certificate['providers'] if r['provider'] == 'moli-pr643')
-    require(candidate['identity'].get('binary_sha256') == profile['candidate_binary_sha256'],
-            'WCXB candidate binary differs from the current report profile')
-    released = next(r for r in certificate['providers'] if r['provider'] == 'moli')
-    require(released['identity'].get('binary_sha256') == profile['release_binary_sha256'],
-            'WCXB released Moli binary differs from the current report profile')
+    from harness.web_fetch.wcxb_scoring import paired_latency_methods
+    paired_methods = paired_latency_methods(profile, certificate)
     optional_paths = [name for name, sha in content_binding['evidence'].items()
                       if sha == profile['optional_ui_receipt_sha256']]
     require(len(optional_paths) == 1, 'Optional feature receipt must have one profile binding')
@@ -304,7 +301,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     )
     _, selected_latency = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, case_ids)
     paired_latency = summarize_full_paired_latency(selected_latency, case_ids)
-    for provider, method in (('moli', 'release'), ('moli-pr643', 'pr')):
+    for provider, method in paired_methods.items():
         values = sorted(selected_latency[case_id, method]['elapsed_ms'] for case_id in case_ids)
         position = (len(values) - 1) * .95
         low = int(position)
@@ -313,7 +310,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
         require(abs(measured['mean_latency_ms'] - paired_latency[method]['mean_ms']) < .01
                 and abs(measured['p50_latency_ms'] - paired_latency[method]['p50_ms']) < .01
                 and abs(measured['p95_latency_ms'] - p95) < .01,
-                'WCXB Moli timing summary differs from certified full paired evidence')
+                'WCXB Paired timing summary differs from certified full paired evidence')
     evidence_hashes = json.loads((root / 'evidence-manifest.json').read_text())
     require(set(evidence_hashes) == case_ids, 'WCXB evidence inventory differs')
     by_case = {}
@@ -370,7 +367,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
             if route in ('index.html', 'datasets/index.html'):
                 check_presentation(html)
                 if route == 'index.html':
-                    require_home_interpretation(html, summary, paired_latency, lang)
+                    require_home_interpretation(html, summary, paired_latency, lang, paired_methods)
                     require('id="home-type"' in html, 'Page-type filter missing')
                     require('官方全量 F1' not in html and 'Official full F1' not in html, 'Invalid full-reference score remains visible')
                     first_card = BeautifulSoup(html, 'html.parser').select_one('.lead-grid .panel')
@@ -461,9 +458,9 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
             else:
                 raise AssertionError('An altered bound interpretation was accepted: ' + selector)
     home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
-    home.select_one('#moli-latency-context').decompose()
+    home.select_one('#paired-latency-context').decompose()
     try:
-        require_home_interpretation(home, summary, paired_latency, 'zh')
+        require_home_interpretation(home, summary, paired_latency, 'zh', paired_methods)
     except ValueError:
         pass
     else:

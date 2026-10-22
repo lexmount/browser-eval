@@ -141,31 +141,35 @@ def test_new_wcxb_population_does_not_inherit_historical_findings(tmp_path):
     assert json.dumps([rows, summary, references, identities, profile, content], sort_keys=True) == before
     for lang, prefix in (('zh', ''), ('en', 'en/')):
         raw = (root / prefix / 'index.html').read_text()
-        soup = require_home_interpretation(raw, summary, latency, lang)
+        soup = require_home_interpretation(raw, summary, latency, lang, {"moli": "release", "moli-pr643": "pr"})
         assert soup.select_one('#moli-change') is None
         assert '5412' not in raw and '5458' not in raw and 'PR #643' not in raw
         guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
         assert guide.select_one('main').decode_contents() == content['guide'][lang]
         wrong = BeautifulSoup(raw, 'html.parser')
-        context = wrong.select_one('#moli-latency-context')
+        context = wrong.select_one('#paired-latency-context')
         count = f'{summary["case_count"]} ' + ('页' if lang == 'zh' else 'pages')
         context.string = context.get_text(' ', strip=True).replace(count, '504 pages')
         with pytest.raises(ValueError, match='corrected population'):
-            require_home_interpretation(wrong, summary, latency, lang)
+            require_home_interpretation(wrong, summary, latency, lang, {"moli": "release", "moli-pr643": "pr"})
         wrong = BeautifulSoup(raw, 'html.parser')
-        wrong.select_one('#moli-latency-context').decompose()
+        wrong.select_one('#paired-latency-context').decompose()
         with pytest.raises(ValueError, match='missing'):
-            require_home_interpretation(wrong, summary, latency, lang)
+            require_home_interpretation(wrong, summary, latency, lang, {"moli": "release", "moli-pr643": "pr"})
 
 
-def test_wcxb_public_build_uses_bound_optional_case_and_profile_participants(tmp_path):
+@pytest.mark.parametrize('participants', [
+    ('moli', 'moli-pr643'),
+    ('moli-release', 'moli-1.1.7', 'moli-candidate'),
+])
+def test_wcxb_public_build_uses_bound_optional_case_and_profile_participants(tmp_path, participants):
     import hashlib
     from harness.web_fetch.report_build import build_wcxb_report
     from harness.web_fetch.wcxb_scoring import score
     from harness.web_fetch.wcxb_report_check import check_bound_interpretation
     from tests.wcxb_fixture import create_cohort, write_json
 
-    cohort = create_cohort(tmp_path / 'cohort', paired=True, providers=('moli', 'moli-pr643'))
+    cohort = create_cohort(tmp_path / 'cohort', paired=True, providers=participants)
     score(**cohort)
     source = cohort['evidence_root']
     profile = json.loads(cohort['profile_path'].read_text())
@@ -188,7 +192,7 @@ def test_wcxb_public_build_uses_bound_optional_case_and_profile_participants(tmp
     review_name = 'research/wcxb-representative-review.json'
     review = source / 'report-assets' / review_name
     write_json(review, {'scope': 'targeted_representative_anomaly_review', 'case_count': 0,
-                        'result_count': 0, 'total_results': 4, 'unreviewed_results': 4, 'cases': []})
+                        'result_count': 0, 'total_results': 2 * len(participants), 'unreviewed_results': 2 * len(participants), 'cases': []})
     profile['report_assets'] = {review_name: hashlib.sha256(review.read_bytes()).hexdigest()}
     guide = '<section><h1>Only the supplied synthetic finding</h1></section>'
     content = source / 'report-assets/report-content.json'
@@ -278,3 +282,44 @@ def test_wcxb_release_highlights_accept_actual_ties_and_reject_corruption(tmp_pa
             page.select_one('#wcxb-core .comparison-winner').unwrap()
             with pytest.raises(ValueError, match='highlight'):
                 require_comparison_highlights(page)
+
+
+@pytest.mark.parametrize('rename', [False, True])
+def test_wcxb_registered_aliases_use_shared_interfaces_and_bound_timing_roles(tmp_path, rename):
+    from copy import deepcopy
+    from harness.web_fetch.wcxb_report_check import require_home_interpretation
+    from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
+    from harness.web_fetch.wcxb_scoring import paired_latency_methods
+
+    inputs = list(create_report_inputs(tmp_path))
+    root, rows, summary, references, identities, profile, _ = inputs
+    new = 'moli-release' if rename else 'moli-1.1.7'
+    summary['providers'][new] = deepcopy(summary['providers']['moli'])
+    identities[new] = {**identities['moli'], 'engine': 'moli', 'reported_version': '1.1.7'}
+    if rename:
+        del summary['providers']['moli']
+        del identities['moli']
+        for row in rows:
+            if row['provider'] == 'moli':
+                row['provider'] = new
+    else:
+        identities[new]['binary_sha256'] = 'c' * 64
+        rows.extend({**deepcopy(row), 'provider': new} for row in list(rows) if row['provider'] == 'moli')
+    import shutil
+    shutil.copytree(root / 'artifacts/moli', root / 'artifacts' / new)
+    profile['providers'] = list(summary['providers'])
+    before = json.dumps(inputs[1:], sort_keys=True)
+    generate_wcxb(*inputs, include_english=True)
+    assert json.dumps(inputs[1:], sort_keys=True) == before
+    pair = paired_latency_methods(profile, {'providers': [
+        {'provider': p, 'identity': identity} for p, identity in identities.items()]})
+    _, calls = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, set(references))
+    timing = summarize_full_paired_latency(calls, set(references))
+    for lang, prefix in (('zh', ''), ('en', 'en/')):
+        require_home_interpretation((root / prefix / 'index.html').read_text(), summary, timing, lang, pair)
+        provider = BeautifulSoup((root / prefix / f'providers/{new}.html').read_text(), 'html.parser')
+        assert ('未提供可核对的接口路线' if lang == 'zh' else 'do not provide a verifiable route') in provider.get_text()
+        adoption = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(), 'html.parser')
+        example = adoption.select_one('main pre').get_text()
+        assert 'Moli 1.1.7' in example
+        assert 'fetch' in example

@@ -1260,12 +1260,8 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         raise ValueError('WCXB official evaluator differs from the certified profile')
     if [x['provider'] for x in certificate['providers']] != providers:
         raise ValueError('WCXB participant registry differs from the certificate')
-    candidate = next(x for x in certificate['providers'] if x['provider'] == 'moli-pr643')
-    if candidate['identity'].get('binary_sha256') != profile['candidate_binary_sha256']:
-        raise ValueError('WCXB candidate binary differs from the current report profile')
-    released = next(x for x in certificate['providers'] if x['provider'] == 'moli')
-    if released['identity'].get('binary_sha256') != profile['release_binary_sha256']:
-        raise ValueError('WCXB released Moli binary differs from the current report profile')
+    from harness.web_fetch.wcxb_scoring import paired_latency_methods
+    paired_methods = paired_latency_methods(profile, certificate)
     rows = load_jsonl(source / 'wcxb-scores.jsonl', skip_blank=True)
     case_ids = {r['track_id'] for r in records}
     correction_root = source / 'latency-correction'
@@ -1283,10 +1279,10 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         raise ValueError('WCXB corrected timing is not certified')
     if any(
         abs(row['total_elapsed_ms'] - corrected_calls[row['case_id'],
-            'release' if row['provider'] == 'moli' else 'pr']['elapsed_ms']) > .01
-        for row in rows if row['provider'] in ('moli', 'moli-pr643')
+            paired_methods[row['provider']]]['elapsed_ms']) > .01
+        for row in rows if row['provider'] in paired_methods
     ):
-        raise ValueError('WCXB reported Moli latency differs from the selected paired round')
+        raise ValueError('WCXB reported paired latency differs from the selected paired round')
     optional_paths = [name for name, sha in content_binding['evidence'].items()
                       if sha == profile.get('optional_ui_receipt_sha256')]
     if len(optional_paths) != 1:
