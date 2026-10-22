@@ -117,3 +117,20 @@ def test_bound_copy_rejects_user_created_parent_links_before_writes(tmp_path, si
                           {'reference.txt': hashlib.sha256(payload).hexdigest()})
     assert not destination.exists()
     assert (source / 'reference.txt').read_bytes() == payload
+
+
+def test_selected_json_assets_are_optional_bound_and_external(tmp_path):
+    from harness.reporting.assets import bound_json_asset
+    assert bound_json_asset(None, root=tmp_path) == (None, {})
+    source = tmp_path / 'instance-history.json'
+    source.write_text('{"releases": []}')
+    binding = {'path': str(source), 'sha256': hashlib.sha256(source.read_bytes()).hexdigest()}
+    assert bound_json_asset(binding, root=tmp_path)[1] == {'releases': []}
+    assert bound_json_asset({**binding, 'path': source.name}, root=tmp_path)[1] == {'releases': []}
+    source.write_text('{"releases": ["unrelated report"]}')
+    with pytest.raises(ValueError, match='differs'):
+        bound_json_asset(binding, root=tmp_path)
+    alias = tmp_path/'alias.json'
+    alias.symlink_to(source)
+    with pytest.raises(ValueError, match='[Ss]ymlink'):
+        bound_json_asset({**binding, 'path': str(alias)}, root=tmp_path)

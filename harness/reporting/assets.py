@@ -164,3 +164,19 @@ def copy_bound_assets(source: Path, destination: Path, bindings: dict[str, str])
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open('xb') as stream:
             stream.write(data)
+
+
+def bound_json_asset(binding, *, root):
+    """Load an explicitly selected JSON asset; absent assets inherit no content."""
+    if binding is None:
+        return None, {}
+    path = Path(binding['path'])
+    path = (unlinked_path(path) if path.is_absolute() else
+            contained_path(Path(root), binding['path'], reject_symlinks=True))
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != binding.get('sha256'):
+        raise ValueError('Report JSON asset differs from its binding')
+    data = json.loads(raw)
+    if not isinstance(data, dict):
+        raise ValueError('Report JSON asset must be an object')
+    return path, data

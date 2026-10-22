@@ -1522,6 +1522,10 @@ def test_joint_report_builds_two_model_by_two_browser_matrix(tmp_path: Path, mon
 
     data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert set(data["summary"]) == {"model-a", "model-b"}
+    # A new instance must not inherit another report's release or review claims.
+    assert json.loads((output / "report-changes.json").read_text()) == {}
+    assert "2026-09-" not in (output / "changes/index.html").read_text()
+
     assert data["summary"]["model-a"]["chromium"]["completed"] == 1
     assert data["summary"]["model-b"]["moli"]["completed"] == 1
     assert len(list((output / "results").glob("*.html"))) == 4

@@ -21,6 +21,7 @@ from typing import Any
 from harness.record_io import load_jsonl
 from harness.report_languages import write_language_contract
 from harness.reporting.templates import template_identity
+from harness.reporting.assets import bound_json_asset
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 
 from .failure_cause_review import (
@@ -3052,7 +3053,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         (stage / "index.html").write_text(
             _page(title="首页", active="home", body=home), encoding="utf-8"
         )
-        release_data = _read_json(Path("research/report-changes.json"))
+        _, release_data = bound_json_asset(
+            profile.get("report_history"), root=Path(__file__).parents[2])
         releases = release_data.get("browser_use_releases") or []
         changes = _hero(
             "Report releases",

@@ -86,6 +86,12 @@ This allows rebuilding an older measurement after the installed benchmark has
 changed. `failure_cause_review.source_path` may name an external, hash-bound review.
 Keep original attempts and task contracts unchanged.
 
+An optional `report_history` object binds a JSON file through `path` and `sha256`.
+Relative paths use the authority root; absolute paths can select external content.
+A new instance without this binding has no release history. It never inherits the
+maintained report's releases or review rounds. Build, check and package use the
+same binding.
+
 ```sh
 uv run --frozen python scripts/build_browser_use_report.py \
   --profile /absolute/instance/profile.json \

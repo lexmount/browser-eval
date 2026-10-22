@@ -45,5 +45,9 @@
     "share_url": "https://artifact-hub.app.lexmount.com/v/Ghn1BR6PCy-njsCMqCe2LRIJ-eyJEJoa",
     "expected_version": "ver_ce4dd70fde2e444ab18d24bba3ee0e93",
     "state": "verified"
+  },
+  "report_history": {
+    "path": "research/report-changes.json",
+    "sha256": "a5bd743e1d4250f9cd7cfc1634820bd070ac0514b3d71007e742d28f6469407b"
   }
 }

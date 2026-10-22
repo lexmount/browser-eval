@@ -38,6 +38,21 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_explicit_examples_do_not_load_an_unrelated_measurement_profile(self):
+        for track in ('webfetch', 'browser-use', 'trajectory-replay'):
+            with self.subTest(track=track), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root/'configs').mkdir()
+                for name in ('renderer.py', 'build.py', 'test.py'):
+                    (root/name).write_text('# maintained owner')
+                (root/'default-profile.json').write_text('unavailable historical profile')
+                (root/'configs/report-templates.json').write_text(json.dumps({
+                    'schema_version': 1, 'tracks': {track: {
+                        'renderer': 'renderer.py', 'entrypoint': 'build.py',
+                        'tests': 'test.py', 'profile': 'default-profile.json',
+                        'example': 'https://example.test/s/demo?version=frozen'}}}))
+                self.assertEqual(resolve_template(track, root=root)['track'], track)
+
     def test_whole_dataset_summary_pools_calls_and_is_required_on_home_and_guide(self):
         from bs4 import BeautifulSoup
         with tempfile.TemporaryDirectory() as temp:

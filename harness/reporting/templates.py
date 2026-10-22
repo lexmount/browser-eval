@@ -18,8 +18,8 @@ def resolve_template(track, *, root=ROOT):
         path = root / result[key]
         if not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
             raise ValueError("Report template has a missing or unsafe " + key)
-    profile = json.loads((root / result["profile"]).read_text())
     if not result.get("example"):
+        profile = json.loads((root / result["profile"]).read_text())
         publication = profile.get("publication", {})
         host = publication.get("host") or publication.get("base_url")
         slug = publication.get("slug") or publication.get("site_slug")

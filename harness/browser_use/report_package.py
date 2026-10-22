@@ -14,6 +14,7 @@ from harness.browser_use.report_visual import check as check_visual
 from harness.browser_use.report_visual import receipt_is_current
 from harness.browser_use.selection import report_selection_path
 from harness.reporting.links import check as check_links
+from harness.reporting.assets import bound_json_asset
 from harness.reporting.publication import package_archive
 
 ATTESTATION = Path("publish/browser-use-sites.attestation.json")
@@ -62,6 +63,9 @@ def package(
     names = ("manifest.json", "run-config.json", "attempts.jsonl", "result-review.json")
     inputs = [authority / "evaluation", authority / "research", profile]
     profile_data = json.loads(profile.read_text())
+    history_path, _ = bound_json_asset(profile_data.get("report_history"), root=authority)
+    if history_path is not None:
+        inputs.append(history_path)
     inputs.append(report_selection_path(profile_data, authority_root=authority))
     review = review_path(profile_data, authority_root=authority)
     if review.is_file():
