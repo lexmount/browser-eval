@@ -129,7 +129,7 @@ def render_capabilities(out, names, *, table, cell, link, records=()):
     used = sorted({source for row in capabilities.values() for source in row.get('sources',[])})
     dates = ' · '.join(link(checks[key]['url'], checks[key]['label']+' · '+checks[key]['checked_at'],english_catalog['sources'][key]['label']+' · '+checks[key]['checked_at'])
                        for key in used if key in checks)
-    legend = '<p>官方能力资料不是实测成绩。Official capability sources and their verification dates: '+dates+'</p>'
+    legend = '<p>'+bilingual_text('官方能力资料不是实测成绩。官方来源及资料核对日期：', 'Official capability documentation is not a measured result. Sources and verification dates: ')+dates+'</p>'
     if configured:
         legend='<p>下表说明本报告配置的接口与处理边界，浏览器版本及固定来源见“环境与复现”。共同解析、资源读取脚本和 HTML 转换由评测提供，不计作浏览器内置能力。接口可用不代表每题都能完成；实测结果见结果分析。</p>'
     content = ('<p class="source-note">能力声明不是实测任务成绩；任务通过按登记的稳定内容锚点与字段结构等规则判定，不证明频繁变化值的事实准确性或实时性。文档列指 PDF / Office 中的文字；普通 TXT 不等于文档解析。图片、音视频列说明网页资源取得方式，<strong>不代表视觉理解或转写</strong>；直接媒体 URL 能否取得字节看原文件列。原文件不是页面正文、截图或下载链接本身。</p>'+

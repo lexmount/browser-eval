@@ -199,6 +199,8 @@ def test_capability_fields_render_english_without_catalog_reverse_lookup(tmp_pat
     assert registered['notes'] in english
     assert registered['web']['detail'] in english
     assert registered['tested'] in english
+    assert 'Official capability documentation is not a measured result.' in english
+    assert '官方能力资料不是实测成绩' not in english
 
 
 def test_source_notice_distinguishes_missing_version_from_mismatch():
