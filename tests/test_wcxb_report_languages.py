@@ -99,3 +99,29 @@ def test_wcxb_release_checks_bound_article_body(tmp_path, include_english, tampe
     else:
         with pytest.raises(ValueError, match='differs from bound content'):
             check_bound_interpretation(root, binding)
+
+
+def test_wcxb_uses_measured_versions_and_actual_configuration_count(tmp_path):
+    inputs = list(create_report_inputs(tmp_path, english_source=True))
+    root, rows, summary, ground_truth, identities, profile, content = inputs
+    # A smaller cohort and a different release must not inherit the old report.
+    inputs[1] = [row for row in rows if row['provider'] != 'obscura']
+    del summary['providers']['obscura']
+    del identities['obscura']
+    identities['moli'].update(engine='moli', reported_version='7.8.9')
+    identities['moli-pr643'].update(engine='moli', reported_version='7.8.10-dev.42')
+    generate_wcxb(*inputs, include_english=True)
+    for prefix in ('', 'en/'):
+        home = BeautifulSoup((root / prefix / 'index.html').read_text(), 'html.parser')
+        assert str(len(summary['providers'])) in home.h1.get_text()
+        assert 'Moli 7.8.9' in home.get_text()
+        assert 'Moli 7.8.10-dev.42' in home.get_text()
+        accounts = BeautifulSoup((root / prefix / 'accounts/index.html').read_text(), 'html.parser')
+        assert accounts.select_one('a[href="https://github.com/lexmount/moli/releases/tag/v7.8.9"]')
+        assert 'MOLI_BINARY' not in accounts.get_text()
+        for route in ('index.html', 'accounts/index.html', 'adoption/index.html',
+                      'methodology/index.html', 'datasets/index.html', 'review/index.html',
+                      'changes/index.html', 'reproduce/index.html'):
+            text = (root / prefix / route).read_text()
+            assert '1.1.8' not in text
+            assert 'six configurations' not in text and '六种配置' not in text
