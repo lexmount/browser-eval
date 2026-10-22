@@ -1040,13 +1040,13 @@ def verify_browser_observation_capture(root, source_root):
     binary = root / 'observation-browser'
     binary.write_bytes(b'synthetic installed browser identity')
     calls = []
-    original = observations.capture_with_retries
+    original = observations._capture_in_process
 
     def observe(case, *args, **kwargs):
         calls.append(case['id'])
         return {'case_id': case['id'], 'status': 'success', 'content_text': 'Installed capture'}
 
-    observations.capture_with_retries = observe
+    observations._capture_in_process = observe
     try:
         options = dict(timeout_ms=1000, attempts=1, browser_binary=str(binary),
                        checkpoints=root / 'observation-checkpoints')
@@ -1054,7 +1054,7 @@ def verify_browser_observation_capture(root, source_root):
         assert observations.capture_batch([task], **options) == first
         assert calls == ['installed-observation']
     finally:
-        observations.capture_with_retries = original
+        observations._capture_in_process = original
 
 
 def verify_reference_promotion(root, source_root):
