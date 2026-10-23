@@ -143,16 +143,11 @@ def requires_fresh_reference(case) -> bool:
     if contract:
         from lexbench_webfetch.stable_tasks import validate_acceptance_contract
         validate_acceptance_contract(contract)
-        return False
     verification = _get(case, "source_verification", {}) or {}
     mode = verification.get("reference_mode", "frozen")
     if mode not in {"frozen", "live_exact"}:
         raise ReferenceLifecycleError("Unknown reference mode; use frozen or live_exact")
-    return (mode == "live_exact"
-            and _get(case, "track", "web") in {"web", "dynamic", "challenge"}
-            and _get(case, "task_kind", "body") == "body"
-            and bool((_get(case, "ground_truth_main_content", "") or "").strip())
-            and bool(verification))
+    return mode == "live_exact"
 
 
 def expected_providers(dataset, case):
@@ -593,6 +588,8 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
     identifier = safe_identifier(_get(case, "id"))
     verification = _get(case, "source_verification")
     reference = _get(case, "ground_truth_main_content")
+    if not isinstance(reference, str) or not reference.strip():
+        raise ReferenceLifecycleError(f"{identifier}: required live reference is missing")
     if not isinstance(verification, dict) or verification.get("state") != "valid":
         raise ReferenceLifecycleError(f"{identifier}: independent source verification is not valid")
     if not isinstance(verification.get("method"), str) or not verification["method"].strip():
