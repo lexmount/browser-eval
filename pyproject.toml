@@ -8,7 +8,7 @@ license-files = ["LICENSE", "NOTICE", "THIRD_PARTY.md"]
 requires-python = ">=3.11"
 dependencies = [
   "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@d0e78e71cf5145217cb1f2b71420a7c4194d80dd",
-  "lexbench-websearch @ git+https://github.com/lexmount/lexbench-websearch.git@e9cd1d9df34a06a397bed0744793a041de03321b",
+  "lexbench-websearch @ git+https://github.com/lexmount/lexbench-websearch.git@cff740161bffb5b615c1a5695ad82a994f9aeead",
   "beautifulsoup4>=4.12,<5",
   "fastcdc==1.7.0",
   "python-dotenv==1.1.1",

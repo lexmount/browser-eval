@@ -1238,11 +1238,15 @@ def build(
         if review_data:
             from .review import render_summary
             page("review.html", t("Independent result review", report_text('text_f51205d6074e15bf')), render_summary(review_data, zh) + authored_sections(authored, "review", lang, rows=selected))
+    from harness.reporting.versions import bind_build_version, FILENAME
+    build_version = bind_build_version(output)
+    bundle.append({"path": FILENAME, "sha256": build_version["sha256"]})
     write_json(
         output / "manifest.json",
         dict(
             schema="web-search-report/1",
             template="web-search/1",
+            browser_eval=build_version,
             languages=languages,
             language_notices=_language_notice(output, languages),
             primary_language=language,
@@ -1290,6 +1294,9 @@ def check(output, *, return_data=False, evidence_only=False):
     from .relevance import report_authority
     authority = report_authority(output)
     manifest = json.loads((output / "manifest.json").read_text())
+    if not evidence_only:
+        from harness.reporting.versions import check_build_version
+        check_build_version(output, manifest)
     if manifest.get("assessment_revision"):
         from harness.web_search.revisions import validate_revision_binding
         validate_revision_binding(manifest["assessment_revision"]["contract"], normalizer=normalize_response, authority=authority)
