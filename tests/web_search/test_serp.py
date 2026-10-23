@@ -50,7 +50,7 @@ class SerpContracts(unittest.TestCase):
             profile["protocol"]["order"] = "rotate methods by case"
             profile["cases"] = profile["cases"][:2]
             profile["methods"][0].pop("output_options", None)
-            profile["protocol"].update(interval_s=0, max_calls_per_method={m["id"]: 3 if m["id"] == "lexmount" else 2 for m in profile["methods"]})
+            profile["protocol"].update(interval_s=0, max_calls_per_method={m["id"]: 3 if m["id"] == "lexmount" else 4 if m["id"] == "brightdata" else 2 for m in profile["methods"]})
             profile["protocol"].pop("reference_scope", None)
             profile.pop("reference_checks", None)
             profile.pop("reference_artifacts", None)
@@ -107,7 +107,8 @@ class SerpContracts(unittest.TestCase):
             self.assertEqual({m: calls.count(m) for m in set(calls)}, {"lexmount": 3, "browserbase": 2, "brightdata": 2, "serper": 2})
             self.assertEqual(len(rows), 8)
             self.assertEqual(receipt["physical_call_count"], 8)
-            self.assertEqual(receipt["total_retained_physical_call_count"], 9)
+            # Two interrupted sends remain billable/unknown, even without responses.
+            self.assertEqual(receipt["total_retained_physical_call_count"], 11)
             self.assertTrue(receipt["certified"])
             self.assertEqual((root / "run/resume-1/previous-results.jsonl").read_bytes(), original_bytes)
             archived = next((root / "run/resume-1/calls").glob("*.json"))

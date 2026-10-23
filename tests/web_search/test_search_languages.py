@@ -103,3 +103,16 @@ def test_search_release_rejects_lost_builder_identity(report, defect):
         manifest.write_text(json.dumps(value))
     with pytest.raises(ValueError, match="Browser Eval"):
         check(output)
+
+
+@pytest.mark.parametrize('language', ['zh', 'en'])
+def test_delivery_shell_keeps_requested_detail_instead_of_home_redirect(report, tmp_path, language):
+    from harness.web_search.delivery import export
+    output, source = report
+    build(output, source=source, language=language)
+    destination = tmp_path / 'delivery-shell'
+    export(output, destination)
+    for route in ('detail.html', 'evidence.html'):
+        shell = BeautifulSoup((destination / route).read_text(), 'html.parser')
+        assert not shell.select('[data-report-language-entry]')
+        assert shell.select_one('[data-delivery-target]')

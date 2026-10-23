@@ -191,7 +191,8 @@ def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, mo
         (report / name).write_text(json.dumps(value))
     manifest = {'profile': {'title': 'Source profile', 'methods': [{'id': 'method'}], 'cases': [{'id': 'a'}]},
                 'authored': authored, 'rows': [{'attempts': [{}, {}]}],
-                'receipt': {'certified': True, 'receipt_sha256': digest(b'{}'), 'profile_sha256': digest(b'{}')},
+                'receipt': {'certified': True, 'profile_sha256': digest(b'{}')},
+                'collection_receipt_sha256': digest(b'{}'),
                 'relevance_sha256': digest((report/'relevance-judgments.json').read_bytes()),
                 'independent_review_sha256': digest((report/'independent-review.json').read_bytes()),
                 'content_sha256': digest(content.read_bytes())}
