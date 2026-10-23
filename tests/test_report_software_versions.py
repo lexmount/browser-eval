@@ -98,3 +98,53 @@ def test_installed_package_does_not_borrow_an_unrelated_checkout(tmp_path, monke
     assert not identity['modified']
     assert identity['version'] == __version__
     assert len(identity['source_sha256']) == 64
+
+
+@pytest.mark.parametrize('asset', [
+    'web_fetch/assets/report-loader.js',
+    'lexbench/assets/render_contract.cjs',
+    'web_fetch/html_to_markdown.mjs',
+    'web_fetch/workers/openclaw_webfetch_worker.mts',
+    'web_fetch/workers/native_dns_darwin.c',
+    'web_fetch/report-translations.json',
+    'browser_use/report-translations.json',
+    'trajectory_replay/messages.json',
+    'environments/webarena/runtime/php-fpm-qemu.ini',
+    'web_fetch/templates/interpretation-headless.css',
+])
+def test_installed_runtime_asset_changes_identify_a_different_build(tmp_path, monkeypatch, asset):
+    from pathlib import Path
+
+    source = Path(versions.__file__).resolve().parents[1]
+    package = tmp_path / 'installed/harness'
+    module = package / 'reporting/versions.py'
+    module.parent.mkdir(parents=True)
+    module.write_bytes(Path(versions.__file__).read_bytes())
+    target = package / asset
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes((source / asset).read_bytes())
+    monkeypatch.setattr(versions, '__file__', str(module))
+    original = versions.software_identity.__wrapped__()
+    assert original['revision'] is None
+    target.write_bytes(target.read_bytes() + b'\nchanged runtime asset\n')
+    changed = versions.software_identity.__wrapped__()
+    assert changed['source_sha256'] != original['source_sha256']
+    assert {k: v for k, v in changed.items() if k != 'source_sha256'} == {
+        k: v for k, v in original.items() if k != 'source_sha256'}
+    target.unlink()
+    assert versions.software_identity.__wrapped__()['source_sha256'] not in {
+        original['source_sha256'], changed['source_sha256']}
+
+
+def test_generated_caches_do_not_change_installed_build_identity(tmp_path, monkeypatch):
+    module = tmp_path / 'harness/reporting/versions.py'
+    module.parent.mkdir(parents=True)
+    module.write_text('runtime source')
+    monkeypatch.setattr(versions, '__file__', str(module))
+    original = versions.software_identity.__wrapped__()
+    cache = module.parent / '__pycache__'
+    cache.mkdir()
+    (cache / 'versions.pyc').write_bytes(b'compiled cache')
+    (cache / 'metadata.json').write_text('{}')
+    (module.parent / 'versions.pyc').write_bytes(b'compiled cache')
+    assert versions.software_identity.__wrapped__() == original

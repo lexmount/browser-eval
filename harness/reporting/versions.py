@@ -13,6 +13,8 @@ from urllib.parse import urljoin, urlsplit
 from harness.web_fetch import __version__
 
 FILENAME = "browser-eval-version.json"
+_RUNTIME_SUFFIXES = {".py", ".js", ".cjs", ".mjs", ".mts", ".c", ".json",
+                     ".html", ".css", ".ini", ".txt", ".png"}
 
 
 def _version_href(route, content):
@@ -43,7 +45,10 @@ def software_identity():
         except (OSError, subprocess.CalledProcessError):
             revision = None
     digest = hashlib.sha256()
-    for path in sorted(package.rglob("*.py")):
+    for path in sorted(package.rglob("*")):
+        if (not path.is_file() or path.suffix not in _RUNTIME_SUFFIXES
+                or "__pycache__" in path.relative_to(package).parts):
+            continue
         digest.update(path.relative_to(package).as_posix().encode() + b"\0" + path.read_bytes() + b"\0")
     return {"version": __version__, "revision": revision,
             "source_sha256": digest.hexdigest(), "modified": modified}
