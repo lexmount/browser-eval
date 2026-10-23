@@ -57,9 +57,10 @@ Use a benchmark version together with exact task/reference and scoring-source
 hashes. Keep the package's full Git commit pinned separately. A package update
 does not select a new dataset for an existing report.
 
-Use the same `benchmark-vMAJOR.MINOR.PATCH` tag prefix in both repositories.
-Reports reference their benchmark edition; report rebuilds use the hosting
-platform's version ID rather than a separate semantic-version sequence.
+Create `benchmark-vMAJOR.MINOR.PATCH` tags only in the benchmark repository.
+Browser Eval uses full Git commits to identify harness and report-building code.
+Reports reference their benchmark edition and the hosting platform's immutable
+version ID for each published build.
 
 | Change | Edition | Result comparison |
 | --- | --- | --- |

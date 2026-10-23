@@ -8,4 +8,4 @@ repository-code: "https://github.com/lexmount/browser-eval"
 url: "https://github.com/lexmount/browser-eval"
 version: 0.1.0
 date-released: 2026-10-10
-license: MIT
+license: Apache-2.0
