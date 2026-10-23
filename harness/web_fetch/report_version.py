@@ -104,6 +104,8 @@ def check_release(root, dataset, records, *, profile=None):
 
     manifest_path = root / "report-manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
+    from harness.reporting.versions import check_build_version
+    check_build_version(root, manifest)
     binding = manifest.get("benchmark_release")
     expected = _profile_binding(profile)
     measured = _input_release(root)
@@ -136,6 +138,9 @@ def check_release(root, dataset, records, *, profile=None):
             label is None
             or label.get("href") != ("../" if route.startswith("en/") else "") + FILENAME
             or label.get("data-benchmark-release") != release["version"]
-            or label.get_text(" ", strip=True) != release["benchmark"] + " v" + release["version"]
+            or label.get_text(" ", strip=True) not in (
+                {"bench v" + release["version"]} if manifest.get("browser_eval") else
+                {"bench v" + release["version"], release["benchmark"] + " v" + release["version"]}
+            )
         ):
             raise ValueError("Report lost its benchmark version label: " + route)

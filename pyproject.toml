@@ -1,13 +1,13 @@
 [project]
 name = "browser-harness-eval"
-version = "0.1.0"
-description = "Evaluation harness for web fetching, browser trajectory replay and autonomous agents"
+version = "0.2.0"
+description = "Extensible evaluation harness for browsers and web agents, with shared adapters, evidence, scoring and reports"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY.md"]
 requires-python = ">=3.11"
 dependencies = [
-  "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@2ea8c52df67c39eee2ea5113a63f5da34f102160",
+  "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@d0e78e71cf5145217cb1f2b71420a7c4194d80dd",
   "lexbench-websearch @ git+https://github.com/lexmount/lexbench-websearch.git@e9cd1d9df34a06a397bed0744793a041de03321b",
   "beautifulsoup4>=4.12,<5",
   "fastcdc==1.7.0",

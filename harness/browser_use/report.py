@@ -3991,6 +3991,10 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         write_language_contract(stage, include_english=include_english)
         if language is not None:
             select_report_language(stage, language)
+        from harness.reporting.versions import bind_build_version
+        audit['browser_eval'] = bind_build_version(stage)
+        _write_json(stage / "data/summary.json", audit)
+        _write_json(stage / "report-data.json", audit)
         (stage / ".generated-report").write_text("browser-use-report/2\n", encoding="utf-8")
         backup: Path | None = None
         if output.exists():
