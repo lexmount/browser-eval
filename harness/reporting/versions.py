@@ -2,15 +2,25 @@
 
 import hashlib
 import json
+import posixpath
 import re
 import subprocess
 from functools import cache
-from html import escape
+from html import escape, unescape
 from pathlib import Path
+from urllib.parse import urljoin, urlsplit
 
 from harness.web_fetch import __version__
 
 FILENAME = "browser-eval-version.json"
+
+
+def _version_href(route, content):
+    base = re.search(r'<base\b[^>]*\bhref=["\']([^"\']+)', content)
+    document = 'https://report.invalid/' + route
+    resolved = urljoin(document, unescape(base[1])) if base else document
+    directory = posixpath.dirname(urlsplit(resolved).path)
+    return posixpath.relpath('/' + FILENAME, directory or '/')
 
 
 @cache
@@ -52,7 +62,7 @@ def bind_build_version(root):
         if "data-english-not-generated" in content:
             continue
         content = re.sub(r'<(p|span) data-report-build-version>.*?</\1>', '', content, flags=re.S)
-        href = ("../" if route.startswith("en/") else "") + FILENAME
+        href = _version_href(route, content)
         link = ('<a data-browser-eval-release="'
                  + escape(identity["version"]) + '" href="' + href + '">Browser Eval v'
                  + escape(identity["version"]) + '</a>')
@@ -100,7 +110,7 @@ def check_build_version(root, manifest):
         labels = page.select('[data-browser-eval-release]')
         if (len(labels) != 1 or labels[0].get("data-browser-eval-release") != identity["version"]
                 or labels[0].get_text(" ", strip=True) != "Browser Eval v" + identity["version"]
-                or labels[0].get("href") != ("../" if route.startswith("en/") else "") + FILENAME):
+                or labels[0].get("href") != _version_href(route, str(page))):
             raise ValueError("Report lost its Browser Eval version label: " + route)
 
 

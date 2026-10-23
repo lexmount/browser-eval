@@ -65,17 +65,24 @@ def test_release_gate_rejects_missing_or_conflicting_build_identity(tmp_path, de
         check_snapshot_audit(output)
 
 
-def test_shared_identity_handles_both_languages_and_repeat_builds(tmp_path):
+@pytest.mark.parametrize('bases', [(None, None), ('./', '../'), ('./?preview=token', '../?preview=token')])
+def test_shared_identity_handles_both_languages_and_repeat_builds(tmp_path, bases):
     (tmp_path / 'en').mkdir()
-    for path in (tmp_path / 'index.html', tmp_path / 'en/index.html'):
-        path.write_text('<html><body><main>Results</main><footer></footer></body></html>')
+    for path, base in zip((tmp_path / 'index.html', tmp_path / 'en/index.html'), bases):
+        path.write_text('<html><head>' + (f'<base href="{base}">' if base else '')
+                       + '</head><body><main>Results</main><footer></footer></body></html>')
     versions.bind_build_version(tmp_path)
     binding = versions.bind_build_version(tmp_path)
     versions.check_build_version(tmp_path, {'browser_eval': binding})
     for route in ('index.html', 'en/index.html'):
         page = BeautifulSoup((tmp_path / route).read_text(), 'html.parser')
         assert len(page.select('[data-browser-eval-release]')) == 1
-    assert '../browser-eval-version.json' in (tmp_path / 'en/index.html').read_text()
+        from urllib.parse import urljoin
+        base = page.select_one('base')
+        document = (tmp_path / route).as_uri()
+        target = urljoin(urljoin(document, base['href']) if base else document,
+                         page.select_one('[data-browser-eval-release]')['href'])
+        assert target == (tmp_path / versions.FILENAME).as_uri()
 
 
 def test_installed_package_does_not_borrow_an_unrelated_checkout(tmp_path, monkeypatch):
