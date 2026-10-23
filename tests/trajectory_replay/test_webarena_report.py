@@ -111,13 +111,16 @@ def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed
         trace.write_text(json.dumps([{"action": "snapshot", "status": attempt["status"],
                                      "result": {"text": "Fixture snapshot"},
                                      "error": attempt.get("error")}]))
-        attempt["evidence"]["trace"] = {"path": str(trace), "sha256": hashlib.sha256(trace.read_bytes()).hexdigest()}
+        attempt["evidence"]["trace"] = {
+            "path": str(trace), "sha256": hashlib.sha256(trace.read_bytes()).hexdigest(),
+        }
     data = {"attempts": attempts, "physical_executions": attempts}
     monkeypatch.setattr(
         "harness.trajectory_replay.webarena_report.load_validated_failure_review",
         lambda *args, **kwargs: {"results": data, "by_result": {
             ("moli-old", 29): {
-                "cause_group": {"code": "fixture", "label_zh": "合成动作失败", "label_en": "Synthetic action failure",
+                "cause_group": {"code": "fixture", "label_zh": "合成动作失败",
+                                "label_en": "Synthetic action failure",
                                 "responsibility": "fixture", "remediation_owner": "fixture",
                                 "remediation_status": "test_only"},
                 "reason_zh": "合成测试中的动作错误", "reason_en": "Synthetic action error",

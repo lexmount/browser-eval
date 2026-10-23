@@ -66,6 +66,27 @@ def test_refresh_captures_changed_tasks_and_hashes_without_mutating_input(tmp_pa
     assert any("case_count: 1 -> 2" in line for line in binding_changes(binding, result))
 
 
+@pytest.mark.parametrize("bind_release", [False, True])
+def test_search_refresh_loads_catalog_and_preserves_dataset_hash_guards(tmp_path, bind_release):
+    from lexbench_websearch.inputs import DEFINITIONS
+    shutil.copytree(DEFINITIONS, tmp_path / "definitions")
+    definitions = tmp_path / "definitions"
+    binding = {"revision": "old", "datasets": {}}
+    if bind_release:
+        binding["definition_files"] = {"benchmark-release.json": "old"}
+    updated = refresh_binding(binding, "a" * 40, definitions)
+    assert updated["datasets"] == json.loads((definitions / "registry.json").read_bytes())["datasets"]
+    assert binding["revision"] == "old"
+    if bind_release:
+        assert updated["definition_files"]["benchmark-release.json"] == hashlib.sha256(
+            (definitions / "benchmark-release.json").read_bytes()
+        ).hexdigest()
+    dataset = definitions / next(iter(updated["datasets"].values()))["path"]
+    dataset.write_bytes(dataset.read_bytes() + b" ")
+    with pytest.raises(ValueError, match="does not bind its dataset"):
+        refresh_binding(binding, "a" * 40, definitions)
+
+
 def test_rejected_update_leaves_all_bindings_unchanged(tmp_path, monkeypatch):
     (tmp_path / "evaluation").mkdir()
     names = ("pyproject.toml", "uv.lock", "evaluation/lexbench-webfetch.json")
