@@ -1509,6 +1509,8 @@ def validate_local_presentation(output: Path, binding_path: Path):
         require_host_metadata_projection(output, binding['publication_projection'])
     dataset = json.loads((output / 'dataset.json').read_text())
     records = load_jsonl(contained_path(output, 'results.jsonl'))
+    from .report_version import check_release
+    check_release(output, dataset, records)
     if binding.get('publication_evidence_views'):
         from .publication_privacy import require_public_evidence_view_inventory
         require_public_evidence_view_inventory(output, binding['publication_evidence_views'], records)

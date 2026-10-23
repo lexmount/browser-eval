@@ -7,7 +7,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY.md"]
 requires-python = ">=3.11"
 dependencies = [
-  "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@56aca0cb9b9b9eef9995f0168e0504a72e309cd1",
+  "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@2ea8c52df67c39eee2ea5113a63f5da34f102160",
   "beautifulsoup4>=4.12,<5",
   "fastcdc==1.7.0",
 ]

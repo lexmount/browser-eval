@@ -57,6 +57,10 @@ Use a benchmark version together with exact task/reference and scoring-source
 hashes. Keep the package's full Git commit pinned separately. A package update
 does not select a new dataset for an existing report.
 
+Use the same `benchmark-vMAJOR.MINOR.PATCH` tag prefix in both repositories.
+Reports reference their benchmark edition; report rebuilds use the hosting
+platform's version ID rather than a separate semantic-version sequence.
+
 | Change | Edition | Result comparison |
 | --- | --- | --- |
 | Documentation or presentation only | Patch | Direct when execution controls also match |
@@ -64,7 +68,7 @@ does not select a new dataset for an existing report.
 | Added/removed cases, changed requests, output scope or routes | Major | Separate full-population results |
 
 The task package owns `lexbench-webfetch release` and `compare-releases`.
-See its [version contract](https://github.com/lexmount/lexbench-webfetch/blob/98dd3423a5d179b4662c27beccae0918b94bc2e8/docs/versions.md).
+See its [version contract](https://github.com/lexmount/lexbench-webfetch/blob/benchmark-v2.0.1/docs/versions.md).
 Freeze `benchmark-release.json` beside the compiled inputs before calls.
 The certified Web Fetch runner accepts `--benchmark-release`; it also discovers
 the sidecar beside the selected dataset. Release creation records the full scorer

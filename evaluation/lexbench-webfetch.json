@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "external_benchmark_binding",
   "repository": "https://github.com/lexmount/lexbench-webfetch",
-  "revision": "56aca0cb9b9b9eef9995f0168e0504a72e309cd1",
+  "revision": "2ea8c52df67c39eee2ea5113a63f5da34f102160",
   "ownership": {
     "benchmark": "Task populations, task model, acceptance scoring, file checks, compiler and frozen definitions",
     "harness": "Execution, reference lifecycle, evidence and reports"
@@ -81,6 +81,6 @@
     "evaluation/scoring-regressions.json": "432ddabe23d045d0ce4c23aef69ca3337ba4d240fe3c2061932cee26b7dc00dc",
     "evaluation/source-inputs.json": "c202abc4624811b938a837402bbaf0ecbe716e375fbca70567346d2edb3b1708",
     "annotation-revisions/serialization-20261021.json": "e0fe42179e584abb73782cbc459f521cab9cb09d3442de1ec4a6ff54d1b1235a",
-    "benchmark-release.json": "75fde8db11bb8b3b8b1460fea0e78385bd2a0bdddecc84fbae8287df5d25e879"
+    "benchmark-release.json": "96ac7f1044601f4a3f768be814a49a48ff46e3ad9802f7f9e17a524460b57c4b"
   }
 }

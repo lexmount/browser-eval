@@ -12,9 +12,13 @@ FILENAME = "benchmark-release.json"
 
 def _input_release(root):
     execution = root / "execution.json"
-    if not execution.is_file():
-        return None
-    binding = json.loads(execution.read_text()).get("aggregate", {}).get("benchmark_release")
+    binding = (json.loads(execution.read_text()).get("aggregate", {}).get("benchmark_release")
+               if execution.is_file() else None)
+    manifest = root / "report-manifest.json"
+    if manifest.is_file():
+        declared = (json.loads(manifest.read_text()).get("benchmark_release") or {}).get("input_release")
+        if declared is not None and declared != binding:
+            raise ValueError("Report lost its original benchmark input release binding")
     if binding is not None:
         path = contained_path(root, binding["path"], reject_symlinks=True)
         if hashlib.sha256(path.read_bytes()).hexdigest() != binding.get("sha256"):
@@ -77,12 +81,21 @@ def bind_release(source, output, dataset, records, *, profile=None):
         archived = contained_path(output, measured["path"], reject_symlinks=True)
         archived.parent.mkdir(parents=True, exist_ok=True)
         archived.write_bytes(original.read_bytes())
-    return {
+        execution_path = output / "execution.json"
+        execution = json.loads(execution_path.read_text()) if execution_path.exists() else {}
+        aggregate = execution.setdefault("aggregate", {})
+        if aggregate.get("benchmark_release") != measured:
+            aggregate["benchmark_release"] = measured
+            execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2) + "\n")
+    binding = {
         "path": FILENAME,
         "sha256": digest,
         "benchmark": release["benchmark"],
         "version": release["version"],
     }
+    if measured is not None:
+        binding["input_release"] = measured
+    return binding
 
 
 def check_release(root, dataset, records, *, profile=None):
