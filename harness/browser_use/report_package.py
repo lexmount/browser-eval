@@ -15,8 +15,6 @@ from harness.browser_use.report_visual import receipt_is_current
 from harness.browser_use.selection import report_selection_path
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.links import check as check_links
-from harness.reporting.assets import bound_json_asset
-from harness.reporting.links import check as check_links
 from harness.reporting.publication import package_archive
 
 ATTESTATION = Path("publish/browser-use-sites.attestation.json")

@@ -22,8 +22,6 @@ from harness.record_io import load_jsonl
 from harness.report_languages import write_language_contract
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.templates import template_identity
-from harness.reporting.assets import bound_json_asset
-from harness.reporting.templates import template_identity
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 
 from .failure_cause_review import (
