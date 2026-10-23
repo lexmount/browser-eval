@@ -7,6 +7,18 @@ from lexbench_websearch.inputs import digest
 from lexbench_websearch.answer_rules import POLICY_NAME
 from lexbench_websearch.qualification import validate_regressions, _qualified, _equivalent
 
+
+def _rescore(profile, rows):
+    cases = {case["id"]: case for case in profile["cases"]}
+    updated, changes = [], []
+    for row in rows:
+        new = {**row, "metrics": evaluate(cases[row["case_id"]], row["results"])}
+        if new["metrics"] != row["metrics"]:
+            changes.append({"id": row["id"], "before": row["metrics"], "after": new["metrics"]})
+        updated.append(new)
+    return profile, updated, changes
+
+
 def apply_report_revision(profile, rows, revision):
     """Add independently observed reference annotations to immutable saved calls."""
     if revision.get("schema") != "web-search-assessment-revision/1":
@@ -41,15 +53,7 @@ def apply_report_revision(profile, rows, revision):
             if case.get("reference_answer"):
                 case["answer_match_rule"] = revision["answer_match_rule"]
     validate_cases(revised['cases'], reference_checks=revised.get('reference_checks'), reference_scope=revised.get('protocol', {}).get('reference_scope'))
-    updated, changes = [], []
-    for row in rows:
-        new = {**row, "metrics": evaluate(cases[row["case_id"]], row["results"])}
-        if new["metrics"] != row["metrics"]:
-            changes.append(
-                {"id": row["id"], "before": row["metrics"], "after": new["metrics"]}
-            )
-        updated.append(new)
-    return revised, updated, changes
+    return _rescore(revised, rows)
 
 def apply_identity_correction(profile, rows, correction):
     validate_regressions(correction)
@@ -70,16 +74,7 @@ def apply_identity_correction(profile, rows, correction):
         reference_checks=revised.get("reference_checks"),
         reference_scope=revised.get("protocol", {}).get("reference_scope"),
     )
-    updated, changes = [], []
-    for row in rows:
-        new = dict(row)
-        new["metrics"] = evaluate(cases[row["case_id"]], row["results"])
-        if new["metrics"] != row["metrics"]:
-            changes.append(
-                {"id": row["id"], "before": row["metrics"], "after": new["metrics"]}
-            )
-        updated.append(new)
-    return revised, updated, changes
+    return _rescore(revised, rows)
 
 def validate_revision_binding(revision, *, authority=None):
     registered = (authority or {}).get("assessment_revisions", {})
