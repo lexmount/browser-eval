@@ -3,7 +3,6 @@
 import copy
 import json
 from pathlib import Path
-from urllib.parse import urlsplit
 
 
 from .core import digest, validate_profile
@@ -113,9 +112,8 @@ def publication_authority(manifest, path, *, root=None, planned_target=None, exp
             raise ValueError("Publication plan no longer matches the exact live target")
         target = planned_target
 
-    host = urlsplit(target["base_url"])
-    if host.scheme != "https" or not host.netloc or host.username or host.password or host.path not in ("", "/"):
-        raise ValueError("Invalid search publication host")
+    from harness.web_fetch.publication_target import validate_service_base
+    validate_service_base(target['base_url'])
     if not target.get("slug") or not target.get("versionId") or target.get("url") != target["base_url"].rstrip("/") + "/s/" + target["slug"]:
         raise ValueError("Incomplete live search publication target")
     methods = [m["id"] for m in manifest["profile"]["methods"]]
