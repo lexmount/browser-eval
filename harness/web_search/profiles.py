@@ -96,6 +96,16 @@ def load_profile(path, *, root=None):
     return json.loads(load_profile_bytes(path, root=root))
 
 
+def collection_receipts(manifest):
+    """Expose the same cohort bindings for standalone and composed reports."""
+    receipts = manifest["receipt"].get("separate_collections")
+    if receipts:
+        return receipts
+    receipt = dict(manifest["receipt"], cohort="primary")
+    receipt["receipt_sha256"] = receipt.get("receipt_sha256") or manifest.get("collection_receipt_sha256")
+    return [receipt]
+
+
 def publication_authority(manifest, path, *, root=None, planned_target=None, expected_target=None):
     """Bind a formal release to the current participants, inputs and live target."""
     root = authority_root(path, root)
@@ -121,11 +131,7 @@ def publication_authority(manifest, path, *, root=None, planned_target=None, exp
     if methods != selection["methods"] or target.get("methods") != methods:
         raise ValueError("Search release participants differ from the current selection")
     expected = {"primary": selection["profile"], **{c["id"]: c for c in selection.get("supplementary_profiles", [])}}
-    receipts = manifest["receipt"].get("separate_collections")
-    if not receipts:
-        receipts = [dict(manifest["receipt"], cohort="primary")]
-        if not receipts[0].get("receipt_sha256"):
-            receipts[0]["receipt_sha256"] = manifest.get("collection_receipt_sha256")
+    receipts = collection_receipts(manifest)
     if len(receipts) != len(expected) or {r["cohort"] for r in receipts} != set(expected):
         raise ValueError("Search release cohorts differ from the current selection")
     bindings = target["bindings"]

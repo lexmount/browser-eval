@@ -97,3 +97,39 @@ def test_original_non_json_response_is_preserved(browser):
         assert open_evidence(page, "#original") == raw
     finally:
         page.close()
+
+
+@pytest.mark.parametrize('primary', ['zh', 'en'])
+def test_exported_detail_and_raw_evidence_stay_on_selected_route(tmp_path, browser, primary):
+    from urllib.parse import quote, urlsplit
+    from harness.reporting.visual import local_report_server
+    from harness.web_search.example import example
+    from harness.web_search.report import build
+    from harness.web_search.delivery import export
+
+    example(tmp_path)
+    source = tmp_path / 'report'
+    build(source, source=tmp_path / 'fixture', language=primary, include_english=True)
+    export(source, tmp_path / 'delivery')
+    manifest = json.loads((source / 'manifest.json').read_text())
+    with local_report_server(tmp_path / 'delivery') as origin:
+        page = browser.new_page()
+        try:
+            for lang, prefix in [('zh', ''), ('en', 'en/')]:
+                for row in [manifest['rows'][0], manifest['rows'][-1]]:
+                    target = prefix + 'details/' + row['id'] + '.html'
+                    page.goto(origin + '/detail.html#' + quote(target, safe=''))
+                    page.locator('main h1').wait_for()
+                    assert urlsplit(page.url).path == '/detail.html'
+                    assert page.locator('html').get_attribute('lang') == lang
+                    page.locator('[data-evidence]:not([data-result])').first.click()
+                    page.wait_for_function("document.querySelector('dialog pre').textContent !== '…'")
+                    assert json.loads(page.locator('dialog pre').inner_text()) == json.loads((source / row['evidence']['path']).read_text())
+                    page.keyboard.press('Escape')
+                    assert not page.locator('dialog').is_visible()
+                    page.goto(origin + '/evidence.html#' + quote(row['evidence']['path'], safe=''))
+                    page.locator('[data-evidence-download]').wait_for()
+                    assert urlsplit(page.url).path == '/evidence.html'
+                    assert json.loads(page.locator('[data-delivery-target]').inner_text()) == json.loads((source / row['evidence']['path']).read_text())
+        finally:
+            page.close()

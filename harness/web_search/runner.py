@@ -38,12 +38,47 @@ def physical_call_counts(profile, output):
             raise ValueError("Ambiguous physical call identity: " + identity)
         identities[identity] = method["id"]
     counts = {m["id"]: 0 for m in profile["methods"]}
-    for path in output.rglob("calls/*.json"):
+    # A reservation and its saved response are one physical attempt. Historical
+    # collections without reservations retain their response-only accounting.
+    calls = {path for path in output.rglob("calls/*.json")}
+    calls.update(path.parent.parent / "calls" / path.name for path in output.rglob("reservations/*.json"))
+    for path in calls:
         identity, separator, attempt = path.stem.rpartition("-attempt-")
         if not separator or not attempt.isdigit() or int(attempt) < 1 or identity not in identities:
             raise ValueError("Unknown physical call identity: " + path.name)
         counts[identities[identity]] += 1
     return counts
+
+
+def reserve_attempt(output, relative, payload):
+    """Durably record a possibly billable send before entering the transport."""
+    path = output / "reservations" / Path(relative).name
+    path.parent.mkdir(exist_ok=True)
+    reservation = {
+        "response_path": relative,
+        "request_sha256": digest(json.dumps(payload, sort_keys=True).encode()),
+        "reserved_at": datetime.now(UTC).isoformat(),
+    }
+    with path.open("x", encoding="utf-8") as stream:
+        stream.write(json.dumps(reservation) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    # Persist the directory entry as well as the file before a network send.
+    if os.name != "nt":
+        fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+
+def archive_reservations(output, archive, kept):
+    """Keep interrupted/unknown sends beside displaced response evidence."""
+    for path in (output / "reservations").glob("*.json"):
+        if "calls/" + path.name not in kept:
+            target = archive / "reservations" / path.name
+            target.parent.mkdir(exist_ok=True)
+            shutil.move(path, target)
 
 
 def freeze_implementation(output):
@@ -118,6 +153,7 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
     (archive / "previous-results.jsonl").write_bytes(raw)
     (archive / "execution-revision.json").write_bytes(revision_bytes)
     kept = {a["evidence"]["path"] for r in retained for a in r.get("attempts", [r])}
+    archive_reservations(output, archive, kept)
     locations = {}
     for call in (output / "calls").glob("*.json"):
         original = call.relative_to(output).as_posix()
@@ -325,6 +361,7 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
     archive.mkdir()
     (archive / "previous-results.jsonl").write_bytes(raw)
     kept_paths = {a["evidence"]["path"] for r in retained for a in r.get("attempts", [r])}
+    archive_reservations(output, archive, kept_paths)
     for call in (output / "calls").glob("*.json"):
         if call.relative_to(output).as_posix() not in kept_paths:
             target = archive / "calls" / call.name
@@ -435,6 +472,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
         unavailable = [url for url, r in before.items() if not r["available"]]
         if unavailable and not diagnostic:
             raise ValueError("Reference precheck failed; no provider calls made")
+    (output / "results.jsonl").touch(exist_ok=True)
     protocol = profile["protocol"]
     existing_ids = {r["id"] for r in rows}
     spent_calls = physical_call_counts(profile, output)
@@ -453,6 +491,9 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 spent = spent_calls[method["id"]]
                 if spent >= budget:
                     raise ValueError("Physical call budget exhausted for " + method["id"])
+            relative = f"calls/{identity}-attempt-{attempt_index + 1}.json"
+            reserve_attempt(output, relative, payload)
+            spent_calls[method["id"]] += 1
             receipt, raw = http_call(
                 method["endpoint"], payload, header, protocol["client_timeout_s"]
             )
@@ -460,10 +501,8 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
             if key.encode() in raw:
                 raw = raw.replace(key.encode(), b"[REDACTED]")
             receipt["transport_error"] = receipt["transport_error"].replace(key, "[REDACTED]")
-            relative = f"calls/{identity}-attempt-{attempt_index + 1}.json"
             (output / "calls").mkdir(exist_ok=True)
             (output / relative).write_bytes(raw)
-            spent_calls[method["id"]] += 1
             results = []
             decoded = {}
             error = receipt["transport_error"]
@@ -547,7 +586,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
             complete=True,
             call_count=len(rows),
             physical_call_count=sum(len(r["attempts"]) for r in rows),
-            total_retained_physical_call_count=len(list(output.rglob("*-r*-attempt-*.json"))),
+            total_retained_physical_call_count=sum(physical_call_counts(profile, output).values()),
             certified=not diagnostic and not unavailable and not changed,
             unavailable_references=unavailable,
             changed_references=changed,
@@ -561,6 +600,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                     output / "references-before.json",
                     output / "references-after.json",
                     *sorted((output / "references").glob("*.bin")),
+                    *sorted((output / "reservations").glob("*.json")),
                     *sorted(p for p in (output / "implementation").rglob("*") if p.is_file()),
                     *sorted(output.glob("references-resume-precheck-*.json")),
                     *sorted(p for directory in output.glob("resume-*") for p in directory.rglob("*") if p.is_file()),

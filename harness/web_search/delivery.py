@@ -155,7 +155,7 @@ def export(source, destination):
     pre.string = "Loading saved evidence… / 正在加载证据…"
     shell.main.append(pre)
     # Drop the report's listeners until the requested page has been installed.
-    for script in shell.body.find_all("script"):
+    for script in shell.select("body script, [data-report-language-entry]"):
         script.decompose()
     loader = shell.new_tag("script")
     loader.string = LOADER

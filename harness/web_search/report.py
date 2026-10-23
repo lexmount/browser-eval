@@ -297,6 +297,11 @@ def _execution_contract(protocol):
     )}
 
 
+def scoring_rows(profile, rows):
+    """Select the declared quality round; timing and evidence retain every round."""
+    return [row for row in rows if row["round"] == profile["protocol"]["score_round"]]
+
+
 def load_report_runs(source, cohorts, labels, method_ids=None):
     """Compose separately verified runs; never pretend they were one collection."""
     inputs = [("primary", source), *cohorts]
@@ -319,6 +324,8 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
         if profile is None:
             profile = copy.deepcopy(current)
             profile["cases"] = []
+            profile["factual_quality_exclusions"] = []
+            profile["reference_adjudications"] = []
         elif current["methods"] != profile["methods"] or _execution_contract(current["protocol"]) != _execution_contract(profile["protocol"]):
             raise ValueError("Cohort participants or execution protocols differ")
         case_ids = {c["id"] for c in current["cases"]}
@@ -328,6 +335,8 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
         seen_cases.update(case_ids)
         seen_evidence.update(evidence)
         profile["cases"].extend(dict(c, cohort=name) for c in current["cases"])
+        profile["factual_quality_exclusions"].extend(current.get("factual_quality_exclusions", []))
+        profile["reference_adjudications"].extend(current.get("reference_adjudications", []))
         profile.setdefault("reference_checks", {}).update(current.get("reference_checks", {}))
         profile.setdefault("reference_artifacts", {}).update(current.get("reference_artifacts", {}))
         rows.extend(dict(r, cohort=name) for r in calls)
@@ -468,7 +477,7 @@ def build(
     output.mkdir(parents=True, exist_ok=True)
     languages = ["zh", "en"] if include_english or language == "en" else ["zh"]
     routes = []
-    selected = [r for r in rows if r["round"] == profile["protocol"]["score_round"]]
+    selected = scoring_rows(profile, rows)
     review_data = json.loads(review.read_text()) if review else None
     relevance_data = json.loads(relevance.read_text()) if relevance else None
     review_percent = None
@@ -490,7 +499,7 @@ def build(
     )
     overview_methods = scoped_overview_methods(profile, authored)
     overview_rows = scoped_overview_rows(profile, rows, authored)
-    summary = aggregate([r for r in overview_rows if r["round"] == profile["protocol"]["score_round"]])
+    summary = aggregate(scoring_rows(profile, overview_rows))
     physical = aggregate(overview_rows)
     payloads = {}
     for r in rows:
@@ -662,7 +671,7 @@ def build(
             t(f"Known page@{cutoff}", f"{report_text('text_5359a336caf6bbbe')}{cutoff}{report_text('text_f004f1d84cf962dc')}"),
             t("Price / 1k", report_text('text_df063b20c160707e')),
         ]
-        summary = aggregate([r for r in overview_rows if r["round"] == profile["protocol"]["score_round"]])
+        summary = aggregate(scoring_rows(profile, overview_rows))
         physical = aggregate(overview_rows)
         entries = []
         for m in overview_methods:
@@ -1402,7 +1411,7 @@ def check(output, *, return_data=False, evidence_only=False):
         sensitivity = json.loads(sensitivity_path.read_text())
         expected_sensitivity = {
             row["id"]: factual_sensitivity(factual_cases[row["case_id"]], row["results"], rule=sensitivity.get("rule"), cutoff=manifest["profile"]["protocol"]["top_k"])
-            for row in manifest["rows"] if row["case_id"] in factual_cases
+            for row in scoring_rows(manifest["profile"], manifest["rows"]) if row["case_id"] in factual_cases
         }
         if sensitivity.get("results") != expected_sensitivity:
             raise ValueError("Factual sensitivity disagrees with preserved responses")
@@ -1474,10 +1483,10 @@ def check(output, *, return_data=False, evidence_only=False):
                 if {option["value"] for option in inventory.select("[data-method-filter] option")} != {"all", *method_ids}:
                     raise ValueError("Incomplete provider filter")
                 if Counter(row.get("data-method") for row in inventory.select("[data-row]")) != Counter(
-                    result["method"] for result in manifest["rows"]
+                    result["method"] for result in scoring_rows(manifest["profile"], manifest["rows"])
                 ):
                     raise ValueError("Provider filter population mismatch")
-    relevance_scores = (score_relevance(manifest["profile"], [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]], relevance_data["plan"], relevance_data["labels"]) if relevance_data else [])
+    relevance_scores = (score_relevance(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), relevance_data["plan"], relevance_data["labels"]) if relevance_data else [])
     expected_diagnostics = operational(manifest["rows"], payloads, manifest["profile"]["methods"])
     cases = {c["id"]: c for c in manifest["profile"]["cases"]}
     for row in manifest["rows"]:
@@ -1487,7 +1496,7 @@ def check(output, *, return_data=False, evidence_only=False):
         if row["metrics"] != evaluate(cases[row["case_id"]], row["results"]):
             raise ValueError("Published scores disagree with the declared rules")
     if relevance_data:
-        selected = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+        selected = scoring_rows(manifest["profile"], manifest["rows"])
         verify_provenance(manifest["profile"], selected, relevance_data, authority=authority)
         verify_protocol(manifest["profile"], relevance_data, (manifest.get("authored") or {}).get("relevance_revision"), authority=authority)
     if manifest.get("scoring_revision"):
@@ -1542,7 +1551,7 @@ def check(output, *, return_data=False, evidence_only=False):
         raise ValueError("Performance explanation disagrees with raw evidence")
     if evidence_only:
         if return_data:
-            return manifest["profile"], [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+            return manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"])
         return True
     for route in manifest["routes"]:
         path = output / route
@@ -1563,11 +1572,7 @@ def check(output, *, return_data=False, evidence_only=False):
                 "review.html": "review",
             }.get(name)
             if key:
-                score_rows = [
-                    r
-                    for r in manifest["rows"]
-                    if r["round"] == manifest["profile"]["protocol"]["score_round"]
-                ]
+                score_rows = scoring_rows(manifest["profile"], manifest["rows"])
                 if authored.get("presentation") == "comparison-report":
                     pages = {"index.html": ["lead", "summary"], "quality.html": ["quality-lead", "quality-definitions", "quality"], "capabilities.html": ["capabilities-lead", "capabilities"], "performance.html": ["performance", "cost"]}.get(name, [key])
                     expected = ''.join(authored_sections(authored, section, lang, rows=score_rows) for section in pages)
@@ -1603,7 +1608,7 @@ def check(output, *, return_data=False, evidence_only=False):
                 primary_ids = {c["id"] for c in manifest["profile"]["cases"] if "reference_answer" not in c}
                 primary_rows = [r for r in manifest["rows"] if r["case_id"] in primary_ids]
                 visible_diagnostics = operational(primary_rows, payloads, manifest["profile"]["methods"])
-                expected_operations = BeautifulSoup(benchmark_operations(manifest["profile"], [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]], authored, soup.html["lang"] == "zh"), 'html.parser')
+                expected_operations = BeautifulSoup(benchmark_operations(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), authored, soup.html["lang"] == "zh"), 'html.parser')
                 if str(soup.select_one('[data-benchmark-operations]')) != str(expected_operations.select_one('[data-benchmark-operations]')):
                     raise ValueError("Benchmark timing/cost summary differs from physical calls")
                 expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh", authored), 'html.parser')
@@ -1633,13 +1638,13 @@ def check(output, *, return_data=False, evidence_only=False):
                 if specimen is None or specimen["data-timing-specimen"] != chosen["id"]:
                     raise ValueError("Missing or wrong timing specimen")
         if route.endswith("quality.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report":
-            score_rows = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+            score_rows = scoring_rows(manifest["profile"], manifest["rows"])
             for selector, expected in (("[data-factual]", factual_panel(manifest["profile"], score_rows, soup.html["lang"] == "zh", compact=True)),):
                 expected_node = BeautifulSoup(expected, "html.parser").select_one(selector)
                 if str(soup.select_one(selector)) != str(expected_node):
                     raise ValueError("Quality population differs from measured inputs")
         if route.endswith("results.html") and authored.get("presentation") == "comparison-report":
-            selected = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+            selected = scoring_rows(manifest["profile"], manifest["rows"])
             lang = soup.html["lang"]
             prefix = "" if lang == manifest["primary_language"] else lang + "/"
             expected = BeautifulSoup(render_result_comparison(manifest["profile"], selected, lang == "zh", prefix=prefix, site_prefix=manifest.get("site_prefix", ""), content=authored, relevance=relevance_data), "html.parser").select_one("[data-comparison-data]")
@@ -1647,10 +1652,7 @@ def check(output, *, return_data=False, evidence_only=False):
             if actual is None or json.loads(actual.string) != json.loads(expected.string):
                 raise ValueError("Result comparison differs from measured inputs")
         if route.endswith("interpretation.html"):
-            selected = [
-                r for r in manifest["rows"]
-                if r["round"] == manifest["profile"]["protocol"]["score_round"]
-            ]
+            selected = scoring_rows(manifest["profile"], manifest["rows"])
             expected_table = BeautifulSoup(
                 interpretation_summary_table(manifest["profile"], selected, soup.html["lang"] == "zh", manifest.get("authored") or {}, relevance_scores),
                 "html.parser",
@@ -1673,22 +1675,22 @@ def check(output, *, return_data=False, evidence_only=False):
                 raise ValueError("Quality page is missing from reader navigation")
         comparison_home = route.endswith("index.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report"
         if comparison_home:
-            expected = BeautifulSoup(executive_table(manifest["profile"], [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]], manifest["authored"], relevance_scores, soup.html["lang"] == "zh"), "html.parser")
+            expected = BeautifulSoup(executive_table(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), manifest["authored"], relevance_scores, soup.html["lang"] == "zh"), "html.parser")
             if str(soup.select_one('[data-executive]')) != str(expected.select_one('[data-executive]')):
                 raise ValueError("Population summary differs from measured inputs")
-            expected_discovery = BeautifulSoup(discovery_comparison(manifest['profile'], [r for r in manifest['rows'] if r['round'] == manifest['profile']['protocol']['score_round']], manifest['authored'], soup.html['lang'] == 'zh'), 'html.parser').select_one('[data-discovery]')
+            expected_discovery = BeautifulSoup(discovery_comparison(manifest['profile'], scoring_rows(manifest["profile"], manifest["rows"]), manifest['authored'], soup.html['lang'] == 'zh'), 'html.parser').select_one('[data-discovery]')
             if str(soup.select_one('[data-discovery]')) != str(expected_discovery):
                 raise ValueError("Discovery comparison differs from measured inputs")
         if route.endswith("index.html") and not comparison_home:
             for selector, renderer in (
                 ("[data-modes]", mode_panel),
             ):
-                score_rows = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+                score_rows = scoring_rows(manifest["profile"], manifest["rows"])
                 expected_panel = BeautifulSoup(renderer(manifest["profile"], score_rows, soup.html["lang"] == "zh"), "html.parser").select_one(selector)
                 if expected_panel and str(soup.select_one(selector)) != str(expected_panel):
                     raise ValueError("Deterministic evidence comparison differs from measured inputs")
             if relevance_data:
-                selected = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+                selected = scoring_rows(manifest["profile"], manifest["rows"])
                 scores = score_relevance(manifest["profile"], selected, relevance_data["plan"], relevance_data["labels"])
                 expected_panel = BeautifulSoup(relevance_panel(manifest["profile"], scores, relevance_data, soup.html["lang"] == "zh"), "html.parser").select_one("[data-relevance]")
                 actual_panel = soup.select_one("[data-relevance]")
@@ -1705,11 +1707,7 @@ def check(output, *, return_data=False, evidence_only=False):
             cutoff = manifest["profile"]["protocol"]["top_k"]
             hit_key = "anchor_hit_5" if cutoff == 5 else "anchor_hit_10"
             quality = aggregate(
-                [
-                    r
-                    for r in overview_rows
-                    if r["round"] == manifest["profile"]["protocol"]["score_round"]
-                ]
+                scoring_rows(manifest["profile"], overview_rows)
             )
             for tr, method in zip(table_rows, overview_methods, strict=True):
                 stats = physical.get(method["id"])
@@ -1773,7 +1771,7 @@ def check(output, *, return_data=False, evidence_only=False):
         if "/Users/" in str(soup):
             raise ValueError("Private data in report")
     if return_data:
-        selected = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+        selected = scoring_rows(manifest["profile"], manifest["rows"])
         return manifest["profile"], selected
     return True
 
@@ -3244,12 +3242,14 @@ def reference_retrieval_panel(profile, rows, case_ids, zh):
     if not ids:
         return ''
     cutoff = profile['protocol']['top_k']
+    cases = {c['id']: c for c in profile['cases']}
     values = []
     for method in profile['methods']:
         group = [r for r in rows if r['case_id'] in ids and r['method'] == method['id']]
         if len(group) != len(ids):
             raise ValueError('Incomplete reference-retrieval population')
-        values.append((method['label'], sum(r['metrics'][f'anchor_hit_{cutoff}'] for r in group), sum(r['metrics']['reciprocal_rank'] for r in group) / len(ids)))
+        metrics = [evaluate(cases[r['case_id']], r['results'], cutoff=cutoff) for r in group]
+        values.append((method['label'], sum(m[f'anchor_hit_{cutoff}'] for m in metrics), sum(m['reciprocal_rank'] for m in metrics) / len(ids)))
     winners = numeric_winners([[v[1] / len(ids), v[2]] for v in values], {0:'max', 1:'max'})
     rendered = []
     for label, hits, mrr in values:
@@ -3302,9 +3302,10 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                     measures.append(sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_rr_{cutoff}'] for r in quality_group) / len(quality_group) if quality_group else None)
             elif kind == 'scenario':
                 hit_key = 'anchor_hit_5' if profile['protocol']['top_k'] == 5 else 'anchor_hit_10'
-                if any(r['metrics'].get(hit_key) is None or r['metrics'].get('reciprocal_rank') is None for r in group):
+                metrics = [evaluate(cases[r['case_id']], r['results'], cutoff=cutoff) for r in group]
+                if any(m.get(hit_key) is None or m.get('reciprocal_rank') is None for m in metrics):
                     raise ValueError('Scenario population requires a reference for every query')
-                measures = [sum(r['metrics'][hit_key] for r in group), sum(r['metrics']['reciprocal_rank'] for r in group) / len(ids)]
+                measures = [sum(m[hit_key] for m in metrics), sum(m['reciprocal_rank'] for m in metrics) / len(ids)]
             elif kind == 'site':
                 eligible = []
                 for row in group:
