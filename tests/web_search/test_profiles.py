@@ -49,6 +49,7 @@ class CurrentProfileScenarios(unittest.TestCase):
         self.assertEqual(self.historical.read_bytes(), self.raw)
         self.assertEqual(load_profile_bytes(self.historical, root=self.root), self.raw)
         self.assertEqual(profile["publication"], {"authority": "target.json"})
+        self.assertEqual(profile["protocol"]["order"], "complete provider batches")
 
     def test_formal_release_accepts_a_new_run_of_the_resolved_current_profile(self):
         self.manifest["receipt"]["separate_collections"][0]["profile_sha256"] = digest(load_profile_bytes(self.entry, root=self.root))

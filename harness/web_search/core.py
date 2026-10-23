@@ -12,6 +12,7 @@ import json
 import re
 import statistics
 from pathlib import Path
+from urllib.parse import urljoin
 
 from lexbench_webfetch.metrics import percentile
 
@@ -32,10 +33,38 @@ def request_body(adapter, case, protocol, options=None):
     return adapter_for(adapter).request(case, protocol, options)
 
 
-def normalize(payload, adapter=None):
+def normalize(payload, adapter=None, top_k=None, *, base_url=None, project_slots=False):
     from .adapters import normalize_envelope
     from lexbench_websearch.scoring import normalize_results
-    return normalize_results(normalize_envelope(payload, adapter))
+    payload = normalize_envelope(payload, adapter, top_k=top_k, project_slots=project_slots)
+    if isinstance(payload, dict) and isinstance(payload.get("results"), list):
+        pages = payload["results"][:top_k] if project_slots and top_k is not None else payload["results"]
+        projected = []
+        for item in pages:
+            if isinstance(item, dict):
+                item = dict(item)
+                if base_url and isinstance(item.get("url"), str):
+                    item["url"] = urljoin(base_url, item["url"])
+                if adapter == "browserbase" and "snippet" not in item:
+                    item["snippet"] = item.get("description", "")
+                if "date" not in item and "published_at" not in item:
+                    item["date"] = item.get("publishedDate")
+            projected.append(item)
+        payload = dict(payload, results=projected)
+    results = normalize_results(payload)
+    return results[:top_k] if top_k is not None else results
+
+
+def normalize_response(payload, method, protocol, request=None):
+    """Project native slots using the frozen request's URL-resolution policy."""
+    policy = protocol.get("result_url_resolution")
+    if policy not in (None, "request-url/1"):
+        raise ValueError("Unknown native result URL policy")
+    base_url = (request or {}).get("url") if policy else None
+    if base_url:
+        canonical_url(base_url)
+    return normalize(payload, method["adapter"], protocol["top_k"] if protocol.get("normalize_top_k") else None,
+                     base_url=base_url, project_slots=bool(policy))
 
 
 def latency(values):
@@ -98,6 +127,8 @@ def validate_profile(profile):
         raise ValueError("This protocol requires a supported cutoff (5 or 10) and serial calls")
     if protocol["score_round"] not in range(protocol["rounds"]):
         raise ValueError("Invalid score round")
+    if protocol.get("order", "complete provider batches") not in {"complete provider batches", "rotate methods by case", "rotate methods by case and round"}:
+        raise ValueError("Unsupported execution order")
     query_limit = 4096 if protocol.get("preserve_publisher_queries") else 128
     for method in methods:
         canonical_url(method["endpoint"])
@@ -106,7 +137,8 @@ def validate_profile(profile):
         if method.get("billing", "unknown") not in BILLING_POLICIES:
             raise ValueError("Unsupported billing policy")
         for case in cases:
-            query = request_body(method["adapter"], case, protocol, method.get("output_options"))["query"]
+            body = request_body(method["adapter"], case, protocol, method.get("output_options"))
+            query = body.get("query", body.get("q", case["query"]))
             if not query.strip() or len(query) > query_limit:
                 raise ValueError(
                     "Query exceeds publisher-preserving 4096 character contract"

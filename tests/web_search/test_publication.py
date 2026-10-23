@@ -58,6 +58,50 @@ def test_publication_plan_uses_configured_data_home(tmp_path, monkeypatch):
     assert publication.verify_plan(report, work)["target"]["cases"] == 1
 
 
+@pytest.mark.parametrize("changed_selection", [False, True])
+def test_explicit_instance_never_updates_another_report(tmp_path, monkeypatch, changed_selection):
+    from tests.test_webfetch_report_publish import Service
+    from harness.web_fetch import report_publish
+
+    report, work = publication_files(tmp_path, monkeypatch)
+    default = tmp_path / "target.json"
+    original = default.read_bytes()
+    selected = tmp_path / "serp-target.json"
+    selected.write_bytes(original)
+    selector = tmp_path / "serp-selection.json"
+    selector.write_text(json.dumps({"publication_target": selected.name}))
+    manifest = json.loads((report / "manifest.json").read_bytes())
+    manifest["authored"] = {"publication_selection": {"path": selector.name, "sha256": digest(selector.read_bytes())}}
+    raw = json.dumps(manifest).encode()
+    (report / "manifest.json").write_bytes(raw)
+    (work / "report_manifest.json").write_bytes(raw)
+    visual = json.dumps({"manifest_sha256": digest(raw)}).encode()
+    (work / "visual_acceptance.json").write_bytes(visual)
+    plan_path = work / "publication-plan.json"
+    plan = json.loads(plan_path.read_bytes())
+    plan["instance"] = {"path": str(selector), "sha256": digest(selector.read_bytes())}
+    plan["target"]["bindings"]["report_manifest"]["sha256"] = digest(raw)
+    plan["target"]["bindings"]["visual_acceptance"]["sha256"] = digest(visual)
+    plan_path.write_text(json.dumps(plan))
+    monkeypatch.setattr(publication, "current_selection", lambda path=None, **kwargs: json.loads(path.read_bytes()) if path else {"publication_target": default.name})
+    monkeypatch.setattr(publication.subprocess, "check_output", lambda *a, **kw: b"fixture-commit")
+    monkeypatch.setattr(report_publish, "STAGED_UPLOAD_THRESHOLD", 0)
+    if changed_selection:
+        selector.write_text(json.dumps({"publication_target": default.name}))
+        with pytest.raises(ValueError, match="instance changed"):
+            publication.publish(report, work, transport=lambda *a, **kw: pytest.fail("Uploaded changed selection"))
+    else:
+        class PrivateService(Service):
+            def __call__(self, path, data=None, content_type=None, *, method=None, extra_headers=None):
+                if path.endswith('/sharing'):
+                    return 200, b'{"visibility":"private"}'
+                return super().__call__(path, data, content_type, method=method, extra_headers=extra_headers)
+
+        publication.publish(report, work, transport=PrivateService())
+        assert json.loads(selected.read_bytes())["versionId"] == "ver_new"
+    assert default.read_bytes() == original
+
+
 @pytest.mark.parametrize('field', ['populations', 'independent_review', 'quality_annotation'])
 def test_publication_rejects_forged_derived_counts(tmp_path, monkeypatch, field):
     report, work = publication_files(tmp_path, monkeypatch)

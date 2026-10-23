@@ -1,6 +1,8 @@
 """Provider transport registry. Add a provider here without changing the collector."""
 from dataclasses import dataclass
 from datetime import date, timedelta
+import json
+from urllib.parse import urlencode
 import re
 
 BILLING_POLICIES = frozenset({'unknown', 'http-200', 'http-200-nonempty'})
@@ -12,6 +14,7 @@ class Adapter:
     authorization_prefix: str = "Bearer "
     response: object = None
     telemetry: object = False
+    projection: object = None
 
     def cost(self, method, status, transport_exit, payload):
         price = method.get("price_per_1000")
@@ -49,7 +52,11 @@ def _options(options, allowed):
 
 
 def lexmount_request(case, protocol, options=None):
-    _options(options, set())
+    options = options or {}
+    if options:
+        if options != {"interface": "public"}:
+            raise ValueError("Unsupported Lexmount interface")
+        return dict(query=_serp_query(case), limit=protocol["top_k"])
     body = dict(query=case["query"], type="web", limit=protocol["top_k"],
                 timeout_ms=protocol["server_timeout_ms"], include=["attempts"])
     if case.get("source"):
@@ -81,7 +88,40 @@ def bocha_request(case, protocol, options=None):
     return body
 
 
-def _bocha_response(payload):
+def _serp_query(case):
+    query = case["query"]
+    if case.get("source") and case.get("domains"):
+        query += " (" + " OR ".join("site:" + d for d in case["domains"]) + ")"
+    return query
+
+
+def _string_options(options, allowed):
+    options = options or {}
+    if set(options) - allowed or any(not isinstance(v, str) or not v for v in options.values()):
+        raise ValueError("Unsupported search output option")
+    return options
+
+
+def browserbase_request(case, protocol, options=None):
+    return dict(query=_serp_query(case), numResults=protocol["top_k"],
+                **_string_options(options, {"provider", "mode"}))
+
+
+def serper_request(case, protocol, options=None):
+    return dict(q=_serp_query(case), num=protocol["top_k"],
+                **_string_options(options, {"gl", "hl"}))
+
+
+def brightdata_request(case, protocol, options=None):
+    options = _string_options(options, {"zone", "gl", "hl", "data_format"})
+    if not options.get("zone"):
+        raise ValueError("Bright Data SERP requires an explicit zone")
+    params = urlencode(dict(q=_serp_query(case), gl=options.get("gl", "us"), hl=options.get("hl", "en")))
+    return dict(zone=options["zone"], url="https://www.google.com/search?" + params,
+                format="json", data_format=options.get("data_format", "parsed"))
+
+
+def _bocha_response(payload, **kwargs):
     if (
         isinstance(payload, dict)
         and isinstance(payload.get("data"), dict)
@@ -111,8 +151,30 @@ def _bocha_response(payload):
     return payload
 
 
+def _serp_response(payload, adapter, *, top_k=None, project_slots=False):
+    if adapter == "brightdata" and isinstance(payload, dict) and "status_code" in payload:
+        if payload["status_code"] != 200:
+            raise ValueError("Bright Data upstream error: " + str(payload.get("body", payload["status_code"])))
+        payload = json.loads(payload["body"]) if isinstance(payload.get("body"), str) else payload.get("body")
+    if adapter in ("serper", "brightdata") and isinstance(payload, dict) and not payload.get("error"):
+        pages = payload.get("organic")
+        if not isinstance(pages, list):
+            raise ValueError("Response must contain an organic results array")
+        if project_slots and top_k is not None:
+            pages = pages[:top_k]
+        if any(not isinstance(item, dict) for item in pages):
+            raise ValueError("Each organic result must be an object")
+        payload = {"results": [dict(url=p.get("link"), title=p.get("title", ""),
+                                   snippet=p.get("snippet", p.get("description", "")),
+                                   date=p.get("date")) for p in pages]}
+    return payload
+
+
 ADAPTERS = {
     "lexmount": Adapter(lexmount_request, "X-API-Key", "", telemetry=True),
+    "browserbase": Adapter(browserbase_request, "x-bb-api-key", ""),
+    "serper": Adapter(serper_request, "X-API-KEY", "", response=lambda payload: _serp_response(payload, "serper"), projection=lambda payload, **kwargs: _serp_response(payload, "serper", **kwargs)),
+    "brightdata": Adapter(brightdata_request, response=lambda payload: _serp_response(payload, "brightdata"), projection=lambda payload, **kwargs: _serp_response(payload, "brightdata", **kwargs)),
     "deepseek": Adapter(deepseek_request),
     "bocha": Adapter(bocha_request, response=_bocha_response),
 }
@@ -124,10 +186,12 @@ def adapter_for(name):
     return ADAPTERS[name]
 
 
-def normalize_envelope(payload, adapter=None):
+def normalize_envelope(payload, adapter=None, **kwargs):
     if adapter is not None:
-        transform = adapter_for(adapter).response
-        return transform(payload) if transform else payload
+        config = adapter_for(adapter)
+        if config.projection:
+            return config.projection(payload, **kwargs)
+        return config.response(payload) if config.response else payload
     # Saved historical calls predate adapter-tagged native envelopes.
     if isinstance(payload, dict) and isinstance(payload.get("data"), dict) and "webPages" in payload["data"]:
         return ADAPTERS["bocha"].response(payload)

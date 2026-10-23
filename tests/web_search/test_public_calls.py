@@ -9,6 +9,23 @@ from harness.web_search.report import public_calls
 
 
 class PublicCallScenarios(unittest.TestCase):
+    def test_public_projection_preserves_frozen_costs_outside_nonempty_correction(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw = b'{"status_code":502,"body":"upstream failure"}'
+            (root / "response.json").write_bytes(raw)
+            evidence = {"path": "response.json", "sha256": digest(raw)}
+            method = {"id": "search", "price_per_1000": 5, "billing": "http-200"}
+            for cost in (0, None, .002):
+                with self.subTest(cost=cost):
+                    rows = [{"method": "search", "evidence": evidence, "cost": cost,
+                             "attempts": [{"http_status": 200, "transport_exit": 0,
+                                           "evidence": evidence, "cost": cost}]}]
+                    projected, _, _, corrections = public_calls({"methods": [method]}, rows, root, {})
+                    self.assertEqual(projected[0]["cost"], cost)
+                    self.assertEqual(projected[0]["attempts"][0]["cost"], cost)
+                    self.assertEqual(corrections, [])
+
     def test_release_rejects_credentials_even_with_updated_file_hash(self):
         from harness.web_search.example import example
         from harness.web_search.report import check
