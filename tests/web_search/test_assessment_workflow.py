@@ -2,7 +2,7 @@ import copy
 import unittest
 from lexbench_websearch.scoring import normalize_results as normalize
 from lexbench_websearch.scoring import evaluate
-from harness.web_search.revisions import apply_report_revision
+from harness.web_search.revisions import apply_report_revision, apply_identity_correction
 
 
 class AssessmentRevisionScenarios(unittest.TestCase):
@@ -67,6 +67,31 @@ class AssessmentRevisionScenarios(unittest.TestCase):
                 }
             ],
         }
+
+    def test_equivalent_url_rescores_without_changing_call_evidence(self):
+        alias, target = "https://docs.test/known", "https://docs.test/old"
+        correction = {
+            "root_cause": "The returned URL is a verified alias of the reference",
+            "regression_ids": ["equivalence-canonical"],
+            "observations": [
+                {"url": alias, "canonical": target},
+                {"url": target, "canonical": target + "/"},
+            ],
+            "aliases": {"known": {alias: target}},
+        }
+        original = copy.deepcopy(self.rows)
+        _, rows, changes = apply_identity_correction(self.profile, self.rows, correction)
+        self.assertEqual(rows[0]["metrics"]["anchor_hit_5"], 1)
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(self.rows, original)
+        for old, new in zip(original, rows):
+            self.assertEqual(
+                {k: v for k, v in old.items() if k != "metrics"},
+                {k: v for k, v in new.items() if k != "metrics"},
+            )
+        correction["observations"][1]["canonical"] = "https://docs.test/different"
+        with self.assertRaisesRegex(ValueError, "Unproven"):
+            apply_identity_correction(self.profile, self.rows, correction)
 
     def test_annotations_and_ranges_rescore_without_rewriting_calls(self):
         before = copy.deepcopy(self.rows)

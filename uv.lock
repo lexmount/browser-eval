@@ -355,7 +355,7 @@ requires-dist = [
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
     { name = "lexbench-webfetch", git = "https://github.com/lexmount/lexbench-webfetch.git?rev=2ea8c52df67c39eee2ea5113a63f5da34f102160" },
-    { name = "lexbench-websearch", git = "https://github.com/lexmount/lexbench-websearch.git?rev=6dfcbe99b92622a15ebb15edb3e9d9ca0c68307c" },
+    { name = "lexbench-websearch", git = "https://github.com/lexmount/lexbench-websearch.git?rev=e9cd1d9df34a06a397bed0744793a041de03321b" },
     { name = "markdown", marker = "extra == 'webmainbench-eval'", specifier = ">=3.7,<4" },
     { name = "openai", marker = "extra == 'webmainbench-eval'", specifier = ">=2.8,<4" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
@@ -1942,7 +1942,7 @@ dependencies = [
 [[package]]
 name = "lexbench-websearch"
 version = "0.1.0"
-source = { git = "https://github.com/lexmount/lexbench-websearch.git?rev=6dfcbe99b92622a15ebb15edb3e9d9ca0c68307c#6dfcbe99b92622a15ebb15edb3e9d9ca0c68307c" }
+source = { git = "https://github.com/lexmount/lexbench-websearch.git?rev=e9cd1d9df34a06a397bed0744793a041de03321b#e9cd1d9df34a06a397bed0744793a041de03321b" }
 
 [[package]]
 name = "lxml"

@@ -44,4 +44,6 @@ def check_source_languages(root: Path) -> list[str]:
         schema = document.get("schema", "") if isinstance(document, dict) else ""
         if path.name in instance_names or schema.split("/", 1)[0] in instance_schemas:
             findings.append(f"{path.relative_to(root)}: keep report instances outside Git")
+        if schema.split("/", 1)[0] == "lexbench-websearch-dataset":
+            findings.append(f"{path.relative_to(root)}: keep Search datasets in lexbench-websearch")
     return findings

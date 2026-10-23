@@ -53,5 +53,17 @@ def test_search_instance_detection_uses_contract_not_filename(tmp_path, schema):
     path.parent.mkdir()
     path.write_text(json.dumps({"schema": schema}))
     assert check_source_languages(tmp_path) == ["evaluation/renamed-instance.json: keep report instances outside Git"]
+    path.write_text(json.dumps({"schema": "local-task-definition/1", "cases": []}))
+    assert check_source_languages(tmp_path) == []
+
+
+def test_search_dataset_copy_is_rejected_but_compact_binding_is_allowed(tmp_path):
+    import json
+    path = tmp_path / "evaluation/search-inputs.json"
+    path.parent.mkdir()
     path.write_text(json.dumps({"schema": "lexbench-websearch-dataset/1", "cases": []}))
+    assert check_source_languages(tmp_path) == [
+        "evaluation/search-inputs.json: keep Search datasets in lexbench-websearch"]
+    path.write_text(json.dumps({"kind": "external_benchmark_binding", "datasets": {
+        "custom": {"path": "datasets/custom.json", "sha256": "a" * 64, "count": 1}}}))
     assert check_source_languages(tmp_path) == []
