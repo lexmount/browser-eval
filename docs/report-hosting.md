@@ -85,7 +85,7 @@ Example runs remain diagnostic after upload. Publishing does not certify benchma
 
 ## Maintained benchmark releases
 
-Formal releases use the selected track's package/publish commands after certification, required review and release checks. See [architecture](architecture.md#reports-and-publication) and the [track guides](../README.md#what-it-tests).
+Formal releases use the selected track's package/publish commands after certification, required review and release checks. See [architecture](architecture.md#reports-and-publication) and the [track guides](../README.md#evaluation-tracks).
 
 | Requirement | Why it matters |
 | --- | --- |

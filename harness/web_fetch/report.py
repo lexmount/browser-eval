@@ -2218,7 +2218,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  release_path=out/'benchmark-release.json'
  if release_path.is_file():
   release=json.loads(release_path.read_text())
-  description='<span>'+description+'</span> · <a data-benchmark-release="'+esc(release['version'])+'" href="benchmark-release.json">'+esc(release['benchmark']+' v'+release['version'])+'</a>'
+  description='<span>'+description+'</span> · <a data-benchmark-release="'+esc(release['version'])+'" href="benchmark-release.json">'+esc('bench v'+release['version'])+'</a>'
  home='<div class="home-page">'+hero('Web Fetch 评测报告',description)
  from .report_explainer import render_explainer
  TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else '本报告的任务范围与验收规则'

@@ -568,6 +568,7 @@ def run_evaluation(
     started_at = utc_now()
     records: list[dict[str, Any]] = []
 
+    from harness.reporting.versions import software_identity
     manifest = {
         "schema_version": 1,
         "runtime_source_sha256": hashlib.sha256(SCORING_SOURCE_SHA256.encode()+b'\0'+b'\0'.join(
@@ -583,6 +584,7 @@ def run_evaluation(
         "deadline_policy": "end_to_end_answer; non_cancellable_adapter_quarantined",
         "public_call_log_schema_version": 1,
         "tool": "web_fetch",
+        "browser_eval": software_identity(),
         "started_at": started_at,
         "dataset": {
             "id": dataset_meta.get("id"),

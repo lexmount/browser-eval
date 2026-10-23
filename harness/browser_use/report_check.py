@@ -478,6 +478,8 @@ def check(
         raise ValueError("report is missing one or more required report pages")
     selection = load_pilot(selection_path)
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    from harness.reporting.versions import check_build_version
+    check_build_version(report_dir, audit)
     if audit.get("profile_sha256") and audit.get("template") != template_identity("browser-use"):
         raise ValueError("report bypasses the maintained Browser Use template")
     if audit.get("profile_sha256") and audit["profile_sha256"] != _sha256(profile_path):

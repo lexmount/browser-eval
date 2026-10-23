@@ -442,6 +442,8 @@ def check_diagnostic_report(output, profile=None):
     if profile is not None:
         require_diagnostic_scope(model, json.loads(Path(profile).read_text()))
     manifest = json.loads((output / "report-manifest.json").read_text())
+    from harness.reporting.versions import check_build_version
+    check_build_version(output, manifest)
     if profile is not None:
         binding = json.loads(Path(profile).read_text()).get('diagnostic_input')
         if binding and manifest.get('input_sha256') != binding['sha256']:
