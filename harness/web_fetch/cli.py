@@ -51,11 +51,7 @@ def command_run(args: argparse.Namespace) -> int:
         delay=args.delay,
         provider_concurrency=args.provider_concurrency,
         max_failure_retries=args.max_failure_retries,
-        collect_only=getattr(args, "collect_only", False),
     )
-    if getattr(args, "collect_only", False):
-        print(f"Collected responses and logs: {args.output.resolve()}")
-        return 0
     report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True,
                                language=args.language)
     print(f"Report: {report_path.resolve()}")
@@ -126,8 +122,6 @@ def build_parser() -> argparse.ArgumentParser:
                      help="Select one task kind; intersects with --case-ids")
     run.add_argument("--runs", type=int, default=1)
     run.add_argument("--timeout", type=float, default=DEFAULT_CALL_TIMEOUT_SECONDS)
-    run.add_argument("--collect-only", action="store_true",
-                     help="Collect one call per case without scoring, retries or a scored report")
     run.add_argument("--delay", type=float, default=0.5)
     run.add_argument(
         "--provider-concurrency",

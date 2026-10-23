@@ -43,8 +43,7 @@ These adapters implement webpage body/structure tasks. Unsupported document,
 media and file tasks fail before transport, without helper downloads or a
 substitute browser/Agent. Rendering and internal retries remain service-owned;
 offline adapter checks do not establish JavaScript capability or task pass rates.
-Alternative structured formats require a separately declared output contract;
-never derive schemas or parameters from expected answers.
+Only Markdown output is supported by these adapters.
 
 Retain complete native responses separately from score-bearing answer fields.
 An API HTTP 200 does not prove target retrieval succeeded: explicit service or
@@ -57,10 +56,6 @@ internals. Only Bright Data receives the native debug option.
 to the service. No automatic DNS fallback is added. Browser Use receives the call
 budget through `timeout_ms`; the other services retain their native defaults
 within the outer deadline. Historical runs keep their recorded configuration.
-
-For diagnostics without scoring, use `run --collect-only --runs 1
---max-failure-retries 0`. It preserves responses and logs, but cannot produce a
-scored report without explicit rescoring and does not certify a cohort.
 
 API references: [Bright Data](https://docs.brightdata.com/api-reference/rest-api/unlocker/unlock-website),
 [fetch-use](https://browser-use.com/posts/fetch-use),
@@ -134,52 +129,36 @@ dynamic text route. Combining it with resource discovery is rejected before a
 call. Direct file delivery also rejects DOM completion: it cannot claim a
 rendered-page condition was satisfied while fetching only response bytes.
 
-## Crawl4AI Cloud and the local library
+## Selected native cohort
 
-`crawl4ai-cloud` and local `crawl4ai` are separate methods: old local results
-cannot be relabeled as Cloud results. The local worker uses headless Chrome,
-cache bypass, `domcontentloaded`, overlay removal, iframe processing and
-`raw_markdown`. Cloud returns service-cleaned Markdown with no exact counterpart
-for every local option. Browser versions, extraction and site access may differ.
-Retain Cloud engine/cache/usage fields in the raw response. A Cloud 403 can mean
-target access denial, not only invalid credentials; native browser traces are
-not promised.
-
-### Selected fixed-native comparison policy
-
-The example configuration selects fixed native parameters for `moli-webfetch`,
-`firecrawl`, `cloudflare-markdown`, `tavily`, `exa`, `brightdata`,
-`browser-use-fetch`, `browserbase`, `deepseek-fetch-api`, and `crawl4ai-cloud`.
-Requests do not consult scoring requirements. Per-case retrieval hints are
-rejected before transport; dynamic cases must declare the native retrieval mode.
-Exa uniformly requests up to 100 native rich links. Cloudflare receives the URL
-directly, including document URLs; the harness does not download a file for it.
-Unsupported native routes remain unsupported rather than receiving caller help.
-The full 30-second deadline covers the provider response and required decoding;
-scorer input preparation, scoring and evidence persistence follow afterward.
-A failure retry receives another 30 seconds. The final call supplies the result
-and primary latency, while all physical answers and cumulative retry cost remain
-recorded. A still-running timed-out call is quarantined instead of overlapped.
-
-### Reusable selected cohort
-
-`configs/providers.example.json` declares the ten retained methods in
+`configs/providers.example.json` owns the ten retained methods in
 `default_providers`. Use `--providers configured --provider-config
-configs/providers.example.json` with the existing `run`, `validate`,
-`run_benchmark.py` or `run_certified_benchmark.py` entry point. Selection is
-resolved before execution and frozen as explicit method names in run evidence.
-The shared defaults are 30 seconds per physical call and one failure retry;
-explicit CLI overrides remain available and are recorded. The no-argument
-example still uses the offline fixture. Other adapters remain available by name.
+configs/providers.example.json` with `run`, `validate`, `run_benchmark.py` or
+`run_certified_benchmark.py`. Selection is frozen as explicit names in evidence;
+other adapters remain selectable, and the no-argument CLI still uses a fixture.
 
-The selected HTTP adapters retain a 20,000,000-byte response ceiling, and Moli
-retains its output ceiling. This is a caller evidence limit, not a native page
-or subresource download setting. Moli receives no website-specific private
-network exception or caller-specified download size cap. Every selected method
-enables caller debug logs. Credentials remain in the repository `.env`; Moli's
-local path must resolve to the version and hash pinned in the configuration.
+- The default is 30 seconds per physical call and one failure retry. The final
+  response supplies the result and primary latency; every call and accumulated
+  retry cost is retained. CLI overrides remain explicit and recorded.
+- Stop timing after the response and required decoding; preparation for scoring,
+  scoring and evidence persistence follow. Discard late answers and quarantine
+  still-running workers rather than overlapping abandoned calls.
+- Reject per-case hints and never derive requests from grading requirements.
+  Dynamic cases declare native retrieval mode. Exa uniformly requests 100 rich
+  links; Cloudflare receives URLs directly, without helper document downloads.
+- Keep the 20,000,000-byte HTTP response/Moli output ceiling and debug logs.
+  Moli retains its pinned binary identity and private-network guard without
+  per-host exceptions or a caller-imposed subresource download cap. Non-public
+  DNS answers must be resolved as an environment issue before a public cohort.
+- `crawl4ai-cloud` is distinct from local `crawl4ai`: browser versions and
+  extraction differ, and old local results must not be relabeled as Cloud.
+  Cloud uses service-cleaned Markdown; retain its engine/cache/usage fields.
+  Native proxy options are supported but `none` remains the configured default;
+  choose any paid proxy policy before calls, never in response to scores.
 
-For a diagnostic collection, supply a frozen dataset and a new external output:
+For diagnostics, supply frozen tasks and a new external output. `--measure-only`
+retains scored evidence without building a report; it does not certify a cohort.
+Historical unscored collections remain ineligible for scored reports.
 
 ```sh
 uv run --frozen python scripts/run_benchmark.py \
@@ -189,6 +168,5 @@ uv run --frozen python scripts/run_benchmark.py \
   --output /path/to/new-run
 ```
 
-Publishable cohorts use `scripts/run_certified_benchmark.py` with the same
-provider selection and timing arguments, plus its required case scope, work
-root and output. Report-instance profiles and measured data remain outside Git.
+Publishable cohorts use `scripts/run_certified_benchmark.py` with its required
+scope, work root and output. Report profiles and measured data stay outside Git.

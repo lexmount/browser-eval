@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import json
 import uuid
 
 from lexbench_webfetch.models import EvalCase
@@ -66,18 +65,15 @@ class HostedFetchProvider(Provider):
             if self.config.get("proxy", "none") not in {"none", "isp", "residential"}:
                 errors.append("unsupported proxy")
         output_format = self.config.get("output_format", "markdown")
-        formats = {"crawl4ai_cloud": {"markdown"}, "browserbase_fetch": {"markdown", "json"},
-                   "browser_use_fetch": {"markdown", "structured"},
-                   "brightdata_unlocker": {"markdown"}, "deepseek_fetch": {"markdown"}}
-        if not isinstance(output_format, str) or output_format not in formats[self.type]:
-            errors.append("unsupported output_format")
-        if self.type == "browserbase_fetch" and output_format == "json" and not isinstance(self.config.get("schema"), dict):
-            errors.append("JSON output requires schema")
+        if output_format != "markdown":
+            errors.append("unsupported output_format; this adapter requires markdown")
         return errors
 
     def native_http_arguments(self, case, timeout):
         budget = inner_timeout_budget(timeout, native_default=True)
         output_format = self.config.get("output_format", "markdown")
+        if output_format != "markdown":
+            raise ValueError("This adapter requires markdown output")
         key = str(self.config.get("api_key", ""))
         body: dict = {"url": case.url}
         if self.type == "brightdata_unlocker":
@@ -93,8 +89,6 @@ class HostedFetchProvider(Provider):
             headers = {"X-BB-API-Key": key}
             body.update(format=output_format, allowRedirects=True,
                         proxies=self.config.get("proxies", True))
-            if output_format == "json":
-                body["schema"] = self.config["schema"]
         elif self.type == "crawl4ai_cloud":
             headers = {"Authorization": f"Bearer {key}"}
             body.update(format="md", engine=self.config.get("engine", "browser"),
@@ -156,8 +150,6 @@ class HostedFetchProvider(Provider):
             else:
                 if self.type == "browserbase_fetch":
                     content = payload.get("content")
-                    if output_format == "json" and isinstance(content, (dict, list)):
-                        content = json.dumps(content, ensure_ascii=False, separators=(",", ":"))
                     status = _http_status(payload.get("statusCode", payload.get("status_code")))
                     service_error = payload.get("encoding") == "base64" or bool(payload.get("error"))
                 elif self.type == "crawl4ai_cloud":

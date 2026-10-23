@@ -73,9 +73,7 @@
     },
     "fixture": {
       "type": "fixture",
-      "fail_cases": [
-        "javascript-spa"
-      ]
+      "fail_cases": ["javascript-spa"]
     },
     "http-local": {
       "type": "http",
@@ -121,11 +119,7 @@
       "type": "firecrawl",
       "base_url": "https://api.firecrawl.dev",
       "api_key": "${FIRECRAWL_API_KEY:-}",
-      "formats": [
-        "markdown",
-        "links",
-        "images"
-      ],
+      "formats": ["markdown", "links", "images"],
       "max_age": 0,
       "max_bytes": 20000000,
       "min_interval_seconds": 6.1,
@@ -193,15 +187,8 @@
       "type": "subprocess_jsonl",
       "method_type": "openclaw_builtin",
       "repo_path": "${OPENCLAW_REPO}",
-      "command": [
-        "${OPENCLAW_NODE:-node}",
-        "--import",
-        "tsx",
-        "{harness_root}/harness/web_fetch/workers/openclaw_webfetch_worker.mts"
-      ],
-      "env": {
-        "OPENCLAW_REPO": "${OPENCLAW_REPO}"
-      },
+      "command": ["${OPENCLAW_NODE:-node}", "--import", "tsx", "{harness_root}/harness/web_fetch/workers/openclaw_webfetch_worker.mts"],
+      "env": {"OPENCLAW_REPO": "${OPENCLAW_REPO}"},
       "expected_repo_revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
       "expected_node_version": "v24.15.0",
       "package_manager_command": "${OPENCLAW_PNPM:-~/.browser-eval/toolchains/openclaw-node/node_modules/.bin/pnpm}",
@@ -216,12 +203,7 @@
       "type": "subprocess_jsonl",
       "method_type": "deepseek_harness_builtin",
       "repo_path": "${DEEPSEEK_HARNESS_REPO}",
-      "command": [
-        "${OPENCLAW_NODE:-node}",
-        "--import",
-        "tsx",
-        "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts"
-      ],
+      "command": ["${OPENCLAW_NODE:-node}", "--import", "tsx", "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts"],
       "expected_repo_revision": "dd6322d604e00eec1ba5e0c8541159906a21094a",
       "expected_node_version": "v24.15.0",
       "required_paths": [
@@ -244,34 +226,19 @@
       "type": "subprocess_jsonl",
       "method_type": "langchain_webbase",
       "repo_path": ".",
-      "command": [
-        "${OSS_PYTHON:-.venv/bin/python}",
-        "{harness_root}/harness/web_fetch/workers/langchain_webbase_worker.py"
-      ],
+      "command": ["${OSS_PYTHON:-.venv/bin/python}", "{harness_root}/harness/web_fetch/workers/langchain_webbase_worker.py"],
       "expected_python_version": "Python 3.11.12",
-      "expected_library_versions": {
-        "langchain-community": "0.3.30"
-      },
-      "required_paths": [
-        "{harness_root}/harness/web_fetch/workers/langchain_webbase_worker.py"
-      ]
+      "expected_library_versions": {"langchain-community": "0.3.30"},
+      "required_paths": ["{harness_root}/harness/web_fetch/workers/langchain_webbase_worker.py"]
     },
     "crawl4ai": {
       "type": "subprocess_jsonl",
       "method_type": "crawl4ai",
       "repo_path": ".",
-      "command": [
-        "${OSS_PYTHON:-.venv/bin/python}",
-        "{harness_root}/harness/web_fetch/workers/crawl4ai_worker.py"
-      ],
+      "command": ["${OSS_PYTHON:-.venv/bin/python}", "{harness_root}/harness/web_fetch/workers/crawl4ai_worker.py"],
       "expected_python_version": "Python 3.11.12",
-      "expected_library_versions": {
-        "crawl4ai": "0.9.3"
-      },
-      "required_paths": [
-        "{harness_root}/harness/web_fetch/workers/crawl4ai_worker.py",
-        "{harness_root}/harness/web_fetch/network_dns.py"
-      ]
+      "expected_library_versions": {"crawl4ai": "0.9.3"},
+      "required_paths": ["{harness_root}/harness/web_fetch/workers/crawl4ai_worker.py", "{harness_root}/harness/web_fetch/network_dns.py"]
     }
   }
 }

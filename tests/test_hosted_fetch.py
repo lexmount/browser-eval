@@ -150,22 +150,13 @@ class HostedFetchTest(unittest.TestCase):
         self.assertIn('debug must be boolean', self.provider(TYPES[0], debug='true').validate())
 
     @patch('harness.web_fetch.providers.hosted_fetch.request')
-    def test_native_structured_formats_preserve_only_returned_answers(self, call):
-        schema = {'type':'object','properties':{'records':{'type':'array','items':{'type':'object'}}}}
-        answer = {'records':[{'text':'Returned by service'}]}
-        call.return_value = HttpResponse(200,'https://service.example/',{},json.dumps({'content':answer,'statusCode':200}).encode())
-        result = self.provider('browserbase_fetch', output_format='json', schema=schema).fetch(self.case,45)
-        self.assertTrue(result.ok)
-        self.assertEqual(json.loads(result.content),answer)
-        self.assertEqual(call.call_args.kwargs['json_body']['schema'],schema)
-        self.assertEqual(result.metadata['output_contract'],'json')
-        call.return_value = self.response('browser_use_fetch', json.dumps(answer))
-        result = self.provider('browser_use_fetch', output_format='structured').fetch(self.case,45)
-        self.assertTrue(result.ok)
-        self.assertEqual(json.loads(result.content),answer)
-        self.assertEqual(call.call_args.kwargs['json_body']['output_format'],'structured')
-        self.assertTrue(self.provider('browserbase_fetch', output_format='json').validate())
-        self.assertTrue(self.provider('browser_use_fetch', output_format='invented').validate())
+    def test_unsupported_output_formats_are_rejected_before_transport(self, call):
+        for kind, output in (('browserbase_fetch', 'json'), ('browser_use_fetch', 'structured')):
+            provider = self.provider(kind, output_format=output)
+            self.assertTrue(provider.validate())
+            with self.assertRaisesRegex(ValueError, 'requires markdown'):
+                provider.fetch(self.case, 30)
+        call.assert_not_called()
 
     @patch('harness.web_fetch.providers.hosted_fetch.request')
     def test_http_200_is_not_enough(self, call):
@@ -283,9 +274,8 @@ class HostedFetchTest(unittest.TestCase):
             self.assertNotIn('secret-bb',path.read_text())
             self.assertNotIn('secret-bu',path.read_text())
 
-    @patch('harness.web_fetch.runner.score_attempt', side_effect=AssertionError('Scorer must not run'))
     @patch('harness.web_fetch.providers.http_client.urllib.request.build_opener')
-    def test_collection_retains_actual_http_errors_and_exception_trace_without_scoring(self, opener, scorer):
+    def test_runner_retains_http_errors_and_exception_trace(self, opener):
         responses = [Mock(status=200, headers={}, read=Mock(return_value=b'{"title":"Title","content":"Body"}'),
                           geturl=Mock(return_value='https://service.example/')),
                      Mock(status=500, headers={}, read=Mock(return_value=b'{"error":{"message":"native failure"}}'),
@@ -295,15 +285,13 @@ class HostedFetchTest(unittest.TestCase):
         cases = [EvalCase(str(i),'Control',self.case.url,'static',[]) for i in range(3)]
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
-            rows,summary=run_evaluation(output_dir=root/'run',dataset_meta={'cases':[vars(c) for c in cases]},
+            rows,_=run_evaluation(output_dir=root/'run',dataset_meta={'cases':[vars(c) for c in cases]},
                 dataset_path=root/'dataset.json', cases=cases,
                 providers=[self.provider('deepseek_fetch',log_level='debug')],provider_config_path=root/'providers.json',
-                runs=1,timeout=45,delay=0,collect_only=True,max_failure_retries=0)
+                runs=1,timeout=45,delay=0,max_failure_retries=0)
             self.assertEqual([r['ok'] for r in rows],[True,False,False])
-            self.assertIsNone(summary['task_pass_rate'])
             self.assertEqual(opener.return_value.open.call_count,3)
             for row in rows:
-                self.assertNotIn('content_pass',row['metrics'])
                 log=(root/'run'/row['provider_metadata']['diagnostic_log_path']).read_text()
                 self.assertNotIn('private-test-key',log)
                 self.assertIn('http_request_started',log)
@@ -312,13 +300,17 @@ class HostedFetchTest(unittest.TestCase):
             self.assertIn('Traceback',failure_log)
             server_log=(root/'run'/rows[1]['provider_metadata']['diagnostic_log_path']).read_text()
             self.assertIn('native failure',server_log)
-            from harness.web_fetch.report_build import build_report
-            with self.assertRaisesRegex(ValueError,'Collection-only evidence'):
-                build_report(root/'run',root/'report')
-            scorer.assert_not_called()
+
+    def test_historical_unscored_collection_cannot_build_report(self):
+        from harness.web_fetch.report_build import build_report
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'manifest.json').write_text('{"collection_only":true}')
+            with self.assertRaisesRegex(ValueError, 'Collection-only evidence'):
+                build_report(root, root/'report')
 
     @patch('harness.web_fetch.providers.http_client.urllib.request.build_opener')
-    def test_collection_timeout_has_actual_deadline_event_and_no_retry(self, opener):
+    def test_runner_timeout_has_actual_deadline_event_and_no_retry(self, opener):
         release=threading.Event()
         def blocked(*args,**kwargs):
             release.wait(1)
@@ -330,7 +322,7 @@ class HostedFetchTest(unittest.TestCase):
                 rows,_=run_evaluation(output_dir=root/'run',dataset_meta={'cases':[vars(self.case)]},
                     dataset_path=root/'dataset.json',cases=[self.case],
                     providers=[self.provider('deepseek_fetch',log_level='debug')],provider_config_path=root/'providers.json',
-                    runs=1,timeout=0.02,delay=0,collect_only=True,max_failure_retries=0)
+                    runs=1,timeout=0.02,delay=0,max_failure_retries=0)
                 self.assertEqual(rows[0]['error_type'],'timeout')
                 log=(root/'run'/rows[0]['provider_metadata']['diagnostic_log_path']).read_text()
                 self.assertIn('answer_timeout',log)
