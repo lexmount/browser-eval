@@ -31,6 +31,9 @@ An explicitly requested diagnostic report may be delivered separately from a cer
 
 ## Working contract
 
+Version changes require an explicit human release request. Code synchronization, review fixes, tests and report rebuilds must not automatically bump package, benchmark or report edition numbers, rewrite frozen release catalogs, or create/push release tags. Reuse existing build versions and record source hashes; keep unreleased changes separate from a certified edition.
+
+
 Public report CLIs fall back to English. `BROWSER_EVAL_REPORT_LANGUAGE` changes the environment default; an explicit `--language` wins, and a rebuild preserves the saved primary language. For an agent-driven build, select the language from the current conversation. English builds retain the matching Chinese edition; a Chinese selection does not generate an English translation unless explicitly requested. Keep measured material in its source language. Historical Chinese-only renderers must disclose that limit and reject unsupported requests. Bind generated languages and the selected entry in report metadata. English navigation opens a not-generated notice when absent; never publish stale English pages. Validate each generated edition and retain route, value and evidence-link parity checks when both exist.
 
 1. Establish the decision being supported, the measured unit, cohort, versions, execution location, freshness policy, and intended deliverable. Inspect the actual dataset, runner, outputs, scorer, prior review evidence, and current report. Do not infer them from screenshots or prose.
