@@ -1,6 +1,6 @@
 """UTF-8 JSONL framing shared by execution, certification and report readers."""
-import json
 import hashlib
+import json
 from pathlib import Path
 
 
@@ -57,7 +57,14 @@ def parse_jsonl(raw: bytes | str, *, skip_blank=False, allow_incomplete_tail=Fal
 
 def load_jsonl(path, *, skip_blank=False):
     """Read a finalized file; every non-skipped record must be valid."""
-    return parse_jsonl(path.read_bytes(), skip_blank=skip_blank)
+    records = []
+    with Path(path).open('rb') as source:
+        for line in source:
+            line = line.removesuffix(b'\n')
+            if skip_blank and not line.strip():
+                continue
+            records.append(json.loads(line.decode('utf-8')))
+    return records
 
 
 def read_completed_records(path):

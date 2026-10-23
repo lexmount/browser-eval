@@ -5,7 +5,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from harness.record_io import parse_jsonl
+from harness.record_io import file_sha256, load_jsonl, parse_jsonl
 
 from .anomaly_review import require_anomaly_review
 from lexbench_webfetch.metrics import task_passed
@@ -51,7 +51,7 @@ def review_raw_artifacts(record):
 
 
 def _sha256(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return file_sha256(path)
 
 
 def review_input_identity(record):
@@ -86,6 +86,22 @@ def review_input_identity(record):
             review_answer_metadata(record), ensure_ascii=False, sort_keys=True,
             separators=(',', ':')).encode()).hexdigest(),
     }
+
+
+def _machine_verdict(source, record, case, reviewed=None):
+    """Read current scores normally and frozen historical scores from their bound review."""
+    try:
+        return ('pass' if task_passed(
+            record['ok'], record['metrics'], case.get('task_kind', 'body')) else 'fail')
+    except ValueError as error:
+        if str(error) != (
+                'Historical scoring metrics require their frozen scorer or a complete offline rescore'):
+            raise
+        from .reference_lifecycle import valid_scoring_revision
+        verdict = (reviewed or {}).get('machine_verdict')
+        if verdict not in {'pass', 'fail'} or not valid_scoring_revision(source):
+            raise
+        return verdict
 
 
 def _require_result_review(source, dataset, records, review_document=None, *, anomaly_gate):
@@ -137,8 +153,8 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
     cases = {case['id']: case for case in dataset.get('cases', [])}
     for row in attempts:
         record = by_id[row['attempt_id']]
-        machine = ('pass' if task_passed(record['ok'], record['metrics'],
-                   cases[record['case_id']].get('task_kind', 'body')) else 'fail')
+        machine = _machine_verdict(
+            source, record, cases[record['case_id']], reviewed=row)
         if row.get('machine_verdict') != machine:
             raise ValueError('Result review machine verdict no longer matches persisted scoring')
         if row.get('final_verdict') != machine:
@@ -289,14 +305,15 @@ def archive_superseded_result_review(path: Path, *, before_dataset: bytes,
 
 
 def _read_review_evidence(source, *, skip_blank=False):
-    dataset_bytes = contained_path(source, "dataset.json", reject_symlinks=True).read_bytes()
-    results_bytes = contained_path(source, "results.jsonl", reject_symlinks=True).read_bytes()
+    dataset_path = contained_path(source, "dataset.json", reject_symlinks=True)
+    results_path = contained_path(source, "results.jsonl", reject_symlinks=True)
+    dataset_bytes = dataset_path.read_bytes()
     return (
         json.loads(dataset_bytes),
-        parse_jsonl(results_bytes, skip_blank=skip_blank),
+        load_jsonl(results_path, skip_blank=skip_blank),
         {
             "dataset_sha256": hashlib.sha256(dataset_bytes).hexdigest(),
-            "results_sha256": hashlib.sha256(results_bytes).hexdigest(),
+            "results_sha256": file_sha256(results_path),
         },
     )
 
@@ -518,19 +535,16 @@ def merge_refresh_reviews(
     for attempt_id, row in current.items():
         old = previous.get(attempt_id)
         case_id = row["case_id"]
-        current_machine = (
-            "pass"
-            if task_passed(
-                row["ok"], row["metrics"], current_cases[case_id].get("task_kind", "body")
-            )
-            else "fail"
-        )
+        reviewed = prior_attempts.get(attempt_id)
+        current_machine = _machine_verdict(
+            prior_evidence, row, current_cases[case_id], reviewed=reviewed)
         if (
             old is not None
             and old.get("case_id") == case_id
             and prior_cases.get(case_id) == current_cases[case_id]
             and review_input_identity(old) == review_input_identity(row)
-            and prior_attempts.get(attempt_id, {}).get("final_verdict") == current_machine
+            and reviewed is not None
+            and reviewed.get("final_verdict") == current_machine
         ):
             reusable.add(attempt_id)
     required = set(current) - reusable
@@ -581,15 +595,9 @@ def merge_refresh_reviews(
     # the current persisted score. Reviewer-visible inputs were checked above.
     normalized_attempts = []
     for record, reviewed in zip(current_records, attempts):
-        machine = (
-            "pass"
-            if task_passed(
-                record["ok"],
-                record["metrics"],
-                current_cases[record["case_id"]].get("task_kind", "body"),
-            )
-            else "fail"
-        )
+        source = prior_evidence if record['attempt_id'] in reusable else supplemental_evidence
+        machine = _machine_verdict(
+            source, record, current_cases[record['case_id']], reviewed=reviewed)
         reviewed = dict(reviewed)
         reviewed["machine_verdict"] = machine
         reviewed["final_verdict"] = machine

@@ -199,7 +199,8 @@ def test_implementation_correction_replaces_only_a_declared_failed_pair(
     (baseline/'dataset.json').write_text(json.dumps(dataset))
     (incoming/'dataset.json').write_text(json.dumps(dataset))
     prior = {'attempt_id': 'old-one', 'provider': 'p', 'case_id': 'one',
-             'ok': False, 'metrics': {'content_pass': False},
+             'ok': False,
+             'metrics': {'content_pass': False, 'forbidden_hits': []},
              'provider_metadata': {'binary_sha256': 'a'*64}}
     current = {'attempt_id': 'new-one', 'provider': 'p', 'case_id': 'one',
                'ok': selected_passes,
