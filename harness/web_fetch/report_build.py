@@ -5,6 +5,8 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from harness.reporting.versions import record_build_version
+
 from harness.record_io import file_sha256, load_jsonl
 from harness.reporting.assets import copy_bound_assets
 
@@ -139,6 +141,8 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
                     "input_sha256": input_sha256,
                     "artifact_hashes": {path: hashlib.sha256(raw).hexdigest()
                                         for path, raw in files.items()}}
+        from harness.reporting.versions import bind_build_version
+        manifest['browser_eval'] = bind_build_version(staging)
         (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
         check_diagnostic_report(staging, profile=profile)
         staging.rename(output)
@@ -214,6 +218,7 @@ def build_public_benchmark_research(source: Path, output: Path, *, include_engli
     staging = Path(tempfile.mkdtemp(prefix='.research-report-build-', dir=output.parent))
     try:
         generate_public_benchmark_research(staging, research, include_english=include_english)
+        record_build_version(staging)
         if sample is not None:
             shutil.copy2(sample_path, staging / 'sample-manifest.json')
         if language is not None:
@@ -334,6 +339,8 @@ def write_frozen_presentation_manifest(output, manifest, *, show_local_status_ba
     current.update(template=resolve_template('webfetch'), languages=languages, generated_languages=languages,
                    presentation={"show_local_status_banners": show_local_status_banners,
                                  "frozen_scores": True, "authored_interpretation": authored_interpretation})
+    from harness.reporting.versions import bind_build_version
+    current['browser_eval'] = bind_build_version(output)
     (output / "report-manifest.json").write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n")
 
 
@@ -793,6 +800,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if dataset.get('comparison', {}).get('kind') == 'uniform_native_local_measurement':
             template_manifest.update(evidence_state='local_measurement', certified=False,
                 languages=template_manifest['generated_languages'], provider_calls_added=0)
+        from harness.reporting.versions import bind_build_version
+        template_manifest['browser_eval'] = bind_build_version(staging)
         (staging/'report-manifest.json').write_text(json.dumps(template_manifest, ensure_ascii=False, indent=2)+'\n')
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.
@@ -981,6 +990,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
             content_binding['relative_path']: content_binding['sha256']})
         shutil.copy2(content_binding_path, staging / 'report-content-binding.json')
         generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic, include_english=include_english, report_content=report_content)
+        record_build_version(staging)
         if language is not None:
             select_report_language(staging, language)
         (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
@@ -1213,6 +1223,7 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
                 shutil.copy2(asset_source, staging / 'assets' / asset['name'])
         generate_webmainbench_full(staging, dataset, records,
                                    summaries, display_profile)
+        record_build_version(staging)
         from harness.web_fetch.webmainbench_report_check import (
             check as check_webmainbench_full,
         )
@@ -1459,6 +1470,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         if language is not None:
             select_report_language(staging, language)
         from .wcxb_publication import write_inventory
+        record_build_version(staging)
         write_inventory(staging, profile)
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.wcxb-report-old-', dir=output.parent)) / 'report'

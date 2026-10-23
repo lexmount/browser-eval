@@ -1,0 +1,93 @@
+"""Readers can identify a report build independently of its benchmark edition."""
+
+import json
+import pytest
+from bs4 import BeautifulSoup
+
+from harness.reporting import versions
+from harness.web_fetch import __version__
+from harness.web_fetch.published_snapshot import build_snapshot_audit, check_snapshot_audit
+from tests.test_benchmark_release_binding import configured
+
+
+def test_build_records_software_without_relabeling_saved_benchmark(tmp_path, monkeypatch):
+    source, profile, _ = configured(tmp_path)
+    before = {path.relative_to(source): path.read_bytes()
+              for path in source.rglob('*') if path.is_file()}
+    first = tmp_path / 'first'
+    build_snapshot_audit(source, first, profile=profile)
+    identity = json.loads((first / versions.FILENAME).read_text())
+    assert identity['version'] == __version__
+    assert identity['role'] == 'report_builder'
+    assert len(identity['revision']) == 40
+    assert len(identity['source_sha256']) == 64
+    page = BeautifulSoup((first / 'index.html').read_text(), 'html.parser')
+    assert page.select_one('[data-browser-eval-release]').get_text() == 'Browser Eval v' + __version__
+    assert page.select_one('[data-benchmark-release]').get_text() == 'bench v1.0.0'
+
+    # A newer builder must not change the selected tasks, scorer or saved calls.
+    monkeypatch.setattr(versions, 'software_identity', lambda: {**identity, 'version': '0.3.0'})
+    second = tmp_path / 'second'
+    build_snapshot_audit(source, second, profile=profile)
+    assert 'Browser Eval v0.3.0' in (second / 'index.html').read_text()
+    for file in ('benchmark-release.json', 'results.jsonl', 'dataset.json'):
+        assert (first / file).read_bytes() == (second / file).read_bytes()
+    assert before == {path.relative_to(source): path.read_bytes()
+                      for path in source.rglob('*') if path.is_file()}
+    check_snapshot_audit(first)
+    check_snapshot_audit(second)
+
+
+@pytest.mark.parametrize('defect', ['file', 'version', 'commit', 'binding', 'label', 'href'])
+def test_release_gate_rejects_missing_or_conflicting_build_identity(tmp_path, defect):
+    source, profile, _ = configured(tmp_path)
+    output = tmp_path / 'report'
+    build_snapshot_audit(source, output, profile=profile)
+    path = output / versions.FILENAME
+    if defect == 'file':
+        path.unlink()
+    elif defect in {'version', 'commit'}:
+        identity = json.loads(path.read_text())
+        identity['version' if defect == 'version' else 'revision'] = 'wrong'
+        path.write_text(json.dumps(identity))
+    elif defect == 'binding':
+        path = output / 'report-manifest.json'
+        manifest = json.loads(path.read_text())
+        del manifest['browser_eval']
+        path.write_text(json.dumps(manifest))
+    else:
+        path = output / 'index.html'
+        content = path.read_text()
+        content = content.replace('data-browser-eval-release=', 'data-lost=') if defect == 'label' else content.replace(
+            'href="browser-eval-version.json"', 'href="missing-version.json"')
+        path.write_text(content)
+    with pytest.raises(ValueError, match='Browser Eval'):
+        check_snapshot_audit(output)
+
+
+def test_shared_identity_handles_both_languages_and_repeat_builds(tmp_path):
+    (tmp_path / 'en').mkdir()
+    for path in (tmp_path / 'index.html', tmp_path / 'en/index.html'):
+        path.write_text('<html><body><main>Results</main><footer></footer></body></html>')
+    versions.bind_build_version(tmp_path)
+    binding = versions.bind_build_version(tmp_path)
+    versions.check_build_version(tmp_path, {'browser_eval': binding})
+    for route in ('index.html', 'en/index.html'):
+        page = BeautifulSoup((tmp_path / route).read_text(), 'html.parser')
+        assert len(page.select('[data-browser-eval-release]')) == 1
+    assert '../browser-eval-version.json' in (tmp_path / 'en/index.html').read_text()
+
+
+def test_installed_package_does_not_borrow_an_unrelated_checkout(tmp_path, monkeypatch):
+    package = tmp_path / 'installed/harness/reporting'
+    package.mkdir(parents=True)
+    module = package / 'versions.py'
+    module.write_text('installed package source')
+    monkeypatch.setattr(versions, '__file__', str(module))
+    # This must work without Git and without a repository around the package.
+    monkeypatch.setattr(versions.subprocess, 'check_output', lambda *a, **kw: pytest.fail('unrelated Git lookup'))
+    identity = versions.software_identity.__wrapped__()
+    assert identity['revision'] is None
+    assert not identity['modified']
+    assert identity['version'] == __version__
+    assert len(identity['source_sha256']) == 64

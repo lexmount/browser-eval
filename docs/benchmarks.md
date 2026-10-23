@@ -57,10 +57,17 @@ Use a benchmark version together with exact task/reference and scoring-source
 hashes. Keep the package's full Git commit pinned separately. A package update
 does not select a new dataset for an existing report.
 
-Create `benchmark-vMAJOR.MINOR.PATCH` tags only in the benchmark repository.
-Browser Eval uses full Git commits to identify harness and report-building code.
+Create `bench-vMAJOR.MINOR.PATCH` tags only in the benchmark repository.
+Browser Eval publishes software versions as `vMAJOR.MINOR.PATCH` and records the
+full Git commit for execution and report-building code.
 Reports reference their benchmark edition and the hosting platform's immutable
 version ID for each published build.
+
+Report home pages link to the Browser Eval build version and the selected bench
+edition. Their JSON bindings retain code commits and source/input hashes.
+Rebuilding with a newer Browser Eval release changes the build identity, not the
+saved call identity or benchmark edition. Custom datasets without a frozen
+edition retain their hashes rather than inheriting the installed catalog version.
 
 | Change | Edition | Result comparison |
 | --- | --- | --- |
@@ -69,7 +76,7 @@ version ID for each published build.
 | Added/removed cases, changed requests, output scope or routes | Major | Separate full-population results |
 
 The task package owns `lexbench-webfetch release` and `compare-releases`.
-See its [version contract](https://github.com/lexmount/lexbench-webfetch/blob/benchmark-v2.0.1/docs/versions.md).
+See its [version contract](https://github.com/lexmount/lexbench-webfetch/blob/bench-v2.0.1/docs/versions.md).
 Freeze `benchmark-release.json` beside the compiled inputs before calls.
 The certified Web Fetch runner accepts `--benchmark-release`; it also discovers
 the sidecar beside the selected dataset. Release creation records the full scorer
