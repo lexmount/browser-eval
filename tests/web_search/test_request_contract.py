@@ -1,3 +1,4 @@
+from tests.web_search.fixtures import execution_profile
 """A hash-consistent response file cannot silently change frozen API controls."""
 
 import json
@@ -9,14 +10,13 @@ import pytest
 
 from harness.web_search.core import digest
 from harness.web_search.example import example
-from harness.web_search.profiles import load_profile
 from harness.web_search.report import load_run
 from harness.web_search.runner import run
 
 
 @pytest.fixture
 def measured_run(tmp_path):
-    profile = load_profile()
+    profile = execution_profile()
     profile["cases"] = profile["cases"][:1]
     profile["methods"] = [profile["methods"][1]]
     profile["protocol"].update(rounds=1, interval_s=0)

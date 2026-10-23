@@ -1,3 +1,6 @@
+
+from .messages import report_text
+from pathlib import Path
 """Blind, pooled top-k preview relevance scoring for Web Search results."""
 
 from lexbench_websearch.rubric import JUDGE_PROMPT
@@ -10,14 +13,14 @@ import json
 from lexbench_websearch.scoring import candidate_identity
 
 
-def verify_provenance(profile, rows, evidence):
+def verify_provenance(profile, rows, evidence, *, authority=None):
     """Make public candidate packets and rank mappings agree with measured outputs."""
     judge = evidence.get("judge", {})
     if judge.get("kind") == "model":
         frozen, _ = candidate_packet(profile, rows, evidence.get("source_requirements"), source_policy=evidence.get("source_policy", "legacy-domain-intersection/1"))
         if evidence["blind_candidate_packets"] != frozen["blind_candidate_packets"]:
             raise ValueError("Model candidate text differs from frozen search outputs")
-        validate_model_evidence(evidence)
+        validate_model_evidence(evidence, authority=authority)
     elif judge.get("kind") != "human" or not judge.get("name", "").strip():
         raise ValueError("Relevance evaluation requires named human annotations or frozen model evidence")
     else:
@@ -81,28 +84,7 @@ def export_annotations(profile, rows, destination):
     return destination / "index.html"
 
 
-ANNOTATION_HTML = r'''<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>自建搜索题库 · 全量相关性标注</title><style>
-body{font:16px/1.6 system-ui;color:#183039;background:#f4f7f8;margin:auto;max-width:1000px;padding:28px}header,article{background:white;padding:24px;border:1px solid #d8e1e5;border-radius:10px;margin:16px 0}button,select,input{font:inherit;padding:8px}a{overflow-wrap:anywhere;color:#065c78}article p{white-space:pre-wrap}nav{display:flex;gap:12px;flex-wrap:wrap;align-items:center}#progress{font-weight:bold}summary{cursor:pointer}label{display:block;margin:10px 0}.error{color:#a32121}small{color:#52676f}</style>
-<header><h1>自建搜索题库 · 全量相关性标注</h1><p>按题意判断每个网页是否有用。候选网页来自各接口的前 __CUTOFF__ 条结果，按网址去重，隐藏接口名称和原始排名。所有题目都使用同一套标准。</p>
-<p><b>0 分</b>：无关，或违反题目明确的网站、日期、语言等要求。<b>1 分</b>：话题相关，但没有可用于回答的信息。<b>2 分</b>：提供部分有效信息。<b>3 分</b>：直接满足主要需求。</p>
-<p>先看查询和预览，信息不足时打开原网页核实。技术问题允许多种正确方法；开放问题允许多种相关来源。接口没有返回网页的题目也要确认。分数由人工填写；页面只保存和校验，不会调用模型。</p>
-<label>标注者姓名 <input id="reviewer" autocomplete="name"></label><p id="progress"></p><nav><button id="prev">上一题</button><select id="cases"></select><button id="next">下一题</button><button id="unfinished">下一道未完成</button><button id="export">导出完整标注</button></nav><p id="message" role="status"></p></header>
-<h2 id="query"></h2><main id="candidates"></main><label><input type="checkbox" id="reviewed">我已核对本题所有候选网页</label>
-<script type="application/json" id="packet">__PACKET__</script><script>
-const packet=JSON.parse(document.querySelector('#packet').textContent),items=packet.blind_candidate_packets,$=s=>document.querySelector(s),key='search-labels-'+packet.packet_sha256;
-const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let state;try{state=JSON.parse(localStorage.getItem(key))}catch{};state=state||{labels:{},reviewed:[],name:''};let at=0;
-const done=c=>state.reviewed.includes(c.case_id)&&c.candidates.every(x=>Number.isInteger(state.labels[c.case_id]?.[x.candidate_id]));
-function save(){state.name=$('#reviewer').value;localStorage.setItem(key,JSON.stringify(state));$('#progress').textContent=items.filter(done).length+' / '+items.length+' 题完成；候选网页 '+items.reduce((n,c)=>n+c.candidates.length,0)+' 条'}
-function render(){let c=items[at];$('#cases').value=String(at);$('#query').textContent=c.query+(c.required_domains?.length?'（限定网站：'+c.required_domains.join(', ')+'）':'');$('#reviewed').checked=state.reviewed.includes(c.case_id);$('#prev').disabled=at===0;$('#next').disabled=at===items.length-1;
-$('#candidates').innerHTML=c.candidates.map(x=>'<article><a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.url)+'</a>'+x.previews.map(p=>'<h3>'+esc(p.title)+'</h3><p>'+esc(p.snippet)+'</p>').join('')+'<label>相关性 <select data-grade="'+esc(x.candidate_id)+'"><option value="">请选择</option>'+[0,1,2,3].map(g=>'<option value="'+g+'" '+(state.labels[c.case_id]?.[x.candidate_id]===g?'selected':'')+'>'+g+' 分</option>').join('')+'</select></label></article>').join('')||'<article>各接口均未返回候选网页。请确认本题，评分时保留这道题。</article>';
-document.querySelectorAll('[data-grade]').forEach(el=>el.onchange=()=>{state.labels[c.case_id]??={};if(el.value==='')delete state.labels[c.case_id][el.dataset.grade];else state.labels[c.case_id][el.dataset.grade]=Number(el.value);save()});save()}
-$('#cases').innerHTML=items.map((c,i)=>'<option value="'+i+'">'+(i+1)+'. '+esc(c.query)+'</option>').join('');$('#reviewer').value=state.name;$('#reviewer').oninput=save;
-$('#cases').onchange=()=>{at=Number($('#cases').value);render()};$('#prev').onclick=()=>{at--;render()};$('#next').onclick=()=>{at++;render()};$('#unfinished').onclick=()=>{let i=items.findIndex(c=>!done(c));if(i>=0){at=i;render()}};
-$('#reviewed').onchange=()=>{let cid=items[at].case_id;state.reviewed=state.reviewed.filter(x=>x!==cid);if($('#reviewed').checked)state.reviewed.push(cid);save()};
-$('#export').onclick=()=>{if(!state.name.trim()||!items.every(done)){$('#message').textContent='请填写标注者姓名，并完成全部题目后导出。';return}const result={packet_sha256:packet.packet_sha256,judge:{kind:'human',name:state.name.trim()},labels:Object.fromEntries(items.map(c=>[c.case_id,state.labels[c.case_id]||{}])),reviewed_case_ids:items.map(c=>c.case_id)};const u=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='search-human-annotations.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);$('#message').textContent='完整标注已导出。'};render();
-</script></html>'''
+ANNOTATION_HTML = report_text('text_1935e26a86c17eeb')
 
 
 def judge_input(packet):
@@ -140,7 +122,7 @@ def parse_judgments(packet, response):
         candidate = candidates[item["candidate_id"]]
         item["model_grade"] = item["grade"]
         if candidate.get("source_eligible") is False:
-            item.update(grade=0, reason="网址不符合题目明确指定的网站或官方来源要求。", evidence=candidate["url"], grade_source="source-rule")
+            item.update(grade=0, reason=report_text('text_639d5ca71205c4cb'), evidence=candidate["url"], grade_source="source-rule")
         else:
             item["grade_source"] = "model"
     return items
@@ -161,14 +143,14 @@ def _judge_retryable(status, error_type):
     )
 
 
-from pathlib import Path
-LEGACY_EVIDENCE_PATH = Path(__file__).resolve().parents[2] / "evaluation/web-search/legacy-evidence.json"
+def report_authority(report):
+    path = Path(report) / "assessment-authority.json"
+    return json.loads(path.read_bytes()) if path.is_file() else {}
 
 
-def legacy_evidence_allowed(evidence, kind):
-    registry = json.loads(LEGACY_EVIDENCE_PATH.read_text())
+def legacy_evidence_allowed(evidence, kind, registry=None):
     identity = hashlib.sha256(json.dumps(evidence, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
-    return identity in registry.get(kind, [])
+    return identity in (registry or {}).get(kind, [])
 
 
 def validate_judge_url(value):
@@ -191,7 +173,7 @@ def validate_judge_url(value):
     return base
 
 
-def validate_model_evidence(evidence, *, _depth=0):
+def validate_model_evidence(evidence, *, _depth=0, authority=None):
     if _depth > 8:
         raise ValueError("Judge inheritance chain is too deep")
     judge = evidence["judge"]
@@ -215,7 +197,7 @@ def validate_model_evidence(evidence, *, _depth=0):
     ):
         raise ValueError("Explicit source requirements differ from the frozen judge contract")
     strict_receipts = configuration.get("receipt_schema") in (2, 3)
-    if not strict_receipts and not legacy_evidence_allowed(evidence, "model"):
+    if not strict_receipts and not legacy_evidence_allowed(evidence, "model", authority):
         raise ValueError("Model evidence requires strict configuration and physical receipts; legacy evidence must be hash-pinned")
     if judge["prompt"] != JUDGE_PROMPT:
         raise ValueError("Model evidence uses an unapproved grading prompt")
@@ -230,7 +212,7 @@ def validate_model_evidence(evidence, *, _depth=0):
         predecessor = judge["predecessor"]
         if hashlib.sha256(json.dumps(predecessor, ensure_ascii=False, sort_keys=True).encode()).hexdigest() != configuration.get("predecessor_sha256"):
             raise ValueError("Inherited judge evidence changed")
-        validate_model_evidence(predecessor, _depth=_depth + 1)
+        validate_model_evidence(predecessor, _depth=_depth + 1, authority=authority)
         old_configuration = predecessor["judge"].get("configuration", {})
         if any(configuration.get(k) != old_configuration.get(k) for k in ("base_url", "request_headers")):
             raise ValueError("Inherited judge transport configuration changed")
@@ -387,7 +369,7 @@ def judge_main(argv=None):
         packet["source_requirements"] = source_requirements
     predecessor = json.loads(args.reuse_evidence.read_bytes()) if args.reuse_evidence else None
     if predecessor:
-        verify_provenance(profile, rows, predecessor)
+        verify_provenance(profile, rows, predecessor, authority=report_authority(args.report))
     args.output.mkdir(parents=True, exist_ok=True)
     contract = {
         "packet_sha256": packet["packet_sha256"],
@@ -582,6 +564,6 @@ def judge_main(argv=None):
     }
     if predecessor:
         evidence["judge"].update(predecessor=predecessor, inherited_case_ids=sorted(reused_case_ids))
-    verify_provenance(profile, rows, evidence)
+    verify_provenance(profile, rows, evidence, authority=report_authority(args.report))
     score(profile, rows, evidence["plan"], evidence["labels"])
     (args.output / "relevance.json").write_text(json.dumps(evidence, ensure_ascii=False, indent=2))

@@ -9,8 +9,9 @@ from lexbench_websearch.scoring import evaluate
 from .report import build
 
 
-def example(output):
-    profile = {
+def synthetic_profile():
+    """A small execution fixture with no published instance or measured results."""
+    return {
         "schema": "web-search/1", "title": "Synthetic rendering fixture — not measurements",
         "protocol": {"top_k": 5, "rounds": 1, "score_round": 0, "concurrency": 1, "server_timeout_ms": 1000, "client_timeout_s": 2, "interval_s": 0, "retry": False, "review": "Synthetic fixture without independent review"},
         "methods": [
@@ -19,6 +20,10 @@ def example(output):
         ],
         "cases": [{"id": "fixture-" + str(i), "family": "web", "language": "zh", "query": "Synthetic query " + str(i), "anchors": ["https://reference.invalid/" + str(i)], "origin": "Synthetic fixture", "provenance_kind": "curated"} for i in range(2)],
     }
+
+
+def example(output):
+    profile = synthetic_profile()
     source = output / "fixture"
     source.mkdir(parents=True, exist_ok=True)
     write_json(source / "profile.json", profile)

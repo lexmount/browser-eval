@@ -13,14 +13,7 @@ import statistics
 
 ROOT = pathlib.Path(os.environ.get("BROWSER_EVAL_DATA_HOME", pathlib.Path.home() / ".browser-eval"))
 from harness.record_io import load_jsonl
-from harness.report_languages import (
-    add_language_argument,
-    english_notice,
-    generated_languages,
-    primary_report_language,
-    select_report_language,
-    write_language_contract,
-)
+from harness.report_languages import english_notice, generated_languages, write_language_contract
 from harness.resource_calibration import duration_calibration
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
@@ -94,7 +87,6 @@ def main(argv=None):
     parser.add_argument(
         "--include-english", action="store_true", help="Also generate English pages and charts"
     )
-    add_language_argument(parser)
     parser.add_argument(
         "--vendor-dir", type=pathlib.Path
     )
@@ -129,8 +121,6 @@ def main(argv=None):
     VERSION_RUNS = configured_path("version_runs")
     VERSION_CANDIDATE = configured_path("version_candidate")
     LAYOUT_POLICY_ROOT = configured_path("layout_policy_runner")
-    language = args.language or primary_report_language(args.output)
-    args.include_english = args.include_english or language == "en"
     RUNS = args.cohort.parent
     if args.summary is None:
         args.summary = RUNS / "report-runs.json"
@@ -1575,7 +1565,6 @@ def main(argv=None):
         SRC, OUT, combined_comparison, version_comparison, macos_comparison,
         include_english=args.include_english,
     )
-    select_report_language(OUT, language)
     for name in ("app.js", "style.css", "README.md"):
         shutil.copy2(SRC / name, OUT / name)
     for name, digest in {

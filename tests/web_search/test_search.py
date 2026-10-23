@@ -1,3 +1,4 @@
+from tests.web_search.fixtures import execution_profile
 """Search scenarios: constraints, missing judgments, costs and evidence integrity."""
 
 import copy
@@ -117,8 +118,7 @@ class SearchScenarios(unittest.TestCase):
         )
 
     def test_profile_rejects_duplicate_cases_and_oversize_deepseek_query(self):
-        from harness.web_search.profiles import load_profile
-        profile = load_profile()
+        profile = execution_profile()
         validate_profile(profile)
         bad = copy.deepcopy(profile)
         bad["cases"].append(bad["cases"][0])
@@ -130,8 +130,7 @@ class SearchScenarios(unittest.TestCase):
             validate_profile(bad)
 
     def test_publisher_sample_can_preserve_a_long_query(self):
-        from harness.web_search.profiles import load_profile
-        profile = load_profile()
+        profile = execution_profile()
         profile["protocol"]["preserve_publisher_queries"] = True
         profile["cases"][0]["query"] = "x" * 325
         validate_profile(profile)
@@ -141,8 +140,7 @@ class SearchScenarios(unittest.TestCase):
             validate_profile(bad)
 
     def test_profile_rejects_invalid_reference_urls_before_calls(self):
-        from harness.web_search.profiles import load_profile
-        profile = load_profile()
+        profile = execution_profile()
         profile["cases"][0]["reference_urls"] = ["brokenhttps://example.org"]
         with self.assertRaisesRegex(ValueError, "HTTP"):
             validate_profile(profile)

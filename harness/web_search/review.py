@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .messages import report_text
+
 import argparse
 import hashlib
 import json
@@ -755,7 +757,7 @@ def factual_quality_exclusions(evidence):
     )
 
 
-def validate_public_review(profile, rows, evidence):
+def validate_public_review(profile, rows, evidence, *, authority=None):
     """Reject invented counts, changed answers and unfinished adjudications."""
     if (
         evidence.get("schema") != "web-search-independent-review-evidence/1"
@@ -770,7 +772,7 @@ def validate_public_review(profile, rows, evidence):
         raise ValueError("This report explicitly requires a complete result review")
     from .relevance import legacy_evidence_allowed
     proof = evidence.get("provenance")
-    if not proof and not legacy_evidence_allowed(evidence, "review"):
+    if not proof and not legacy_evidence_allowed(evidence, "review", authority):
         raise ValueError("Independent review requires frozen contract, packets and execution receipts")
     if proof:
         contract = proof["contract"]
@@ -928,36 +930,34 @@ def render_summary(evidence, zh=True):
     from collections import Counter
 
     counts = Counter(d["resolution"] for d in evidence["adjudications"].values())
-    title = "结果复核" if zh else "Result audit"
+    title = report_text('text_521deef44b4ce505') if zh else "Result audit"
     text = (
-        f"已复核 {evidence['case_reviewed']}/{evidence['case_total']} 题、"
-        f"{evidence['output_reviewed']}/{evidence['output_total']} 份接口输出、"
-        f"{evidence['candidate_reviewed']}/{evidence['candidate_total']} 个候选网页。"
+        f"{report_text('text_90bb19b8d33a329b')}{evidence['case_reviewed']}/{evidence['case_total']}{report_text('text_268af354b8e63839')}{evidence['output_reviewed']}/{evidence['output_total']}{report_text('text_6192de481d05f674')}{evidence['candidate_reviewed']}/{evidence['candidate_total']}{report_text('text_c2b90d006fe98670')}"
         if zh
         else f"Reviewed {evidence['case_reviewed']}/{evidence['case_total']} queries, "
         f"{evidence['output_reviewed']}/{evidence['output_total']} outputs and "
         f"{evidence['candidate_reviewed']}/{evidence['candidate_total']} pooled candidates."
     )
     labels = {
-        "fixed": ("已修正", "Corrected"),
-        "provider-limitation": ("接口输出问题", "Provider limitations"),
-        "reference-limitation": ("参考资料不足或冲突", "Reference verification limits"),
-        "no-change": ("核查后保持原结果", "No change"),
-        "quarantined": ("隔离诊断", "Quarantined"),
+        "fixed": (report_text('text_c2d8b42fdddbd04a'), "Corrected"),
+        "provider-limitation": (report_text('text_14ba277fe38c5ab7'), "Provider limitations"),
+        "reference-limitation": (report_text('text_93084e3165b7d5d9'), "Reference verification limits"),
+        "no-change": (report_text('text_d6033c4c7f89cf08'), "No change"),
+        "quarantined": (report_text('text_900bf523d9865d33'), "Quarantined"),
     }
     if evidence.get("provenance"):
-        text += (" 输入、意见和运行记录均已按哈希绑定；运行记录由评测方提供。" if zh else " Inputs, opinions and operator-provided execution records are hash-bound.")
+        text += (report_text('text_f4c1952da4aa046f') if zh else " Inputs, opinions and operator-provided execution records are hash-bound.")
     else:
-        text += (" 复核依据为已发布的逐项意见与裁决，历史记录未保留执行日志。" if zh else " This historical audit retains published opinions and adjudications; execution logs were not retained.")
-    text += (" 模型记录：" if zh else " Recorded model: ") + str(evidence.get("model") or ("未记录" if zh else "not recorded")) + ("。" if zh else ".")
+        text += (report_text('text_6b520df0066f1f26') if zh else " This historical audit retains published opinions and adjudications; execution logs were not retained.")
+    text += (report_text('text_fd24495319bb5085') if zh else " Recorded model: ") + str(evidence.get("model") or (report_text('text_7450cc5b16e2453c') if zh else "not recorded")) + ("。" if zh else ".")
 
-    body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + ("全部发现已完成裁决，未处理项：0。" if zh else "All findings adjudicated; unresolved: 0.") + "</p><details><summary>" + ("审查发现的处理分类（同题可有多项）" if zh else "Finding dispositions (multiple findings per query)") + "</summary><ul>"
+    body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + (report_text('text_d4ea0ba87bdd97bd') if zh else "All findings adjudicated; unresolved: 0.") + "</p><details><summary>" + (report_text('text_fe166e30477a49cd') if zh else "Finding dispositions (multiple findings per query)") + "</summary><ul>"
     for key, value in sorted(counts.items()):
-        body += f"<li>{labels[key][0 if zh else 1]}：{value}" + (" 条发现" if zh else " findings") + "</li>"
+        body += f"<li>{labels[key][0 if zh else 1]}：{value}" + (report_text('text_3964b7fccde8777a') if zh else " findings") + "</li>"
     body += (
         "</ul></details><p>"
         + (
-            "审查覆盖全部接口输出，包括空结果和失败。接口表现按评分规则另行计算；每条审查发现均附处理结论和证据。"
+            report_text('text_43598a52b30b24f9')
             if zh
             else "Review covers every output, including empty and failed calls. Reviewed does not mean passed. Every finding retains its decision and evidence."
         )
@@ -966,8 +966,8 @@ def render_summary(evidence, zh=True):
     from html import escape
     reference_cases = [c for c in evidence["cases"] if c["dataset_review"]["status"] == "issue"]
     if reference_cases:
-        body += '<details><summary>' + ("逐题参考核查与裁决" if zh else "Per-query reference decisions") + '</summary><div class="scroll inventory"><table><thead><tr>'
-        for label in (("题目", "处理", "依据") if zh else ("Query", "Decision", "Basis")):
+        body += '<details><summary>' + (report_text('text_84a8421bb5133e4f') if zh else "Per-query reference decisions") + '</summary><div class="scroll inventory"><table><thead><tr>'
+        for label in ((report_text('text_069c995adb7e2886'), report_text('text_e99a6717b6917534'), report_text('text_2e9f011743981bcd')) if zh else ("Query", "Decision", "Basis")):
             body += '<th>' + label + '</th>'
         body += '</tr></thead><tbody>'
         for case in reference_cases:
@@ -975,12 +975,12 @@ def render_summary(evidence, zh=True):
             target = "details/" + case["output_reviews"][0]["row_id"] + ".html"
             label = labels[decision["resolution"]][0 if zh else 1]
             if decision.get("quality_excluded"):
-                label = "各接口共同隔离质量统计" if zh else "Excluded from every method’s quality denominator"
+                label = report_text('text_a3ba02fb085ac7f6') if zh else "Excluded from every method’s quality denominator"
             body += '<tr><td><a href="' + escape(target) + '">' + escape(case["case_id"]) + '</a></td><td>' + escape(label) + '</td><td>' + escape(decision["reason"]) + '</td></tr>'
         body += '</tbody></table></div></details>'
     body += (
         '<p><a href="independent-review.json">'
-        + ("下载完整审查记录" if zh else "Complete review record")
+        + (report_text('text_11b83848d2887126') if zh else "Complete review record")
         + "</a></p></section>"
     )
     return body
@@ -995,22 +995,22 @@ def render_detail(evidence, row_id, zh=True):
             continue
         body = (
             "<section data-independent-opinion><h2>"
-            + ("结果复核" if zh else "Result audit")
+            + (report_text('text_521deef44b4ce505') if zh else "Result audit")
             + "</h2>"
         )
         decision = evidence["adjudications"].get(case["case_id"] + ":dataset", {})
         if decision.get("quality_excluded"):
             body += '<p class="notice" data-reference-quarantine>' + (
-                "本题已从各接口质量汇总共同隔离。下方保留原题和原始检查值；耗时与费用仍计入全体。"
+                report_text('text_405542b0bdb7e30e')
                 if zh else "This query is quarantined from every method’s quality summary. Original inputs and diagnostics remain below; latency and cost remain included."
             ) + " " + escape(decision["reason"]) + '</p>'
-        body += '<details><summary>' + ('原始审查意见、证据与裁决' if zh else 'Original review opinion, evidence and decisions') + '</summary><p>' + escape(opinion['reason']) + '</p><p>' + escape(opinion['evidence']) + '</p>'
+        body += '<details><summary>' + (report_text('text_73abe0f2d9af6695') if zh else 'Original review opinion, evidence and decisions') + '</summary><p>' + escape(opinion['reason']) + '</p><p>' + escape(opinion['evidence']) + '</p>'
         if case["dataset_review"]["status"] == "issue":
             from urllib.parse import urlsplit
 
             body += (
                 "<h3>"
-                + ("参考答案核查" if zh else "Reference review")
+                + (report_text('text_70c3d9dbe9725464') if zh else "Reference review")
                 + "</h3><p>"
                 + escape(case["dataset_review"]["reason"])
                 + "</p>"
@@ -1057,7 +1057,7 @@ def render_detail(evidence, row_id, zh=True):
         body += "</details></section>"
         return body
     if evidence.get("scope") == "failures":
-        return '<section data-review-not-selected><h2>' + ("结果复核" if zh else "Result audit") + '</h2><p>' + ("本结果不在本次失败结果复核范围内。" if zh else "This result is outside the failure-only audit scope.") + "</p></section>"
+        return '<section data-review-not-selected><h2>' + (report_text('text_521deef44b4ce505') if zh else "Result audit") + '</h2><p>' + (report_text('text_ed25f23fdfc1af1e') if zh else "This result is outside the failure-only audit scope.") + "</p></section>"
     raise ValueError("Missing independent opinion for result detail")
 
 

@@ -10,7 +10,7 @@ from harness.web_search.core import digest
 def publication_files(tmp_path, monkeypatch):
     monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
     monkeypatch.setattr(publication, "ROOT", tmp_path)
-    monkeypatch.setattr(publication, "current_selection", lambda: {"publication_target": "target.json"})
+    monkeypatch.setattr(publication, "current_selection", lambda *args: {"publication_target": "target.json"})
     report = tmp_path / "report"
     work = tmp_path / "release"
     report.mkdir()
@@ -44,7 +44,9 @@ def publication_files(tmp_path, monkeypatch):
     target = {"bindings": bindings, "cases": 1, "logical_results": 1, "physical_calls": 1, "archive_sha256": digest((work / "report.zip").read_bytes())}
     target.update(base_url="https://reports.example", slug="site-one", versionId="ver_old", visibility="private", url="https://reports.example/s/site-one")
     (tmp_path / "target.json").write_text(json.dumps(target))
-    plan = {"expected_target": {k: target[k] for k in ("base_url", "slug", "versionId", "visibility")}, "target": target, "archive_sha256": target["archive_sha256"]}
+    instance = tmp_path / "instance.json"
+    instance.write_text("{}")
+    plan = {"instance": {"path": str(instance), "sha256": digest(instance.read_bytes())}, "expected_target": {k: target[k] for k in ("base_url", "slug", "versionId", "visibility")}, "target": target, "archive_sha256": target["archive_sha256"]}
     (work / "publication-plan.json").write_text(json.dumps(plan))
     # The identity validation itself is covered by CurrentProfileScenarios.
     monkeypatch.setattr(profiles, "publication_authority", lambda *args, **kwargs: target)
@@ -99,7 +101,7 @@ def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, mo
     repo = tmp_path / 'repo'; repo.mkdir()
     monkeypatch.setattr(publication, 'ROOT', repo)
     verify_inputs = profiles.verify_publication_inputs
-    monkeypatch.setattr(profiles, 'verify_publication_inputs', lambda manifest, target: verify_inputs(manifest, target, root=repo))
+    monkeypatch.setattr(profiles, 'verify_publication_inputs', lambda manifest, target, **kwargs: verify_inputs(manifest, target, root=repo))
     source, report, work = tmp_path / 'source', tmp_path / 'report', tmp_path / 'release'
     source.mkdir(); report.mkdir()
     (source / 'receipt.json').write_text('{}')
@@ -108,7 +110,8 @@ def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, mo
     (repo / 'evaluation/profile.json').write_text('{}')
     binding = {'path': 'evaluation/profile.json', 'sha256': digest(b'{}')}
     selection = {'profile': binding, 'publication_target': 'target.json'}
-    monkeypatch.setattr(publication, 'current_selection', lambda: selection)
+    (repo / 'instance.json').write_text(json.dumps(selection))
+    monkeypatch.setattr(publication, 'current_selection', lambda *args: selection)
     correction = tmp_path / 'correction.json'
     correction.write_text('{}')
     target = {'base_url': 'https://reports.example', 'slug': 'site-one', 'versionId': 'ver_old', 'visibility': 'private',
@@ -137,7 +140,7 @@ def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, mo
         dest = args[1]; dest.mkdir(); (dest/'index.html').write_text('<html>Verified fixture</html>'); (dest/'delivery-index.json').write_text('{}')
     monkeypatch.setattr(delivery, 'export', export)
     monkeypatch.setattr(delivery, 'verify', lambda *a: True)
-    publication.prepare(report, proof, content, {'primary': source}, work)
+    publication.prepare(report, proof, content, {'primary': source}, work, profile=repo/'instance.json')
     plan = publication.verify_plan(report, work)
     assert plan['title'] == '接口评测'
     assert plan['target']['physical_calls'] == 2

@@ -2,7 +2,7 @@
 
 This track compares native search responses before an answering model is added. The current comparison uses Lexmount Search, DeepSeek Search with `need_content=true`, and Bocha Web Search with `summary=true`. All three receive the same query intent and a five-result budget. Search-result relevance uses their shared titles and snippets; additional summaries and page bodies are evaluated separately. The two benchmark populations remain separate: 149 scenario queries and 831 unchanged SimpleQA Verified questions that fit the shared API query limit.
 
-[LexBench Web Search](https://github.com/lexmount/lexbench-websearch) owns both task populations, provenance, reference qualifications and deterministic scoring. Browser Eval imports the pinned package directly. `evaluation/web-search/execution-primary.json` and `execution-factual.json` contain execution settings and hash-bound dataset references only. `current.json` selects the current participants. The collector expands those references before freezing run inputs; historical standalone profiles remain byte-exact. Live publication state belongs only to `publication-target.json`.
+[LexBench Web Search](https://github.com/lexmount/lexbench-websearch) owns task populations, provenance, reference qualifications and deterministic scoring. Browser Eval imports its pinned package directly. Store the instance selector, execution profiles, publication target and any hash-bound historical evidence authority beside external evidence. Pass the selector with `--profile`; there is no repository default or implicit published report. The collector resolves benchmark references before freezing run inputs. Historical standalone profiles keep their original bytes.
 
 ## Run a comparison
 
@@ -10,7 +10,7 @@ Put `LEXMOUNT_SEARCH_API_KEY`, `DEEPSEEK_API_KEY`, and `BOCHA_API_KEY` in the re
 
 ```sh
 uv run --frozen python scripts/run_certified_benchmark.py web-search \
-  --profile evaluation/web-search/current.json \
+  --profile /absolute/instance/current.json \
   --output "$HOME/.browser-eval/web-search/new-run"
 uv run --frozen python scripts/build_search_report.py \
   --source "$HOME/.browser-eval/web-search/new-run" \
@@ -203,3 +203,7 @@ The command records the activated version in this track’s publication target.
 Review CLI jobs use the signed-in Codex account in an isolated configuration,
 copying only its authentication file. Search-provider and model-judge API keys
 continue to come from the repository `.env`; they are not passed to review jobs.
+
+Publication also requires `--profile /absolute/instance/current.json` for a new plan. The plan pins that selector; resume reuses it and rejects changed inputs. Publishing updates only the selected external target receipt. New report builds with legacy evidence must explicitly bind `assessment_authority` by relative path and SHA-256 in the selector. The checked report carries that authority as a hash-bound asset; no report-specific exception list is compiled into the package.
+
+Interface text is maintained in `messages.json`. Source-language policy checks reject inline Chinese in the Search renderers and report-instance schemas in `evaluation/`, including renamed files. Synthetic examples and benchmark task definitions remain versioned.

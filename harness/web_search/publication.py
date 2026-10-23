@@ -13,7 +13,8 @@ from lexbench_webfetch.paths import contained_path
 from harness.reporting.publication import atomic_write
 from harness.web_fetch.report_publish import PublishConfig, publish as publish_package
 from .core import digest
-from .profiles import ROOT, current_selection
+from harness.web_fetch.config import ROOT
+from .profiles import current_selection, authority_root
 
 
 def data_home():
@@ -24,7 +25,7 @@ def save(path, value):
     atomic_write(path, (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode())
 
 
-def prepare(report, visual, content, sources, work):
+def prepare(report, visual, content, sources, work, *, profile):
     from .report import check
     from .delivery import export, verify as verify_delivery
     from .visual import verify as verify_visual
@@ -35,8 +36,10 @@ def prepare(report, visual, content, sources, work):
         raise ValueError("Publication requires certified measured evidence")
     if json.loads(content.read_bytes()) != manifest["authored"]:
         raise ValueError("Publication content differs from the checked report")
-    selection = current_selection()
-    target = json.loads((ROOT / selection["publication_target"]).read_bytes())
+    instance_path = Path(profile).resolve()
+    root = authority_root(instance_path)
+    selection = current_selection(instance_path)
+    target = json.loads((root / selection["publication_target"]).read_bytes())
     # A new release is not required to repeat the last release's observations.
     # Preserve the exact remote identity/version while freezing its new inputs.
     work = work.resolve()
@@ -97,7 +100,7 @@ def prepare(report, visual, content, sources, work):
     candidate["independent_review"]["reference_dispositions"] = dict(Counter(d["resolution"] for k, d in review["adjudications"].items() if k.endswith(":dataset") and k.removesuffix(":dataset") in factual))
     for obsolete in ("superseded_physical_calls", "cohort_inputs", "quality_judge"):
         candidate.pop(obsolete, None)
-    plan = {"title": manifest.get("authored", {}).get("title", {}).get(manifest.get("primary_language", "zh"), manifest["profile"].get("title", "Search API evaluation")), "schema": "search-publication-plan/1", "expected_target": {k: target[k] for k in ("base_url", "slug", "versionId", "visibility")}, "target": candidate, "archive_sha256": candidate["archive_sha256"]}
+    plan = {"instance": {"path": str(instance_path), "sha256": digest(instance_path.read_bytes())}, "title": manifest.get("authored", {}).get("title", {}).get(manifest.get("primary_language", "zh"), manifest["profile"].get("title", "Search API evaluation")), "schema": "search-publication-plan/1", "expected_target": {k: target[k] for k in ("base_url", "slug", "versionId", "visibility")}, "target": candidate, "archive_sha256": candidate["archive_sha256"]}
     save(work / "publication-plan.json", plan)
     verify_plan(report, work)
     return work
@@ -114,14 +117,18 @@ def verify_plan(report, work):
     expected = plan["expected_target"]
     candidate = plan["target"]
     receipt_file = work / "publication-receipt.json"
-    selection = current_selection()
-    live = json.loads((ROOT / selection["publication_target"]).read_bytes())
+    profile = Path(plan["instance"]["path"])
+    if digest(profile.read_bytes()) != plan["instance"]["sha256"]:
+        raise ValueError("Search instance changed after publication planning")
+    root = authority_root(profile)
+    selection = current_selection(profile)
+    live = json.loads((root / selection["publication_target"]).read_bytes())
     if receipt_file.is_file():
         activated = json.loads(receipt_file.read_bytes())
         if live.get("versionId") == activated.get("versionId") and live.get("archive_sha256") == plan["archive_sha256"]:
             expected = {k: live[k] for k in ("base_url", "slug", "versionId", "visibility")}
             candidate = dict(candidate, versionId=live["versionId"])
-    publication_authority(manifest, planned_target=candidate, expected_target=expected)
+    publication_authority(manifest, profile, root=root, planned_target=candidate, expected_target=expected)
     visual_binding = plan["target"]["bindings"]["visual_acceptance"]
     visual = contained_path(data_home(), visual_binding["path"], reject_symlinks=True)
     if json.loads(visual.read_bytes())["manifest_sha256"] != digest((report / "manifest.json").read_bytes()):
@@ -130,7 +137,7 @@ def verify_plan(report, work):
     if digest((work / "delivery/delivery-index.json").read_bytes()) != delivery_binding["sha256"]:
         raise ValueError("Publication delivery index changed")
 
-    verify_publication_inputs(manifest, plan["target"])
+    verify_publication_inputs(manifest, plan["target"], root=root)
     return plan
 
 
@@ -170,13 +177,15 @@ def publish(report, work, *, transport=None):
     for binding in updated["bindings"].values():
         if binding["path"].startswith(str((work / "inputs").relative_to(data_home())) + "/"):
             binding["path"] = str((frozen / Path(binding["path"]).name).relative_to(data_home()))
-    selection = current_selection()
-    save(ROOT / selection["publication_target"], updated)
+    profile = Path(plan["instance"]["path"])
+    selection = current_selection(profile)
+    save(authority_root(profile) / selection["publication_target"], updated)
     return updated["url"]
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", type=Path, help="External instance selector; required for a new publication")
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--visual-receipt", type=Path)
     parser.add_argument("--content", type=Path)
@@ -185,7 +194,7 @@ def main(argv=None):
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args(argv)
     if not args.resume:
-        if not args.visual_receipt or not args.content:
-            parser.error("A new publication requires --visual-receipt and --content")
-        prepare(args.report, args.visual_receipt, args.content, {v.split("=", 1)[0]: Path(v.split("=", 1)[1]) for v in args.source}, args.output)
+        if not args.visual_receipt or not args.content or not args.profile:
+            parser.error("A new publication requires --profile, --visual-receipt and --content")
+        prepare(args.report, args.visual_receipt, args.content, {v.split("=", 1)[0]: Path(v.split("=", 1)[1]) for v in args.source}, args.output, profile=args.profile)
     print(publish(args.report, args.output))

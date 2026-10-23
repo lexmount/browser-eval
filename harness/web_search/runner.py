@@ -16,7 +16,7 @@ from harness.record_io import read_completed_records
 from .adapters import adapter_for
 from .core import digest, normalize, request_body, request_cost, validate_profile, write_json
 from lexbench_websearch.scoring import evaluate
-from .profiles import CURRENT_PROFILE, load_profile_bytes
+from .profiles import load_profile_bytes
 
 
 def http_call(url, body=None, header=None, timeout=20):
@@ -432,7 +432,7 @@ def reference_changes(profile, before, after):
 def main(argv=None, *, certified=False):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--profile", type=Path, default=CURRENT_PROFILE
+        "--profile", type=Path, required=True
     )
     parser.add_argument("--cohort", default="primary", help="Cohort ID in the current selection registry")
     parser.add_argument("--output", type=Path, required=True)
