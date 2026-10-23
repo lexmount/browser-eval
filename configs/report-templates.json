@@ -52,11 +52,10 @@
     "web-search": {
       "renderer": "harness/web_search/report.py",
       "entrypoint": "scripts/build_search_report.py",
-      "profile": "evaluation/web-search/current.json",
       "example": "examples/web_search/README.md",
       "example_version": 1,
       "example_build": "uv run --frozen python -m harness.web_search.example --output /tmp/search-example",
-      "build": "uv run --frozen python scripts/build_search_report.py --source /absolute/run --output /absolute/report",
+      "build": "uv run --frozen python scripts/build_search_report.py --profile /absolute/instance/current.json --source /absolute/run --output /absolute/report",
       "check": "uv run --frozen python scripts/build_search_report.py --output /absolute/report --check",
       "tests": "tests/web_search/test_report.py",
       "variants": [
@@ -64,7 +63,7 @@
         "synthetic",
         "combined-cohorts"
       ],
-      "release_check": "uv run --frozen python scripts/build_search_report.py --output /absolute/report --release-check /absolute/visual-receipt.json"
+      "release_check": "uv run --frozen python scripts/build_search_report.py --output /absolute/report --release-check /absolute/visual-receipt.json --publication-plan /absolute/release/publication-plan.json"
     }
   }
 }

@@ -1,9 +1,12 @@
-"""Review each Browser Use top-level page once and reject layout failures."""
+"""Render every Browser Use route class and reject structural layout failures."""
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from urllib.parse import urlsplit
+
+from bs4 import BeautifulSoup
 
 from harness.report_languages import generated_languages
 from harness.reporting.visual import (
@@ -44,15 +47,76 @@ def _routes(report: Path) -> list[str]:
         "reproduce/index.html",
         "accounts/index.html",
     ]
-    routes = fixed + (
-        ["en/" + route for route in fixed] if "en" in generated_languages(report) else []
+    dynamic = []
+    for folder in ("datasets", "results", "engines"):
+        pages = sorted((report / folder).glob("*.html"))
+        if pages:
+            dynamic.append(pages[0].relative_to(report).as_posix())
+        if folder == "results":
+            for failed in (False, True):
+                selected = next(
+                    (
+                        page
+                        for page in pages
+                        if ('id="diagnosis"' in page.read_text(encoding="utf-8")) is failed
+                    ),
+                    None,
+                )
+                if selected:
+                    route = selected.relative_to(report).as_posix()
+                    if route not in dynamic:
+                        dynamic.append(route)
+    chinese = list(dict.fromkeys((*fixed, *dynamic)))
+    routes = chinese + (
+        ["en/" + route for route in chinese]
+        if "en" in generated_languages(report)
+        else ["en/index.html"]
     )
-    missing = [route for route in routes if not (report / route).is_file()]
+    for route in list(routes):
+        if route.startswith(("results/", "en/results/")):
+            soup = BeautifulSoup((report / route).read_text(encoding="utf-8"), "html.parser")
+            anchor = soup.select_one('a[href*="evidence-viewer.html?src="]')
+            if anchor is None:
+                raise ValueError("result detail must link to complete execution evidence")
+            href = anchor["href"]
+            parsed = urlsplit(href)
+            if (
+                parsed.scheme
+                or parsed.netloc
+                or parsed.path not in ("evidence-viewer.html", "en/evidence-viewer.html")
+            ):
+                raise ValueError("unsafe visual evidence route")
+            if href not in routes:
+                routes.append(href)
+    missing = [route for route in routes if not (report / urlsplit(route).path).is_file()]
     if missing:
         raise ValueError(f"visual QA route is missing: {missing[0]}")
     return routes
-VISUAL_SCHEMA = "lex_browser_use_visual_qa/3"
-VIEWPORTS = ((1440, 1000),)
+
+
+def _check_reader_interactions(page, route: str) -> None:
+    if route.endswith("analysis/index.html"):
+        trigger = page.locator(".diagnosis-button").first
+        if trigger.count():
+            trigger.click()
+            page.locator("dialog[open]").wait_for()
+            assert page.locator("dialog[open] .dialog-error").inner_text()
+            page.keyboard.press("Escape")
+            assert page.locator("dialog[open]").count() == 0
+            assert trigger.evaluate("element => element === document.activeElement")
+    if route.startswith(("results/", "en/results/")):
+        link = page.locator('a[href*="evidence-viewer.html?src="]').first
+        assert link.count(), "result detail must link to complete execution evidence"
+        link.click()
+        page.wait_for_function(
+            "() => document.getElementById('evidence-viewer-content')"
+            "?.textContent.trim().startsWith('{')"
+        )
+        page.go_back(wait_until="load")
+
+
+VISUAL_SCHEMA = "lex_browser_use_visual_qa/2"
+VIEWPORTS = ((1440, 1000), (820, 1180), (390, 844))
 
 
 def _state_passes(state: dict) -> bool:
@@ -95,7 +159,7 @@ def check(report: Path, receipt: Path) -> None:
             try:
                 for route in routes:
                     for width, height in VIEWPORTS:
-                        for theme in ("light",):
+                        for theme in ("light", "dark"):
                             page = local_page(
                                 browser, origin, viewport={"width": width, "height": height}
                             )
@@ -108,6 +172,11 @@ def check(report: Path, receipt: Path) -> None:
                                 theme,
                             )
                             settle_theme(page)
+                            if "evidence-viewer.html?" in route:
+                                page.wait_for_function(
+                                    "() => document.getElementById('evidence-viewer-content')"
+                                    "?.textContent.trim().startsWith('{')"
+                                )
                             result = page.evaluate(
                                 """() => {
     const root=document.documentElement;
@@ -150,6 +219,7 @@ def check(report: Path, receipt: Path) -> None:
                             states.append(state)
                             if not _state_passes(state):
                                 failures.append(state)
+                            _check_reader_interactions(page, route)
                             page.close()
             finally:
                 browser.close()

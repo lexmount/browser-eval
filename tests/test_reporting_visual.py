@@ -7,14 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from harness.browser_use import report_visual
-from harness.reporting.visual import browser_executable, prepare_check, state_matrix, write_receipt
-
-
-def test_release_review_renders_each_route_once_in_light_desktop_state():
-    assert state_matrix(["index.html", "results.html"], ((1440, 1000),)) == {
-        ("index.html", 1440, 1000, "light"),
-        ("results.html", 1440, 1000, "light"),
-    }
+from harness.reporting.visual import browser_executable, prepare_check, write_receipt
 
 
 def test_invalid_explicit_browser_does_not_select_another(tmp_path, monkeypatch):

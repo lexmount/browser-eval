@@ -157,17 +157,23 @@ def test_publication_checks_pinned_files_and_real_population(tmp_path):
         verify_publication_inputs(manifest, target, data_home=tmp_path)
 
 
-def test_split_benchmark_inputs_preserve_historical_collection_identities():
-    from harness.web_fetch.config import ROOT
-    from harness.web_search.profiles import load_profile_bytes
-    expected = {
-        "execution-primary.json": (149, "a1cd39a6c3ba49a792590da317d53153e8aea0a303b63ed6ca04414d250e8877"),
-        "execution-factual.json": (831, "ad08ff7adf29acdffe28e49179a14f92ec28d3af2fe79ffbc05d721da2d0f74b"),
-    }
-    for filename, (count, sha) in expected.items():
-        path = ROOT / "evaluation/web-search" / filename
-        compact = json.loads(path.read_bytes())
-        assert "benchmark_dataset" in compact["cases"]
-        raw = load_profile_bytes(path)
-        assert digest(raw) == sha
-        assert len(json.loads(raw)["cases"]) == count
+
+
+def test_two_external_instances_resolve_without_repository_defaults(tmp_path):
+    from harness.web_search.example import synthetic_profile
+    from harness.web_search.profiles import load_profile
+    for name in ("first", "second"):
+        root = tmp_path / name
+        root.mkdir()
+        profile = synthetic_profile()
+        profile["title"] = name
+        profile["cases"][0]["query"] = name + " query"
+        raw = (json.dumps(profile) + "\n").encode()
+        (root / "execution.json").write_bytes(raw)
+        selection = {"schema": "web-search-current/1", "title": name, "profile": {"path": "execution.json", "sha256": digest(raw)}, "methods": [m["id"] for m in profile["methods"]], "supplementary_profiles": [], "publication_target": "site.json"}
+        path = root / "instance.json"
+        path.write_text(json.dumps(selection))
+        resolved = load_profile(path)
+        assert resolved["title"] == name
+        assert resolved["cases"][0]["query"] == name + " query"
+    assert load_profile(tmp_path / "first/instance.json")["title"] == "first"

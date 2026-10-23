@@ -10,6 +10,7 @@ import pytest
 from harness.trajectory_replay import webarena_report_visual as _MODULE
 
 _routes = _MODULE._routes
+_first_failed_key = _MODULE._first_failed_key
 
 
 def test_private_preview_fixture_denies_assets_without_version(tmp_path):
@@ -113,7 +114,7 @@ def test_routes_include_integrated_and_offline_article_in_both_languages(tmp_pat
     } <= set(routes)
 
 
-def test_routes_leave_result_and_evidence_details_to_static_checks(tmp_path) -> None:
+def test_routes_include_failure_detail_and_evidence(tmp_path) -> None:
     _write_results(
         tmp_path,
         [
@@ -124,10 +125,11 @@ def test_routes_leave_result_and_evidence_details_to_static_checks(tmp_path) -> 
 
     routes = _routes(tmp_path)
 
-    assert "result/moli-1.html" not in routes
-    assert "evidence-viewer.html?file=data/evidence/moli-1.json" not in routes
+    assert "result/moli-1.html" in routes
+    assert _first_failed_key(tmp_path) == "moli-1"
+    assert "evidence-viewer.html?file=data/evidence/moli-1.json" in routes
     assert "fixes.html" not in routes and "en/fixes.html" not in routes
-    assert len(routes) == 10
+    assert len(routes) == 14
 
 
 def test_routes_support_an_all_pass_report(tmp_path) -> None:
@@ -136,6 +138,7 @@ def test_routes_support_an_all_pass_report(tmp_path) -> None:
     routes = _routes(tmp_path)
 
     assert all("result/" not in route and "evidence-viewer" not in route for route in routes)
+    assert _first_failed_key(tmp_path) is None
     assert len(routes) == 10
 
 
@@ -184,10 +187,10 @@ def test_current_routes_exclude_legacy_diagnostic_overview(tmp_path) -> None:
         assert f"en/diagnostic/{task_id}.html" not in routes
 
 
-def test_chinese_visual_review_skips_english_notice(tmp_path):
+def test_chinese_visual_matrix_includes_english_notice(tmp_path):
     _write_results(tmp_path, [])
     (tmp_path / "report-manifest.json").write_text('{"languages":["zh"]}')
-    assert "en/index.html" not in _routes(tmp_path)
+    assert "en/index.html" in _routes(tmp_path)
 
 
 @pytest.mark.parametrize(
@@ -197,6 +200,7 @@ def test_chinese_visual_review_skips_english_notice(tmp_path):
         "missing-state",
         "wrong-theme",
         "missing-height",
+        "viewer-error",
         "missing-topology-field",
         "low-contrast",
         "source",
@@ -216,6 +220,7 @@ def test_current_replay_receipt_binds_full_visual_scope(tmp_path, monkeypatch, d
         "results.html",
         "environment.html",
         "review.html",
+        "en/index.html",
     ]
     for route in routes:
         path = report / route
@@ -226,13 +231,13 @@ def test_current_replay_receipt_binds_full_visual_scope(tmp_path, monkeypatch, d
     monkeypatch.setenv("BROWSER_USE_VISUAL_BROWSER", str(binary))
     receipt = tmp_path / "visual.json"
     value = {
-        "schema": "lex_webarena_replay_visual_qa/5",
+        "schema": "lex_webarena_replay_visual_qa/4",
         "report_tree_sha256": _MODULE._tree_sha256(report),
         "checker_sources": checker_sources(Path(_MODULE.__file__)),
         "browser_executable": str(binary),
         "browser_sha256": file_sha256(binary),
-        "route_classes": 5,
-        "states_checked": 5,
+        "route_classes": 6,
+        "states_checked": 24,
         "failures": [],
         "states": [
             {
@@ -244,12 +249,13 @@ def test_current_replay_receipt_binds_full_visual_scope(tmp_path, monkeypatch, d
                 "clipped": [],
                 "tiny": [],
                 "low_contrast_headers": [],
+                "viewerError": False,
                 "topologyMissing": False,
                 "rawMermaid": False,
             }
             for route in routes
-            for width, height in ((1440, 1000),)
-            for theme in ("light",)
+            for width, height in ((1440, 1000), (390, 844))
+            for theme in ("light", "dark")
         ],
     }
     if damage == "missing-state":
@@ -258,6 +264,8 @@ def test_current_replay_receipt_binds_full_visual_scope(tmp_path, monkeypatch, d
         value["states"][0]["theme"] = "unmeasured"
     elif damage == "missing-height":
         del value["states"][0]["height"]
+    elif damage == "viewer-error":
+        value["states"][0]["viewerError"] = True
     elif damage == "missing-topology-field":
         del value["states"][0]["topologyMissing"]
     elif damage == "low-contrast":

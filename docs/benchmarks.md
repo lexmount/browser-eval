@@ -258,7 +258,7 @@ or renaming a participant requires data changes, without another renderer entry.
 
 ## Web Search integration
 
-LexBench Web Search is installed from the immutable commit in `pyproject.toml` and `uv.lock`. Its task files and scoring code have one owner in that repository. Browser Eval retains compact execution profiles, providers, model/human annotation collection, latency and billing receipts, audits and report publication. No sibling checkout is required.
+LexBench Web Search is installed from the immutable commit in `pyproject.toml` and `uv.lock`. Its task files and scoring code have one owner in that repository. Browser Eval provides providers, model/human annotation collection, latency/billing collection, audits and report publication. Report-specific execution profiles and receipts live with external evidence, selected explicitly by the caller. No sibling checkout is required.
 
 `uv run --frozen lexbench-websearch validate scenarios-v1` checks the installed definitions. The harness resolves explicit dataset/field/hash references before freezing a run. Resolving the split historical profiles reproduces the original profile bytes and hashes, so saved calls keep their original identity. Model judgment evidence and measured results stay outside both repositories.
 

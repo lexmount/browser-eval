@@ -1,3 +1,4 @@
+from tests.web_search.fixtures import execution_profile
 """Collection scenarios: missing sources, empty billing, and retained failures."""
 
 import json
@@ -54,7 +55,7 @@ class CollectionScenarios(unittest.TestCase):
             self.assertEqual(len(list((root / "run/resume-1/calls").glob("*.json"))), 4)
             contract = json.loads((root / "run/resume-1/contract.json").read_text())
             self.assertEqual(
-                contract["recollect_case_ids"], ["ds-price-zh", "second-case"]
+                contract["recollect_case_ids"], ["fixture-0", "second-case"]
             )
             archived = next((root / "run/resume-1/calls").glob("*.json"))
             archived.write_bytes(b"changed")
@@ -94,8 +95,7 @@ class CollectionScenarios(unittest.TestCase):
                 self.assertFalse((root / "run/receipt.json").exists())
 
     def profile(self, root):
-        from harness.web_search.profiles import load_profile
-        d = load_profile()
+        d = execution_profile()
         d["cases"] = d["cases"][:1]
         d["protocol"].update(rounds=1, interval_s=0)
         d["protocol"].pop("reference_scope", None)
@@ -128,11 +128,11 @@ class CollectionScenarios(unittest.TestCase):
                     ), b"reference " * 20
                 order.append(url)
                 return dict(
-                    http_status=503 if "lexmount" in url else 200,
+                    http_status=503 if url == json.loads(p.read_text())["methods"][0]["endpoint"] else 200,
                     elapsed_ms=20,
                     transport_exit=0,
                     transport_error="",
-                ), (b'{"error":"Unavailable"}' if "lexmount" in url else b'{"results":[]}')
+                ), (b'{"error":"Unavailable"}' if url == json.loads(p.read_text())["methods"][0]["endpoint"] else b'{"results":[]}')
 
             with (
                 patch("harness.web_search.runner.http_call", side_effect=http),
@@ -494,5 +494,5 @@ def test_collect_cli_passes_selected_supplemental_cohort(tmp_path, monkeypatch):
     from harness.web_search import runner
     observed = []
     monkeypatch.setattr(runner, 'run', lambda *a, **kw: observed.append(kw))
-    runner.main(['--output', str(tmp_path / 'run'), '--cohort', 'factual'])
+    runner.main(['--profile', str(tmp_path / 'instance.json'), '--output', str(tmp_path / 'run'), '--cohort', 'factual'])
     assert observed[0]['cohort'] == 'factual'

@@ -5,22 +5,25 @@ import json
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from harness.web_fetch.config import ROOT
 
 from .core import digest, validate_profile
 from lexbench_websearch.inputs import resolve_profile
 
-CURRENT_PROFILE = ROOT / "evaluation/web-search/current.json"
+def authority_root(path, root=None):
+    if path is None:
+        raise ValueError("Select an external Search instance with --profile")
+    return Path(root).resolve() if root is not None else Path(path).resolve().parent
+
 
 
 def _inside(root, relative):
     relative = Path(relative)
     if relative.is_absolute() or ".." in relative.parts:
-        raise ValueError("Current search input must be repository-relative")
+        raise ValueError("Search instance input must be bundle-relative")
     root = root.resolve()
     path = root / relative
     if not path.resolve().is_relative_to(root):
-        raise ValueError("Current search input escapes its repository")
+        raise ValueError("Current search input escapes its authority bundle")
     current = path
     while current != root:
         if current.is_symlink():
@@ -37,7 +40,8 @@ def _bound(root, binding):
     return resolve_profile(json.loads(raw))
 
 
-def current_selection(path=CURRENT_PROFILE, *, root=ROOT):
+def current_selection(path, *, root=None):
+    root = authority_root(path, root)
     selection = json.loads(Path(path).read_bytes())
     if selection.get("schema") != "web-search-current/1":
         raise ValueError("Unsupported current search selection")
@@ -57,8 +61,9 @@ def current_selection(path=CURRENT_PROFILE, *, root=ROOT):
     return selection
 
 
-def load_profile_bytes(path=CURRENT_PROFILE, *, root=ROOT, cohort="primary"):
+def load_profile_bytes(path, *, root=None, cohort="primary"):
     """Keep flat historical bytes exact; freeze a new identity for a current run."""
+    root = authority_root(path, root)
     raw = Path(path).read_bytes()
     document = json.loads(raw)
     if document.get("schema") != "web-search-current/1":
@@ -85,12 +90,13 @@ def load_profile_bytes(path=CURRENT_PROFILE, *, root=ROOT, cohort="primary"):
     return (json.dumps(profile, ensure_ascii=False, indent=2) + "\n").encode()
 
 
-def load_profile(path=CURRENT_PROFILE, *, root=ROOT):
+def load_profile(path, *, root=None):
     return json.loads(load_profile_bytes(path, root=root))
 
 
-def publication_authority(manifest, path=CURRENT_PROFILE, *, root=ROOT, planned_target=None, expected_target=None):
+def publication_authority(manifest, path, *, root=None, planned_target=None, expected_target=None):
     """Bind a formal release to the current participants, inputs and live target."""
+    root = authority_root(path, root)
     selection = current_selection(path, root=root)
     if selection.get("independent_result_review_scope") == "all" and (
         manifest["profile"].get("independent_result_review_scope") != "all"
@@ -135,13 +141,14 @@ def publication_authority(manifest, path=CURRENT_PROFILE, *, root=ROOT, planned_
     return target
 
 
-def verify_publication_inputs(manifest, target, *, root=ROOT, data_home=None):
+def verify_publication_inputs(manifest, target, *, root=None, data_home=None):
     """Verify pinned source and previous-release files before a replacement upload."""
     from lexbench_webfetch.paths import contained_path
     import os
+    root = Path(root) if root is not None else None
     data_home = Path(data_home) if data_home is not None else Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval")).expanduser()
     for name, binding in target["bindings"].items():
-        base = root if binding["path"].startswith("evaluation/") else data_home
+        base = root if root is not None and (root / binding["path"]).is_file() else data_home
         source = contained_path(base, binding["path"], reject_symlinks=True)
         if not source.is_file() or digest(source.read_bytes()) != binding["sha256"]:
             raise ValueError("Search publication binding changed: " + name)

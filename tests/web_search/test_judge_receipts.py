@@ -298,12 +298,14 @@ def test_correction_reuses_identical_inputs_and_calls_only_changed_cases(
     previous["judge"]["configuration"].pop("receipt_schema")
     for call in previous["judge"]["calls"]:
         del call["attempts"]
-    from harness.web_search import relevance as relevance_module
     import hashlib
     pinned = tmp_path / "legacy-evidence.json"
     pinned.write_text(json.dumps({"model":[hashlib.sha256(json.dumps(previous,ensure_ascii=False,sort_keys=True).encode()).hexdigest()]}))
-    monkeypatch.setattr(relevance_module, "LEGACY_EVIDENCE_PATH", pinned)
-    validate_model_evidence(previous)
+    authority = json.loads(pinned.read_bytes())
+    destination = tmp_path / "report/assessment-authority.json"
+    destination.parent.mkdir(exist_ok=True)
+    destination.write_bytes(pinned.read_bytes())
+    validate_model_evidence(previous, authority=authority)
     prior.write_text(json.dumps(previous))
     changed = tmp_path / "changed-rules.json"
     changed.write_text(json.dumps({"q": {"domains": ["required.invalid"]}}))
@@ -329,7 +331,7 @@ def test_correction_reuses_identical_inputs_and_calls_only_changed_cases(
         candidate["candidate_id"]: 0
         for candidate in evidence["blind_candidate_packets"][0]["candidates"]
     }
-    validate_model_evidence(evidence)
+    validate_model_evidence(evidence, authority=authority)
     run_judge(
         [
             "--output",
@@ -344,17 +346,17 @@ def test_correction_reuses_identical_inputs_and_calls_only_changed_cases(
     bad = copy.deepcopy(evidence)
     bad["judge"]["predecessor"]["judge"]["calls"][0]["response"]["model"] = "fabricated"
     with pytest.raises(ValueError, match="Inherited judge evidence changed"):
-        validate_model_evidence(bad)
+        validate_model_evidence(bad, authority=authority)
     bad = copy.deepcopy(evidence)
     inherited = next(c for c in bad["judge"]["calls"] if c["case_id"] == "unchanged")
     inherited["elapsed_ms"] = -1
     with pytest.raises(ValueError, match="differs from its original"):
-        validate_model_evidence(bad)
+        validate_model_evidence(bad, authority=authority)
 
     bad = copy.deepcopy(evidence)
     bad["judge"]["inherited_case_ids"].append("q")
     with pytest.raises(ValueError, match="differs from its original"):
-        validate_model_evidence(bad)
+        validate_model_evidence(bad, authority=authority)
     with pytest.raises(ValueError, match="transport configuration changed|endpoint host"):
         run_judge(
             [
