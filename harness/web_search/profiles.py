@@ -45,7 +45,7 @@ def current_selection(path, *, root=None):
     selection = json.loads(Path(path).read_bytes())
     if selection.get("schema") != "web-search-current/1":
         raise ValueError("Unsupported current search selection")
-    if selection.get("independent_result_review_scope") not in (None, "all"):
+    if selection.get("independent_result_review_scope") not in (None, "failures", "all"):
         raise ValueError("Unsupported independent Search review scope")
     profile = _bound(root, selection["profile"])
     ids = selection["methods"]
@@ -67,6 +67,8 @@ def load_profile_bytes(path, *, root=None, cohort="primary"):
     raw = Path(path).read_bytes()
     document = json.loads(raw)
     if document.get("schema") != "web-search-current/1":
+        if cohort != "primary":
+            raise ValueError("A flat profile has no supplementary cohorts")
         expanded = resolve_profile(document)
         return raw if expanded == document else (json.dumps(expanded, ensure_ascii=False, indent=2) + "\n").encode()
     selection = current_selection(path, root=root)
@@ -141,19 +143,37 @@ def publication_authority(manifest, path, *, root=None, planned_target=None, exp
     return target
 
 
+def publication_metadata(manifest, review, relevance):
+    """Derive release populations from the same evidence used by the renderer."""
+    from collections import Counter
+    profile = manifest['profile']
+    factual = {c['id'] for c in profile['cases'] if 'reference_answer' in c}
+    excluded = factual & set(profile.get('factual_quality_exclusions', []))
+    counts = {key: review[key] for key in ('case_total', 'case_reviewed', 'output_total', 'output_reviewed', 'candidate_total', 'candidate_reviewed', 'accepted_unreviewed_passes')}
+    counts['finding_dispositions'] = dict(Counter(d['resolution'] for d in review['adjudications'].values()))
+    counts['reference_dispositions'] = dict(Counter(d['resolution'] for key, d in review['adjudications'].items() if key.endswith(':dataset') and key.removesuffix(':dataset') in factual))
+    return {
+        'populations': {'custom': len(profile['cases']) - len(factual), 'factual': len(factual), 'factual_quality': len(factual - excluded), 'factual_quarantined': len(excluded)},
+        'independent_review': counts,
+        'quality_annotation': {'queries': len(relevance['plan']['case_ids']), 'candidates': sum(len(v) for v in relevance['labels'].values()), 'scope': relevance['plan']['scope']},
+    }
+
+
 def verify_publication_inputs(manifest, target, *, root=None, data_home=None):
     """Verify pinned source and previous-release files before a replacement upload."""
     from lexbench_webfetch.paths import contained_path
     import os
     root = Path(root) if root is not None else None
     data_home = Path(data_home) if data_home is not None else Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval")).expanduser()
+    bound_paths = {}
     for name, binding in target["bindings"].items():
         base = root if root is not None and (root / binding["path"]).is_file() else data_home
         source = contained_path(base, binding["path"], reject_symlinks=True)
         if not source.is_file() or digest(source.read_bytes()) != binding["sha256"]:
             raise ValueError("Search publication binding changed: " + name)
+        bound_paths[name] = source
     current_fields = [("relevance", "relevance_sha256"), ("independent_review", "independent_review_sha256")]
-    if "content" in target["bindings"] and manifest.get("content_sha256"):
+    if "content" in target["bindings"]:
         current_fields.append(("content", "content_sha256"))
     for key, field in current_fields:
         if manifest.get(field) != target["bindings"][key]["sha256"]:
@@ -165,4 +185,9 @@ def verify_publication_inputs(manifest, target, *, root=None, data_home=None):
     physical = sum(len(row.get("attempts", [row])) for row in manifest["rows"])
     if target.get("physical_calls") != physical:
         raise ValueError("Search publication physical call population differs")
+    fields = ('populations', 'independent_review', 'quality_annotation')
+    if any(field in target for field in fields):
+        expected = publication_metadata(manifest, json.loads(bound_paths['independent_review'].read_bytes()), json.loads(bound_paths['relevance'].read_bytes()))
+        if any(target.get(field) != expected[field] for field in fields):
+            raise ValueError('Search publication assessment counts differ from evidence')
     return True

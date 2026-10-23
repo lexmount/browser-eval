@@ -126,7 +126,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
         if not check_types:
             check_types = ["availability"]
         cases.append({"id": case["id"], "query": case["query"],
-                      "benchmark": benchmark, "quality_excluded": quality_excluded, "check_types": check_types, "has_relevance": case["id"] in labels,
+                      "benchmark": case.get('benchmark') or case.get('cohort') or benchmark, "quality_excluded": quality_excluded, "check_types": check_types, "has_relevance": case["id"] in labels,
                       "criteria": {"answer": case.get("reference_answer"),
                                    "official_sources": (relevance or {}).get("source_requirements", {}).get(case["id"], {}),
                                    "urls": [_url(u) for u in case.get("reference_urls", case.get("anchors", [])) if _url(u)],
@@ -139,7 +139,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
     if not populations:
         populations = [
             {"id": "overall", "label": {"en": "All tasks", "zh": "总体"}, "case_ids": [c["id"] for c in cases]},
-            {"id": "factual", "label": {"en": "Public factual questions", "zh": "公开事实题"}, "case_ids": [c["id"] for c in cases if c["benchmark"] == "factual"]},
+            {"id": "factual", "label": {"en": "Public factual questions", "zh": "公开事实题"}, "case_ids": [c["id"] for c in cases if 'factual' in c['check_types']]},
             {"id": "reference", "label": {"en": "Reference-page questions", "zh": "参考网页题"}, "case_ids": [c["id"] for c in profile["cases"] if c.get("anchors") and "reference_answer" not in c]},
         ]
     ids = {c["id"] for c in cases}
@@ -209,7 +209,7 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
         "referenceUrls": t(f'Reference URLs: compare the first {cutoff} result URLs', "题库给定的参考网页"),
         "requestedSites": t("Required websites", "查询限定的网站"),
         "equivalents": t("Accepted equivalent URLs and identifiers", "允许匹配的等价网址与标识"),
-        "unannotated": t("Relevance annotation is missing; a nonempty response only establishes availability.", "本题按查询意图评相关性。"),
+        "unannotated": t("Relevance annotation is missing; a nonempty response only establishes availability.", "本题没有相关性标注；非空响应只说明返回了结果。"),
         "siteItem": t("Matches required website", "来自限定网站"),
         "grade": t("Relevance grade", "相关性等级"),
         "gradeNames": [t("0 · Irrelevant", "0 级 · 无关"), t("1 · Topic only", "1 级 · 仅话题相关"), t("2 · Partly useful", "2 级 · 部分有用"), t("3 · Directly useful", "3 级 · 直接满足")],
@@ -237,6 +237,10 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
     methods = [(m["id"], m["label"]) for m in data["methods"]]
     populations = sorted({case["benchmark"] for case in data["cases"]})
     names = {"custom": t("In-house scenarios", "自建场景集"), "factual": t("Public factual questions", "公开事实题")}
+    for group in profile.get('report_cohorts', []):
+        label = group.get('label', group['id'])
+        names[group['id']] = label.get('zh' if zh else 'en', group['id']) if isinstance(label, dict) else label
+    default_group = next((case['benchmark'] for case in data['cases'] if 'factual' not in case['check_types']), 'all')
     benchmark_options = [("all", t(f"All saved responses · {len(data['cases'])}", f"全部响应 · {len(data['cases'])}"))] + [
         (key, names.get(key, key) + " · " + str(sum(c["benchmark"] == key and not c["quality_excluded"] for c in data["cases"]))) for key in populations
     ]
@@ -244,12 +248,35 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
     if excluded_count:
         benchmark_options.append(("excluded", t(f"Reference issues · {excluded_count}", f"参考有问题的原始响应 · {excluded_count}")))
     checks = {k for case in data["cases"] for k in case["check_types"]}
+    available_metrics = {'primary', 'availability'}
+    descriptions = []
+    if any(case['has_relevance'] for case in data['cases']):
+        available_metrics.add('quality')
+        descriptions.append(t('Relevance uses the frozen 0–3 labels.', '相关性使用冻结的 0–3 级标注。'))
+    if any(case['criteria']['urls'] for case in data['cases']):
+        available_metrics.add('source')
+        descriptions.append(t('Source checks match the supplied reference URLs.', '来源检查匹配题库提供的参考网址。'))
+    if 'factual' in checks:
+        available_metrics.add('answer')
+        descriptions.append(t('Answer checks match published answer text and exclude benchmark records.', '答案检查匹配公开参考答案文字，并排除评测记录。'))
+    if any(case['criteria']['domains'] for case in data['cases']):
+        available_metrics.add('site')
+    if not descriptions:
+        descriptions.append(t('These tasks have no relevance or answer labels; only response availability is measured.', '这些题目尚无相关性或答案标注，目前只检查是否返回结果。'))
+    metric_options = [
+        ('primary', t('Primary check for each task type', '按题型使用主要检查')),
+        ('quality', t('Relevance · grade at least 2', '相关性：至少 2 分')),
+        ('source', t('Reference target / published source', '目标网页／标注来源')),
+        ('answer', t('Answer cue in delivered text · contamination excluded', '返回文字中的答案线索')),
+        ('site', t('Requested-site constraint', '指定网站约束')),
+        ('availability', t('Nonempty response', '非空响应')),
+    ]
     check_options = [("all", t("All task types", "全部题型"))] + [(key, label) for key, label in (("target", t("Reference-page discovery", "目标网页发现")), ("site", t("Requested-site constraint", "指定网站约束")), ("availability", t("Open discovery availability", "通用网页查询")), ("factual", t("Factual evidence", "事实证据"))) if key in checks]
     return ('<style>' + STYLE + '</style><section class="search-compare" data-search-comparison data-labels="' + e(json.dumps(labels, ensure_ascii=False)) + '">'
-        + '<div class="compare-controls"><label>' + t('Find a query', '搜索题目') + '<input type="search" data-output-query></label><label>' + t('Benchmark', '评测集') + '<select data-output-benchmark>' + options(benchmark_options).replace('<option value="custom">', '<option value="custom" selected>') + '</select></label><label>' + t('Task check', '题型与检查') + '<select data-output-check>' + options(check_options) + '</select></label></div>'
+        + '<div class="compare-controls"><label>' + t('Find a query', '搜索题目') + '<input type="search" data-output-query></label><label>' + t('Benchmark', '评测集') + '<select data-output-benchmark>' + options(benchmark_options).replace('<option value="' + e(default_group) + '">', '<option value="' + e(default_group) + '" selected>') + '</select></label><label>' + t('Task check', '题型与检查') + '<select data-output-check>' + options(check_options) + '</select></label></div>'
         + '<h2>' + t('Compare methods on the same tasks', '同一道题，各家结果对比') + '</h2><p class="compare-notice">'
-        + t('Source checks use independently identified reference pages or published supporting sources. Factual checks exclude benchmark records and quarantined references, while preserving their outputs. Answer checks use delivered text and explicitly accepted answer variants; they do not judge factual correctness. Unlabelled tasks remain unscored.', '自建集按同一套四级相关性计算质量分；公开集检查参考网页与答案文字，排除评测记录；参考已隔离的题目不计质量，响应仍保留。可切换检查项目并查看对应题目。')
-        + '</p><div class="compare-controls"><label>' + t('Check', '检查项目') + '<select data-compare-metric>' + options([('primary', t('Primary check for each task type', '按题型使用主要检查')), ('quality', t('Relevance · grade at least 2', '相关性：至少 2 分')), ('source', t('Reference target / published source', '目标网页／标注来源')), ('answer', t('Answer cue in delivered text · contamination excluded', '返回文字中的答案线索')), ('site', t('Requested-site constraint', '指定网站约束')), ('availability', t('Nonempty response', '非空响应'))]) + '</select></label><label>' + t('Baseline', '基准方法') + '<select data-compare-baseline>' + options(methods) + '</select></label></div><fieldset><legend>' + t('Compare with', '对比方法') + '</legend><div class="compare-checks">'
+        + ' '.join(descriptions)
+        + '</p><div class="compare-controls"><label>' + t('Check', '检查项目') + '<select data-compare-metric>' + options([(key, label) for key, label in metric_options if key in available_metrics]) + '</select></label><label>' + t('Baseline', '基准方法') + '<select data-compare-baseline>' + options(methods) + '</select></label></div><fieldset><legend>' + t('Compare with', '对比方法') + '</legend><div class="compare-checks">'
         + ''.join('<label><input type="checkbox" data-compare-method checked value="' + e(k) + '">' + e(v) + '</label>' for k,v in methods)
         + '</div></fieldset><div class="compare-counts" data-comparison-counts aria-live="polite"></div><label>' + t('Show tasks where', '查看题目') + '<select data-compare-relation>' + options([('all', t('All outcome relations', '全部结果'))] + list(labels['relations'].items())) + '</select></label><div class="compare-relations" data-relation-tasks></div><div class="compare-pager"><button data-relation-prev>' + t('Previous', '上一页') + '</button><span data-relation-page aria-live="polite"></span><button data-relation-next>' + t('Next', '下一页') + '</button></div>'
         + '<h2>' + t('Actual outputs, side by side', '逐题查看实际输出') + '</h2><p class="compare-notice">' + t(f'The dataset, query, check, providers and outcome filters above also control this view. Each column shows the first {cutoff} results. Page summaries are complete; page bodies remain compact previews. Green marks identify the exact reference-page or answer-cue check, not a semantic correctness judgment.', f'上方的题库、题目、检查项目、方法和命中状态会同步筛选这里。每列展示前 {cutoff} 条结果，长摘要完整显示，网页正文保留节选。绿色标出可用结果及具体匹配字段；每条结果显示相关性等级，题目总分可展开计算过程。') + '</p><div data-output-pages></div><div class="compare-pager"><button data-output-prev>' + t('Previous', '上一页') + '</button><span data-output-page aria-live="polite"></span><button data-output-next>' + t('Next', '下一页') + '</button></div>'

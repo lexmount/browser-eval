@@ -139,13 +139,13 @@ def collection_implementation():
     )
     sources = {name: ROOT / name for name in names}
     from lexbench_websearch.inputs import implementation_sources
-    sources.update(implementation_sources())
+    sources.update({"dependencies/lexbench_websearch/" + name: path for name, path in implementation_sources().items()})
     return {name: digest(source.read_bytes()) for name, source in sources.items()}
 
 
 def implementation_source(relative):
     from lexbench_websearch.inputs import implementation_sources
-    return implementation_sources()[relative] if relative.startswith("dependencies/") else ROOT / relative
+    return implementation_sources()[relative.removeprefix("dependencies/lexbench_websearch/")] if relative.startswith("dependencies/") else ROOT / relative
 
 
 def validate_resume_implementation(output, contract):

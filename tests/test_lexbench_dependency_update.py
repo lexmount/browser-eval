@@ -19,6 +19,23 @@ def test_current_dependency_has_one_revision():
     validate_binding(ROOT)
 
 
+def test_search_dependency_binds_project_lock_and_installed_datasets(tmp_path):
+    from lexbench_websearch.inputs import registry
+    for name in ['pyproject.toml', 'uv.lock', 'evaluation/lexbench-websearch.json']:
+        destination = tmp_path / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / name, destination)
+    revision = validate_binding(tmp_path, 'lexbench-websearch')
+    path = tmp_path / 'evaluation/lexbench-websearch.json'
+    binding = json.loads(path.read_text())
+    assert binding['datasets'] == registry()['datasets']
+    binding['revision'] = '0' * 40
+    path.write_text(json.dumps(binding))
+    with pytest.raises(ValueError, match='disagree'):
+        validate_binding(tmp_path, 'lexbench-websearch')
+    assert len(revision) == 40
+
+
 @pytest.mark.parametrize("name", ["pyproject.toml", "uv.lock", "evaluation/lexbench-webfetch.json"])
 def test_mismatched_revision_rejected(tmp_path, name):
     (tmp_path / "evaluation").mkdir()

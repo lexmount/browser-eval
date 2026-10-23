@@ -1,6 +1,6 @@
 # Web Search API evaluation
 
-This track compares native search responses before an answering model is added. The current comparison uses Lexmount Search, DeepSeek Search with `need_content=true`, and Bocha Web Search with `summary=true`. All three receive the same query intent and a five-result budget. Search-result relevance uses their shared titles and snippets; additional summaries and page bodies are evaluated separately. The two benchmark populations remain separate: 149 scenario queries and 831 unchanged SimpleQA Verified questions that fit the shared API query limit.
+This track compares native search responses before an answering model is added. An explicit external profile selects participants, output options, result budget and datasets. Shared titles and snippets support retrieval relevance comparisons; optional summaries and page bodies are evaluated separately.
 
 [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) owns task populations, provenance, reference qualifications and deterministic scoring. Browser Eval imports its pinned package directly. Store the instance selector, execution profiles, publication target and any hash-bound historical evidence authority beside external evidence. Pass the selector with `--profile`; there is no repository default or implicit published report. The collector resolves benchmark references before freezing run inputs. Historical standalone profiles keep their original bytes.
 
@@ -20,7 +20,7 @@ uv run --frozen python scripts/build_search_report.py \
 
 Use a new output directory for every collection. The frozen profile declares every query, method, result count, timeout, retry rule and price before calls. Calls run serially in rotating order. A transport, HTTP or invalid-response failure receives one retry; a valid empty response does not. The final response is the one logical result, while every physical call is retained. A missing credential fails before calls or output creation.
 
-Reference responses are captured before and after collection, with immutable hashes. The identity-scoped contract requires complete successful responses containing predeclared publisher or document identifiers. Volatile page chrome may change; missing identities prevent certification. `--diagnostic` preserves the full matrix for investigation and cannot certify a release. Anchor hits test only supplied known-page URLs. The current 149-query set includes 35 verbatim community queries, 80 licensed public queries and 34 attributed derived or authored cases. It is not a representative quality leaderboard.
+Reference responses are captured before and after collection, with immutable hashes. The identity-scoped contract requires complete successful responses containing predeclared publisher or document identifiers. Volatile page chrome may change; missing identities prevent certification. `--diagnostic` preserves the full matrix for investigation and cannot certify a release. Anchor hits test only supplied known-page URLs. Dataset composition and source attribution come from the selected benchmark version.
 
 ## Metrics and limits
 
@@ -28,7 +28,7 @@ Reference responses are captured before and after collection, with immutable has
 - Domain fraction tests host boundaries, excluding suffix lookalikes. Empty responses have no domain fraction; list fill and error counts remain visible.
 - Duplicate fraction uses conservative URL normalization. Semantic query parameters are preserved.
 - Factual probes match published supporting URLs and reference-answer cues. A versioned assessment revision interprets explicit accepted ranges and alternatives from the published answer; historical literal metrics remain reproducible from unchanged collection profiles. Preview fields and all delivered text are evaluated separately. Source matching is not whole-web recall; phrase presence is not semantic correctness. A separate diagnostic excludes explicitly named benchmark mirrors without promoting later results.
-- The complete 149-query scenario set uses one frozen set of pooled relevance labels. Human labels are the default; an explicitly authorized model judge is supported with retained prompts, raw responses and exact evidence references. The 831 public factual queries use deterministic source and answer-text checks.
+- The complete selected scenario set uses one frozen set of pooled relevance labels. Human labels are the default; an explicitly authorized model judge is supported with retained prompts, raw responses and exact evidence references. Public factual queries use deterministic source and answer-text checks.
 - Snippet, summary and content lengths count Unicode characters. Text quantity does not establish correctness or source faithfulness.
 - Client wall time includes request setup, network transfer, response bytes and any declared retry. Mean, median and nearest-rank P95 share each declared cohort's complete query population. Successful nonempty calls are reported separately. Serial latency does not measure throughput or an SLA.
 - Prices remain in their native currencies. Empty DeepSeek successes are free under its published rule. Transport failures have unknown billing. Lexmount cost stays unavailable until pricing is supplied. Estimates are not invoices and exclude downstream models and extra fetches.
@@ -162,11 +162,11 @@ and successful provider output are different states; findings require explicit
 disposition before the final audited report is released.
 
 A formal reviewed release passes `--review /absolute/review-evidence.json` to
-`build_search_report.py`. It must contain all case/output/candidate opinions and
+`build_search_report.py`. It must contain all opinions in the declared scope and
 an adjudication for every dataset issue, output issue and finding. Each decision
 binds the original opinion hash, its resolution, reason and evidence. Provider
 limitations are recorded separately from corrected evaluation defects. The build
-rejects partial coverage, changed reviewer opinions, unmatched outputs and open
+rejects incomplete declared coverage, changed reviewer opinions, unmatched outputs and open
 findings; the release check also verifies rendered summary and detail evidence.
 
 A source-rule correction can pass `--reuse-evidence /absolute/relevance.json` to

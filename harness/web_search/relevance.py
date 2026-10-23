@@ -3,7 +3,7 @@ from .messages import report_text
 from pathlib import Path
 """Blind, pooled top-k preview relevance scoring for Web Search results."""
 
-from lexbench_websearch.rubric import JUDGE_PROMPT
+from lexbench_websearch.rubric import JUDGE_PROMPT, known_prompt
 from lexbench_websearch.relevance import candidate_packet, score
 
 
@@ -199,7 +199,7 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
     strict_receipts = configuration.get("receipt_schema") in (2, 3)
     if not strict_receipts and not legacy_evidence_allowed(evidence, "model", authority):
         raise ValueError("Model evidence requires strict configuration and physical receipts; legacy evidence must be hash-pinned")
-    if judge["prompt"] != JUDGE_PROMPT:
+    if not known_prompt(judge["prompt"]):
         raise ValueError("Model evidence uses an unapproved grading prompt")
     expected_packet = hashlib.sha256(json.dumps({"schema": evidence["schema"], "plan": evidence["plan"], "blind_candidate_packets": packets, **({"source_policy": evidence["source_policy"]} if "source_policy" in evidence else {})}, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     if evidence.get("packet_sha256") != expected_packet:

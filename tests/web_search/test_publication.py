@@ -58,6 +58,25 @@ def test_publication_plan_uses_configured_data_home(tmp_path, monkeypatch):
     assert publication.verify_plan(report, work)["target"]["cases"] == 1
 
 
+@pytest.mark.parametrize('field', ['populations', 'independent_review', 'quality_annotation'])
+def test_publication_rejects_forged_derived_counts(tmp_path, monkeypatch, field):
+    report, work = publication_files(tmp_path, monkeypatch)
+    manifest = json.loads((report / 'manifest.json').read_bytes())
+    target = json.loads((work / 'publication-plan.json').read_bytes())['target']
+    review = {key: 0 for key in ('case_total', 'case_reviewed', 'output_total', 'output_reviewed', 'candidate_total', 'candidate_reviewed', 'accepted_unreviewed_passes')}
+    review['adjudications'] = {}
+    relevance = {'plan': {'case_ids': [], 'scope': 'synthetic'}, 'labels': {}}
+    for name, data, key in [('independent_review', review, 'independent_review_sha256'), ('relevance', relevance, 'relevance_sha256')]:
+        path = tmp_path / target['bindings'][name]['path']
+        path.write_text(json.dumps(data))
+        target['bindings'][name]['sha256'] = manifest[key] = digest(path.read_bytes())
+    target.update(profiles.publication_metadata(manifest, review, relevance))
+    assert profiles.verify_publication_inputs(manifest, target, data_home=tmp_path)
+    target[field] = {'forged': 999}
+    with pytest.raises(ValueError, match='assessment counts'):
+        profiles.verify_publication_inputs(manifest, target, data_home=tmp_path)
+
+
 @pytest.mark.parametrize("relative", ["report.zip", "visual_acceptance.json", "relevance.json", "independent_review.json", "content.json", "delivery/delivery-index.json"])
 def test_changed_release_inputs_stop_before_authentication(tmp_path, monkeypatch, relative):
     report, work = publication_files(tmp_path, monkeypatch)

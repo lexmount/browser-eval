@@ -490,6 +490,29 @@ def test_business_error_is_retained_and_retried_instead_of_crashing_billing(tmp_
     assert not json.loads((tmp_path / 'run/receipt.json').read_bytes())['certified']
 
 
+def test_collection_receipt_binds_installed_scorer_and_detects_changed_sources(tmp_path, monkeypatch):
+    from lexbench_websearch.inputs import implementation_sources
+    from harness.web_search import runner
+    sources = implementation_sources()
+    prefix = 'dependencies/lexbench_websearch/'
+    original = runner.collection_implementation()
+    assert prefix + 'scoring.py' in original
+    for name, path in sources.items():
+        assert original[prefix + name] == runner.digest(path.read_bytes())
+    changed = tmp_path / 'scoring.py'
+    changed.write_text('changed scorer')
+    for name, path in sources.items():
+        destination = tmp_path / 'implementation' / prefix / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(path.read_bytes())
+    monkeypatch.setattr('lexbench_websearch.inputs.implementation_sources', lambda: {**sources, 'scoring.py': changed})
+    assert runner.collection_implementation() != original
+    import pytest
+    contract = {'implementation': {prefix + name: original[prefix + name] for name in sources}}
+    with pytest.raises(ValueError, match='same live collection implementation'):
+        runner.validate_resume_implementation(tmp_path, contract)
+
+
 def test_collect_cli_passes_selected_supplemental_cohort(tmp_path, monkeypatch):
     from harness.web_search import runner
     observed = []
