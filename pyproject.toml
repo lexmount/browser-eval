@@ -101,7 +101,7 @@ build-backend = "setuptools.build_meta"
 include = ["harness*"]
 
 [tool.setuptools.package-data]
-"harness.web_search" = ["messages.json"]
+"harness.web_search" = ["messages.json", "data/*.json"]
 "harness" = ["licenses/*.txt"]
 "harness.trajectory_replay" = ["messages.json"]
 "harness.browser_use" = ["report-translations.json"]

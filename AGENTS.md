@@ -8,6 +8,8 @@ Browser Eval owns execution adapters, evidence handling and report tooling. `lex
 
 Repository documentation, identifiers, comments and docstrings use English. Report UI messages belong in language catalogs; source quotations and acceptance fixtures retain their original language. Keep the root README and `docs/README.zh-CN.md` aligned; additional README translations are welcome, but other guides need no parallel translation. Preserve original-language source quotations and hash-bound acceptance/evidence artifacts. Report-generation languages follow the track contracts below.
 
+- For new search-provider cohorts, run each provider's complete declared case set before starting the next provider. Do not rotate providers within a query. Preserve already frozen in-flight execution contracts when continuing a cohort.
+
 - Before report authoring, run `uv run --frozen python scripts/report_template.py <webfetch|trajectory-replay|browser-use|web-search>` and inspect its renderer, version-pinned example and checks. `configs/report-templates.json` owns discovery; examples supply presentation conventions, never measurements or publication targets. Extend the selected owner for new cohorts and evidence states. A new track must first gain a runnable synthetic example, evidence/detail behavior tests and a release check, then register those resources. Update the owning code and relevant skill when a repeated gap is demonstrated; keep report-specific findings outside instructions. Do not generate a disposable parallel renderer under a work directory.
 
 ## Change lifecycle and repository footprint

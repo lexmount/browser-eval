@@ -79,6 +79,7 @@ def load_profile_bytes(path, *, root=None, cohort="primary"):
     profile["methods"] = [by_id[mid] for mid in selection["methods"]]
     profile["title"] = selection["title"] if cohort == "primary" else profile["title"]
     profile["protocol"]["comparison"] = "Current selected methods; one declared result per query and method."
+    profile["protocol"]["order"] = "complete provider batches"
     profile["publication"] = {"authority": selection["publication_target"]}
     if selection.get("independent_result_review_scope"):
         profile["independent_result_review_scope"] = selection["independent_result_review_scope"]
@@ -123,6 +124,8 @@ def publication_authority(manifest, path, *, root=None, planned_target=None, exp
     receipts = manifest["receipt"].get("separate_collections")
     if not receipts:
         receipts = [dict(manifest["receipt"], cohort="primary")]
+        if not receipts[0].get("receipt_sha256"):
+            receipts[0]["receipt_sha256"] = manifest.get("collection_receipt_sha256")
     if len(receipts) != len(expected) or {r["cohort"] for r in receipts} != set(expected):
         raise ValueError("Search release cohorts differ from the current selection")
     bindings = target["bindings"]

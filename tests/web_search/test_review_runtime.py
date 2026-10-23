@@ -30,10 +30,11 @@ print(json.dumps({{"model":"gpt-6.1-sol","usage":{{"output_tokens":12}}}}))
     return str(executable)
 
 
-def test_real_child_is_isolated_then_reused(tmp_path, monkeypatch):
+@pytest.mark.parametrize("source_mode", ["frozen", "live"])
+def test_real_child_is_isolated_then_reused(tmp_path, monkeypatch, source_mode):
     monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'account'))
     monkeypatch.setenv('REVIEW_SECRET', 'must-not-reach-child')
-    _, root, contract = example(tmp_path)
+    _, root, contract = example(tmp_path, source_mode=source_mode)
     account = tmp_path / "account"
     account.mkdir(exist_ok=True)
     (account / "auth.json").write_text("fixture credential")
@@ -48,7 +49,9 @@ def test_real_child_is_isolated_then_reused(tmp_path, monkeypatch):
     assert not (root / 'codex-home/auth.json').exists()
     assert '--json' in observed['args']
     assert 'REVIEW_SECRET' not in observed['environment']
-    assert 'web_search="disabled"' in observed['args']
+    assert 'mcp_servers' not in observed.get('config', '')
+    expected_search = "live" if contract["source_mode"] == "live" else "disabled"
+    assert f'web_search="{expected_search}"' in observed['args']
     for feature in ('shell_tool', 'unified_exec', 'apps', 'plugins', 'view_image', 'browser_use', 'computer_use', 'multi_agent'):
         i = observed['args'].index(feature)
         assert observed['args'][i - 1] == '--disable'

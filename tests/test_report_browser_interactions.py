@@ -47,6 +47,8 @@ def test_browser_use_sort_filter_restore_and_keyboard_dialog(tmp_path, browser, 
     <tr data-tier="easy" data-result="pass"><td data-sort="20">20 ms</td></tr>
     <tr data-tier="hard" data-result="fail"><td data-sort="3">3 ms error</td></tr>
     <tr data-tier="easy" data-result="pass"><td>—</td></tr>
+    <tr data-tier="easy" data-result="pass"><td data-sort="0">0 ms</td></tr>
+    <tr data-tier="easy" data-result="pass"><td>N/A</td></tr>
     </tbody></table><button id="open" onclick="openDiagnosis('detail')">Evidence</button>
     <dialog id="detail" aria-label="Evidence"><button onclick="closeDiagnosis('detail')">Close</button>
     <pre>Exact evaluator error</pre></dialog></body></html>''')
@@ -55,9 +57,9 @@ def test_browser_use_sort_filter_restore_and_keyboard_dialog(tmp_path, browser, 
         try:
             page.goto(origin)
             page.locator('th button').click()
-            assert page.locator('tbody td').all_text_contents() == ['3 ms error', '20 ms', '—']
+            assert page.locator('tbody td').all_text_contents() == ['0 ms', '3 ms error', '20 ms', '—', 'N/A']
             page.locator('th button').click()
-            assert page.locator('tbody td').all_text_contents() == ['20 ms', '3 ms error', '—']
+            assert page.locator('tbody td').all_text_contents() == ['20 ms', '3 ms error', '0 ms', '—', 'N/A']
             assert page.locator('th').get_attribute('aria-sort') == 'descending'
             page.locator('[data-filter]').select_option('fail')
             assert page.locator('tbody tr:visible').count() == 1

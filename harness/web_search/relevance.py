@@ -1,25 +1,116 @@
-
-from .messages import report_text
-from pathlib import Path
 """Blind, pooled top-k preview relevance scoring for Web Search results."""
 
 from lexbench_websearch.rubric import JUDGE_PROMPT, known_prompt
-from lexbench_websearch.relevance import candidate_packet, score
 
 
 import hashlib
 import json
+from pathlib import Path
 
-from lexbench_websearch.scoring import candidate_identity
+from .messages import report_text
+
+from lexbench_websearch.scoring import canonical_url
+from lexbench_websearch.relevance import candidate_packet, score, validate_source_rule_regressions
+
+
+
+
+
+
+
+
+
+
+def verify_protocol(profile, evidence, revision=None, *, authority=None):
+    """Require an explicit zero-search-call revision for a changed frozen rubric."""
+    if revision and "source_rule_correction" in revision:
+        verify_source_rule_correction(evidence, revision["source_rule_correction"], authority=authority)
+    frozen = profile.get("protocol", {}).get("model_relevance")
+    judge = evidence.get("judge", {})
+    if not frozen or judge.get("kind") != "model":
+        return
+    config = judge["configuration"]
+    if judge["name"] != frozen["name"] or any(config.get(k) != frozen[k] for k in ("temperature", "max_tokens")):
+        raise ValueError("Relevance model differs from the frozen protocol")
+    if config.get("extra_params", {}).get("enable_thinking") != frozen["enable_thinking"]:
+        raise ValueError("Relevance thinking mode differs from the frozen protocol")
+    actual = hashlib.sha256(judge["prompt"].encode()).hexdigest()
+    if actual == frozen["prompt_sha256"]:
+        return
+    if not revision or revision.get("provider_calls") != 0 or not revision.get("root_cause") or not revision.get("regression_ids"):
+        raise ValueError("Changed relevance rubric requires a zero-call scoring revision")
+    if (revision.get("before_prompt_sha256") != frozen["prompt_sha256"] or revision.get("prompt_sha256") != actual
+            or revision.get("packet_sha256") != evidence.get("packet_sha256")
+            or revision.get("model_case_ids") != evidence["plan"]["case_ids"]
+            or revision.get("source_policy") != evidence.get("source_policy")
+            or revision.get("source_requirements_sha256") != hashlib.sha256(json.dumps(evidence.get("source_requirements"), ensure_ascii=False, indent=2).encode()).hexdigest()):
+        raise ValueError("Relevance scoring revision binding mismatch")
+
+
+def verify_source_rule_correction(evidence, correction, *, authority=None):
+    """Bind a source-only correction to original calls and minimal new judge work."""
+    if (correction.get("schema") != "web-search-source-rule-correction/1"
+            or correction.get("provider_calls") != 0 or not correction.get("root_cause")):
+        raise ValueError("Invalid zero-call source rule correction")
+    validate_source_rule_regressions(correction.get("regression_ids"))
+    judge = evidence["judge"]
+    predecessor = judge.get("predecessor")
+    if not predecessor or judge.get("configuration", {}).get("receipt_schema") != 3:
+        raise ValueError("Source correction requires inherited model evidence")
+    identity = hashlib.sha256(json.dumps(predecessor, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    if correction.get("before_relevance_sha256") != identity:
+        raise ValueError("Source correction predecessor binding mismatch")
+    validate_model_evidence(evidence, authority=authority)
+    before = {p["case_id"]: p for p in predecessor["blind_candidate_packets"]}
+    after = {p["case_id"]: p for p in evidence["blind_candidate_packets"]}
+    if set(before) != set(after) or set(after) != set(evidence["plan"]["case_ids"]):
+        raise ValueError("Source correction changed the declared case scope")
+    changed, unchanged_requests = set(), set()
+    for cid, packet in after.items():
+        old = before[cid]
+        old_candidates = {c["candidate_id"]: c for c in old["candidates"]}
+        new_candidates = {c["candidate_id"]: c for c in packet["candidates"]}
+        if (old.get("query") != packet.get("query") or old.get("source_checked") != packet.get("source_checked")
+                or set(old_candidates) != set(new_candidates)):
+            raise ValueError("Source correction changed candidate inputs")
+        for key, candidate in new_candidates.items():
+            prior = old_candidates[key]
+            if {k: v for k, v in candidate.items() if k != "source_eligible"} != {k: v for k, v in prior.items() if k != "source_eligible"}:
+                raise ValueError("Source correction changed candidate inputs")
+            if type(candidate.get("source_eligible")) is not bool or type(prior.get("source_eligible")) is not bool:
+                raise ValueError("Source correction requires explicit source eligibility")
+            if candidate["source_eligible"] != prior["source_eligible"]:
+                changed.add(cid)
+        config_keys = ("model", "temperature", "max_tokens", "response_format", "extra_params")
+        if (judge_input(packet) == judge_input(old) and judge["prompt"] == predecessor["judge"]["prompt"]
+                and all(judge["configuration"].get(k) == predecessor["judge"]["configuration"].get(k) for k in config_keys)):
+            unchanged_requests.add(cid)
+    inherited = set(judge.get("inherited_case_ids", []))
+    new = set(after) - inherited
+    for field, expected in (("changed_case_ids", changed), ("new_judge_case_ids", new)):
+        declared = correction.get(field)
+        if not isinstance(declared, list) or len(declared) != len(set(declared)) or set(declared) != expected:
+            raise ValueError("Source correction " + field + " differs from frozen evidence")
+    if not unchanged_requests.issubset(inherited):
+        raise ValueError("Unchanged judge requests must inherit their original calls")
+
+
+def inherited_packet_format(profile, rows, evidence):
+    """Recover the candidate contract by matching its frozen bytes, never its age."""
+    for version in ("search/1", "serp/1"):
+        frozen, _ = candidate_packet(profile, rows, evidence.get("source_requirements"),
+            source_policy=evidence.get("source_policy", "legacy-domain-intersection/1"), packet_format=version)
+        if (evidence["blind_candidate_packets"] == frozen["blind_candidate_packets"]
+                and evidence.get("packet_sha256") == frozen["packet_sha256"]):
+            return version
+    raise ValueError("Model candidate text differs from frozen search outputs")
 
 
 def verify_provenance(profile, rows, evidence, *, authority=None):
     """Make public candidate packets and rank mappings agree with measured outputs."""
     judge = evidence.get("judge", {})
     if judge.get("kind") == "model":
-        frozen, _ = candidate_packet(profile, rows, evidence.get("source_requirements"), source_policy=evidence.get("source_policy", "legacy-domain-intersection/1"))
-        if evidence["blind_candidate_packets"] != frozen["blind_candidate_packets"]:
-            raise ValueError("Model candidate text differs from frozen search outputs")
+        inherited_packet_format(profile, rows, evidence)
         validate_model_evidence(evidence, authority=authority)
     elif judge.get("kind") != "human" or not judge.get("name", "").strip():
         raise ValueError("Relevance evaluation requires named human annotations or frozen model evidence")
@@ -43,11 +134,11 @@ def verify_provenance(profile, rows, evidence, *, authority=None):
         if ids != set(labels[case_id]) or len(ids) != len(packet["candidates"]):
             raise ValueError("Blind packet candidates disagree with grades")
         for candidate in packet["candidates"]:
-            expected = candidate_identity(case_id, candidate["url"])
+            expected = hashlib.sha256((case_id + "\0" + canonical_url(candidate["url"])).encode()).hexdigest()[:12]
             if candidate["candidate_id"] != expected:
                 raise ValueError("Blind packet URL identity mismatch")
         for method in (m["id"] for m in profile["methods"]):
-            actual = [candidate_identity(case_id, item["url"])
+            actual = [hashlib.sha256((case_id + "\0" + canonical_url(item["url"])).encode()).hexdigest()[:12]
                       for item in indexed[case_id, method]["results"][:plan["cutoff"]]]
             if rankings[case_id][method] != actual:
                 raise ValueError("Published rank mapping disagrees with provider results")
@@ -57,6 +148,8 @@ def verify_provenance(profile, rows, evidence, *, authority=None):
         for case_id, grades in crosscheck.items()
     ):
         raise ValueError("Cross-check grades are invalid")
+
+
 
 
 def import_annotations(profile, rows, submitted):
@@ -79,12 +172,14 @@ def export_annotations(profile, rows, destination):
     destination.mkdir(parents=True, exist_ok=False)
     (destination / "packet.json").write_text(json.dumps(packet, ensure_ascii=False, indent=2))
     payload = json.dumps(packet, ensure_ascii=False).replace("<", "\\u003c")
-    page = ANNOTATION_HTML.replace("__PACKET__", payload).replace("__CUTOFF__", str(profile["protocol"]["top_k"]))
+    page = ANNOTATION_HTML.replace("__PACKET__", payload)
     (destination / "index.html").write_text(page, encoding="utf-8")
     return destination / "index.html"
 
 
-ANNOTATION_HTML = report_text('text_1935e26a86c17eeb')
+ANNOTATION_HTML = report_text('text_38d7f4992b5eb237')
+
+
 
 
 def judge_input(packet):
@@ -92,6 +187,44 @@ def judge_input(packet):
         return packet
     return {"case_id": packet["case_id"], "query": packet["query"], "source_requirements_checked": True,
             "candidates": [{k: c[k] for k in ("candidate_id", "previews", "source_eligible")} for c in packet["candidates"]]}
+
+
+def reference_repair_messages(packet, expected):
+    choices = {}
+    for c in packet["candidates"]:
+        refs = [{"field": field, "preview_index": i} for i, p in enumerate(c["previews"])
+                for field in ("title", "snippet") if p.get(field)]
+        choices[c["candidate_id"]] = refs or [{"field": "title", "preview_index": 0}]
+    suffix = "\nOutput-format correction only; keep the relevance rubric unchanged. For each candidate, evidence MUST be one of these exact supplied nonempty field references. Do not cite an empty snippet when the title contains the information. Return all candidates. Allowed references: " + json.dumps(choices, sort_keys=True)
+    return [dict(expected[0], content=expected[0]["content"] + suffix), *expected[1:]]
+
+
+def repaired_messages(packet, call, expected):
+    repair = call.get("format_repair")
+    if not repair:
+        return expected
+    prior = repair["prior_call"]
+    if prior["case_id"] != packet["case_id"] or prior["request"]["messages"] != expected or prior.get("format_repair"):
+        raise ValueError("Invalid format-repair provenance")
+    repaired = reference_repair_messages(packet, expected)
+    if dict(prior["request"], messages=repaired) != call["request"]:
+        raise ValueError("Format repair changed model configuration")
+    try:
+        parse_judgments(packet, prior["response"])
+    except (ValueError, KeyError, TypeError):
+        return repaired
+    raise ValueError("A valid model judgment cannot be retried as a format repair")
+
+
+def reusable_judge_call(packet, call, request):
+    """Reuse a validated response when only its output-format repair was added."""
+    if call["request"] == request:
+        return True
+    repair = call.get("format_repair")
+    if not repair or repair["prior_call"]["request"] != request:
+        return False
+    repaired_messages(packet, call, request["messages"])
+    return True
 
 
 def parse_judgments(packet, response):
@@ -202,7 +335,15 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
     if not known_prompt(judge["prompt"]):
         raise ValueError("Model evidence uses an unapproved grading prompt")
     expected_packet = hashlib.sha256(json.dumps({"schema": evidence["schema"], "plan": evidence["plan"], "blind_candidate_packets": packets, **({"source_policy": evidence["source_policy"]} if "source_policy" in evidence else {})}, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
-    if evidence.get("packet_sha256") != expected_packet:
+    legacy_packet = {"schema": evidence["schema"], "plan": evidence["plan"], "blind_candidate_packets": packets,
+                     **({"source_policy": evidence["source_policy"]} if "source_policy" in evidence else {}),
+                     **({"source_requirements": evidence["source_requirements"]} if "source_requirements" in evidence else {})}
+    legacy_hash = hashlib.sha256(json.dumps(legacy_packet, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    packet_format = configuration.get("packet_format", "search/1")
+    if packet_format not in ("search/1", "serp/1"):
+        raise ValueError("Unsupported frozen judge packet format")
+    configured_packet = legacy_hash if packet_format == "serp/1" else expected_packet
+    if evidence.get("packet_sha256") != configured_packet and not (not strict_receipts and evidence.get("packet_sha256") == legacy_hash):
         raise ValueError("Model packet hash differs from frozen inputs")
     if configuration.get("base_url"):
         validate_judge_url(configuration["base_url"])
@@ -252,6 +393,7 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
                 "content": json.dumps(judge_input(packet), ensure_ascii=False, sort_keys=True),
             },
         ]
+        expected = repaired_messages(packet, call, expected)
         if (
             request.get("messages") != expected
             or request.get("model") != judge["name"]
@@ -364,15 +506,20 @@ def judge_main(argv=None):
     source_requirements = (
         json.loads(args.source_requirements.read_text()) if args.source_requirements else {}
     )
-    packet, rankings = candidate_packet(profile, rows, source_requirements)
-    if source_requirements is not None:
-        packet["source_requirements"] = source_requirements
     predecessor = json.loads(args.reuse_evidence.read_bytes()) if args.reuse_evidence else None
+    packet_format, source_policy = "search/1", "explicit-source/2"
     if predecessor:
         verify_provenance(profile, rows, predecessor, authority=report_authority(args.report))
+        packet_format = inherited_packet_format(profile, rows, predecessor)
+        source_policy = predecessor.get("source_policy", "legacy-domain-intersection/1")
+    packet, rankings = candidate_packet(profile, rows, source_requirements,
+        source_policy=source_policy, packet_format=packet_format)
+    if source_requirements is not None:
+        packet["source_requirements"] = source_requirements
     args.output.mkdir(parents=True, exist_ok=True)
     contract = {
         "packet_sha256": packet["packet_sha256"],
+        "packet_format": packet_format,
         "model": args.model,
         "base_url": args.base_url,
         "prompt": JUDGE_PROMPT,
@@ -421,7 +568,7 @@ def judge_main(argv=None):
         if args.disable_thinking:
             request["extra_params"] = {"enable_thinking": False}
         previous = inherited_calls.get(p["case_id"])
-        if previous and previous["request"] == request:
+        if previous and reusable_judge_call(p, previous, request):
             if path.exists() and json.loads(path.read_text()) != previous:
                 raise ValueError("Saved inherited judge call changed")
             path.write_text(json.dumps(previous, ensure_ascii=False, indent=2))

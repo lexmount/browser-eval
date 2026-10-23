@@ -37,7 +37,7 @@ flowchart LR
 
 | 轨道 | 回答什么问题 | 从这里开始 |
 | --- | --- | --- |
-| Web Search | 搜索接口返回哪些链接和文本，耗时与费用如何？ | [合成示例](../examples/web_search/README.md) · [专项指南](../harness/web_search/README.md) |
+| Web Search | 搜索结果是否相关、排序是否合理，耗时与费用如何？ | [合成示例](../examples/web_search/README.md) · [专项指南](../harness/web_search/README.md) |
 | Web Fetch | 能否返回任务要求的正文、记录、资源或文件？需要多久？ | [本地示例](../examples/web_fetch/README.md) · [完整说明](../harness/web_fetch/README.md) |
 | Browser Trajectory Replay（轨迹重放） | 不同浏览器能否完成同一组已记录的操作？消耗多少资源？ | [项目任务集](../examples/trajectory_replay/README.md) · [WebArena 人工轨迹](../examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | 只更换浏览器时，Agent 能否完成任务？ | [CowAgent + WebArena 说明](../examples/browser_use/README.md) |

@@ -3,6 +3,7 @@ import hashlib
 import pytest
 
 from harness.web_search.relevance import verify_provenance
+from lexbench_websearch.relevance import SOURCE_RULE_REGRESSIONS
 from lexbench_websearch.relevance import score
 
 
@@ -74,6 +75,40 @@ def test_candidate_changes_reject_old_annotations():
         import_annotations(p, rows, {"packet_sha256": packet["packet_sha256"]})
 
 
+def test_historical_source_packet_requires_its_exact_registered_evidence(tmp_path):
+    import copy
+    import hashlib
+    import json
+    from harness.web_search import relevance
+
+    profile, rows = all_case_fixture()
+    packet, rankings = relevance.candidate_packet(profile, rows, {}, packet_format="serp/1")
+    calls, labels = [], {}
+    for item in packet["blind_candidate_packets"]:
+        judgments = [{"candidate_id": c["candidate_id"], "grade": 3,
+                      "reason": "Direct result", "evidence": {"field": "snippet", "preview_index": 0}}
+                     for c in item["candidates"]]
+        calls.append({"case_id": item["case_id"],
+                      "request": {"model": "test-model", "temperature": 0,
+                                  "messages": [{"role": "system", "content": relevance.JUDGE_PROMPT},
+                                               {"role": "user", "content": json.dumps(relevance.judge_input(item), ensure_ascii=False, sort_keys=True)}]},
+                      "response": {"model": "test-model", "choices": [{"message": {"content": json.dumps({"judgments": judgments})}}]}})
+        labels[item["case_id"]] = {j["candidate_id"]: j["grade"] for j in judgments}
+    evidence = {**packet, "provider_rankings": rankings, "labels": labels,
+                "judge": {"kind": "model", "name": "test-model", "prompt": relevance.JUDGE_PROMPT, "calls": calls}}
+    registry = tmp_path / "legacy.json"
+    registry.write_text('{"model": []}')
+    with pytest.raises(ValueError, match="hash-pinned"):
+        relevance.verify_provenance(profile, rows, evidence, authority=json.loads(registry.read_bytes()))
+    identity = hashlib.sha256(json.dumps(evidence, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    registry.write_text(json.dumps({"model": [identity]}))
+    relevance.verify_provenance(profile, rows, evidence, authority=json.loads(registry.read_bytes()))
+    changed = copy.deepcopy(evidence)
+    changed["judge"]["calls"][0]["response"]["model"] = "different-model"
+    with pytest.raises(ValueError, match="hash-pinned"):
+        relevance.verify_provenance(profile, rows, changed, authority=json.loads(registry.read_bytes()))
+
+
 def test_annotation_export_escapes_source_markup_and_never_prelabels(tmp_path):
     import json
     from bs4 import BeautifulSoup
@@ -143,6 +178,291 @@ def test_model_evidence_reference_displays_exact_original_not_generated_quote():
     judgment["evidence"]["preview_index"] = 1
     with pytest.raises(ValueError, match="does not identify"):
         parse_judgments(packet, response(judgment))
+    judgment["evidence"] = {"field": "title", "preview_index": 0}
+    assert parse_judgments(packet, response(judgment))[0]["evidence"] == "Title"
+    judgment["evidence"].pop("preview_index")
+    candidate["previews"].append({"title": "Another title", "snippet": "Another preview"})
+    with pytest.raises(ValueError, match="does not identify"):
+        parse_judgments(packet, response(judgment))
+
+
+def test_only_explicit_site_cases_pass_domain_constraints_to_judge():
+    from harness.web_search.relevance import candidate_packet
+    profile, rows = all_case_fixture()
+    profile["cases"][0]["domains"] = ["reference.example"]
+    packet, _ = candidate_packet(profile, rows, packet_format="serp/1")
+    assert packet["blind_candidate_packets"][0]["required_domains"] == []
+    profile["cases"][0]["family"] = "site"
+    packet, _ = candidate_packet(profile, rows, packet_format="serp/1")
+    assert packet["blind_candidate_packets"][0]["required_domains"] == ["reference.example"]
+
+
+def test_explicit_source_rules_accept_official_alternatives_and_hide_urls():
+    import json
+    from harness.web_search.relevance import candidate_packet, judge_input, parse_judgments
+    profile, rows = all_case_fixture()
+    profile["cases"][0]["domains"] = ["diagnostic.example"]
+    rows[0]["results"][0]["url"] = "https://github.com/official/guide"
+    rules = {"question": {"domains": ["official.example"], "url_prefixes": ["https://github.com/official/"]}}
+    packet, _ = candidate_packet(profile, rows, rules)
+    p = packet["blind_candidate_packets"][0]
+    assert {c["url"]: c["source_eligible"] for c in p["candidates"]} == {
+        "https://github.com/official/guide": True, "https://example.org/guide": False}
+    supplied = judge_input(p)
+    assert all("url" not in c and "source_eligible" in c for c in supplied["candidates"])
+    response = {"choices": [{"message": {"content": json.dumps({"judgments": [
+        {"candidate_id": c["candidate_id"], "grade": 3, "reason": "Useful", "evidence": {"field": "title", "preview_index": 0}}
+        for c in p["candidates"]]})}}]}
+    judgments = parse_judgments(p, response)
+    assert [x["grade"] for x in judgments] == [3 if c["source_eligible"] else 0 for c in p["candidates"]]
+    assert all(x["model_grade"] == 3 for x in judgments)
+    profile["cases"][0]["family"] = "site"
+    strict, _ = candidate_packet(profile, rows, rules)
+    assert all(not c["source_eligible"] for c in strict["blind_candidate_packets"][0]["candidates"])
+    profile["cases"][0].update(family="vertical", source="native")
+    native, _ = candidate_packet(profile, rows, {}, packet_format="serp/1")
+    assert all(not c["source_eligible"] for c in native["blind_candidate_packets"][0]["candidates"])
+    profile["cases"][0].pop("source")
+    profile["cases"][0]["family"] = "web"
+    ordinary, _ = candidate_packet(profile, rows, {})
+    assert all(c["source_eligible"] for c in ordinary["blind_candidate_packets"][0]["candidates"])
+
+
+def test_source_rule_uses_url_evidence_even_when_unused_preview_is_empty():
+    import json
+    from harness.web_search.relevance import parse_judgments
+    candidate = {"candidate_id": "x", "url": "https://unofficial.example/", "source_eligible": False,
+                 "previews": [{"title": "A title", "snippet": ""}]}
+    packet = {"candidates": [candidate]}
+    response = {"choices": [{"message": {"content": json.dumps({"judgments": [
+        {"candidate_id": "x", "grade": 2, "reason": "Partial", "evidence": {"field": "title", "preview_index": 0}}]})}}]}
+    item = parse_judgments(packet, response)[0]
+    assert item["grade"] == 0 and item["model_grade"] == 2
+    assert item["evidence"] == candidate["url"]
+    candidate["source_eligible"] = True
+    response["choices"][0]["message"]["content"] = response["choices"][0]["message"]["content"].replace('"field": "title"', '"field": "snippet"')
+    with pytest.raises(ValueError, match="exact quote"):
+        parse_judgments(packet, response)
+
+
+def test_changed_frozen_rubric_requires_exact_zero_call_revision():
+    import copy
+    import json
+    from harness.web_search.relevance import verify_protocol
+    sha = lambda text: hashlib.sha256(text.encode()).hexdigest()
+    profile = {"protocol": {"model_relevance": {"name": "fixed-model", "temperature": 0,
+               "max_tokens": 8192, "enable_thinking": False, "prompt_sha256": sha("old rubric")}}}
+    evidence = {"judge": {"kind": "model", "name": "fixed-model", "prompt": "corrected rubric",
+                 "configuration": {"temperature": 0, "max_tokens": 8192, "extra_params": {"enable_thinking": False}}},
+                "plan": {"case_ids": ["all-cases"]}, "packet_sha256": "bound-packet",
+                "source_requirements": {}, "source_policy": "explicit-source/2"}
+    with pytest.raises(ValueError, match="requires a zero-call"):
+        verify_protocol(profile, evidence)
+    revision = {"provider_calls": 0, "root_cause": "Explicit source requirement was ignored",
+                "regression_ids": ["source-positive", "source-negative"],
+                "before_prompt_sha256": sha("old rubric"), "prompt_sha256": sha("corrected rubric"),
+                "packet_sha256": "bound-packet", "model_case_ids": ["all-cases"],
+                "source_policy": "explicit-source/2", "source_requirements_sha256": sha(json.dumps({}, ensure_ascii=False, indent=2))}
+    verify_protocol(profile, evidence, revision)
+    for key, value in (("provider_calls", 1), ("packet_sha256", "other-packet"), ("model_case_ids", [])):
+        bad = copy.deepcopy(revision)
+        bad[key] = value
+        with pytest.raises(ValueError):
+            verify_protocol(profile, evidence, bad)
+
+
+def source_correction_fixture(packet_format="search/1"):
+    import copy
+    import json
+    from harness.web_search import relevance
+    from tests.web_search.model_fixture import strict_model_evidence
+    profile = {"protocol": {"top_k": 5, "model_relevance": {
+        "name": "test-model", "temperature": 0, "max_tokens": 32,
+        "enable_thinking": None, "prompt_sha256": hashlib.sha256(relevance.JUDGE_PROMPT.encode()).hexdigest()}},
+        "methods": [{"id": "provider"}], "cases": [
+            {"id": "official", "query": "Find official documentation", "family": "web"},
+            {"id": "unchanged", "query": "Find the manual", "family": "web"},
+            {"id": "empty", "query": "Find missing content", "family": "web"}]}
+    rows = [{"case_id": c["id"], "method": "provider", "results": [] if c["id"] == "empty" else [
+        {"url": "https://community.test/guide", "snippet": "Complete installation guide"}]} for c in profile["cases"]]
+
+    def make(requirements):
+        packet, rankings = relevance.candidate_packet(profile, rows, requirements, packet_format=packet_format)
+        calls, labels = [], {}
+        for p in packet["blind_candidate_packets"]:
+            judgments = [{"candidate_id": c["candidate_id"], "grade": 3 if c["source_eligible"] else 0,
+                          "reason": "Useful preview if source qualifies", "evidence": {"field": "snippet", "preview_index": 0}}
+                         for c in p["candidates"]]
+            calls.append({"case_id": p["case_id"], "response": {"model": "test-model", "choices": [
+                {"message": {"content": json.dumps({"judgments": judgments})}}]}})
+            labels[p["case_id"]] = {j["candidate_id"]: j["grade"] for j in judgments}
+        evidence = strict_model_evidence({**packet, "source_requirements": requirements, "provider_rankings": rankings,
+            "labels": labels, "judge": {"kind": "model", "name": "test-model", "prompt": relevance.JUDGE_PROMPT, "calls": calls}})
+        evidence["judge"]["configuration"]["packet_format"] = packet_format
+        return evidence
+
+    before = make({})
+    after = make({"official": {"domains": ["official.test"]},
+                  "unchanged": {"domains": ["community.test"]}})
+    identity = hashlib.sha256(json.dumps(before, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    after["judge"]["configuration"].update(receipt_schema=3, predecessor_sha256=identity)
+    after["judge"].update(predecessor=before, inherited_case_ids=["unchanged", "empty"])
+    for i in (1, 2):
+        after["judge"]["calls"][i] = copy.deepcopy(before["judge"]["calls"][i])
+    correction = {"schema": "web-search-source-rule-correction/1", "root_cause": "Explicit source constraint omitted",
+                  "provider_calls": 0, "regression_ids": list(SOURCE_RULE_REGRESSIONS),
+                  "before_relevance_sha256": identity, "changed_case_ids": ["official"], "new_judge_case_ids": ["official"]}
+    return profile, rows, after, {"source_rule_correction": correction}
+
+
+def test_source_correction_reuses_unchanged_judge_inputs_and_scores_source_changes():
+    from harness.web_search import relevance
+    profile, rows, evidence, revision = source_correction_fixture()
+    relevance.verify_provenance(profile, rows, evidence)
+    relevance.verify_protocol(profile, evidence, revision)
+    scored = relevance.score(profile, rows, evidence["plan"], evidence["labels"])
+    assert [s["success"] for s in scored] == [0, 1, 0]
+    # Registering a source requirement with the same eligibility flag did not
+    # consume another judge call, and an empty pool retained its original call.
+    assert evidence["judge"]["calls"][1:] == evidence["judge"]["predecessor"]["judge"]["calls"][1:]
+
+
+@pytest.mark.parametrize("defect", ["schema", "cause", "calls", "regressions", "predecessor", "changed", "new", "unnecessary-call", "old-response"])
+def test_source_correction_rejects_unbound_or_unnecessary_judge_work(defect):
+    from harness.web_search import relevance
+    profile, _, evidence, revision = source_correction_fixture()
+    correction = revision["source_rule_correction"]
+    if defect == "schema":
+        correction["schema"] = "unknown"
+    elif defect == "cause":
+        correction["root_cause"] = ""
+    elif defect == "calls":
+        correction["provider_calls"] = 1
+    elif defect == "regressions":
+        correction["regression_ids"] = ["source-positive", "source-negative"]
+    elif defect == "predecessor":
+        correction["before_relevance_sha256"] = "0" * 64
+    elif defect == "changed":
+        correction["changed_case_ids"].append("unchanged")
+    elif defect == "new":
+        correction["new_judge_case_ids"] = []
+    elif defect == "unnecessary-call":
+        evidence["judge"]["inherited_case_ids"].remove("unchanged")
+        correction["new_judge_case_ids"].append("unchanged")
+    else:
+        import json
+        evidence["judge"]["predecessor"]["judge"]["calls"][0]["response"]["model"] = "other"
+        identity = hashlib.sha256(json.dumps(evidence["judge"]["predecessor"], ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+        evidence["judge"]["configuration"]["predecessor_sha256"] = identity
+        correction["before_relevance_sha256"] = identity
+    with pytest.raises(ValueError):
+        relevance.verify_protocol(profile, evidence, revision)
+
+
+def test_source_rule_revision_executes_negative_controls_through_production_pool(monkeypatch):
+    from harness.web_search import relevance
+    original = relevance.candidate_packet
+
+    def incorrectly_accept_all(*args, **kwargs):
+        packet, rankings = original(*args, **kwargs)
+        for p in packet["blind_candidate_packets"]:
+            for candidate in p["candidates"]:
+                candidate["source_eligible"] = True
+        return packet, rankings
+
+    from lexbench_websearch import relevance as scoring_relevance
+    monkeypatch.setattr(scoring_relevance, "candidate_packet", incorrectly_accept_all)
+    with pytest.raises(ValueError, match="regression failed"):
+        scoring_relevance.validate_source_rule_regressions(list(SOURCE_RULE_REGRESSIONS))
+
+
+def repaired_inheritance_fixture():
+    import base64
+    import copy
+    import json
+    from harness.web_search import relevance
+    profile, rows, evidence, revision = source_correction_fixture()
+    predecessor = evidence["judge"]["predecessor"]
+    packet = predecessor["blind_candidate_packets"][1]
+    call = predecessor["judge"]["calls"][1]
+    base_request = copy.deepcopy(call["request"])
+    prior = copy.deepcopy(call)
+    payload = json.loads(prior["response"]["choices"][0]["message"]["content"])
+    payload["judgments"][0]["grade"] = 4
+    prior["response"]["choices"][0]["message"]["content"] = json.dumps(payload)
+    raw = json.dumps(prior["response"]).encode()
+    prior["attempts"][0].update(response_bytes_base64=base64.b64encode(raw).decode(), response_sha256=hashlib.sha256(raw).hexdigest())
+    call["format_repair"] = {"prior_call": prior}
+    call["request"]["messages"] = relevance.reference_repair_messages(packet, base_request["messages"])
+    call["attempts"][0]["request_sha256"] = hashlib.sha256(json.dumps(call["request"], sort_keys=True).encode()).hexdigest()
+    evidence["judge"]["calls"][1] = copy.deepcopy(call)
+    identity = hashlib.sha256(json.dumps(predecessor, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    evidence["judge"]["configuration"]["predecessor_sha256"] = identity
+    revision["source_rule_correction"]["before_relevance_sha256"] = identity
+    return profile, rows, evidence, revision, packet, call, base_request
+
+
+def test_valid_format_repair_is_inherited_without_another_judge_call():
+    from harness.web_search import relevance
+    profile, rows, evidence, revision, packet, call, request = repaired_inheritance_fixture()
+    relevance.verify_provenance(profile, rows, evidence)
+    relevance.verify_protocol(profile, evidence, revision)
+    assert call["request"] != request
+    assert relevance.reusable_judge_call(packet, call, request)
+
+
+@pytest.mark.parametrize("change", ["prompt", "input", "model", "max_tokens", "extra_params", "repair", "receipt"])
+def test_format_repair_never_reuses_changed_inputs_or_invalid_proof(change):
+    import copy
+    from harness.web_search import relevance
+    _, _, evidence, _, packet, call, request = repaired_inheritance_fixture()
+    request = copy.deepcopy(request)
+    if change in ("prompt", "input"):
+        request["messages"][0 if change == "prompt" else 1]["content"] += " changed"
+    elif change in ("model", "max_tokens", "extra_params"):
+        request[change] = "changed"
+    elif change == "repair":
+        call["request"]["messages"][0]["content"] += " wrong suffix"
+        with pytest.raises(ValueError, match="Format repair changed"):
+            relevance.reusable_judge_call(packet, call, request)
+        return
+    else:
+        evidence["judge"]["predecessor"]["judge"]["calls"][1]["attempts"][0]["request_sha256"] = "0" * 64
+        with pytest.raises(ValueError):
+            relevance.validate_model_evidence(evidence)
+        return
+    assert not relevance.reusable_judge_call(packet, call, request)
+
+
+def test_inherited_native_packet_retains_platform_gate_when_source_rules_change():
+    from harness.web_search import relevance
+    profile = {"protocol": {"top_k": 5}, "methods": [{"id": "provider"}], "cases": [
+        {"id": "native", "family": "web", "query": "Find papers", "source": "native", "domains": ["papers.test"]},
+        {"id": "official", "family": "web", "query": "Find official docs"}]}
+    rows = [{"case_id": c["id"], "method": "provider", "results": [{"url": "https://community.test/guide", "snippet": "Useful content"}]} for c in profile["cases"]]
+    before, _ = relevance.candidate_packet(profile, rows, {}, packet_format="serp/1")
+    assert relevance.inherited_packet_format(profile, rows, before) == "serp/1"
+    after, _ = relevance.candidate_packet(profile, rows, {"official": {"domains": ["official.test"]}},
+        packet_format=relevance.inherited_packet_format(profile, rows, before), source_policy=before["source_policy"])
+    old = {p["case_id"]: p["candidates"][0]["source_eligible"] for p in before["blind_candidate_packets"]}
+    new = {p["case_id"]: p["candidates"][0]["source_eligible"] for p in after["blind_candidate_packets"]}
+    assert old == {"native": False, "official": True}
+    assert new == {"native": False, "official": False}
+    before["packet_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="frozen search outputs"):
+        relevance.inherited_packet_format(profile, rows, before)
+
+
+def test_strict_serp_inheritance_requires_explicit_packet_format_binding():
+    from harness.web_search import relevance
+    profile, rows, evidence, revision = source_correction_fixture(packet_format="serp/1")
+    relevance.verify_provenance(profile, rows, evidence)
+    relevance.verify_protocol(profile, evidence, revision)
+    del evidence["judge"]["configuration"]["packet_format"]
+    with pytest.raises(ValueError, match="packet hash"):
+        relevance.validate_model_evidence(evidence)
+
+
 
 
 def test_rank_grades_query_score_and_dataset_average_are_one_chain():

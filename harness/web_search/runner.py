@@ -13,9 +13,135 @@ from pathlib import Path
 from harness.web_fetch.config import ROOT, load_runtime_env
 from harness.record_io import read_completed_records
 
-from .adapters import adapter_for
-from .core import digest, normalize, request_body, request_cost, validate_profile, write_json
+from .core import digest, normalize_response, request_body, request_cost, validate_profile, verify_bundle, write_json
 from lexbench_websearch.scoring import evaluate
+
+
+def call_budgets(profile):
+    declared = profile["protocol"].get("max_calls_per_method")
+    if declared is None:
+        return {}
+    ids = {m["id"] for m in profile["methods"]}
+    budgets = {mid: declared for mid in ids} if type(declared) is int else declared
+    planned = len(profile["cases"]) * profile["protocol"]["rounds"] * (1 + int(bool(profile["protocol"].get("retry"))))
+    if not isinstance(budgets, dict) or set(budgets) != ids or any(type(v) is not int or v < planned for v in budgets.values()):
+        raise ValueError("Declared call budget cannot cover the complete matrix and retries")
+    return budgets
+
+
+def physical_call_counts(profile, output):
+    """Count exact declared call identities across current and archived evidence."""
+    identities = {}
+    for round_id, case, method in execution_schedule(profile):
+        identity = f"{case['id']}-{method['id']}-r{round_id}"
+        if identity in identities:
+            raise ValueError("Ambiguous physical call identity: " + identity)
+        identities[identity] = method["id"]
+    counts = {m["id"]: 0 for m in profile["methods"]}
+    for path in output.rglob("calls/*.json"):
+        identity, separator, attempt = path.stem.rpartition("-attempt-")
+        if not separator or not attempt.isdigit() or int(attempt) < 1 or identity not in identities:
+            raise ValueError("Unknown physical call identity: " + path.name)
+        counts[identities[identity]] += 1
+    return counts
+
+
+def freeze_implementation(output):
+    sources = collection_implementation()
+    for relative in sources:
+        target = output / "implementation" / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(implementation_source(relative).read_bytes())
+    return sources
+
+
+def prepare_execution_revision(profile_path, output, revision_path, *, cohort="primary"):
+    """Replace a declared method scope while retaining every unaffected paid call."""
+    new_bytes = load_profile_bytes(profile_path, cohort=cohort)
+    new = json.loads(new_bytes)
+    old_bytes = (output / "profile.json").read_bytes()
+    old = json.loads(old_bytes)
+    revision_bytes = revision_path.read_bytes()
+    revision = json.loads(revision_bytes)
+    methods = set(revision.get("superseded_methods", []))
+    if (output / "receipt.json").exists() or revision.get("schema") != "web-search-execution-revision/1":
+        raise ValueError("Execution revision requires an interrupted collection")
+    if not revision.get("root_cause") or not methods or not revision.get("evidence"):
+        raise ValueError("Execution revision requires a cause, method scope and evidence")
+    if revision.get("previous_profile_sha256") != digest(old_bytes) or revision.get("profile_sha256") != digest(new_bytes):
+        raise ValueError("Execution revision profile binding mismatch")
+    verify_bundle(revision_path.parent, revision["evidence"])
+    old_methods = {m["id"]: m for m in old["methods"]}
+    new_methods = {m["id"]: m for m in new["methods"]}
+    if list(old_methods) != list(new_methods) or not methods.issubset(old_methods):
+        raise ValueError("Execution revision cannot change the participant set")
+    if {mid for mid in old_methods if old_methods[mid] != new_methods[mid]} != methods:
+        raise ValueError("Execution revision must supersede every changed method")
+    for mid in methods:
+        if {k: v for k, v in old_methods[mid].items() if k not in {"endpoint", "output_options"}} != {k: v for k, v in new_methods[mid].items() if k not in {"endpoint", "output_options"}}:
+            raise ValueError("Execution revision can change only native request configuration")
+    old_selection, new_selection = old.get("current_selection"), new.get("current_selection")
+    if bool(old_selection) != bool(new_selection) or old_selection and any(
+        old_selection[k] != new_selection[k] for k in ("methods", "cohort")
+    ):
+        raise ValueError("Execution revision cannot change selection scope")
+    budget_keys = {"max_calls_per_method", "budget"}
+    if ({k: v for k, v in old.items() if k not in {"methods", "protocol", "current_selection"}} != {k: v for k, v in new.items() if k not in {"methods", "protocol", "current_selection"}}
+            or {k: v for k, v in old["protocol"].items() if k not in budget_keys} != {k: v for k, v in new["protocol"].items() if k not in budget_keys}):
+        raise ValueError("Execution revision cannot change tasks or measurement controls")
+    contract_bytes = (output / "run-contract.json").read_bytes()
+    contract = json.loads(contract_bytes)
+    if contract["profile_sha256"] != digest(old_bytes):
+        raise ValueError("Original execution contract changed")
+    verify_bundle(output / "implementation", [{"path": p, "sha256": sha} for p, sha in contract["implementation"].items()])
+    raw = (output / "results.jsonl").read_bytes()
+    rows = read_completed_records(output / "results.jsonl")
+    if len({r["id"] for r in rows}) != len(rows):
+        raise ValueError("Duplicate interrupted result identity")
+    cases = {c["id"]: c for c in old["cases"]}
+    for row in rows:
+        method = old_methods[row["method"]]
+        if row["request"] != request_body(method["adapter"], cases[row["case_id"]], old["protocol"], method.get("output_options")):
+            raise ValueError("Interrupted request differs from the frozen contract")
+        verify_bundle(output, [a["evidence"] for a in row.get("attempts", [row])])
+    retained = [r for r in rows if r["method"] not in methods]
+    spent_calls = physical_call_counts(new, output)
+    for mid, budget in call_budgets(new).items():
+        spent = spent_calls[mid]
+        pending = len(new["cases"]) * new["protocol"]["rounds"] - sum(r["method"] == mid for r in retained)
+        if spent + pending * (1 + int(bool(new["protocol"].get("retry")))) > budget:
+            raise ValueError("Execution revision exceeds the physical call budget for " + mid)
+    archive = output / f"resume-{len(list(output.glob('resume-*'))) + 1}"
+    archive.mkdir()
+    (archive / "previous-profile.json").write_bytes(old_bytes)
+    (archive / "previous-run-contract.json").write_bytes(contract_bytes)
+    (archive / "previous-results.jsonl").write_bytes(raw)
+    (archive / "execution-revision.json").write_bytes(revision_bytes)
+    kept = {a["evidence"]["path"] for r in retained for a in r.get("attempts", [r])}
+    locations = {}
+    for call in (output / "calls").glob("*.json"):
+        original = call.relative_to(output).as_posix()
+        if original not in kept:
+            target = archive / "calls" / call.name
+            target.parent.mkdir(exist_ok=True)
+            shutil.move(call, target)
+            locations[original] = target.relative_to(output).as_posix()
+        else:
+            locations[original] = original
+    for item in revision["evidence"]:
+        target = archive / "revision-evidence" / item["path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((revision_path.parent / item["path"]).read_bytes())
+    shutil.move(output / "implementation", archive / "implementation")
+    sources = freeze_implementation(output)
+    write_json(archive / "contract.json", {"schema": "web-search-execution-revision-receipt/1", "previous_profile_sha256": digest(old_bytes), "profile_sha256": digest(new_bytes), "previous_results_sha256": digest(raw), "retained_result_ids": [r["id"] for r in retained], "superseded_result_ids": [r["id"] for r in rows if r["method"] in methods], "artifact_locations": locations, "resumed_at": datetime.now(UTC).isoformat()})
+    (output / "profile.json").write_bytes(new_bytes)
+    (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained))
+    write_json(output / "run-contract.json", {**contract, "profile_sha256": digest(new_bytes), "implementation": sources, "resume_unit": "logical", "execution_revision": {"path": (archive / "execution-revision.json").relative_to(output).as_posix(), "sha256": digest(revision_bytes)}})
+    return retained
+
+
+from .adapters import adapter_for
 from .profiles import load_profile_bytes
 
 
@@ -137,8 +263,8 @@ def collection_implementation():
         "harness/web_search/adapters.py", "harness/web_search/profiles.py",
         "harness/web_fetch/config.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
     )
-    sources = {name: ROOT / name for name in names}
     from lexbench_websearch.inputs import implementation_sources
+    sources = {name: ROOT / name for name in names}
     sources.update({"dependencies/lexbench_websearch/" + name: path for name, path in implementation_sources().items()})
     return {name: digest(source.read_bytes()) for name, source in sources.items()}
 
@@ -158,7 +284,7 @@ def validate_resume_implementation(output, contract):
         raise ValueError("Resume requires the same live collection implementation; start a new cohort")
 
 
-def prepare_resume(profile_path, output, *, cohort="primary", validate_only=False):
+def prepare_resume(profile_path, output, *, retain_results=False, cohort="primary", validate_only=False):
     """Resume only an unchanged, interrupted matrix; preserve every displaced byte."""
     profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
     profile = json.loads(profile_bytes)
@@ -191,7 +317,7 @@ def prepare_resume(profile_path, output, *, cohort="primary", validate_only=Fals
         and {(r["method"], r["round"]) for r in group} == expected
         and not any(r["http_status"] in {401, 402} for r in group)
     }
-    retained = [row for row in rows if row["case_id"] in completed]
+    retained = [row for row in rows if (row["http_status"] not in {401, 402} if retain_results else row["case_id"] in completed)]
     if validate_only:
         return retained, None
     number = len(list(output.glob("resume-*"))) + 1
@@ -215,20 +341,40 @@ def prepare_resume(profile_path, output, *, cohort="primary", validate_only=Fals
         "profile_sha256": digest(profile_bytes),
         "previous_results_sha256": digest(raw),
         "retained_case_ids": sorted(completed),
+        "retained_result_ids": [r["id"] for r in retained],
         "recollect_case_ids": sorted(set(by_case) - completed),
         "reason": "Interrupted or account-failed cases recollected for every method; complete unaffected cases retained",
         "implementation": source_hashes,
         "resumed_at": datetime.now(UTC).isoformat(),
     })
-    (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained), encoding="utf-8")
+    (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained))
     return retained, number
 
 
-def run(profile_path, output, diagnostic=False, resume=False, *, certified=False, cohort="primary"):
+def execution_schedule(profile):
+    """Finish each provider's scope; reproduce explicit historical rotation only."""
+    methods, cases, protocol = profile["methods"], profile["cases"], profile["protocol"]
+    if protocol.get("order", "complete provider batches") == "complete provider batches":
+        for method in methods:
+            for round_id in range(protocol["rounds"]):
+                for case in cases:
+                    yield round_id, case, method
+    else:
+        for round_id in range(protocol["rounds"]):
+            for case_index, case in enumerate(cases):
+                offset = (case_index + round_id) % len(methods)
+                for method in methods[offset:] + methods[:offset]:
+                    yield round_id, case, method
+
+
+def run(profile_path, output, diagnostic=False, resume=False, execution_revision=None, *, certified=False, cohort="primary"):
     diagnostic = diagnostic or not certified
     profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
     profile = json.loads(profile_bytes)
     validate_profile(profile)
+    budgets = call_budgets(profile)
+    if execution_revision and not resume:
+        raise ValueError("Execution revision requires --resume")
     load_runtime_env()
     missing = [m["key_env"] for m in profile["methods"] if not os.getenv(m["key_env"])]
     if missing:
@@ -240,8 +386,9 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
     if resume:
         if not output.is_dir():
             raise ValueError("Resume directory does not exist")
-        prepare_resume(profile_path, output, cohort=cohort, validate_only=True)
-        if (output / "profile.json").read_bytes() != profile_bytes:
+        if not execution_revision:
+            prepare_resume(profile_path, output, cohort=cohort, validate_only=True)
+        if not execution_revision and (output / "profile.json").read_bytes() != profile_bytes:
             raise ValueError("Resume requires the exact frozen profile")
         original_contract = json.loads((output / "run-contract.json").read_text())
         if original_contract["diagnostic"] != diagnostic:
@@ -255,16 +402,15 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
         current = capture_references(profile, output, phase)
         if reference_changes(profile, before, current):
             raise ValueError("Reference recheck failed; resume made no provider calls")
-        rows, _ = prepare_resume(profile_path, output, cohort=cohort)
+        if execution_revision:
+            rows = prepare_execution_revision(profile_path, output, execution_revision, cohort=cohort)
+        else:
+            rows, _ = prepare_resume(profile_path, output, retain_results=original_contract.get("resume_unit") == "logical", cohort=cohort)
         unavailable = []
     else:
         output.mkdir(parents=True, exist_ok=False)
         (output / "profile.json").write_bytes(profile_bytes)
-        sources = collection_implementation()
-        for relative in sources:
-            target = output / "implementation" / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(implementation_source(relative).read_bytes())
+        sources = freeze_implementation(output)
         write_json(
             output / "run-contract.json",
             dict(
@@ -272,9 +418,16 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
                 implementation=sources,
                 started_at=datetime.now(UTC).isoformat(),
                 diagnostic=diagnostic,
+                resume_unit=(
+                    "logical" if profile["protocol"].get("order", "complete provider batches")
+                    == "complete provider batches" else "case"
+                ),
                 timer=(
                     "Client process wall time including curl startup, network, "
-                    "complete body; one retry after transport, HTTP, or invalid-response failure"
+                    "complete body; " + (
+                        "one retry after transport, HTTP, or invalid-response failure"
+                        if profile["protocol"].get("retry") else "no retries"
+                    )
                 ),
             ),
         )
@@ -284,107 +437,108 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
             raise ValueError("Reference precheck failed; no provider calls made")
     protocol = profile["protocol"]
     existing_ids = {r["id"] for r in rows}
-    methods = profile["methods"]
-    for round_id in range(protocol["rounds"]):
-        for case_index, case in enumerate(profile["cases"]):
-            offset = (case_index + round_id) % len(methods)
-            for method in methods[offset:] + methods[:offset]:
-                identity = f"{case['id']}-{method['id']}-r{round_id}"
-                if identity in existing_ids:
-                    continue
-                payload = request_body(method["adapter"], case, protocol, method.get("output_options"))
-                key = os.environ[method["key_env"]]
-                header = (
-                    adapter_for(method["adapter"]).authorization_header + ": " + adapter_for(method["adapter"]).authorization_prefix
-                ) + key
-                attempts = []
-                operation_start = time.perf_counter()
-                for attempt_index in range(1 + int(bool(protocol.get("retry")))):
-                    receipt, raw = http_call(
-                        method["endpoint"], payload, header, protocol["client_timeout_s"]
+    spent_calls = physical_call_counts(profile, output)
+    for round_id, case, method in execution_schedule(profile):
+        identity = f"{case['id']}-{method['id']}-r{round_id}"
+        if identity in existing_ids:
+            continue
+        payload = request_body(method["adapter"], case, protocol, method.get("output_options"))
+        key = os.environ[method["key_env"]]
+        header = adapter_for(method["adapter"]).authorization_header + ": " + adapter_for(method["adapter"]).authorization_prefix + key
+        attempts = []
+        operation_start = time.perf_counter()
+        for attempt_index in range(1 + int(bool(protocol.get("retry")))):
+            budget = budgets.get(method["id"])
+            if budget is not None:
+                spent = spent_calls[method["id"]]
+                if spent >= budget:
+                    raise ValueError("Physical call budget exhausted for " + method["id"])
+            receipt, raw = http_call(
+                method["endpoint"], payload, header, protocol["client_timeout_s"]
+            )
+            # Provider error text must never echo a credential into evidence.
+            if key.encode() in raw:
+                raw = raw.replace(key.encode(), b"[REDACTED]")
+            receipt["transport_error"] = receipt["transport_error"].replace(key, "[REDACTED]")
+            relative = f"calls/{identity}-attempt-{attempt_index + 1}.json"
+            (output / "calls").mkdir(exist_ok=True)
+            (output / relative).write_bytes(raw)
+            spent_calls[method["id"]] += 1
+            results = []
+            decoded = {}
+            error = receipt["transport_error"]
+            try:
+                decoded = json.loads(raw)
+                if receipt["http_status"] == 200 and not receipt["transport_exit"]:
+                    results = normalize_response(decoded, method, protocol, payload)
+                else:
+                    error = error or json.dumps(
+                        decoded.get("error", decoded), ensure_ascii=False
                     )
-                    # Provider error text must never echo a credential into evidence.
-                    if key.encode() in raw:
-                        raw = raw.replace(key.encode(), b"[REDACTED]")
-                    receipt["transport_error"] = receipt["transport_error"].replace(key, "[REDACTED]")
-                    relative = f"calls/{identity}-attempt-{attempt_index + 1}.json"
-                    (output / "calls").mkdir(exist_ok=True)
-                    (output / relative).write_bytes(raw)
-                    results = []
-                    decoded = {}
-                    error = receipt["transport_error"]
-                    try:
-                        decoded = json.loads(raw)
-                        if receipt["http_status"] == 200 and not receipt["transport_exit"]:
-                            results = normalize(decoded, method["adapter"])
-                        else:
-                            error = error or json.dumps(
-                                decoded.get("error", decoded), ensure_ascii=False
-                            )
-                    except (ValueError, AttributeError, TypeError) as exc:
-                        error = error or str(exc)
-                    cost = request_cost(method, receipt["http_status"], receipt["transport_exit"], decoded)
-                    attempts.append({
-                        "evidence": {"path": relative, "sha256": digest(raw)},
-                        "http_status": receipt["http_status"],
-                        "transport_exit": receipt["transport_exit"],
-                        "elapsed_ms": receipt["elapsed_ms"],
-                        "cost": cost,
-                    })
-                    if not error and receipt["http_status"] == 200 and not receipt["transport_exit"]:
-                        break
-                total_elapsed_ms = max(
-                    (time.perf_counter() - operation_start) * 1000,
-                    sum(a["elapsed_ms"] for a in attempts),
-                )
-                total_cost = (
-                    sum(a["cost"] for a in attempts)
-                    if all(a["cost"] is not None for a in attempts)
-                    else None
-                )
-                receipt["final_call_elapsed_ms"] = receipt["elapsed_ms"]
-                receipt["elapsed_ms"] = total_elapsed_ms
-                row = dict(
-                    id=identity,
-                    case_id=case["id"],
-                    method=method["id"],
-                    round=round_id,
-                    timestamp=datetime.now(UTC).isoformat(),
-                    request=payload,
-                    **receipt,
-                    error=error,
-                    results=results,
-                    cost=total_cost,
-                    currency=method["currency"],
-                    evidence={"path": relative, "sha256": digest(raw)},
-                    attempts=attempts,
-                    metrics=evaluate(case, results),
-                    server_timing=adapter_for(method["adapter"]).timing(decoded).get("timing"),
-                    usage=adapter_for(method["adapter"]).timing(decoded).get("usage"),
-                    cache=adapter_for(method["adapter"]).timing(decoded).get("cache"),
-                )
-                rows.append(row)
-                with (output / "results.jsonl").open("a", encoding="utf-8") as stream:
-                    stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-                print(
-                    f"{identity}: HTTP {receipt['http_status']}, {len(results)} results, "
-                    f"{receipt['elapsed_ms']:.0f} ms",
-                    flush=True,
-                )
-                if receipt["http_status"] in {401, 402}:
-                    write_json(output / "interruption.json", {
-                        "reason": "provider_account",
-                        "result_id": identity,
-                        "http_status": receipt["http_status"],
-                        "completed_logical_results": len(rows),
-                        "results_sha256": digest((output / "results.jsonl").read_bytes()),
-                        "stopped_at": datetime.now(UTC).isoformat(),
-                    })
-                    raise ValueError(
-                        f"Provider account error HTTP {receipt['http_status']} at {identity}; "
-                        "collection stopped with evidence preserved, not certified"
-                    )
-                time.sleep(protocol["interval_s"])
+            except (ValueError, AttributeError, TypeError) as exc:
+                error = error or str(exc)
+            cost = request_cost(method, receipt["http_status"], receipt["transport_exit"], decoded)
+            attempts.append({
+                "evidence": {"path": relative, "sha256": digest(raw)},
+                "http_status": receipt["http_status"],
+                "transport_exit": receipt["transport_exit"],
+                "elapsed_ms": receipt["elapsed_ms"],
+                "cost": cost,
+            })
+            if not error and receipt["http_status"] == 200 and not receipt["transport_exit"]:
+                break
+        total_elapsed_ms = max(
+            (time.perf_counter() - operation_start) * 1000,
+            sum(a["elapsed_ms"] for a in attempts),
+        )
+        total_cost = (
+            sum(a["cost"] for a in attempts)
+            if all(a["cost"] is not None for a in attempts)
+            else None
+        )
+        receipt["final_call_elapsed_ms"] = receipt["elapsed_ms"]
+        receipt["elapsed_ms"] = total_elapsed_ms
+        row = dict(
+            id=identity,
+            case_id=case["id"],
+            method=method["id"],
+            round=round_id,
+            timestamp=datetime.now(UTC).isoformat(),
+            request=payload,
+            **receipt,
+            error=error,
+            results=results,
+            cost=total_cost,
+            currency=method["currency"],
+            evidence={"path": relative, "sha256": digest(raw)},
+            attempts=attempts,
+            metrics=evaluate(case, results),
+            server_timing=adapter_for(method["adapter"]).timing(decoded).get("timing"),
+            usage=adapter_for(method["adapter"]).timing(decoded).get("usage"),
+            cache=adapter_for(method["adapter"]).timing(decoded).get("cache"),
+        )
+        rows.append(row)
+        with (output / "results.jsonl").open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+        print(
+            f"{identity}: HTTP {receipt['http_status']}, {len(results)} results, "
+            f"{receipt['elapsed_ms']:.0f} ms",
+            flush=True,
+        )
+        if receipt["http_status"] in {401, 402}:
+            write_json(output / "interruption.json", {
+                "reason": "provider_account",
+                "result_id": identity,
+                "http_status": receipt["http_status"],
+                "completed_logical_results": len(rows),
+                "results_sha256": digest((output / "results.jsonl").read_bytes()),
+                "stopped_at": datetime.now(UTC).isoformat(),
+            })
+            raise ValueError(
+                f"Provider account error HTTP {receipt['http_status']} at {identity}; "
+                "collection stopped with evidence preserved, not certified"
+            )
+        time.sleep(protocol["interval_s"])
     after = capture_references(profile, output, "after")
     changed = reference_changes(profile, before, after)
     write_json(
@@ -393,6 +547,7 @@ def run(profile_path, output, diagnostic=False, resume=False, *, certified=False
             complete=True,
             call_count=len(rows),
             physical_call_count=sum(len(r["attempts"]) for r in rows),
+            total_retained_physical_call_count=len(list(output.rglob("*-r*-attempt-*.json"))),
             certified=not diagnostic and not unavailable and not changed,
             unavailable_references=unavailable,
             changed_references=changed,
@@ -434,15 +589,16 @@ def main(argv=None, *, certified=False):
     parser.add_argument(
         "--profile", type=Path, required=True
     )
-    parser.add_argument("--cohort", default="primary", help="Cohort ID in the current selection registry")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--cohort", default="primary", help="Cohort ID in the current selection registry")
     parser.add_argument("--diagnostic", action="store_true")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--execution-revision", type=Path, help="Bound native-interface correction; supersede only declared methods")
     args = parser.parse_args(argv)
     if certified and args.diagnostic:
         parser.error("Certified collection cannot use --diagnostic")
     try:
-        print(run(args.profile, args.output, args.diagnostic, args.resume, certified=certified, cohort=args.cohort))
+        print(run(args.profile, args.output, args.diagnostic, args.resume, args.execution_revision, certified=certified, cohort=args.cohort))
     except (ValueError, FileExistsError) as exc:
         parser.exit(2, str(exc) + "\n")
 

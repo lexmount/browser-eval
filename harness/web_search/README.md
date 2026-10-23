@@ -18,7 +18,19 @@ uv run --frozen python scripts/build_search_report.py \
   --output /absolute/path/report --language zh
 ```
 
-Use a new output directory for every collection. The frozen profile declares every query, method, result count, timeout, retry rule and price before calls. Calls run serially in rotating order. A transport, HTTP or invalid-response failure receives one retry; a valid empty response does not. The final response is the one logical result, while every physical call is retained. A missing credential fails before calls or output creation.
+Use a new output directory for every collection. The frozen profile declares every query, method, result count, timeout, retry rule and price before calls. New cohorts use `protocol.order="complete provider batches"` (the default when omitted): all cases and rounds for one provider finish before the next provider starts. Explicit rotation remains supported only to continue or reproduce frozen historical cohorts. When the profile enables retries, a transport, HTTP or invalid-response failure receives one retry; a valid empty response does not. The final response is the one logical result, while every physical call is retained. A missing credential fails before calls or output creation.
+
+## SERP providers and finite quotas
+
+SERP profiles select providers through the same collector and renderer. Supported adapters include Lexmount, Browserbase Parallel Advanced, Bright Data Google Light JSON and Serper Google. Keep each report's profile, selected participants and publication target alongside its external evidence. These services use different upstream indexes; the comparison measures their delivered rankings.
+
+Configure `LEXMOUNT_SEARCH_API_KEY`, `BROWSERBASE_API_KEY`, `BRIGHTDATA_API_KEY` and `SERPER_API_KEY` in the repository `.env`. Browserbase Search does not require a browser session. Bright Data requires a SERP zone in the profile's `output_options.zone`; its account key alone does not identify the product configuration. Acquire keys from the [Browserbase dashboard](https://www.browserbase.com/overview), [Bright Data console](https://brightdata.com/cp/start), [Serper](https://serper.dev/) and the Lexmount deployment administrator.
+
+The profile requests five results and evaluates the first five native organic entries, preserving their order. Complete native responses remain bound evidence, including any extra results. Lexmount's public configuration selects `output_options.interface=public` and sends only `query` and `limit`; historical profiles retain their original request contract. Source-specific tasks express their domain restrictions through equivalent `site:` operators on the public interfaces. Native titles and snippets stay separate from page bodies and generated answers; a provider's missing snippet remains empty.
+
+Use the certified entry above with an explicit external `--profile /absolute/path/serp-profile.json`. Set rounds and retries to fit the smallest account allowance. `max_calls_per_method` accepts a shared integer or a complete method-to-limit map. It rejects an unaffordable full matrix before network calls and counts retained calls, including resume archives, before further spending. Record earlier configuration probes and the remaining reserve in the profile. Check the remaining balance before another collection.
+
+For a proven native-interface change during an interrupted collection, use `--resume --execution-revision /absolute/revision.json`. The `web-search-execution-revision/1` contract binds the previous and replacement profile hashes, root cause, complete superseded method scope and relative hash-bound evidence files. Only endpoint, native output options and budget metadata may change; tasks and measurement controls stay fixed. The collector preserves every unaffected result, archives displaced calls and their original contract, and recollects the complete changed method. Later resumes retain complete logical calls so another interruption does not spend unaffected providers' quotas again. The receipt distinguishes current physical calls from the total retained historical calls.
 
 Reference responses are captured before and after collection, with immutable hashes. The identity-scoped contract requires complete successful responses containing predeclared publisher or document identifiers. Volatile page chrome may change; missing identities prevent certification. `--diagnostic` preserves the full matrix for investigation and cannot certify a release. Anchor hits test only supplied known-page URLs. Dataset composition and source attribution come from the selected benchmark version.
 
@@ -28,7 +40,7 @@ Reference responses are captured before and after collection, with immutable has
 - Domain fraction tests host boundaries, excluding suffix lookalikes. Empty responses have no domain fraction; list fill and error counts remain visible.
 - Duplicate fraction uses conservative URL normalization. Semantic query parameters are preserved.
 - Factual probes match published supporting URLs and reference-answer cues. A versioned assessment revision interprets explicit accepted ranges and alternatives from the published answer; historical literal metrics remain reproducible from unchanged collection profiles. Preview fields and all delivered text are evaluated separately. Source matching is not whole-web recall; phrase presence is not semantic correctness. A separate diagnostic excludes explicitly named benchmark mirrors without promoting later results.
-- The complete selected scenario set uses one frozen set of pooled relevance labels. Human labels are the default; an explicitly authorized model judge is supported with retained prompts, raw responses and exact evidence references. Public factual queries use deterministic source and answer-text checks.
+- Full scenario relevance uses complete named human annotations, or an explicitly selected frozen model through `scripts/judge_search_relevance.py`. Both produce nDCG@5, Precision@5 and Success@5 through the same scorer. Model inputs omit provider identities and original ranks; retained requests, responses and quoted fields bind every label. Empty and all-zero pools remain in the population. Pass the resulting evidence with `--relevance`; label model judgments clearly.
 - Snippet, summary and content lengths count Unicode characters. Text quantity does not establish correctness or source faithfulness.
 - Client wall time includes request setup, network transfer, response bytes and any declared retry. Mean, median and nearest-rank P95 share each declared cohort's complete query population. Successful nonempty calls are reported separately. Serial latency does not measure throughput or an SLA.
 - Prices remain in their native currencies. Empty DeepSeek successes are free under its published rule. Transport failures have unknown billing. Lexmount cost stays unavailable until pricing is supplied. Estimates are not invoices and exclude downstream models and extra fetches.
@@ -36,6 +48,13 @@ Reference responses are captured before and after collection, with immutable has
 Raw response bodies, declared requests, transport errors, timings, cache metadata and source captures stay outside Git. Public result receipts reference raw responses by hash instead of duplicating their full text; checks reconstruct normalized results and verify both their count and content hash. The build verifies the complete matrix, hashes and derived metrics. Both report languages share the same evidence. The performance page separates client duration, reported server duration, transfer time and overlapping upstream attempts; overlapping durations must not be added. Publication uses this track's own target binding and never borrows another report's site. Independent review is opt-in.
 
 ## Checks and example
+
+Building validates the frozen evidence and scoring bindings. Use `--check` for a
+standalone page check, or run `--release-check` once before publication to validate
+pages, evidence and the focused reader receipt together. Scoring-input reuse skips
+HTML inspection. Packaging and uploading verify the accepted files rather than
+repeating the full report check. Combine `--release-check RECEIPT` with
+`--export-delivery DESTINATION` to validate and export in one pass.
 
 API capability research belongs in the main report’s bound `--content` input. The measured report owns interface tables, request specimens and supporting sources.
 
@@ -50,6 +69,8 @@ The example is synthetic and labels its numbers accordingly. Report checks rejec
 The separate full gate is `scripts/build_search_report.py --output /absolute/report --release-check /absolute/visual-receipt.json`. It binds the report manifest to one reviewed capture of each top-level tab. Link, evidence, filter and pagination structure is checked during generation. Keep this receipt and screenshots outside Git.
 
 Supplemental cohorts use the same collector with another explicitly selected frozen profile. Present completed cohorts in one report with `--source /absolute/primary-run --cohort social=/absolute/social-run`. Repeat `--cohort NAME=RUN` for additional non-overlapping cohorts. The builder verifies each source independently, rejects duplicate cases and incompatible execution protocols, and renders one query inventory and one result inventory with group filters. The overall table describes saved calls across the fixed query mix; per-cohort timing remains visible and does not become a new same-window measurement. Optional external content supplies bilingual `cohort_labels`. Collection profiles and receipts remain immutable. `--site-prefix` is available when a separately requested nested report is needed. Qualified equivalent-page corrections use `--identity-correction /absolute/path/to/qualified-correction.json`: the report retains the collection profile, original evidence and an explicit before/after scoring receipt. This changes neither calls nor latency. A source observation must prove each alias and the correction must name its cause and regression controls.
+Each report has its own external publication authority. It binds the frozen collection profile, report manifest, scoring evidence, archive and exact remote version. Update this binding after a successful upload; preserve the collection profile and use the expected remote version for subsequent updates.
+
 
 Reader-oriented content can select `reading_model` and supply `reading_sections`
 with stable keys, bilingual titles and navigation labels. Sections target those
@@ -124,6 +145,32 @@ its contract, retains each response, resumes completed queries and refuses chang
 inputs. Import its `relevance.json` through the existing report `--relevance` option.
 Model annotations are labeled separately from human annotations. The rubric uses
 0–3 grades, with nDCG@5, Precision@5 (grade ≥2), and Success@5 (at least one grade 3).
+
+Site-family domain lists and explicit native-source routes are mandatory judge constraints. Domain lists on
+ordinary searches remain source diagnostics; explicit constraints in the query
+still apply under the common rubric.
+Bind official-source alternatives with `--source-requirements` when judging a
+report, or embed them in a frozen packet. The program checks URL eligibility;
+the model receives titles, snippets and eligibility flags without source URLs.
+Ineligible candidates score zero while their original model grades remain in
+the evidence. A changed frozen rubric requires an explicit zero-search-call
+`relevance_revision` in report content; build and check verify its input bindings.
+Retrieval reports also use supporting-source hits as the default factual check
+in same-task comparisons. Answer text remains an optional diagnostic.
+
+When correcting source requirements, preserve the original relevance evidence
+and pass it to the judge with `--reuse-evidence /absolute/relevance.json`.
+The runner inherits calls whose judge requests are unchanged and judges only
+changed requests. Report content records `relevance_revision.source_rule_correction`
+with schema `web-search-source-rule-correction/1`, a `root_cause`, `provider_calls: 0`,
+and the paired `regression_ids` listed by `SOURCE_RULE_REGRESSIONS` in the relevance
+module. Set `before_relevance_sha256` to the SHA256 of the predecessor serialized
+with `json.dumps(predecessor, ensure_ascii=False, sort_keys=True).encode()`.
+`changed_case_ids` lists exactly the queries with changed candidate eligibility
+flags; `new_judge_case_ids` lists the current plan minus `inherited_case_ids`.
+Metadata changes that leave judge inputs unchanged reuse their original calls.
+Build and check verify the predecessor, original physical receipts, case lists
+and regression controls before accepting the correction.
 
 
 ## Independent result audit
