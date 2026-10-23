@@ -295,6 +295,8 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "fastcdc" },
     { name = "lexbench-webfetch" },
+    { name = "lexbench-websearch" },
+    { name = "python-dotenv" },
 ]
 
 [package.optional-dependencies]
@@ -303,7 +305,6 @@ browser-use-eval = [
     { name = "json-repair" },
     { name = "pillow" },
     { name = "playwright" },
-    { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "regex" },
     { name = "requests" },
@@ -337,7 +338,6 @@ webmainbench-eval = [
     { name = "jieba" },
     { name = "markdown" },
     { name = "openai" },
-    { name = "python-dotenv" },
     { name = "rapidfuzz" },
 ]
 
@@ -355,6 +355,7 @@ requires-dist = [
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
     { name = "lexbench-webfetch", git = "https://github.com/lexmount/lexbench-webfetch.git?rev=2ea8c52df67c39eee2ea5113a63f5da34f102160" },
+    { name = "lexbench-websearch", git = "https://github.com/lexmount/lexbench-websearch.git?rev=e9cd1d9df34a06a397bed0744793a041de03321b" },
     { name = "markdown", marker = "extra == 'webmainbench-eval'", specifier = ">=3.7,<4" },
     { name = "openai", marker = "extra == 'webmainbench-eval'", specifier = ">=2.8,<4" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
@@ -365,8 +366,7 @@ requires-dist = [
     { name = "pypdf", marker = "extra == 'reference-audit'", specifier = ">=5,<7" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8,<10" },
     { name = "python-docx", marker = "extra == 'oss-eval'", specifier = "==1.2.0" },
-    { name = "python-dotenv", marker = "extra == 'browser-use-eval'", specifier = ">=1,<2" },
-    { name = "python-dotenv", marker = "extra == 'webmainbench-eval'", specifier = "==1.1.1" },
+    { name = "python-dotenv", specifier = "==1.1.1" },
     { name = "python-pptx", marker = "extra == 'oss-eval'", specifier = "==1.0.2" },
     { name = "pyyaml", marker = "extra == 'browser-use-eval'", specifier = ">=6,<7" },
     { name = "rapidfuzz", marker = "extra == 'webmainbench-eval'", specifier = "==3.14.1" },
@@ -1938,6 +1938,11 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "soupsieve" },
 ]
+
+[[package]]
+name = "lexbench-websearch"
+version = "0.1.0"
+source = { git = "https://github.com/lexmount/lexbench-websearch.git?rev=e9cd1d9df34a06a397bed0744793a041de03321b#e9cd1d9df34a06a397bed0744793a041de03321b" }
 
 [[package]]
 name = "lxml"

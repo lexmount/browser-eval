@@ -16,7 +16,7 @@
 
 Browser Eval connects benchmark tasks to browser and service adapters, executes declared comparisons, calls the benchmark scorer on saved outputs and builds inspectable reports. It supports Web Fetch, Browser Trajectory Replay and Browser Use. Task populations and acceptance requirements come from the selected benchmark.
 
-[LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch task suites. WebMainBench, WCXB and WebArena supply other benchmark inputs. Browser Eval provides the execution and reporting machinery; each benchmark retains its own scope, versions and attribution. See [repository boundaries and integration](docs/benchmarks.md).
+[LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch task suites. [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) owns search queries, provenance and retrieval scoring. WebMainBench, WCXB and WebArena supply other benchmark inputs. Browser Eval provides the execution and reporting machinery; each benchmark retains its own scope, versions and attribution. See [repository boundaries and integration](docs/benchmarks.md).
 
 You get an HTML report with comparison tables, task details, responses and logs. Read it locally or publish it through [Artifact Site](https://github.com/lexmount/artifact-site) so others can explore the results online.
 
@@ -37,6 +37,7 @@ Supported execution tracks:
 
 | Track | Question | Start here |
 | --- | --- | --- |
+| Web Search | Which links and text does a search API return, at what latency and cost? | [Synthetic example](examples/web_search/README.md) · [Track guide](harness/web_search/README.md) |
 | Web Fetch | Can a method return the required page text, records, resources or files? How long does it take? | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
 | Browser Trajectory Replay | Can different browsers complete the same recorded actions? What resources do they use? | [Curated suite](examples/trajectory_replay/README.md) · [WebArena recordings](examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | Can an Agent complete a task when only the browser changes? | [CowAgent + WebArena guide](examples/browser_use/README.md) |
@@ -64,6 +65,7 @@ Support varies by task type. Check [adapter requirements](docs/provider-contract
 | Suite | What it measures | Availability and entry |
 | --- | --- | --- |
 | Offline fixture / local article | Harness operation, selection, scoring and evidence; no performance ranking | Included; commands below |
+| LexBench Web Search | Search queries, source references and deterministic retrieval scoring | [Benchmark repository](https://github.com/lexmount/lexbench-websearch) · [Integration](docs/benchmarks.md#web-search-integration) |
 | LexBench Web Fetch | Ordinary pages, dynamic content, documents, images/video, popular sites and access restrictions | [Benchmark repository](https://github.com/lexmount/lexbench-webfetch) · [Integration](docs/benchmarks.md); complete historical references require approved external inputs |
 | WebMainBench / WCXB | Extraction fidelity on independently bound frozen HTML and reference content | [Frozen-HTML guide](harness/web_fetch/WEBMAINBENCH.md); obtain source data under its terms and use the suite's certification pipeline |
 | Curated trajectory suite | Identical fixed actions on selected public pages | [Trajectory run guide](examples/trajectory_replay/README.md); uses Docker and live sites |
@@ -76,7 +78,7 @@ The Web Fetch CLI takes a dataset file. Replay and Browser Use have separate run
 
 ## Quickstart
 
-Clone the repository, open a terminal in its root, and install [uv](https://docs.astral.sh/uv/getting-started/installation/). The base CLI supports Python 3.11–3.14; repository development defaults to 3.11.
+Clone the repository, open a terminal in its root, and install [uv](https://docs.astral.sh/uv/getting-started/installation/). Python 3.11 or newer is required; repository development and CI use Python 3.11.
 
 ```bash
 uv sync --frozen
@@ -89,9 +91,9 @@ Open the report path printed in the terminal. This offline example needs no brow
 Next, [run HTTP, Moli or Chromium against a local article](examples/web_fetch/README.md). That guide covers browser installation, selecting several methods and choosing your own tasks. Remote services and Agent runs need their own accounts; their calls may incur charges.
 
 <details>
-<summary>Choose another Python version or install an optional adapter</summary>
+<summary>Python runtime and optional adapters</summary>
 
-To use Python 3.12, add `--python 3.12` to both `uv sync --frozen` and subsequent `uv run --frozen` commands. Optional adapters and historical experiments have additional version constraints; the full development environment uses 3.11.
+Use Python 3.11 for the repository's tested development environment. Optional adapters and historical experiments may add their own constraints.
 
 | Extra | Used for |
 | --- | --- |
@@ -113,7 +115,7 @@ major comparison rules.
 
 | Output | What you will find |
 | --- | --- |
-| `report/en/index.html` | English comparisons, task results and evidence links |
+| `report/en/index.html` | English edition under the default configuration; Chinese-only builds show a not-generated notice |
 | `report/index.html` | Report entry; opens the selected language |
 | `results.jsonl`, `summary.json` | Scores and aggregates for scripts or further analysis |
 | `manifest.json`, `dataset.json` | Methods, versions, settings and tasks used |
@@ -127,11 +129,11 @@ Rebuild a report from saved evidence without repeating browser or API calls:
 uv run --frozen browser-harness-eval report /absolute/path/to/run
 ```
 
-The Web Fetch CLI opens English by default, with a switchable Chinese edition. Choose Chinese when starting a run, or change the language of a saved report:
+The Web Fetch CLI falls back to English. Set the environment default for a team or agent session, or select a language explicitly; an existing report keeps its saved choice:
 
 ```bash
-uv run --frozen browser-harness-eval run --delay 0 --language zh
-uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
+BROWSER_EVAL_REPORT_LANGUAGE=zh uv run --frozen browser-harness-eval run --delay 0
+uv run --frozen browser-harness-eval report /absolute/path/to/run --language zh
 ```
 
 Rebuilding without `--language` keeps the previous choice. Language changes do not repeat calls or change scores; task wording, responses and logs retain their original language. English (`en`) and Chinese (`zh`) are supported; other language codes are rejected. See [report language support](docs/report-hosting.md#report-languages) for the standalone builders and historical reports.
@@ -152,6 +154,7 @@ Example runs are diagnostic. For a formal benchmark release, follow the selected
 
 | Repository | Role in this work |
 | --- | --- |
+| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Independent search tasks, provenance and scoring |
 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Independent task suites and acceptance contracts for self-authored Web Fetch evaluations |
 | [Moli](https://github.com/lexmount/moli) | Browser evaluated alongside the other implementations |
 | [Artifact Site](https://github.com/lexmount/artifact-site) | Report hosting, versions and sharing; self-hosting supported |
@@ -166,7 +169,7 @@ See [dependency sources and pins](docs/dependencies.md) for exact versions. Inst
 
 ## Contribute
 
-PRs are welcome for adapters, execution fixes, tests, documentation and translations. Changes to LexBench task requirements belong in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch). Start with [CONTRIBUTING](CONTRIBUTING.md), or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
+PRs are welcome for adapters, execution fixes, tests, documentation and translations. Changes to LexBench task requirements belong in the corresponding [Web Fetch](https://github.com/lexmount/lexbench-webfetch) or [Web Search](https://github.com/lexmount/lexbench-websearch) benchmark repository. Start with [CONTRIBUTING](CONTRIBUTING.md), or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
 
 ```bash
 make setup-test

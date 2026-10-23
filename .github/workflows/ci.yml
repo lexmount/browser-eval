@@ -10,6 +10,39 @@ on:
   pull_request:
 
 jobs:
+  test:
+    name: Python 3.11
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.7.8"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Verify base installation and fixture CLI
+        run: |
+          uv sync --frozen
+          uv run --frozen --no-sync python -m harness.web_fetch validate --providers fixture
+          output="$(mktemp -d)/run"
+          BROWSER_EVAL_REPORT_LANGUAGE=zh uv run --frozen --no-sync python -m harness.web_fetch run --providers fixture --delay 0 --output "$output"
+          uv run --frozen --no-sync python -c 'import json, sys; from pathlib import Path; root = Path(sys.argv[1]); contract = json.loads((root / "report-languages.json").read_text()); assert contract["primary_language"] == "zh"; assert contract["languages"] == ["zh"]; assert (root / "en/index.html").is_file()' "$output/report"
+      - run: make setup-test
+      - run: make ci
+      - name: Exercise rendered reference capture
+        timeout-minutes: 5
+        run: |
+          uv sync --frozen --extra test --extra headless-eval --extra browser-use-eval
+          uv run --frozen --no-sync playwright install chromium
+          export BROWSER_EVAL_TEST_BROWSER_BINARY="$(uv run --frozen --no-sync python -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
+          uv run --frozen --no-sync python -m pytest tests/test_browser_observation_contracts.py tests/test_report_browser_interactions.py tests/web_search/test_visual.py -q
+
   base-python:
     name: Base CLI / Python ${{ matrix.python }}
     runs-on: ubuntu-latest
@@ -25,29 +58,6 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.7.8"
-      - run: uv sync --frozen --python "${{ matrix.python }}" --extra test
-      - run: uv run --frozen --python "${{ matrix.python }}" --no-sync python -m pytest tests/test_portable_cli.py tests/test_cli_scope.py tests/test_web_fetch_quickstart.py tests/test_public_report_language.py -q
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v6
-        with:
-          version: "0.7.8"
-          enable-cache: true
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-      - run: make setup-test
-      - run: make ci
-      - name: Exercise rendered reference capture
-        timeout-minutes: 5
-        run: |
-          uv sync --frozen --extra test --extra headless-eval
-          uv run --frozen --no-sync playwright install chromium
-          export BROWSER_EVAL_TEST_BROWSER_BINARY="$(uv run --frozen --no-sync python -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
-          uv run --frozen --no-sync python -m pytest tests/test_browser_observation_contracts.py -q
+      - run: uv sync --frozen --extra test --python ${{ matrix.python }}
+      - run: uv run --frozen --no-sync --python ${{ matrix.python }} python -m harness.web_fetch validate --providers fixture
+      - run: uv run --frozen --no-sync --python ${{ matrix.python }} python -m pytest tests/test_portable_cli.py tests/test_cli_scope.py tests/test_web_fetch_quickstart.py tests/test_public_report_language.py -q

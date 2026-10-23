@@ -136,10 +136,11 @@ receipts retain the binding hash, and upload snapshots protect it from changes.
 ### Check and publish
 
 Release checks cover evidence, links, semantic presentation and the declared
-languages. A separate visual gate exercises core routes, success and failure
-details, evidence controls, navigation, desktop and narrow widths, and both
-themes. Packaging copies only declared public files, rejects symlinks and checks
-that source and authority bytes remain unchanged.
+languages. A focused reader pass renders each top-level navigation page once at
+the standard desktop width. Deterministic generation checks own routes, detail
+links, filters, pagination, dialogs and evidence loading; shared component tests
+own narrow-width and theme behavior. Packaging copies only declared public files,
+rejects symlinks and checks that source and authority bytes remain unchanged.
 
 Use the selected track's publisher after its release gates pass. Publishers
 freeze the archive and authority, check the expected remote version, retain

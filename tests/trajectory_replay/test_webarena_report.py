@@ -67,10 +67,7 @@ def test_report_build_requires_hash_bound_corrected_dataset(tmp_path: Path) -> N
         bound_dataset_path({"dataset": {"path": str(link), "sha256": profile["dataset"]["sha256"]}})
 
 
-@pytest.mark.parametrize("extra_methods", [0, 2])
-def test_complete_three_method_report_builds_one_unified_matrix(
-    tmp_path: Path, monkeypatch, extra_methods
-) -> None:
+def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed=False):
     methods = [
         {"id": "chromium", "engine": "chromium", "label": "Chromium"},
         {"id": "moli-old", "engine": "moli", "label": "Moli 1.1.3"},
@@ -106,10 +103,29 @@ def test_complete_three_method_report_builds_one_unified_matrix(
          "resource": {}, "evidence": {}}
         for method in methods
     ]
+    if failed:
+        attempts[1].update(status="fail", process_status="fail", evaluator_status="fail",
+                           completed_action_count=0, error="Fixture action failed")
+    for attempt in attempts:
+        trace = tmp_path / (attempt["participant_id"] + "-trace.json")
+        trace.write_text(json.dumps([{"action": "snapshot", "status": attempt["status"],
+                                     "result": {"text": "Fixture snapshot"},
+                                     "error": attempt.get("error")}]))
+        attempt["evidence"]["trace"] = {
+            "path": str(trace), "sha256": hashlib.sha256(trace.read_bytes()).hexdigest(),
+        }
     data = {"attempts": attempts, "physical_executions": attempts}
     monkeypatch.setattr(
         "harness.trajectory_replay.webarena_report.load_validated_failure_review",
-        lambda *args, **kwargs: {"results": data, "by_result": {}},
+        lambda *args, **kwargs: {"results": data, "by_result": {
+            ("moli-old", 29): {
+                "cause_group": {"code": "fixture", "label_zh": "合成动作失败",
+                                "label_en": "Synthetic action failure",
+                                "responsibility": "fixture", "remediation_owner": "fixture",
+                                "remediation_status": "test_only"},
+                "reason_zh": "合成测试中的动作错误", "reason_en": "Synthetic action error",
+            }
+        } if failed else {}},
     )
     files = {}
     for name, value in (
@@ -138,6 +154,16 @@ def test_complete_three_method_report_builds_one_unified_matrix(
         results_path=files["results.json"], dataset_path=files["dataset.json"],
         review_path=files["review.json"], profile_path=files["profile.json"],
         output_dir=output, language="en",
+    )
+    return output, manifest, methods, profile, data, attempts, files
+
+
+@pytest.mark.parametrize("extra_methods", [0, 2])
+def test_complete_three_method_report_builds_one_unified_matrix(
+    tmp_path: Path, monkeypatch, extra_methods
+) -> None:
+    output, manifest, methods, profile, data, attempts, files = build_replay_fixture(
+        tmp_path, monkeypatch, extra_methods
     )
     assert manifest["primary_language"] == "en"
     assert manifest["entrypoint"] == "en/index.html"

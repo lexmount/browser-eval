@@ -166,9 +166,12 @@ def test_make_language_override_is_only_explicit(tmp_path, monkeypatch, target, 
 
 
 def cli(*args):
+    env = {**os.environ, "PYTHONPATH": str(ROOT)}
+    # Empty environment setting isolates the public fallback from a developer .env.
+    env["BROWSER_EVAL_REPORT_LANGUAGE"] = ""
     return subprocess.run([sys.executable, "-m", "harness.web_fetch", *args],
                           cwd=ROOT, capture_output=True, text=True,
-                          env={**os.environ, "PYTHONPATH": str(ROOT)})
+                          env=env)
 
 
 @pytest.mark.parametrize("language", [None, "en", "zh"])
@@ -198,6 +201,22 @@ def test_run_selects_language_and_rebuild_preserves_it(tmp_path, language):
     check(run / "report")
 
 
+def test_run_uses_environment_language_for_a_new_report(tmp_path):
+    run = tmp_path / "run"
+    env = {**os.environ, "PYTHONPATH": str(ROOT), "BROWSER_EVAL_REPORT_LANGUAGE": "zh"}
+    result = subprocess.run(
+        [sys.executable, "-m", "harness.web_fetch", "run", "--delay", "0", "--output", str(run)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    contract = json.loads((run / "report/report-languages.json").read_text())
+    assert contract["primary_language"] == "zh"
+    assert contract["languages"] == ["zh"]
+
+
 def test_unsupported_language_fails_before_calls_or_output(tmp_path):
     run = tmp_path / "run"
     result = cli("run", "--language", "fr", "--output", str(run))
@@ -220,10 +239,10 @@ def test_report_entrypoints_reject_unknown_language_before_loading_evidence(tmp_
     assert not output.exists()
 
 
-def test_default_english_has_localized_ui_and_preserved_task_text(tmp_path):
+def test_explicit_english_has_localized_ui_and_preserved_task_text(tmp_path):
     from harness.web_fetch.report_i18n import untranslated_english_narrative
     run = tmp_path / "run"
-    result = cli("run", "--delay", "0", "--output", str(run))
+    result = cli("run", "--delay", "0", "--language", "en", "--output", str(run))
     assert result.returncode == 0, result.stderr
     dataset = json.loads((run / "dataset.json").read_text())
     # Task wording and participant metadata are source inputs, not report copy.

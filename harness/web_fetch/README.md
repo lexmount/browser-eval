@@ -906,8 +906,8 @@ new scores or timings; local fixture validation is not a benchmark rerun.
 
 ## WCXB paired timing and publication
 
-The WCXB command defaults to English, with a matching Chinese edition. Use
-`--language zh` for Chinese-only output; its English entry shows a not-generated
+The WCXB command uses the shared English fallback. Set
+`BROWSER_EVAL_REPORT_LANGUAGE=zh` or use `--language zh` for a Chinese-only build; its English entry shows a not-generated
 notice. Bilingual release checks require matching routes and values. English
 repair content must be present in the bound asset set for an English build.
 See [report languages](../../docs/report-hosting.md#report-languages) for all builders.

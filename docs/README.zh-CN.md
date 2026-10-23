@@ -16,7 +16,7 @@
 
 Browser Eval 把 benchmark 任务接到浏览器或服务适配器上，执行预先声明的比较，调用 benchmark 评分器检查保存的输出，并生成可查看证据的报告。它支持 Web Fetch、轨迹重放和 Browser Use；任务范围和验收要求由所选 benchmark 决定。
 
-自建的 Web Fetch 任务集由 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) 维护。WebMainBench、WCXB 和 WebArena 提供其他评测输入。Browser Eval 负责执行与报告，各 benchmark 分别维护范围、版本和来源说明。详见[仓库分工与接入](benchmarks.md)。
+自建的 Web Fetch 任务集由 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) 维护。[LexBench Web Search](https://github.com/lexmount/lexbench-websearch) 维护搜索题库、来源和检索评分。WebMainBench、WCXB 和 WebArena 提供其他评测输入。Browser Eval 负责执行与报告，各 benchmark 分别维护范围、版本和来源说明。详见[仓库分工与接入](benchmarks.md)。
 
 运行后得到 HTML 报告，里面有比较表、任务详情、响应和日志。可以在本地查看，也可以通过 [Artifact Site](https://github.com/lexmount/artifact-site) 发布，让其他人在线查看结果。
 
@@ -37,6 +37,7 @@ flowchart LR
 
 | 轨道 | 回答什么问题 | 从这里开始 |
 | --- | --- | --- |
+| Web Search | 搜索接口返回哪些链接和文本，耗时与费用如何？ | [合成示例](../examples/web_search/README.md) · [专项指南](../harness/web_search/README.md) |
 | Web Fetch | 能否返回任务要求的正文、记录、资源或文件？需要多久？ | [本地示例](../examples/web_fetch/README.md) · [完整说明](../harness/web_fetch/README.md) |
 | Browser Trajectory Replay（轨迹重放） | 不同浏览器能否完成同一组已记录的操作？消耗多少资源？ | [项目任务集](../examples/trajectory_replay/README.md) · [WebArena 人工轨迹](../examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | 只更换浏览器时，Agent 能否完成任务？ | [CowAgent + WebArena 说明](../examples/browser_use/README.md) |
@@ -64,6 +65,7 @@ flowchart LR
 | 任务集 | 评测内容 | 可用条件与入口 |
 | --- | --- | --- |
 | 离线 fixture / 本地文章 | 检查运行、任务选择、评分和证据，不提供性能排名 | 随仓库提供，命令见下文 |
+| LexBench Web Search | 搜索题目、参考来源和确定性检索评分 | [Benchmark 仓库](https://github.com/lexmount/lexbench-websearch) · [接入说明](benchmarks.md#web-search-integration) |
 | LexBench Web Fetch | 普通网页、动态内容、文档、图片/视频、热门网站、访问限制 | [Benchmark 仓库](https://github.com/lexmount/lexbench-webfetch) · [接入说明](benchmarks.md)；完整历史参考需要获准使用的外部输入 |
 | WebMainBench / WCXB | 独立绑定的冻结 HTML 与参考内容上的提取质量 | [冻结 HTML 说明](../harness/web_fetch/WEBMAINBENCH.md)；按原数据许可获取输入，并使用对应认证流程 |
 | 项目维护的轨迹任务集 | 在指定公开网页上执行相同固定操作 | [轨迹运行说明](../examples/trajectory_replay/README.md)；需要 Docker 和网站访问 |
@@ -76,7 +78,7 @@ Web Fetch CLI 使用数据集文件；轨迹重放和 Browser Use 使用各自�
 
 ## 快速开始
 
-克隆仓库，在根目录打开终端，安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)。基础 CLI 支持 Python 3.11–3.14，仓库开发默认使用 3.11。
+克隆仓库，在根目录打开终端，安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)。项目要求 Python 3.11 或更高版本；仓库开发与 CI 统一使用 Python 3.11。
 
 ```bash
 uv sync --frozen
@@ -89,9 +91,9 @@ uv run --frozen browser-harness-eval run --delay 0
 接下来，可以[用 HTTP、Moli 或 Chromium 抓取本地文章](../examples/web_fetch/README.md)。说明中包含浏览器安装、多方法比较和自选任务。远程服务和 Agent 运行需要相应账户，调用可能产生费用。
 
 <details>
-<summary>选择其他 Python 版本或安装可选适配器</summary>
+<summary>Python 运行环境与可选适配器</summary>
 
-使用 Python 3.12 时，在 `uv sync --frozen` 和后续 `uv run --frozen` 命令中都加上 `--python 3.12`。可选适配器和历史实验另有版本要求，完整开发环境使用 3.11。
+仓库测试过的开发环境使用 Python 3.11。可选适配器和历史实验可能有额外限制。
 
 | 额外依赖 | 用途 |
 | --- | --- |
@@ -112,7 +114,7 @@ uv run --frozen browser-harness-eval run --delay 0
 
 | 输出 | 内容 |
 | --- | --- |
-| `report/en/index.html` | 英文比较、任务结果和证据入口 |
+| `report/en/index.html` | 未配置语言时生成英文版；仅生成中文时显示英文版未生成说明 |
 | `report/index.html` | 报告入口，打开所选语言 |
 | `results.jsonl`、`summary.json` | 供程序分析的评分和汇总 |
 | `manifest.json`、`dataset.json` | 使用的方法、版本、设置和任务 |
@@ -126,11 +128,11 @@ uv run --frozen browser-harness-eval run --delay 0
 uv run --frozen browser-harness-eval report /absolute/path/to/run
 ```
 
-Web Fetch 命令默认打开英文报告，并保留可切换的中文版。开始评测时可以选中文，也可以更改已有报告的语言：
+Web Fetch 命令在没有配置时默认英文。团队或 Agent 会话可通过环境变量设置默认语言，也可显式指定；已有报告沿用保存的语言：
 
 ```bash
-uv run --frozen browser-harness-eval run --delay 0 --language zh
-uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
+BROWSER_EVAL_REPORT_LANGUAGE=zh uv run --frozen browser-harness-eval run --delay 0
+uv run --frozen browser-harness-eval report /absolute/path/to/run --language zh
 ```
 
 重建时不传 `--language`，会沿用上次的选择。切换语言不重新调用浏览器或服务，也不改变评分；任务原文、响应和日志保留原来的语言。目前支持英文（`en`）和中文（`zh`），其他语言代码会报错。独立构建器和历史报告的支持范围见[报告语言说明](report-hosting.md#report-languages)。
@@ -151,6 +153,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
 
 | 仓库 | 在这项工作中的用途 |
 | --- | --- |
+| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | 独立搜索题库、来源和评分 |
 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | 自建 Web Fetch 评测使用的独立任务集和验收规则 |
 | [Moli](https://github.com/lexmount/moli) | 与其他实现一起接受评测的浏览器 |
 | [Artifact Site](https://github.com/lexmount/artifact-site) | 报告托管、版本管理和分享，支持自行部署 |
@@ -165,7 +168,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
 
 ## 参与贡献
 
-欢迎为适配器、执行修复、测试、文档和翻译提交 PR。LexBench 任务要求的修改请提交到 [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)。先看[贡献指南](../CONTRIBUTING.md)，或提交带有复现示例的 [issue](https://github.com/lexmount/browser-eval/issues)。
+欢迎为适配器、执行修复、测试、文档和翻译提交 PR。LexBench 任务要求的修改请提交到对应的 [Web Fetch](https://github.com/lexmount/lexbench-webfetch) 或 [Web Search](https://github.com/lexmount/lexbench-websearch) 仓库。先看[贡献指南](../CONTRIBUTING.md)，或提交带有复现示例的 [issue](https://github.com/lexmount/browser-eval/issues)。
 
 ```bash
 make setup-test

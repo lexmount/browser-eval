@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "external_benchmark_binding",
+  "repository": "https://github.com/lexmount/lexbench-websearch",
+  "revision": "e9cd1d9df34a06a397bed0744793a041de03321b",
+  "datasets": {
+    "scenarios-v1": {
+      "path": "datasets/scenarios-v1.json",
+      "sha256": "808d305f4ac1b9ccfdff46f89dbf7e5885a302347e31e8fe474dff741cc60c6c",
+      "count": 149
+    },
+    "factual-v1": {
+      "path": "datasets/factual-v1.json",
+      "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253",
+      "count": 831
+    },
+    "scenarios-v2": {
+      "path": "datasets/scenarios-v2.json",
+      "sha256": "754028737be6ee593525acfff5eec2510f9bf9c43e37a43c9162581fe4e32d68",
+      "count": 149
+    }
+  },
+  "definition_files": {
+    "registry.json": "4b1a17f5a5b19c423aa450c9ce8dac97fb1cf32ce6df56c20e68058126debd8d",
+    "benchmark-release.json": "47fd3d011cdb486bc1257c55f8eb4ecf3c86f32f20052937854f1c818ad5a3b6"
+  }
+}
