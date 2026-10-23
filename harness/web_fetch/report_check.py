@@ -300,6 +300,10 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         profile_path = (
             (repository / profile).resolve() if not profile.is_absolute() else profile.resolve()
         )
+    if (root / 'dataset.json').is_file() and (root / 'results.jsonl').is_file():
+        from .report_version import check_release
+        check_release(root, json.loads((root / 'dataset.json').read_text()),
+                      load_jsonl(root / 'results.jsonl'), profile=profile_path)
     if (root / 'report-manifest.json').is_file() and json.loads((root / 'report-manifest.json').read_text()).get('evidence_state') == 'published_snapshot_score_audit':
         from .published_snapshot import check_snapshot_audit
         if profile_path and file_sha256(profile_path) != json.loads((root / 'report-manifest.json').read_text()).get('profile_sha256'):

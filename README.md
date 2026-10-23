@@ -106,6 +106,11 @@ Install an extra with `uv sync --frozen --extra NAME`. Browser binaries, Docker,
 
 ## Read and share a report
 
+Reports retain the selected benchmark edition and exact dataset/scorer hashes.
+Package upgrades leave historical results unchanged. See
+[benchmark editions](docs/benchmarks.md#benchmark-editions) for patch, minor and
+major comparison rules.
+
 | Output | What you will find |
 | --- | --- |
 | `report/en/index.html` | English comparisons, task results and evidence links |

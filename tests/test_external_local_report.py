@@ -92,6 +92,16 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
         "max_failure_retries": 0})
     dataset["comparison"]["local_run_contract_sha256"] = contract_digest
     write(evidence / "dataset.json", dataset)
+    if case_count == 5:
+        from lexbench_webfetch.versions import create_release
+        original = create_release(dataset, benchmark="synthetic", version="1.0.0",
+                                  scoring_source_sha256="f" * 64)
+        original_sha = write(evidence / "benchmark-input-release.json", original)
+        current = create_release(dataset, benchmark="synthetic", version="1.1.0",
+                                 previous=original, change_note="Correct scoring of saved outputs")
+        write(evidence / "benchmark-release.json", current)
+        write(evidence / "execution.json", {"batches": batches, "aggregate": {
+            "benchmark_release": {"path": "benchmark-input-release.json", "sha256": original_sha}}})
     output = tmp_path / "report"
     for script, args in [
         ("build_report.py", ["--local-audit", "--evidence", str(evidence),
@@ -154,6 +164,28 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
         from harness.web_fetch.report_build import build_report
         from harness.web_fetch.report_package import build as package_report
         from harness.web_fetch.publication_check import check as check_package
+        from harness.web_fetch.report_version import check_release
+        from harness.web_fetch.report_build import validate_local_presentation
+        original_binding = json.loads((output / "execution.json").read_text())["aggregate"]["benchmark_release"]
+        assert original_binding["sha256"] == original_sha
+        ordinary_rebuild = tmp_path / "ordinary-rebuild"
+        build_report(output, ordinary_rebuild, local_audit=True, language="en", include_english=True)
+        assert json.loads((ordinary_rebuild / "execution.json").read_text())["aggregate"]["benchmark_release"] == original_binding
+        assert json.loads((ordinary_rebuild / "benchmark-release.json").read_text())["version"] == "1.1.0"
+        original_path = ordinary_rebuild / original_binding["path"]
+        original_bytes = original_path.read_bytes()
+        original_path.write_text('{}')
+        with pytest.raises(ValueError, match="input release changed"):
+            check_release(ordinary_rebuild, dataset, saved)
+        original_path.write_bytes(original_bytes)
+        execution_path = ordinary_rebuild / "execution.json"
+        execution_bytes = execution_path.read_bytes()
+        changed_execution = json.loads(execution_bytes)
+        del changed_execution["aggregate"]["benchmark_release"]
+        write(execution_path, changed_execution)
+        with pytest.raises(ValueError, match="input release binding"):
+            check_release(ordinary_rebuild, dataset, saved)
+        execution_path.write_bytes(execution_bytes)
         binding_path = tmp_path / "presentation-binding.json"
         write(binding_path, {
             "comparison_kind": "uniform_native_local_measurement",
@@ -174,6 +206,31 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
         archive = tmp_path / "frozen-report.zip"
         package_report(rebuilt, archive, presentation_binding=binding_path)
         check_package(archive, rebuilt, presentation_binding=binding_path)
+        damaged_paths = [rebuilt / "benchmark-release.json", rebuilt / "report-manifest.json",
+                         rebuilt / "index.html"]
+        pristine = {path: path.read_bytes() for path in damaged_paths}
+        for damage in ("missing", "changed", "dropped-binding", "wrong-label"):
+            if damage == "missing":
+                damaged_paths[0].unlink()
+            elif damage == "changed":
+                changed = json.loads(pristine[damaged_paths[0]])
+                changed["version"] = "99.0.0"
+                write(damaged_paths[0], changed)
+            elif damage == "dropped-binding":
+                changed = json.loads(pristine[damaged_paths[1]])
+                del changed["benchmark_release"]
+                write(damaged_paths[1], changed)
+            else:
+                damaged_paths[2].write_text(pristine[damaged_paths[2]].decode().replace(
+                    'data-benchmark-release="1.1.0"', 'data-benchmark-release="99.0.0"'))
+            with pytest.raises(ValueError, match="[Bb]enchmark"):
+                validate_local_presentation(rebuilt, binding_path)
+            with pytest.raises(ValueError, match="[Bb]enchmark"):
+                package_report(rebuilt, archive, presentation_binding=binding_path)
+            with pytest.raises(ValueError, match="[Bb]enchmark"):
+                check_package(archive, rebuilt, presentation_binding=binding_path)
+            for path, raw in pristine.items():
+                path.write_bytes(raw)
     # Language entry normalization must not hide changes to ordinary links.
     from bs4 import BeautifulSoup
     from harness.web_fetch.report_check import check

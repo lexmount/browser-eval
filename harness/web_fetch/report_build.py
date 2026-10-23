@@ -250,7 +250,7 @@ def _install_report_tree(staging: Path, output: Path):
 
 def _build_frozen_presentation(source, output, presentation_binding, *,
                                include_english, language, authored_interpretation,
-                               show_local_status_banners):
+                               show_local_status_banners, profile_path=None):
     """Render a bound historical report using saved scores and public evidence."""
     from harness.report_languages import select_report_language
     from .safety import evidence_tree_identity, copy_evidence_file
@@ -291,6 +291,10 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
                 if relative in before:
                     metadata["public_" + kind + "_path"] = relative
                     metadata["public_" + kind + "_sha256"] = before[relative]
+        from .report_version import bind_release
+        release_binding = bind_release(source, staging, dataset, records, profile=profile_path)
+        if release_binding:
+            manifest['benchmark_release'] = release_binding
         generate(staging, dataset, records, batches, include_english=include_english,
                  authored_interpretation=authored_interpretation,
                  show_local_status_banners=show_local_status_banners, frozen_scores=True)
@@ -380,7 +384,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         return _build_frozen_presentation(
             source, output, presentation_binding, include_english=include_english,
             language=language, authored_interpretation=authored_interpretation,
-            show_local_status_banners=show_local_status_banners)
+            show_local_status_banners=show_local_status_banners, profile_path=profile_path)
     dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
     diagnostic_preview = (diagnostic_preview and
         dataset_probe.get('comparison', {}).get('kind') == 'web_fetch_diagnostic')
@@ -771,6 +775,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             }, ensure_ascii=False, indent=2))
         from .report_reading import copy_archived_reading
         copy_archived_reading(source,staging)
+        from .report_version import bind_release
+        release_binding = bind_release(source, staging, dataset, records, profile=profile_path)
         generate(staging,dataset,records,manifests,include_english=include_english,
                  authored_interpretation=authored_interpretation,
                  show_local_status_banners=show_local_status_banners)
@@ -782,6 +788,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             'dataset_sha256': file_sha256(staging/'dataset.json'),
             'results_sha256': file_sha256(staging/'results.jsonl'),
             'generated_languages': generated_languages(staging)}
+        if release_binding:
+            template_manifest['benchmark_release'] = release_binding
         if dataset.get('comparison', {}).get('kind') == 'uniform_native_local_measurement':
             template_manifest.update(evidence_state='local_measurement', certified=False,
                 languages=template_manifest['generated_languages'], provider_calls_added=0)
@@ -1501,6 +1509,8 @@ def validate_local_presentation(output: Path, binding_path: Path):
         require_host_metadata_projection(output, binding['publication_projection'])
     dataset = json.loads((output / 'dataset.json').read_text())
     records = load_jsonl(contained_path(output, 'results.jsonl'))
+    from .report_version import check_release
+    check_release(output, dataset, records)
     if binding.get('publication_evidence_views'):
         from .publication_privacy import require_public_evidence_view_inventory
         require_public_evidence_view_inventory(output, binding['publication_evidence_views'], records)

@@ -51,6 +51,58 @@ Change task requirements in LexBench, freeze a new dataset/catalog/manifest vers
 
 The retained `harness/lexbench/` module concerns historical headless-browser comparisons. It is unrelated to the `lexbench-webfetch` input package and remains an execution/report adapter.
 
+## Benchmark editions
+
+Use a benchmark version together with exact task/reference and scoring-source
+hashes. Keep the package's full Git commit pinned separately. A package update
+does not select a new dataset for an existing report.
+
+Use the same `benchmark-vMAJOR.MINOR.PATCH` tag prefix in both repositories.
+Reports reference their benchmark edition; report rebuilds use the hosting
+platform's version ID rather than a separate semantic-version sequence.
+
+| Change | Edition | Result comparison |
+| --- | --- | --- |
+| Documentation or presentation only | Patch | Direct when execution controls also match |
+| Reviewed scoring/reference correction with the same task inputs | Minor | Re-score both saved cohorts under one edition |
+| Added/removed cases, changed requests, output scope or routes | Major | Separate full-population results |
+
+The task package owns `lexbench-webfetch release` and `compare-releases`.
+See its [version contract](https://github.com/lexmount/lexbench-webfetch/blob/benchmark-v2.0.1/docs/versions.md).
+Freeze `benchmark-release.json` beside the compiled inputs before calls.
+The certified Web Fetch runner accepts `--benchmark-release`; it also discovers
+the sidecar beside the selected dataset. Release creation records the full scorer
+commit alongside the independently computed source hash. The runner checks tasks and the active scorer
+before external work and retains the binding in execution metadata. The original
+call edition remains in benchmark-input-release.json; a report may select a newer
+scoring edition after rescoring, retaining both files.
+
+An instance profile can select an edition explicitly:
+
+```json
+{
+  "benchmark_release": {
+    "path": "benchmark-release.json",
+    "sha256": "<SHA-256 of the selected sidecar>"
+  }
+}
+```
+
+Paths are relative to the external profile. The existing build copies this
+edition into the report manifest and package and displays a link beside the
+home-page scope. Checks reject mismatched populations, acceptance rules,
+scoring sources, missing sidecars and incorrect version labels. Historical
+hash-bound reports remain usable without inventing a version label. An
+explicit historical edition preserves the saved scorer identity during a
+presentation rebuild; it does not run the current scorer over old results.
+
+Reuse unchanged saved outputs for a minor correction, including prior
+successes, then recompute scores under one edition. Use the existing revision
+receipts; do not overwrite the older report. Major editions may retain
+diagnostic task-overlap analyses, but their complete throughputs/pass rates
+are separate measurements. Latency still requires matching runtime controls
+and the existing same-window comparison contract.
+
 ## Report instances
 
 Each report track uses its maintained build, check and package entry points.

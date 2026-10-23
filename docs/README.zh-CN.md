@@ -106,6 +106,10 @@ uv run --frozen browser-harness-eval run --delay 0
 
 ## 查看与分享报告
 
+报告固定绑定所选评测版本，以及题目和评分源码的精确哈希。升级软件包不会改变历史结果。
+补丁版可以直接比较；评分修正的小版本要统一重评；题目或任务要求改变的大版本分别展示。
+具体规则见[评测版本](benchmarks.md#benchmark-editions)。
+
 | 输出 | 内容 |
 | --- | --- |
 | `report/en/index.html` | 英文比较、任务结果和证据入口 |
