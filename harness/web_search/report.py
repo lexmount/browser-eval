@@ -1374,7 +1374,7 @@ def check(output, *, return_data=False, evidence_only=False):
         if digest(review_path.read_bytes()) != manifest["independent_review_sha256"]:
             raise ValueError("Independent review evidence hash mismatch")
         review_data = json.loads(review_path.read_bytes())
-        validate_public_review(manifest["profile"], manifest["rows"], review_data, authority=authority, relevance=json.loads((output / "relevance-judgments.json").read_bytes()) if manifest.get("relevance_sha256") else None)
+        validate_public_review(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), review_data, authority=authority, relevance=json.loads((output / "relevance-judgments.json").read_bytes()) if manifest.get("relevance_sha256") else None)
         for lang in (() if evidence_only else manifest["languages"]):
             prefix = "" if lang == "zh" else lang + "/"
             if prefix + "review.html" not in manifest["routes"]:
@@ -1396,7 +1396,7 @@ def check(output, *, return_data=False, evidence_only=False):
             actual = review_page.select_one("[data-independent-review]")
             if actual is None or actual.get_text() != expected.get_text():
                 raise ValueError("Independent review summary differs from the accepted evidence")
-            for row in manifest["rows"]:
+            for row in scoring_rows(manifest["profile"], manifest["rows"]):
                 detail = BeautifulSoup((output / (prefix + "details/" + row["id"] + ".html")).read_text(), "html.parser")
                 expected = BeautifulSoup(render_detail(review_data, row["id"], lang == "zh"), "html.parser")
                 actual = detail.select("[data-independent-opinion], [data-review-not-selected]")

@@ -38,10 +38,16 @@ def physical_call_counts(profile, output):
             raise ValueError("Ambiguous physical call identity: " + identity)
         identities[identity] = method["id"]
     counts = {m["id"]: 0 for m in profile["methods"]}
-    # A reservation and its saved response are one physical attempt. Historical
-    # collections without reservations retain their response-only accounting.
-    calls = {path for path in output.rglob("calls/*.json")}
-    calls.update(path.parent.parent / "calls" / path.name for path in output.rglob("reservations/*.json"))
+    contract_path = output / "run-contract.json"
+    contract = json.loads(contract_path.read_bytes()) if contract_path.is_file() else {}
+    if contract.get("physical_call_accounting") == "write-ahead-reservations/1":
+        # Each send has exactly one reservation. Its atomic relocation cannot
+        # create a second send, even while the response remains elsewhere.
+        calls = set(output.rglob("reservations/*.json"))
+    else:
+        # Preserve the interpretation of already frozen historical collections.
+        calls = {path for path in output.rglob("calls/*.json")}
+        calls.update(path.parent.parent / "calls" / path.name for path in output.rglob("reservations/*.json"))
     for path in calls:
         identity, separator, attempt = path.stem.rpartition("-attempt-")
         if not separator or not attempt.isdigit() or int(attempt) < 1 or identity not in identities:
@@ -78,7 +84,7 @@ def archive_reservations(output, archive, kept):
         if "calls/" + path.name not in kept:
             target = archive / "reservations" / path.name
             target.parent.mkdir(exist_ok=True)
-            shutil.move(path, target)
+            path.rename(target)
 
 
 def freeze_implementation(output):
@@ -453,6 +459,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
             dict(
                 profile_sha256=digest(profile_bytes),
                 implementation=sources,
+                physical_call_accounting="write-ahead-reservations/1",
                 started_at=datetime.now(UTC).isoformat(),
                 diagnostic=diagnostic,
                 resume_unit=(

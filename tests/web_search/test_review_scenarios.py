@@ -48,6 +48,7 @@ def test_suffix_sharing_methods_have_independent_quotas(tmp_path):
     (output / "reservations" / name).rename(reservations / name)
     assert physical_call_counts(profile, output) == {"variant-a": 1, "a": 1}
     (output / "calls" / name).write_text("{}")
+    (output / "reservations" / name).write_bytes((reservations / name).read_bytes())
     assert physical_call_counts(profile, output) == {"variant-a": 2, "a": 1}
 
 
@@ -337,3 +338,63 @@ def test_repeated_factual_collection_builds_and_checks_selected_score_round(tmp_
     (source / 'receipt.json').write_text(json.dumps(receipt))
     report.build(tmp_path / 'repeated-report', source=source)
     assert report.check(tmp_path / 'repeated-report')
+
+
+def test_interrupted_archive_never_counts_one_send_twice(tmp_path):
+    from pathlib import Path
+    from harness.web_search.runner import physical_call_counts
+
+    profile = synthetic_serp_profile()
+    profile['cases'] = profile['cases'][:1]
+    profile['methods'] = profile['methods'][:1]
+    profile['protocol']['max_calls_per_method'] = 2
+    source = tmp_path / 'profile.json'
+    source.write_text(json.dumps(profile))
+    output = tmp_path / 'run'
+    sent = 0
+    normalize = report.normalize_response
+
+    def transport(*args, **kwargs):
+        nonlocal sent
+        if len(args) > 1 and args[1] is not None:
+            sent += 1
+        return response(*args, **kwargs)
+
+    def stop_before_logical_record(*args, **kwargs):
+        raise KeyboardInterrupt('saved response')
+
+    real_move = __import__('shutil').move
+    real_rename = Path.rename
+
+    def interrupt_move(src, dst, *args, **kwargs):
+        result = real_move(src, dst, *args, **kwargs)
+        if Path(src).parent.name == 'reservations':
+            raise KeyboardInterrupt('reservation archived')
+        return result
+
+    def interrupt_rename(src, dst):
+        result = real_rename(src, dst)
+        if src.parent.name == 'reservations':
+            raise KeyboardInterrupt('reservation archived')
+        return result
+
+    with (
+        patch('harness.web_search.runner.load_runtime_env'),
+        patch.dict(os.environ, {profile['methods'][0]['key_env']: 'synthetic-key'}),
+        patch('harness.web_search.runner.http_call', side_effect=transport),
+    ):
+        with patch('harness.web_search.runner.normalize_response', side_effect=stop_before_logical_record):
+            with pytest.raises(KeyboardInterrupt, match='saved response'):
+                run(source, output, certified=True)
+        with patch('harness.web_search.runner.shutil.move', side_effect=interrupt_move), patch.object(Path, 'rename', interrupt_rename):
+            with pytest.raises(KeyboardInterrupt, match='reservation archived'):
+                run(source, output, certified=True, resume=True)
+        assert sent == 1
+        assert physical_call_counts(profile, output) == {profile['methods'][0]['id']: 1}
+        with patch('harness.web_search.runner.normalize_response', side_effect=normalize):
+            run(source, output, certified=True, resume=True)
+    assert sent == 2
+    assert physical_call_counts(profile, output) == {profile['methods'][0]['id']: 2}
+    receipt = json.loads((output / 'receipt.json').read_text())
+    assert receipt['total_retained_physical_call_count'] == 2
+    assert receipt['certified']
