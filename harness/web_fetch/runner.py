@@ -25,6 +25,7 @@ from .artifacts import (
     PRIVATE_ARTIFACT_ROOT,
     PUBLIC_CALL_LOG_ROOT,
     diagnostic_log_binding,
+    materialize_task_references,
     raw_response_binding,
     verify_record_artifacts,
     verify_record_private_artifacts,
@@ -36,7 +37,7 @@ from lexbench_webfetch.metrics import summarize, task_passed
 from harness.web_fetch.models import AttemptRecord, ProviderResult
 from lexbench_webfetch.models import EvalCase, validate_case
 from .providers import Provider
-from .reference_inputs import read_dataset_bytes, benchmark_input_path
+from .reference_inputs import read_dataset_bytes, benchmark_input_path, input_tree
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 from .reference_lifecycle import (
     ReferenceLifecycleError,
@@ -339,7 +340,8 @@ def persist_public_call_log(
         "events": [
             {"stage": "call_started", "at": started_at, "status_code": None,
              "error_type": None},
-            {"stage": "exception_raised" if exception is not None else "response_received",
+            {"stage": ("exception_raised" if exception is not None else
+                       "answer_deadline_exceeded" if result.error_type == "timeout" else "response_received"),
              "at": completed_at, "status_code": result.status_code,
              "error_type": _public_text(result.error_type, limit=256)},
             {"stage": "call_completed", "at": completed_at,
@@ -394,7 +396,7 @@ def persist_result_artifacts(
         require_native_projection_schema(result.metadata['native_answer_projection'])
     raw = result.metadata.get('_raw_response_b64')
     if result.metadata.get('native_answer_projection', {}).get('source_format') == 'bytes':
-        raw = result.metadata.get('_raw_stdout_b64')
+        raw = result.metadata.get('_raw_stdout_b64', raw)
     needs_projection = (result.metadata.get('native_answer_required')
                         or result.metadata.get('native_answer_projection')
                         or any(result.metadata.get(key) for key in ('links', 'images', 'videos', 'media', 'extras'))
@@ -497,6 +499,7 @@ def run_evaluation(
     reference_policy: str = "fresh",
     case_admission: Any | None = None,
     call_order: str = "provider",
+    collect_only: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
     for name, value, minimum in (
@@ -509,6 +512,8 @@ def run_evaluation(
         if (not isinstance(value, (int, float)) or isinstance(value, bool)
                 or not math.isfinite(value) or value < minimum or (name == 'timeout' and value == 0)):
             raise ValueError(f'{name} must be finite and {"positive" if name == "timeout" else "nonnegative"}')
+    if collect_only and (runs != 1 or max_failure_retries != 0):
+        raise ValueError('Collection-only diagnostics require one run and zero caller retries')
     if call_order not in {"provider", "case-alternating"}:
         raise ValueError("Unsupported call order")
     if call_order == "case-alternating" and provider_concurrency != 1:
@@ -520,6 +525,8 @@ def run_evaluation(
     if not cases or not providers:
         raise ValueError('Execution requires at least one task and provider')
     for provider in providers:
+        if max_failure_retries and not provider.allow_failure_retries:
+            raise ValueError(f"provider {provider.name!r} prohibits caller failure retries")
         if provider.config.get("uniform_native_parameters"):
             if runs != 1:
                 raise ValueError("fixed native calls require one run")
@@ -542,7 +549,9 @@ def run_evaluation(
         contained_path(output_dir, filename)
     if reference_policy not in {"fresh", "frozen_existing"}:
         raise ValueError("unknown reference policy")
-    if reference_policy == "frozen_existing":
+    if collect_only:
+        reference_checks = None
+    elif reference_policy == "frozen_existing":
         # Explicit local measurement of existing rules; no live-source claim.
         from .reference_lifecycle import validate_resource_source_evidence
         for case in cases:
@@ -560,6 +569,9 @@ def run_evaluation(
     from .network_preflight import preflight_guarded_providers
     network_audit = preflight_guarded_providers(providers, cases)
     output_dir.mkdir(parents=True, exist_ok=True)
+    materialize_task_references(
+        output_dir, {name: input_tree(dataset_path, name) for name in ("sources", "list-references")},
+        [case.id for case in cases])
     if network_audit is not None:
         (output_dir / 'network-preflight.json').write_text(
             json.dumps(network_audit, ensure_ascii=False, indent=2) + '\n')
@@ -570,6 +582,7 @@ def run_evaluation(
 
     manifest = {
         "schema_version": 1,
+        "collection_only": collect_only,
         "runtime_source_sha256": hashlib.sha256(SCORING_SOURCE_SHA256.encode()+b'\0'+b'\0'.join(
             p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
             for p in sorted(Path(__file__).parent.rglob('*.py')))).hexdigest(),
@@ -672,12 +685,14 @@ def run_evaluation(
                     binding = reference_checks["cases"].get(case.id) if reference_checks else None
                     # Outside provider exception handling: expired references
                     # stop measurement, never create a supplier failure record.
-                    if reference_policy == "frozen_existing":
+                    if collect_only:
+                        pass
+                    elif reference_policy == "frozen_existing":
                         if hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() != frozen_dataset_sha256:
                             raise ReferenceLifecycleError("Frozen rules changed during the run", "reference_changed")
                     else:
                         check_case_reference_fresh(case, dataset_path, binding)
-                    # Admission waits before the answer timer and 45-second budget.
+                    # Admission waits before the per-call answer timer.
                     admission_token = (case_admission.acquire(provider, case)
                                        if case_admission is not None else None)
                     pending = None
@@ -685,6 +700,7 @@ def run_evaluation(
                     try:
                         started = utc_now()
                         physical_attempts = []
+                        sequence_begin = time.monotonic()
                         stopped_provider = False
                         for physical_attempt in range(1, max_failure_retries + 2):
                             retry_throttle_wait_ms = 0.0
@@ -752,18 +768,19 @@ def run_evaluation(
                                 result.metadata['native_answer_required'] = True
                             artifact = persist_result_artifacts(output_dir, artifact_rel, result, request_url=case.url)
                             artifact_bytes = result.content.encode('utf-8', errors='replace')
-                            measured = score_attempt(
+                            measured = ({'content_sha256': hashlib.sha256(artifact_bytes).hexdigest(),
+                                         'scoring_available': False} if collect_only else score_attempt(
                                 case, artifact_bytes, ok=result.ok, metadata=result.metadata,
                                 title=result.title, final_url=result.final_url,
                                 list_reference=load_list_reference(case, dataset_path.parent),
                                 status_code=result.status_code,
                                 prepared_answer=result.prepared_answer,
-                            )
+                            ))
                             measured['deadline_overrun'] = physical_elapsed_ms > timeout * 1000
                             measured['deadline_budget_ms'] = timeout * 1000
                             if binding is not None:
                                 measured['reference_sha256'] = binding['reference_sha256']
-                            physical_passed = task_passed(result.ok, measured, case.task_kind)
+                            physical_passed = None if collect_only else task_passed(result.ok, measured, case.task_kind)
                             physical_completed = utc_now()
                             call_log = persist_public_call_log(
                                 output_dir, provider=provider, case=case, attempt_id=attempt_id,
@@ -822,6 +839,7 @@ def run_evaluation(
                                                 and pending.is_alive())
                             if physical_passed or stopped_provider or physical_attempt > max_failure_retries:
                                 break
+                        result.metadata['call_sequence_elapsed_ms'] = round((time.monotonic() - sequence_begin) * 1000, 2)
                         elapsed_ms = physical_attempts[-1]['elapsed_ms']
                         result.metadata['call_log'] = physical_attempts[-1]['call_log']
                         if len(physical_attempts) > 1:
@@ -861,12 +879,18 @@ def run_evaluation(
                                 "client_throttle_wait_ms": throttle_wait_ms,
                             },
                         ).to_dict()
-                        apply_request_status(record)
+                        if not collect_only:
+                            apply_request_status(record)
+                        else:
+                            record['scoring'] = {'mode': 'not_scored', 'reason': 'collection_only_diagnostic'}
                         record["completed_at"] = finished
                         from .models import execution_id
                         record['run_id'] = execution_id(record)
-                        passed = task_passed(record['ok'],record['metrics'],case.task_kind)
-                        state = "PASS" if passed else "FAIL"
+                        if collect_only:
+                            state = "RECV" if record["ok"] else "ERR"
+                        else:
+                            passed = task_passed(record['ok'],record['metrics'],case.task_kind)
+                            state = "PASS" if passed else "FAIL"
                         with result_lock:
                             records.append(record)
                             results_file.write(json.dumps(record, ensure_ascii=True) + "\n")
@@ -934,7 +958,9 @@ def run_evaluation(
         encoding="utf-8",
     )
 
-    summary = summarize(records)
+    summary = ({'mode': 'collection_only', 'scoring_state': 'not_scored',
+                'attempt_count': len(records), 'responses_ok': sum(bool(r['ok']) for r in records),
+                'task_pass_rate': None} if collect_only else summarize(records))
     manifest["completed_at"] = utc_now()
     manifest["attempt_count"] = len(records)
     manifest["attempt_ids"] = [r['attempt_id'] for r in records]

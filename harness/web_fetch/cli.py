@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .accounts import print_account_checklist
-from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope, add_failure_retry_argument, DEFAULT_CALL_TIMEOUT_SECONDS
+from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope, resolve_provider_selection, add_failure_retry_argument, DEFAULT_CALL_TIMEOUT_SECONDS
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.models import TASK_KINDS
 from .providers import build_provider
@@ -28,7 +28,8 @@ def command_run(args: argparse.Namespace) -> int:
     load_runtime_env(args.env_file)
     dataset_meta, cases = load_dataset(args.dataset)
     provider_configs = load_provider_config(args.provider_config)
-    names = [name.strip() for name in args.providers.split(",") if name.strip()]
+    selection = resolve_provider_selection(args.providers, args.provider_config)
+    names = [name.strip() for name in selection.split(",") if name.strip()]
     unknown = [name for name in names if name not in provider_configs]
     if unknown:
         raise SystemExit(f"Unknown providers: {', '.join(unknown)}")
@@ -50,7 +51,11 @@ def command_run(args: argparse.Namespace) -> int:
         delay=args.delay,
         provider_concurrency=args.provider_concurrency,
         max_failure_retries=args.max_failure_retries,
+        collect_only=getattr(args, "collect_only", False),
     )
+    if getattr(args, "collect_only", False):
+        print(f"Collected responses and logs: {args.output.resolve()}")
+        return 0
     report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True,
                                language=args.language)
     print(f"Report: {report_path.resolve()}")
@@ -81,7 +86,8 @@ def command_validate(args: argparse.Namespace) -> int:
     load_runtime_env(args.env_file)
     _, cases = load_dataset(args.dataset)
     configs = load_provider_config(args.provider_config)
-    names = [name.strip() for name in args.providers.split(",") if name.strip()]
+    selection = resolve_provider_selection(args.providers, args.provider_config)
+    names = [name.strip() for name in selection.split(",") if name.strip()]
     errors = []
     for name in names:
         if name not in configs:
@@ -114,12 +120,14 @@ def build_parser() -> argparse.ArgumentParser:
     add_language_argument(run, default="en")
     run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
-    run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")
+    run.add_argument("--providers", default="fixture", help="Comma-separated names, or configured for the provider config default cohort")
     run.add_argument("--case-ids", default="", help="Optional comma-separated case IDs")
     run.add_argument("--task-kind", choices=TASK_KINDS,
                      help="Select one task kind; intersects with --case-ids")
     run.add_argument("--runs", type=int, default=1)
     run.add_argument("--timeout", type=float, default=DEFAULT_CALL_TIMEOUT_SECONDS)
+    run.add_argument("--collect-only", action="store_true",
+                     help="Collect one call per case without scoring, retries or a scored report")
     run.add_argument("--delay", type=float, default=0.5)
     run.add_argument(
         "--provider-concurrency",

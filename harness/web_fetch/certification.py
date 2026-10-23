@@ -21,7 +21,7 @@ from harness.web_fetch import (
     webmainbench_runner,
 )
 from harness.web_fetch.reference_inputs import read_dataset_bytes
-from harness.web_fetch.config import DEFAULT_CALL_TIMEOUT_SECONDS, add_failure_retry_argument
+from harness.web_fetch.config import DEFAULT_CALL_TIMEOUT_SECONDS, add_failure_retry_argument, resolve_provider_selection
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -142,7 +142,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--work-root", type=Path, required=True)
-    parser.add_argument("--providers", required=True)
+    parser.add_argument("--providers", required=True, help="Comma-separated names or configured with --provider-config")
     parser.add_argument("--case-ids", required=True)
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--timeout", type=float, default=DEFAULT_CALL_TIMEOUT_SECONDS,
@@ -179,6 +179,10 @@ def main(argv: list[str] | None = None) -> None:
         parser.error("--timeout must be positive and finite")
     if args.provider_config and not args.provider_config.is_file():
         parser.error("--provider-config must be an existing file")
+    try:
+        args.providers = resolve_provider_selection(args.providers, args.provider_config)
+    except ValueError as error:
+        parser.error(str(error))
     if args.call_order == "case-alternating" and (args.workers != 1 or not args.provider_config):
         parser.error("Alternating case calls require --workers 1 and --provider-config")
     if args.browser_capture_attempts < 1:

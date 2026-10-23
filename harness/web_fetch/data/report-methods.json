@@ -404,6 +404,91 @@
         "zh": "离线诊断",
         "en": "Offline diagnostics"
       }
+    },
+    "brightdata_unlocker": {
+      "endpoint": "POST https://api.brightdata.com/request",
+      "interface_method": "brightdata",
+      "contract": {
+        "zh": "已知网址交给 Web Unlocker，返回原生 Markdown。",
+        "en": "Send a known URL to Web Unlocker and retain native Markdown."
+      },
+      "output": "Markdown",
+      "freshness": {
+        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
+        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
+      },
+      "leaderboard": {
+        "zh": "网页文字提取",
+        "en": "Webpage text retrieval"
+      }
+    },
+    "browserbase_fetch": {
+      "endpoint": "POST https://api.browserbase.com/v1/fetch",
+      "interface_method": "browserbase",
+      "contract": {
+        "zh": "通过 Fetch 接口获取网页文字，不替换为浏览器会话。",
+        "en": "Retrieve webpage text through Fetch without substituting a browser session."
+      },
+      "output": "Markdown",
+      "freshness": {
+        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
+        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
+      },
+      "leaderboard": {
+        "zh": "网页文字提取",
+        "en": "Webpage text retrieval"
+      }
+    },
+    "browser_use_fetch": {
+      "endpoint": "POST https://fetch.browser-use.com/fetch",
+      "interface_method": "browser-use-fetch",
+      "contract": {
+        "zh": "通过 fetch-use 获取网页文字，不启动 Agent。",
+        "en": "Retrieve webpage text through fetch-use without an Agent."
+      },
+      "output": "Markdown",
+      "freshness": {
+        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
+        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
+      },
+      "leaderboard": {
+        "zh": "网页文字提取",
+        "en": "Webpage text retrieval"
+      }
+    },
+    "deepseek_fetch": {
+      "endpoint": "POST https://api.deepseek.com/v1/tools/fetch",
+      "interface_method": "deepseek-fetch-api",
+      "contract": {
+        "zh": "只发送网址；正文与标题分别保留。",
+        "en": "Send only the URL; retain content and title separately."
+      },
+      "output": "Markdown",
+      "freshness": {
+        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
+        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
+      },
+      "leaderboard": {
+        "zh": "网页文字提取",
+        "en": "Webpage text retrieval"
+      }
+    },
+    "crawl4ai_cloud": {
+      "endpoint": "POST https://api.crawl4ai.com/scrape",
+      "interface_method": "crawl4ai-cloud",
+      "contract": {
+        "zh": "调用 Cloud 抓取接口，与本机开源库分别登记。",
+        "en": "Call the Cloud scrape API, registered separately from the local library."
+      },
+      "output": "Markdown",
+      "freshness": {
+        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
+        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
+      },
+      "leaderboard": {
+        "zh": "网页文字提取",
+        "en": "Webpage text retrieval"
+      }
     }
   },
   "route_labels": {
@@ -5180,22 +5265,14 @@
         "zh": "Browserbase Fetch",
         "en": "Browserbase Fetch"
       },
-      "status": "planned",
+      "status": "implemented",
       "source_url": "https://www.browserbase.com/sign-up",
       "access": {
         "type": "hosted",
         "env_vars": [
-          "BROWSERBASE_API_KEY",
-          "BROWSERBASE_PROJECT_ID"
+          "BROWSERBASE_API_KEY"
         ],
         "links": [
-          [
-            {
-              "zh": "注册 / 登录",
-              "en": "Register / sign in"
-            },
-            "https://www.browserbase.com/sign-up"
-          ],
           [
             {
               "zh": "获取凭据",
@@ -5205,17 +5282,67 @@
           ]
         ],
         "account": {
-          "zh": "官方页面存在契约冲突；打分前必须先以账号内实际接口核验。",
-          "en": "Official pages describe conflicting contracts; verify the account-specific interface before scoring."
+          "zh": "需要服务账号及可用额度。",
+          "en": "Requires a service account and available quota."
         },
         "configuration": {
-          "zh": "注册后创建或选择项目，从 Overview 控制台复制 API key 与 Project ID。",
-          "en": "After registering, create or select a project and copy its API key and Project ID from Overview."
+          "zh": "在本地 .env 中配置所列变量。",
+          "en": "Set the listed variables in the local .env file."
         },
         "required": true,
         "priority": {
-          "zh": "B · 已知 URL 抓取候选",
-          "en": "B · Known-URL fetch candidate"
+          "zh": "B · 已知 URL 抓取",
+          "en": "B · Known-URL fetch"
+        }
+      },
+      "kind": "adapter",
+      "adapter_types": [
+        "browserbase_fetch"
+      ],
+      "profile": {
+        "kind": {
+          "zh": "托管 API",
+          "en": "Managed API"
+        },
+        "description": {
+          "zh": "通过原生接口获取网页文字，保存原始响应和调用日志。",
+          "en": "Retrieve webpage text through the native API, retaining raw responses and call logs."
+        }
+      },
+      "interface": {
+        "entry": "POST https://api.browserbase.com/v1/fetch",
+        "auth": "X-BB-API-Key: <API_KEY>",
+        "params": [
+          [
+            "url",
+            {
+              "zh": "string · 必填",
+              "en": "string · required"
+            },
+            {
+              "zh": "本题提供的网址",
+              "en": "The task URL"
+            }
+          ]
+        ],
+        "fields": [
+          [
+            "content",
+            "string",
+            {
+              "zh": "原生返回的正文；不根据标准答案补全",
+              "en": "Native returned text; never completed from reference answers"
+            }
+          ]
+        ],
+        "request": {
+          "url": "https://example.com/",
+          "format": "markdown"
+        },
+        "source": "harness/web_fetch/providers/hosted_fetch.py",
+        "notes": {
+          "zh": "这是接口示例，不代表历史调用参数。渲染、代理、引擎、输出格式和时间预算以保存的配置及请求日志为准。保存完整原始响应，不补抓或补写正文；调用端日志不等于服务内部日志。",
+          "en": "This interface example does not establish historical call parameters. Rendering, proxy, engine, output format and time budget come from saved configuration and request logs. Preserve the complete response without supplemental retrieval or content repair; caller logs are not service-internal traces."
         }
       }
     },
@@ -5418,7 +5545,7 @@
         "zh": "Bright Data Web Unlocker",
         "en": "Bright Data Web Unlocker"
       },
-      "status": "planned",
+      "status": "implemented",
       "source_url": "https://brightdata.com/cp/start",
       "access": {
         "type": "hosted",
@@ -5429,13 +5556,6 @@
         "links": [
           [
             {
-              "zh": "注册 / 登录",
-              "en": "Register / sign in"
-            },
-            "https://brightdata.com/cp/start"
-          ],
-          [
-            {
               "zh": "获取凭据",
               "en": "Get credentials"
             },
@@ -5443,17 +5563,69 @@
           ]
         ],
         "account": {
-          "zh": "需要账号、计费或试用资格，以及 Web Unlocker zone。",
-          "en": "Requires an account, billing or trial eligibility, and a Web Unlocker zone."
+          "zh": "需要服务账号及可用额度。",
+          "en": "Requires a service account and available quota."
         },
         "configuration": {
-          "zh": "注册账号，创建 Web Unlocker zone，再复制 API token 与 zone 名称。",
-          "en": "Register, create a Web Unlocker zone and copy the API token and zone name."
+          "zh": "在本地 .env 中配置所列变量。",
+          "en": "Set the listed variables in the local .env file."
         },
         "required": true,
         "priority": {
-          "zh": "C · 解锁场景数据集",
-          "en": "C · Access-unblocking dataset"
+          "zh": "B · 已知 URL 抓取",
+          "en": "B · Known-URL fetch"
+        }
+      },
+      "kind": "adapter",
+      "adapter_types": [
+        "brightdata_unlocker"
+      ],
+      "profile": {
+        "kind": {
+          "zh": "托管 API",
+          "en": "Managed API"
+        },
+        "description": {
+          "zh": "通过原生接口获取网页文字，保存原始响应和调用日志。",
+          "en": "Retrieve webpage text through the native API, retaining raw responses and call logs."
+        }
+      },
+      "interface": {
+        "entry": "POST https://api.brightdata.com/request",
+        "auth": "Authorization: Bearer <API_KEY>",
+        "params": [
+          [
+            "url",
+            {
+              "zh": "string · 必填",
+              "en": "string · required"
+            },
+            {
+              "zh": "本题提供的网址",
+              "en": "The task URL"
+            }
+          ]
+        ],
+        "fields": [
+          [
+            "HTTP response body",
+            "string",
+            {
+              "zh": "原生返回的正文；不根据标准答案补全",
+              "en": "Native returned text; never completed from reference answers"
+            }
+          ]
+        ],
+        "request": {
+          "url": "https://example.com/",
+          "zone": "<ZONE>",
+          "format": "raw",
+          "data_format": "markdown"
+        },
+        "source": "harness/web_fetch/providers/hosted_fetch.py",
+        "notes": {
+          "zh": "这是接口示例，不代表历史调用参数。渲染、代理、引擎、输出格式和时间预算以保存的配置及请求日志为准。保存完整原始响应，不补抓或补写正文；调用端日志不等于服务内部日志。",
+          "en": "This interface example does not establish historical call parameters. Rendering, proxy, engine, output format and time budget come from saved configuration and request logs. Preserve the complete response without supplemental retrieval or content repair; caller logs are not service-internal traces."
         }
       }
     },
@@ -5663,6 +5835,263 @@
         "priority": {
           "zh": "C · 抓取 API 对比",
           "en": "C · Fetch API comparison"
+        }
+      }
+    },
+    "browser-use-fetch": {
+      "label": {
+        "zh": "Browser Use Fetch",
+        "en": "Browser Use Fetch"
+      },
+      "source_url": "https://cloud.browser-use.com/settings?tab=api-keys",
+      "status": "implemented",
+      "kind": "adapter",
+      "adapter_types": [
+        "browser_use_fetch"
+      ],
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "BROWSER_USE_API_KEY"
+        ],
+        "required": true,
+        "priority": {
+          "zh": "B · 已知 URL 抓取",
+          "en": "B · Known-URL fetch"
+        },
+        "links": [
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://cloud.browser-use.com/settings?tab=api-keys"
+          ]
+        ],
+        "configuration": {
+          "zh": "在本地 .env 中配置所列变量。",
+          "en": "Set the listed variables in the local .env file."
+        },
+        "account": {
+          "zh": "需要服务账号及可用额度。",
+          "en": "Requires a service account and available quota."
+        }
+      },
+      "profile": {
+        "kind": {
+          "zh": "托管 API",
+          "en": "Managed API"
+        },
+        "description": {
+          "zh": "通过原生接口获取网页文字，保存原始响应和调用日志。",
+          "en": "Retrieve webpage text through the native API, retaining raw responses and call logs."
+        }
+      },
+      "interface": {
+        "entry": "POST https://fetch.browser-use.com/fetch",
+        "auth": "X-Browser-Use-API-Key: <API_KEY>",
+        "params": [
+          [
+            "url",
+            {
+              "zh": "string · 必填",
+              "en": "string · required"
+            },
+            {
+              "zh": "本题提供的网址",
+              "en": "The task URL"
+            }
+          ]
+        ],
+        "fields": [
+          [
+            "body",
+            "string",
+            {
+              "zh": "原生返回的正文；不根据标准答案补全",
+              "en": "Native returned text; never completed from reference answers"
+            }
+          ]
+        ],
+        "request": {
+          "url": "https://example.com/",
+          "output_format": "markdown"
+        },
+        "source": "harness/web_fetch/providers/hosted_fetch.py",
+        "notes": {
+          "zh": "这是接口示例，不代表历史调用参数。渲染、代理、引擎、输出格式和时间预算以保存的配置及请求日志为准。保存完整原始响应，不补抓或补写正文；调用端日志不等于服务内部日志。",
+          "en": "This interface example does not establish historical call parameters. Rendering, proxy, engine, output format and time budget come from saved configuration and request logs. Preserve the complete response without supplemental retrieval or content repair; caller logs are not service-internal traces."
+        }
+      }
+    },
+    "deepseek-fetch-api": {
+      "label": {
+        "zh": "DeepSeek Fetch API",
+        "en": "DeepSeek Fetch API"
+      },
+      "source_url": "https://platform.deepseek.com/api_keys",
+      "status": "implemented",
+      "kind": "adapter",
+      "adapter_types": [
+        "deepseek_fetch"
+      ],
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "DEEPSEEK_API_KEY"
+        ],
+        "required": true,
+        "priority": {
+          "zh": "B · 已知 URL 抓取",
+          "en": "B · Known-URL fetch"
+        },
+        "links": [
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://platform.deepseek.com/api_keys"
+          ]
+        ],
+        "configuration": {
+          "zh": "在本地 .env 中配置所列变量。",
+          "en": "Set the listed variables in the local .env file."
+        },
+        "account": {
+          "zh": "需要服务账号及可用额度。",
+          "en": "Requires a service account and available quota."
+        }
+      },
+      "profile": {
+        "kind": {
+          "zh": "托管 API",
+          "en": "Managed API"
+        },
+        "description": {
+          "zh": "通过原生接口获取网页文字，保存原始响应和调用日志。",
+          "en": "Retrieve webpage text through the native API, retaining raw responses and call logs."
+        }
+      },
+      "interface": {
+        "entry": "POST https://api.deepseek.com/v1/tools/fetch",
+        "auth": "Authorization: Bearer <API_KEY>",
+        "params": [
+          [
+            "url",
+            {
+              "zh": "string · 必填",
+              "en": "string · required"
+            },
+            {
+              "zh": "本题提供的网址",
+              "en": "The task URL"
+            }
+          ]
+        ],
+        "fields": [
+          [
+            "content; title",
+            "string",
+            {
+              "zh": "原生返回的正文；不根据标准答案补全",
+              "en": "Native returned text; never completed from reference answers"
+            }
+          ]
+        ],
+        "request": {
+          "url": "https://example.com/"
+        },
+        "source": "harness/web_fetch/providers/hosted_fetch.py",
+        "notes": {
+          "zh": "这是接口示例，不代表历史调用参数。渲染、代理、引擎、输出格式和时间预算以保存的配置及请求日志为准。保存完整原始响应，不补抓或补写正文；调用端日志不等于服务内部日志。",
+          "en": "This interface example does not establish historical call parameters. Rendering, proxy, engine, output format and time budget come from saved configuration and request logs. Preserve the complete response without supplemental retrieval or content repair; caller logs are not service-internal traces."
+        }
+      }
+    },
+    "crawl4ai-cloud": {
+      "label": {
+        "zh": "Crawl4AI Cloud",
+        "en": "Crawl4AI Cloud"
+      },
+      "source_url": "https://api.crawl4ai.com/docs/",
+      "status": "implemented",
+      "kind": "adapter",
+      "adapter_types": [
+        "crawl4ai_cloud"
+      ],
+      "access": {
+        "type": "hosted",
+        "env_vars": [
+          "CRAWL4AI_CLOUD_API_KEY"
+        ],
+        "required": true,
+        "priority": {
+          "zh": "B · 已知 URL 抓取",
+          "en": "B · Known-URL fetch"
+        },
+        "links": [
+          [
+            {
+              "zh": "获取凭据",
+              "en": "Get credentials"
+            },
+            "https://crawl4ai.com/dashboard/"
+          ]
+        ],
+        "configuration": {
+          "zh": "在本地 .env 中配置所列变量。",
+          "en": "Set the listed variables in the local .env file."
+        },
+        "account": {
+          "zh": "需要服务账号及可用额度。",
+          "en": "Requires a service account and available quota."
+        }
+      },
+      "profile": {
+        "kind": {
+          "zh": "托管 API",
+          "en": "Managed API"
+        },
+        "description": {
+          "zh": "通过原生接口获取网页文字，保存原始响应和调用日志。",
+          "en": "Retrieve webpage text through the native API, retaining raw responses and call logs."
+        }
+      },
+      "interface": {
+        "entry": "POST https://api.crawl4ai.com/scrape",
+        "auth": "Authorization: Bearer <API_KEY>",
+        "params": [
+          [
+            "url",
+            {
+              "zh": "string · 必填",
+              "en": "string · required"
+            },
+            {
+              "zh": "本题提供的网址",
+              "en": "The task URL"
+            }
+          ]
+        ],
+        "fields": [
+          [
+            "markdown",
+            "string",
+            {
+              "zh": "原生返回的正文；不根据标准答案补全",
+              "en": "Native returned text; never completed from reference answers"
+            }
+          ]
+        ],
+        "request": {
+          "url": "https://example.com/",
+          "format": "md"
+        },
+        "source": "harness/web_fetch/providers/hosted_fetch.py",
+        "notes": {
+          "zh": "这是接口示例，不代表历史调用参数。渲染、代理、引擎、输出格式和时间预算以保存的配置及请求日志为准。保存完整原始响应，不补抓或补写正文；调用端日志不等于服务内部日志。",
+          "en": "This interface example does not establish historical call parameters. Rendering, proxy, engine, output format and time budget come from saved configuration and request logs. Preserve the complete response without supplemental retrieval or content repair; caller logs are not service-internal traces."
         }
       }
     }

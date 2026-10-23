@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 _LOCAL = threading.local()
-_SECRET = {"authorization", "proxy-authorization", "cookie", "set-cookie", "api_key", "apikey", "api-key", "x-api-key", "token", "password", "secret"}
+_SECRET = {"authorization", "proxy-authorization", "cookie", "set-cookie", "api_key", "apikey", "api-key", "x-api-key", "x-bb-api-key", "x-browser-use-api-key", "token", "password", "secret"}
 
 def redact(value):
     if isinstance(value, dict):

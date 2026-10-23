@@ -369,6 +369,9 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
+    manifest_path = contained_path(source, 'manifest.json')
+    if manifest_path.is_file() and json.loads(manifest_path.read_text()).get('collection_only'):
+        raise ValueError('Collection-only evidence has no scores; explicitly rescore before building a scored report')
     if source == output or output in source.parents:
         raise ValueError('Report output must not contain its evidence source')
     marker = '.generated-report'

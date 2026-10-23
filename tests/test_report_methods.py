@@ -269,3 +269,23 @@ def test_method_model_selects_direct_english_fields_without_reverse_translation(
     assert '1/1 records' in observed['configuration']
     assert not re.search(r'[\u4e00-\u9fff]', observed['configuration'])
 
+
+
+def test_hosted_interfaces_follow_adapter_identity_in_external_cohorts():
+    from harness.web_fetch.report_interfaces import method_spec
+    from harness.web_fetch.methods import method_info
+    adapters = ('brightdata_unlocker', 'browser_use_fetch', 'browserbase_fetch',
+                'deepseek_fetch', 'crawl4ai_cloud')
+    for adapter in adapters:
+        record = {'provider': 'external-participant', 'provider_type': adapter,
+                  'provider_metadata': {}}
+        for language in ('zh', 'en'):
+            spec = method_spec('external-participant', record, language=language)
+            assert spec['entry'] == method_info(adapter, language=language)['endpoint']
+            assert spec['request']['url'] == 'https://example.com/'
+            assert spec['source'] == 'harness/web_fetch/providers/hosted_fetch.py'
+            assert spec['fields']
+            assert 'API_KEY' in spec['auth']
+        english = method_spec('external-participant', record, language='en')
+        assert 'historical call parameters' in english['notes']
+        assert not any('\u3400' <= char <= '\u9fff' for char in str(english))
