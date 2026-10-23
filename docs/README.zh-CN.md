@@ -178,7 +178,7 @@ make ci
 
 ## 引用 Browser Eval
 
-在公开作品中使用本脚手架时，请引用仓库，并记录实际使用的 tag 或提交。任务定义与评测方法请另行引用 LexBench Web Fetch 或对应 benchmark。GitHub 的引用入口读取 [CITATION.cff](../CITATION.cff)。首个版本可这样引用：
+使用以下引用或 [CITATION.cff](../CITATION.cff)，并注明实际使用的提交。
 
 ```bibtex
 @software{browser_eval_2026,
@@ -189,11 +189,3 @@ make ci
   url = {https://github.com/lexmount/browser-eval}
 }
 ```
-
-使用上游 benchmark 的数据、评估器或方法时，还应分别引用原项目；引用本仓库不能代替上游的署名要求。
-
-更新锁定的 LexBench 评分库时，运行 `make bump-lexbench REV=<已合入提交的完整哈希>`。命令会核对提交是否属于上游 main、重新生成锁文件与定义文件摘要，并列出变化。历史报告证书保留当时的评分库标识。
-
-Web Fetch 的方法介绍、接口、账号要求、能力来源及中英文文案统一维护在 `harness/web_fetch/data/report-methods.json`。新增产品时修改这份资料；程序版本和运行参数读取保存的证据。登记示例与实测调用的区别见[方法资料说明](../harness/web_fetch/README.md#report-method-metadata)。
-
-新增产品或更换版本需要修改哪些配置和代码，见[新增方法或版本步骤](../harness/web_fetch/README.md#adding-a-method-or-release)。
