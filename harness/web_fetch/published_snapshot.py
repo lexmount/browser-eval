@@ -64,6 +64,11 @@ def validate_snapshot_audit(source, profile_path):
     records = load_jsonl(inputs['results'])
     receipt = json.loads(inputs['receipt'].read_text())
     audit = json.loads(inputs['review'].read_text())
+    scoring_source = SCORING_SOURCE_SHA256
+    if config.get('benchmark_release'):
+        from .report_version import load_release
+        _, release = load_release(source, dataset, records, profile=profile_path)
+        scoring_source = release['scoring_source_sha256']
     old_cases = {row['id']: row for row in baseline['cases']}
     cases = {row['id']: row for row in dataset['cases']}
     old_rows = {row['attempt_id']: row for row in previous}
@@ -75,7 +80,7 @@ def validate_snapshot_audit(source, profile_path):
     if (receipt.get('kind') != 'published_snapshot_rescore' or receipt.get('provider_calls_added') != 0
             or receipt.get('input_dataset_sha256') != file_sha256(source / 'dataset.json')
             or receipt.get('input_results_sha256') != file_sha256(source / 'results.jsonl')
-            or receipt.get('scoring_source_sha256') != SCORING_SOURCE_SHA256
+            or receipt.get('scoring_source_sha256') != scoring_source
             or receipt.get('corrected_dataset_sha256') != canonical_json_sha256(dataset)):
         raise ValueError('Snapshot audit does not bind the saved calls and current scorer')
     correction_provenance(**config['correction_provenance'])
@@ -96,7 +101,7 @@ def validate_snapshot_audit(source, profile_path):
         if (view['path'] != old['artifact_path'] or view['published_sha256'] != file_sha256(artifact)
                 or view['original_sha256'] != old['metrics']['content_sha256']
                 or row['metrics']['content_sha256'] != view['scored_sha256']
-                or row['metrics']['scoring_source_sha256'] != SCORING_SOURCE_SHA256
+                or row['metrics']['scoring_source_sha256'] != scoring_source
                 or row.get('scoring', {}).get('artifact_view') != view['view']):
             raise ValueError('Snapshot audit artifact identity changed: ' + identifier)
         expected = {'original': view['original_sha256'], 'recovered_original': view['original_sha256'],
@@ -212,6 +217,8 @@ def build_snapshot_audit(source, output, *, profile):
         (staging / 'dataset.json').write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n')
         shutil.copy2(inputs['results'], staging / 'results.jsonl')
         batches = json.loads((staging / 'execution.json').read_text())['batches']
+        from .report_version import bind_release
+        release_binding = bind_release(source, staging, dataset, records, profile=profile)
         generate(staging, dataset, records, batches, authored_interpretation=True, frozen_scores=True)
         write_frozen_result_summary(staging, dataset, records)
         (staging / '.generated-report').write_text('webfetch\n')
@@ -221,6 +228,8 @@ def build_snapshot_audit(source, output, *, profile):
             'results_sha256':file_sha256(staging/'results.jsonl'),
             'generated_languages':list(generated_languages(staging)),
             'score_audit':comparison['score_audit'], 'profile_sha256':file_sha256(profile)}
+        if release_binding:
+            manifest['benchmark_release'] = release_binding
         (staging/'report-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
         check_snapshot_audit(staging)
         _install_report_tree(staging, output)
@@ -241,6 +250,8 @@ def check_snapshot_audit(root):
             raise ValueError('Snapshot audit input changed: '+name)
     dataset = json.loads((root/'dataset.json').read_text())
     rows = load_jsonl(root/'results.jsonl')
+    from .report_version import check_release
+    check_release(root, dataset, rows)
     if dataset.get('definition_revision'):
         revision_path=_bound(root,dataset['definition_revision'])
         historical=root/'audit/history/dataset.json'

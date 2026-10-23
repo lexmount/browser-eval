@@ -27,6 +27,11 @@ Test both accepted and rejected scenarios. Fix scoring rules rather than editing
 
 Write documentation in English. Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Preserve original task text, quotations and frozen acceptance inputs. Reports follow their track's language settings.
 
+Benchmark changes follow [benchmark editions](docs/benchmarks.md#benchmark-editions).
+Keep human-readable editions, immutable dataset/scorer hashes and the package
+commit together. A minor scoring correction requires common-edition rescoring;
+changed task populations or requests require a major edition.
+
 ## PR and commit titles
 
 Use `<type>(<scope>): <summary>` for PR titles and new commit subjects. The scope is optional; use the module or feature affected, such as `scoring` or `webfetch`.
