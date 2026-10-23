@@ -168,6 +168,7 @@ def test_moli_actual_result_evidence_loader_and_keyboard_return(tmp_path, browse
     from pathlib import Path
     source = Path(__file__).resolve().parents[1] / 'scripts/moli_report'
     html = (source / 'index.html').read_text().replace('{{lang}}', 'zh').replace('{{base}}', '')
+    html = html.replace('{{messages}}', (source / 'messages.json').read_text())
     html = html.replace('<script defer src="mermaid.min.js"></script>', '')
     (tmp_path / 'style.css').write_text((source / 'style.css').read_text())
     (tmp_path / 'index.html').write_text(html)
@@ -227,12 +228,12 @@ def activate_and_check_layout(page, display):
 
 def test_generated_browser_use_success_failure_and_evidence_viewer(tmp_path, monkeypatch, browser, display):
     from tests.browser_use.test_report import build_browser_use_fixture
-    output = build_browser_use_fixture(tmp_path, monkeypatch)
+    output, _, _ = build_browser_use_fixture(tmp_path, monkeypatch, failed=True)
     with local_report_server(output) as origin:
         page = local_page(browser, origin, **display)
         try:
             for method in ("chromium", "moli"):
-                page.goto(origin + '/results/model-a-' + method + '-44.html?report-language=zh')
+                page.goto(origin + '/results/gpt-5.6-sol-' + method + '-44.html?report-language=zh')
                 activate_and_check_layout(page, display)
                 link = page.locator('a[href*="evidence-viewer.html?src="]').first
                 assert link.count() == 1
@@ -248,7 +249,7 @@ def test_generated_browser_use_success_failure_and_evidence_viewer(tmp_path, mon
 
 def test_generated_replay_success_failure_steps_and_viewer(tmp_path, monkeypatch, browser, display):
     from tests.trajectory_replay.test_webarena_report import build_replay_fixture
-    output = build_replay_fixture(tmp_path, monkeypatch, failed=True)
+    output, *_ = build_replay_fixture(tmp_path, monkeypatch, failed=True)
     with hosted_preview(output) as origin:
         page = local_page(browser, origin, **display)
         try:
