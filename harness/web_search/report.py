@@ -2650,7 +2650,8 @@ def factual_panel(profile, selected, zh, *, compact=False):
             'This includes returned summaries and bodies after the same explicit-mirror exclusion. Added means absent when disabled and present when enabled; lost is the reverse. Search results can change, so this is the overall option effect rather than a fixed-page body-only gain.'
         ) + '</p>' + table([report_text('text_e5d4c3fe74891d30'), report_text('text_4e114db7ef22ed94'), report_text('text_741c5d468d053162'), report_text('text_f24f7c9c6114f123'), report_text('text_0006d696d8e1ec28'), report_text('text_b3206f118ce9374b')] if zh else
             ['Enabled mode', 'Pairs', 'Disabled hits', 'Enabled hits', 'Added', 'Lost'], extra)
-    if any(c.get('answer_match_rule') == 'published-answers/2' for c in cases.values()):
+    from lexbench_websearch.answer_rules import POLICY_NAME
+    if any(c.get('answer_match_rule') == POLICY_NAME for c in cases.values()):
         return body + '<p class="muted">' + (
             report_text('text_0f0231d2c5b6ab86')
             if zh else

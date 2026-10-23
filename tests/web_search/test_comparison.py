@@ -34,6 +34,20 @@ def test_scoped_acceptance_keeps_unlabelled_and_missing_unknown():
     assert acceptance(p["cases"][2], rows[6], "primary") is None
 
 
+def test_factual_explanation_follows_the_installed_answer_policy(monkeypatch):
+    from lexbench_websearch import answer_rules
+    from harness.web_search.report import factual_panel
+
+    profile, rows = matrix()
+    profile["protocol"] = {"top_k": 5}
+    monkeypatch.setattr(answer_rules, "POLICY_NAME", "published-answers/99")
+    case = next(case for case in profile["cases"] if "reference_answer" in case)
+    case["answer_match_rule"] = answer_rules.POLICY_NAME
+    assert "explicit aliases and allowed numeric ranges" in factual_panel(profile, rows, False)
+    del case["answer_match_rule"]
+    assert "requires consecutive whole tokens" in factual_panel(profile, rows, False)
+
+
 def test_output_previews_are_bounded_and_keep_missing_and_empty_distinct():
     p,rows = matrix()
     rows[0]["results"] = []
