@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "external_benchmark_binding",
   "repository": "https://github.com/lexmount/lexbench-websearch",
-  "revision": "dc5dc3340035bc77abe57bb24a8d945351bc4790",
+  "revision": "6dfcbe99b92622a15ebb15edb3e9d9ca0c68307c",
   "datasets": {
     "scenarios-v1": {
       "path": "datasets/scenarios-v1.json",
@@ -22,6 +22,6 @@
   },
   "definition_files": {
     "registry.json": "4b1a17f5a5b19c423aa450c9ce8dac97fb1cf32ce6df56c20e68058126debd8d",
-    "benchmark-release.json": "002e2a365dbe4e9b41ce6243f1e0f7459a31cc85e89223af0a9a4587ecb10219"
+    "benchmark-release.json": "47fd3d011cdb486bc1257c55f8eb4ecf3c86f32f20052937854f1c818ad5a3b6"
   }
 }

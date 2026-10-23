@@ -1,5 +1,7 @@
 # Benchmark ownership
 
+`lexmount/lexbench-websearch` owns Web Search datasets, provenance, reference qualifications and provider-independent scoring. Import its pinned package and resolve definitions through `lexbench_websearch.inputs`; keep execution adapters and report tooling in Browser Eval. Store report instances outside Git and retain only reusable benchmark hash bindings in `evaluation/`.
+
 Browser Eval owns execution adapters, evidence handling and report tooling. `lexmount/lexbench-webfetch` owns Web Fetch task populations, task models, deterministic acceptance scoring, compilation and frozen definition files. Import its pinned package directly; do not duplicate or re-export retired evaluator modules here. Resolve frozen historical catalogs/manifests through `lexbench_webfetch.inputs.definition_path`; keep experiment profiles and compact hash bindings in `evaluation/`. WebMainBench, WCXB and WebArena retain their own upstream task authorities.
 
 # Report maintenance
