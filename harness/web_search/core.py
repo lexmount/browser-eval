@@ -101,9 +101,9 @@ def validate_profile(profile):
     query_limit = 4096 if protocol.get("preserve_publisher_queries") else 128
     for method in methods:
         canonical_url(method["endpoint"])
-        from .adapters import adapter_for
+        from .adapters import adapter_for, BILLING_POLICIES
         adapter_for(method["adapter"])
-        if method.get("billing", "unknown") not in {"unknown", "http-200", "http-200-nonempty"}:
+        if method.get("billing", "unknown") not in BILLING_POLICIES:
             raise ValueError("Unsupported billing policy")
         for case in cases:
             query = request_body(method["adapter"], case, protocol, method.get("output_options"))["query"]

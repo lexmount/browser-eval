@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 import re
 
+BILLING_POLICIES = frozenset({'unknown', 'http-200', 'http-200-nonempty'})
 
 @dataclass(frozen=True)
 class Adapter:
@@ -10,12 +11,12 @@ class Adapter:
     authorization_header: str = "Authorization"
     authorization_prefix: str = "Bearer "
     response: object = None
-    telemetry: bool = False
+    telemetry: object = False
 
     def cost(self, method, status, transport_exit, payload):
         price = method.get("price_per_1000")
         policy = method.get("billing", "unknown")
-        if policy not in {"unknown", "http-200", "http-200-nonempty"}:
+        if policy not in BILLING_POLICIES:
             raise ValueError("Unsupported billing policy")
         if policy == "unknown" or price is None or transport_exit:
             return None
@@ -32,6 +33,8 @@ class Adapter:
         return price / 1000
 
     def timing(self, payload):
+        if callable(self.telemetry):
+            return self.telemetry(payload)
         if not self.telemetry or not isinstance(payload, dict):
             return {}
         return {key: payload.get(key) for key in ("timing", "usage", "cache", "attempts", "stop_reason", "coverage")}

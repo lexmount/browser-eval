@@ -27,7 +27,7 @@ from lexbench_websearch.evidence_quality import factual_sensitivity, CONTAMINATI
 from .diagnostics import operational
 from .runner import reference_available, reference_changes
 from .profiles import load_profile, _bound
-from lexbench_websearch.revisions import apply_identity_correction
+from harness.web_search.revisions import apply_identity_correction
 from .relevance import verify_provenance
 from lexbench_websearch.relevance import score as score_relevance, summary as relevance_summary
 
@@ -426,9 +426,9 @@ def build(
         }
     assessment_revision = None
     if authored.get("assessment_revision"):
-        from lexbench_websearch.revisions import apply_report_revision
-        from lexbench_websearch.revisions import validate_revision_binding
-        validate_revision_binding(authored["assessment_revision"])
+        from harness.web_search.revisions import apply_report_revision
+        from harness.web_search.revisions import validate_revision_binding
+        validate_revision_binding(authored["assessment_revision"], authority=authority)
         profile, rows, changes = apply_report_revision(profile, rows, authored["assessment_revision"])
         assessment_revision = {"contract": authored["assessment_revision"], "changes": changes, "implementation_sha256": {name: digest(path.read_bytes()) for name, path in implementation_sources().items()}}
     profile, rows = project_comparison(profile, rows, authored)
@@ -441,11 +441,11 @@ def build(
     routes = []
     selected = [r for r in rows if r["round"] == profile["protocol"]["score_round"]]
     review_data = json.loads(review.read_text()) if review else None
+    relevance_data = json.loads(relevance.read_text()) if relevance else None
     if review is not None:
         from .review import validate_public_review
-        validate_public_review(profile, selected, review_data, authority=authority)
+        validate_public_review(profile, selected, review_data, authority=authority, relevance=relevance_data)
         write_json(output / "independent-review.json", review_data)
-    relevance_data = json.loads(relevance.read_text()) if relevance else None
     if relevance_data:
         if "plan" not in relevance_data:
             from .relevance import import_annotations
@@ -477,7 +477,7 @@ def build(
         bundle.append({"path": "independent-review.json", "sha256": digest((output / "independent-review.json").read_bytes())})
     factual_cases = {c["id"]: c for c in profile["cases"] if "reference_answer" in c}
     if factual_cases:
-        sensitivity = {r["id"]: factual_sensitivity(factual_cases[r["case_id"]], r["results"]) for r in selected if r["case_id"] in factual_cases}
+        sensitivity = {r["id"]: factual_sensitivity(factual_cases[r["case_id"]], r["results"], cutoff=profile["protocol"]["top_k"]) for r in selected if r["case_id"] in factual_cases}
         write_json(output / "factual-sensitivity.json", {"schema": "factual-sensitivity/1", "timing": "post-hoc diagnostic; no recollection or rank compaction", "rule": CONTAMINATION_RULE, "results": sensitivity})
         bundle.append({"path": "factual-sensitivity.json", "sha256": digest((output / "factual-sensitivity.json").read_bytes())})
     if relevance_data:
@@ -1320,7 +1320,7 @@ def check(output, *, return_data=False, evidence_only=False):
         if digest(review_path.read_bytes()) != manifest["independent_review_sha256"]:
             raise ValueError("Independent review evidence hash mismatch")
         review_data = json.loads(review_path.read_bytes())
-        validate_public_review(manifest["profile"], manifest["rows"], review_data, authority=authority)
+        validate_public_review(manifest["profile"], manifest["rows"], review_data, authority=authority, relevance=json.loads((output / "relevance-judgments.json").read_bytes()) if manifest.get("relevance_sha256") else None)
         for lang in manifest["languages"]:
             prefix = "" if lang == "zh" else lang + "/"
             if prefix + "review.html" not in manifest["routes"]:
@@ -1353,7 +1353,7 @@ def check(output, *, return_data=False, evidence_only=False):
         sensitivity_path = output / "factual-sensitivity.json"
         sensitivity = json.loads(sensitivity_path.read_text())
         expected_sensitivity = {
-            row["id"]: factual_sensitivity(factual_cases[row["case_id"]], row["results"], rule=sensitivity.get("rule"))
+            row["id"]: factual_sensitivity(factual_cases[row["case_id"]], row["results"], rule=sensitivity.get("rule"), cutoff=manifest["profile"]["protocol"]["top_k"])
             for row in manifest["rows"] if row["case_id"] in factual_cases
         }
         if sensitivity.get("results") != expected_sensitivity:
@@ -1464,7 +1464,7 @@ def check(output, *, return_data=False, evidence_only=False):
         if changes != expected_changes:
             raise ValueError("Scoring revision provenance mismatch")
         if manifest.get("assessment_revision"):
-            from lexbench_websearch.revisions import apply_report_revision
+            from harness.web_search.revisions import apply_report_revision
             revised, _, _ = apply_report_revision(revised, [], manifest["assessment_revision"]["contract"])
         revised, _ = project_comparison(revised, [], manifest.get("authored") or {})
         if manifest.get("report_assessment"):
@@ -1472,7 +1472,9 @@ def check(output, *, return_data=False, evidence_only=False):
         if revised != manifest["profile"]:
             raise ValueError("Scoring revision profile mismatch")
     elif manifest.get("assessment_revision"):
-        from lexbench_websearch.revisions import apply_report_revision
+        from harness.web_search.revisions import apply_report_revision
+        from harness.web_search.revisions import validate_revision_binding
+        validate_revision_binding(manifest['assessment_revision']['contract'], authority=authority)
         revised, _, _ = apply_report_revision(manifest["collection_profile"], [], manifest["assessment_revision"]["contract"])
         revised, _ = project_comparison(revised, [], manifest.get("authored") or {})
         if manifest.get("report_assessment"):

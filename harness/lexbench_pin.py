@@ -18,22 +18,22 @@ HINT = "Run make bump-lexbench REV=<merged-commit>."
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def project_pin(project: dict) -> tuple[str, str]:
+def project_pin(project: dict, name: str = NAME) -> tuple[str, str]:
     matches = [item for item in project["project"]["dependencies"]
-               if re.match(r"^lexbench-webfetch\s*@", item)]
+               if re.match(rf"^{re.escape(name)}\s*@", item)]
     if len(matches) != 1:
         raise ValueError("Expected one direct LexBench Git dependency. " + HINT)
-    match = re.fullmatch(r"lexbench-webfetch\s*@\s*git\+(.+)@([0-9a-f]{40})", matches[0])
+    match = re.fullmatch(rf"{re.escape(name)}\s*@\s*git\+(.+)@([0-9a-f]{{40}})", matches[0])
     if not match:
         raise ValueError("LexBench must use a full immutable Git commit. " + HINT)
     return match.group(1), match.group(2)
 
 
-def validate_binding(root: Path) -> str:
-    repository, revision = project_pin(tomllib.loads((root / "pyproject.toml").read_text()))
+def validate_binding(root: Path, name: str = NAME) -> str:
+    repository, revision = project_pin(tomllib.loads((root / "pyproject.toml").read_text()), name)
     lock = tomllib.loads((root / "uv.lock").read_text())
-    packages = [item for item in lock["package"] if item["name"] == NAME]
-    binding = json.loads((root / "evaluation/lexbench-webfetch.json").read_text())
+    packages = [item for item in lock["package"] if item["name"] == name]
+    binding = json.loads((root / "evaluation" / (name + '.json')).read_text())
     if len(packages) != 1:
         raise ValueError("Expected one locked LexBench package. " + HINT)
     source = urlsplit(packages[0].get("source", {}).get("git", ""))
@@ -58,6 +58,13 @@ def refresh_binding(binding: dict, revision: str, definitions: Path) -> dict:
 
     for relative in updated["definition_files"]:
         updated["definition_files"][relative] = hashlib.sha256(read(relative)).hexdigest()
+    if 'datasets' in updated:
+        updated['datasets'] = json.loads(read('registry.json'))['datasets']
+        for identity, dataset in updated['datasets'].items():
+            raw = read(dataset['path'])
+            if hashlib.sha256(raw).hexdigest() != dataset['sha256'] or len(json.loads(raw)['cases']) != dataset['count']:
+                raise ValueError('Benchmark registry does not bind its dataset: ' + identity)
+        return updated
     for suite in updated["suites"]:
         directory = suite["historical_directory"]
         for name in suite["files"]:
@@ -98,11 +105,12 @@ def require_merged_revision(repository: str, revision: str, directory: Path) -> 
         raise ValueError("Requested LexBench revision is not in upstream main history")
 
 
-def bump(root: Path, revision: str, *, uv: str = "uv") -> list[str]:
+def bump(root: Path, revision: str, *, uv: str = "uv", benchmark: str = NAME) -> list[str]:
     project_path = root / "pyproject.toml"
     text = project_path.read_text()
-    repository, old_revision = project_pin(tomllib.loads(text))
-    binding_path = root / "evaluation/lexbench-webfetch.json"
+    repository, old_revision = project_pin(tomllib.loads(text), benchmark)
+    relative_binding = 'evaluation/' + benchmark + '.json'
+    binding_path = root / relative_binding
     before = json.loads(binding_path.read_text())
     with tempfile.TemporaryDirectory(prefix="browser-eval-dependency-") as temporary:
         staging = Path(temporary)
@@ -120,14 +128,14 @@ def bump(root: Path, revision: str, *, uv: str = "uv") -> list[str]:
         run([uv, "sync", "--frozen", "--no-install-project", "--project", str(project)], project)
         definitions = Path(run([
             uv, "run", "--frozen", "--no-sync", "python", "-c",
-            "from lexbench_webfetch.inputs import definition_path; print(definition_path('evaluation').parent)",
+            f"from {benchmark.replace('-', '_')}.inputs import definition_path; print(definition_path({'registry.json' if benchmark == 'lexbench-websearch' else 'evaluation'!r}).parent)",
         ], project))
         after = refresh_binding(before, revision, definitions)
-        (project / "evaluation/lexbench-webfetch.json").write_text(
+        (project / relative_binding).write_text(
             json.dumps(after, ensure_ascii=False, indent=2) + "\n")
-        validate_binding(project)
+        validate_binding(project, benchmark)
         # Network, installation and package validation all finish before changing the checkout.
-        destinations = ("pyproject.toml", "uv.lock", "evaluation/lexbench-webfetch.json")
+        destinations = ("pyproject.toml", "uv.lock", relative_binding)
         originals = {name: (root / name).read_bytes() for name in destinations}
         try:
             for name in destinations:
@@ -143,7 +151,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--uv", default="uv")
+    parser.add_argument('--benchmark', choices=['lexbench-webfetch', 'lexbench-websearch'], default=NAME)
     args = parser.parse_args(argv)
-    for change in bump(ROOT, args.revision, uv=args.uv):
+    for change in bump(ROOT, args.revision, uv=args.uv, benchmark=args.benchmark):
         print(change)
     print("Verified current dependency binding. Historical evidence was not changed.")

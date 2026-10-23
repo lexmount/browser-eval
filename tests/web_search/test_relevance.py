@@ -248,7 +248,7 @@ def test_web_diagnostic_domain_does_not_become_an_unrequested_source_constraint(
 
 
 def test_source_correction_regressions_execute_through_current_packet_owner():
-    from lexbench_websearch.revisions import validate_regressions
+    from harness.web_search.revisions import validate_regressions
 
     validate_regressions(
         {

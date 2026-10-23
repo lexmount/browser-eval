@@ -46,7 +46,7 @@ def test_report_instances_stay_external_but_task_definitions_remain_versioned(tm
         "evaluation/example/current-report.json: keep report instances outside Git"]
 
 
-@pytest.mark.parametrize("schema", ["web-search/1", "web-search-current/1", "web-search-publication/1", "search-legacy-evidence/1"])
+@pytest.mark.parametrize("schema", ["web-search/1", "web-search-current/1", "web-search-publication/1", "search-legacy-evidence/1", "search-assessment-authority/1", "search-publication-plan/1", "web-search-independent-review/1"])
 def test_search_instance_detection_uses_contract_not_filename(tmp_path, schema):
     import json
     path = tmp_path / "evaluation/renamed-instance.json"

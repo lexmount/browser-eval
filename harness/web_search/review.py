@@ -237,6 +237,20 @@ def report_binding(profile, rows):
     }
 
 
+def row_state(profile, row, relevance=None):
+    """Use the report's relevance labels and quarantine rules for review selection."""
+    from lexbench_websearch.scoring import classify, candidate_identity
+    case = next(c for c in profile["cases"] if c["id"] == row["case_id"])
+    labels = (relevance or {}).get("labels", {}).get(case["id"])
+    grades = None if labels is None else [
+        labels[candidate_identity(case["id"], item["url"])]
+        for item in row.get("results", [])[:profile["protocol"]["top_k"]]
+    ]
+    return classify(case, row, cutoff=profile["protocol"]["top_k"],
+                    quality_excluded=case["id"] in profile.get("factual_quality_exclusions", []),
+                    relevance_grades=grades)
+
+
 def freeze(report, destination, **options):
     """Make an incomplete freeze invisible to callers and resume operations."""
     destination = Path(destination)
@@ -264,6 +278,8 @@ def _freeze(report, destination, *, model=None, budget=180000, scope="failures",
     if destination.exists():
         raise ValueError("Freeze destination already exists; use run to resume")
     profile, rows = check(report, return_data=True, evidence_only=True)
+    relevance_path = report / "relevance-judgments.json"
+    relevance = json.loads(relevance_path.read_bytes()) if relevance_path.is_file() else None
     cases, aliases = make_cases(profile, rows, report)
     items_by_row = {
         aliases[output["output_id"]]["row_id"]: output["items"]
@@ -272,14 +288,10 @@ def _freeze(report, destination, *, model=None, budget=180000, scope="failures",
     full_report_binding = report_binding(
         profile, [{**row, "results": items_by_row[row["id"]]} for row in rows]
     )
-    from lexbench_websearch.scoring import classify
-    definitions = {c["id"]: c for c in profile["cases"]}
-    states = {r["id"]: classify(definitions[r["case_id"]], r, cutoff=profile["protocol"]["top_k"]) for r in rows}
+    states = {r["id"]: row_state(profile, r, relevance) for r in rows}
     full_counts = {"cases": len(cases), "outputs": len(rows), "candidates": sum(len(c["candidates"]) for c in cases)}
     if scope == "failures":
-        from lexbench_websearch.scoring import classify
-        definitions = {c["id"]: c for c in profile["cases"]}
-        failed = {r["id"] for r in rows if classify(definitions[r["case_id"]], r, cutoff=profile["protocol"]["top_k"])[0] == "fail"}
+        failed = {r["id"] for r in rows if states[r["id"]][0] == "fail"}
         for case in cases:
             case["outputs"] = [o for o in case["outputs"] if aliases[o["output_id"]]["row_id"] in failed]
         cases = [c for c in cases if c["outputs"]]
@@ -314,7 +326,7 @@ def _freeze(report, destination, *, model=None, budget=180000, scope="failures",
             bindings.append({"path": "frozen-inputs/" + name, "sha256": sha(path.read_bytes())})
     contract = {
         "schema": "web-search-independent-review/1",
-        "reviewer": "Codex",
+        "reviewer": "codex-cli",
         "model": model,
         "scope": scope,
         "authorization": authorization,
@@ -351,12 +363,17 @@ def _freeze(report, destination, *, model=None, budget=180000, scope="failures",
     return contract
 
 
+def frozen_path(root, relative):
+    from lexbench_webfetch.paths import contained_path
+    if Path(relative).is_absolute() or '..' in Path(relative).parts:
+        raise ValueError('Frozen review path must stay inside its bundle')
+    return contained_path(root, relative, reject_symlinks=True)
+
+
 def load_frozen(root):
     contract = json.loads((root / "contract.json").read_bytes())
     for binding in contract["source_bindings"]:
-        path = Path(binding["path"])
-        if not path.is_absolute():
-            path = root / path
+        path = frozen_path(root, binding["path"])
         if path.is_symlink() or sha(path.read_bytes()) != binding["sha256"]:
             raise ValueError("Frozen report input changed")
     for name, expected in [
@@ -368,7 +385,7 @@ def load_frozen(root):
     if contract["prompt_sha256"] != sha(PROMPT.encode()):
         raise ValueError("Review prompt changed; freeze a new review")
     for packet in contract["packets"]:
-        path = root / packet["path"]
+        path = frozen_path(root, packet["path"])
         if path.is_symlink() or sha(path.read_bytes()) != packet["sha256"]:
             raise ValueError("Frozen packet changed")
     aliases = json.loads((root / "alias-map.private.json").read_bytes())
@@ -757,7 +774,7 @@ def factual_quality_exclusions(evidence):
     )
 
 
-def validate_public_review(profile, rows, evidence, *, authority=None):
+def validate_public_review(profile, rows, evidence, *, authority=None, relevance=None):
     """Reject invented counts, changed answers and unfinished adjudications."""
     if (
         evidence.get("schema") != "web-search-independent-review-evidence/1"
@@ -797,10 +814,8 @@ def validate_public_review(profile, rows, evidence, *, authority=None):
             raw_opinion = bytes.fromhex(execution.get("output_bytes_hex", ""))
             if json.loads(raw_opinion) != original or execution.get("packet_sha256") != entry["sha256"] or execution.get("input_sha256") != sha(text.encode()) or execution.get("result_sha256") != sha(raw_opinion):
                 raise ValueError("Independent review input or output receipt differs")
-    from lexbench_websearch.scoring import classify
-    definitions = {c["id"]: c for c in profile["cases"]}
     all_rows = {row["id"]: row for row in rows}
-    selected_rows = rows if scope == "all" else [r for r in rows if classify(definitions[r["case_id"]], r, cutoff=profile["protocol"]["top_k"])[0] == "fail"]
+    selected_rows = rows if scope == "all" else [r for r in rows if row_state(profile, r, relevance)[0] == "fail"]
     expected_cases = {row["case_id"] for row in selected_rows}
     cases = evidence["cases"]
     ids = [case["case_id"] for case in cases]
@@ -850,7 +865,7 @@ def validate_public_review(profile, rows, evidence, *, authority=None):
     totals = {"case": len(profile["cases"]), "output": len(all_rows), "candidate": sum(len(x) for x in expected_candidates.values())}
     if any(evidence.get(key + "_reviewed") != value for key, value in counts.items()) or any(evidence.get(key + "_total") != value for key, value in totals.items()):
         raise ValueError("Independent review counts disagree with actual opinions")
-    unreviewed_passes = 0 if scope == "all" else sum(classify(definitions[r["case_id"]], r, cutoff=profile["protocol"]["top_k"])[0] == "pass" for r in rows)
+    unreviewed_passes = 0 if scope == "all" else sum(row_state(profile, r, relevance)[0] == "pass" for r in rows)
     if evidence.get("missing_case_ids") or evidence.get("accepted_unreviewed_passes") != unreviewed_passes:
         raise ValueError("Independent review leaves unexpected unreviewed results")
     by_case = {case["case_id"]: case for case in cases}
@@ -957,12 +972,13 @@ def render_summary(evidence, zh=True):
     body += (
         "</ul></details><p>"
         + (
-            report_text('text_43598a52b30b24f9')
+            (report_text('review_failures') if evidence.get("scope") == "failures" else report_text('text_43598a52b30b24f9'))
             if zh
-            else "Review covers every output, including empty and failed calls. Reviewed does not mean passed. Every finding retains its decision and evidence."
+            else ("Review covers failed outputs; passing outputs are outside this review." if evidence.get("scope") == "failures" else "Review covers every output, including empty and failed calls. Reviewed does not mean passed. Every finding retains its decision and evidence.")
         )
         + "</p>"
     )
+    body += '<p data-unreviewed-passes>' + (report_text('review_unreviewed') if zh else 'Accepted passing outputs without review: ') + str(evidence.get('accepted_unreviewed_passes', 0)) + '</p>'
     from html import escape
     reference_cases = [c for c in evidence["cases"] if c["dataset_review"]["status"] == "issue"]
     if reference_cases:

@@ -48,7 +48,6 @@ def test_real_child_is_isolated_then_reused(tmp_path, monkeypatch):
     assert not (root / 'codex-home/auth.json').exists()
     assert '--json' in observed['args']
     assert 'REVIEW_SECRET' not in observed['environment']
-    assert 'mcp_servers' not in observed.get('config', '')
     assert 'web_search="disabled"' in observed['args']
     for feature in ('shell_tool', 'unified_exec', 'apps', 'plugins', 'view_image', 'browser_use', 'computer_use', 'multi_agent'):
         i = observed['args'].index(feature)

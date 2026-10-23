@@ -82,20 +82,6 @@ evidence before uploading, bind immutable published versions, and include the
 attachment archives and target registry in the main publication snapshot. Keep
 one report entry and all evidence; reject unresolved or changed data attachments.
 
-Web Search relevance labels cover every in-house case with the same frozen rubric.
-Use named human annotations by default. When the user explicitly selects a model
-judge, use `scripts/judge_search_relevance.py` and retain the exact model, prompt,
-blind inputs, raw responses and quoted scoring evidence. Label the result as model
-preview relevance rather than human gold judgments. Both routes import through
-`--relevance`; neither may substitute nonempty responses or URL checks for labels.
-Keep empty queries and all-zero pools in the score population.
-
-For Search comparison reports, keep decision summaries distinct from complete result
-and audit inventories. A subset discovery claim must show every selected provider
-on that same subset; the headline relevance score covers the full declared relevance
-population. Give quality, collection timing/billing, input provenance and original
-responses distinct owners, and remove duplicate reading routes when consolidating them.
-
 Conciseness must preserve the evidence needed for the decision. Keep each independent
 benchmark’s primary quality measures and denominator visible in the home comparison;
 do not replace them with a narrow diagnostic or hide them inside disclosure controls.

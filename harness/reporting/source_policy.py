@@ -38,7 +38,7 @@ def check_source_languages(root: Path) -> list[str]:
         if path.is_file() and HAN.search(path.read_text(encoding="utf-8")):
             findings.append(f"{relative}: move report messages into the language catalog")
     instance_names = {"current-report.json", "current-run.json", "current-comparison.json"}
-    instance_schemas = {"web-search", "web-search-current", "web-search-publication", "search-legacy-evidence"}
+    instance_schemas = {"web-search", "web-search-current", "web-search-publication", "search-legacy-evidence", "search-assessment-authority", "search-publication-plan", "web-search-independent-review"}
     for path in sorted((root / "evaluation").rglob("*.json")):
         document = json.loads(path.read_text(encoding="utf-8"))
         schema = document.get("schema", "") if isinstance(document, dict) else ""

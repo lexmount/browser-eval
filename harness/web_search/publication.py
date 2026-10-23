@@ -1,6 +1,5 @@
 """Freeze and verify the next release before updating its existing Artifact Site."""
 import argparse
-from collections import Counter
 from datetime import UTC, datetime
 import json
 import os
@@ -14,7 +13,7 @@ from harness.reporting.publication import atomic_write
 from harness.web_fetch.report_publish import PublishConfig, publish as publish_package
 from .core import digest
 from harness.web_fetch.config import ROOT
-from .profiles import current_selection, authority_root
+from .profiles import current_selection, authority_root, publication_metadata
 
 
 def data_home():
@@ -88,16 +87,10 @@ def prepare(report, visual, content, sources, work, *, profile):
     review = json.loads((inputs / "independent-review.json").read_bytes())
     relevance = json.loads((inputs / "relevance.json").read_bytes())
     profile = manifest["profile"]
-    factual = {c["id"] for c in profile["cases"] if "reference_answer" in c}
-    excluded = factual & set(profile.get("factual_quality_exclusions", []))
     candidate = dict(target, bindings=bindings, methods=[m["id"] for m in profile["methods"]], cases=len(profile["cases"]), logical_results=len(manifest["rows"]),
                      physical_calls=sum(len(r.get("attempts", [r])) for r in manifest["rows"]),
-                     populations={"custom": len(profile["cases"]) - len(factual), "factual": len(factual), "factual_quality": len(factual - excluded), "factual_quarantined": len(excluded)},
-                     independent_review={k: review[k] for k in ("case_total", "case_reviewed", "output_total", "output_reviewed", "candidate_total", "candidate_reviewed", "accepted_unreviewed_passes")},
-                     quality_annotation={"queries": len(relevance["plan"]["case_ids"]), "candidates": sum(len(v) for v in relevance["labels"].values()), "scope": relevance["plan"]["scope"]},
+                     **publication_metadata(manifest, review, relevance),
                      archive_sha256=digest(archive.read_bytes()))
-    candidate["independent_review"]["finding_dispositions"] = dict(Counter(d["resolution"] for d in review["adjudications"].values()))
-    candidate["independent_review"]["reference_dispositions"] = dict(Counter(d["resolution"] for k, d in review["adjudications"].items() if k.endswith(":dataset") and k.removesuffix(":dataset") in factual))
     for obsolete in ("superseded_physical_calls", "cohort_inputs", "quality_judge"):
         candidate.pop(obsolete, None)
     plan = {"instance": {"path": str(instance_path), "sha256": digest(instance_path.read_bytes())}, "title": manifest.get("authored", {}).get("title", {}).get(manifest.get("primary_language", "zh"), manifest["profile"].get("title", "Search API evaluation")), "schema": "search-publication-plan/1", "expected_target": {k: target[k] for k in ("base_url", "slug", "versionId", "visibility")}, "target": candidate, "archive_sha256": candidate["archive_sha256"]}
