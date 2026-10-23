@@ -27,115 +27,45 @@ Use the existing scorer and report renderer.
 
 ### Hosted Markdown fetch services
 
-`configs/providers.example.json` includes `brightdata`, `browser-use-fetch`,
-`browserbase`, `deepseek-fetch-api` and `crawl4ai-cloud`. These adapters use `providers/hosted_fetch.py`, the shared HTTP client,
-and the existing runner/scorer. They support webpage body/structure tasks only;
-file and resource tasks fail explicitly without making a provider call.
+Five methods share `providers/hosted_fetch.py` and the existing HTTP client,
+runner and scorer. Their credentials and fixed options are declared in
+`configs/providers.example.json`; credentials come from the repository `.env`.
 
-| Method | Credentials in repository `.env` | Selected route |
+| Method | Credentials | Native route and example options |
 | --- | --- | --- |
-| Bright Data | `BRIGHTDATA_API_TOKEN`, `BRIGHTDATA_UNLOCKER_ZONE` | Web Unlocker `/request`, `format=raw`, `data_format=markdown`, native `render="true"` in the example configuration |
-| Browser Use | `BROWSER_USE_API_KEY` | fetch-use `/fetch`, `output_format=markdown`, new session, US proxy, service retry defaults preserved; no Agent |
-| Browserbase | `BROWSERBASE_API_KEY` | `/v1/fetch`, `format=markdown`, redirects enabled, native proxies enabled by default; no Project ID required |
-| DeepSeek Fetch API | `DEEPSEEK_API_KEY` | `/v1/tools/fetch`, request body contains only `url`; title and Markdown content are preserved separately |
+| Bright Data | `BRIGHTDATA_API_TOKEN`, `BRIGHTDATA_UNLOCKER_ZONE` | `/request`, raw Markdown, rendering and native debug enabled |
+| Browser Use Fetch | `BROWSER_USE_API_KEY` | `/fetch`, Markdown, fresh session, US proxy; no Agent |
+| Browserbase Fetch | `BROWSERBASE_API_KEY` | `/v1/fetch`, Markdown, redirects and native proxy enabled; no Project ID |
+| DeepSeek Fetch API | `DEEPSEEK_API_KEY` | `/v1/tools/fetch`, URL-only request; retain content and title |
+| Crawl4AI Cloud | `CRAWL4AI_CLOUD_API_KEY` | `/scrape`, `format=md`, `engine=browser`, `proxy=none` |
 
-DeepSeek Fetch exposes no documented render, wait, retry or debug request option.
-Its example configuration enables the caller's observed HTTP log, not invented
-service internals. Actual exceptions include their runtime traceback; deadline
-events are recorded when the caller enforces its answer cutoff. The API HTTP
-status is not the target website's status. The complete response envelope is
-retained even for failed API requests.
+These adapters implement webpage body/structure tasks. Unsupported document,
+media and file tasks fail before transport, without helper downloads or a
+substitute browser/Agent. Rendering and internal retries remain service-owned;
+offline adapter checks do not establish JavaScript capability or task pass rates.
+Alternative structured formats require a separately declared output contract;
+never derive schemas or parameters from expected answers.
 
-For connectivity/capability checks while the scorer is being revised, use the
-existing `run` command with `--collect-only --runs 1 --max-failure-retries 0`.
-This mode retains the same calls, deadline, raw artifacts and logs, but never
-invokes scoring or creates a scored report. Its summary has no task pass rate;
-references are copied for later use without claiming current qualification.
-Collection-only evidence must be explicitly rescored before a scored report can
-be built. This diagnostic mode does not certify a benchmark cohort.
+Retain complete native responses separately from score-bearing answer fields.
+An API HTTP 200 does not prove target retrieval succeeded: explicit service or
+origin errors, empty content and malformed responses remain failures. API status
+is distinct from target-site status. `log_level: debug` saves redacted caller
+requests, response headers/body and errors; it cannot expose undisclosed service
+internals. Only Bright Data receives the native debug option.
 
-Browserbase Markdown uses Fetch Extract billing and does not execute JavaScript.
-Bright Data supports a native `render` flag on the same Web Unlocker endpoint.
-The adapter accepts an optional Boolean `render` configuration and sends the
-documented string `"true"`/`"false"`; omission preserves provider selection.
-The example enables it uniformly before calls, without caller-supplied selectors,
-extra waiting or browser code. Rendering may increase latency and does not
-guarantee that Markdown excludes unrelated page sections. Browser Use's fetch-use
-SDK exposes no render/wait selector option; its guide directs JavaScript-dependent
-tasks to the separate browser product. Do not silently replace either Fetch
-method with a browser session or Agent and keep the same method identity.
-Native output alternatives can be declared separately: `output_format=structured`
-for fetch-use, or `output_format=json` with a JSON Schema `schema` for Browserbase.
-The latter uses the service's own extraction; the adapter only serializes the
-returned object, never fills missing fields. Freeze schemas before calls, without
-reference values, answer counts or source scripts. These are separate output
-contracts from the default Markdown comparison; do not silently substitute a
-later alternative for an earlier failed response. Record the selected format in
-each result. A missing JavaScript renderer alone does not prove a task impossible:
-embedded HTML data may be extracted through another documented native route.
-Bright Data manages unlocking/retries internally; its raw response does not
-expose the target HTTP status, so that field stays unavailable. The API HTTP
-status is recorded separately for these hosted methods. Complete response envelopes
-are retained as private hash-bound evidence, separate from score-bearing text.
-Empty, malformed, binary and failed target responses cannot become successful
-page retrievals merely because the service returned HTTP 200.
+`dns_mode: system` uses the local resolver for API hosts; target-site DNS belongs
+to the service. No automatic DNS fallback is added. Browser Use receives the call
+budget through `timeout_ms`; the other services retain their native defaults
+within the outer deadline. Historical runs keep their recorded configuration.
 
-The example configurations enable `log_level: debug` for these hosted methods.
-This activates the shared caller log: timestamped request parameters (with API
-credentials redacted), actual HTTP response headers/body, and completion/errors.
-The runner retains these private logs separately from scored answers. This is
-observed client traffic, not a trace of undisclosed service internals. Bright Data
-also receives its documented native `debug: true` option; any returned
-`x-brd-debug` and error headers are retained verbatim in the HTTP log. Browser Use
-Fetch and Browserbase Fetch have no documented equivalent in the inspected Fetch
-contracts; no invented debug flag or browser-session fallback is sent. Logs can
-identify exposed request IDs, API failures and returned content, but cannot prove
-an internal rendering or retry cause that the service does not expose. Previously
-collected runs without this setting have no retroactive verbose log.
+For diagnostics without scoring, use `run --collect-only --runs 1
+--max-failure-retries 0`. It preserves responses and logs, but cannot produce a
+scored report without explicit rescoring and does not certify a cohort.
 
-These adapters use the full caller timeout (30 seconds in the CLI by default),
-without reserving 10 percent. The outer answer deadline includes API connection,
-transfer and answer decoding; scoring and report generation run afterward.
-Browser Use receives that same timeout through its native `timeout_ms` parameter;
-the other APIs keep their service-side defaults and are bounded by the caller.
-The shared runner allows one declared failure retry by default. Each physical
-call gets its own 30-second deadline; the final response is authoritative and all
-physical calls and cumulative execution cost are retained. The adapters add no
-hidden caller retries. Service-internal retries are not overridden; their actual count
-is unknown unless exposed by the service. A successful retry inside the service
-still has to return within the same outer deadline.
-
-No adapter applies task-specific retrieval hints or silently switches to a
-browser or Agent. No caller code fetches the target URL, alternate URLs or data
-endpoints to complete an answer. Product-native redirect handling, Markdown
-conversion, unlocking and configured proxies are allowed. Freeze one configuration
-for the whole declared scope before calls; do not tune individual tasks from
-reference answers or observed failures. A diagnostic run can therefore expose
-dynamic-page limitations.
-Select a predeclared task scope with the existing CLI, for example:
-
-```bash
-uv run --frozen browser-harness-eval run \
-  --dataset /absolute/path/to/dataset.json \
-  --provider-config configs/providers.example.json \
-  --providers brightdata,browser-use-fetch,browserbase \
-  --case-ids case-a,case-b --provider-concurrency 1 --max-failure-retries 0
-```
-
-`dns_mode` defaults to `system`; the example configurations use the local system
-resolver without extra public-DNS queries or automatic DNS fallback. Only API
-hostnames are resolved by the caller; target-site DNS stays with each service.
-An explicitly declared `public_doh` setting
-uses the existing thread-scoped DNS helper, retaining HTTPS hostname/certificate
-verification and DNS observations. It does not change system settings or add a
-retrieval fallback. Apply the same DNS policy to compared methods and include
-its overhead in observed latency. Historical runs preserve their original DNS,
-timeout and proxy configuration; changing defaults does not update their scores
-or make their results measurements of the new configuration.
-
-API contracts: [Bright Data request and render parameter](https://docs.brightdata.com/api-reference/rest-api/unlocker/unlock-website),
+API references: [Bright Data](https://docs.brightdata.com/api-reference/rest-api/unlocker/unlock-website),
 [fetch-use](https://browser-use.com/posts/fetch-use),
-[Browserbase Fetch](https://docs.browserbase.com/platform/fetch/overview).
+[Browserbase Fetch](https://docs.browserbase.com/platform/fetch/overview),
+[Crawl4AI Cloud](https://api.crawl4ai.com/docs/).
 
 | Output contract | Comparison scope |
 | --- | --- |
@@ -206,32 +136,14 @@ rendered-page condition was satisfied while fetching only response bytes.
 
 ## Crawl4AI Cloud and the local library
 
-`crawl4ai-cloud` uses the shared hosted adapter with `CRAWL4AI_CLOUD_API_KEY`
-from the repository `.env`. It is a separate method identity from `crawl4ai`;
-local measurements must not be relabeled as cloud measurements.
-The example configuration selects `POST /scrape` with `format=md`,
-`engine=browser`, and `proxy=none`. Browser mode requests a fresh browser fetch
-instead of the cloud's automatic cache/HTTP/browser routing. No country is forced.
-Caller DNS is `system`; this does not configure the service's target-site DNS.
-The call budget is a run parameter, defaulting to 30 seconds per physical call.
-The shared runner permits one failure retry by default, with a fresh call budget.
-Internal service retries remain service-owned. Historical 45-second calls remain unchanged.
-
-The local worker uses headless Chrome, cache bypass, `domcontentloaded`,
-overlay removal, iframe processing, and `raw_markdown`. Cloud exposes no exact
-counterparts for those wait/extraction settings and returns service-cleaned
-`markdown`; do not claim identical browser versions, output, or site access.
-Only webpage body/structure tasks are implemented by this adapter; PDF/media/file
-support needs its own declared and tested contract before use.
-
-Retain the complete native JSON, including its engine/cache/usage fields, alongside
-unchanged Markdown and caller debug logs. No undocumented native debug flag is
-sent. An API HTTP 200 alone is insufficient: an explicit error/false success,
-invalid Markdown field, empty content, or explicit origin failure is a failure.
-Cloud 403 is access denial, not necessarily invalid credentials: documented
-causes also include target-site blocks. Native browser traces are not promised.
-
-Official contract: https://api.crawl4ai.com/docs/ (checked 2026-10-23).
+`crawl4ai-cloud` and local `crawl4ai` are separate methods: old local results
+cannot be relabeled as Cloud results. The local worker uses headless Chrome,
+cache bypass, `domcontentloaded`, overlay removal, iframe processing and
+`raw_markdown`. Cloud returns service-cleaned Markdown with no exact counterpart
+for every local option. Browser versions, extraction and site access may differ.
+Retain Cloud engine/cache/usage fields in the raw response. A Cloud 403 can mean
+target access denial, not only invalid credentials; native browser traces are
+not promised.
 
 ### Selected fixed-native comparison policy
 
