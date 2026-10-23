@@ -1010,7 +1010,10 @@ def build_browser_use_fixture(tmp_path: Path, monkeypatch, language="zh", *, fai
         paths = {}
         for label, filename, payload in (
             ("response", "response.json", {"execution": row["attempt"]}),
-            ("evaluation", "evaluation.json", {"score": row["score"], "evaluator": "AgentResponseEvaluator", "error": "Fixture expected mutation missing" if not row["score"] else None}),
+            ("evaluation", "evaluation.json", {
+                "score": row["score"], "evaluator": "AgentResponseEvaluator",
+                "error": "Fixture expected mutation missing" if not row["score"] else None,
+            }),
             (
                 "events",
                 "events.json",

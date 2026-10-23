@@ -56,7 +56,7 @@ def refresh_binding(binding: dict, revision: str, definitions: Path) -> dict:
             raise ValueError("Definition path escapes installed package: " + relative)
         return path.read_bytes()
 
-    for relative in updated["definition_files"]:
+    for relative in updated.get("definition_files", {}):
         updated["definition_files"][relative] = hashlib.sha256(read(relative)).hexdigest()
     if 'datasets' in updated:
         updated['datasets'] = json.loads(read('registry.json'))['datasets']
