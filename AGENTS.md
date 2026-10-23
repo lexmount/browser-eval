@@ -88,3 +88,5 @@ These requirements apply to **all** report tracks; browser-specific rules below 
 - Keep routine report checks fast and deterministic; they cover the complete route inventory, evidence, links, terminology, filters, pagination and static readability without launching a browser. The release browser pass is a focused content-and-layout review of top-level pages, not a second interaction test suite.
 
 All code changes go through a feature branch and pull request. Never push directly to main or merge a pull request.
+
+Version changes require an explicit human release request. Code synchronization, review fixes, tests and report rebuilds must not automatically bump package, benchmark or report edition numbers, rewrite frozen release catalogs, or create/push release tags. Reuse existing build versions and record source hashes; keep unreleased changes separate from a certified edition.
