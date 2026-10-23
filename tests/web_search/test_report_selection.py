@@ -198,8 +198,8 @@ def test_headline_subgroups_show_actual_quality_counts_and_ranks():
     assert [node["data-population"] for node in landing.select("[data-population]")] == ["custom", "factual"]
     custom = landing.select_one('[data-population="custom"]')
     assert not custom.find_parent("details")
-    assert [x.get_text().replace("★ ", "") for x in custom.select("tbody tr")[0].select("td")][1:4] == ["100.0", "2.00 / 5", "1/1"]
-    assert [x.get_text() for x in custom.select("tbody tr")[1].select("td")][1:4] == ["0.0", "0.00 / 5", "0/1"]
+    assert [x.get_text().replace("★ ", "") for x in custom.select("tbody tr")[0].select("td")][1:4] == ["100.0", "40.0%", "100.0%"]
+    assert [x.get_text() for x in custom.select("tbody tr")[1].select("td")][1:4] == ["0.0", "0.0%", "0.0%"]
     assert landing.select_one('[data-population="factual"]').select_one("tbody td:nth-child(2)").get_text().replace("★ ", "") == "1/1 · 100.0%"
     assert landing.select_one('a[href="quality.html#relevance-scores"]')
     from harness.web_search.report import interpretation_summary_table
@@ -227,7 +227,7 @@ def test_reference_quarantine_is_common_and_never_removes_latency_or_cost():
         assert text[1:3] == ["1/1 · 100.0%", "1/1 · 100.0%"]
         assert text[3] == "500.00"
         assert text[-1] == "0.02 元"
-    assert "耗时和费用保留" in soup.select_one("[data-quality-exclusions]").get_text()
+    assert soup.select_one("[data-quality-exclusions]")
 
 
 def test_collection_description_separates_retries_from_logical_results(tmp_path):

@@ -13,6 +13,81 @@ from harness.web_search.runner import run
 
 
 class CollectionScenarios(unittest.TestCase):
+    def test_provider_batches_finish_all_cases_and_rounds_without_repeating_saved_calls(self):
+        for explicit in (False, True):
+            with self.subTest(explicit_order=explicit), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                p = self.profile(root)
+                profile = json.loads(p.read_text())
+                profile["cases"].append(
+                    dict(profile["cases"][0], id="second-case", query="Second query")
+                )
+                profile["protocol"].update(rounds=2, retry=False)
+                profile["protocol"].pop("order", None)
+                if explicit:
+                    profile["protocol"]["order"] = "complete provider batches"
+                p.write_text(json.dumps(profile))
+                calls = []
+                interrupted = False
+
+                def http(url, body=None, header=None, timeout=20):
+                    nonlocal interrupted
+                    receipt = dict(
+                        http_status=200, elapsed_ms=1, transport_exit=0, transport_error=""
+                    )
+                    if body is None:
+                        return receipt, b"reference " * 20
+                    if len(calls) == 3 and not interrupted:
+                        interrupted = True
+                        raise KeyboardInterrupt
+                    calls.append((url, body.get("query")))
+                    return receipt, b'{"results":[]}'
+
+                with (
+                    patch("harness.web_search.runner.http_call", side_effect=http),
+                    patch("harness.web_search.runner.load_runtime_env"),
+                    patch.dict(
+                        os.environ, LEXMOUNT_SEARCH_API_KEY="test",
+                        DEEPSEEK_API_KEY="test", BOCHA_API_KEY="test",
+                    ),
+                ):
+                    with self.assertRaises(KeyboardInterrupt):
+                        run(p, root / "run", certified=True)
+                    saved = (root / "run/results.jsonl").read_bytes()
+                    run(p, root / "run", resume=True, certified=True)
+                _, rows, receipt = load_run(root / "run")
+                expected = [
+                    (method["id"], case["id"], round_id)
+                    for method in profile["methods"] for round_id in (0, 1)
+                    for case in profile["cases"]
+                ]
+                self.assertEqual([(r["method"], r["case_id"], r["round"]) for r in rows], expected)
+                self.assertEqual(len(calls), len(expected))
+                self.assertTrue((root / "run/results.jsonl").read_bytes().startswith(saved))
+                self.assertTrue(receipt["certified"])
+                contract = json.loads((root / "run/run-contract.json").read_text())
+                self.assertNotIn("harness/web_search/report.py", contract["implementation"])
+                self.assertTrue({"uv.lock", "pyproject.toml", "harness/web_search/core.py"}.issubset(contract["implementation"]))
+                bound = {item["path"]: item["sha256"] for item in receipt["bindings"]}
+                for name, identity in contract["implementation"].items():
+                    self.assertEqual(bound["implementation/" + name], identity)
+                (root / "run/implementation/uv.lock").write_bytes(b"changed runtime lock")
+                with self.assertRaisesRegex(ValueError, "hash mismatch"):
+                    load_run(root / "run")
+
+    def test_unknown_execution_order_fails_before_network_calls(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            p = self.profile(root)
+            profile = json.loads(p.read_text())
+            profile["protocol"]["order"] = "provider batch typo"
+            p.write_text(json.dumps(profile))
+            with patch("harness.web_search.runner.http_call") as http:
+                with self.assertRaisesRegex(ValueError, "execution order"):
+                    run(p, root / "run", certified=True)
+                http.assert_not_called()
+            self.assertFalse((root / "run").exists())
+
     def test_resume_retains_complete_cases_and_recollects_whole_interrupted_case(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -20,6 +95,7 @@ class CollectionScenarios(unittest.TestCase):
             profile = json.loads(p.read_text())
             profile["cases"].append(dict(profile["cases"][0], id="second-case"))
             profile["protocol"]["retry"] = True
+            profile["protocol"]["order"] = "rotate methods by case and round"
             p.write_text(json.dumps(profile))
             calls = []
             recovered = False

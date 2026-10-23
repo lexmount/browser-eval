@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from bs4 import BeautifulSoup
 
@@ -13,6 +14,95 @@ from harness.web_search.report import build, check, fairness_table, load_run, re
 
 
 class ReportScenarios(unittest.TestCase):
+    def test_check_rejects_unapproved_revision_even_with_updated_internal_hashes(self):
+        revision = {
+            "schema": "web-search-assessment-revision/1",
+            "root_cause": "Synthetic reference control",
+            "provider_calls": 0,
+            "regression_ids": ["published-answer-explicit-aliases"],
+            "cases": [],
+        }
+        from tests.web_search.test_native_revisions import revision_instance
+        instance = revision_instance(self.root, revision)
+        content = self.root / "revision-content.json"
+        content.write_text(json.dumps({"assessment_revision": revision}))
+        build(self.out, source=self.root / "fixture", content=content, profile_path=instance)
+        self.assertTrue(check(self.out))
+        path = self.out / "manifest.json"
+        manifest = json.loads(path.read_text())
+        self.assertEqual(manifest["authored"], {"assessment_revision": revision})
+        manifest["assessment_revision"]["contract"]["root_cause"] = "Unapproved replacement control"
+        manifest["authored"]["assessment_revision"] = manifest["assessment_revision"]["contract"]
+        manifest["content_sha256"] = digest(json.dumps(manifest["authored"]).encode())
+        from lexbench_websearch.inputs import implementation_sources
+        implementation = implementation_sources()
+        manifest["assessment_revision"]["implementation_sha256"] = {
+            name: digest(implementation[name].read_bytes())
+            for name in manifest["assessment_revision"]["implementation_sha256"]
+        }
+        path.write_text(json.dumps(manifest))
+        for evidence_only in (False, True):
+            with self.assertRaisesRegex(ValueError, "versioned scoring authority"):
+                check(self.out, evidence_only=evidence_only)
+
+    def test_dataset_can_link_hash_bound_original_query_sources(self):
+        source = self.root / "original-query-source.txt"
+        source.write_text("Original query inventory")
+        content = self.root / "source-content.json"
+        content.write_text(json.dumps({
+            "assets": [{"source": source.name, "path": "report-assets/query-source.txt", "sha256": digest(source.read_bytes())}],
+            "sections": [{"page": "dataset", "title": {"en": "Original queries", "zh": "原始查询"},
+                          "paragraphs": [{"en": "Original definitions, independent of measured outcomes.", "zh": "原始题目，与实测结果分开保存。"}],
+                          "sources": [{"label": {"en": "Inspect original source", "zh": "查看原始来源"}, "url": "report-assets/query-source.txt"}]}],
+        }))
+        build(self.out, source=self.root / "fixture", content=content, include_english=True)
+        for prefix, title in (("", "原始查询"), ("en/", "Original queries")):
+            dom = BeautifulSoup((self.out / (prefix + "dataset.html")).read_text(), "html.parser")
+            self.assertIn(title, dom.get_text())
+            link = dom.find("a", string="查看原始来源" if not prefix else "Inspect original source")
+            from urllib.parse import urljoin, urlsplit
+            page_url = (self.out / (prefix + "dataset.html")).as_uri()
+            base_url = urljoin(page_url, dom.select_one("base")["href"])
+            self.assertTrue(Path(urlsplit(urljoin(base_url, link["href"])).path).is_file())
+        self.assertEqual((self.out / "report-assets/query-source.txt").read_bytes(), source.read_bytes())
+        self.assertTrue(check(self.out))
+
+    def test_review_cannot_silently_readmit_previously_excluded_references(self):
+        from harness.web_search.report import assessment_profile
+
+        profile = {"protocol": {}, "factual_quality_exclusions": ["bad-source"]}
+        # A new reviewer confirming a source is not a reference readmission receipt.
+        review = {"scope": "all", "adjudications": {
+            "new-conflict:dataset": {"quality_excluded": True},
+            "valid:dataset": {"quality_excluded": False},
+        }}
+        assessed = assessment_profile(profile, None, review)
+        self.assertEqual(assessed["factual_quality_exclusions"], ["bad-source", "new-conflict"])
+        self.assertEqual(profile["factual_quality_exclusions"], ["bad-source"])
+        self.assertEqual(assessment_profile(profile, None, {"scope": "all", "adjudications": {}})["factual_quality_exclusions"], ["bad-source"])
+        self.assertEqual(assessment_profile({"protocol": {}}, None, review)["factual_quality_exclusions"], ["new-conflict"])
+
+    def test_content_hash_binds_rendered_snapshot_when_source_changes_during_build(self):
+        from harness.web_search.report import authored_sections
+
+        content = self.root / "changing-content.json"
+        original = json.dumps({"reading_model": True, "sections": [{
+            "page": "lead", "title": {"en": "Original finding", "zh": "原始结论"},
+            "paragraphs": [{"en": "Original evidence.", "zh": "原始证据。"}],
+        }]}).encode()
+        content.write_bytes(original)
+
+        def render(*args, **kwargs):
+            content.write_text('{"sections": []}')
+            return authored_sections(*args, **kwargs)
+
+        with patch("harness.web_search.report.authored_sections", side_effect=render):
+            build(self.out, source=self.root / "fixture", content=content)
+        manifest = json.loads((self.out / "manifest.json").read_text())
+        self.assertEqual(manifest["content_sha256"], digest(original))
+        self.assertIn("原始结论", (self.out / "index.html").read_text())
+        self.assertNotEqual(manifest["content_sha256"], digest(content.read_bytes()))
+
     def test_reader_routes_have_distinct_owners_and_keep_evidence(self):
         content = self.root / "concise-content.json"
         content.write_text(json.dumps({"presentation": "comparison-report", "reading_model": True,
@@ -553,6 +643,11 @@ class ReportScenarios(unittest.TestCase):
     def test_single_language_release_does_not_require_a_language_switch(self):
         manifest = json.loads((self.out / "manifest.json").read_text())
         self.assertEqual(manifest["languages"], ["zh"])
+        notice = self.out / "en/index.html"
+        self.assertIn("data-english-not-generated", notice.read_text())
+        self.assertIn('href="../index.html"', notice.read_text())
+        home = BeautifulSoup((self.out / "index.html").read_text(), "html.parser")
+        self.assertEqual(home.find("a", string="English")["href"], "en/index.html")
         from harness.web_search.visual import routes
         self.assertEqual({lang for lang, _, _ in routes(self.out)}, {"zh"})
 
@@ -683,12 +778,12 @@ def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
     output = tmp_path / 'final'; build(output, source=source, content=content, relevance=labels)
     home = BeautifulSoup((output/'index.html').read_text(),'html.parser')
     headers = [h.get_text() for h in home.select('[data-executive] th')]
-    assert '搜索质量分（0–100）' in headers
-    assert '每题可用结果（条/5）' in headers
-    assert '有直接满足结果的题数' in headers
+    assert 'nDCG@5 × 100' in headers
+    assert 'Precision@5' in headers
+    assert 'Success@5' in headers
     assert not home.select_one('[data-executive] table').find_parent('details')
     quality = BeautifulSoup((output/'quality.html').read_text(), 'html.parser')
-    assert '可用结果比例' in quality.get_text() and '直接满足率' in quality.get_text()
+    assert 'Precision@5' in quality.get_text() and 'Success@5' in quality.get_text()
     assert home.select_one('[data-executive] tbody td:nth-child(2)').get_text().strip('★ ') == '100.0'
     # A concise home must still expose every primary relevance measure.
     saved_home = (output / 'index.html').read_text()
@@ -743,9 +838,68 @@ def test_factual_detail_uses_ten_result_budget_without_changing_frozen_five_metr
     value = detail.find('td', string='前 10 条找到标注来源').find_next_sibling('td').get_text()
     assert float(value.replace(',', '')) == 1
     assert '前 5 条找到标注来源' not in detail.get_text()
+    from harness.web_search.report import factual_panel, reference_retrieval_panel
+    factual = BeautifulSoup(factual_panel(profile, rows, True, compact=True), 'html.parser')
+    assert [h.get_text() for h in factual.select('th')][1:3] == ['Hit@10（参考网页）', 'MRR@10（参考网页）']
+    target_case = dict(case, anchors=case['reference_urls'])
+    reference_rows = [dict(r, metrics=evaluate(target_case, r['results'])) for r in rows if r['case_id'] == case['id']]
+    reference = BeautifulSoup(reference_retrieval_panel(dict(profile, cases=[target_case]), reference_rows, {case['id']}, True), 'html.parser')
+    assert reference.find('th', string='Hit@10（参考网页）')
+    assert reference.select_one('[data-metric="reference-hit"]')['data-value'] == '1.0'
 
     interpretation = output / 'interpretation.html'
     interpretation.write_text(interpretation.read_text().replace('data-factual', 'removed-factual', 1))
     import pytest
     with pytest.raises(ValueError, match='Interpretation factual evidence'):
         check(output)
+
+
+def test_metrics_use_only_available_annotations_and_prices_ignore_unknown_invoices():
+    import copy
+    import pytest
+    from lexbench_websearch.scoring import evaluate
+    from lexbench_websearch.relevance import candidate_packet, score
+    from harness.web_search.report import population_summary, cost_panel, benchmark_operations, factual_panel
+    profile = {'protocol': {'top_k': 5, 'rounds': 1, 'score_round': 0},
+               'comparison_selection': {},
+               'methods': [{'id': x, 'label': x, 'currency': 'USD', 'price_per_1000': None} for x in ('a','b')],
+               'cases': [{'id':'known','family':'web','query':'Find the reference','anchors':['https://reference.test/page']},
+                         {'id':'open','family':'web','query':'Explore the topic'},
+                         {'id':'fact','family':'web','query':'Which number?','reference_answer':'42','reference_urls':['https://reference.test/fact']}]}
+    rows=[]
+    for case in profile['cases']:
+        for method in profile['methods']:
+            results = ([] if method['id']=='b' and case['id']!='open' else
+                       [{'url':'https://other.test/page','title':'Other'}, {'url':'https://reference.test/page','title':'Reference'}] if case['id']=='known' else
+                       [{'url':'https://reference.test/fact','title':'42'}] if case['id']=='fact' else
+                       [{'url':'https://other.test/topic','title':'Topic'}])
+            rows.append({'id':case['id']+'-'+method['id'],'case_id':case['id'],'method':method['id'],'round':0,
+                         'results':results,'metrics':evaluate(case,results),'elapsed_ms':100,'cost':None,
+                         'http_status':200,'error':''})
+    original=copy.deepcopy(rows)
+    packet,_=candidate_packet(profile,rows)
+    grades={p['case_id']:{x['candidate_id']:(0 if x['url']=='https://other.test/page' else 3) for x in p['candidates']} for p in packet['blind_candidate_packets']}
+    scored=score(profile,rows,packet['plan'],grades)
+    content={'independent_benchmarks':True,'summary_metrics':'retrieval','metric_populations':[
+        {'id':'custom','benchmark_root':True,'label':{'zh':'场景','en':'Scenarios'},'case_ids':['known','open']},
+        {'id':'factual','benchmark_root':True,'label':{'zh':'事实','en':'Facts'},'case_ids':['fact']}],
+        'catalog_pricing':{'a':{'amount':None,'currency':'USD','unit':'1000-successful-searches'},
+                           'b':{'amount':5,'currency':'USD','unit':'1000-successful-searches','source':'https://prices.test/','checked_at':'2026-10-22'}}}
+    for zh in (True,False):
+        dom=BeautifulSoup(population_summary(profile,rows,content,zh,relevance_scores=scored),'html.parser')
+        custom=dom.select_one('[data-population="custom"]')
+        assert [x.get_text() for x in custom.select('table')[0].select('th')][1:4]==['nDCG@5 × 100','Precision@5','Success@5']
+        auxiliary=custom.select_one('[data-reference-retrieval]')
+        assert [td.get_text().lstrip('★ ') for td in auxiliary.select('tbody tr')[0].select('td')][1:]==['1/1 · 100.0%','0.500']
+        assert not dom.select_one('[data-population="factual"]').find('th',string='nDCG@5 × 100')
+        for article in dom.select('[data-population]'):
+            assert article.select('table')[0].select('tbody tr')[0].select('td')[-1].get_text()==''
+            assert article.select('table')[0].select('tbody tr')[1].select('td')[-1]['data-value']=='5'
+        for html in (str(dom),cost_panel(profile,rows,zh,content),benchmark_operations(profile,rows,content,zh)):
+            assert '待确认' not in html and 'unknown billing' not in html
+        factual=BeautifulSoup(factual_panel(profile,rows,zh,compact=True),'html.parser')
+        assert 'MRR@5' in factual.get_text()
+    assert rows==original
+    content['catalog_pricing']['b']['amount']=-1
+    with pytest.raises(ValueError,match='catalog price'):
+        population_summary(profile,rows,content,True,relevance_scores=scored)

@@ -230,6 +230,8 @@ def build_snapshot_audit(source, output, *, profile):
             'score_audit':comparison['score_audit'], 'profile_sha256':file_sha256(profile)}
         if release_binding:
             manifest['benchmark_release'] = release_binding
+        from harness.reporting.versions import bind_build_version
+        manifest['browser_eval'] = bind_build_version(staging)
         (staging/'report-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
         check_snapshot_audit(staging)
         _install_report_tree(staging, output)

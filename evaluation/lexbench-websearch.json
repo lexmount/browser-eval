@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "external_benchmark_binding",
   "repository": "https://github.com/lexmount/lexbench-websearch",
-  "revision": "e9cd1d9df34a06a397bed0744793a041de03321b",
+  "revision": "6e0069a264ba06259c53ce9e64aa3990e98827e1",
   "datasets": {
     "scenarios-v1": {
       "path": "datasets/scenarios-v1.json",

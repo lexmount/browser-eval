@@ -48,6 +48,24 @@ def test_factual_explanation_follows_the_installed_answer_policy(monkeypatch):
     assert "requires consecutive whole tokens" in factual_panel(profile, rows, False)
 
 
+def test_retrieval_report_defaults_factual_comparison_to_source_not_answer_text():
+    from harness.web_search.report import render_result_comparison
+    p, rows = matrix()
+    rows[3]["results"][0]["snippet"] = "Ada"
+    rows[4]["results"][0]["url"] = "https://example.org/ada"
+    legacy = comparison_data(p, rows)
+    retrieval = comparison_data(p, rows, primary_factual_metric="source")
+    assert legacy["cases"][1]["outputs"]["a"]["primary"] is True
+    assert retrieval["cases"][1]["outputs"]["a"]["primary"] is False
+    assert legacy["cases"][1]["outputs"]["b"]["primary"] is False
+    assert retrieval["cases"][1]["outputs"]["b"]["primary"] is True
+    html = render_result_comparison(p, rows, True, content={"summary_metrics": "retrieval"})
+    embedded = json.loads(BeautifulSoup(html, "html.parser").select_one('[data-comparison-data]').string)
+    assert embedded["primary_factual_metric"] == "source"
+    assert embedded["cases"][1]["outputs"]["b"]["primary"] is True
+
+
+
 def test_output_previews_are_bounded_and_keep_missing_and_empty_distinct():
     p,rows = matrix()
     rows[0]["results"] = []
@@ -100,7 +118,7 @@ def test_reader_labels_state_what_was_found_and_full_summary_scope():
     assert "符合所选检查" not in page
     assert "不符合所选检查" not in page
     assert "完整长摘要" in page
-    assert "上方的题库、题目、检查项目、方法和命中状态会同步筛选这里" in page
+    assert "上方筛选条件同步控制这里" in page
 
 
 def test_benchmark_and_task_type_filters_are_separate():
@@ -207,3 +225,22 @@ def test_one_query_per_output_page_preserves_all_providers_and_full_text(zh):
             assert page.locator('.compare-task h3').inner_text() == 'Find a page'
         finally:
             browser.close()
+
+
+@pytest.mark.parametrize("zh", [False, True])
+def test_output_notice_describes_only_delivered_fields(zh):
+    profile, rows = matrix()
+    for row in rows:
+        for item in row["results"]:
+            item["summary"] = item["content"] = ""
+    def notice():
+        dom = BeautifulSoup(render_comparison(profile, rows, zh), "html.parser")
+        return dom.select(".compare-notice")[-1].get_text()
+    assert ("标题、摘要" if zh else "returned titles and snippets") in notice()
+    assert ("正文" if zh else "Page bodies") not in notice()
+    assert ("长摘要" if zh else "Page summaries") not in notice()
+    rows[0]["results"][0]["summary"] = "An API-provided summary"
+    assert ("长摘要完整显示" if zh else "summaries are shown in full") in notice()
+    assert ("正文" if zh else "Page bodies") not in notice()
+    rows[0]["results"][0]["content"] = "An API-provided page body"
+    assert ("网页正文显示节选" if zh else "bodies are shown as excerpts") in notice()

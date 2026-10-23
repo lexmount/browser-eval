@@ -31,13 +31,16 @@ An explicitly requested diagnostic report may be delivered separately from a cer
 
 ## Working contract
 
+Version changes require an explicit human release request. Code synchronization, review fixes, tests and report rebuilds must not automatically bump package, benchmark or report edition numbers, rewrite frozen release catalogs, or create/push release tags. Reuse existing build versions and record source hashes; keep unreleased changes separate from a certified edition.
+
+
 Public report CLIs fall back to English. `BROWSER_EVAL_REPORT_LANGUAGE` changes the environment default; an explicit `--language` wins, and a rebuild preserves the saved primary language. For an agent-driven build, select the language from the current conversation. English builds retain the matching Chinese edition; a Chinese selection does not generate an English translation unless explicitly requested. Keep measured material in its source language. Historical Chinese-only renderers must disclose that limit and reject unsupported requests. Bind generated languages and the selected entry in report metadata. English navigation opens a not-generated notice when absent; never publish stale English pages. Validate each generated edition and retain route, value and evidence-link parity checks when both exist.
 
 1. Establish the decision being supported, the measured unit, cohort, versions, execution location, freshness policy, and intended deliverable. Inspect the actual dataset, runner, outputs, scorer, prior review evidence, and current report. Do not infer them from screenshots or prose.
 2. Freeze a machine-readable evaluation contract before expensive calls. It must identify the exact cases and methods, run count, timeout, concurrency policy, input and output contract, scoring provenance, reference state, and publication target when one exists. Existing compiled reference answers are frozen by default. Source metadata, capture dates, and absent newer acceptance-contract fields do not imply a live-reference task. Only tasks explicitly declaring `source_verification.reference_mode: live_exact` require live checks. For those tasks, fail closed: verify and freeze references immediately before calls, verify the same declared scope afterward, and certify the cohort only when both checks pass. An unchanged compiled acceptance-contract dataset is already the benchmark input: freeze its task and rule bytes for execution, without requiring historical source-qualification raw files or re-auditing cohort admission. Qualify sources when adding tasks or changing references/acceptance rules; do not turn an ordinary version rerun into dataset reconstruction. Partial or uncertified cohorts remain diagnostic evidence and cannot enter a release.
 3. Let each method use its strongest documented route to produce the required output. Equalize the task, inputs, output contract, call budget, and scoring. Do not require identical internals. For fixed-native cohorts, declare the input media type independently of URL patterns and expected answers, freeze the class-level route and transport parameters before calls, and verify the retained request receipts at aggregation and release. Record material asymmetries such as local versus remote execution, cold versus warm start, bundled conversion, network transit, account tier, and billable time.
 4. Preserve evidence as an append-only chain by default: task definition, reference, provider call, raw artifact, normalized artifact, score, review, revision, and release. If the user explicitly requests deletion of superseded history, validate the chain first and use the existing owner's current-only authority described in [audit and revision](references/audit-and-revision.md); remove obsolete full snapshots rather than storing reverse patches. Keep current provider outputs, call identities, real scoring sources and necessary review evidence immutable. Routine refresh and publication reuse current inputs without redundant historical snapshots. A presentation or scoring change must not masquerade as a new provider result. Declare the native answer fields and validate their structural projection before accepting a scored artifact. Adapters must not remove returned candidates by URL meaning or consult expected answers when selecting candidate fields. Apply privacy redaction only to separately identified public views after scoring, preserving the private originals and distinguishing original, scored and public-view hashes.
-5. Separate retrieval success, task acceptance, content quality, latency, cost, and freshness. A missing or partial reference makes the affected metric unavailable or scoped; it does not prove success or failure. Do not derive binary acceptance from an unrelated aggregate similarity score.
+5. Separate retrieval success, task acceptance, content quality, latency, cost, and freshness. Treat missing telemetry as unavailable. A request that received no first byte contributes to total latency, but not to first-byte or body-transfer stage means; show each stage’s observed population. A missing or partial reference makes the affected metric unavailable or scoped; it does not prove success or failure. Do not derive binary acceptance from an unrelated aggregate similarity score.
 6. For heterogeneous same-window latency evidence, preserve the full predeclared task-by-method matrix. Show all-call latency on that common denominator separately from successful-call latency on each method's conditional subset. Treat the all-method shared-pass intersection as a diagnostic, never as a post-outcome selector or ranking sample.
 7. At aggregate and publication boundaries, copy only explicit hash-bound evidence and public audit files. Reject symlinks and exclude worker trees, host paths, credentials, and internal run logs. Verify primary, auxiliary, delivered-file, and retained retry artifacts before release.
    When a saved-input handoff needs host-metadata redaction, use the shared publication privacy owner. Preserve private originals and distinguish original from public file hashes; rebind dependent metadata references and disclose auxiliary debug-log projections. Never rewrite original scored answers, references or response payloads as a privacy repair. When a scored answer or native envelope itself contains private values, create a separately identified post-score public view through the shared privacy owner, verify its native-field projection and unchanged task verdict, and disclose that omitted original bytes cannot be reconstructed from the public copy. A public frozen presentation must explicitly bind its complete view inventory, verify displayed bytes against those views, keep acquisition gates strict, and distinguish preserved original diagnostics from what redacted text can reproduce. Verify unchanged verdicts, timings and review decisions, and rebuild from the public inputs. Keep regenerated package/report wrappers outside the original-input projection receipt so normal rebuilding does not invalidate it or create circular hashes.
@@ -81,6 +84,69 @@ capacity-bound data attachments through the existing packer. Check their combine
 evidence before uploading, bind immutable published versions, and include the
 attachment archives and target registry in the main publication snapshot. Keep
 one report entry and all evidence; reject unresolved or changed data attachments.
+
+Web Search relevance labels cover every in-house case with the same frozen rubric.
+Use named human annotations by default. When the user explicitly selects a model
+judge, use `scripts/judge_search_relevance.py` and retain the exact model, prompt,
+blind inputs, raw responses and quoted scoring evidence. Label the result as model
+preview relevance rather than human gold judgments. Both routes import through
+`--relevance`; neither may substitute nonempty responses or URL checks for labels.
+Keep empty queries and all-zero pools in the score population.
+For explicit website or official-source requirements, bind independently
+qualified URL rules and check eligibility before model grading. Ordinary
+diagnostic domains must not become mandatory sources. Keep source URLs out of
+content-only judging, retain original model grades, and bind rubric corrections
+separately from immutable search calls.
+Register explicit official-source and platform/genre requirements in every query
+language; organization names used only as diagnostics do not impose a source
+restriction. Qualify valid official alternative domains independently. When
+source rules change, reuse original judge calls and regrade only cases whose
+actual judge inputs changed.
+
+When published references contain terminal footnotes or fused citation URLs,
+separate that metadata only in a versioned answer derivation. Preserve the
+original answer, keep answers that are themselves URLs intact, and bind paired
+public-scorer/task-predicate controls before any offline recomputation.
+
+Make hash-bound original query sources reachable from the dataset page.
+A provenance hash without an inspectable source does not support a reader’s
+source check. Keep the source author’s historical results separate from current
+benchmark measurements.
+
+Review packets must use the same adapter, request-bound URL resolution and
+organic-slot projection as the scored response, and reject a projection/hash
+mismatch. Independent factual verification needs live read-only source access;
+retain physical review inputs and outputs privately and publish path-free
+provenance projections with distinct original and public hashes. A rate-limited
+review stops new jobs and resumes only missing packets.
+
+For native SERP adapters, retain the complete response but score the declared
+organic slots in their original order. Test wrapped JSON, absent optional
+snippets, relative links and invalid entries inside versus outside the cutoff.
+For new search cohorts, finish one provider's complete case set before starting
+the next provider; never interleave providers by query. Continuing a frozen
+cohort preserves its existing execution order.
+A shared projection correction uses the versioned assessment revision over
+hash-bound saved responses, with paired controls and zero new search calls.
+Before finite-quota collection, reserve configuration probes and validate the
+complete matrix's worst-case physical call count; resuming must count retained
+calls as well as current logical results.
+When a remote native interface changes during collection, stop further calls,
+prove the supported replacement request, and bind an execution revision before
+resuming. Recollect the declared changed-method scope while preserving complete
+unaffected calls. Keep archived physical calls in quota accounting, including
+when a second interruption occurs during the correction.
+
+
+For Search comparison reports, keep decision summaries distinct from complete result
+and audit inventories. A subset discovery claim must show every selected provider
+on that same subset; the headline relevance score covers the full declared relevance
+population. Give quality, collection timing/billing, input provenance and original
+responses distinct owners, and remove duplicate reading routes when consolidating them.
+
+Search builds and scoring reuse validate evidence without rechecking report HTML.
+Combine the final `--release-check` and `--export-delivery` into one pass. Subsequent
+packaging and upload verify the accepted file tree instead of repeating page checks.
 
 Conciseness must preserve the evidence needed for the decision. Keep each independent
 benchmark’s primary quality measures and denominator visible in the home comparison;

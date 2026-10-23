@@ -8,196 +8,80 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
 
-[Quickstart](#quickstart) · [Benchmarks](docs/benchmarks.md) · [Reports](#read-and-share-a-report) · [Contributing](CONTRIBUTING.md)
+[Quickstart](#quickstart) · [Tracks](#evaluation-tracks) · [Reports](#reports) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
----
+Browser Eval is an extensible evaluation harness for browsers and web agents. It combines task contracts, adapters, saved evidence and scoring to produce inspectable reports.
 
-Browser Eval connects benchmark tasks to browser and service adapters, executes declared comparisons, calls the benchmark scorer on saved outputs and builds inspectable reports. It supports Web Fetch, Browser Trajectory Replay and Browser Use. Task populations and acceptance requirements come from the selected benchmark.
+## Evaluation tracks
 
-[LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch task suites. [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) owns search queries, provenance and retrieval scoring. WebMainBench, WCXB and WebArena supply other benchmark inputs. Browser Eval provides the execution and reporting machinery; each benchmark retains its own scope, versions and attribution. See [repository boundaries and integration](docs/benchmarks.md).
+The following workflows have runnable guides; see [contributing](CONTRIBUTING.md) for the adapter and task-contract model.
 
-You get an HTML report with comparison tables, task details, responses and logs. Read it locally or publish it through [Artifact Site](https://github.com/lexmount/artifact-site) so others can explore the results online.
-
-[What it tests](#what-it-tests) · [Quickstart](#quickstart) · [Reports](#read-and-share-a-report) · [Related projects](#related-repositories) · [Contribute](#contribute)
-
-```mermaid
-flowchart LR
-    A[Benchmark tasks and contracts] --> B[Browser Eval]
-    B --> C[Browser or provider adapters]
-    C --> D[Saved outputs and timings]
-    D --> E[Scoring and evidence checks]
-    E --> F[Inspectable HTML report]
-```
-
-## What it tests
-
-Supported execution tracks:
-
-| Track | Question | Start here |
+| Track | What it tests | Guide |
 | --- | --- | --- |
-| Web Search | Which links and text does a search API return, at what latency and cost? | [Synthetic example](examples/web_search/README.md) · [Track guide](harness/web_search/README.md) |
-| Web Fetch | Can a method return the required page text, records, resources or files? How long does it take? | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
-| Browser Trajectory Replay | Can different browsers complete the same recorded actions? What resources do they use? | [Curated suite](examples/trajectory_replay/README.md) · [WebArena recordings](examples/trajectory_replay/public_webarena/README.md) |
-| Browser Use | Can an Agent complete a task when only the browser changes? | [CowAgent + WebArena guide](examples/browser_use/README.md) |
+| Web Search | Evaluate search relevance, ranking, latency and cost | [Synthetic example](examples/web_search/README.md) · [Track guide](harness/web_search/README.md) |
+| Web Fetch | Retrieve the requested page content, records, resources or files | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
+| Browser Trajectory Replay | Complete the same recorded browser actions across implementations | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
+| Browser Use | Let an Agent use different browsers to complete tasks | [CowAgent + WebArena](examples/browser_use/README.md) |
 
-Each track reports its own task population and scores. HTTP is a fetch baseline; trajectory replay uses fixed actions; Browser Use includes Agent decisions.
+Web Fetch supports local browsers, hosted services and extraction tools. See [adapters](docs/provider-contract.md) for available methods and [dependencies](docs/dependencies.md) for installation requirements. Replay and Browser Use have separate runners and environments.
 
-<details>
-<summary>Supported browsers, services and tools</summary>
-
-| Track | Implemented participants | Preparation |
-| --- | --- | --- |
-| Web Fetch: local browsers | Moli, Chromium, Lightpanda, Obscura | Install the selected binary; Chromium also needs Playwright and Node.js conversion dependencies |
-| Web Fetch: services | Lexmount, Firecrawl, Tavily Extract, Exa Contents, Cloudflare Markdown/Content; hosted Kitesurf via Cloudflare | Provider account and credentials in the repository `.env` |
-| Web Fetch: Agent tools and extractors | CowAgent, OpenClaw, DeepSeek Harness, LangChain WebBaseLoader, Crawl4AI | Upstream checkout/runtime or the `oss-eval` extra, according to the adapter |
-| Browser Trajectory Replay / Browser Use | Moli and Chromium in the current browser registry | Docker/Linux environment; Browser Use also needs CowAgent and a model account |
-| Controls | Plain HTTP and offline fixture | Base Python installation |
-
-Support varies by task type. Check [adapter requirements](docs/provider-contract.md) and [dependency versions](docs/dependencies.md) before selecting a method.
-
-</details>
-
-<details>
-<summary>Benchmarks and datasets</summary>
-
-| Suite | What it measures | Availability and entry |
-| --- | --- | --- |
-| Offline fixture / local article | Harness operation, selection, scoring and evidence; no performance ranking | Included; commands below |
-| LexBench Web Search | Search queries, source references and deterministic retrieval scoring | [Benchmark repository](https://github.com/lexmount/lexbench-websearch) · [Integration](docs/benchmarks.md#web-search-integration) |
-| LexBench Web Fetch | Ordinary pages, dynamic content, documents, images/video, popular sites and access restrictions | [Benchmark repository](https://github.com/lexmount/lexbench-webfetch) · [Integration](docs/benchmarks.md); complete historical references require approved external inputs |
-| WebMainBench / WCXB | Extraction fidelity on independently bound frozen HTML and reference content | [Frozen-HTML guide](harness/web_fetch/WEBMAINBENCH.md); obtain source data under its terms and use the suite's certification pipeline |
-| Curated trajectory suite | Identical fixed actions on selected public pages | [Trajectory run guide](examples/trajectory_replay/README.md); uses Docker and live sites |
-| WebArena human-recording replay | Qualified fixed trajectories and official task evaluation on self-hosted sites | [Reproduction guide](docs/webarena-fixed-trajectory-reproduction.md); external datasets and substantial deployment resources |
-| WebArena-Verified Browser Use | Autonomous CowAgent task completion against the official evaluator | [Browser Use guide](examples/browser_use/README.md); current selection and environment are declared separately |
-
-The Web Fetch CLI takes a dataset file. Replay and Browser Use have separate runners.
-
-</details>
+Task definitions and scoring come from the selected benchmark: [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), [LexBench Web Search](https://github.com/lexmount/lexbench-websearch), WebMainBench, WCXB or WebArena. See [benchmark integration](docs/benchmarks.md).
 
 ## Quickstart
 
-Clone the repository, open a terminal in its root, and install [uv](https://docs.astral.sh/uv/getting-started/installation/). Python 3.11 or newer is required; repository development and CI use Python 3.11.
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run the offline example:
 
-```bash
+```sh
+git clone https://github.com/lexmount/browser-eval.git
+cd browser-eval
 uv sync --frozen
 uv run --frozen browser-harness-eval validate
 uv run --frozen browser-harness-eval run --delay 0
 ```
 
-Open the report path printed in the terminal. This offline example needs no browser, Docker or API key. It contains one expected pass and one expected failure so you can see both kinds of result. Installation needs network access.
+Open the report path printed in the terminal. The example has one expected pass and one expected failure; it needs no browser, Docker or API key. Python 3.11–3.14 is supported; development uses 3.11.
 
-Next, [run HTTP, Moli or Chromium against a local article](examples/web_fetch/README.md). That guide covers browser installation, selecting several methods and choosing your own tasks. Remote services and Agent runs need their own accounts; their calls may incur charges.
+Next, [try HTTP, Moli or Chromium on a local article](examples/web_fetch/README.md). Optional adapters, service credentials and live evaluation commands are covered in the track guides above.
 
-<details>
-<summary>Python runtime and optional adapters</summary>
+## Reports
 
-Use Python 3.11 for the repository's tested development environment. Optional adapters and historical experiments may add their own constraints.
+Reports include comparisons, task results, full responses and failure evidence. Runs are saved under `~/.browser-eval/runs/`; use `--output /absolute/path/new-run` to choose another directory.
 
-| Extra | Used for |
-| --- | --- |
-| `headless-eval` | Chromium, PDF parsing and container measurements |
-| `webmainbench-eval` | WebMainBench scoring |
-| `browser-use-eval` | WebArena and Agent execution; requires Git for the pinned evaluator |
-| `oss-eval` | Open-source extraction libraries |
+Rebuild from saved evidence without repeating calls:
 
-Install an extra with `uv sync --frozen --extra NAME`. Browser binaries, Docker, site datasets and accounts are installed separately. See [dependencies](docs/dependencies.md).
-
-</details>
-
-## Read and share a report
-
-Reports retain the selected benchmark edition and exact dataset/scorer hashes.
-Package upgrades leave historical results unchanged. See
-[benchmark editions](docs/benchmarks.md#benchmark-editions) for patch, minor and
-major comparison rules.
-
-| Output | What you will find |
-| --- | --- |
-| `report/en/index.html` | English edition under the default configuration; Chinese-only builds show a not-generated notice |
-| `report/index.html` | Report entry; opens the selected language |
-| `results.jsonl`, `summary.json` | Scores and aggregates for scripts or further analysis |
-| `manifest.json`, `dataset.json` | Methods, versions, settings and tasks used |
-| `artifacts/` | Saved responses and other evidence |
-
-Runs go to `~/.browser-eval/runs/` by default. Set `BROWSER_EVAL_DATA_HOME` to change the root, or `--output /absolute/path/new-run` for one run. Each run needs a new directory.
-
-Rebuild a report from saved evidence without repeating browser or API calls:
-
-```bash
+```sh
 uv run --frozen browser-harness-eval report /absolute/path/to/run
 ```
 
-The Web Fetch CLI falls back to English. Set the environment default for a team or agent session, or select a language explicitly; an existing report keeps its saved choice:
+English is the default; add `--language zh` when running or rebuilding for Chinese. A rebuild without that option keeps the saved language.
 
-```bash
-BROWSER_EVAL_REPORT_LANGUAGE=zh uv run --frozen browser-harness-eval run --delay 0
-uv run --frozen browser-harness-eval report /absolute/path/to/run --language zh
-```
+Each new report records its Browser Eval build and selected benchmark edition, with exact code and input hashes. See [versioning](docs/benchmarks.md#benchmark-editions) for comparison rules and [reference inputs](docs/reference-inputs.md) for historical data.
 
-Rebuilding without `--language` keeps the previous choice. Language changes do not repeat calls or change scores; task wording, responses and logs retain their original language. English (`en`) and Chinese (`zh`) are supported; other language codes are rejected. See [report language support](docs/report-hosting.md#report-languages) for the standalone builders and historical reports.
-
-Frozen local snapshots use their own external `presentation-binding.json`; keep report-specific profiles and publication targets with their saved evidence, outside Git. Follow the [frozen local report workflow](harness/web_fetch/README.md#frozen-local-report-inputs) to check or rebuild them without changing saved scores.
-
-To publish online:
-
-1. Sign in or create an account on the [China site](https://artifact-site.lexmount.cn/) or [global site](https://yours.lexmount.com/artifact-site).
-2. Publish the run's `report/` directory using the [CLI or MCP guide](docs/report-hosting.md).
-3. Choose who can open the report in its sharing settings.
-
-[Artifact Site](https://github.com/lexmount/artifact-site) is open source and supports self-hosting, report versions and access controls. Local reports need no hosting account and never upload automatically.
-
-Example runs are diagnostic. For a formal benchmark release, follow the selected track's certification and release checks; uploading a report does not certify it.
-
-## Related repositories
-
-| Repository | Role in this work |
-| --- | --- |
-| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Independent search tasks, provenance and scoring |
-| [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Independent task suites and acceptance contracts for self-authored Web Fetch evaluations |
-| [Moli](https://github.com/lexmount/moli) | Browser evaluated alongside the other implementations |
-| [Artifact Site](https://github.com/lexmount/artifact-site) | Report hosting, versions and sharing; self-hosting supported |
-| [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | Separate benchmark for protocols, automation drivers and web-platform semantics |
-| [WebArena-Verified fork](https://github.com/lexmount/webarena-verified/tree/lex-main) | Tasks and evaluator for Browser Use and public WebArena replay; maintained on `lex-main` |
-| [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [upstream](https://github.com/opendatalab/WebMainBench) | Frozen-HTML extraction benchmark; the fork maintains declared scoring corrections |
-| [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | Independent content-extraction benchmark |
-| [CowAgent](https://github.com/zhayujie/CowAgent) | Browser Use Agent runner and Web Fetch tool baseline |
-| [OpenClaw](https://github.com/openclaw/openclaw) · [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Web Fetch tool baselines |
-
-See [dependency sources and pins](docs/dependencies.md) for exact versions. Install only the components your selected method needs.
+To share a report online, publish its `report/` directory through [Artifact Site](https://github.com/lexmount/artifact-site), following the [hosting guide](docs/report-hosting.md). Choose access permissions there. Formal benchmark releases also require the checks in their track guide.
 
 ## Contribute
 
-PRs are welcome for adapters, execution fixes, tests, documentation and translations. Changes to LexBench task requirements belong in the corresponding [Web Fetch](https://github.com/lexmount/lexbench-webfetch) or [Web Search](https://github.com/lexmount/lexbench-websearch) benchmark repository. Start with [CONTRIBUTING](CONTRIBUTING.md), or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
+Read [CONTRIBUTING](CONTRIBUTING.md) for code ownership, tests and PR conventions, or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
 
-```bash
+```sh
 make setup-test
 make ci
 ```
 
-Historical pages and measured outputs live outside Git. For reproducing past runs, see [reference inputs](docs/reference-inputs.md). For code layout and release internals, see [architecture](docs/architecture.md).
-
-Project code is [Apache 2.0 licensed](LICENSE). [THIRD_PARTY](THIRD_PARTY.md) covers data rights and attribution; [SECURITY](SECURITY.md) covers credentials and untrusted content.
+[Architecture](docs/architecture.md) · [Security](SECURITY.md) · [Third-party content](THIRD_PARTY.md) · [Apache 2.0](LICENSE)
 
 ## Cite Browser Eval
 
-If you use the harness in published work, cite this repository and record the tag or commit used. Cite LexBench Web Fetch or other benchmark owners separately for their task definitions and methodology. GitHub's citation menu reads [CITATION.cff](CITATION.cff). For the initial release:
+Use this citation or [CITATION.cff](CITATION.cff), and record the commit used.
 
 ```bibtex
 @software{browser_eval_2026,
   author = {{Browser Eval contributors}},
   title = {Browser Eval},
   year = {2026},
-  version = {0.1.0},
+  version = {0.2.0},
   url = {https://github.com/lexmount/browser-eval}
 }
 ```
-
-Cite upstream benchmarks and evaluators separately when using their data or methods; this repository citation does not replace their attribution requirements.
-
-Update the pinned LexBench evaluator with `make bump-lexbench REV=<full merged commit>`. The command verifies upstream main ancestry, regenerates the lock and definition hashes, and prints changed bindings. Historical report certificates retain their original evaluator identities.
-
-Web Fetch method descriptions, interfaces, account requirements, capability sources, and their English/Chinese text share one registry: `harness/web_fetch/data/report-methods.json`. Register a new product there; executable versions and run parameters come from saved evidence. See [method metadata](harness/web_fetch/README.md#report-method-metadata) for the distinction between registered examples and measured calls.
-
-For the exact configuration and code steps for a new product or release, see [Adding a method or release](harness/web_fetch/README.md#adding-a-method-or-release).

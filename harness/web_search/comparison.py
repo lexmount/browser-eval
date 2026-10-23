@@ -52,9 +52,11 @@ def _item_checks(case, item, *, quality_excluded=False, contamination_excluded=F
     return source, fields
 
 
-def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevance=None):
+def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevance=None, *, primary_factual_metric="answer"):
     """Only compact measured previews enter the page, with full evidence linked once."""
     methods = [{"id": m["id"], "label": m["label"]} for m in profile["methods"]]
+    if primary_factual_metric not in ("source", "answer"):
+        raise ValueError("Unsupported primary factual check")
     method_ids = {m["id"] for m in methods}
     rows = {}
     for row in selected_rows:
@@ -67,9 +69,10 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
     cutoff = profile.get("protocol", {}).get("top_k", 5)
     labels = (relevance or {}).get("labels", {})
     judgments = {}
+    packets = {p["case_id"]: p for p in (relevance or {}).get("blind_candidate_packets", [])}
     for call in (relevance or {}).get("judge", {}).get("calls", []):
         from .relevance import parse_judgments
-        packet = next(p for p in relevance["blind_candidate_packets"] if p["case_id"] == call["case_id"])
+        packet = packets[call["case_id"]]
         judgments[call["case_id"]] = {x["candidate_id"]: x for x in parse_judgments(packet, call["response"])}
     cases = []
     exclusions = set(profile.get("factual_quality_exclusions", []))
@@ -110,7 +113,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
             query_score = query_metrics(ranking, labels[case["id"]], cutoff) if case["id"] in labels and not quality_excluded else None
             outputs[method["id"]] = {
                 "score": query_score,
-                "primary": acceptance(case, row, "primary", cutoff=cutoff, quality_excluded=quality_excluded, relevance_grades=[x["grade"] for x in items] if case["id"] in labels else None),
+                "primary": acceptance(case, row, primary_factual_metric if "reference_answer" in case else "primary", cutoff=cutoff, quality_excluded=quality_excluded, relevance_grades=[x["grade"] for x in items] if case["id"] in labels else None),
                 "quality": any(x["grade"] is not None and x["grade"] >= 2 for x in items) if case["id"] in labels and not quality_excluded else None,
                 "source": acceptance(case, row, quality_excluded=quality_excluded, cutoff=cutoff), "answer": acceptance(case, row, "answer", quality_excluded=quality_excluded, cutoff=cutoff),
                 "site": acceptance(case, row, "site", cutoff=cutoff),
@@ -147,7 +150,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
         raise ValueError("Comparison population contains unknown tasks")
     populations = [{"id": p["id"], "label": p["label"]["zh" if zh else "en"],
                     "case_ids": p["case_ids"]} for p in populations if p["case_ids"]]
-    return {"methods": methods, "cases": cases, "populations": populations, "cutoff": cutoff}
+    return {"methods": methods, "cases": cases, "populations": populations, "cutoff": cutoff, "primary_factual_metric": primary_factual_metric}
 
 
 STYLE = """
@@ -162,7 +165,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 let page=0,relationPage=0,focusedId=null;const size=1,relationSize=10;
 const selected=()=>[...root.querySelectorAll('[data-compare-method]:checked')].map(x=>x.value).filter(x=>x!==$('[data-compare-baseline]').value);
 const relation=(base,others)=>{if(base==null||!others.length||others.some(v=>v==null))return 'unknown';if(base&&others.every(Boolean))return 'all_pass';if(base&&others.every(v=>!v))return 'baseline_only';if(!base&&others.every(Boolean))return 'comparison_only';if(!base&&others.every(v=>!v))return 'all_fail';return 'mixed'};
-const effectiveMetric=(c,m)=>m==='primary'?(c.has_relevance?'quality':c.benchmark==='factual'?'answer':c.check_types.includes('target')?'source':c.check_types.includes('site')?'site':'unscored'):m;
+const effectiveMetric=(c,m)=>m==='primary'?(c.has_relevance?'quality':c.benchmark==='factual'?data.primary_factual_metric:c.check_types.includes('target')?'source':c.check_types.includes('site')?'site':'unscored'):m;
 const verdict=(c,o,m)=>{if(c.quality_excluded&&['primary','source','answer','quality'].includes(m))return L.quarantined;const k=effectiveMetric(c,m),v=o?.[m];return v==null?L.unknown:L.verdicts[k][v?0:1]};
 const scoreSummary=o=>!o.score?'':'<div class="query-score" data-query-score><strong>'+esc(L.qualityScore)+' '+(o.score.ndcg*100).toFixed(1)+'<small> / 100</small></strong><span>'+esc(L.usefulCount)+' '+o.score.useful+'/'+data.cutoff+' · '+esc(o.score.success?L.direct:L.noDirect)+'</span><details><summary>'+esc(L.calculation)+'</summary><table><thead><tr><th>'+esc(L.rank)+'</th><th>'+esc(L.grade)+'</th><th>'+esc(L.weightedGain)+'</th></tr></thead><tbody>'+Array.from({length:data.cutoff},(_,i)=>'<tr><td>'+(i+1)+'</td><td>'+(i<o.score.ranked_grades.length?o.score.ranked_grades[i]:esc(L.notReturned))+(o.score.duplicates[i]?' · '+esc(L.duplicate):'')+'</td><td>'+(o.score.contributions[i]||0).toFixed(4)+'</td></tr>').join('')+'</tbody></table><p>'+esc(L.idealGrades)+': '+o.score.ideal_grades.join(', ')+'</p><p>'+esc(L.actual)+' '+o.score.dcg.toFixed(4)+' ÷ '+esc(L.ideal)+' '+o.score.idcg.toFixed(4)+' × 100 = '+(o.score.ndcg*100).toFixed(1)+'</p></details></div>';
 const criteria=c=>{const x=c.criteria;return '<div class="compare-criteria" data-task-criteria><strong>'+esc(L.criteria)+'</strong>'+(c.quality_excluded?'<p data-quality-excluded>'+esc(L.quarantined)+'</p>':'')+(x.answer!=null?'<p>'+esc(L.referenceAnswer)+': <b>'+esc(x.answer)+'</b></p>':'')+(x.urls.length?'<p>'+esc(L.referenceUrls)+'</p>'+x.urls.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>').join(''):'')+(x.official_sources&&Object.keys(x.official_sources).length?'<details><summary>'+esc(L.sourceRules)+'</summary><p>'+[...(x.official_sources.domains||[]),...(x.official_sources.url_prefixes||[])].map(esc).join('<br>')+'</p>'+x.official_sources.sources.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>').join('')+'</details>':'')+(x.domains.length?'<p>'+esc(L.requestedSites)+': '+x.domains.map(esc).join(', ')+'</p>':'')+((x.paper_ids.length||x.repositories.length||Object.keys(x.aliases).length)?'<details><summary>'+esc(L.equivalents)+'</summary><pre>'+esc(JSON.stringify({aliases:x.aliases,papers:x.paper_ids,repositories:x.repositories},null,2))+'</pre></details>':'')+(!x.urls.length&&x.answer==null&&!x.domains.length?'<p>'+esc(L.unannotated)+'</p>':'')+'</div>'};
@@ -188,12 +191,20 @@ $('[data-output-prev]').onclick=()=>{page--;render()};$('[data-output-next]').on
 """
 
 
-def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=None):
+def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=None, *, primary_factual_metric="answer"):
     """Render both results-analysis modules; embed once per results page."""
     t = lambda en, cn: cn if zh else en
-    data = comparison_data(profile, selected_rows, zh, detail_link, relevance)
+    data = comparison_data(profile, selected_rows, zh, detail_link, relevance, primary_factual_metric=primary_factual_metric)
     cutoff = data["cutoff"]
     e = lambda value: html.escape(str(value), quote=True)
+    items = [item for case in data["cases"] for output in case["outputs"].values()
+             if output for item in output["items"]]
+    delivered_fields = t("Each column shows the first five results with their returned titles and snippets.",
+                         "每列展示前 5 条结果及接口返回的标题、摘要。")
+    if any(item.get("summary") for item in items):
+        delivered_fields += t(" Page summaries are shown in full.", " 长摘要完整显示。")
+    if any(item.get("content") for item in items):
+        delivered_fields += t(" Page bodies are shown as excerpts.", " 网页正文显示节选。")
     labels = {"relations": dict(zip(
         ("all_pass", "baseline_only", "comparison_only", "all_fail", "mixed", "unknown"),
         (t("All selected methods hit", "所选方法均达到条件"), t("Only baseline hits", "仅基准达到条件"),
@@ -226,7 +237,7 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
         "verdicts": {"quality": [t("Relevant result found", "有可用结果"), t(f"No relevant result in top {cutoff}", "没有可用结果")], "source": [t("Reference URL found", "找到参考网址"), t(f"Reference URL absent from top {cutoff}", f"前 {cutoff} 条未找到参考网址")],
                      "answer": [t("Answer text found", "文字包含参考答案"), t("Answer text absent", "文字未包含参考答案")],
                      "site": [t("Required website found", "找到限定网站的结果"), t("Required website absent", "未找到限定网站的结果")],
-                     "availability": [t("Nonempty response", "返回非空"), t("Empty response", "返回为空")]},
+                     "availability": [t("Search results returned", "返回了搜索结果"), t("Empty response", "返回为空")]},
         "results": t("Returned results", "返回条数"), "full": t("Open full response and evidence", "查看完整响应与证据"),
         "empty": t("No results returned", "没有返回结果"), "missing": t("No measured result", "没有实测结果"),
         "untitled": t("Untitled result", "无标题结果"), "summary": t("Full page summary", "完整长摘要"),
@@ -279,5 +290,5 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
         + '</p><div class="compare-controls"><label>' + t('Check', '检查项目') + '<select data-compare-metric>' + options([(key, label) for key, label in metric_options if key in available_metrics]) + '</select></label><label>' + t('Baseline', '基准方法') + '<select data-compare-baseline>' + options(methods) + '</select></label></div><fieldset><legend>' + t('Compare with', '对比方法') + '</legend><div class="compare-checks">'
         + ''.join('<label><input type="checkbox" data-compare-method checked value="' + e(k) + '">' + e(v) + '</label>' for k,v in methods)
         + '</div></fieldset><div class="compare-counts" data-comparison-counts aria-live="polite"></div><label>' + t('Show tasks where', '查看题目') + '<select data-compare-relation>' + options([('all', t('All outcome relations', '全部结果'))] + list(labels['relations'].items())) + '</select></label><div class="compare-relations" data-relation-tasks></div><div class="compare-pager"><button data-relation-prev>' + t('Previous', '上一页') + '</button><span data-relation-page aria-live="polite"></span><button data-relation-next>' + t('Next', '下一页') + '</button></div>'
-        + '<h2>' + t('Actual outputs, side by side', '逐题查看实际输出') + '</h2><p class="compare-notice">' + t(f'The dataset, query, check, providers and outcome filters above also control this view. Each column shows the first {cutoff} results. Page summaries are complete; page bodies remain compact previews. Green marks identify the exact reference-page or answer-cue check, not a semantic correctness judgment.', f'上方的题库、题目、检查项目、方法和命中状态会同步筛选这里。每列展示前 {cutoff} 条结果，长摘要完整显示，网页正文保留节选。绿色标出可用结果及具体匹配字段；每条结果显示相关性等级，题目总分可展开计算过程。') + '</p><div data-output-pages></div><div class="compare-pager"><button data-output-prev>' + t('Previous', '上一页') + '</button><span data-output-page aria-live="polite"></span><button data-output-next>' + t('Next', '下一页') + '</button></div>'
+        + '<h2>' + t('Actual outputs, side by side', '逐题查看实际输出') + '</h2><p class="compare-notice">' + t('The filters above also control this view. ', '上方筛选条件同步控制这里。') + delivered_fields + t(' Green marks identify the matched fields or useful results. Relevance grades and expandable score calculations are shown where available.', ' 绿色标出可用结果及具体匹配字段；有相关性评分的题目可展开查看计算过程。') + '</p><div data-output-pages></div><div class="compare-pager"><button data-output-prev>' + t('Previous', '上一页') + '</button><span data-output-page aria-live="polite"></span><button data-output-next>' + t('Next', '下一页') + '</button></div>'
         + '<script type="application/json" data-comparison-data>' + json.dumps(data, ensure_ascii=False).replace('<', '\\u003c').replace('&', '\\u0026') + '</script></section><script>' + SCRIPT + '</script>')

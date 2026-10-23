@@ -526,6 +526,8 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
     reject_evidence_symlinks(report_dir)
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
+    from harness.reporting.versions import check_build_version
+    check_build_version(root, manifest)
     if (manifest.get("profile_sha256")
             and manifest.get("template") != template_identity("trajectory-replay")):
         raise ValueError("report bypasses the maintained replay template")

@@ -14,21 +14,21 @@ import re
 from collections import Counter
 from pathlib import Path
 from statistics import median
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from bs4 import BeautifulSoup
 
 from harness.record_io import same_json_record
 from harness.reporting.presentation import check_presentation
 
-from .core import aggregate, digest, normalize, request_cost, request_body, validate_profile, verify_bundle, write_json
+from .core import aggregate, digest, normalize_response, request_cost, request_body, validate_profile, verify_bundle, write_json
 from lexbench_websearch.scoring import canonical_url, classify, evaluate, in_domain
 from lexbench_websearch.evidence_quality import factual_sensitivity, CONTAMINATION_RULE
-from .diagnostics import operational
+from .diagnostics import error_evidence, operational
 from .runner import reference_available, reference_changes
 from .profiles import load_profile, _bound
 from harness.web_search.revisions import apply_identity_correction
-from .relevance import verify_provenance
+from .relevance import verify_provenance, verify_protocol
 from lexbench_websearch.relevance import score as score_relevance, summary as relevance_summary
 
 STYLE = """
@@ -47,7 +47,7 @@ main,nav{max-width:1180px;margin:auto;padding:20px}main{overflow-wrap:anywhere}n
 a{color:inherit;text-underline-offset:3px}h1{font-size:clamp(28px,4vw,36px);line-height:1.2}h2{margin-top:32px;font-size:24px}
 select,input{max-width:100%}
 .notice{border-left:4px solid #b77c1c;padding:14px 20px;background:var(--panel)}.muted{color:var(--muted)}
-.scroll{overflow:auto;border:1px solid var(--line);border-radius:8px;margin:20px 0}.inventory{max-height:520px}
+.scroll{overflow:auto;border:1px solid var(--line);border-radius:8px;margin:20px 0}.inventory{max-height:520px}.inventory td:last-child{white-space:nowrap;overflow-wrap:normal}
 table{border-collapse:collapse;min-width:720px;width:100%;background:var(--panel)}th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{white-space:nowrap;position:sticky;top:0;background:var(--panel)}
 table.compact{min-width:0}table.compact td{min-width:70px}td{min-width:110px;max-width:420px;overflow-wrap:anywhere}.win{color:var(--win);font-weight:700}button,input,select{font:inherit;padding:7px 12px;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:5px}
 [data-row][data-state="pass"] td:nth-child(4){color:var(--win);font-weight:700}
@@ -60,11 +60,21 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel);padding:
 .chapter-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:28px 0}.chapter-link{display:grid;gap:8px;padding:22px;border:1px solid var(--line);border-radius:12px;background:var(--panel);text-decoration:none}.chapter-link span{color:var(--muted)}[data-population]{margin:28px 0;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}[data-population] h3{margin:0}[data-population] .scroll{margin-bottom:0}.population-note{max-width:850px;color:var(--muted)}[data-population] table{font-size:14px}[data-population] th{white-space:normal;min-width:75px;max-width:150px}[data-population] td{min-width:75px;white-space:nowrap}[data-population] th,[data-population] td{padding:10px}
 @media(max-width:600px){.chapter-links{grid-template-columns:1fr}[data-population]{padding:12px}main,nav{padding:16px}nav{gap:14px}td,th{padding:10px}.flow{flex-direction:column}}
 """
-SCRIPT = """
+EVIDENCE_SCRIPT = """
+function nativeEvidenceResult(value,index){
+ if(value&&typeof value.body==='string')value=JSON.parse(value.body);
+ else if(value&&value.body&&typeof value.body==='object')value=value.body;
+ const items=value&&(value.results||value.organic||(value.data&&value.data.webPages&&value.data.webPages.value));
+ if(!Array.isArray(items)||!Number.isInteger(index)||index<0||index>=items.length)throw Error('Result not found in native response');
+ return items[index];
+}
+"""
+SCRIPT = EVIDENCE_SCRIPT + """
+
 document.querySelector('[data-theme]').onclick=()=>{document.body.className=document.body.className==='dark'?'light':'dark'};
 document.querySelectorAll('[data-sort-column]').forEach(b=>b.onclick=()=>{let t=b.closest('table'),i=+b.dataset.sortColumn,asc=b.parentElement.getAttribute('aria-sort')!=='ascending';t.querySelectorAll('th').forEach(x=>x.removeAttribute('aria-sort'));b.parentElement.setAttribute('aria-sort',asc?'ascending':'descending');let rows=[...t.tBodies[0].rows];rows.sort((a,b)=>{let x=a.cells[i].dataset.value,y=b.cells[i].dataset.value;if(x==='')return y===''?0:1;if(y==='')return -1;return (Number(x)-Number(y))*(asc?1:-1)});rows.forEach(r=>t.tBodies[0].append(r))});
 let pf=document.querySelector('[data-population-filter]');let f=document.querySelector('[data-filter]'),q=document.querySelector('[data-query]'),g=document.querySelector('[data-cohort-filter]'),o=document.querySelector('[data-origin-filter]'),m=document.querySelector('[data-method-filter]');function filter(){document.querySelectorAll('[data-row]').forEach(r=>{r.hidden=(pf&&pf.value!=='all'&&!JSON.parse(pf.selectedOptions[0].dataset.caseIds||'[]').includes(r.dataset.caseId))||(f&&f.value!=='all'&&r.dataset.state!==f.value)||(g&&g.value!=='all'&&r.dataset.cohort!==g.value)||(o&&o.value!=='all'&&r.dataset.origin!==o.value)||(m&&m.value!=='all'&&r.dataset.method!==m.value)||(q&&!r.textContent.toLowerCase().includes(q.value.toLowerCase()))})}if(pf)pf.onchange=filter;if(f)f.onchange=filter;if(q)q.oninput=filter;if(g)g.onchange=filter;if(o)o.onchange=filter;if(m)m.onchange=filter;filter();
-document.querySelectorAll('[data-evidence]').forEach(b=>b.onclick=async()=>{let d=document.querySelector('dialog');d.querySelector('a').hidden=true;d.querySelector('pre').textContent='…';d.showModal();try{let r=await fetch(b.dataset.evidence);if(!r.ok)throw Error('HTTP '+r.status);let text=await r.text();if(b.dataset.result!==undefined){let v=JSON.parse(text),items=v?.results??v?.data?.webPages?.value,index=Number(b.dataset.result);if(!/^[0-9]+$/.test(b.dataset.result)||!Number.isSafeInteger(index)||!Array.isArray(items)||index>=items.length)throw Error('Selected result is missing or invalid');let item=items[index];if(!item||typeof item!=='object'||Array.isArray(item)||!Object.keys(item).length)throw Error('Selected result is missing or invalid');text=JSON.stringify(item,null,2)}else{try{text=JSON.stringify(JSON.parse(text),null,2)}catch{}}d.querySelector('pre').textContent=text}catch(e){d.querySelector('pre').textContent=String(e)}});
+document.querySelectorAll('[data-evidence]').forEach(b=>b.onclick=async()=>{let d=document.querySelector('dialog');d.querySelector('a').hidden=true;d.querySelector('pre').textContent='…';d.showModal();try{let r=await fetch(b.dataset.evidence);if(!r.ok)throw Error('HTTP '+r.status);let text=await r.text();if(b.dataset.result!==undefined){let v=JSON.parse(text),items; if(v&&typeof v.body==='string')v=JSON.parse(v.body);else if(v&&v.body&&typeof v.body==='object')v=v.body;items=v?.results??v?.organic??v?.data?.webPages?.value;let index=Number(b.dataset.result);if(!/^[0-9]+$/.test(b.dataset.result)||!Number.isSafeInteger(index)||!Array.isArray(items)||index>=items.length)throw Error('Selected result is missing or invalid');let item=items[index];if(!item||typeof item!=='object'||Array.isArray(item)||!Object.keys(item).length)throw Error('Selected result is missing or invalid');text=JSON.stringify(item,null,2)}else{try{text=JSON.stringify(JSON.parse(text),null,2)}catch{}}d.querySelector('pre').textContent=text}catch(e){d.querySelector('pre').textContent=String(e)}});
 document.querySelectorAll('[data-diagnosis]').forEach(b=>b.onclick=()=>{let d=document.querySelector('dialog');d.querySelector('pre').textContent=b.dataset.diagnosis;let a=d.querySelector('a');a.hidden=false;a.href=b.dataset.detail;d.showModal()});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 if(document.querySelector('.mermaid')&&innerWidth>700){let s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js';s.integrity='sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I';s.crossOrigin='anonymous';s.onload=async()=>{mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'neutral'});for(let [i,n] of [...document.querySelectorAll('.mermaid')].entries()){try{let r=await mermaid.render('search-flow-'+i,n.textContent);n.innerHTML=r.svg;n.hidden=false;n.previousElementSibling.hidden=true}catch{}}};document.head.appendChild(s)}
@@ -126,6 +136,7 @@ def _redact_url_userinfo(raw):
 
 def public_calls(profile, rows, source, sources):
     """Keep measured outcomes; redact URL credentials and audit billing corrections."""
+    from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
     rows = copy.deepcopy(rows)
     methods = {m["id"]: m for m in profile["methods"]}
     files, redactions, corrections = {}, [], []
@@ -138,16 +149,33 @@ def public_calls(profile, rows, source, sources):
             binding = attempt["evidence"]
             raw = (sources.get(row.get("cohort"), source) / binding["path"]).read_bytes()
             public = _redact_url_userinfo(raw)
+            try:
+                envelope = json.loads(public)
+            except ValueError:
+                envelope = None
+            headers = envelope.get("headers") if isinstance(envelope, dict) else None
+            if isinstance(headers, dict):
+                private_headers = {
+                    key: value for key, value in headers.items()
+                    if re.fullmatch(SENSITIVE_KEY, key.encode(), re.I)
+                }
+                projected, proof = project_file("headers.json", json.dumps(private_headers).encode())
+                if proof:
+                    headers.update(json.loads(projected))
+                    public = json.dumps(envelope, ensure_ascii=False).encode()
             if public != raw:
                 redactions.append({"path": binding["path"], "original_sha256": digest(raw),
-                                   "public_sha256": digest(public), "rule": "URL userinfo redacted; outcome unchanged"})
+                                   "public_sha256": digest(public), "rule": "URL userinfo and credential response headers redacted; ranked results and outcome unchanged"})
                 binding["sha256"] = digest(public)
             files[binding["path"]] = public
             try:
                 payload = json.loads(raw)
             except ValueError:
                 payload = None
-            cost = request_cost(methods[row["method"]], attempt["http_status"], attempt.get("transport_exit", 0), payload)
+            method = methods[row["method"]]
+            cost = attempt["cost"]
+            if method.get("billing") == "http-200-nonempty":
+                cost = request_cost(method, attempt["http_status"], attempt.get("transport_exit", 0), payload)
             if cost != attempt["cost"]:
                 corrections.append({"path": binding["path"], "original_cost": attempt["cost"], "cost": cost,
                                     "rule": "Provider nonempty billing does not depend on local URL validation"})
@@ -253,7 +281,7 @@ def load_run(source):
                 if abs(r["cost"] - sum(a["cost"] for a in attempts)) > 1e-8:
                     raise ValueError("Retry cost mismatch")
         if not r["error"] and r["http_status"] == 200:
-            normalized = normalize(json.loads((source / r["evidence"]["path"]).read_bytes()), next(m["adapter"] for m in profile["methods"] if m["id"] == r["method"]))
+            normalized = normalize_response(json.loads((source / r["evidence"]["path"]).read_bytes()), bymethod[r["method"]], profile["protocol"], r.get("request"))
             if normalized != r["results"]:
                 raise ValueError("Normalized response mismatch")
         if evaluate(bycase[r["case_id"]], r["results"]) != r["metrics"]:
@@ -267,6 +295,11 @@ def _execution_contract(protocol):
         "top_k", "rounds", "score_round", "concurrency", "server_timeout_ms",
         "client_timeout_s", "interval_s", "retry", "order", "as_of",
     )}
+
+
+def scoring_rows(profile, rows):
+    """Select the declared quality round; timing and evidence retain every round."""
+    return [row for row in rows if row["round"] == profile["protocol"]["score_round"]]
 
 
 def load_report_runs(source, cohorts, labels, method_ids=None):
@@ -291,6 +324,8 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
         if profile is None:
             profile = copy.deepcopy(current)
             profile["cases"] = []
+            profile["factual_quality_exclusions"] = []
+            profile["reference_adjudications"] = []
         elif current["methods"] != profile["methods"] or _execution_contract(current["protocol"]) != _execution_contract(profile["protocol"]):
             raise ValueError("Cohort participants or execution protocols differ")
         case_ids = {c["id"] for c in current["cases"]}
@@ -300,6 +335,8 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
         seen_cases.update(case_ids)
         seen_evidence.update(evidence)
         profile["cases"].extend(dict(c, cohort=name) for c in current["cases"])
+        profile["factual_quality_exclusions"].extend(current.get("factual_quality_exclusions", []))
+        profile["reference_adjudications"].extend(current.get("reference_adjudications", []))
         profile.setdefault("reference_checks", {}).update(current.get("reference_checks", {}))
         profile.setdefault("reference_artifacts", {}).update(current.get("reference_artifacts", {}))
         rows.extend(dict(r, cohort=name) for r in calls)
@@ -363,7 +400,7 @@ def assessment_profile(profile, relevance, review):
     """Describe current assessment without rewriting historical collection metadata."""
     from .review import factual_quality_exclusions
     protocol = dict(profile["protocol"])
-    exclusions = factual_quality_exclusions(review)
+    exclusions = sorted(set(profile.get("factual_quality_exclusions", [])) | set(factual_quality_exclusions(review)))
     if relevance:
         protocol["quality"] = "Frozen pooled title/snippet relevance grades (0..3); deterministic aggregation. See report_assessment for judge provenance."
     if review:
@@ -388,7 +425,8 @@ def build(
         raise ValueError("Unsupported primary report language; choose en or zh")
     if site_prefix and ("/" in site_prefix or not site_prefix.replace("-", "").isalnum()):
         raise ValueError("Site prefix must be one safe directory name")
-    authored = json.loads(content.read_text()) if content else {"sections": []}
+    content_bytes = content.read_bytes() if content else None
+    authored = json.loads(content_bytes) if content_bytes is not None else {"sections": []}
     reading_sections = authored.get("reading_sections", [])
     if len({p["key"] for p in reading_sections}) != len(reading_sections) or any(
         not p["key"].replace("-", "").isalnum() for p in reading_sections
@@ -428,8 +466,8 @@ def build(
     if authored.get("assessment_revision"):
         from harness.web_search.revisions import apply_report_revision
         from harness.web_search.revisions import validate_revision_binding
-        validate_revision_binding(authored["assessment_revision"], authority=authority)
-        profile, rows, changes = apply_report_revision(profile, rows, authored["assessment_revision"])
+        validate_revision_binding(authored["assessment_revision"], normalizer=normalize_response, authority=authority)
+        profile, rows, changes = apply_report_revision(profile, rows, authored["assessment_revision"], artifacts=public_files, normalizer=normalize_response)
         assessment_revision = {"contract": authored["assessment_revision"], "changes": changes, "implementation_sha256": {name: digest(path.read_bytes()) for name, path in implementation_sources().items()}}
     profile, rows = project_comparison(profile, rows, authored)
     materialized_paths = {e["path"] for r in rows for e in [r["evidence"], *[a["evidence"] for a in r.get("attempts", [])]]}
@@ -439,18 +477,21 @@ def build(
     output.mkdir(parents=True, exist_ok=True)
     languages = ["zh", "en"] if include_english or language == "en" else ["zh"]
     routes = []
-    selected = [r for r in rows if r["round"] == profile["protocol"]["score_round"]]
+    selected = scoring_rows(profile, rows)
     review_data = json.loads(review.read_text()) if review else None
     relevance_data = json.loads(relevance.read_text()) if relevance else None
+    review_percent = None
     if review is not None:
-        from .review import validate_public_review
+        from .review import coverage_percent, validate_public_review
         validate_public_review(profile, selected, review_data, authority=authority, relevance=relevance_data)
+        review_percent = coverage_percent(review_data)
         write_json(output / "independent-review.json", review_data)
     if relevance_data:
         if "plan" not in relevance_data:
             from .relevance import import_annotations
             relevance_data = import_annotations(profile, selected, relevance_data)
         verify_provenance(profile, selected, relevance_data, authority=authority)
+        verify_protocol(profile, relevance_data, authored.get("relevance_revision"), authority=authority)
     profile = assessment_profile(profile, relevance_data, review_data)
     relevance_scores = (
         score_relevance(profile, selected, relevance_data["plan"], relevance_data["labels"])
@@ -458,7 +499,7 @@ def build(
     )
     overview_methods = scoped_overview_methods(profile, authored)
     overview_rows = scoped_overview_rows(profile, rows, authored)
-    summary = aggregate([r for r in overview_rows if r["round"] == profile["protocol"]["score_round"]])
+    summary = aggregate(scoring_rows(profile, overview_rows))
     physical = aggregate(overview_rows)
     payloads = {}
     for r in rows:
@@ -608,8 +649,9 @@ def build(
                     link = document.new_tag("a", href=posixpath.join(site_prefix, prefix, target))
                     link.string = label
                     if target == "review.html":
-                        link.string = label + f" · {review_data['case_reviewed']}/{review_data['case_total']}" + t(" queries · ", report_text('text_27da4846b99bd98a')) + f"{review_data['output_reviewed']}/{review_data['output_total']}" + t(" outputs", report_text('text_01623b4507f883b0'))
+                        link.string = label + f" · {review_percent}% · {review_data['case_reviewed']}/{review_data['case_total']}" + t(" queries · ", report_text('text_27da4846b99bd98a')) + f"{review_data['output_reviewed']}/{review_data['output_total']}" + t(" outputs", report_text('text_01623b4507f883b0'))
                         link['data-review-coverage'] = ''
+                        link['data-review-percent'] = str(review_percent)
                         link['data-reviewed-queries'] = f"{review_data['case_reviewed']}/{review_data['case_total']}"
                         link['data-reviewed-outputs'] = f"{review_data['output_reviewed']}/{review_data['output_total']}"
                     footer.append(link)
@@ -629,7 +671,7 @@ def build(
             t(f"Known page@{cutoff}", f"{report_text('text_5359a336caf6bbbe')}{cutoff}{report_text('text_f004f1d84cf962dc')}"),
             t("Price / 1k", report_text('text_df063b20c160707e')),
         ]
-        summary = aggregate([r for r in overview_rows if r["round"] == profile["protocol"]["score_round"]])
+        summary = aggregate(scoring_rows(profile, overview_rows))
         physical = aggregate(overview_rows)
         entries = []
         for m in overview_methods:
@@ -732,7 +774,7 @@ def build(
         )
         if rows:
             body += latency_rounds(profile, rows, zh)
-            body += "<h2>" + t("Successful-call latency", report_text('text_94ad856f2c0d1003')) + "</h2>"
+            body += "<h2>" + t("Successful-call latency", report_text('text_49858a653a66eb64')) + "</h2>"
             body += table(
                 [t("Method", report_text('text_22b9f0b66212809c')), "N", t("Mean ms", report_text('text_cfb4169ac2aa7957')), "P50 ms", "P95 ms"],
                 [
@@ -810,7 +852,7 @@ def build(
                     chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
                 page(chapter_key + ".html", chapter_title, chapter_body)
         if review_data and authored.get("presentation") != "comparison-report":
-            body += f'<p data-review-coverage data-reviewed-queries="{review_data["case_reviewed"]}/{review_data["case_total"]}" data-reviewed-outputs="{review_data["output_reviewed"]}/{review_data["output_total"]}"><a href="review.html">' + t(
+            body += f'<p data-review-coverage data-review-percent="{review_percent}" data-reviewed-queries="{review_data["case_reviewed"]}/{review_data["case_total"]}" data-reviewed-outputs="{review_data["output_reviewed"]}/{review_data["output_total"]}"><a href="review.html">{review_percent}% · ' + t(
                 f"Reviewed {review_data['case_reviewed']}/{review_data['case_total']} queries and {review_data['output_reviewed']}/{review_data['output_total']} outputs",
                 f"{report_text('text_90bb19b8d33a329b')}{review_data['case_reviewed']}/{review_data['case_total']}{report_text('text_268af354b8e63839')}{review_data['output_reviewed']}/{review_data['output_total']}{report_text('text_e8f9808a4dafd938')}") + '</a></p>'
         page(
@@ -874,6 +916,7 @@ def build(
             + t("LexBench Web Search: datasets, source attribution and scoring", report_text('text_ee89dfa0e1e48505'))
             + "</a></p>"
             + provenance_table(dataset_profile, zh)
+            + authored_sections(authored, "dataset", lang)
             + f'<p><a href="{"../" if prefix else ""}query-catalog-license.txt">'
             + t("Public query catalog attribution and license", report_text('text_b6d4b24495e14f52'))
             + "</a></p>"
@@ -945,7 +988,7 @@ def build(
                     c["query"],
                     reason_label,
                     f"HTTP {r['http_status']}; {len(r['results'])} " + t("results", report_text('text_bd0bedc6f45def61')),
-                    r["error"]
+                    error_evidence(r, payloads.get(r["id"], {}))
                     or (
                         t("Empty results array", report_text('text_ccaeaa7e723ac488'))
                         if not r["results"]
@@ -1033,7 +1076,7 @@ def build(
             if "reference_answer" in c:
                 sensitivity = factual_sensitivity(c, r["results"], cutoff=cutoff)
                 detail += '<p>' + t("Post-hoc benchmark-mirror exclusion; blanked ranks: ", report_text('text_dd92bb824939c416')) + esc(str(sensitivity["excluded_ranks"])) + '</p>'
-                detail += table([t("After mirror exclusion", report_text('text_3693604bffdff018')), t("Value", report_text('text_c5500a58e0c52625'))], [cells([t("Answer in preview", report_text('text_8f513016c37eb4f7')), str(sensitivity["metrics"][f"answer_in_preview_{cutoff}"])]), cells([t("Answer in all text", report_text('text_2b967e182f622c1a')), str(sensitivity["metrics"][f"answer_in_delivered_text_{cutoff}"])])])
+                detail += table([t("After excluding benchmark copies and evaluation records", report_text('text_eba1375c03aa6942')), t("Value", report_text('text_c5500a58e0c52625'))], [cells([t("Answer in preview", report_text('text_8f513016c37eb4f7')), str(sensitivity["metrics"][f"answer_in_preview_{cutoff}"])]), cells([t("Answer in all text", report_text('text_2b967e182f622c1a')), str(sensitivity["metrics"][f"answer_in_delivered_text_{cutoff}"])])])
             detail += table(
                 [t("Metric", report_text('text_b87e67c7dae03991')), t("Value", report_text('text_c5500a58e0c52625'))],
                 [cells([label, fmt(detail_metrics[key])]) for key, label in metric_labels],
@@ -1044,7 +1087,7 @@ def build(
                 + t("Exact error", report_text('text_a966a49f3ac8c7f9'))
                 + "</h2><pre data-error>"
                 + esc(
-                    r["error"]
+                    error_evidence(r, payloads.get(r["id"], {}))
                     or t(
                         "No API error reported; inspect the returned response for retrieval diagnostics.",
                         report_text('text_4304c3155c035c83'),
@@ -1179,7 +1222,7 @@ def build(
             + fairness_table(profile, rows, zh)
         )
         page(
-            "research.html", t("Evaluation method and competitors", report_text('text_37bf472321f6e735')), research
+            "research.html", t("Evaluation method", report_text('text_48298ad1fd2535e3')), research
         )
         if authored.get("presentation") != "comparison-report":
             page("interpretation.html", t("Findings", report_text('text_8979f9672f58bc41')),
@@ -1196,7 +1239,7 @@ def build(
             timing = benchmark_operations(profile, selected, authored, zh)
             timing += authored_sections(authored, "performance", lang, rows=selected)
             timing += '<details class="technical-details"><summary>' + t("Server timing and upstream evidence", report_text('text_608ee70675aa1406')) + '</summary>' + performance_view(primary_profile, primary_diagnostics, zh, evidence_prefix="../" if prefix else "") + '</details>'
-            timing += '<details><summary>' + t("Billing calculation", report_text('text_043ed0f24081b109')) + '</summary>' + cost_panel(profile, rows, zh) + '</details>'
+            timing += '<details><summary>' + t("Pricing terms", report_text('text_d259fb302e536075')) + '</summary>' + cost_panel(profile, rows, zh, authored) + '</details>'
             timing += authored_sections(authored, "cost", lang, rows=selected)
             page("performance.html", t("Speed and cost", report_text('text_050b4ad5cfeb66ad')), timing)
         else:
@@ -1204,11 +1247,15 @@ def build(
         if review_data:
             from .review import render_summary
             page("review.html", t("Independent result review", report_text('text_f51205d6074e15bf')), render_summary(review_data, zh) + authored_sections(authored, "review", lang, rows=selected))
+    from harness.reporting.versions import bind_build_version, FILENAME
+    build_version = bind_build_version(output)
+    bundle.append({"path": FILENAME, "sha256": build_version["sha256"]})
     write_json(
         output / "manifest.json",
         dict(
             schema="web-search-report/1",
             template="web-search/1",
+            browser_eval=build_version,
             languages=languages,
             language_notices=_language_notice(output, languages),
             primary_language=language,
@@ -1237,17 +1284,18 @@ def build(
                 for r in rows
             ],
             receipt=receipt,
+            collection_receipt_sha256=digest((source / "receipt.json").read_bytes()) if source and not cohorts else None,
             bundle=bundle,
-            content_sha256=digest(content.read_bytes()) if content else None,
+            content_sha256=digest(content_bytes) if content_bytes is not None else None,
             diagnostics=diagnostics,
-            authored=authored if authored.get("reading_model") or authored.get("presentation") else None,
+            authored=authored if content_bytes is not None else None,
             reading_sections=reading_sections,
             renderer_sha256=digest(Path(__file__).read_bytes()),
         ),
     )
     from harness.report_languages import select_report_language
     entry = select_report_language(output, language)
-    check(output)
+    check(output, evidence_only=True)
     return entry
 
 
@@ -1255,6 +1303,12 @@ def check(output, *, return_data=False, evidence_only=False):
     from .relevance import report_authority
     authority = report_authority(output)
     manifest = json.loads((output / "manifest.json").read_text())
+    if not evidence_only:
+        from harness.reporting.versions import check_build_version
+        check_build_version(output, manifest)
+    if manifest.get("assessment_revision"):
+        from harness.web_search.revisions import validate_revision_binding
+        validate_revision_binding(manifest["assessment_revision"]["contract"], normalizer=normalize_response, authority=authority)
     _check_report_languages(output, manifest)
     from .pages import reader_pages
     top_routes = reader_pages((manifest.get("authored") or {}).get("presentation"), reviewed=bool(manifest.get("independent_review_sha256")))
@@ -1303,7 +1357,7 @@ def check(output, *, return_data=False, evidence_only=False):
             payloads[row["id"]] = {}
         if manifest.get("result_storage") == "raw-response":
             results = (
-                normalize(payloads[row["id"]], next(m["adapter"] for m in manifest["profile"]["methods"] if m["id"] == row["method"]))
+                normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), manifest["profile"]["protocol"], row.get("request"))
                 if row["http_status"] == 200 and not row["error"]
                 else []
             )
@@ -1315,13 +1369,13 @@ def check(output, *, return_data=False, evidence_only=False):
                 raise ValueError("Result receipt disagrees with raw response")
             row["results"] = results
     if manifest.get("independent_review_sha256"):
-        from .review import validate_public_review, render_detail, render_summary
+        from .review import coverage_percent, validate_public_review, render_detail, render_summary
         review_path = output / "independent-review.json"
         if digest(review_path.read_bytes()) != manifest["independent_review_sha256"]:
             raise ValueError("Independent review evidence hash mismatch")
         review_data = json.loads(review_path.read_bytes())
-        validate_public_review(manifest["profile"], manifest["rows"], review_data, authority=authority, relevance=json.loads((output / "relevance-judgments.json").read_bytes()) if manifest.get("relevance_sha256") else None)
-        for lang in manifest["languages"]:
+        validate_public_review(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), review_data, authority=authority, relevance=json.loads((output / "relevance-judgments.json").read_bytes()) if manifest.get("relevance_sha256") else None)
+        for lang in (() if evidence_only else manifest["languages"]):
             prefix = "" if lang == "zh" else lang + "/"
             if prefix + "review.html" not in manifest["routes"]:
                 raise ValueError("Independent review page is missing")
@@ -1329,7 +1383,10 @@ def check(output, *, return_data=False, evidence_only=False):
             coverage = soup.select_one("[data-review-coverage]")
             query_scope = f"{review_data['case_reviewed']}/{review_data['case_total']}"
             output_scope = f"{review_data['output_reviewed']}/{review_data['output_total']}"
-            if coverage is None or any(value not in re.findall(r"(?<!\d)\d+/\d+(?!\d)", coverage.get_text()) for value in (query_scope, output_scope)):
+            percent = coverage_percent(review_data)
+            if coverage is None or any(value not in re.findall(r"(?<!\d)\d+/\d+(?!\d)", coverage.get_text()) for value in (query_scope, output_scope)) or not re.search(rf"(?<![\d.]){percent}%(?![\d])", coverage.get_text()):
+                raise ValueError("Independent review coverage differs from the accepted evidence")
+            if coverage.get("data-review-percent") != str(percent):
                 raise ValueError("Independent review coverage differs from the accepted evidence")
             for attr, value in (("data-reviewed-queries", query_scope), ("data-reviewed-outputs", output_scope)):
                 if coverage.get(attr) != value:
@@ -1339,7 +1396,7 @@ def check(output, *, return_data=False, evidence_only=False):
             actual = review_page.select_one("[data-independent-review]")
             if actual is None or actual.get_text() != expected.get_text():
                 raise ValueError("Independent review summary differs from the accepted evidence")
-            for row in manifest["rows"]:
+            for row in scoring_rows(manifest["profile"], manifest["rows"]):
                 detail = BeautifulSoup((output / (prefix + "details/" + row["id"] + ".html")).read_text(), "html.parser")
                 expected = BeautifulSoup(render_detail(review_data, row["id"], lang == "zh"), "html.parser")
                 actual = detail.select("[data-independent-opinion], [data-review-not-selected]")
@@ -1354,7 +1411,7 @@ def check(output, *, return_data=False, evidence_only=False):
         sensitivity = json.loads(sensitivity_path.read_text())
         expected_sensitivity = {
             row["id"]: factual_sensitivity(factual_cases[row["case_id"]], row["results"], rule=sensitivity.get("rule"), cutoff=manifest["profile"]["protocol"]["top_k"])
-            for row in manifest["rows"] if row["case_id"] in factual_cases
+            for row in scoring_rows(manifest["profile"], manifest["rows"]) if row["case_id"] in factual_cases
         }
         if sensitivity.get("results") != expected_sensitivity:
             raise ValueError("Factual sensitivity disagrees with preserved responses")
@@ -1369,7 +1426,7 @@ def check(output, *, return_data=False, evidence_only=False):
         by_id = dict((cid, group) for group, cid in declared)
         if any(r.get("cohort") != by_id.get(r["case_id"]) for r in manifest["rows"]):
             raise ValueError("Result belongs to the wrong cohort")
-    for lang in manifest["languages"]:
+    for lang in (() if evidence_only else manifest["languages"]):
         prefix = "" if lang == "zh" else lang + "/"
         soup = BeautifulSoup((output / (prefix + "research.html")).read_text(), "html.parser")
         expected = BeautifulSoup(
@@ -1426,21 +1483,22 @@ def check(output, *, return_data=False, evidence_only=False):
                 if {option["value"] for option in inventory.select("[data-method-filter] option")} != {"all", *method_ids}:
                     raise ValueError("Incomplete provider filter")
                 if Counter(row.get("data-method") for row in inventory.select("[data-row]")) != Counter(
-                    result["method"] for result in manifest["rows"]
+                    result["method"] for result in scoring_rows(manifest["profile"], manifest["rows"])
                 ):
                     raise ValueError("Provider filter population mismatch")
-    relevance_scores = (score_relevance(manifest["profile"], [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]], relevance_data["plan"], relevance_data["labels"]) if relevance_data else [])
+    relevance_scores = (score_relevance(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), relevance_data["plan"], relevance_data["labels"]) if relevance_data else [])
     expected_diagnostics = operational(manifest["rows"], payloads, manifest["profile"]["methods"])
     cases = {c["id"]: c for c in manifest["profile"]["cases"]}
     for row in manifest["rows"]:
         if row["http_status"] == 200 and not row["error"]:
-            if normalize(payloads[row["id"]], next(m["adapter"] for m in manifest["profile"]["methods"] if m["id"] == row["method"])) != row["results"]:
+            if normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), manifest["profile"]["protocol"], row.get("request")) != row["results"]:
                 raise ValueError("Published results disagree with raw response")
         if row["metrics"] != evaluate(cases[row["case_id"]], row["results"]):
             raise ValueError("Published scores disagree with the declared rules")
     if relevance_data:
-        selected = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+        selected = scoring_rows(manifest["profile"], manifest["rows"])
         verify_provenance(manifest["profile"], selected, relevance_data, authority=authority)
+        verify_protocol(manifest["profile"], relevance_data, (manifest.get("authored") or {}).get("relevance_revision"), authority=authority)
     if manifest.get("scoring_revision"):
         revision = manifest["scoring_revision"]
         collected = [
@@ -1465,17 +1523,25 @@ def check(output, *, return_data=False, evidence_only=False):
             raise ValueError("Scoring revision provenance mismatch")
         if manifest.get("assessment_revision"):
             from harness.web_search.revisions import apply_report_revision
-            revised, _, _ = apply_report_revision(revised, [], manifest["assessment_revision"]["contract"])
+            revised, _, _ = apply_report_revision(revised, [], manifest["assessment_revision"]["contract"], normalizer=normalize_response)
         revised, _ = project_comparison(revised, [], manifest.get("authored") or {})
         if manifest.get("report_assessment"):
             revised = assessment_profile(revised, relevance_data, review_data)
         if revised != manifest["profile"]:
             raise ValueError("Scoring revision profile mismatch")
     elif manifest.get("assessment_revision"):
-        from harness.web_search.revisions import apply_report_revision
-        from harness.web_search.revisions import validate_revision_binding
-        validate_revision_binding(manifest['assessment_revision']['contract'], authority=authority)
-        revised, _, _ = apply_report_revision(manifest["collection_profile"], [], manifest["assessment_revision"]["contract"])
+        from harness.web_search.revisions import apply_report_revision, collected_projection
+        revision = manifest["assessment_revision"]
+        if revision["contract"].get("normalization"):
+            artifacts = {r["evidence"]["path"]: (output / r["evidence"]["path"]).read_bytes() for r in manifest["rows"]}
+            collected = collected_projection(manifest["collection_profile"], manifest["rows"], artifacts, normalize_response)
+            _, corrected, changes = apply_report_revision(manifest["collection_profile"], collected, revision["contract"], artifacts=artifacts, normalizer=normalize_response)
+            if changes != revision["changes"] or any(
+                any(a.get(k) != b.get(k) for k in ("results", "metrics", "error"))
+                for a, b in zip(corrected, manifest["rows"], strict=True)
+            ):
+                raise ValueError("Native normalization correction provenance mismatch")
+        revised, _, _ = apply_report_revision(manifest["collection_profile"], [], manifest["assessment_revision"]["contract"], normalizer=normalize_response)
         revised, _ = project_comparison(revised, [], manifest.get("authored") or {})
         if manifest.get("report_assessment"):
             revised = assessment_profile(revised, relevance_data, review_data)
@@ -1485,7 +1551,7 @@ def check(output, *, return_data=False, evidence_only=False):
         raise ValueError("Performance explanation disagrees with raw evidence")
     if evidence_only:
         if return_data:
-            return manifest["profile"], [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+            return manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"])
         return True
     for route in manifest["routes"]:
         path = output / route
@@ -1506,11 +1572,7 @@ def check(output, *, return_data=False, evidence_only=False):
                 "review.html": "review",
             }.get(name)
             if key:
-                score_rows = [
-                    r
-                    for r in manifest["rows"]
-                    if r["round"] == manifest["profile"]["protocol"]["score_round"]
-                ]
+                score_rows = scoring_rows(manifest["profile"], manifest["rows"])
                 if authored.get("presentation") == "comparison-report":
                     pages = {"index.html": ["lead", "summary"], "quality.html": ["quality-lead", "quality-definitions", "quality"], "capabilities.html": ["capabilities-lead", "capabilities"], "performance.html": ["performance", "cost"]}.get(name, [key])
                     expected = ''.join(authored_sections(authored, section, lang, rows=score_rows) for section in pages)
@@ -1546,10 +1608,10 @@ def check(output, *, return_data=False, evidence_only=False):
                 primary_ids = {c["id"] for c in manifest["profile"]["cases"] if "reference_answer" not in c}
                 primary_rows = [r for r in manifest["rows"] if r["case_id"] in primary_ids]
                 visible_diagnostics = operational(primary_rows, payloads, manifest["profile"]["methods"])
-                expected_operations = BeautifulSoup(benchmark_operations(manifest["profile"], [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]], authored, soup.html["lang"] == "zh"), 'html.parser')
+                expected_operations = BeautifulSoup(benchmark_operations(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), authored, soup.html["lang"] == "zh"), 'html.parser')
                 if str(soup.select_one('[data-benchmark-operations]')) != str(expected_operations.select_one('[data-benchmark-operations]')):
                     raise ValueError("Benchmark timing/cost summary differs from physical calls")
-                expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh"), 'html.parser')
+                expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh", authored), 'html.parser')
                 if str(soup.select_one('[data-cost-budget]')) != str(expected_cost.select_one('[data-cost-budget]')):
                     raise ValueError("Cost budget differs from physical calls")
             trs = soup.select_one("[data-timing-decomposition]").select("table")[0].select("tbody tr")
@@ -1576,16 +1638,21 @@ def check(output, *, return_data=False, evidence_only=False):
                 if specimen is None or specimen["data-timing-specimen"] != chosen["id"]:
                     raise ValueError("Missing or wrong timing specimen")
         if route.endswith("quality.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report":
-            score_rows = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+            score_rows = scoring_rows(manifest["profile"], manifest["rows"])
             for selector, expected in (("[data-factual]", factual_panel(manifest["profile"], score_rows, soup.html["lang"] == "zh", compact=True)),):
                 expected_node = BeautifulSoup(expected, "html.parser").select_one(selector)
                 if str(soup.select_one(selector)) != str(expected_node):
                     raise ValueError("Quality population differs from measured inputs")
+        if route.endswith("results.html") and authored.get("presentation") == "comparison-report":
+            selected = scoring_rows(manifest["profile"], manifest["rows"])
+            lang = soup.html["lang"]
+            prefix = "" if lang == manifest["primary_language"] else lang + "/"
+            expected = BeautifulSoup(render_result_comparison(manifest["profile"], selected, lang == "zh", prefix=prefix, site_prefix=manifest.get("site_prefix", ""), content=authored, relevance=relevance_data), "html.parser").select_one("[data-comparison-data]")
+            actual = soup.select_one("[data-comparison-data]")
+            if actual is None or json.loads(actual.string) != json.loads(expected.string):
+                raise ValueError("Result comparison differs from measured inputs")
         if route.endswith("interpretation.html"):
-            selected = [
-                r for r in manifest["rows"]
-                if r["round"] == manifest["profile"]["protocol"]["score_round"]
-            ]
+            selected = scoring_rows(manifest["profile"], manifest["rows"])
             expected_table = BeautifulSoup(
                 interpretation_summary_table(manifest["profile"], selected, soup.html["lang"] == "zh", manifest.get("authored") or {}, relevance_scores),
                 "html.parser",
@@ -1597,7 +1664,7 @@ def check(output, *, return_data=False, evidence_only=False):
             if str(soup.select_one("[data-factual]")) != str(expected_factual):
                 raise ValueError("Interpretation factual evidence differs from measured inputs")
         if route.endswith("cost.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report":
-            expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh"), "html.parser").select_one("[data-cost-budget]")
+            expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh", authored), "html.parser").select_one("[data-cost-budget]")
             if str(soup.select_one("[data-cost-budget]")) != str(expected_cost):
                 raise ValueError("Cost budget differs from measured physical calls")
         if authored.get("presentation") == "comparison-report" and "details/" not in route:
@@ -1608,22 +1675,22 @@ def check(output, *, return_data=False, evidence_only=False):
                 raise ValueError("Quality page is missing from reader navigation")
         comparison_home = route.endswith("index.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report"
         if comparison_home:
-            expected = BeautifulSoup(executive_table(manifest["profile"], [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]], manifest["authored"], relevance_scores, soup.html["lang"] == "zh"), "html.parser")
+            expected = BeautifulSoup(executive_table(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), manifest["authored"], relevance_scores, soup.html["lang"] == "zh"), "html.parser")
             if str(soup.select_one('[data-executive]')) != str(expected.select_one('[data-executive]')):
                 raise ValueError("Population summary differs from measured inputs")
-            expected_discovery = BeautifulSoup(discovery_comparison(manifest['profile'], [r for r in manifest['rows'] if r['round'] == manifest['profile']['protocol']['score_round']], manifest['authored'], soup.html['lang'] == 'zh'), 'html.parser').select_one('[data-discovery]')
+            expected_discovery = BeautifulSoup(discovery_comparison(manifest['profile'], scoring_rows(manifest["profile"], manifest["rows"]), manifest['authored'], soup.html['lang'] == 'zh'), 'html.parser').select_one('[data-discovery]')
             if str(soup.select_one('[data-discovery]')) != str(expected_discovery):
                 raise ValueError("Discovery comparison differs from measured inputs")
         if route.endswith("index.html") and not comparison_home:
             for selector, renderer in (
                 ("[data-modes]", mode_panel),
             ):
-                score_rows = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+                score_rows = scoring_rows(manifest["profile"], manifest["rows"])
                 expected_panel = BeautifulSoup(renderer(manifest["profile"], score_rows, soup.html["lang"] == "zh"), "html.parser").select_one(selector)
                 if expected_panel and str(soup.select_one(selector)) != str(expected_panel):
                     raise ValueError("Deterministic evidence comparison differs from measured inputs")
             if relevance_data:
-                selected = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+                selected = scoring_rows(manifest["profile"], manifest["rows"])
                 scores = score_relevance(manifest["profile"], selected, relevance_data["plan"], relevance_data["labels"])
                 expected_panel = BeautifulSoup(relevance_panel(manifest["profile"], scores, relevance_data, soup.html["lang"] == "zh"), "html.parser").select_one("[data-relevance]")
                 actual_panel = soup.select_one("[data-relevance]")
@@ -1640,11 +1707,7 @@ def check(output, *, return_data=False, evidence_only=False):
             cutoff = manifest["profile"]["protocol"]["top_k"]
             hit_key = "anchor_hit_5" if cutoff == 5 else "anchor_hit_10"
             quality = aggregate(
-                [
-                    r
-                    for r in overview_rows
-                    if r["round"] == manifest["profile"]["protocol"]["score_round"]
-                ]
+                scoring_rows(manifest["profile"], overview_rows)
             )
             for tr, method in zip(table_rows, overview_methods, strict=True):
                 stats = physical.get(method["id"])
@@ -1675,6 +1738,9 @@ def check(output, *, return_data=False, evidence_only=False):
         if "details/" in route and relevance_scores:
             result_id = Path(route).stem
             row = next((r for r in manifest["rows"] if r["id"] == result_id), None)
+            expected_error = error_evidence(row, payloads.get(row["id"], {})) if row else ""
+            if expected_error and soup.select_one("[data-error]").get_text() != expected_error:
+                raise ValueError("Exact error details differ from native evidence")
             query_score = next((q for q in relevance_scores if row and q["case_id"] == row["case_id"] and q["method"] == row["method"]), None)
             if query_score:
                 expected = BeautifulSoup(relevance_detail(query_score, soup.html["lang"] == "zh"), "html.parser").select_one('[data-case-relevance]')
@@ -1686,6 +1752,11 @@ def check(output, *, return_data=False, evidence_only=False):
             or not soup.select("[data-evidence]")
         ):
             raise ValueError("Missing detail summary, error or evidence")
+        if "details/" in route:
+            row = next(r for r in manifest["rows"] if r["id"] == Path(route).stem)
+            expected_error = error_evidence(row, payloads.get(row["id"], {}))
+            if expected_error and soup.select_one("[data-error]").get_text() != expected_error:
+                raise ValueError("Exact error details differ from native evidence")
         for a in soup.select("[href],[data-evidence],[data-detail]"):
             if a.name == "base":
                 continue
@@ -1700,7 +1771,7 @@ def check(output, *, return_data=False, evidence_only=False):
         if "/Users/" in str(soup):
             raise ValueError("Private data in report")
     if return_data:
-        selected = [r for r in manifest["rows"] if r["round"] == manifest["profile"]["protocol"]["score_round"]]
+        selected = scoring_rows(manifest["profile"], manifest["rows"])
         return manifest["profile"], selected
     return True
 
@@ -1744,7 +1815,10 @@ def main(argv=None):
     if args.export_delivery:
         if args.source or args.cohort:
             parser.error("Delivery export consumes an existing report, not build inputs")
-        check(args.output)
+        if args.release_check:
+            release_check(args.output, args.release_check, publication_plan=args.publication_plan)
+        else:
+            check(args.output)
         from .delivery import export, verify
         export(args.output, args.export_delivery)
         verify(args.output, args.export_delivery)
@@ -1921,12 +1995,20 @@ def fairness_table(profile, rows, zh):
     def t(en, cn):
         return cn if zh else en
 
+    def requested_limit(row, method):
+        request = row.get("request", {})
+        for key in ("limit", "count", "numResults", "num"):
+            if key in request:
+                return str(request[key])
+        default = (report_text('text_844b8cc8dff7c1d8') if zh else "Default") if method.get("adapter") == "brightdata" else "—"
+        return parse_qs(urlsplit(request.get("url", "")).query).get("num", [default])[0]
+
     entries = []
     first = {}
     for method in profile["methods"]:
         group = [r for r in rows if r["method"] == method["id"]]
         requested = Counter(
-            str(r.get("request", {}).get("limit", r.get("request", {}).get("count", "—")))
+            requested_limit(r, method)
             for r in group
         )
         counts = Counter(len(r["results"]) for r in group)
@@ -1946,7 +2028,7 @@ def fairness_table(profile, rows, zh):
     equal = sum(len({v[c] for v in first.values()}) == 1 for c in common)
     return (
         "<section data-fairness><h2>"
-        + t("Equal request budgets, observed result counts", report_text('text_a05fa2350efa7148'))
+        + t("Request limits and scored result counts", report_text('text_7b3b9ac6767dfaf2'))
         + "</h2>"
         + table(
             [
@@ -1961,7 +2043,7 @@ def fairness_table(profile, rows, zh):
         + "<p>"
         + t(
             f"First-round queries with equal result counts across all providers: {equal}/{len(common)}. Empty and short responses remain in every declared denominator. Counts do not establish relevance.",
-            f"{report_text('text_0db57b9c951d1fb3')}{equal}/{len(common)}{report_text('text_5b0f6bce8e0c2590')}",
+            f"{report_text('text_76e706cf4f27cf90')}{equal}/{len(common)}{report_text('text_5b0f6bce8e0c2590')}",
         )
         + "</p></section>"
     )
@@ -2067,7 +2149,7 @@ def comparison_tables(profile, selected, rows, zh):
             t("Content chars/query", report_text('text_4f15829b22c5be56')),
             t("Content coverage", report_text('text_6d249651a884fff2')),
             t("All-call estimate", report_text('text_3031185688e495e6')),
-            t("Cost/nonempty query", report_text('text_28bb59cb1b7671df')),
+            t("Cost/nonempty query", report_text('text_13a30a6ad529bd12')),
         ],
         textrows,
     )
@@ -2401,7 +2483,7 @@ def interpretation_summary_table(profile, selected, zh, content=None, relevance_
     return (
         '<h2>' + (report_text('text_82910e2c01742cd2') if zh else 'Core API comparison') + '</h2>'
         + table(
-            [report_text('text_c80d519245a7e843'), report_text('text_a7b944beb818e20f'), f"{report_text('text_b1ad9b0e47832ff4')}{cutoff}", 'P50 ms', 'P95 ms', report_text('text_f4fc9fbdc9587557')]
+            [report_text('text_c80d519245a7e843'), report_text('text_8adcec38513a6620'), f"{report_text('text_b1ad9b0e47832ff4')}{cutoff}", 'P50 ms', 'P95 ms', report_text('text_f4fc9fbdc9587557')]
             if zh else ['Provider', 'Nonempty queries', f'Known page@{cutoff}', 'P50 ms', 'P95 ms', 'Estimated cohort cost'],
             rows,
         )
@@ -2484,8 +2566,39 @@ def relevance_detail(result, zh):
             + (f'{result["dcg"]:.4f} ÷ {result["idcg"]:.4f} × 100 = {result["ndcg"]*100:.1f}' if result['idcg'] else t('No relevant candidate in the pool: score 0.', report_text('text_709d95adc1c0db2c'))) + '</p></details></section>')
 
 
-def cost_panel(profile, rows, zh):
+def catalog_prices(profile, content):
+    prices = (content or {}).get("catalog_pricing")
+    if prices is None:
+        return None
+    if set(prices) != {m["id"] for m in profile["methods"]}:
+        raise ValueError("Catalog prices must cover every compared method")
+    for item in prices.values():
+        amount = item.get("amount")
+        if (item.get("currency") != "USD" or item.get("unit") != "1000-successful-searches"
+                or amount is not None and (type(amount) not in (int, float) or not math.isfinite(amount) or amount < 0)
+                or amount is not None and (not item.get("source", "").startswith("https://") or not item.get("checked_at"))):
+            raise ValueError("Invalid verified catalog price")
+    return prices
+
+
+def catalog_price_panel(profile, content, zh):
+    prices = catalog_prices(profile, content)
+    rendered = []
+    winners = numeric_winners([[prices[m['id']]['amount']] for m in profile['methods']], {0: 'min'})
+    for method in profile['methods']:
+        item = prices[method['id']]
+        amount = item['amount']
+        price = '' if amount is None else '<a href="' + esc(item['source']) + '">' + fmt(amount) + '</a>'
+        row = '<td>' + esc(method['label']) + '</td>' + numeric_cell(price, amount, 'catalog-unit-price', 'min', amount is not None and winners.get(0) == amount)
+        row += cells([esc(item.get('plan', '')), esc(item.get('terms', {}).get('zh' if zh else 'en', '')), esc(item.get('checked_at', ''))])[4:-5]
+        rendered.append('<tr>' + row + '</tr>')
+    return '<section data-cost-budget data-catalog-prices><h2>' + (report_text('text_1d374aa7d724c7bf') if zh else 'Published prices and purchase terms') + '</h2><p>' + (report_text('text_5d484fdebe848dcc') if zh else 'Compare the published usage price for 1,000 successful searches, without free-credit offsets or estimates from this run’s invoice. Billing conditions, subscriptions and prepayment terms are listed for each method.') + '</p>' + table([report_text('text_22b9f0b66212809c'), report_text('text_8e39fd0010e6eec8'), report_text('text_5be7a415a7796bb1'), report_text('text_56a7e9d0fd233403'), report_text('text_4a2db7b8d94c26ac')] if zh else ['Method', 'USD / 1,000 successful calls', 'Plan', 'Purchase terms', 'Verified'], rendered) + '</section>'
+
+
+def cost_panel(profile, rows, zh, content=None):
     """Expose frozen unit prices and the actual billable physical-call budget."""
+    if catalog_prices(profile, content) is not None:
+        return catalog_price_panel(profile, content, zh)
     records = []
     for method in profile["methods"]:
         group = [r for r in rows if r["method"] == method["id"]]
@@ -2506,9 +2619,9 @@ def cost_panel(profile, rows, zh):
             label = '<a href="' + esc(source) + '">' + label + '</a>'
         rule = rules.get(method.get("billing"), (method.get("billing", ""),) * 2)[0 if zh else 1]
         row = cells([esc(method["label"]), label, esc(method.get("price_checked", "")), esc(rule), str(logical), str(physical), str(billed) if price is not None else (report_text('text_63ec276c6386dfd2') if zh else "Unknown")])
-        label = fmt(total) + " " + currency if total is not None else (report_text('text_b769180d023c4d19') if zh else "Not priced")
+        label = fmt(total) + " " + currency if total is not None else ((report_text('text_b769180d023c4d19') if zh else "Not priced") if price is None else ((f"{report_text('text_ced26b3e25512df4')}{sum((c for c in [a.get('cost') for r in rows if r['method'] == method['id'] for a in r.get('attempts', [r])] if c is not None)):.3f} {currency}{report_text('text_7e044e6cf1c5b90d')}") if zh else "Partial charges known; some billing remains unknown"))
         rendered.append(row[:-5] + numeric_cell(label, total, "cohort-cost", "min" if comparable else "neutral", 0 in winners and total == winners[0]) + '</tr>')
-    return ('<section data-cost-budget><h2>' + (report_text('text_01723325f91abc83') if zh else "Unit prices, billable calls and estimated charges") + '</h2>'
+    return ('<section data-cost-budget><h2>' + (report_text('text_f75858442320d7ec') if zh else "Unit prices, billable calls and estimated charges") + '</h2>'
             + table([report_text('text_22b9f0b66212809c'), report_text('text_ece71321942f6976'), report_text('text_4a2db7b8d94c26ac'), report_text('text_1dad1549c2a5c1a1'), report_text('text_b1c974debac32da2'), report_text('text_b1f3689224d5bfda'), report_text('text_c9519ab685f92911'), report_text('text_671b330c8dec81da')] if zh else ["Method", "Price /1,000", "Price checked", "Billing condition", "Search tasks", "Physical calls", "Known billable calls", "Estimated total"], rendered)
             + '<p>' + (report_text('text_dcb75f7e79cb38e1') if zh else "Retries increase physical calls, not search tasks. Charges sum physical requests; unknown billing is not zero. Price links identify the frozen sources; provider invoices determine actual charges.") + '</p></section>')
 
@@ -2559,7 +2672,7 @@ def relevance_panel(profile, scored, evidence, zh):
     denominator = (f"{report_text('text_59f12dddca02ff1f')}{cutoff}{report_text('text_5abf3839cd607c74')}" if zh else "Empty responses, missing slots and all-zero candidate pools remain in the denominator.")
     panel = ('<section class="specimen" id="relevance-scores" data-relevance><h3>' + esc(title) + '</h3>' + bars
              + ('' if profile.get("comparison_selection") else '<p>' + esc(definitions) + '</p>')
-             + '<details><summary>' + (report_text('text_e5bf9116e03c961c') if zh else "Useful results and direct matches") + '</summary>' + table([report_text('text_f9e0010627639105') if zh else "Category", report_text('text_ec309ab207ef7fa3') if zh else "Provider", report_text('text_35801615b907ad27') if zh else "Queries", report_text('text_9a98146dbe62ee65') if zh else "Ranking quality /100", report_text('text_599be80e114985ee') if zh else "Useful-result fraction", report_text('text_1ef91e775b2f1848') if zh else "Direct-match rate"], rows) + '</details>'
+             + '<details><summary>' + (report_text('text_e5bf9116e03c961c') if zh else "Useful results and direct matches") + '</summary>' + table([report_text('text_f9e0010627639105') if zh else "Category", report_text('text_ec309ab207ef7fa3') if zh else "Provider", report_text('text_35801615b907ad27') if zh else "Queries", f"nDCG@{cutoff} × 100", f"Precision@{cutoff}", f"Success@{cutoff}"], rows) + '</details>'
              + '<p class="muted">' + esc(scope + denominator) + '</p><a href="relevance-judgments.json">'
              + (report_text('text_231e482007c0e359') if zh else "Scoring evidence") + '</a></section>')
     first_case = evidence["plan"]["case_ids"][0]
@@ -2591,13 +2704,14 @@ def factual_panel(profile, selected, zh, *, compact=False):
         if method in baseline:
             values.append((method['label'], len(group), [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[k] for r in group.values()) for k in keys] + [sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][answer_key] for r in group.values())]))
     if compact:
-        headers = [report_text('text_22b9f0b66212809c'), report_text('text_44497a8175cc1d10'), report_text('text_24a00d1d0a634f3a')] if zh else ["Method", "Given source found", "Answer text delivered"]
+        headers = [report_text('text_22b9f0b66212809c'), f"Hit@{cutoff}{report_text('text_27ecde736a615a9f')}", f"MRR@{cutoff}{report_text('text_27ecde736a615a9f')}", f"Answer Match@{cutoff}{report_text('text_40b1c999f5abd5fe')}"] if zh else ["Method", f"Reference Hit@{cutoff}", f"Reference MRR@{cutoff}", f"Answer Match@{cutoff} (text)"]
         rendered = []
-        best = numeric_winners([(v[2][0]/v[1] if v[1] else None, v[2][3]/v[1] if v[1] else None) for v in values], {0: "max", 1: "max"})
+        best = numeric_winners([[v[2][i]/v[1] if v[1] else None for i in (0,1,3)] for v in values], {0: "max", 1: "max", 2: "max"})
         for label, n, sums in values:
             row = '<td>' + esc(label) + '</td>'
-            for i, total in enumerate((sums[0], sums[3])):
-                row += numeric_cell(f'{int(total)}/{n} · {total/n:.1%}' if n else '—', total/n if n else None, f'factual-current-{i}', 'max', n > 0 and best.get(i) == total/n)
+            for i, total in enumerate((sums[0], sums[1], sums[3])):
+                display = (f'{total/n:.3f}' if i == 1 else f'{int(total)}/{n} · {total/n:.1%}') if n else '—'
+                row += numeric_cell(display, total/n if n else None, f'factual-current-{i}', 'max', n > 0 and best.get(i) == total/n)
             rendered.append('<tr>' + row + '</tr>')
         return '<section data-factual><h2>' + (f"{report_text('text_76bf22fd299e8730')}{len(cases)}{report_text('text_856f67e43b1d0e1d')}" if zh else f'Factual evidence retrieval: {len(cases)} queries') + '</h2><p>' + (f"{report_text('text_741732ff42aae0f8')}{cutoff}{report_text('text_3f86433ccdf7001c')}" if zh else f'Check top-{cutoff} given URLs and answer text in all delivered fields, excluding dataset mirrors and evaluation logs. Text presence does not verify its context.') + '</p>' + table(headers, rendered) + (report_text('text_d440dcee96501e63') if zh else '<p class="muted">Target MRR is available through the per-query reciprocal-rank details.</p>') + ('<p data-quality-exclusions>' + (f"{report_text('text_e1b7abaecd738349')}{len(excluded)}{report_text('text_a80cbf6cf5eb8ae9')}{len(cases)}{report_text('text_92afc262868f2421')}" if zh else f'Reference review excludes {len(excluded)} defective queries for every provider; quality uses {len(cases)} queries. Original responses, timing and cost retain the full collection.') + '</p>' if excluded else '') + '</section>'
     rendered = []
@@ -2624,7 +2738,7 @@ def factual_panel(profile, selected, zh, *, compact=False):
         body = body.replace(report_text('text_3aa3129bc8c2a9c4'), f"{report_text('text_b2c2b17ed258eb2c')}{cutoff}{report_text('text_623f31d7b5a8a5c5')}").replace('Answer cues use only shared titles and snippets.', f'Answer cues use every delivered title, snippet, summary and body in the top {cutoff}.').replace(report_text('text_7eaf9d0973634d6d'), report_text('text_f571be01ed9fa85e')).replace('API</th>', 'Method</th>').replace(report_text('text_7a2319aab382f14d'), report_text('text_6c4a3a25bbe5e6d9')).replace('Answer text: raw', 'Delivered answer cue: raw')
     body += '<p>' + (report_text('text_3f4ff4384b641610') if zh else 'Contamination exclusion is a post-hoc deterministic diagnostic. Results naming SimpleQA in their URL/title, or containing the complete question together with evaluation fields, validation logs or dataset-viewer structure, are blanked without refilling or compacting ranks. Original values remain visible.') + '</p>'
     if excluded:
-        body += '<p data-quality-exclusions>' + (f"{report_text('text_ae20a1482deb60d4')}{len(excluded)}{report_text('text_b4392f3d83ce0d35')}{len(cases)}{report_text('text_4b8b2a2044d2903c')}" if zh else f'Independent reference review excluded {len(excluded)} defective or materially ambiguous questions from all methods’ quality metrics, leaving {len(cases)} common queries. All queries remain in latency and cost; original inputs, responses and diagnostics remain inspectable.') + '</p>'
+        body += '<p data-quality-exclusions>' + (f"{report_text('text_ae20a1482deb60d4')}{len(excluded)}{report_text('text_df5d7384468571ef')}{len(cases)}{report_text('text_4b8b2a2044d2903c')}" if zh else f'Independent reference review excluded {len(excluded)} defective or materially ambiguous questions from all methods’ quality metrics, leaving {len(cases)} common queries. All queries remain in latency and cost; original inputs, responses and diagnostics remain inspectable.') + '</p>'
     extra = []
     for enabled in ([] if projected else profile['methods']):
         options = enabled.get('output_options', {})
@@ -2859,8 +2973,8 @@ def performance_view(profile, diagnostics, zh, evidence_prefix=""):
     body += (
         "<p>"
         + t(
-            "All logical requests with available telemetry are included; n states the available population. Server time is provider-reported and unavailable where no comparable field exists. The remainder includes network transit and client setup; it is not pure network latency. TTFB and body transfer are sequential; DNS/connect/TLS clocks are cumulative and must not be added.",
-            report_text('text_8b855644c94125d1'),
+            "All logical requests with available telemetry are included; n states the available population. Server time is provider-reported and unavailable where no comparable field exists. The remainder includes network transit and client setup; it is not pure network latency. Requests that received no first byte contribute only to total latency, not to TTFB or body-transfer means. TTFB and body transfer are sequential; DNS/connect/TLS clocks are cumulative and must not be added.",
+            report_text('text_3383dd255d4b7feb'),
         )
         + "</p>"
     )
@@ -3052,27 +3166,34 @@ def benchmark_operations(profile, selected, content, zh):
         cohorts = sorted({r.get("cohort", "primary") for r in selected})
         populations = [{"id": key, "label": {"zh": cohort_label(profile, key, True), "en": cohort_label(profile, key, False)}, "case_ids": sorted({r["case_id"] for r in selected if r.get("cohort", "primary") == key})} for key in cohorts]
     rendered = []
-    comparable = len({m.get("currency", "CNY") for m in profile["methods"]}) == 1
+    successful = []
+    prices = catalog_prices(profile, content)
+    comparable = prices is not None or len({m.get("currency", "CNY") for m in profile["methods"]}) == 1
     for population in populations:
-        ids = set(population["case_ids"])
-        stats = aggregate([r for r in selected if r["case_id"] in ids])
-        values = [(m, stats[m["id"]]) for m in profile["methods"]]
-        raw = [[item["all_latency"][k] for k in ("mean", "p50", "p95")] + [item["cost_total"]] for _, item in values]
-        directions = {0:"min", 1:"min", 2:"min", 3:"min" if comparable else "neutral"}
+        ids = set(population['case_ids'])
+        rows = [r for r in selected if r['case_id'] in ids]
+        stats = aggregate(rows)
+        values = [(m, stats[m['id']]) for m in profile['methods']]
+        raw = [[item['all_latency'][k] for k in ('mean', 'p50', 'p95')] + [prices[m['id']]['amount'] if prices is not None else item['cost_total']] for m, item in values]
+        directions = {0:'min',1:'min',2:'min',3:'min' if comparable else 'neutral'}
         winners = numeric_winners(raw, directions)
-        for index, (method, item) in enumerate(values):
-            row = '<td>' + esc(population.get("label", {"zh": population.get("id", report_text('text_a18713d1bce780df')), "en": population.get("id", "Benchmark")})["zh" if zh else "en"]) + '</td><td>' + esc(method["label"]) + '</td>'
-            for i, value in enumerate(raw[index]):
-                label = fmt(value) if value is not None else (report_text('text_b769180d023c4d19') if zh else "Not priced")
-                if i == 3 and value is not None:
-                    label += " " + esc(method.get("currency", "CNY"))
-                row += numeric_cell(label, value, f'operation-{population["id"]}-{i}', directions[i], value is not None and winners.get(i) == value)
+        conditional = [[item['success_latency'][k] for k in ('mean', 'p50', 'p95')] for _, item in values]
+        conditional_winners = numeric_winners(conditional, {0: 'min', 1: 'min', 2: 'min'})
+        for idx, (method, item) in enumerate(values):
+            label = esc(population['label']['zh' if zh else 'en'])
+            row = '<td>' + label + '</td><td>' + esc(method['label']) + '</td>'
+            for i, value in enumerate(raw[idx]):
+                display = (fmt(value) + (' ' + method.get('currency', 'CNY') if i == 3 else '')) if value is not None else ((report_text('text_b769180d023c4d19') if zh else 'Not priced') if method.get('price_per_1000') is None else (report_text('text_a3dc4544ead13181') if zh else 'Some billing unknown'))
+                if prices is not None and i == 3:
+                    display = fmt(value) if value is not None else ''
+                row += numeric_cell(display, value, f'operation-{population["id"]}-{i}', directions[i], value is not None and winners.get(i) == value)
             rendered.append('<tr>' + row + '</tr>')
-    if not rendered:
-        return ''
-    retries = int(bool(profile["protocol"].get("retry")))
-    note = (f"{report_text('text_55f8fb67b6921ece')}{retries}{report_text('text_b08b96f051990691')}" if zh else f"One final result per provider and query, with at most {retries} failure retries; timing and cost include actual retries. P95 bounds 95% of waits.")
-    return '<section data-benchmark-operations><h2>' + (report_text('text_033b6f38ccc278fd') if zh else "Performance and cost by collection") + '</h2><p>' + note + '</p>' + table([report_text('text_9f12964bc6a50908'),report_text('text_c80d519245a7e843'),report_text('text_cfb4169ac2aa7957'),"P50 ms","P95 ms",report_text('text_f4fc9fbdc9587557')] if zh else ["Collection","API","Mean ms","P50 ms","P95 ms","Estimated batch cost"], rendered) + '</section>'
+            success_row = '<td>' + label + '</td><td>' + esc(method['label']) + '</td><td>' + str(item['success_latency']['n']) + '</td>'
+            for i, value in enumerate(conditional[idx]):
+                success_row += numeric_cell(fmt(value), value, f'success-latency-{population["id"]}-{i}', 'min', value is not None and conditional_winners.get(i) == value)
+            successful.append('<tr>' + success_row + '</tr>')
+    cost_heading = (report_text('text_8e39fd0010e6eec8') if zh else 'USD / 1,000 successful calls') if prices is not None else (report_text('text_1e6804992a0e4509') if zh else 'Estimated batch cost')
+    return '<section data-benchmark-operations><h2>' + (report_text('text_033b6f38ccc278fd') if zh else 'Performance and cost by collection') + '</h2><p>' + (report_text('text_b2844b9d4f724083') if zh else 'One final result per query. Timing includes retries, the complete collection and reference-quarantined queries. P95 bounds 95% of request waits. The table states each cost unit; purchase or billing terms appear below.') + '</p>' + table(([report_text('text_9f12964bc6a50908'),report_text('text_c80d519245a7e843'),report_text('text_cfb4169ac2aa7957'),'P50 ms','P95 ms',cost_heading] if zh else ['Collection','API','Mean ms','P50 ms','P95 ms',cost_heading]), rendered) + '</section><section data-successful-latency><h2>' + (report_text('text_49858a653a66eb64') if zh else 'Latency of successful result deliveries') + '</h2><p>' + (report_text('text_50155fa5dd464e70') if zh else 'Only HTTP 200 calls without errors and with at least one result. Counts differ by provider; this conditional comparison does not replace all-call latency.') + '</p>' + table([report_text('text_97b34ccdb9bbff96'),report_text('text_c80d519245a7e843'),report_text('text_855754c132f37863'),report_text('text_cfb4169ac2aa7957'),'P50 ms','P95 ms'] if zh else ['Population','API','Calls','Mean ms','P50 ms','P95 ms'], successful) + '</section>'
 
 
 def quality_dataset(profile, content):
@@ -3115,16 +3236,40 @@ def metric_populations(profile, content):
     return populations
 
 
+def reference_retrieval_panel(profile, rows, case_ids, zh):
+    """Use only independently annotated page targets, never infer missing gold."""
+    ids = {c['id'] for c in profile['cases'] if c['id'] in case_ids and c.get('anchors')}
+    if not ids:
+        return ''
+    cutoff = profile['protocol']['top_k']
+    cases = {c['id']: c for c in profile['cases']}
+    values = []
+    for method in profile['methods']:
+        group = [r for r in rows if r['case_id'] in ids and r['method'] == method['id']]
+        if len(group) != len(ids):
+            raise ValueError('Incomplete reference-retrieval population')
+        metrics = [evaluate(cases[r['case_id']], r['results'], cutoff=cutoff) for r in group]
+        values.append((method['label'], sum(m[f'anchor_hit_{cutoff}'] for m in metrics), sum(m['reciprocal_rank'] for m in metrics) / len(ids)))
+    winners = numeric_winners([[v[1] / len(ids), v[2]] for v in values], {0:'max', 1:'max'})
+    rendered = []
+    for label, hits, mrr in values:
+        rendered.append('<tr><td>' + esc(label) + '</td>' + numeric_cell(f'{int(hits)}/{len(ids)} · {hits/len(ids):.1%}', hits/len(ids), 'reference-hit', 'max', winners.get(0) == hits/len(ids)) + numeric_cell(f'{mrr:.3f}', mrr, 'reference-mrr', 'max', winners.get(1) == mrr) + '</tr>')
+    return '<section data-reference-retrieval><h4>' + (f"{report_text('text_7971dca874285f51')}{len(ids)}{report_text('text_02c1ee7d2ca6bb57')}" if zh else f'Reference-page retrieval · {len(ids)} queries') + '</h4><p>' + (f"{report_text('text_62d22dbf865610c9')}{cutoff}{report_text('text_9af9d868b1930a46')}{cutoff}{report_text('text_b9e9b62e28102865')}{cutoff}{report_text('text_a6fa2550098e0879')}" if zh else f'Only queries with annotated reference pages. Hit@{cutoff} finds any listed URL in the first {cutoff}; MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. These match the factual-set definitions. Listed references are not exhaustive, and unannotated queries are not failures.') + '</p>' + table([report_text('text_22b9f0b66212809c'), f"Hit@{cutoff}{report_text('text_27ecde736a615a9f')}", f"MRR@{cutoff}{report_text('text_27ecde736a615a9f')}"] if zh else ['Method', f'Reference Hit@{cutoff}', f'Reference MRR@{cutoff}'], rendered) + '</section>'
+
+
 def population_summary(profile, selected, content, zh, *, diagnostics=False, relevance_scores=None):
     from lexbench_websearch.scoring import factual_evidence
     cutoff = profile["protocol"]["top_k"]
     lang = "zh" if zh else "en"
     independent = content.get("independent_benchmarks")
+    prices = catalog_prices(profile, content)
     roots = [p for p in metric_populations(profile, content) if p.get("benchmark_root")] if independent else []
     heading = (report_text('text_e809904480c01001') if zh else "Core results by benchmark")
     scope = "；".join(p["label"][lang] + " " + str(len(set(p["case_ids"]) - set(profile.get("factual_quality_exclusions", [])))) + (report_text('text_02c1ee7d2ca6bb57') if zh else " queries") for p in roots)
     note = ((scope + (report_text('text_7479a7b11eff5ca3') if zh else ". Benchmarks are reported separately. ")) if scope else "") + (
         report_text('text_cad43d279ebfab87') if zh else "Mean, P50 and P95 cover all requests and retry waits; fees estimate the calls in each population.")
+    if prices is not None:
+        note = scope + (report_text('text_84334d241026733f') if zh else '. Mean, P50 and P95 include all calls and retry waits. Unit prices compare 1,000 successful calls; purchase terms appear on the performance page.')
     if diagnostics:
         heading = report_text('text_7e49671f0d158d8b') if zh else "Reference URLs and requested sites: diagnostics"
         note = report_text('text_7e6aa840d0a02909') if zh else "These overlapping subsets diagnose URL and domain discovery. Uniform relevance scoring covers the complete in-house set."
@@ -3149,15 +3294,18 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             group = [r for r in subset if r['method'] == method['id']]
             if ranked:
                 q = quality_stats[method['id']]
-                measures = [q['ndcg'] * 100, q['precision'] * profile['protocol']['top_k'], sum(r['success'] for r in relevance_scores if r['case_id'] in ids and r['method'] == method['id'])]
+                measures = [q['ndcg'] * 100, q['precision'], q['success']]
             elif kind == 'factual':
                 quality_group = [r for r in group if r['case_id'] in quality_ids]
                 measures = [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_hit_{cutoff}'] for r in quality_group), sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][f'answer_in_delivered_text_{cutoff}'] for r in quality_group)]
+                if content.get("summary_metrics") == "retrieval":
+                    measures.append(sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_rr_{cutoff}'] for r in quality_group) / len(quality_group) if quality_group else None)
             elif kind == 'scenario':
                 hit_key = 'anchor_hit_5' if profile['protocol']['top_k'] == 5 else 'anchor_hit_10'
-                if any(r['metrics'].get(hit_key) is None or r['metrics'].get('reciprocal_rank') is None for r in group):
+                metrics = [evaluate(cases[r['case_id']], r['results'], cutoff=cutoff) for r in group]
+                if any(m.get(hit_key) is None or m.get('reciprocal_rank') is None for m in metrics):
                     raise ValueError('Scenario population requires a reference for every query')
-                measures = [sum(r['metrics'][hit_key] for r in group), sum(r['metrics']['reciprocal_rank'] for r in group) / len(ids)]
+                measures = [sum(m[hit_key] for m in metrics), sum(m['reciprocal_rank'] for m in metrics) / len(ids)]
             elif kind == 'site':
                 eligible = []
                 for row in group:
@@ -3170,10 +3318,10 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                 measures = [sum(value > 0 for value in eligible), sum(eligible) / len(eligible)]
             else:
                 measures = [s['nonempty']]
-            values.append([method['label'], *measures, s['all_latency']['mean'], s['all_latency']['p50'], s['all_latency']['p95'], s['cost_total']])
-        max_column = 3 if ranked else 2 if quality else 1
+            values.append([method['label'], *measures, s['all_latency']['mean'], s['all_latency']['p50'], s['all_latency']['p95'], prices[method['id']]['amount'] if prices is not None else s['cost_total']])
+        max_column = 3 if ranked or kind == "factual" and content.get("summary_metrics") == "retrieval" else 2 if quality else 1
         directions = {i: "max" if i <= max_column else "min" for i in range(1, len(values[0]))}
-        if len({m.get("currency", "CNY") for m in profile["methods"]}) != 1:
+        if prices is None and len({m.get("currency", "CNY") for m in profile["methods"]}) != 1:
             directions[len(values[0]) - 1] = "neutral"
         winners = numeric_winners(values, directions)
         rendered = []
@@ -3184,20 +3332,20 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                     label = esc(value)
                 elif ranked and i == 1:
                     label = f'{value:.1f}'
-                elif ranked and i == 2:
-                    label = f'{value:.2f} / {profile["protocol"]["top_k"]}'
-                elif ranked and i == 3:
-                    label = f'{int(value)}/{len(ids)}'
+                elif ranked and i in (2, 3):
+                    label = f'{value:.1%}'
                 elif i == 1 or (kind == 'factual' and i == 2):
                     denominator = len(quality_ids) if kind == 'factual' else len(ids)
                     label = (f'{int(value)}/{denominator}' + (f' · {value / denominator:.1%}' if quality else '')) if denominator else '—'
-                elif kind == 'scenario' and i == 2:
-                    label = f'{value:.3f}'
+                elif kind == 'scenario' and i == 2 or kind == 'factual' and content.get('summary_metrics') == 'retrieval' and i == 3:
+                    label = f'{value:.3f}' if value is not None else '—'
                 else:
                     label = fmt(value)
                 if i == len(row) - 1:
                     currency = method.get('currency', 'CNY')
-                    label = ((report_text('text_b769180d023c4d19') if zh else 'Not priced') if value is None else label + ' ' + (report_text('text_7f77f23af7b0dcc8') if zh and currency == 'CNY' else esc(currency)))
+                    label = (((report_text('text_b769180d023c4d19') if zh else 'Not priced') if method.get('price_per_1000') is None else (report_text('text_a3dc4544ead13181') if zh else 'Some calls have unknown billing')) if value is None else label + ' ' + (report_text('text_7f77f23af7b0dcc8') if zh and currency == 'CNY' else esc(currency)))
+                    if prices is not None:
+                        label = fmt(value) if value is not None else ''
                 win = i in winners and winners[i] == value
                 html_cells.append(numeric_cell(label, value if i else None, f"population-{i}", directions.get(i, "neutral"), win))
             rendered.append('<tr>' + ''.join(html_cells) + '</tr>')
@@ -3206,13 +3354,15 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             body += '<p>' + esc(population['description'][lang]) + '</p>'
         headings = [report_text('text_8adcec38513a6620')] if zh else ['Queries returning results']
         if ranked:
-            headings = [report_text('text_9a98146dbe62ee65'), f"{report_text('text_03feca02c47d34ac')}{cutoff}）", report_text('text_a00c2c4fa82fdeff')] if zh else ['Ranking quality (0–100)', f'Useful results per query (/{cutoff})', 'Queries with a direct match']
-            body += '<p><a href="quality.html#relevance-scores">' + (f"{report_text('text_e6585418b3eec96e')}{cutoff}{report_text('text_7952d209d9356fca')}" if zh else f'Quality = nDCG@{cutoff} × 100 · Inspect grades and calculation') + '</a></p>'
+            headings = [f'nDCG@{cutoff} × 100', f'Precision@{cutoff}', f'Success@{cutoff}']
+            body += '<p>' + (f"nDCG@{cutoff}{report_text('text_c546335ad7455f0a')}{cutoff}{report_text('text_d1ccb31262de2e6a')}{cutoff}{report_text('text_c2bc597a77d601bd')}{cutoff}{report_text('text_2f232561b5c59922')}{cutoff}{report_text('text_f4e2766ed01a5b0b')}" if zh else f'nDCG@{cutoff} measures graded ranking quality, displayed ×100. Precision@{cutoff} is the share of {cutoff} slots graded ≥2, with missing slots scoring zero. Success@{cutoff} is the share of queries with a grade-3 result. Every query remains in the denominator.') + ' <a href="quality.html#relevance-scores">' + (report_text('text_a092640a6ab19cac') if zh else 'Inspect grades and calculation') + '</a></p>'
         elif kind == 'factual':
             if quality_ids != ids:
-                body += '<p data-quality-exclusions>' + (f"{report_text('text_b75d8dea6b8021ed')}{len(quality_ids)}{report_text('text_be2b0d2270c8cdd2')}{len(ids) - len(quality_ids)}{report_text('text_3b134b82e4e3fed2')}" if zh else f'Quality uses {len(quality_ids)} reviewed-reference queries for every method; {len(ids) - len(quality_ids)} defective references are quarantined. Latency and cost retain all {len(ids)} queries.') + '</p>'
-            body += '<p class="population-note">' + (f"{report_text('text_2b87bbc2cd13d5ef')}{cutoff}{report_text('text_f69301317e6d7264')}" if zh else f'Source found: a published supporting URL appears in the top {cutoff}. Answer cue: allowed reference-answer text appears in delivered text after excluding explicit dataset mirrors; this is not semantic accuracy.') + '</p>'
-            headings = [report_text('text_c08ea4fec537b912'), report_text('text_140efee5493ca13f')] if zh else ['Published source found', 'Answer cue (mirrors excluded)']
+                body += '<p data-quality-exclusions>' + ((f"{report_text('text_d088d663993631cd')}{len(quality_ids)}{report_text('text_55c1a81456fa5bbb')}{len(ids)}{report_text('text_a65dbefbd2e2f8a7')}" if zh else f'Quality uses {len(quality_ids)} qualified queries; latency retains all {len(ids)} collected queries.') if prices is not None else (report_text('text_59a431da44888da2') if zh else f'Quality uses {len(quality_ids)} reviewed-reference queries for every method; {len(ids) - len(quality_ids)} defective references are quarantined. Latency and cost retain all {len(ids)} queries.')) + '</p>'
+            body += '<p class="population-note">' + (f"Hit@{cutoff}{report_text('text_ff27a0602f075204')}{cutoff}{report_text('text_dda63d52ea390540')}{cutoff}{report_text('text_78ecd7f67ad3b236')}{cutoff}{report_text('text_9ad8ef53b183cfce')}" if zh else f'Hit@{cutoff} checks for a published supporting URL in the first {cutoff} results. MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. Answer Match@{cutoff} checks delivered text for reference-answer phrases after excluding explicit dataset mirrors; it does not measure semantic accuracy.') + '</p>'
+            headings = [f"Hit@{cutoff}{report_text('text_27ecde736a615a9f')}", f"Answer Match@{cutoff}{report_text('text_40b1c999f5abd5fe')}"] if zh else [f'Reference Hit@{cutoff}', f'Answer Match@{cutoff} (text)']
+            if content.get('summary_metrics') == 'retrieval':
+                headings.append(f"MRR@{cutoff}{report_text('text_27ecde736a615a9f')}" if zh else f'Reference MRR@{cutoff}')
         elif kind == 'scenario':
             body += '<p class="population-note">' + (f"{report_text('text_b3899410224cd906')}{cutoff}{report_text('text_276d78952589b984')}" if zh else f'Target found: a reference page appears in the top {cutoff}. MRR averages reciprocal first-target rank: 1 for first, 0.5 for second, and 0 for a miss. Higher means targets appear earlier.') + '</p>'
             headings = [report_text('text_7c4232ea7201e8a5'), report_text('text_d97598e9de7fff45')] if zh else ['Reference target found', 'Target MRR']
@@ -3220,7 +3370,11 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             body += '<p class="population-note">' + (f"{report_text('text_502b7f2f3c0766f9')}{cutoff}{report_text('text_a2f6c28bc3a0dcdf')}{cutoff}{report_text('text_d2ff3b1cd74b9df9')}" if zh else f'Site satisfied: at least one top-{cutoff} result uses the requested domain. Domain fraction averages the share of top-{cutoff} results from that domain. Neither metric judges page relevance.') + '</p>'
             headings = [report_text('text_f1e27452e8dffa33'), report_text('text_088efa3d9c398139')] if zh else ['Site constraint met', 'Requested-domain fraction']
         headers = ([report_text('text_22b9f0b66212809c')] + headings + [report_text('text_cfb4169ac2aa7957'),report_text('text_a97243f6aa6fcd01'),report_text('text_dfaa28d089149c9d'),report_text('text_7674cf339137002c')]) if zh else (['Method'] + headings + ['Mean ms','P50 ms','P95 ms','Population cost'])
+        if prices is not None:
+            headers[-1] = report_text('text_8e39fd0010e6eec8') if zh else 'USD / 1,000 successful calls'
         body += table(headers, rendered)
+        if ranked and content.get('summary_metrics') == 'retrieval':
+            body += reference_retrieval_panel(profile, subset, ids, zh)
         if ranked:
             body += '<details><summary>' + (report_text('text_5d391279ab209be7') if zh else 'API delivery') + '</summary><p>' + ' · '.join(esc(m['label']) + ' ' + str(stats[m['id']]['nonempty']) + '/' + str(len(ids)) for m in profile['methods']) + (report_text('text_1af9dd4156b9a317') if zh else ' queries returned results.') + '</p></details>'
         body += '</article>'
@@ -3230,7 +3384,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
 def render_result_comparison(profile, selected, zh, *, prefix="", site_prefix="", content=None, relevance=None):
     from .comparison import render_comparison
     profile = dict(profile, comparison_populations=metric_populations(profile, content or {}))
-    return render_comparison(profile, selected, zh, relevance=relevance, detail_link=lambda row: posixpath.join(site_prefix, prefix, "details", row["id"] + ".html"))
+    return render_comparison(profile, selected, zh, relevance=relevance, primary_factual_metric="source" if (content or {}).get("summary_metrics") == "retrieval" else "answer", detail_link=lambda row: posixpath.join(site_prefix, prefix, "details", row["id"] + ".html"))
 
 
 def population_filter(profile, content, zh):

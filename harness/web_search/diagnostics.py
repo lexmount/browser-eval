@@ -1,7 +1,20 @@
-"""Explain measured latency without equating parallel work with wall time."""
+"""Explain native failures and latency without equating parallel work with wall time."""
 
 from collections import Counter
 from statistics import mean
+
+
+def error_evidence(row, payload):
+    """Keep collection errors and nested service failure evidence distinguishable."""
+    parts = [row["error"]] if row.get("error") else []
+    status = payload.get("status_code") if isinstance(payload, dict) else None
+    if type(status) is int and status >= 400:
+        parts.append("status_code: " + str(status))
+        headers = payload.get("headers", {})
+        if isinstance(headers, dict):
+            parts.extend(str(k) + ": " + str(v) for k, v in headers.items()
+                         if k.lower() in {"x-brd-error", "x-brd-error-code"})
+    return "\n".join(parts)
 
 
 def operational(rows, payloads, methods=None):
@@ -14,11 +27,24 @@ def operational(rows, payloads, methods=None):
         if adapter:
             timing = adapter_for(adapter).timing(payload)
             payload = timing
-        attempts = (payload.get("attempts") or []) if isinstance(payload, dict) else []
+        reported_attempts = payload.get("attempts") if isinstance(payload, dict) else None
+        attempts = reported_attempts if isinstance(reported_attempts, list) else []
+        network = row.get("network") or {}
+        ttfb = row.get("ttfb_ms")
+        downloaded = network.get("download_bytes")
+        status = row.get("http_status")
+        # curl reports zero start-transfer time when no response ever arrived.
+        # A real response/partial body also proves arrival if that clock is zero.
+        response_started = (
+            isinstance(ttfb, (int, float)) and ttfb > 0
+            or isinstance(downloaded, (int, float)) and downloaded > 0
+            or type(status) is int and 100 <= status <= 599
+        )
         valid = [
             a
             for a in attempts
-            if isinstance(a.get("elapsed_ms"), (int, float))
+            if isinstance(a, dict)
+            and isinstance(a.get("elapsed_ms"), (int, float))
             and isinstance(a.get("started_after_ms"), (int, float))
         ]
         ready = [
@@ -40,11 +66,11 @@ def operational(rows, payloads, methods=None):
                 outside_server_ms=row["elapsed_ms"] - server if server is not None else None,
                 first_results_ms=first,
                 after_first_ms=server - first if server is not None and first is not None else None,
-                attempts=len(attempts) if isinstance(payload, dict) and payload.get('attempts') is not None else None,
-                outcomes=dict(Counter(a.get("outcome", "unknown") for a in attempts)),
-                ttfb_ms=row.get("ttfb_ms"),
-                body_ms=(row.get("network") or {}).get("body_ms"),
-                bytes=(row.get("network") or {}).get("download_bytes"),
+                attempts=len(attempts) if isinstance(reported_attempts, list) else None,
+                outcomes=dict(Counter(a.get("outcome", "unknown") for a in attempts if isinstance(a, dict))),
+                ttfb_ms=ttfb if response_started else None,
+                body_ms=network.get("body_ms") if response_started else None,
+                bytes=downloaded,
                 cache=(row.get("cache") or {}).get("state", "unknown"),
                 usage=row.get("usage") or {},
                 stop_reason=payload.get("stop_reason") if isinstance(payload, dict) else None,

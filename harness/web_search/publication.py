@@ -13,7 +13,7 @@ from harness.reporting.publication import atomic_write
 from harness.web_fetch.report_publish import PublishConfig, publish as publish_package
 from .core import digest
 from harness.web_fetch.config import ROOT
-from .profiles import current_selection, authority_root, publication_metadata
+from .profiles import current_selection, authority_root, publication_metadata, collection_receipts
 
 
 def data_home():
@@ -60,7 +60,7 @@ def prepare(report, visual, content, sources, work, *, profile):
         ("independent_review", report / "independent-review.json", "independent-review.json"),
     ):
         bind(name, source, filename)
-    receipts = manifest["receipt"].get("separate_collections") or [dict(manifest["receipt"], cohort="primary")]
+    receipts = collection_receipts(manifest)
     if set(sources) != {r["cohort"] for r in receipts}:
         raise ValueError("Publication requires the exact checked cohort sources")
     expected = {"primary": selection["profile"], **{x["id"]: x for x in selection.get("supplementary_profiles", [])}}

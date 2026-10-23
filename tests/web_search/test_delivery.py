@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 from harness.web_search.delivery import export, verify, transform_page
 from harness.web_search.example import example
+from harness.web_search.core import digest
 from harness.web_search.report import build, main
 from harness.web_search.comparison import render_comparison
 
@@ -66,6 +67,11 @@ class DeliveryScenarios(unittest.TestCase):
             example(root)
             main(["--output", str(root / "report"), "--export-delivery", str(root / "delivery")])
             self.assertTrue(verify(root / "report", root / "delivery"))
+            proof = root / "incomplete-visual.json"
+            proof.write_text(json.dumps({"manifest_sha256": digest((root / "report/manifest.json").read_bytes()), "captures": []}))
+            with self.assertRaises(ValueError):
+                main(["--output", str(root / "report"), "--release-check", str(proof), "--export-delivery", str(root / "unreviewed")])
+            self.assertFalse((root / "unreviewed").exists())
             evidence = next((root / "report/calls").glob("*.json"))
             evidence.write_text("{}")
             with self.assertRaises(ValueError):

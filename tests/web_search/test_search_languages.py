@@ -71,3 +71,48 @@ def test_chinese_notice_is_preserved_in_delivery_and_verified(report, tmp_path):
     notice.write_text("Broken English entry")
     with pytest.raises(ValueError, match="Delivery page changed"):
         verify(output, destination)
+
+
+def test_search_rebuild_records_builder_version_without_changing_measurements(report):
+    from harness.web_fetch import __version__
+    output, source = report
+    before = json.loads((output / "manifest.json").read_text())
+    build(output, source=source, language="en")
+    after = json.loads((output / "manifest.json").read_text())
+    assert after["rows"] == before["rows"]
+    assert after["collection_profile"] == before["collection_profile"]
+    assert after["browser_eval"]["version"] == __version__
+    for route in ("index.html", "en/index.html"):
+        dom = BeautifulSoup((output / route).read_text(), "html.parser")
+        assert dom.select_one('[data-browser-eval-release]').get_text() == "Browser Eval v" + __version__
+    assert check(output)
+
+
+@pytest.mark.parametrize("defect", ["file", "label", "binding"])
+def test_search_release_rejects_lost_builder_identity(report, defect):
+    output, _ = report
+    if defect == "file":
+        (output / "browser-eval-version.json").unlink()
+    elif defect == "label":
+        page = output / "index.html"
+        page.write_text(page.read_text().replace("data-browser-eval-release=", "data-lost-version="))
+    else:
+        manifest = output / "manifest.json"
+        value = json.loads(manifest.read_text())
+        del value["browser_eval"]
+        manifest.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="Browser Eval"):
+        check(output)
+
+
+@pytest.mark.parametrize('language', ['zh', 'en'])
+def test_delivery_shell_keeps_requested_detail_instead_of_home_redirect(report, tmp_path, language):
+    from harness.web_search.delivery import export
+    output, source = report
+    build(output, source=source, language=language)
+    destination = tmp_path / 'delivery-shell'
+    export(output, destination)
+    for route in ('detail.html', 'evidence.html'):
+        shell = BeautifulSoup((destination / route).read_text(), 'html.parser')
+        assert not shell.select('[data-report-language-entry]')
+        assert shell.select_one('[data-delivery-target]')

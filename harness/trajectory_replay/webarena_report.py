@@ -2183,6 +2183,8 @@ def build_webarena_replay_report(
         "measurement_notes": {lang: profile["measurement_notes"][lang] for lang in languages}
         if profile.get("measurement_notes") else {},
     }
+    from harness.reporting.versions import bind_build_version
+    manifest['browser_eval'] = bind_build_version(output)
     _write_json(output / "report-manifest.json", manifest)
     if language is not None:
         entry = select_report_language(output, language)
