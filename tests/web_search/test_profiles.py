@@ -95,6 +95,12 @@ class CurrentProfileScenarios(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cohorts"):
             publication_authority(self.manifest, self.entry, root=self.root)
 
+    def test_formal_release_accepts_an_https_subpath_deployment(self):
+        self.target['base_url'] = 'https://reports.example.org/tools/artifacts'
+        self.target['url'] = self.target['base_url'] + '/s/' + self.target['slug']
+        self.save_target()
+        self.assertEqual(publication_authority(self.manifest, self.entry, root=self.root)['base_url'], self.target['base_url'])
+
     def test_formal_release_rejects_wrong_host_url_or_target_binding(self):
         for change in [{"base_url": "http://reports.example.org"}, {"url": "https://other.example.org/s/search"}, {"versionId": ""}]:
             with self.subTest(change=change):
