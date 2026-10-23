@@ -924,11 +924,17 @@ class ProviderTest(unittest.TestCase):
             with self.subTest(filename=filename):
                 self.assertEqual(providers["tavily"]["extract_depth"], "advanced")
                 self.assertEqual(providers["tavily-resources"]["extract_depth"], "advanced")
-                self.assertEqual(providers["tavily"]["extract_timeout_seconds"], 60.0)
+                if providers["tavily"].get("uniform_native_parameters"):
+                    self.assertNotIn("extract_timeout_seconds", providers["tavily"])
+                else:
+                    self.assertEqual(providers["tavily"]["extract_timeout_seconds"], 60.0)
                 self.assertEqual(providers["tavily-resources"]["extract_timeout_seconds"], 60.0)
                 self.assertEqual(providers["exa"]["text_verbosity"], "full")
                 self.assertEqual(providers["exa-resources"]["text_verbosity"], "full")
-                self.assertEqual(providers["exa"]["livecrawl_timeout_ms"], 15_000)
+                if providers["exa"].get("uniform_native_parameters"):
+                    self.assertNotIn("livecrawl_timeout_ms", providers["exa"])
+                else:
+                    self.assertEqual(providers["exa"]["livecrawl_timeout_ms"], 15_000)
                 self.assertEqual(providers["exa-resources"]["livecrawl_timeout_ms"], 15_000)
 
     @patch("harness.web_fetch.providers.cloudflare.request")

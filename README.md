@@ -49,7 +49,7 @@ Each track reports its own task population and scores. HTTP is a fetch baseline;
 | Track | Implemented participants | Preparation |
 | --- | --- | --- |
 | Web Fetch: local browsers | Moli, Chromium, Lightpanda, Obscura | Install the selected binary; Chromium also needs Playwright and Node.js conversion dependencies |
-| Web Fetch: services | Lexmount, Firecrawl, Tavily Extract, Exa Contents, Cloudflare Markdown/Content; hosted Kitesurf via Cloudflare | Provider account and credentials in the repository `.env` |
+| Web Fetch: services | Lexmount, Firecrawl, Tavily Extract, Exa Contents, Cloudflare Markdown/Content, Bright Data Web Unlocker, Browser Use fetch-use, Browserbase Fetch, DeepSeek Fetch API, Crawl4AI Cloud; hosted Kitesurf via Cloudflare | Provider account and credentials in the repository `.env` |
 | Web Fetch: Agent tools and extractors | CowAgent, OpenClaw, DeepSeek Harness, LangChain WebBaseLoader, Crawl4AI | Upstream checkout/runtime or the `oss-eval` extra, according to the adapter |
 | Browser Trajectory Replay / Browser Use | Moli and Chromium in the current browser registry | Docker/Linux environment; Browser Use also needs CowAgent and a model account |
 | Controls | Plain HTTP and offline fixture | Base Python installation |
@@ -198,3 +198,5 @@ Update the pinned LexBench evaluator with `make bump-lexbench REV=<full merged c
 Web Fetch method descriptions, interfaces, account requirements, capability sources, and their English/Chinese text share one registry: `harness/web_fetch/data/report-methods.json`. Register a new product there; executable versions and run parameters come from saved evidence. See [method metadata](harness/web_fetch/README.md#report-method-metadata) for the distinction between registered examples and measured calls.
 
 For the exact configuration and code steps for a new product or release, see [Adding a method or release](harness/web_fetch/README.md#adding-a-method-or-release).
+
+The reusable ten-method Web Fetch cohort is selected with `--providers configured --provider-config configs/providers.example.json`; shared defaults are 30 seconds per call and one failure retry. See the [provider contract](docs/provider-contract.md#reusable-selected-cohort).

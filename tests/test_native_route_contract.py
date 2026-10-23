@@ -71,7 +71,7 @@ def _route_http_fixture(tmp_path):
     cases = [EvalCase(name, name, 'https://example.test/'+name, 'control', [],
                       source_benchmark={'input_media_kind': 'html_page'})
              for name in ('one', 'two')]
-    ledger = NativeRouteLedger(cases, [provider])
+    ledger = NativeRouteLedger(cases, [provider], timeout_seconds=45)
     binding = ledger.write(tmp_path, dataset_sha256='dataset', runtime_source_sha256='runtime')
     manifest = {'native_routes_required': True, 'native_route_contract': binding,
                 'dataset_sha256': 'dataset', 'runtime_source_sha256': 'runtime',
@@ -257,7 +257,7 @@ def test_custom_firecrawl_without_auth_still_matches_actual_request(tmp_path):
                                            'uniform_native_parameters': True})
     case = EvalCase('case', 'Case', 'https://example.test/', 'control', [],
                     source_benchmark={'input_media_kind': 'html_page'})
-    ledger = NativeRouteLedger([case], [provider])
+    ledger = NativeRouteLedger([case], [provider], timeout_seconds=45)
     ledger.write(tmp_path, dataset_sha256='fixture', runtime_source_sha256='fixture')
     with patch('harness.web_fetch.providers.firecrawl.request',
                return_value=HttpResponse(200, case.url, {}, b'{}')) as transport:
@@ -443,7 +443,7 @@ def test_http_native_answers_survive_persistence_and_reject_tampering(tmp_path, 
         'include_resource_links': True, 'rich_links_limit': 12, 'formats': ['markdown', 'images', 'links']})
     case = EvalCase('case', 'Case', 'https://example.test/', 'control', [], track=track, task_kind=kind,
                     source_benchmark={'input_media_kind': 'html_page'})
-    ledger = NativeRouteLedger([case], [provider])
+    ledger = NativeRouteLedger([case], [provider], timeout_seconds=45)
     ledger.write(tmp_path, dataset_sha256='fixture', runtime_source_sha256='fixture')
     with patch('harness.web_fetch.providers.'+module+'.request',
                return_value=HttpResponse(200, case.url, {}, json.dumps(payload).encode())):
@@ -935,7 +935,7 @@ def test_explicit_ledgers_do_not_replace_each_others_provider_state(tmp_path):
     from unittest.mock import Mock
     from harness.web_fetch.native_routes import NativeRouteLedger
     provider, cases, first, _, _ = _route_http_fixture(tmp_path)
-    second = NativeRouteLedger(cases, [provider])
+    second = NativeRouteLedger(cases, [provider], timeout_seconds=45)
     other = tmp_path / 'other'
     other.mkdir()
     second.write(other, dataset_sha256='dataset', runtime_source_sha256='runtime')

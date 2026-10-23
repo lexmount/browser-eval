@@ -49,7 +49,7 @@ flowchart LR
 | 轨道 | 已实现的参与方 | 准备条件 |
 | --- | --- | --- |
 | Web Fetch：本地浏览器 | Moli、Chromium、Lightpanda、Obscura | 安装所选浏览器；Chromium 还需要 Playwright 和 Node.js 转换依赖 |
-| Web Fetch：服务 | Lexmount、Firecrawl、Tavily Extract、Exa Contents、Cloudflare Markdown/Content；通过 Cloudflare 调用托管 Kitesurf | 供应商账户；凭据写入仓库 `.env` |
+| Web Fetch：服务 | Lexmount、Firecrawl、Tavily Extract、Exa Contents、Cloudflare Markdown/Content、Bright Data Web Unlocker、Browser Use fetch-use、Browserbase Fetch、DeepSeek Fetch API、Crawl4AI Cloud；通过 Cloudflare 调用托管 Kitesurf | 供应商账户；凭据写入仓库 `.env` |
 | Web Fetch：Agent 工具与提取库 | CowAgent、OpenClaw、DeepSeek Harness、LangChain WebBaseLoader、Crawl4AI | 按适配器要求准备上游源码、运行环境或 `oss-eval` 依赖 |
 | 轨迹重放 / Browser Use | 当前浏览器注册表中的 Moli、Chromium | Docker/Linux 环境；Browser Use 还需要 CowAgent 和模型账户 |
 | 对照方法 | 普通 HTTP、离线 fixture | 基础 Python 安装 |
@@ -197,3 +197,5 @@ make ci
 Web Fetch 的方法介绍、接口、账号要求、能力来源及中英文文案统一维护在 `harness/web_fetch/data/report-methods.json`。新增产品时修改这份资料；程序版本和运行参数读取保存的证据。登记示例与实测调用的区别见[方法资料说明](../harness/web_fetch/README.md#report-method-metadata)。
 
 新增产品或更换版本需要修改哪些配置和代码，见[新增方法或版本步骤](../harness/web_fetch/README.md#adding-a-method-or-release)。
+
+长期使用的十种 Web Fetch 方法通过 `--providers configured --provider-config configs/providers.example.json` 选择；公共默认值为每次30秒、失败重试一次。详见[方法调用约定](provider-contract.md#reusable-selected-cohort)。

@@ -98,8 +98,8 @@ class ProviderAssemblyReviewPolicyTests(unittest.TestCase):
                     run_evaluation(output_dir=output, dataset_meta=dataset, dataset_path=path,
                                    cases=[case], providers=[FixtureProvider(provider, {"type": "fixture"})],
                                    provider_config_path=config, runs=1, timeout=1, delay=0, max_failure_retries=0)
-                    (output / "sources").mkdir()
-                    (output / "list-references").mkdir()
+                    (output / "sources").mkdir(exist_ok=True)
+                    (output / "list-references").mkdir(exist_ok=True)
                     runs.append(output)
                 target = root / "assembled"
                 assemble(runs[0], root / "unused", [], target, provider_additions=[runs[1]])
@@ -133,7 +133,7 @@ class CaseAssemblyExecutionBatchTests(unittest.TestCase):
                 manifest=json.loads((output/'manifest.json').read_text())
                 (output/'execution.json').write_text(json.dumps({'batches':[manifest]}))
                 (output/'manifest.json').unlink()
-                (output/'sources').mkdir();(output/'list-references').mkdir();runs.append(output)
+                (output/'sources').mkdir(exist_ok=True);(output/'list-references').mkdir(exist_ok=True);runs.append(output)
             target=root/'assembled'
             assemble(runs[0],root/'unused',[],target,additions=[runs[1]])
             rows=parse_jsonl((target/'results.jsonl').read_bytes())

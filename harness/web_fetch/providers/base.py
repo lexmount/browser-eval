@@ -78,6 +78,8 @@ def terminate_owned_process_tree(process):
 
 
 class Provider(ABC):
+    allow_failure_retries = True
+
     # Public configuration diagnostics only. Credentials, commands and local
     # paths remain covered by the full configuration hash, never displayed.
     # Adapters may extend this declaration for their own safe options.
@@ -116,7 +118,7 @@ class Provider(ABC):
             return
         if case.retrieval_hints and not (case.track == "dynamic" and case.retrieval_hints == NATIVE_RETRIEVAL_HINTS):
             raise ValueError("fixed native calls prohibit per-case retrieval hints")
-        if case.track not in {"web", "dynamic", "challenge", "risk_control", "document", "image", "video", "file"}:
+        if case.track not in {"web", "dynamic", "challenge", "risk_control", "articles", "document", "image", "video", "file"}:
             raise ValueError("fixed native calls require a declared task route")
         if case.track == "document" and case.task_kind == "resource":
             raise ValueError("fixed native calls require a declared task route")
@@ -197,6 +199,9 @@ class Provider(ABC):
 
 def build_provider(name: str, config: dict[str, Any]) -> Provider:
     provider_type = config.get("type")
+    if provider_type in {"brightdata_unlocker", "browser_use_fetch", "browserbase_fetch", "deepseek_fetch", "crawl4ai_cloud"}:
+        from .hosted_fetch import HostedFetchProvider
+        return HostedFetchProvider(name, config)
     if provider_type in {"headless_html", "headless_markdown"}:
         from .headless import HeadlessProvider
         return HeadlessProvider(name, config)

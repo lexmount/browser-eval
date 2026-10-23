@@ -520,7 +520,7 @@ def test_assembly_copies_only_certificate_bound_reference_checks(tmp_path, damag
     (root / 'execution.json').write_text(json.dumps({'batches': [manifest]}))
     (root / 'manifest.json').unlink()
     for folder in ('sources', 'list-references'):
-        (root / folder).mkdir()
+        (root / folder).mkdir(exist_ok=True)
     (root / 'reference-checks/private-note.txt').write_text('synthetic private note')
     output = tmp_path / 'assembled'
     relative = manifest['reference_checks']['postcheck']['evidence_path']
