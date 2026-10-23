@@ -5344,6 +5344,92 @@
           "zh": "这是接口示例，不代表历史调用参数。渲染、代理、引擎、输出格式和时间预算以保存的配置及请求日志为准。保存完整原始响应，不补抓或补写正文；调用端日志不等于服务内部日志。",
           "en": "This interface example does not establish historical call parameters. Rendering, proxy, engine, output format and time budget come from saved configuration and request logs. Preserve the complete response without supplemental retrieval or content repair; caller logs are not service-internal traces."
         }
+      },
+      "capabilities": {
+        "scope": "POST https://api.browserbase.com/v1/fetch",
+        "sources": [
+          "hosted-fetch-adapter"
+        ],
+        "web": {
+          "status": {
+            "zh": "有限支持",
+            "en": "Limited support"
+          },
+          "detail": {
+            "zh": "当前接入支持网页正文和结构任务；不代表实测通过率。",
+            "en": "The adapter supports webpage body and structure tasks; this is not a measured pass rate."
+          }
+        },
+        "input": {
+          "zh": "已知网址；使用预先固定的原生接口参数。",
+          "en": "Known URL with native interface parameters fixed before calls."
+        },
+        "structure": {
+          "zh": "保留原始响应，仅按声明字段读取正文；不补抓内容。",
+          "en": "Retain raw responses and read declared answer fields without supplemental fetching."
+        },
+        "access": {
+          "zh": "需要服务账号及可用额度。",
+          "en": "Requires a service account and available quota."
+        },
+        "notes": {
+          "zh": "这里登记的是当前接入范围，不推断服务商其他产品的能力。",
+          "en": "This describes the current adapter, not other products from the provider."
+        },
+        "tested": {
+          "zh": "接入已通过离线模拟响应检查；不代表完成同范围正式评测。",
+          "en": "Adapter checked with offline simulated responses; no same-scope formal benchmark is implied."
+        },
+        "document": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "image": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "av": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "file": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "js": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "渲染行为由原生服务及所选配置决定；未据离线检查确认页面执行能力。",
+            "en": "Rendering depends on the native service and selected configuration; offline checks do not establish page execution capability."
+          }
+        }
       }
     },
     "bocha-web-search": {
@@ -5626,6 +5712,92 @@
         "notes": {
           "zh": "这是接口示例，不代表历史调用参数。渲染、代理、引擎、输出格式和时间预算以保存的配置及请求日志为准。保存完整原始响应，不补抓或补写正文；调用端日志不等于服务内部日志。",
           "en": "This interface example does not establish historical call parameters. Rendering, proxy, engine, output format and time budget come from saved configuration and request logs. Preserve the complete response without supplemental retrieval or content repair; caller logs are not service-internal traces."
+        }
+      },
+      "capabilities": {
+        "scope": "POST https://api.brightdata.com/request",
+        "sources": [
+          "hosted-fetch-adapter"
+        ],
+        "web": {
+          "status": {
+            "zh": "有限支持",
+            "en": "Limited support"
+          },
+          "detail": {
+            "zh": "当前接入支持网页正文和结构任务；不代表实测通过率。",
+            "en": "The adapter supports webpage body and structure tasks; this is not a measured pass rate."
+          }
+        },
+        "input": {
+          "zh": "已知网址；使用预先固定的原生接口参数。",
+          "en": "Known URL with native interface parameters fixed before calls."
+        },
+        "structure": {
+          "zh": "保留原始响应，仅按声明字段读取正文；不补抓内容。",
+          "en": "Retain raw responses and read declared answer fields without supplemental fetching."
+        },
+        "access": {
+          "zh": "需要服务账号及可用额度。",
+          "en": "Requires a service account and available quota."
+        },
+        "notes": {
+          "zh": "这里登记的是当前接入范围，不推断服务商其他产品的能力。",
+          "en": "This describes the current adapter, not other products from the provider."
+        },
+        "tested": {
+          "zh": "接入已通过离线模拟响应检查；不代表完成同范围正式评测。",
+          "en": "Adapter checked with offline simulated responses; no same-scope formal benchmark is implied."
+        },
+        "document": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "image": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "av": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "file": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "js": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "渲染行为由原生服务及所选配置决定；未据离线检查确认页面执行能力。",
+            "en": "Rendering depends on the native service and selected configuration; offline checks do not establish page execution capability."
+          }
         }
       }
     },
@@ -5922,6 +6094,92 @@
           "zh": "这是接口示例，不代表历史调用参数。渲染、代理、引擎、输出格式和时间预算以保存的配置及请求日志为准。保存完整原始响应，不补抓或补写正文；调用端日志不等于服务内部日志。",
           "en": "This interface example does not establish historical call parameters. Rendering, proxy, engine, output format and time budget come from saved configuration and request logs. Preserve the complete response without supplemental retrieval or content repair; caller logs are not service-internal traces."
         }
+      },
+      "capabilities": {
+        "scope": "POST https://fetch.browser-use.com/fetch",
+        "sources": [
+          "hosted-fetch-adapter"
+        ],
+        "web": {
+          "status": {
+            "zh": "有限支持",
+            "en": "Limited support"
+          },
+          "detail": {
+            "zh": "当前接入支持网页正文和结构任务；不代表实测通过率。",
+            "en": "The adapter supports webpage body and structure tasks; this is not a measured pass rate."
+          }
+        },
+        "input": {
+          "zh": "已知网址；使用预先固定的原生接口参数。",
+          "en": "Known URL with native interface parameters fixed before calls."
+        },
+        "structure": {
+          "zh": "保留原始响应，仅按声明字段读取正文；不补抓内容。",
+          "en": "Retain raw responses and read declared answer fields without supplemental fetching."
+        },
+        "access": {
+          "zh": "需要服务账号及可用额度。",
+          "en": "Requires a service account and available quota."
+        },
+        "notes": {
+          "zh": "这里登记的是当前接入范围，不推断服务商其他产品的能力。",
+          "en": "This describes the current adapter, not other products from the provider."
+        },
+        "tested": {
+          "zh": "接入已通过离线模拟响应检查；不代表完成同范围正式评测。",
+          "en": "Adapter checked with offline simulated responses; no same-scope formal benchmark is implied."
+        },
+        "document": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "image": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "av": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "file": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "js": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "渲染行为由原生服务及所选配置决定；未据离线检查确认页面执行能力。",
+            "en": "Rendering depends on the native service and selected configuration; offline checks do not establish page execution capability."
+          }
+        }
       }
     },
     "deepseek-fetch-api": {
@@ -6006,6 +6264,92 @@
         "notes": {
           "zh": "这是接口示例，不代表历史调用参数。渲染、代理、引擎、输出格式和时间预算以保存的配置及请求日志为准。保存完整原始响应，不补抓或补写正文；调用端日志不等于服务内部日志。",
           "en": "This interface example does not establish historical call parameters. Rendering, proxy, engine, output format and time budget come from saved configuration and request logs. Preserve the complete response without supplemental retrieval or content repair; caller logs are not service-internal traces."
+        }
+      },
+      "capabilities": {
+        "scope": "POST https://api.deepseek.com/v1/tools/fetch",
+        "sources": [
+          "hosted-fetch-adapter"
+        ],
+        "web": {
+          "status": {
+            "zh": "有限支持",
+            "en": "Limited support"
+          },
+          "detail": {
+            "zh": "当前接入支持网页正文和结构任务；不代表实测通过率。",
+            "en": "The adapter supports webpage body and structure tasks; this is not a measured pass rate."
+          }
+        },
+        "input": {
+          "zh": "已知网址；使用预先固定的原生接口参数。",
+          "en": "Known URL with native interface parameters fixed before calls."
+        },
+        "structure": {
+          "zh": "保留原始响应，仅按声明字段读取正文；不补抓内容。",
+          "en": "Retain raw responses and read declared answer fields without supplemental fetching."
+        },
+        "access": {
+          "zh": "需要服务账号及可用额度。",
+          "en": "Requires a service account and available quota."
+        },
+        "notes": {
+          "zh": "这里登记的是当前接入范围，不推断服务商其他产品的能力。",
+          "en": "This describes the current adapter, not other products from the provider."
+        },
+        "tested": {
+          "zh": "接入已通过离线模拟响应检查；不代表完成同范围正式评测。",
+          "en": "Adapter checked with offline simulated responses; no same-scope formal benchmark is implied."
+        },
+        "document": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "image": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "av": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "file": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "js": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "渲染行为由原生服务及所选配置决定；未据离线检查确认页面执行能力。",
+            "en": "Rendering depends on the native service and selected configuration; offline checks do not establish page execution capability."
+          }
         }
       }
     },
@@ -6092,6 +6436,92 @@
         "notes": {
           "zh": "这是接口示例，不代表历史调用参数。渲染、代理、引擎、输出格式和时间预算以保存的配置及请求日志为准。保存完整原始响应，不补抓或补写正文；调用端日志不等于服务内部日志。",
           "en": "This interface example does not establish historical call parameters. Rendering, proxy, engine, output format and time budget come from saved configuration and request logs. Preserve the complete response without supplemental retrieval or content repair; caller logs are not service-internal traces."
+        }
+      },
+      "capabilities": {
+        "scope": "POST https://api.crawl4ai.com/scrape",
+        "sources": [
+          "hosted-fetch-adapter"
+        ],
+        "web": {
+          "status": {
+            "zh": "有限支持",
+            "en": "Limited support"
+          },
+          "detail": {
+            "zh": "当前接入支持网页正文和结构任务；不代表实测通过率。",
+            "en": "The adapter supports webpage body and structure tasks; this is not a measured pass rate."
+          }
+        },
+        "input": {
+          "zh": "已知网址；使用预先固定的原生接口参数。",
+          "en": "Known URL with native interface parameters fixed before calls."
+        },
+        "structure": {
+          "zh": "保留原始响应，仅按声明字段读取正文；不补抓内容。",
+          "en": "Retain raw responses and read declared answer fields without supplemental fetching."
+        },
+        "access": {
+          "zh": "需要服务账号及可用额度。",
+          "en": "Requires a service account and available quota."
+        },
+        "notes": {
+          "zh": "这里登记的是当前接入范围，不推断服务商其他产品的能力。",
+          "en": "This describes the current adapter, not other products from the provider."
+        },
+        "tested": {
+          "zh": "接入已通过离线模拟响应检查；不代表完成同范围正式评测。",
+          "en": "Adapter checked with offline simulated responses; no same-scope formal benchmark is implied."
+        },
+        "document": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "image": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "av": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "file": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "当前接入未实现此类任务，不提供调用端补救。",
+            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+          }
+        },
+        "js": {
+          "status": {
+            "zh": "未声明",
+            "en": "Undeclared"
+          },
+          "detail": {
+            "zh": "渲染行为由原生服务及所选配置决定；未据离线检查确认页面执行能力。",
+            "en": "Rendering depends on the native service and selected configuration; offline checks do not establish page execution capability."
+          }
         }
       }
     }
@@ -6399,6 +6829,15 @@
       "url": "https://github.com/lexmount/moli/releases/tag/v1.1.5",
       "checked_at": "2026-09-11",
       "checked_version": "1.1.5"
+    },
+    "hosted-fetch-adapter": {
+      "label": {
+        "zh": "托管 Fetch 接入代码（能力范围）",
+        "en": "Hosted Fetch adapter (implemented scope)"
+      },
+      "url": "https://github.com/lexmount/browser-eval/blob/38d224ec/harness/web_fetch/providers/hosted_fetch.py",
+      "checked_at": "2026-10-23",
+      "checked_version": "38d224ec"
     }
   },
   "output_contract_labels": {

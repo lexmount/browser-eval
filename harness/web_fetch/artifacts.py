@@ -157,9 +157,12 @@ def verify_public_call_log(root: Path, binding: dict[str, Any], *, allow_public_
                    for event in events)
             or events[0]["stage"] != "call_started"
             or events[-1]["stage"] != "call_completed"
-            or not any(event["stage"] in {"response_received", "exception_raised"}
+            or not any(event["stage"] in {"response_received", "exception_raised", "answer_deadline_exceeded"}
                        for event in events[1:-1])):
         raise ValueError("Public call log has an unexpected event schema")
+    if any(event["stage"] == "answer_deadline_exceeded" and event["error_type"] != "timeout"
+           for event in events):
+        raise ValueError("Deadline event must identify a timeout")
     summary = payload["request"]["summary"]
     if summary is not None and not isinstance(summary, dict):
         raise ValueError("Public call log has an unexpected request summary")
