@@ -10,8 +10,22 @@ from harness.web_search.example import example
 from harness.web_search.report import build, check
 
 
-def audited_fixture(tmp_path, source_mode="frozen", packet_bound=False, scope="all"):
+def audited_fixture(tmp_path, source_mode="frozen", packet_bound=False, scope="all", rounds=1, score_round=0):
     example(tmp_path)
+    if rounds > 1:
+        source = tmp_path / "fixture"
+        profile = json.loads((source / "profile.json").read_bytes())
+        profile["protocol"].update(rounds=rounds, score_round=score_round)
+        review.save(source / "profile.json", profile)
+        original = [json.loads(line) for line in (source / "results.jsonl").read_text().splitlines()]
+        rows = [dict(row, id=row["id"].removesuffix("r0") + f"r{number}", round=number)
+                for number in range(rounds) for row in original]
+        (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+        receipt = json.loads((source / "receipt.json").read_bytes())
+        receipt.update(call_count=len(rows), profile_sha256=review.sha((source / "profile.json").read_bytes()),
+                       results_sha256=review.sha((source / "results.jsonl").read_bytes()))
+        review.save(source / "receipt.json", receipt)
+        build(tmp_path / "report", source=source)
     report = tmp_path / "report"
     root = tmp_path / "review"
     contract = review.freeze(report, root, model="test-model", scope=scope, authorization="Explicit full-review test scenario" if scope == "all" else None, source_mode=source_mode)
@@ -394,3 +408,18 @@ def test_packet_bound_schema_unknown_public_protocol_is_rejected(tmp_path):
     evidence["provenance"]["executions"][0]["schema_protocol"] = "packet-identities/unknown"
     with pytest.raises(ValueError, match="schema protocol"):
         review.validate_public_review(profile, rows, evidence)
+
+
+@pytest.mark.parametrize("score_round", [0, 1])
+def test_repeated_round_review_release_uses_declared_score_round(tmp_path, score_round):
+    _, evidence = audited_fixture(tmp_path, rounds=2, score_round=score_round)
+    path = tmp_path / "review.json"
+    review.save(path, evidence)
+    out = tmp_path / "released"
+    build(out, source=tmp_path / "fixture", review=path, include_english=True)
+    assert check(out)
+    manifest = json.loads((out / "manifest.json").read_bytes())
+    assert len(manifest["rows"]) == 8
+    _, selected = check(out, return_data=True)
+    assert len(selected) == 4
+    assert {row["round"] for row in selected} == {score_round}
