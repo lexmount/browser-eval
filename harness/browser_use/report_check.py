@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import re
+from collections import Counter
 from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
@@ -15,11 +16,15 @@ from harness.browser_use.failure_cause_review import (
     validate_failure_cause_review,
 )
 from harness.browser_use.failure_cause_review import (
+    review_path as failure_review_path,
+)
+from harness.browser_use.failure_cause_review import (
     sha256 as file_sha256,
 )
 from harness.browser_use.publication import evidence_metadata
 from harness.browser_use.report import (
     PUBLIC_EXECUTION_ARTIFACTS,
+    SITE_LABELS,
     _attempt_id,
     _configure_engine_labels,
     _configure_models,
@@ -28,10 +33,12 @@ from harness.browser_use.report import (
     _public_attempt,
     _public_execution,
 )
-from harness.browser_use.selection import load_pilot
+from harness.browser_use.selection import load_pilot, report_selection_path
 from harness.record_io import load_jsonl
 from harness.report_languages import check_language_contract, generated_languages
+from harness.reporting.assets import bound_json_asset
 from harness.reporting.presentation import visible_text as _visible_text
+from harness.reporting.templates import template_identity
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 FORBIDDEN_READER_TERMS = (
@@ -301,6 +308,41 @@ def _check_public_privacy(report_dir: Path) -> None:
             raise ValueError(f"published report contains sensitive text: {path}")
 
 
+def check_methodology_evidence(content: str, tasks: list[dict], environment: dict) -> None:
+    """Require displayed deployment and evaluator facts to match the selected evidence."""
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(content, "html.parser")
+    expected = {
+        "methodology-evaluators": Counter(
+            rule.get("evaluator", "UnknownEvaluator")
+            for task in tasks
+            for rule in (task.get("contract") or {}).get("evaluation_contract", [])
+        ),
+        "methodology-sites": Counter(
+            SITE_LABELS.get(site, site) for task in tasks for site in task.get("sites", [])
+        ),
+    }
+    for table_id, counts in expected.items():
+        table = soup.find("table", id=table_id)
+        if table is None:
+            raise ValueError("methodology is missing selected-evidence table: " + table_id)
+        rows = [row.find_all("td") for row in table.select("tbody tr")]
+        values = {
+            cells[0].get_text(strip=True): cells[1].get_text(strip=True)
+            for cells in rows
+            if len(cells) >= 2
+        }
+        if len(rows) != len(counts) or values != {key: str(value) for key, value in counts.items()}:
+            raise ValueError("methodology differs from selected evidence: " + table_id)
+    visible = soup.get_text(" ", strip=True)
+    for key in ("platform", "site_access_host"):
+        if environment.get(key) and str(environment[key]) not in visible:
+            raise ValueError("methodology is missing recorded environment: " + key)
+    if soup.find(id="deployment-flow") is None:
+        raise ValueError("methodology is missing the evaluation-flow diagram")
+
+
 def check(
     report_dir: Path,
     evidence_dir: Path | list[Path],
@@ -308,36 +350,45 @@ def check(
     *,
     require_complete: bool,
     authority_root: Path | None = None,
+    profile_path: Path | None = None,
 ) -> None:
     reject_evidence_symlinks(report_dir)
     for evidence in [evidence_dir] if isinstance(evidence_dir, Path) else evidence_dir:
         reject_evidence_symlinks(evidence)
     repository = authority_root if authority_root is not None else Path(__file__).parents[2]
-    profile_path = contained_path(
-        repository, "evaluation/browser-use/current-report.json", reject_symlinks=True
-    )
+    if profile_path is None:
+        if authority_root is None:
+            raise ValueError(
+                "An explicit report profile is required; pass --profile or --authority-root"
+            )
+        profile_path = contained_path(
+            authority_root, "evaluation/browser-use/current-report.json", reject_symlinks=True
+        )
+    if profile_path.is_symlink():
+        raise ValueError("Symlinked report profile is forbidden")
     if not profile_path.is_file():
         raise ValueError(
             "Browser Use release authority is missing; pass --authority-root "
-            "with the repository's bound evaluation and research files"
+            "with the selected instance's bound evaluation and research files"
         )
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
     if profile.get("schema") != "lex_browser_use_current_report/2":
         raise ValueError("unsupported Browser Use release authority schema")
-    if selection_path is None:
-        selection_path = contained_path(
-            repository,
-            "evaluation/browser-use/webarena-verified-pilot.json",
-            reject_symlinks=True,
-        )
+    frozen = profile.get("official_dataset")
+    if frozen:
+        dataset_path = Path(frozen["path"])
+        if (
+            dataset_path.is_symlink()
+            or not dataset_path.is_file()
+            or _sha256(dataset_path) != frozen.get("sha256")
+            or frozen.get("sha256") != profile.get("official_data_checksum")
+        ):
+            raise ValueError("Frozen official dataset differs from the instance profile")
+    selection_path = report_selection_path(profile, selection_path, authority_root=repository)
     if selection_path.is_symlink():
         raise ValueError("Symlinked selection is forbidden")
     cause_profile = profile.get("failure_cause_review") or {}
-    cause_path = contained_path(
-        repository,
-        cause_profile.get("source_path") or "research/browser-use-failure-cause-review.json",
-        reject_symlinks=True,
-    )
+    cause_path = failure_review_path(profile, authority_root=repository)
     if require_complete and cause_profile.get("required_for_publication"):
         configured_hash = cause_profile.get("source_sha256")
         if not isinstance(configured_hash, str) or configured_hash != file_sha256(cause_path):
@@ -381,6 +432,9 @@ def check(
         report_dir / "results" / f"{_attempt_id(row)}.html" for row in logical_rows
     )
     chinese_pages = (*pages, *task_pages, *result_pages)
+    _, history = bound_json_asset(profile.get("report_history"), root=repository)
+    if json.loads((report_dir / "report-changes.json").read_text()) != history:
+        raise ValueError("Report history differs from the selected instance")
     check_language_contract(report_dir)
     english_pages = tuple(
         report_dir / "en" / page.relative_to(report_dir)
@@ -424,6 +478,10 @@ def check(
         raise ValueError("report is missing one or more required report pages")
     selection = load_pilot(selection_path)
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    if audit.get("profile_sha256") and audit.get("template") != template_identity("browser-use"):
+        raise ValueError("report bypasses the maintained Browser Use template")
+    if audit.get("profile_sha256") and audit["profile_sha256"] != _sha256(profile_path):
+        raise ValueError("report was built from a different instance profile")
     if audit.get("selection_sha256") != selection.sha256:
         raise ValueError("report was not built from the current pre-registered selection")
     rows = measured_rows
@@ -527,14 +585,15 @@ def check(
         or "逐结果覆盖" in review_index
     ):
         raise ValueError("review page must present review rounds, not a per-result audit table")
-    methodology_index = rendered_pages[report_dir / "methodology/index.html"]
-    for marker in ("192.168.5.2", "Wikipedia", "Map", "环境准备证据"):
-        if marker not in methodology_index:
-            raise ValueError(f"methodology is missing deployment evidence boundary: {marker}")
+    selected_tasks = json.loads((report_dir / "data/selection.json").read_text())["tasks"]
+    environment = bundles[0]["manifest"].get("environment") or {}
+    for page in (report_dir / "methodology/index.html", report_dir / "en/methodology/index.html"):
+        if page in rendered_pages:
+            check_methodology_evidence(rendered_pages[page], selected_tasks, environment)
     analysis_index = rendered_pages[report_dir / "analysis/index.html"]
     for marker in (
         "comparison-winner",
-        "完整 90 题结果入口",
+        f"完整 {len(selection.tasks)} 题结果入口",
         "BrowserTool 动作延迟",
         "action-card-grid",
         "全部配置 · 单次调用墙钟时间",
@@ -549,14 +608,14 @@ def check(
 
     guide_index = rendered_pages[report_dir / "index.html"]
     for marker in (
-        "90 题核心指标",
+        f"{len(selection.tasks)} 题核心指标",
         "Agent 总耗时",
         "BrowserTool 耗时",
         "均值",
         "P50",
         "P95",
         "comparison-winner",
-        "四种完整配置中统一比较",
+        f"全部 {len(models) * len(engines)} 种配置中比较",
         "已通过结果没有再做独立语义盲审",
         "程序判分落点与复核根因",
         'class="verdict-strip"',
@@ -564,7 +623,6 @@ def check(
         'id="home-qualified-results"',
         'class="audit-ladder"',
         'id="home-resource-table"',
-        "results/gpt-6-astra-chromium-699.html#verification",
     ):
         if marker not in guide_index:
             raise ValueError(f"interpretation is missing an evidence-backed reading aid: {marker}")
@@ -869,7 +927,8 @@ def check(
         external_prefixes = ("benchmark_", "site_", "environment_", "mixed_")
         expected_quarantine = {
             int(result_id.rsplit("-", 1)[-1])
-            for result_id, diagnosis in verified_causes.items()
+            for cohort in default_cause_review.get("cohorts", {}).values()
+            for result_id, diagnosis in (cohort.get("results") or {}).items()
             if str((diagnosis.get("subcategory") or {}).get("code") or "").startswith(
                 external_prefixes
             )
@@ -907,6 +966,7 @@ def main() -> None:
         help="Explicit selection; defaults to the bound authority root",
     )
     parser.add_argument("--authority-root", type=Path)
+    parser.add_argument("--profile", type=Path)
     parser.add_argument("--require-complete", action="store_true")
     args = parser.parse_args()
     check(
@@ -915,6 +975,7 @@ def main() -> None:
         args.selection,
         require_complete=args.require_complete,
         authority_root=args.authority_root,
+        profile_path=args.profile,
     )
     print("Browser Use report integrity check passed")
 

@@ -21,8 +21,8 @@ The sample correction sections below are for reproducing or repairing that histo
 
 | Population | Authority |
 | --- | --- |
-| Preselected sample | `evaluation/current-report.json` and its hash-bound sample manifest |
-| Complete parent dataset | `evaluation/webmainbench-full/current-report.json` |
+| Preselected sample | External sample profile and its hash-bound manifest |
+| Complete parent dataset | External full-cohort authority bundle |
 | Independently certified variants in the complete comparison | `evaluation/webmainbench-full/moli-variants.json` and each listed profile |
 
 Profiles declare the task count, provider IDs, versions, source hash, scorer
@@ -65,7 +65,7 @@ uv run --frozen python scripts/apply_webmainbench_case_correction.py \
   --correction 'PROVIDER_ID=/absolute/path/one-case-replacement' \
   --dataset /absolute/path/WebMainBench_545.jsonl \
   --sample-manifest evaluation/public-webmainbench-200.json \
-  --profile evaluation/current-report.json \
+  --profile /absolute/path/sample-profile.json \
   --case-id CASE_ID --output /absolute/path/new-provider-shards
 ```
 
@@ -111,10 +111,10 @@ python -m harness.web_fetch.webmainbench_certification score \
   --profile /absolute/path/frozen-profile.json --cohort /absolute/path/new-cohort
 ```
 
-All paths are interpreted from the caller's working directory. The default
-profile and provider configuration are `evaluation/webmainbench-full/current-report.json`
-and `configs/providers.headless.json` in that directory. Outside a checkout,
-provide these files explicitly. The frozen profile selects a nonempty, unique
+All paths are interpreted from the caller's working directory. Supply the frozen
+profile explicitly with `--profile`. The default provider configuration is
+`configs/providers.headless.json` in that directory; outside a checkout, supply
+`--config` as well. The frozen profile selects a nonempty, unique
 list of registered methods, their versions and the serial one-run policy for
 all 545 tasks. Dataset names do not select a method list. A profile-bound binary
 uses the executable from the provider configuration. Dirty scorer checkouts
@@ -129,8 +129,8 @@ uv run --frozen --extra headless-eval --extra webmainbench-eval python \
   scripts/assemble_webmainbench_full.py \
   --source-root /absolute/path/certified-baseline \
   --dataset /absolute/path/WebMainBench_545.jsonl \
-  --profile evaluation/webmainbench-full/current-report.json \
-  --variants evaluation/webmainbench-full/moli-variants.json \
+  --profile /absolute/path/full-profile.json \
+  --variants /absolute/path/variant-registry.json \
   --cohort 'REGISTERED_ID=/absolute/path/certified-variant' \
   --scorer /absolute/path/pinned-scorer \
   --output /absolute/path/new-complete-evidence

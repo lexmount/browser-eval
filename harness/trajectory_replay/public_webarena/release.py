@@ -48,7 +48,6 @@ def _verification_command(publication: dict, archive: Path, project_root: Path) 
 
 def main(project_root: Path) -> None:
     ROOT = project_root.resolve()
-    CURRENT = ROOT / "evaluation/browser-use-public/current-report.json"
     ARCHIVE = ROOT / "publish/webarena-fixed-trajectory.zip"
     ATTESTATION = ROOT / "publish/webarena-fixed-trajectory-attestation.json"
     RECEIPT = ROOT / "publish/webarena-fixed-trajectory-site-receipt.json"
@@ -60,7 +59,9 @@ def main(project_root: Path) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--formal-root", type=Path, default=DEFAULT_FORMAL)
     parser.add_argument("--publish", action="store_true")
+    parser.add_argument("--profile", type=Path, required=True)
     args = parser.parse_args()
+    CURRENT = args.profile
     if args.publish:
         recover_binding(CURRENT, ATTESTATION, BINDING, schema="public_webarena_binding/1")
     current = json.loads(CURRENT.read_text(encoding="utf-8"))

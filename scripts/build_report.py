@@ -15,8 +15,9 @@ from harness.web_fetch.storage import (
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence',type=Path)
+    parser.add_argument('--authority-root', type=Path, help='External authority bundle for historical full-cohort reports')
     parser.add_argument('--profile',type=Path,
-                        help='current-report profile under evaluation/; requires an explicit output unless the profile declares report_output')
+                        help='external report profile; requires an explicit output unless the profile declares report_output')
     parser.add_argument('--public-benchmark-research',type=Path)
     parser.add_argument('--output',type=Path)
     add_language_argument(parser)
@@ -56,10 +57,17 @@ if __name__ == '__main__':
         except ValueError as error:
             parser.error(str(error))
 
+    if args.local_audit and (args.profile or args.wcxb or args.webmainbench_full or args.public_benchmark_research):
+        parser.error('--local-audit cannot be combined with a release profile, WCXB, WebMainBench, or public benchmark research')
     if args.profile:
         args.profile=(ROOT/args.profile).resolve() if not args.profile.is_absolute() else args.profile.resolve()
-        if not args.profile.is_relative_to((ROOT/'evaluation').resolve()):
-            parser.error('--profile must stay under evaluation/')
+        if json.loads(args.profile.read_text()).get('variant') == 'published-snapshot-audit':
+            if not args.evidence or not args.output or args.local_audit or args.wcxb or args.include_english:
+                parser.error('snapshot audit requires a separate --evidence, --output and bound --profile')
+            requested_language(args.output, supported=('zh',))
+            from harness.web_fetch.published_snapshot import build_snapshot_audit
+            print(build_snapshot_audit(args.evidence, args.output, profile=args.profile))
+            raise SystemExit(0)
         if json.loads(args.profile.read_text()).get('variant') == 'diagnostic-cohorts':
             args.diagnostic_cohorts=True
     if args.diagnostic_cohorts:
@@ -82,20 +90,20 @@ if __name__ == '__main__':
                            show_local_status_banners=True,
                            presentation_binding=args.presentation_binding))
         raise SystemExit(0)
-    if sum(bool(value) for value in (args.profile, args.wcxb, args.webmainbench_full)) > 1:
-        parser.error('--profile, --wcxb and --webmainbench-full are mutually exclusive')
+    if args.wcxb and args.webmainbench_full:
+        parser.error('--wcxb and --webmainbench-full are mutually exclusive')
     if args.webmainbench_full:
         if not args.evidence or args.include_english:
             parser.error('--webmainbench-full requires --evidence; this historical report has no English edition')
         output=args.output or ROOT/'reports/webmainbench-full'
         requested_language(output, supported=('zh',))
-        print(build_webmainbench_full_report(args.evidence,output))
+        print(build_webmainbench_full_report(args.evidence,output,authority_root=args.authority_root))
         raise SystemExit(0)
     if args.public_benchmark_research:
         if args.evidence:
             parser.error('--evidence and --public-benchmark-research are mutually exclusive')
-        if args.output is None and json.loads((ROOT/'evaluation/current-report.json').read_text()).get('comparison_kind')=='webmainbench_frozen_html_to_markdown':
-            parser.error('The independent public-benchmark report now contains reviewed measurements; a research-only draft requires an explicit separate --output')
+        if args.output is None:
+            parser.error('A research companion requires an explicit separate --output')
         output=args.output or ROOT/'reports/webfetch-public-benchmarks'
         print(build_public_benchmark_research(
             args.public_benchmark_research,output,include_english=args.include_english, language=requested_language(output)))
@@ -103,7 +111,7 @@ if __name__ == '__main__':
     if args.profile:
         profile_path=args.profile
     else:
-        profile_path=ROOT/('evaluation/wcxb/current-report.json' if args.wcxb else 'evaluation/current-report.json')
+        parser.error('Select an external report instance with --profile')
     profile=json.loads(profile_path.read_text())
     if args.wcxb and profile.get('comparison_kind')!='wcxb_frozen_html_to_markdown':
         parser.error('The WCXB profile does not describe the WCXB matrix')
@@ -129,4 +137,4 @@ if __name__ == '__main__':
     output=(args.output or (ROOT/declared_output if declared_output else ROOT/'reports/webfetch'))
     print(build_report(evidence,output,
                        include_english=args.include_english, language=requested_language(output),
-                       authored_interpretation=True))
+                       authored_interpretation=True, profile_path=profile_path))

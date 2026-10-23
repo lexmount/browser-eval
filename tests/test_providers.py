@@ -39,7 +39,7 @@ class ProviderTest(unittest.TestCase):
         for native_url, passed, measured, identity in (
             ('https://example.test/final',True,True,'verified'),
             ('https://example.test/other',False,True,'mismatch'),
-            (None,False,False,'unavailable'),
+            (None,False,True,'unavailable'),
         ):
             with self.subTest(native_url=native_url):
                 metadata={'sourceURL':case.url,'statusCode':200}

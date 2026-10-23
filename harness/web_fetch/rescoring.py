@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 from harness.record_io import parse_jsonl
-from harness.web_fetch.artifacts import verify_record_artifacts
+from harness.web_fetch.artifacts import verify_record_artifacts, file_scoring_metadata
 from harness.web_fetch.failure_diagnosis import diagnose
 from lexbench_webfetch.metrics import summarize
 from harness.web_fetch.models import execution_id
@@ -42,7 +42,7 @@ def _rescore_one(arguments):
         status_code=r.get("status_code"),
         title=r.get("title"),
         final_url=r.get("final_url"),
-        metadata=r.get("provider_metadata", {}),
+        metadata=file_scoring_metadata(c, r.get("provider_metadata", {}), source),
         previous_metrics=r["metrics"],
         list_reference=load_list_reference(c, source),
     )
@@ -202,3 +202,114 @@ def main(argv=None):
 
 if __name__ == "__main__":
     main()
+
+
+def _score_published_row(arguments):
+    """Score verified saved bytes without changing a physical call's facts."""
+    record, case, path, digest, view = arguments
+    raw = Path(path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != digest:
+        raise ValueError('Published scoring input changed: ' + record['attempt_id'])
+    result = deepcopy(record)
+    result['metrics'] = score_attempt(case, raw, ok=record['ok'],
+        metadata=record.get('provider_metadata'), previous_metrics=record['metrics'],
+        status_code=record.get('status_code'), title=record.get('title'),
+        final_url=record.get('final_url'))
+    result.pop('diagnosis', None)
+    result.pop('failure_category', None)
+    result['scoring'] = {'mode': 'published_snapshot_rescore',
+        'source_sha256': SCORING_SOURCE_SHA256, 'provider_calls_added': 0,
+        'artifact_view': view, 'original_content_sha256': record['metrics']['content_sha256'],
+        'scored_content_sha256': digest}
+    return result
+
+
+def score_published_snapshot(source, dataset, *, jobs=1, recovered=None, progress=None):
+    """Recompute a published matrix, disclosing privacy views per result.
+
+    This explicit diagnostic boundary cannot certify a cohort or replace private
+    evidence. Every changed artifact must match the saved publication receipt;
+    an exact recovered original takes precedence over its public view.
+    """
+    from concurrent.futures import ProcessPoolExecutor
+    from collections import deque
+    from harness.record_io import file_sha256
+    from lexbench_webfetch.metrics import task_passed
+    if type(jobs) is not int or not 1 <= jobs <= 8:
+        raise ValueError('Offline scoring jobs must be between 1 and 8')
+    source = Path(source).resolve()
+    records = parse_jsonl(contained_path(source, 'results.jsonl').read_bytes())
+    original = json.loads(contained_path(source, 'dataset.json').read_text())
+    validate_report_ids(original, records)
+    cases = {case['id']: case for case in dataset['cases']}
+    old_cases = {case['id']: case for case in original['cases']}
+    from .scoring_revision import ALLOWED_FIELDS
+    if cases.keys() != old_cases.keys() or dataset.get('coverage_plan') != original.get('coverage_plan'):
+        raise ValueError('Published rescoring must retain the complete matrix')
+    for key, prior in old_cases.items():
+        changes = {field for field in prior.keys() | cases[key].keys()
+                   if prior.get(field) != cases[key].get(field)}
+        if changes - ALLOWED_FIELDS:
+            raise ValueError('Published rescoring changed collection inputs: ' + key)
+    privacy_path = contained_path(source, 'publication-privacy.json')
+    privacy = json.loads(privacy_path.read_text()) if privacy_path.is_file() else {'files': []}
+    views = {item['path']: item for item in privacy['files'] if item.get('scored_output')}
+    recovered = recovered or {}
+    unknown = set(recovered) - {row['artifact_path'] for row in records}
+    if unknown:
+        raise ValueError('Recovered output is outside the matrix')
+    requests, inputs = [], []
+    for row in records:
+        relative = row['artifact_path']
+        path = contained_path(source, relative, reject_symlinks=True)
+        published_hash = file_sha256(path)
+        original_hash = row['metrics']['content_sha256']
+        if published_hash != original_hash:
+            proof = views.get(relative, {})
+            if (proof.get('original_sha256') != original_hash
+                    or proof.get('published_sha256') != published_hash
+                    or proof.get('published_bytes') != path.stat().st_size):
+                raise ValueError('Output lacks an exact privacy binding: ' + row['attempt_id'])
+        view = 'published_projection' if published_hash != original_hash else 'original'
+        if relative in recovered:
+            path = Path(recovered[relative])
+            if path.is_symlink() or file_sha256(path) != original_hash:
+                raise ValueError('Recovered original hash differs: ' + row['attempt_id'])
+            digest, view = original_hash, 'recovered_original'
+        else:
+            digest = published_hash
+        inputs.append({'attempt_id': row['attempt_id'], 'path': relative,
+            'original_sha256': original_hash, 'published_sha256': published_hash,
+            'scored_sha256': digest, 'view': view})
+        requests.append((row, cases[row['case_id']], str(path), digest, view))
+    results = []
+    def accept(result):
+        results.append(result)
+        if progress:
+            progress(len(results), len(records))
+    if jobs == 1:
+        for request in requests:
+            accept(_score_published_row(request))
+    else:
+        with ProcessPoolExecutor(max_workers=jobs) as pool:
+            remaining = iter(requests)
+            pending = deque(pool.submit(_score_published_row, request)
+                            for request in [next(remaining, None) for _ in range(jobs)]
+                            if request is not None)
+            while pending:
+                accept(pending.popleft().result())
+                following = next(remaining, None)
+                if following is not None:
+                    pending.append(pool.submit(_score_published_row, following))
+    from harness.record_io import canonical_json_sha256
+    receipt = {'kind': 'published_snapshot_rescore', 'provider_calls_added': 0,
+        'corrected_dataset_sha256': canonical_json_sha256(dataset),
+        'input_dataset_sha256': file_sha256(source / 'dataset.json'),
+        'input_results_sha256': file_sha256(source / 'results.jsonl'),
+        'scoring_source_sha256': SCORING_SOURCE_SHA256, 'inputs': inputs,
+        'result_count': len(results), 'case_count': len(cases),
+        'projected_scoring_inputs': sum(item['view'] == 'published_projection' for item in inputs),
+        'recovered_originals': sum(item['view'] == 'recovered_original' for item in inputs),
+        'task_passes': sum(task_passed(row['ok'], row['metrics'], cases[row['case_id']].get('task_kind','body'))
+                           for row in results)}
+    return results, receipt

@@ -56,9 +56,9 @@ def test_declared_method_subset_and_caller_relative_paths(command_inputs, monkey
     assert receipt["preflight"] == receipt["postflight"]
 
 
-def test_default_profile_and_config_belong_to_caller_directory(command_inputs, monkeypatch):
+def test_explicit_profile_and_default_config_belong_to_caller_directory(command_inputs, monkeypatch):
     commands = install_child(command_inputs, monkeypatch)
-    certification.main(["--source", "source.jsonl", "--scorer", "scorer", "--output-root", "run"])
+    certification.main(["--source", "source.jsonl", "--scorer", "scorer", "--profile", "profile.json", "--output-root", "run"])
     assert len(commands) == 2
     assert (command_inputs[0] / "run/cohort-certificate.json").is_file()
 

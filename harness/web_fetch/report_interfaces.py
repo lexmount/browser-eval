@@ -21,19 +21,19 @@ def method_provenance(out):
 
 
 def method_spec(name, record, *, timeout_seconds=None, language="zh"):
- def t(zh,en):return zh if language=="zh" else en
+ bound=browser_method_registry().get(name,{}).get('report_interface')
+ if bound is not None:
+  return bound[language] if set(bound)=={'zh','en'} else bound
  catalog=report_method_catalog() if language=='zh' else report_method_catalog(language)
  owner=catalog['adapters'].get((record or {}).get('provider_type'),{}).get('interface_method')
  registered=catalog['methods'][owner] if owner else report_method(name,record,language=language)
- base=registered.get('interface') or {
-  'entry':t('未登记','Not registered'),'auth':t('未登记','Not registered'),'params':[],
-  'fields':[],'request':{},'source':t('未登记','Not registered'),
-  'notes':t('接口资料尚未登记；请查阅保存的调用证据。','Interface metadata has not been registered; consult saved call evidence.')}
+ messages=catalog['messages']
+ base=registered.get('interface') or catalog['unregistered_interface']
  meta=(record or {}).get('provider_metadata',{})
  if registered.get('runtime_parameters'):
-  budget=(t(f'{timeout_seconds:g} 秒外层截止',f'{timeout_seconds:g}-second outer deadline')
+  budget=(messages['outer_deadline'].format(timeout=f'{timeout_seconds:g}')
           if positive_number(timeout_seconds)
-          else t('外层截止时间未记录','Outer deadline not recorded'))
+          else messages['outer_deadline_unrecorded'])
   context={**meta,'report_outer_budget':budget}
   params=list(base['params']);notes=base['notes'];request=dict(base['request'])
   for parameter in registered['runtime_parameters']:
@@ -65,17 +65,13 @@ def method_spec(name, record, *, timeout_seconds=None, language="zh"):
 def _observed_wait(meta, *, language="zh"):
  navigation=meta.get('navigation_wait_until')
  completion=meta.get('wait_until')
- if language=='en':
-  if navigation and completion and navigation!=completion:
-   return f'Navigation wait {navigation}; output completion {completion}'
-  if navigation:return f'Navigation wait {navigation}'
-  if completion:return f'Output completion {completion}'
-  return 'Call records do not provide a verifiable wait condition'
+ messages=report_method_catalog(language)['messages']
  if navigation and completion and navigation!=completion:
-  return f'导航等待 {navigation}；输出完成条件 {completion}'
- if navigation:return f'导航等待 {navigation}'
- if completion:return f'输出完成条件 {completion}'
- return '调用记录未提供可核对的等待条件'
+  return messages['wait_both'].format(navigation=navigation,completion=completion)
+ if navigation:return messages['wait_navigation'].format(navigation=navigation)
+ if completion:return messages['wait_completion'].format(completion=completion)
+ return messages['wait_unrecorded']
+
 
 
 def _route_template(rule, metadata):
@@ -100,38 +96,39 @@ def _route_template(rule, metadata):
 
 def _observed_route(engine, meta, *, language="zh", compact=False):
  """Describe only the registered interface persisted by one measured call."""
- def t(zh,en):return zh if language=='zh' else en
+ messages=report_method_catalog(language)['messages']
  route=meta.get('route')
  extractor=meta.get('extractor')
  contract=meta.get('output_contract')
- route_note=t(f'（route={route}）',f' (route={route})') if route and not compact else ''
+ route_note=messages['route_note'].format(route=route) if route and not compact else ''
  for rule in report_method(engine,language=language).get('observed_routes',[]):
   description=_route_template(rule,meta)
   if description is not None:
    return rule.get('compact_text',description) if compact else description+route_note
  if contract=='original_file_bytes':
-  source=(t('调用记录 extractor=','Recorded extractor=')+str(extractor) if extractor
-          else t('调用记录未注明原始文件接口','Original-file interface not recorded'))
-  return source+(t(' → 文件字节',' → file bytes') if compact else t(' → 原始文件字节',' → original file bytes'))+route_note
+  source=(messages['extractor_prefix']+str(extractor) if extractor
+          else messages['original_file_unrecorded'])
+  return source+(messages['file_bytes'] if compact else messages['original_file_bytes'])+route_note
  fields=[]
  for key in ('route','extractor','output_contract','dump'):
   if meta.get(key):fields.append(f'{key}={meta[key]}')
  if fields:
-  return t('调用记录：','Call record: ')+t('；','; ').join(fields)+t('；未据此补写未记录的转换步骤','; unrecorded conversion steps are not inferred')
- if compact:return t('接口未记录','Interface not recorded')
- return t('调用记录未提供可核对的接口路线；不推断原生 Markdown、HTML 或额外转换','Call records do not provide a verifiable route; native Markdown, HTML or additional conversion is not inferred')
+  return messages['call_prefix']+messages['separator'].join(fields)+messages['conversion_unrecorded']
+ if compact:return messages['interface_unrecorded']
+ return messages['route_unrecorded']
 
 
 def browser_task_interface_matrix(cases, providers, records=None, *, compact=False, language="zh"):
  """Describe task routes, preferring persisted call metadata when available."""
  from collections import Counter
- def t(zh,en):return zh if language=='zh' else en
- methods=(report_method_catalog() if language=='zh' else report_method_catalog(language))['methods']
+ catalog=report_method_catalog(language)
+ messages=catalog['messages']
+ methods=catalog['methods']
  selected={name:next((row for row in (records or []) if row['provider']==name),None)
            for name in providers}
  engines={name:native_browser_engine(name,selected[name]) for name in providers}
  routes={name:item.get('routes',{}) for name,item in methods.items()}
- capabilities={name:item.get('capabilities','Not registered') for name,item in routes.items()}
+ capabilities={name:item.get('capabilities',messages['not_registered']) for name,item in routes.items()}
  tracks=[]
  from .models import REPORT_FAMILIES, report_family
  for case in cases.values():
@@ -148,7 +145,7 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
   for provider in providers:
    engine=engines[provider]
    if engine not in methods:
-    cells[provider]=[{'mode':'unregistered','count':len(group),'description':t('未登记','Not registered'),'wait':'Not recorded'}]
+    cells[provider]=[{'mode':'unregistered','count':len(group),'description':messages['not_registered'],'wait':messages['not_recorded']}]
     continue
    parts=[];counts=Counter()
    for case in group:
@@ -173,8 +170,8 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
      description=plan['description'].format(**routes.get(engine,{}))
      wait=plan['wait'].format(**routes.get(engine,{}))
     else:
-     description=t('未登记','Not registered')
-     wait='Not recorded'
+     description=messages['not_registered']
+     wait=messages['not_recorded']
     counts[(mode,description,wait)]+=1
    for (mode,description,wait),count in counts.items():
     parts.append({'count':count,'mode':mode,'description':description,'wait':wait})
@@ -189,7 +186,7 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
     parts=list(grouped.values())
    cells[provider]=parts
   rows.append({'track':track,'count':len(group),'cells':cells})
- selected_capabilities={name:capabilities.get(engines[name],t('未登记','Not registered')) for name in providers}
+ selected_capabilities={name:capabilities.get(engines[name],messages['not_registered']) for name in providers}
  if records is not None:
   for provider in providers:
    engine=engines[provider]
@@ -198,12 +195,14 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
     if row['provider']!=provider:continue
     description=_observed_route(engine,row.get('provider_metadata') or {},language=language)
     if description not in observed:observed.append(description)
-   selected_capabilities[provider]=(t('本轮调用记录：','Recorded calls: ')+t('；','; ').join(observed)
-     if observed else t('本轮没有可核对的调用接口记录。','No verifiable call interfaces were recorded.'))
+   selected_capabilities[provider]=(messages['calls_prefix']+messages['separator'].join(observed)
+     if observed else messages['calls_unrecorded'])
  return {'providers':providers,'capabilities':selected_capabilities,'rows':rows}
 
 
 def render_interfaces(out,records):
+ messages=report_method_catalog()['messages']
+ english_messages=report_method_catalog('en')['messages']
  from .artifacts import record_public_call_log_bindings, verify_public_call_log
  dataset_path=out/"dataset.json"
  dataset=json.loads(dataset_path.read_text()) if dataset_path.is_file() else {}
@@ -216,9 +215,9 @@ def render_interfaces(out,records):
 
  measured={r['provider'] for r in records}
  names=sorted(set(SPECS)|measured,key=lambda name:(name not in measured,name))
- body='<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置见“环境与复现”。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
+ body=messages['interface_intro_html']
  if native_default:
-  body='<p>已测方法的输入展示保存的公开调用字段，输出展示同一次调用的实际节选。完整配置、原始响应和日志见环境与调用详情。未参评方法保留仓库登记示例。</p>'
+  body=messages['interface_measured_intro_html']
  case_order={case['id']: index for index, case in enumerate(dataset.get('cases', []))}
  for i,name in enumerate(names):
   r=min((r for r in records if r['provider']==name), key=lambda row: case_order.get(row['case_id'], len(case_order)), default=None)
@@ -230,26 +229,26 @@ def render_interfaces(out,records):
   if bindings:
    request=json.loads(verify_public_call_log(out,bindings[-1]).read_text())["request"]
    model=method_page_model(name,name,[x for x in records if x["provider"]==name])
-   s={**s,"entry":model["endpoint"],"params":[],"request":request,"notes":"此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。"}
+   s={**s,"entry":model["endpoint"],"params":[],"request":request,"notes":messages['interface_request_note']}
    english_model=method_page_model(name,name,[x for x in records if x["provider"]==name],language="en")
-   english={**english,"entry":english_model["endpoint"],"params":[],"request":request,"notes":"These are the request fields saved in this public call record. Full configuration and logs are in the environment and call details; internal product timeouts follow the frozen configuration and actual request."}
+   english={**english,"entry":english_model["endpoint"],"params":[],"request":request,"notes":english_messages['interface_request_note']}
   access=method_access(name,records)
   english_access=method_access(name,records,language="en")
   if r:
    content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
-  else:sample={'measurement':None,'note':'仓库登记接口，未纳入本轮；此处不提供虚构的运行输出。'}
+  else:sample={'measurement':None,'note':messages['interface_unmeasured_sample']}
   # Explicit whitelist: no local paths, request IDs, credentials or session metadata.
   meta=r.get('provider_metadata',{}) if r else {};sample['metadata']={k:meta[k] for k in ['engine','upstream_status','links_count','images_count','extractor','truncated','document_count'] if k in meta}
   dest=out/'adoption'/'interfaces';dest.mkdir(exist_ok=True);(dest/(name+'.json')).write_text(json.dumps({'interface':s,'access':access,'sample':sample,'attempt_id':r['attempt_id'] if r else None},ensure_ascii=False,indent=2)+'\n')
   body+=f'<details class="interface-panel" id="interface-{name}"'+(' open' if i==0 else '')+'><summary>'+bilingual_text(browser_method_label(name),browser_method_label(name,language='en'))+'</summary>'
   body+='<p class="interface-endpoint"><code>'+bilingual_text(s['entry'],english['entry'])+'</code></p><p class="source-note">'+bilingual_text(s['auth'],english['auth'])+'</p>'
   if access:
-   body+='<h3>账号与获取入口</h3><p>'+bilingual_text(access['account'],english_access['account'])+'</p><p>'+bilingual_text(access['configuration'],english_access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+bilingual_text(label,english_access['links'][index][0])+'</a>' for index,(label,url) in enumerate(access['links']))+'</p><p class="source-note">实际版本和接口见运行记录；下方链接指向官方说明。</p>'
+   body+=messages['interface_accounts_html']+bilingual_text(access['account'],english_access['account'])+'</p><p>'+bilingual_text(access['configuration'],english_access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+bilingual_text(label,english_access['links'][index][0])+'</a>' for index,(label,url) in enumerate(access['links']))+messages['interface_source_note_html']
   if access and access.get('env_vars'):
    body+='<p>'+', '.join('<code>'+escape(value)+'</code>' for value in access['env_vars'])+'</p>'
-  sample_label='本轮输出节选 · 统一记录' if r else '本轮未执行'
-  body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'],english['params'])+('<h4>本轮保存的调用字段</h4>' if bindings else '<h4>调用输入示例</h4>')+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'],english['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
-  measured_link='<a href="../attempts/'+escape(r['attempt_id'])+'.html">该次完整输出与判定 →</a>' if r else '未纳入本轮；参数说明为仓库登记模式，不计入本轮结果'
-  example_note='' if bindings else bilingual_text('以下接口说明与数值属于仓库登记示例，不是这次调用的请求记录。', 'The following interface descriptions and values are registered examples, not this call’s request record.')
-  body+='<p>'+example_note+bilingual_text(s['notes'],english['notes'])+'</p><p class="source-note">核对实现：<code>'+escape(s['source'])+'</code> · '+measured_link+' · <a href="interfaces/'+name+'.json">示例 JSON</a></p></details>'
+  sample_label=messages['interface_sample_label'] if r else messages['interface_not_run_label']
+  body+=messages['interface_input_card_html']+fields(s['params'],english['params'])+(messages['interface_saved_fields_html'] if bindings else messages['interface_input_example_html'])+pre(s['request'])+messages['interface_output_card_html']+fields(s['fields'],english['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
+  measured_link='<a href="../attempts/'+escape(r['attempt_id'])+messages['interface_full_result_link_html'] if r else messages['interface_unmeasured_note']
+  example_note='' if bindings else bilingual_text(messages['interface_example_note'], english_messages['interface_example_note'])
+  body+='<p>'+example_note+bilingual_text(s['notes'],english['notes'])+messages['interface_verify_html']+escape(s['source'])+'</code> · '+measured_link+' · <a href="interfaces/'+name+messages['interface_example_json_link_html']
  return body

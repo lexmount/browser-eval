@@ -365,7 +365,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                  local_audit: bool = False, authored_interpretation: bool | None = None,
                  diagnostic_preview: bool = False, language: str | None = None,
                  show_local_status_banners: bool = True,
-                 presentation_binding: Path | None = None) -> Path:
+                 presentation_binding: Path | None = None, profile_path: Path | None = None) -> Path:
     from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
@@ -389,7 +389,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         require_certifiable_evidence(dataset_probe)
     if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
         return build_webmainbench_report(source, output, include_english=include_english,
-                                         language=language)
+                                         language=language, profile_path=profile_path)
     if not local_audit:
         require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
@@ -868,14 +868,17 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
 
 
 def build_webmainbench_report(source: Path, output: Path, *, include_english: bool = False,
-                                language: str | None = None) -> Path:
+                                language: str | None = None, profile_path: Path | None = None) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
     from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     from harness.reporting.assets import copy_bound_assets, load_bound_content
 
     authority = Path(__file__).resolve().parents[2]
-    content_binding_path = authority / 'evaluation/webmainbench-content-binding.json'
+    if profile_path is None:
+        raise ValueError('WebMainBench report builds require an explicit profile_path')
+    profile = json.loads(profile_path.read_text())
+    content_binding_path = profile_path.parent / 'webmainbench-content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_source = data_home() / 'report-assets/webmainbench-sample'
     report_content = load_bound_content(
@@ -885,7 +888,8 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     teds_revision = validate_teds_revision_if_present(source, records)
     summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
     manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
-    latency_diagnostic = load_latency_diagnostic(source, dataset, records, manifests)
+    latency_diagnostic = load_latency_diagnostic(source, dataset, records, manifests,
+        (profile.get('latency_diagnostic') or {}).get('manifest_sha256'))
     review_path = source / 'result-review.json'
     review = json.loads(review_path.read_text()) if review_path.is_file() else None
     if review is not None and review.get('bindings', {}).get('results_jsonl_sha256') != file_sha256(prior_results_path(source)):
@@ -898,7 +902,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     corrections = json.loads(corrections_path.read_text(encoding='utf-8'))
     anomaly_review_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-anomaly-review.json'
     anomaly_review = json.loads(anomaly_review_path.read_text(encoding='utf-8'))
-    release_path = Path(__file__).resolve().parents[2] / 'research/report-changes.json'
+    release_path = profile_path.parent.parent / 'research/report-changes.json'
     release_history = webmainbench_history(json.loads(release_path.read_text(encoding='utf-8')))
     fixture_correction_path = source / 'fixture-correction.json'
     fixture_correction = json.loads(fixture_correction_path.read_text(encoding='utf-8')) if fixture_correction_path.is_file() else None
@@ -1000,7 +1004,7 @@ def public_webmainbench_scoring_projection(records: list[dict]) -> list[dict]:
     return projected
 
 
-def build_webmainbench_full_report(source: Path, output: Path) -> Path:
+def build_webmainbench_full_report(source: Path, output: Path, *, authority_root: Path | None = None) -> Path:
     """Build the separately bound complete 545-case report from certified evidence."""
     from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
 
@@ -1011,7 +1015,10 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     )
     if source.is_symlink() or any(path.is_symlink() for path in source.rglob('*')):
         raise ValueError('Symlinked report evidence is forbidden')
-    profile_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/current-report.json'
+    if authority_root is None:
+        raise ValueError('Full-cohort builds require an external --authority-root bundle')
+    authority_root = authority_root.resolve()
+    profile_path = authority_root / 'evaluation/webmainbench-full/current-report.json'
     profile = json.loads(profile_path.read_text(encoding='utf-8'))
     certificate = json.loads((source / 'cohort-certificate.json').read_text(encoding='utf-8'))
     scoring_certificate = json.loads((source / 'scoring-certificate.json').read_text(encoding='utf-8'))
@@ -1026,7 +1033,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         raise ValueError('Complete scoring certificate mismatch')
     dataset = json.loads((source / 'dataset.json').read_text(encoding='utf-8'))
     records = read_jsonl(source / 'results.jsonl')
-    repo = Path(__file__).resolve().parents[2]
+    repo = authority_root
     registry_path = repo / 'evaluation/webmainbench-full/moli-variants.json'
     registry = json.loads(registry_path.read_text(encoding='utf-8'))
     from .webmainbench_evidence import read_method_binding
@@ -1087,12 +1094,12 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         validate_reference_revision(source)
     if (source / 'scoring-correction.json').is_file():
         validate_webmainbench_scoring_revision(source)
-    content_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/content-binding.json'
+    content_binding_path = authority_root / 'evaluation/webmainbench-full/content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
     from harness.reporting.assets import load_bound_content
     load_bound_content(data_home() / 'report-assets/webmainbench-full', content_binding)
-    failure_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/failure-analysis-binding.json'
+    failure_binding_path = authority_root / 'evaluation/webmainbench-full/failure-analysis-binding.json'
     failure_binding = json.loads(failure_binding_path.read_text(encoding='utf-8'))
     failure_path = data_home() / 'report-assets/webmainbench-full' / failure_binding['relative_path']
     if digest(failure_path) != failure_binding['sha256']:
@@ -1201,7 +1208,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         from harness.web_fetch.webmainbench_report_check import (
             check as check_webmainbench_full,
         )
-        check_webmainbench_full(staging)
+        check_webmainbench_full(staging, authority_root=authority_root)
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
             output.rename(backup)
@@ -1230,7 +1237,14 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     source, output = source.resolve(), output.resolve()
     providers = profile['providers']
     if not providers or len(set(providers)) != len(providers):
-        raise ValueError('WCXB profile must declare unique participants')
+        raise ValueError('WCXB participant registry must be nonempty and unique')
+    for provider in providers:
+        safe_identifier(provider)
+    comparison = profile.get('paired_comparison') or {}
+    baseline, candidate_id = comparison.get('baseline'), comparison.get('candidate')
+    if comparison and (baseline == candidate_id or {baseline,candidate_id} - set(providers)):
+        raise ValueError('WCXB paired comparison must name two registered participants')
+
     from harness.reporting.assets import load_bound_content
     report_content = load_bound_content(
         source / "report-assets", content_binding,
@@ -1261,52 +1275,55 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     if [x['provider'] for x in certificate['providers']] != providers:
         raise ValueError('WCXB participant registry differs from the certificate')
     from harness.web_fetch.wcxb_scoring import paired_latency_methods
-    paired_methods = paired_latency_methods(profile, certificate)
+    paired_methods = paired_latency_methods(profile, certificate) if profile.get('latency_correction_receipt_sha256') else {}
     rows = load_jsonl(source / 'wcxb-scores.jsonl', skip_blank=True)
     case_ids = {r['track_id'] for r in records}
-    correction_root = source / 'latency-correction'
-    correction_receipt = correction_root / 'receipt.json'
-    if (not correction_receipt.is_file()
-            or file_sha256(correction_receipt)
-            != profile.get('latency_correction_receipt_sha256')):
-        raise ValueError('WCXB full-scope latency correction is missing or differs from profile')
-    _, corrected_calls = load_full_paired_latency(correction_root, profile, case_ids)
-    correction_certificate = json.loads((correction_root / 'certification.json').read_text())
-    if (correction_certificate.get('kind') != 'certified_wcxb_paired_latency'
-            or correction_certificate.get('complete') is not True
-            or correction_certificate.get('receipt_sha256')
-            != file_sha256(correction_receipt)):
-        raise ValueError('WCXB corrected timing is not certified')
-    if any(
-        abs(row['total_elapsed_ms'] - corrected_calls[row['case_id'],
-            paired_methods[row['provider']]]['elapsed_ms']) > .01
-        for row in rows if row['provider'] in paired_methods
-    ):
-        raise ValueError('WCXB reported paired latency differs from the selected paired round')
-    optional_paths = [name for name, sha in content_binding['evidence'].items()
-                      if sha == profile.get('optional_ui_receipt_sha256')]
-    if len(optional_paths) != 1:
-        raise ValueError('Optional feature receipt must have one evidence binding')
-    optional_receipt = contained_path(source, optional_paths[0], reject_symlinks=True)
-    optional_root = optional_receipt.parent
-    optional_public = Path('research') / ('wcxb-' + optional_root.name)
-    if (not optional_receipt.is_file() or optional_receipt.is_symlink()
-            or file_sha256(optional_receipt)
-            != profile.get('optional_ui_receipt_sha256')):
-        raise ValueError('WCXB optional UI-stripping evidence is missing or differs from profile')
-    optional = json.loads(optional_receipt.read_text())
-    if (optional.get('case_id') not in case_ids or optional.get('source_sha256') != corpus_hash
-            or optional.get('builds', {}).get('release', {}).get('binary_sha256') != profile['release_binary_sha256']
-            or optional.get('builds', {}).get('candidate', {}).get('binary_sha256') != profile['candidate_binary_sha256']
-            or any(not isinstance(build.get('description_present'), bool)
-                   for build in optional['builds'].values())):
-        raise ValueError('WCXB optional UI-stripping comparison does not bind both builds')
-    for name in ('release', 'candidate'):
-        for ext, key in (('md', 'output_sha256'), ('stderr', 'stderr_sha256')):
-            artifact = optional_root / f'{name}.{ext}'
-            if (not artifact.is_file() or artifact.is_symlink()
-                    or file_sha256(artifact) != optional['builds'][name][key]):
-                raise ValueError('WCXB optional UI-stripping artifact changed: ' + artifact.name)
+    if profile.get('latency_correction_receipt_sha256'):
+        correction_root = source / 'latency-correction'
+        correction_receipt = correction_root / 'receipt.json'
+        if (not correction_receipt.is_file()
+                or file_sha256(correction_receipt)
+                != profile.get('latency_correction_receipt_sha256')):
+            raise ValueError('WCXB full-scope latency correction is missing or differs from profile')
+        _, corrected_calls = load_full_paired_latency(correction_root, profile, case_ids)
+        correction_certificate = json.loads((correction_root / 'certification.json').read_text())
+        if (correction_certificate.get('kind') != 'certified_wcxb_paired_latency'
+                or correction_certificate.get('complete') is not True
+                or correction_certificate.get('receipt_sha256')
+                != file_sha256(correction_receipt)):
+            raise ValueError('WCXB corrected timing is not certified')
+        if any(
+            abs(row['total_elapsed_ms'] - corrected_calls[row['case_id'],
+                paired_methods[row['provider']]]['elapsed_ms']) > .01
+            for row in rows if row['provider'] in paired_methods
+        ):
+            raise ValueError('WCXB reported paired latency differs from the selected paired round')
+    if profile.get('optional_ui_receipt_sha256'):
+        optional_paths = [name for name, sha in content_binding['evidence'].items()
+                          if sha == profile.get('optional_ui_receipt_sha256')]
+        if len(optional_paths) != 1:
+            raise ValueError('Optional feature receipt must have one evidence binding')
+        optional_receipt = contained_path(source, optional_paths[0], reject_symlinks=True)
+        optional_root = optional_receipt.parent
+        optional_public = Path('research') / ('wcxb-' + optional_root.name)
+        if (not optional_receipt.is_file() or optional_receipt.is_symlink()
+                or file_sha256(optional_receipt)
+                != profile.get('optional_ui_receipt_sha256')):
+            raise ValueError('WCXB optional UI-stripping evidence is missing or differs from profile')
+        optional = json.loads(optional_receipt.read_text())
+        if (optional.get('case_id') not in case_ids or optional.get('source_sha256') != corpus_hash
+                or optional.get('builds', {}).get('release', {}).get('binary_sha256') != profile['release_binary_sha256']
+                or optional.get('builds', {}).get('candidate', {}).get('binary_sha256') != profile['candidate_binary_sha256']
+                or any(not isinstance(build.get('description_present'), bool)
+                       for build in optional['builds'].values())):
+            raise ValueError('WCXB optional UI-stripping comparison does not bind both builds')
+        for name in ('release', 'candidate'):
+            for ext, key in (('md', 'output_sha256'), ('stderr', 'stderr_sha256')):
+                artifact = optional_root / f'{name}.{ext}'
+                if (not artifact.is_file() or artifact.is_symlink()
+                        or file_sha256(artifact) != optional['builds'][name][key]):
+                    raise ValueError('WCXB optional UI-stripping artifact changed: ' + artifact.name)
+
     if len(rows) != len(records) * len(providers) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in providers for c in case_ids}:
         raise ValueError('WCXB score matrix is incomplete')
     if output.exists() and not (output / '.generated-report').is_file():
@@ -1318,12 +1335,15 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             shutil.copy2(source / name, staging / name)
         shutil.copy2(sample_path, staging / 'sample-manifest.json')
         (staging / 'research').mkdir()
-        (staging / 'research/wcxb-full-paired-latency').mkdir()
-        for name in ('receipt.json', 'certification.json', 'calls.jsonl'):
-            shutil.copy2(correction_root / name, staging / 'research/wcxb-full-paired-latency' / name)
-        (staging / optional_public).mkdir()
-        for name in ('receipt.json', 'release.md', 'candidate.md', 'release.stderr', 'candidate.stderr'):
-            shutil.copy2(optional_root / name, staging / optional_public / name)
+        if profile.get('latency_correction_receipt_sha256'):
+            (staging / 'research/wcxb-full-paired-latency').mkdir()
+            for name in ('receipt.json', 'certification.json', 'calls.jsonl'):
+                shutil.copy2(correction_root / name, staging / 'research/wcxb-full-paired-latency' / name)
+        if profile.get('optional_ui_receipt_sha256'):
+            (staging / optional_public).mkdir()
+            for name in ('receipt.json', 'release.md', 'candidate.md', 'release.stderr', 'candidate.stderr'):
+                shutil.copy2(optional_root / name, staging / optional_public / name)
+
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/report-changes.json',
                      staging / 'research/report-changes.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json',

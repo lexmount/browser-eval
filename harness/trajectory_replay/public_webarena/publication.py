@@ -375,6 +375,7 @@ def package_main(project_root: Path) -> None:
         description="Build the standalone fixed-trajectory report bundle."
     )
     parser.add_argument("--formal-root", type=Path, default=default_formal_root)
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument(
         "--archive", type=Path, default=project_root / "publish/webarena-fixed-trajectory.zip"
     )
@@ -390,7 +391,7 @@ def package_main(project_root: Path) -> None:
                 args.formal_root,
                 args.archive,
                 args.attestation,
-                authority=project_root / "evaluation/browser-use-public/current-report.json",
+                authority=args.profile,
             ),
             ensure_ascii=False,
         )

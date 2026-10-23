@@ -12,6 +12,7 @@ from harness.web_fetch.report import (
     _wmb_guide,
     _wmb_html_preview,
     _wmb_latency_summary,
+    _wmb_latency_rerun,
     _wmb_pct,
     _wmb_row_attrs,
     _wmb_table_example,
@@ -54,6 +55,41 @@ class WebMainBenchReportTests(unittest.TestCase):
         self.assertEqual(result['matched']['b']['mean'], 50)
         self.assertEqual(result['cost']['a']['mean'], 862 / 3)
         self.assertEqual(len(rows), 6)
+
+    def test_latency_diagnostic_uses_recorded_versions_counts_and_memory_units(self):
+        diagnostic = {
+            "balanced_200": {"runs": {
+                "9.0": {"n": 5, "calls": 7, "mean": 10, "p50": 8, "p95": 20},
+                "12.0": {"n": 6, "calls": 7, "mean": 12, "p50": 8, "p95": 18}}},
+            "tail_repeat": {"within_20_ms": 1, "cases": [{"case_id": "fixture", "older_median_ms": 10,
+                "newer_median_ms": 12, "older_max_ms": 20, "newer_max_ms": 22, "repetitions_per_version": 3}]},
+            "resource": {"selected-run": {"samples": 11, "min_idle_cpu_pct": 75,
+                "min_unused_memory_mb": 512, "swapouts_delta": 0}},
+        }
+        for english in (False, True):
+            page = BeautifulSoup(_wmb_latency_rerun(diagnostic, english), "html.parser")
+            text = page.get_text()
+            assert "9.0" in text and "12.0" in text
+            assert "5/7" in text and "6/7" in text and "512 MB" in text
+            assert "398/400" not in text and "199/200" not in text
+            assert len(page.select("strong.comparison-winner")) == 2
+            from harness.web_fetch.webmainbench_report_check import check_latency_diagnostic
+            check_latency_diagnostic(page, diagnostic)
+            for defect in ("count", "winner", "case", "resource"):
+                broken = BeautifulSoup(str(page), "html.parser")
+                if defect == "count":
+                    broken.select_one('.wmb-rerun-table tbody tr').find_all('td')[2].string = "398/400"
+                elif defect == "winner":
+                    broken.select_one('strong.comparison-winner').unwrap()
+                elif defect == "case":
+                    broken.select_one('.wmb-rerun-cases tbody tr').decompose()
+                else:
+                    broken.select_one('.wmb-rerun-resource tbody tr').decompose()
+                with self.assertRaisesRegex(ValueError, "Latency diagnostic"):
+                    check_latency_diagnostic(broken, diagnostic)
+        diagnostic["tail_repeat"]["within_20_ms"] = 0
+        with self.assertRaisesRegex(ValueError, "summary disagrees"):
+            _wmb_latency_rerun(diagnostic)
 
     def test_frozen_html_reader_is_inert_and_keeps_table_content(self):
         raw = '<script>alert(1)</script><meta http-equiv="refresh" content="0;url=https://example.test"><table onclick="alert(2)"><tr><td>Kept cell</td></tr></table><img src="https://example.test/x" onerror="alert(3)"><iframe srcdoc="bad"></iframe><a href="https://example.test">Link text</a>'
@@ -309,6 +345,29 @@ class WebMainBenchReportTests(unittest.TestCase):
                     self.assertIn('data-method="chromium" data-request="failed" data-failure="error_page"', page)
                     self.assertIn(error_label, page)
                 self.assertIn(error_label, detail)
+
+
+            # A new registered version must not need a renderer branch or inherit old version prose.
+            import shutil
+            other = output / "new-instance"
+            other.mkdir()
+            for folder_name in ("references", "sources", "artifacts"):
+                shutil.copytree(output / folder_name, other / folder_name)
+            selected = copy.deepcopy(dataset)
+            selected["coverage_plan"]["static_html"] = ["fixture-browser" if name == "chromium" else name for name in PROVIDERS]
+            selected["comparison"] = {"method_registry": {"fixture-browser": {
+                "engine": "chromium", "label": "Fixture Browser 204", "source_url": "https://example.test/browser"}}}
+            changed = [{**row, "provider": "fixture-browser" if row["provider"] == "chromium" else row["provider"]} for row in records]
+            changed_summaries = {("fixture-browser" if key == "chromium" else key): value for key, value in summaries.items()}
+            changed_manifests = [{**row, "provider": "fixture-browser" if row["provider"] == "chromium" else row["provider"]} for row in manifests]
+            generate_webmainbench(other, selected, changed, changed_summaries, changed_manifests, include_english=True)
+            import json
+            assert json.loads((other / "report-changes.json").read_text())["releases"] == []
+            for prefix in ("", "en/"):
+                methods = (other / prefix / "adoption/index.html").read_text()
+                assert "Fixture Browser 204" in methods
+                assert "Chromium 152" not in methods
+                assert "Moli 1.1.5" not in methods and "Moli 1.1.7" not in methods
 
 
 if __name__ == "__main__":

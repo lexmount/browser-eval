@@ -14,11 +14,45 @@ Include the task ID, method and versions, OS, command and sanitized error. Remov
 | LexBench Web Fetch task requirements | [Benchmark repository](https://github.com/lexmount/lexbench-webfetch), applied to every method |
 | Scoring fix | Shared scorer, scenario regressions and a recorded correction reason |
 | New browser, version or sample size | Configuration or registry; reuse the runner and renderer |
+| New report instance | An external instance profile, evidence and report content; reuse its build and release commands |
 | Reusable logic | `harness/`; `scripts/` stays a thin command entry point |
+
+Use English for identifiers, comments and docstrings. Store report interface text
+in language catalogs, and select it through the existing report language contract.
+Keep original-language task text, source quotations and multilingual test fixtures. Keep measured counts, host facts and report-specific interpretation out
+of shared renderers: read them from the selected profile and bound evidence.
+Published historical reports retain their own content and provenance.
 
 Test both accepted and rejected scenarios. Fix scoring rules rather than editing saved verdicts. Refactoring must preserve historical measurements and certificates.
 
 Write documentation in English. Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Preserve original task text, quotations and frozen acceptance inputs. Reports follow their track's language settings.
+
+## PR and commit titles
+
+Use `<type>(<scope>): <summary>` for PR titles and new commit subjects. The scope is optional; use the module or feature affected, such as `scoring` or `webfetch`.
+
+Choose the type that describes the change:
+
+| Type | Change |
+| --- | --- |
+| `fix` | Correct existing behavior |
+| `feat` | Add supported behavior |
+| `docs` | Change documentation |
+| `refactor` | Restructure code without changing behavior |
+| `test` | Add or correct tests |
+| `perf` | Improve performance |
+| `build` / `ci` | Change packaging, dependencies or automation |
+| `chore` | Other maintenance |
+
+Write the summary in English, start with an imperative verb, and describe the concrete change. Aim for 72 characters or fewer, including the prefix; omit a trailing period. Use `!` before the colon for a breaking change and explain the migration in the description.
+
+Examples:
+
+- `fix(scoring): require facts in the returned body`
+- `fix(webfetch): disclose build provenance for partial reruns`
+- `docs(contributing): define PR and commit title conventions`
+
+Avoid titles such as `Fix review feedback`, `Update code` or `Misc improvements`; name the behavior or document that changes. A PR title describes the complete diff; each commit subject describes that commit. Update the PR title when its scope changes. If squash merging is used, use a subject that follows the same format. Apply this convention to new work; do not rewrite shared commits solely to rename them.
 
 ## Run the checks
 
@@ -65,3 +99,7 @@ The archive excludes `.git`, untracked files and local installations. Extract it
 </details>
 
 Optional Claude review requires `ENABLE_CLAUDE_REVIEW=true` and `CLAUDE_CODE_OAUTH_TOKEN`. Ordinary CI needs neither. Review uses disposable GitHub-hosted runners.
+
+## License
+
+Contributions use the [Apache License 2.0](LICENSE). Preserve third-party licenses, copyright notices and source attributions described in [THIRD_PARTY](THIRD_PARTY.md).

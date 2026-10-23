@@ -46,7 +46,9 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path, monkeypa
     assert result["results"] == {
         engine: {"tasks": 1, "passes": 1} for engine in ("chromium", "moli")
     }
-    monkeypatch.setattr(sys, "argv", ["release", "--formal-root", str(source)])
+    monkeypatch.setattr(
+        sys, "argv", ["release", "--profile", str(profile), "--formal-root", str(source)]
+    )
     release.main(tmp_path)
     assert (tmp_path / "publish/webarena-fixed-trajectory.zip").is_file()
     assert json.loads(profile.read_text()) == authority
@@ -159,9 +161,9 @@ def test_public_replay_preflight_rejects_wrong_authority_or_package_before_reque
         document = json.loads(receipt.read_text())
         document["slug"] = "other-site"
         receipt.write_text(json.dumps(document))
-    elif damage == 'share':
+    elif damage == "share":
         document = json.loads(receipt.read_text())
-        document['share_url'] = 'https://reports.example/v/other-report'
+        document["share_url"] = "https://reports.example/v/other-report"
         receipt.write_text(json.dumps(document))
     elif damage == "proof":
         document = json.loads(proof.read_text())
@@ -211,7 +213,11 @@ def test_release_retains_submission_when_export_verification_is_interrupted(tmp_
         )
 
     monkeypatch.setattr(release, "_run_json", command)
-    monkeypatch.setattr(sys, "argv", ["release", "--formal-root", str(source), "--publish"])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["release", "--profile", str(profile), "--formal-root", str(source), "--publish"],
+    )
     with pytest.raises(RuntimeError, match="synthetic export"):
         release.main(tmp_path)
     assert json.loads(target.read_text())["submission_state"] == "submitted_unverified"

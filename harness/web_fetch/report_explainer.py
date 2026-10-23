@@ -342,7 +342,8 @@ def current_browser_article_model(out, cases, records, binding):
                          'evidence': browser_example_evidence(out,cases[row['case_id']],row,focus=item.get('focus'),reference_focus=item.get('reference_focus'))})
     stats = {}
     from .report_interfaces import method_provenance
-    from .methods import method_version
+    from .methods import method_versions
+
     provenance = method_provenance(out)
     for name in providers:
         rows = [indexed[name, cid] for cid in cases]
@@ -355,7 +356,7 @@ def current_browser_article_model(out, cases, records, binding):
         explanation = chapter.get('explanation')
         if not isinstance(explanation, str) or not explanation.strip():
             raise ValueError('Browser chapter requires a measured explanation')
-        versions = sorted({str(method_version(row,provenance) or '') for row in rows} - {''})
+        versions = method_versions(rows,provenance)
         groups = {track: [row for row in rows if report_family(cases[row['case_id']]) == track] for track in tracks}
         final_times=[]
         physical_calls=0
@@ -408,7 +409,12 @@ def _offline_browser_article(body, out, cases, model):
         payload = '<h3>完整实际返回</h3><pre data-standalone-output="'+escape(name)+'">'+escape(raw)+'</pre>'
         payload += '<h3>结果与评分</h3><pre>'+escape(json.dumps({key:row[key] for key in ('attempt_id','provider','case_id','run_id','started_at','elapsed_ms','ok','status_code','error_type','metrics') if key in row},ensure_ascii=False,indent=2))+'</pre>'
         for binding in record_public_call_log_bindings(row):
-            log = verify_public_call_log(out,binding).read_text()
+            snapshot = json.loads((out/'dataset.json').read_text()).get('comparison',{}).get('score_audit') if (out/'dataset.json').is_file() else None
+            if snapshot:
+                from .published_snapshot import read_snapshot_public_file
+                log = read_snapshot_public_file(out,binding).read_text()
+            else:
+                log = verify_public_call_log(out,binding).read_text()
             payload += '<h3>调用日志</h3><pre>'+escape(log)+'</pre>'
         evidence('../attempts/'+row['attempt_id']+'.html', 'offline-result-'+row['attempt_id'],
                  '完整结果与调用证据 · '+name, payload)
@@ -809,7 +815,7 @@ def _render_current_browser_article(out, cases, records, binding):
     for figure in figures_by_section['conclusion']:parts['conclusions'].insert(1,figure)
     if previous:
         both=sum(new[cid] and old[cid] for cid in cases);neither=sum(not new[cid] and not old[cid] for cid in cases)
-        changes=[('两版都通过',both),('修复版变为通过',gains),('修复版变为失败',losses),('两版都失败',neither)]
+        changes=[('两种配置都通过',both),('仅'+label(primary)+'通过',gains),('仅'+label(previous)+'通过',losses),('两种配置都失败',neither)]
         append_html(parts['conclusions'],'<figure class="m-figure" data-reading-version="'+escape(primary)+'"><h3>同一批题的两版结果 · '+str(model['cases'])+' 题</h3><div class="m-verdict-grid">'+''.join('<div data-version-relation="'+str(i)+'" data-count="'+str(count)+'"><h4>'+title+'</h4><div class="m-duel"><b>'+str(count)+'</b><small>题</small></div></div>' for i,(title,count) in enumerate(changes))+'</div><figcaption>同一验收标准，所有任务都保留在对照中；变化是在线调用的实际结果，不单独证明代码因果。</figcaption></figure>')
     chapters=[('scope','01 这次测什么',['scope']),('results','02 通过率、耗时与资源',['result-decomposition','all-latency','timing-boundary','successful-latency','resources']),('method','03 测试方法与实例',['scoring','examples']),('configuration','04 浏览器与测试配置',['interfaces']),('failures','05 失败任务与正文缺失',['body-quality','failure-summary']+['browser-'+name for name in order]),('conclusion','06 结论与适用范围',['conclusions'])]
     toc='<nav class="m-toc" aria-label="报告解读目录" data-reading-contents="1">'+''.join('<a href="#reading-'+anchor+'">'+title+'</a>' for anchor,title,_ in chapters)+'</nav>'

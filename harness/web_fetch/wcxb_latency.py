@@ -254,7 +254,7 @@ def certify(argv=None) -> dict:
     parser.add_argument('--dataset', type=Path, required=True)
     parser.add_argument('--sample-manifest', type=Path, required=True)
     parser.add_argument('--evidence-root', type=Path, required=True)
-    parser.add_argument('--profile', type=Path, default=Path('evaluation/wcxb/current-report.json'))
+    parser.add_argument('--profile', type=Path, required=True)
     args = parser.parse_args(argv)
     reject_evidence_symlinks(contained_path(args.dataset, 'test', reject_symlinks=True))
     certificate_path = args.evidence_root / 'certification.json'
@@ -310,7 +310,7 @@ def main(argv=None, *, root: Path | None = None) -> None:
     parser = argparse.ArgumentParser(description='Collect complete profile-bound WCXB paired timing')
     for name in ('dataset', 'manifest', 'release', 'candidate', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
-    parser.add_argument('--profile', type=Path, default=(root or Path.cwd()) / 'evaluation/wcxb/current-report.json')
+    parser.add_argument('--profile', type=Path, required=True)
     parser.add_argument('--config', type=Path, help='Provider config with release and pr role entries')
     parser.add_argument('--wait-quiet-seconds', type=int, default=0)
     args = parser.parse_args(argv)

@@ -1,4 +1,5 @@
 """Release archives must contain exactly the validated bytes or preserve the prior release."""
+import hashlib
 import json
 import os
 import zipfile
@@ -153,9 +154,17 @@ def test_track_package_uses_frozen_gates_and_preserves_previous_release(
     for name in ('manifest.json', 'run-config.json', 'attempts.jsonl', 'result-review.json'):
         (evidence / name).write_text('{}')
     authority = tmp_path / 'authority'
-    current = authority / autonomous.PROFILE
+    current = authority / "evaluation/browser-use/current-report.json"
     current.parent.mkdir(parents=True)
-    current.write_text('{}')
+    selection_hash = hashlib.sha256(b"{}").hexdigest()
+    current.write_text(json.dumps({
+        "task_selection": {
+            "path": str(current.parent / "webarena-verified-pilot.json"),
+            "sha256": selection_hash,
+        },
+        "selection_sha256": selection_hash,
+    }))
+    (current.parent / "webarena-verified-pilot.json").write_text("{}")
     (authority / 'research').mkdir()
     dataset = tmp_path / 'dataset.json'
     dataset.write_text('{}')

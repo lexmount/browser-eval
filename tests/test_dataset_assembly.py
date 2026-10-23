@@ -320,3 +320,19 @@ def test_input_changing_case_correction_requires_all_method_rerun(tmp_path):
     assert dataset["cases"][0]["category"] == "current_homepage"
     assert dataset["cases"][0]["tags"] == ["current"]
     assert dataset["comparison"]["case_corrections"]["rerun_all_methods"] == ["plain"]
+
+
+def test_explicit_external_profile_is_portable_and_preserves_input_hash_checks(tmp_path):
+    repository = tmp_path / 'checkout'
+    path, assembly = _fixture(repository)
+    profile = tmp_path / 'instance/profile.json'
+    _write(profile, json.loads((repository / 'profile.json').read_text()))
+    dataset, raw = assemble_profile_dataset(path, repository=repository,
+        profile_path_override=profile, require_output_hash=False)
+    assert dataset['comparison']['reproduction_profile'] == 'profile.json'
+    assert str(tmp_path).encode() not in raw
+    source = repository / 'plain.json'
+    source.write_text('{"cases": []}')
+    with pytest.raises(ValueError, match='source hash changed'):
+        assemble_profile_dataset(path, repository=repository,
+            profile_path_override=profile, require_output_hash=False)

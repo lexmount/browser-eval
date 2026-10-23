@@ -202,3 +202,27 @@ def test_task_type_count_validation_reports_missing_response_evaluator() -> None
             SimpleNamespace(get_task=lambda _: task),
             enforce_contract_integrity=False,
         )
+
+
+def test_report_selection_uses_declared_scope_and_rejects_changed_bytes(tmp_path):
+    import hashlib
+    import json
+
+    from harness.browser_use.selection import report_selection_path
+
+    payload = json.loads(Path('evaluation/browser-use/webarena-verified-pilot.json').read_text())
+    payload['tasks'] = [next(task for task in payload['tasks'] if task['tier'] == tier)
+                        for tier in ('easy', 'hard')]
+    payload['metadata']['tier_counts'] = {'easy': 1, 'medium': 0, 'hard': 1}
+    path = tmp_path / 'selection.json'
+    path.write_text(json.dumps(payload))
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    profile = {'selection_sha256': digest, 'task_selection': {'path': str(path), 'sha256': digest}}
+    assert len(load_pilot(path).tasks) == 2
+    assert report_selection_path(profile) == path
+    payload['tasks'].pop()
+    path.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match='instance profile'):
+        report_selection_path(profile)
+    with pytest.raises(ValueError, match='tier counts'):
+        load_pilot(path)

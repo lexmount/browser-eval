@@ -22,9 +22,7 @@ class _Distribution:
     def __init__(self, root: Path, direct_url: object, *, owns_package: bool = True):
         self.root = root
         self.direct_url = direct_url
-        self.files = (
-            [Path("webarena_verified/__init__.py")] if owns_package else [Path("other.py")]
-        )
+        self.files = [Path("webarena_verified/__init__.py")] if owns_package else [Path("other.py")]
 
     def read_text(self, name: str):
         assert name == "direct_url.json"
@@ -78,7 +76,11 @@ def test_accepts_exact_lexmount_fork_revision_and_owned_module(monkeypatch, tmp_
 
 
 def test_rejects_servicenow_repository(monkeypatch, tmp_path):
-    _install(monkeypatch, tmp_path, _direct_url(url="https://github.com/ServiceNow/webarena-verified.git"))
+    _install(
+        monkeypatch,
+        tmp_path,
+        _direct_url(url="https://github.com/ServiceNow/webarena-verified.git"),
+    )
     with pytest.raises(RuntimeError, match="Lexmount fork"):
         runtime_source.verify_webarena_runtime_source()
 
@@ -136,9 +138,7 @@ def test_consolidation_checks_source_before_reading_evidence(monkeypatch, tmp_pa
         lambda: (_ for _ in ()).throw(RuntimeError("wrong source")),
     )
     with pytest.raises(RuntimeError, match="wrong source"):
-        catalog_consolidation.consolidate(
-            tmp_path / "missing", tmp_path, [], tmp_path / "sites"
-        )
+        catalog_consolidation.consolidate(tmp_path / "missing", tmp_path, [], tmp_path / "sites")
 
 
 def test_runner_checks_source_before_browser_or_input_access(monkeypatch, tmp_path):
@@ -177,6 +177,15 @@ def test_release_checks_source_before_profile_access(monkeypatch):
         "verify_webarena_runtime_source",
         lambda: (_ for _ in ()).throw(RuntimeError("wrong source")),
     )
-    monkeypatch.setattr("sys.argv", ["release-check"])
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "release-check",
+            "--profile",
+            "external-profile.json",
+            "--comparison-release",
+            "external-comparison.json",
+        ],
+    )
     with pytest.raises(RuntimeError, match="wrong source"):
         catalog_release.main()

@@ -139,7 +139,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--scorer", type=Path, required=True)
-    parser.add_argument("--profile", type=Path, default=Path("evaluation/webmainbench-full/current-report.json"))
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument("--config", type=Path, default=Path("configs/providers.headless.json"))
     parser.add_argument("--env-file", type=Path, help="Explicit local evaluation credentials file")
     parser.add_argument("--binary-source", type=Path,
@@ -241,7 +241,7 @@ def main_score(argv: list[str] | None = None) -> None:
     parser.add_argument("--cohort", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--scorer", type=Path, required=True)
-    parser.add_argument("--profile", type=Path, default=Path("evaluation/webmainbench-full/current-report.json"))
+    parser.add_argument("--profile", type=Path, required=True)
     args = parser.parse_args(argv)
     for name in ("cohort", "source", "scorer", "profile"):
         setattr(args, name, getattr(args, name).absolute())

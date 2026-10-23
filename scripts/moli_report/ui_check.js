@@ -232,6 +232,9 @@ async function run() {
                 throw Error("home summary count");
             }
             if (route === "analysis") {
+              const labels = await page.locator(".filters label").allTextContents();
+              if (labels.some((text) => /\bundefined\b|\bNaN\b|\[object Object\]/.test(text)))
+                throw Error("unresolved comparison filter label");
               let actual = await page
                 .locator(".metric-card .value")
                 .allTextContents();

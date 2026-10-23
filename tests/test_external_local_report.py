@@ -19,9 +19,16 @@ def write(path, value):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-@pytest.mark.parametrize("case_count,method_count,timeout", [(5, 2, 18), (12, 3, 30), (7, 4, 11)])
+@pytest.mark.parametrize("case_count,method_count,timeout,failures", [
+    (1, 1, 7, True),
+    (1, 1, 7, False),
+    (5, 2, 18, True),
+    (12, 3, 30, True),
+    (7, 4, 45, True),
+    (7, 4, 11, True),
+])
 def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
-                                                     case_count, method_count, timeout):
+                                                     case_count, method_count, timeout, failures):
     from harness.web_fetch.providers.fixture import FixtureProvider
     original_fetch = FixtureProvider.fetch
 
@@ -32,6 +39,7 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
         return result
 
     monkeypatch.setattr(FixtureProvider, "fetch", versioned_fixture)
+
     root = Path(__file__).resolve().parents[1]
     evidence = tmp_path / "evidence"
     methods = [f"synthetic-{n}" for n in range(method_count)]
@@ -52,9 +60,10 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
             "source_reverified": False}}
     frozen = evidence / "local-evidence/input-dataset.json"
     dataset_digest = write(frozen, dataset)
-    config = {name: {"type": "fixture", "fail_cases": ["task-0"]} for name in methods}
-    # Keep one default-only method and one explicit public control. Private
-    # configuration fields must never be copied into the generated report.
+    config = {name: {"type": "fixture", "fail_cases": ["task-0"] if failures else []}
+              for name in methods}
+    # Keep a public control on the first method and defaults on additional methods.
+    # Private configuration fields must never enter the generated report.
     config[methods[0]].update(max_bytes=12345, api_key="synthetic-private-credential")
     config_path = evidence / "providers.json"
     config_digest = write(config_path, {"providers": config})
@@ -98,7 +107,7 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
     assert manifest["generated_languages"] == ["zh", "en"]
     for name in methods:
         for prefix in ['', 'en/']:
-            page = (output / prefix / f'attempts/{name}__task-1__r001.html').read_text()
+            page = (output / prefix / f'attempts/{name}__task-{min(1,case_count-1)}__r001.html').read_text()
             assert name+' 9.9.9' in page
             assert 'Moli 原生 Markdown' not in page
             assert 'Moli native Markdown' not in page
@@ -108,7 +117,8 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
     for prefix, unit in (("", "秒"), ("en/", "seconds")):
         methodology = (output / prefix / "methodology/index.html").read_text()
         assert f"{timeout} {unit}" in methodology
-        assert "45 秒" not in methodology
+        if timeout != 45:
+            assert "45 秒" not in methodology
         assert "6.1 秒" not in methodology
     assert all(row["provider_metadata"]["reported_version"] == "9.9.9" for row in saved)
     if timeout == 30:
@@ -128,7 +138,7 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
     options = load_frozen_method_options(output, saved)
     assert options["schema_version"] == 2
     assert options["providers"][methods[0]] == {"max_bytes": 12345}
-    assert options["providers"][methods[-1]] == {}
+    assert all(options["providers"][name] == {} for name in methods[1:])
     assert options["result_count"] == len(saved)
     assert options["provider_config_sha256"] == config_digest
     projected = (output / options["source_config"]["path"]).read_bytes()

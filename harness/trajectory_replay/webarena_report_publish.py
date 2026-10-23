@@ -34,7 +34,7 @@ from harness.web_fetch.publication import upload_large_archive
 ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
 ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
 RECEIPT = Path("publish/trajectory-replay-artifact-site-receipt.json")
-PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
+PROFILE: Path | None = None
 REVIEW = Path("research/trajectory-replay-failure-review.json")
 BINDING_JOURNAL = Path("publish/trajectory-replay-artifact-site-binding-pending.json")
 OPERATION_JOURNAL = Path("publish/trajectory-replay-artifact-site-operation-pending.json")
@@ -82,6 +82,8 @@ def response_json(status: int, raw: bytes, *, operation: str) -> dict:
 
 
 def publication_target(*, require_bound: bool) -> tuple[dict, str, str, str]:
+    if PROFILE is None:
+        raise ValueError("Select an external report instance with --profile")
     profile = json.loads(PROFILE.read_text(encoding="utf-8"))
     publication = profile.get("publication") or {}
     base = str(publication.get("base_url") or "").rstrip("/")
@@ -135,6 +137,8 @@ def validate_package() -> dict:
     report = Path(str(attestation.get("report") or ""))
     packaged_report = Path(str(attestation.get("packaged_report") or report))
     evidence = Path(str(attestation.get("evidence") or ""))
+    if PROFILE is None:
+        raise ValueError("Select an external report instance with --profile")
     profile = json.loads(PROFILE.read_text(encoding="utf-8"))
     dataset_path = bound_dataset_path(profile)
     if (profile.get("scoring") or {}).get("require_all_reference_validity") is True:
@@ -582,7 +586,7 @@ def cli() -> None:
     parser.add_argument("--archive", type=Path, default=ARCHIVE)
     parser.add_argument("--attestation", type=Path, default=ATTESTATION)
     parser.add_argument("--receipt", type=Path, default=RECEIPT)
-    parser.add_argument("--profile", type=Path, default=PROFILE)
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument("--review", type=Path, default=REVIEW)
     parser.add_argument("--binding-journal", type=Path, default=BINDING_JOURNAL)
     parser.add_argument("--operation-journal", type=Path, default=OPERATION_JOURNAL)

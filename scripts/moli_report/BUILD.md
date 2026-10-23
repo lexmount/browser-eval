@@ -2,7 +2,7 @@
 
 The Moli comparison report adapter lives in `harness/lexbench/`; this directory contains its command entries and reader assets. Measured evidence stays outside Git under `BROWSER_EVAL_DATA_HOME` (default: `~/.browser-eval`). It does not use the Web Fetch publication target.
 
-The frozen Linux runner inputs are read from `LEXBENCH_REPORT_RUNNER_ROOT` (default: `$BROWSER_EVAL_DATA_HOME/work/moli-1.1.8-failures-linux`). Report generation verifies their recorded hashes without importing or executing their Python files. `harness/resource_calibration.py` verifies complete profiler-off and profiler-on pairs and their shared experimental provenance. Its calculation is derived from the frozen Lexbench source, with Apache-2.0 attribution and license retained in the repository and installation package. All seven resource configurations use Linux ARM64 release binaries, PSS and process-tree CPU measurements in Docker on the Mac host.
+The frozen Linux runner inputs are read from the selected profile’s `paths.runner`; `LEXBENCH_REPORT_RUNNER_ROOT` can override that path. Report generation verifies their recorded hashes without importing or executing their Python files. `harness/resource_calibration.py` verifies complete profiler-off and profiler-on pairs and their shared experimental provenance. Its calculation is derived from the frozen Lexbench source, with Apache-2.0 attribution and license retained in the repository and installation package. All seven resource configurations use Linux ARM64 release binaries, PSS and process-tree CPU measurements in Docker on the Mac host.
 
 The report profile and chart payload have separate schemas. In `moli_report_profile/1`, resource `tasks` and `attempts_per_task` map to the chart's `total_tasks` and `calls_per_task`; `chart_tasks` and `chart_calls` retain their names. The builder validates the measured populations before constructing the chart payload. Do not pass the profile directly to the plotting API.
 
@@ -10,6 +10,7 @@ Build from validated fixed-layout functional summaries and the complete resource
 
 ```sh
 uv run --frozen python scripts/moli_report/build.py \
+  --profile /path/to/report-profile.json \
   --output /tmp/moli-report-release \
   --fixed-summary 119_off /path/to/patched-off-summary.json \
   --fixed-summary 119_on /path/to/patched-on-summary.json \
@@ -21,9 +22,9 @@ uv run --frozen python scripts/moli_report/verify.py --site /tmp/moli-report-rel
 
 The default build generates Chinese pages and charts only. Add `--include-english` to generate English explicitly. `report-languages.json` records the editions used by verification, packaging and browser checks. Without English, both English entry paths show a notice with a return link. Translation sources remain available for manual generation.
 
-Choose a new output directory for each build; the builder does not delete existing output. `--vendor-dir` selects the retained Mermaid distribution and license. Their hashes are checked before copying. The default location is the original report asset directory under the data home; no vendored executable or measured output is committed here.
+Choose a new output directory for each build; the builder does not delete existing output. `--vendor-dir` selects the retained Mermaid distribution and license. Their hashes are checked before copying. The profile supplies its location under the data home; no vendored executable or measured output is committed here.
 
-`--profile` selects the report profile. `--cohort` selects the functional cohort and its adjacent `protocol.json` and `certification.json`; unless supplied separately with `--summary`, `report-runs.json` comes from the same directory. Importing the adapter or requesting command help does not read private evidence. Evidence validation remains enabled under Python optimization.
+`--profile` is required and selects the report instance. Its `paths` object owns the cohort, runner, output, vendor assets, correction inputs and version comparison inputs. Relative evidence paths use the data home; the template source is relative to the repository. Explicit CLI paths override the corresponding profile entries. Chart filenames use the shared `comparison-` prefix. `--cohort` selects the functional cohort and its adjacent `protocol.json` and `certification.json`; unless supplied separately with `--summary`, `report-runs.json` comes from the same directory. Importing the adapter or requesting command help does not read private evidence. Evidence validation remains enabled under Python optimization.
 
 The base three-configuration diagnostic report and partial fixed-layout additions retain their method summary and interpretation navigation. The 1.1.9 comparison chapter is rendered only when both compared configurations exist. This does not relax the complete method matrix required by `--release`.
 
@@ -39,7 +40,7 @@ uv run --frozen python scripts/moli_report/run.py \
 
 The default operation validates inputs and prints the Docker command. `--execute` starts the selected run; it preserves existing runs and rechecks frozen inputs afterward. The protocol and cohort must describe the same complete 372-case, three-attempt scope. Report bundles include this module as `reproduction/run.py`, with adjacent `cohort.json` and `protocol.json` as defaults; install Browser Eval before using it. Python optimization does not disable input checks. Historical source and measured-call bindings are unchanged.
 
-The four 1.1.9 resource configurations are release builds bound by `resource_builds` in `evaluation/moli/current-report.json`. Functional evidence binds its own binary identity. Do not relabel retained functional outcomes as a new build's measured accuracy.
+The four 1.1.9 resource configurations are release builds bound by `resource_builds` in `/path/to/report-profile.json`. Functional evidence binds its own binary identity. Do not relabel retained functional outcomes as a new build's measured accuracy.
 
 `uv run --frozen python scripts/moli_report/run_linux_resource_profiles.py --protocol /path/to/frozen-protocol.json --output /path/to/new-evidence-directory` executes the unchanged Lexbench driver and resource collector. Freeze 557 task definitions, fixtures, runner files, four binary hashes, five attempts, jobs=1, the seed and the 250 ms interval before execution. Each configuration has an independent container; all runs execute serially. The official profiler-off calibration precedes the profiler-on measurement. Resource values come from the latter. The builder verifies all 11,140 measured calls and their calibration pairs, checks the frozen 1,045-call chart population, recomputes aggregates and rejects missing or changed evidence. Keep all measured files outside Git.
 

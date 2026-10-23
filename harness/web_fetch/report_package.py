@@ -28,13 +28,24 @@ def _require(condition, detail):
         raise ValueError(str(detail))
 
 
-def validate_release(source: Path, *, presentation_binding: Path | None = None) -> bool:
+def validate_release(source: Path, *, presentation_binding: Path | None = None, snapshot_audit=False) -> bool:
+    manifest_path=source/'report-manifest.json'
+    audit_state=manifest_path.is_file() and json.loads(manifest_path.read_text()).get('evidence_state')=='published_snapshot_score_audit'
+    if snapshot_audit:
+        if not audit_state or presentation_binding is not None:
+            raise ValueError('Snapshot packaging requires its explicit diagnostic report')
+        from .published_snapshot import check_snapshot_audit
+        check_snapshot_audit(source)
+        return False
+    if audit_state:
+        raise ValueError('Published snapshot audits require --snapshot-audit; they are not certified releases')
     if presentation_binding is not None:
         from .report_build import validate_local_presentation
         validate_local_presentation(source, presentation_binding)
         return False
     dataset_path = source / "dataset.json"
     dataset = json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
+    records = load_jsonl(source / "results.jsonl")
     from .reference_lifecycle import require_certifiable_evidence
     manifests = []
     for name in ('manifest.json', 'execution.json'):
@@ -47,7 +58,7 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None) 
     if content_binding:
         from .report_explainer import current_browser_article_model
         current_browser_article_model(source, {case['id']:case for case in dataset['cases']},
-                                      load_jsonl(source/'results.jsonl'), content_binding)
+                                      records, content_binding)
     sampled = dataset.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown"
     if not sampled:
         reliability = json.loads((source / "reliability.json").read_text())
@@ -55,7 +66,7 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None) 
             raise ValueError("Refusing to package an incomplete or unjudged benchmark report")
         if dataset.get("comparison", {}).get("require_independent_result_review"):
             from .result_review import require_result_review
-            require_result_review(source, dataset, load_jsonl(source / "results.jsonl"))
+            require_result_review(source, dataset, records)
         return False
     review = json.loads((source / "result-review.json").read_text())
     if review.get("status") != "passed" or review.get("failures"):
@@ -71,7 +82,6 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None) 
         or set(review.get("providers", [])) != set(providers)
     ):
         raise ValueError("Report/review scope differs from the declared matrix")
-    records = load_jsonl(source / "results.jsonl")
     expected = {(provider, case) for provider in providers for case in cases}
     if (
         len(records) != len(expected)
@@ -119,6 +129,8 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
     footprint_projections = []
     source_paths = sorted(path for path in source.rglob("*") if path.is_file())
     source_names = {path.relative_to(source).as_posix() for path in source_paths}
+    if "publication-privacy.json" in source_names:
+        raise ValueError("Publication source contains a reserved generated file: publication-privacy.json")
     source_file_count = sum(path.name != ".generated-report" for path in source_paths)
     logical_route_count = sum(path.suffix == ".html" for path in source_paths)
 
@@ -534,7 +546,7 @@ def _archive_identity(path: Path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def build(source: Path, archive: Path, *, presentation_binding: Path | None = None, cached_content: Path | None = None, parts_directory: Path | None = None, refresh_privacy=False):
+def build(source: Path, archive: Path, *, presentation_binding: Path | None = None, cached_content: Path | None = None, parts_directory: Path | None = None, refresh_privacy=False, snapshot_audit=False):
     if parts_directory is not None:
         from .safety import unlinked_path
         parts_directory = unlinked_path(parts_directory)
@@ -551,7 +563,7 @@ def build(source: Path, archive: Path, *, presentation_binding: Path | None = No
     archive.parent.mkdir(parents=True, exist_ok=True)
     target = archive.resolve()
     previous = _archive_identity(target)
-    sampled = validate_release(source, presentation_binding=presentation_binding)
+    sampled = validate_release(source, presentation_binding=presentation_binding, snapshot_audit=snapshot_audit)
     with tempfile.TemporaryDirectory(prefix=".webfetch-package-", dir=archive.parent) as work:
         staging = Path(work)
         staged_archive = staging / "package.zip"
@@ -564,7 +576,7 @@ def build(source: Path, archive: Path, *, presentation_binding: Path | None = No
             if parts_directory is None:
                 _write_archive(staging/'content', staged_archive)
                 from .publication_check import check
-                check(staged_archive, source, presentation_binding=presentation_binding)
+                check(staged_archive, source, presentation_binding=presentation_binding, snapshot_audit=snapshot_audit)
             if evidence_tree_identity(cached_content) != cached_identity:
                 raise ValueError('Cached public content changed during packaging')
         if parts_directory is not None:
@@ -572,7 +584,7 @@ def build(source: Path, archive: Path, *, presentation_binding: Path | None = No
             partition_content(staging/'content',staged_parts)
             _write_archive(staging/'content',staged_archive)
             from .publication_check import check
-            check(staged_archive,source,presentation_binding=presentation_binding,
+            check(staged_archive,source,presentation_binding=presentation_binding,snapshot_audit=snapshot_audit,
                   external_archives=part_archives(staged_parts/'parts.json'),allow_pending_external=True)
             manifest = _wire_manifest(staging/'content')
         if evidence_tree_identity(source) != before:
@@ -751,16 +763,19 @@ def main(*, root: Path | None = None):
     parser.add_argument(
         "archive", nargs="?", type=Path, default=root / "publish/webfetch-sites.zip"
     )
+    parser.add_argument("--snapshot-audit",action="store_true",help="Package an explicitly marked published-snapshot score audit")
     parser.add_argument("--incremental", type=Path, help="Write an explanatory update against the baseline archive")
     parser.add_argument("--presentation-binding", type=Path, help="Validate a frozen diagnostic snapshot without certifying it")
     parser.add_argument("--cached-content", type=Path, help="Reuse cached public files and refresh source-bound result projections")
     parser.add_argument("--refresh-privacy", action="store_true", help="Refresh cached public projections with the current privacy policy")
     parser.add_argument("--parts-directory", type=Path, help="Prepare capacity-bound data attachments before publication")
     args = parser.parse_args()
+    if args.incremental and args.snapshot_audit:
+        parser.error('Snapshot score revisions require a complete package')
     if args.incremental:
         print(json.dumps(build_incremental(args.source, args.archive, args.incremental, presentation_binding=args.presentation_binding), ensure_ascii=False))
         return
-    build(args.source, args.archive, presentation_binding=args.presentation_binding, cached_content=args.cached_content, parts_directory=args.parts_directory, refresh_privacy=args.refresh_privacy)
+    build(args.source, args.archive, presentation_binding=args.presentation_binding, cached_content=args.cached_content, parts_directory=args.parts_directory, refresh_privacy=args.refresh_privacy, snapshot_audit=args.snapshot_audit)
     print(args.archive.resolve())
 
 

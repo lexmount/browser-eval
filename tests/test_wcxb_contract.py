@@ -25,22 +25,17 @@ class WCXBContractTests(unittest.TestCase):
         self.assertEqual(format_wcxb_conditional_latency(1234.2), '1,234 ms')
 
     def test_wcxb_participants_do_not_inherit_webmainbench_version_rows(self):
-        profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
-        self.assertEqual(tuple(profile['providers']), WCXB_PROVIDERS)
         self.assertIn('moli-1.1.7', PROVIDERS)
         self.assertNotIn('moli-1.1.7', WCXB_PROVIDERS)
 
-    def test_frozen_manifest_is_unique_stratified_and_profile_bound(self):
+    def test_frozen_manifest_is_unique_and_stratified(self):
         raw = (ROOT / 'evaluation/public-wcxb-test-qualified.json').read_bytes()
         sample = json.loads(raw)
-        profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
         self.assertEqual(sample['size'], 504)
         self.assertEqual(len(sample['cases']), 504)
         self.assertEqual(len({r['file_id'] for r in sample['cases']}), 504)
         self.assertEqual(sum(sample['distribution']['sample'].values()), 504)
         self.assertEqual(set(sample['distribution']['sample']), set(sample['distribution']['parent']))
-        self.assertEqual(hashlib.sha256(raw).hexdigest(), profile['sample_manifest_sha256'])
-        self.assertEqual(sample['source_sha256'], profile['source_dataset_sha256'])
         self.assertEqual(sample['primary_quality_case_count'], 504)
 
     def test_full_test_exclusions_follow_source_content_only(self):
@@ -134,3 +129,49 @@ class WCXBContractTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+# Exercise admission through the public run path; no provider call is issued.
+def test_wcxb_execution_reads_versions_only_from_selected_profile(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    import pytest
+    from harness.web_fetch import webmainbench_runner as runner
+    from tests.wcxb_fixture import create_cohort
+
+    fixture = create_cohort(tmp_path / 'inputs', providers=('moli', 'chromium'))
+    profile = json.loads(fixture['profile_path'].read_text())
+    args = SimpleNamespace(
+        output=tmp_path / 'new-run', case_ids_file=fixture['sample_manifest'],
+        benchmark='wcxb', provider='moli', dataset=fixture['source'],
+        profile=fixture['profile_path'], limit=None, env_file=tmp_path / '.env',
+        config=tmp_path / 'providers.json', preserve_original_origin=False,
+    )
+    observed = []
+    class Method:
+        def validate(self):
+            return []
+        def implementation_identity(self):
+            observed.append('identity')
+            return {'reported_version': 'moli 2.3.4'}
+    monkeypatch.setattr(runner, 'load_runtime_env', lambda _: None)
+    monkeypatch.setattr(runner, 'load_provider_config', lambda _: {'moli': {}})
+    monkeypatch.setattr(runner, 'build_provider', lambda *_: Method())
+    class Admitted(Exception):
+        pass
+    def checkpoint(*_):
+        raise Admitted
+    monkeypatch.setattr(runner, 'write_json', checkpoint)
+    for declared, error in (
+        ({'moli': '2.3.4'}, 'every participant'),
+        ({'moli': '2.0.0', 'chromium': '150.0'}, 'expected version 2.0.0'),
+    ):
+        profile['expected_versions'] = declared
+        args.profile.write_text(json.dumps(profile))
+        with pytest.raises(ValueError, match=error):
+            runner.run(args)
+        assert not args.output.exists()
+    profile['expected_versions'] = {'moli': '2.3.4', 'chromium': '150.0'}
+    args.profile.write_text(json.dumps(profile))
+    with pytest.raises(Admitted):
+        runner.run(args)
+    assert observed == ['identity', 'identity']

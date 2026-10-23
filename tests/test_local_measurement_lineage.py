@@ -48,8 +48,7 @@ def test_unknown_verdict_can_be_shown_locally_without_becoming_publishable():
     dataset = {'comparison': {'kind': 'uniform_native_local_measurement',
                               'publication_state': 'local_audit_only_not_for_release'},
                'coverage_plan': {'web': ['p']}, 'cases': [{'id': 'a', 'track': 'web'}]}
-    row = {'provider': 'p', 'case_id': 'a', 'metrics': {'page_identity_required': True,
-           'page_identity_status': 'unavailable', 'request_ok': True}}
+    row = {'provider': 'p', 'case_id': 'a', 'metrics': {'rule_review_status': 'unresolved', 'request_ok': True}}
     reliability = local_audit.require_complete_local_inventory(dataset, [row])
     assert reliability['present_calls'] == 1 and reliability['judged_calls'] == 0
     assert not reliability['complete']

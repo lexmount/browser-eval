@@ -21,8 +21,11 @@ A returned file URL is not a delivered file. Dynamic list checks measure structu
 | Body precision | How much returned text belongs to that reference |
 | Body F1 | Harmonic mean of precision and recall |
 | Mean / P50 / P95 latency | In the default ranking, timing of task-passing calls only; failures still retain elapsed time in their records |
+| All-call mean / P50 / P95 | The complete call population, including failed calls and timeouts; exposed as `mean_all_attempts_ms`, `all_attempts_p50_ms` and `all_attempts_p95_ms` in scorer summaries |
 | Failure class | Request error or unmet task requirement; open the detail for the full error |
 
 Body metrics require a complete, comparable reference. A failed call scores zero; a missing reference leaves the metric unavailable. Check each report's stated timing population before comparing it with another report.
 
 Outputs have SHA-256 hashes. Rebuilding or editing a report must preserve the saved responses and scores. Metric labels come from `report_components.py`; the report does not show a pass rate conditioned only on successful requests.
+
+Formal cohorts reject selected tasks whose acceptance rules are unresolved before capturing references or calling providers. A repair run may retain passed results and rerun only failures. Rescore the complete selected population under one scoring contract, retain every physical call, and disclose each executable fingerprint and its selected result count. A cross-build cumulative result is not a full run by one build. Offline file rescoring reads the retained file bytes and applies the current file requirements while preserving the original call metadata.

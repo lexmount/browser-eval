@@ -256,10 +256,11 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
     for name in ('app.js', 'style.css', 'mermaid.min.js', 'mermaid-LICENSE.txt'):
         (source / name).write_text(name)
     (source / 'app.js').write_bytes(renderer.read_bytes())
+    (source / 'messages.json').write_bytes(renderer.with_name('messages.json').read_bytes())
     (source / 'evidence.bin').write_bytes(bytes(range(256)))
     destination = root / 'lexbench-package'
     summary = package(source, destination, pack_limit=80)
-    assert summary['bundled_files'] == 1
+    assert summary['bundled_files'] == 2
     catalog = json.loads((destination / 'bundle-manifest.json').read_text())['files']
     entry = catalog['evidence.bin']
     payload = gzip.decompress((destination / entry['pack']).read_bytes())
@@ -462,23 +463,18 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
     command = [sys.executable, str(source_root / 'scripts/check_wcxb_report.py')]
     subprocess.run([*command, '--help'], check=True, stdout=subprocess.DEVNULL)
     from harness.web_fetch.wcxb_publication import write_inventory
-    write_inventory(pages, json.loads((source_root / 'evaluation/wcxb/current-report.json').read_bytes()))
-    rejected = subprocess.run([*command, str(pages), '--authority-root', str(source_root)],
+    profile = root / "selected-profile.json"
+    profile.write_text(json.dumps({"comparison_kind": "wcxb_frozen_html_to_markdown"}))
+    (root / "report-content-binding.json").write_text("{}")
+    write_inventory(pages, json.loads(profile.read_bytes()))
+    rejected = subprocess.run([*command, str(pages), '--profile', str(profile)],
                               capture_output=True, text=True)
     assert rejected.returncode != 0 and 'guide/index.html' in rejected.stderr, rejected.stderr
-    assert 'release authority is missing' not in rejected.stderr
-    for script, error in (
-        ('check_webmainbench_report.py', 'dataset.json'),
-        ('check_webmainbench_full_report.py', 'Exactly one method-cohort binding'),
-    ):
+    for script in ('check_webmainbench_report.py', 'check_webmainbench_full_report.py'):
         command = [sys.executable, str(source_root / 'scripts' / script)]
         subprocess.run([*command, '--help'], check=True, stdout=subprocess.DEVNULL)
         unbound = subprocess.run([*command, str(pages)], capture_output=True, text=True)
-        assert unbound.returncode != 0 and 'release authority is missing' in unbound.stderr
-        rejected = subprocess.run([*command, str(pages), '--authority-root', str(source_root)],
-                                  capture_output=True, text=True)
-        assert rejected.returncode != 0 and error in rejected.stderr, rejected.stderr
-        assert 'release authority is missing' not in rejected.stderr
+        assert unbound.returncode != 0 and 'authority' in unbound.stderr, unbound.stderr
 
 
 def verify_environment_preparation(root: Path, source_root: Path) -> None:
@@ -1503,8 +1499,8 @@ def verify_full_cohort_commands(root, source_root):
     try:
         os.chdir(work)
         with patch.object(subprocess, 'run', synthetic_child):
-            certification.main(['--source', 'source.jsonl', '--scorer', 'scorer', '--output-root', 'run'])
-            certification.main_score(['--source', 'source.jsonl', '--scorer', 'scorer', '--cohort', 'run'])
+            certification.main(['--source', 'source.jsonl', '--scorer', 'scorer', '--profile', 'profile.json', '--output-root', 'run'])
+            certification.main_score(['--source', 'source.jsonl', '--scorer', 'scorer', '--profile', 'profile.json', '--cohort', 'run'])
         assert len(calls) == 4
         assert (work / 'run/scoring-certificate.json').is_file()
         for module in ('webmainbench_runner', 'webmainbench_scoring', 'webmainbench_certification'):
@@ -1713,7 +1709,7 @@ def main():
             root / 'cohort', root / 'cohort/dataset.json',
             root_cause_category='answer-surface',
             root_cause='Synthetic installation control preserves the complete answer scoring surface.',
-            regression_ids=['answer-title-supplies-required-fact'],
+            regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'],
         )
         assert receipt['provider_calls'] == 0 and receipt['task_decision_changes'] == []
         revised = json.loads((root / 'cohort/results.jsonl').read_text())

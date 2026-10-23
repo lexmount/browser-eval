@@ -193,8 +193,8 @@
       "category": "answer-surface",
       "root_cause": "unbound_native_title_or_final_url",
       "ok": true,
-      "id": "native-returned-title-remains-answer",
-      "failure_mode": "false-negative",
+      "id": "native-returned-title-cannot-supply-missing-body-fact",
+      "failure_mode": "false-positive",
       "case": {
         "url": "https://wrong.example.test/page",
         "task_kind": "body",
@@ -234,7 +234,7 @@
       },
       "title": "SECRET",
       "final_url": "https://wrong.example.test/page",
-      "expected_task_pass": true
+      "expected_task_pass": false
     },
     {
       "category": "answer-surface",
@@ -474,6 +474,53 @@
       "native_response": "{\"content\":\"\"}",
       "expected_task_pass": false,
       "expected_validation_error": "Native answer defaults must be empty"
+    },
+    {
+      "category": "answer-surface",
+      "root_cause": "unbound_native_title_or_final_url",
+      "ok": true,
+      "id": "native-returned-body-fact-with-title-remains-valid",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://wrong.example.test/page",
+        "task_kind": "body",
+        "required_facts": [
+          {
+            "alternatives": [
+              "SECRET"
+            ]
+          }
+        ],
+        "expected_any": [],
+        "min_content_chars": 0
+      },
+      "artifact": "SECRET",
+      "native_response": "{\"content\": \"SECRET\", \"title\": \"SECRET\"}",
+      "metadata": {
+        "native_answer_projection": {
+          "schema_version": 2,
+          "content_format": "text",
+          "content_pointer": [
+            "content"
+          ],
+          "result_fields": {
+            "title": {
+              "pointer": [
+                "title"
+              ]
+            },
+            "final_url": {
+              "pointer": [
+                "final_url"
+              ],
+              "fallback": "request_url"
+            }
+          }
+        }
+      },
+      "title": "SECRET",
+      "final_url": "https://wrong.example.test/page",
+      "expected_task_pass": true
     }
   ]
 }

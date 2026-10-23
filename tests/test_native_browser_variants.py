@@ -282,3 +282,13 @@ class NativeBrowserVariantTests(unittest.TestCase):
             self.assertIn("Moli release build", body)
             self.assertNotRegex(body, r"6\s*[种个]\s*浏览器")
             self.assertEqual(body.count('data-browser-interface='), 42)
+
+
+def test_same_reported_version_keeps_distinct_measured_builds_visible():
+    from harness.web_fetch.methods import method_versions
+    rows = [{'provider': 'other-browser', 'provider_metadata': {
+        'reported_version': '2.4.0', 'binary_sha256': value * 64}} for value in ['a', 'b', 'a']]
+    assert method_versions(rows) == ['2.4.0 [aaaaaaaa, bbbbbbbb]']
+    assert method_versions(rows[:1]) == ['2.4.0']
+    assert method_versions([{'provider': 'other-browser', 'provider_metadata': {
+        'reported_version': '2.4.0'}}]) == ['2.4.0']

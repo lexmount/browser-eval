@@ -19,9 +19,12 @@ from harness.web_fetch.storage import (
 
 class StorageTests(unittest.TestCase):
     def test_legacy_profile_validator_rejects_wcxb_with_track_specific_error(self):
-        root = Path(__file__).resolve().parents[1]
-        with self.assertRaisesRegex(ValueError, 'WCXB evidence uses the certified cohort validator'):
-            require_current_report_profile(root, root / 'evaluation/wcxb/current-report.json')
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            profile = root / 'profile.json'
+            profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown'}))
+            with self.assertRaisesRegex(ValueError, 'WCXB evidence uses the certified cohort validator'):
+                require_current_report_profile(root, profile)
 
     def test_explicit_data_home_and_evidence_override(self):
         with patch.dict(os.environ, {"BROWSER_EVAL_DATA_HOME": "/tmp/browser-data"}, clear=False):

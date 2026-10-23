@@ -134,9 +134,7 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
         return None
     manifest_bytes = contained_path(root, 'manifest.json').read_bytes()
     if expected_manifest_sha256 is None:
-        profile_path = Path(__file__).resolve().parents[2] / 'evaluation/current-report.json'
-        profile = json.loads(profile_path.read_text(encoding='utf-8'))
-        expected_manifest_sha256 = profile.get('latency_diagnostic', {}).get('manifest_sha256')
+        raise ValueError('Latency diagnostics require an explicit expected manifest hash')
     if hashlib.sha256(manifest_bytes).hexdigest() != expected_manifest_sha256:
         raise ValueError('Latency diagnostic manifest differs from the current report profile')
     manifest = json.loads(manifest_bytes)

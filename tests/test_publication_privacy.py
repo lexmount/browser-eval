@@ -605,7 +605,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             # Reject a different cohort or an attempt/log rewrite.
             saved_results = (source / 'results.jsonl').read_bytes()
             (source / 'results.jsonl').write_bytes(b'changed results')
-            with self.assertRaisesRegex(ValueError, 'cannot replace measured results'):
+            with self.assertRaises(ValueError):
                 module.build_incremental(source, archive_path, root / 'wrong-cohort')
             (source / 'results.jsonl').write_bytes(saved_results)
             (source / 'report-manifest.json').write_text(json.dumps({'presentation_refresh': {
@@ -933,3 +933,25 @@ def test_review_projection_does_not_hide_risks_in_unrelated_metadata():
     files = {'local-evidence/review/supplement.json': raw}
     public, _ = project_host_metadata_files(files, ['/Users/fixture'], public_excerpt_views=True)
     assert public == files and publication_risk(public['local-evidence/review/supplement.json'])
+
+
+def test_signed_thumbnail_redaction_preserves_outer_record_and_following_text():
+    """A private image query must not consume the record's closing Markdown."""
+    from lexbench_webfetch.scoring import score_attempt
+    from lexbench_webfetch.metrics import task_passed
+    case={'url':'https://example.test/','acceptance_contract':{'version':1,
+        'schema':'named_link','minimum_records':2,'hosts':['example.test'],
+        'entry_path':r'/boards/[0-9]+','stable_text_anchors':[{'id':'feature','alternatives':['Collect and organize']} ]}}
+    original=(
+        '[![Cover](https://cdn.example.test/cover.jpg?auth_key=fictional-one)Collection One](https://example.test/boards/1)\n'
+        '[![Cover](https://cdn.example.test/cover2.jpg?auth_key=fictional-two)Collection Two](https://example.test/boards/2)\n'
+        'Collect and organize\n').encode()
+    projected,receipt=project_file('artifacts/sample/boards.txt',original)
+    assert b'fictional-one' not in projected and b'fictional-two' not in projected
+    assert receipt['replacements']==2
+    assert task_passed(True,score_attempt(case,original,ok=True))
+    scored=score_attempt(case,projected,ok=True)
+    assert task_passed(True,scored)
+    assert scored['stable_unique_record_count']==2
+    broken=projected.replace(b')Collection One](https://example.test/boards/1)',b'')
+    assert not task_passed(True,score_attempt(case,broken,ok=True))

@@ -9,7 +9,7 @@ from harness.web_fetch.report import generate, local_audit_banner, overall_ranki
 from tests.test_report_body_scope import case, record
 
 
-def test_diagnostic_tables_do_not_assign_ranks_or_initial_score_order():
+def test_diagnostic_tables_sort_saved_pass_rates_without_assigning_ranks():
     c = case('body', kind='body', track='web')
     high = record(c)
     high['provider'] = 'z-high'
@@ -19,10 +19,11 @@ def test_diagnostic_tables_do_not_assign_ranks_or_initial_score_order():
                      ranking([high, low], {c['id']: c}, 'web', diagnostic=True)):
         soup = BeautifulSoup(rendered, 'html.parser')
         table = soup.select_one('table.ranking')
-        assert table.get('data-col') is None
+        assert table.get('data-col') == '2'
+        assert table.get('data-dir') == 'desc'
         assert table.select_one('th').get_text(strip=True).startswith('方法')
         rows = table.select('tbody tr')
-        assert ['a-low', 'z-high'] == [row.select_one('td a')['href'].split('/')[-1].removesuffix('.html') for row in rows]
+        assert ['z-high', 'a-low'] == [row.select_one('td a')['href'].split('/')[-1].removesuffix('.html') for row in rows]
         assert len(rows[0].select('td')) == len(table.select('th'))
         assert '0)' in table.select_one('th button')['onclick']
     # Certified comparisons retain their existing score order and ordinal column.
@@ -85,7 +86,7 @@ def test_release_check_rejects_hidden_status_or_ranked_diagnostic(tmp_path):
     page.write_text(prefix + banner + '<table id="ranking-overall"><th>Rank</th></table>')
     with pytest.raises(ValueError, match='assigns ranks'):
         check_local_diagnostic_presentation(tmp_path)
-    page.write_text(prefix + banner + '<table id="ranking-overall"><th>Method</th></table>')
+    page.write_text(prefix + banner + '<table id="ranking-overall" data-col="0" data-dir="desc"><th>Method</th></table>')
     check_local_diagnostic_presentation(tmp_path)
 
 

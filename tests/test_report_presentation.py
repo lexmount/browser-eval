@@ -1,10 +1,10 @@
 import tempfile
-import json
 from pathlib import Path
 import unittest
 from harness.web_fetch.report import EXTRA,active_tracks,failure_category,filter_controls,case_attrs,failure_filters,overall_ranking,overview_matched_latency,provider_configuration,review_cell,table,write
 from harness.web_fetch.report_interfaces import SPECS
 from harness.web_fetch.methods import method_access
+
 from harness.web_fetch.report_style import STYLE
 
 class ReportRevisionTests(unittest.TestCase):
@@ -65,6 +65,30 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('包含通过与失败',rendered)
   self.assertLess(rendered.index('slow-high-pass'),rendered.index('fast-low-pass'))
   self.assertIn('150 ms',rendered)
+ def test_comparison_defaults_to_pass_rate_including_saved_snapshots(self):
+  from bs4 import BeautifulSoup
+  from harness.web_fetch.report import ranking
+  cases={key:{'id':key,'track':'web','task_kind':'body'} for key in ('a','b')}
+  records=[{'provider':name,'case_id':key,'ok':True,'elapsed_ms':10,
+            'metrics':{'content_pass':key=='a' or name=='z-high'}}
+           for name in ('a-low','z-high','b-low') for key in cases]
+  for diagnostic in (False,True):
+   for render in (lambda:overall_ranking(records,cases,diagnostic=diagnostic),
+                  lambda:ranking(records,cases,'web',diagnostic=diagnostic)):
+    with self.subTest(diagnostic=diagnostic,render=render):
+     doc=BeautifulSoup(render(),'html.parser');table=doc.select_one('table.ranking')
+     column=2 if diagnostic else 3
+     self.assertEqual(table.get('data-col'),str(column))
+     self.assertEqual(table.get('data-dir'),'desc')
+     rows=table.select('tbody tr')
+     self.assertIn('z-high',rows[0].get_text())
+     self.assertEqual([row.select('td')[column].get_text() for row in rows],['100.0%','50.0%','50.0%'])
+     self.assertIsNotNone(rows[0].select('td')[column].select_one('.comparison-winner'))
+     self.assertFalse(any(row.select('td')[column].select_one('.comparison-winner') for row in rows[1:]))
+  # A shared maximum has no winner; unavailable metrics remain neutral.
+  for row in records:row['metrics']['content_pass']=True
+  doc=BeautifulSoup(overall_ranking(records,cases,diagnostic=True),'html.parser')
+  self.assertFalse(doc.select('[data-metric="acceptance_2"] .comparison-winner'))
  def test_ranking_method_names_do_not_wrap_and_tables_remain_scrollable(self):
   self.assertIn('.table-wrap{overflow:auto',STYLE)
   self.assertRegex(EXTRA,r'\.ranking td:nth-child\(2\)\{[^}]*min-width:220px[^}]*white-space:nowrap')
@@ -98,7 +122,8 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertEqual(failure_category(self.row(metrics={'content_pass':True}),{}),'—')
  def test_all_interfaces(self):
   from harness.web_fetch.report_methods import PROFILES
-  self.assertEqual(set(SPECS),set(PROFILES))
+  from harness.web_fetch.report_interfaces import method_spec
+  for name in PROFILES:self.assertTrue(method_spec(name,None)['entry'])
   self.assertTrue({'kitesurf','lightpanda','obscura','moli','chromium'} <= set(SPECS))
   for s in SPECS.values():
    self.assertTrue(s['params'] and s['fields'] and s['request'] and s['source'])
@@ -126,7 +151,9 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('1/1 · 复核记录',row)
   self.assertNotIn('已核验',row)
  def test_headless_access_covers_every_method_and_lists_setup_variables(self):
-  for name in ('kitesurf','lightpanda','obscura','moli','chromium'):
+  from harness.web_fetch.methods import browser_method_registry
+  for name in browser_method_registry():
+
    access=method_access(name,[])
    self.assertTrue(access['env_vars'])
    self.assertTrue(access['links'])
@@ -317,13 +344,16 @@ class MeasuredInterfaceIdentityTests(unittest.TestCase):
  def test_generic_moli_uses_observed_release_and_task_adapter(self):
   record={'provider':'moli','provider_type':'moli_webfetch','provider_metadata':{'reported_version':'moli 1.1.15'}}
   output=self.render([record]);access=output['access']
+  self.assertIn('github.com/lexmount/moli',access['links'][0][1])
   self.assertIn('/tag/v1.1.15',access['links'][0][1])
   self.assertNotIn('1.1.5',str(access))
   self.assertEqual(output['interface']['source'],'harness/web_fetch/providers/moli.py')
   old={'provider':'moli-1.0.6','provider_type':'headless_markdown','provider_metadata':{'reported_version':'moli 1.0.6'}}
   output=self.render([old],'moli-1.0.6')
-  self.assertIn('1.0.6',output['access']['links'][0][1])
-  self.assertEqual(output['interface'],json.loads(json.dumps(SPECS['moli'])))
+  self.assertEqual(output['access']['env_vars'], [])
+  self.assertIn('1.0.6', output['access']['links'][0][1])
+  self.assertNotIn('1.1.5', str(output['interface']))
+
  def test_unknown_or_mixed_generic_versions_do_not_invent_a_release(self):
   rows=[{'provider':'moli','provider_metadata':{'reported_version':'moli '+v}} for v in ('1.1.14','1.1.15')]
   for records in ([],rows):
@@ -351,3 +381,26 @@ def test_measurement_display_policy_does_not_grant_certification():
  assert '不可用于排名' in local_audit_banner(local)
  local['comparison']['presentation']={'ranking':'saved_task_pass_rate'}
  assert 'data-ranking-scope="saved-task-pass-rate"' in local_audit_banner(local)
+
+
+def test_input_suite_comparison_uses_declared_membership_and_selected_denominators():
+ from harness.web_fetch.report import input_suite_comparison
+ from bs4 import BeautifulSoup
+ cases={cid:{'id':cid,'task_kind':'body'} for cid in ['misleading-id','other-id']}
+ dataset={'comparison':{'input_sources':[
+  {'path':'first/dataset.json','case_ids':['other-id','unselected-parent-case']},
+  {'path':'second/dataset.json','case_ids':['misleading-id']}],
+  'report_suite_labels':{'first/dataset.json':{'zh':'正文','en':'Body'}}}}
+ rows=[{'case_id':cid,'provider':provider,'ok':True,'metrics':{'content_pass':passed}}
+  for provider,passed in [('one',True),('two',False)] for cid in cases]
+ html=input_suite_comparison(dataset,cases,rows); soup=BeautifulSoup(html,'html.parser')
+ assert '正文' in html and 'n=1' in html and 'n=2' not in html
+ assert len(soup.select('.comparison-winner'))==2
+ assert [cell['data-sort'] for cell in soup.select('tbody tr:first-child td[data-sort]')]==['1.0','1.0']
+ for source in dataset['comparison']['input_sources']:source['case_ids']=['misleading-id']
+ import pytest
+ with pytest.raises(ValueError,match='overlapping'):
+  input_suite_comparison(dataset,cases,rows)
+ dataset['comparison']['input_sources']=dataset['comparison']['input_sources'][:1]
+ with pytest.raises(ValueError,match='omits'):
+  input_suite_comparison(dataset,cases,rows)

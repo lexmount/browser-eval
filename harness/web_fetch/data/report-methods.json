@@ -6097,5 +6097,251 @@
         }
       }
     }
+  },
+  "unregistered_access": {
+    "type": "unknown",
+    "account": {
+      "zh": "未登记",
+      "en": "Not registered"
+    },
+    "configuration": {
+      "zh": "尚未登记账号与安装要求。",
+      "en": "Account and installation requirements have not been registered."
+    },
+    "env_vars": [],
+    "links": []
+  },
+  "messages": {
+    "installation_unrecorded": {
+      "zh": "未找到可核验的执行配置，安装变量未记录。",
+      "en": "A verifiable execution configuration is unavailable; installation variables were not recorded."
+    },
+    "installation_variable": {
+      "zh": "安装与执行记录版本一致的程序，通过 {variable} 指定程序位置。",
+      "en": "Install the recorded program version and set {variable} to its location."
+    },
+    "installation_direct": {
+      "zh": "执行配置直接指定程序位置，未使用安装环境变量。",
+      "en": "The execution configuration specifies the executable directly, without an installation environment variable."
+    },
+    "not_registered": {
+      "zh": "未登记",
+      "en": "Not registered"
+    },
+    "not_recorded": {
+      "zh": "未记录",
+      "en": "Not recorded"
+    },
+    "outer_deadline": {
+      "zh": "{timeout} 秒外层截止",
+      "en": "{timeout}-second outer deadline"
+    },
+    "outer_deadline_unrecorded": {
+      "zh": "外层截止时间未记录",
+      "en": "Outer deadline not recorded"
+    },
+    "wait_both": {
+      "zh": "导航等待 {navigation}；输出完成条件 {completion}",
+      "en": "Navigation wait {navigation}; output completion {completion}"
+    },
+    "wait_navigation": {
+      "zh": "导航等待 {navigation}",
+      "en": "Navigation wait {navigation}"
+    },
+    "wait_completion": {
+      "zh": "输出完成条件 {completion}",
+      "en": "Output completion {completion}"
+    },
+    "wait_unrecorded": {
+      "zh": "调用记录未提供可核对的等待条件",
+      "en": "Call records do not provide a verifiable wait condition"
+    },
+    "route_note": {
+      "zh": "（route={route}）",
+      "en": " (route={route})"
+    },
+    "extractor_prefix": {
+      "zh": "调用记录 extractor=",
+      "en": "Recorded extractor="
+    },
+    "original_file_unrecorded": {
+      "zh": "调用记录未注明原始文件接口",
+      "en": "Original-file interface not recorded"
+    },
+    "file_bytes": {
+      "zh": " → 文件字节",
+      "en": " → file bytes"
+    },
+    "original_file_bytes": {
+      "zh": " → 原始文件字节",
+      "en": " → original file bytes"
+    },
+    "call_prefix": {
+      "zh": "调用记录：",
+      "en": "Call record: "
+    },
+    "separator": {
+      "zh": "；",
+      "en": "; "
+    },
+    "list_separator": {
+      "zh": "、",
+      "en": ", "
+    },
+    "conversion_unrecorded": {
+      "zh": "；未据此补写未记录的转换步骤",
+      "en": "; unrecorded conversion steps are not inferred"
+    },
+    "interface_unrecorded": {
+      "zh": "接口未记录",
+      "en": "Interface not recorded"
+    },
+    "route_unrecorded": {
+      "zh": "调用记录未提供可核对的接口路线；不推断原生 Markdown、HTML 或额外转换",
+      "en": "Call records do not provide a verifiable route; native Markdown, HTML or additional conversion is not inferred"
+    },
+    "calls_prefix": {
+      "zh": "已记录的调用：",
+      "en": "Recorded calls: "
+    },
+    "calls_unrecorded": {
+      "zh": "没有可核对的调用接口记录。",
+      "en": "No verifiable call interfaces were recorded."
+    },
+    "configuration_default": {
+      "zh": "调用参数与交付路线以配置和逐例记录为准。",
+      "en": "Call parameters and delivery routes follow the configuration and per-case records."
+    },
+    "configuration_observed": {
+      "zh": "交付路线（{route_count}/{record_count} 条记录）：{route}；输出格式（{output_count}/{record_count} 条记录）：{output}。",
+      "en": "Delivery route ({route_count}/{record_count} records): {route}; output format ({output_count}/{record_count} records): {output}."
+    },
+    "candidate_suffix": {
+      "zh": "（候选版）",
+      "en": " (candidate build)"
+    },
+    "mixed_builds": {
+      "zh": "{label} 多构建结果（{counts}）",
+      "en": "{label} mixed builds ({counts})"
+    },
+    "mixed_count_one": {
+      "zh": "{count} 例 {version}",
+      "en": "{count} case: {version}"
+    },
+    "mixed_count_many": {
+      "zh": "{count} 例 {version}",
+      "en": "{count} cases: {version}"
+    },
+    "interface_intro_html": {
+      "zh": "<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置见“环境与复现”。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>",
+      "en": "<p>Descriptions follow the adapters used in this run and do not imply each product's full capabilities. Request examples show body-text settings; resource-setting differences are listed separately. They are not verbatim replays of every historical request. See Reproduction for each call's batch and effective configuration. Response examples are genuine excerpts from archived calls after adapter normalization, not raw HTTP responses. Keys and account values use placeholders.</p>"
+    },
+    "interface_measured_intro_html": {
+      "zh": "<p>已测方法的输入展示保存的公开调用字段，输出展示同一次调用的实际节选。完整配置、原始响应和日志见环境与调用详情。未参评方法保留仓库登记示例。</p>",
+      "en": "<p>For measured methods, inputs show saved public request fields and outputs show excerpts from the same call. See environment and call details for full configurations, raw responses, and logs. Unmeasured methods retain registered repository examples.</p>"
+    },
+    "interface_request_note": {
+      "zh": "此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。",
+      "en": "These are the request fields saved in this public call record. Full configuration and logs are in the environment and call details; internal product timeouts follow the frozen configuration and actual request."
+    },
+    "interface_unmeasured_sample": {
+      "zh": "仓库登记接口，未纳入本轮；此处不提供虚构的运行输出。",
+      "en": "Registered interface; not measured in this run. No execution output is fabricated."
+    },
+    "interface_accounts_html": {
+      "zh": "<h3>账号与获取入口</h3><p>",
+      "en": "<h3>Account and official access</h3><p>"
+    },
+    "interface_source_note_html": {
+      "zh": "</p><p class=\"source-note\">实际版本和接口见运行记录；下方链接指向官方说明。</p>",
+      "en": "</p><p class=\"source-note\">See the run records for the actual version and interface. The links below point to official documentation.</p>"
+    },
+    "interface_sample_label": {
+      "zh": "本轮输出节选 · 统一记录",
+      "en": "Saved output excerpt · normalized record"
+    },
+    "interface_not_run_label": {
+      "zh": "本轮未执行",
+      "en": "Not run in this benchmark"
+    },
+    "interface_input_card_html": {
+      "zh": "<div class=\"guide-grid\"><article class=\"guide-card\"><h3>输入</h3>",
+      "en": "<div class=\"guide-grid\"><article class=\"guide-card\"><h3>Input</h3>"
+    },
+    "interface_saved_fields_html": {
+      "zh": "<h4>本轮保存的调用字段</h4>",
+      "en": "<h4>Saved request fields from this run</h4>"
+    },
+    "interface_input_example_html": {
+      "zh": "<h4>调用输入示例</h4>",
+      "en": "<h4>Example request</h4>"
+    },
+    "interface_output_card_html": {
+      "zh": "</article><article class=\"guide-card\"><h3>输出</h3>",
+      "en": "</article><article class=\"guide-card\"><h3>Output</h3>"
+    },
+    "interface_full_result_link_html": {
+      "zh": ".html\">该次完整输出与判定 →</a>",
+      "en": ".html\">Complete output and verdict →</a>"
+    },
+    "interface_unmeasured_note": {
+      "zh": "未纳入本轮；参数说明为仓库登记模式，不计入本轮结果",
+      "en": "Not measured in this run; parameters describe the registered interface and do not contribute to results"
+    },
+    "interface_example_note": {
+      "zh": "以下接口说明与数值属于仓库登记示例，不是这次调用的请求记录。",
+      "en": "The following interface descriptions and values are registered examples, not this call’s request record."
+    },
+    "interface_verify_html": {
+      "zh": "</p><p class=\"source-note\">核对实现：<code>",
+      "en": "</p><p class=\"source-note\">Implementation checked:<code>"
+    },
+    "interface_example_json_link_html": {
+      "zh": ".json\">示例 JSON</a></p></details>",
+      "en": ".json\">Example JSON</a></p></details>"
+    }
+  },
+  "unregistered_adapter": {
+    "endpoint": {
+      "zh": "未记录",
+      "en": "Not recorded"
+    },
+    "contract": {
+      "zh": "未知",
+      "en": "Unknown"
+    },
+    "output": {
+      "zh": "未知",
+      "en": "Unknown"
+    },
+    "freshness": {
+      "zh": "未知",
+      "en": "Unknown"
+    },
+    "leaderboard": {
+      "zh": "未分类",
+      "en": "Unclassified"
+    }
+  },
+  "unregistered_interface": {
+    "entry": {
+      "zh": "未登记",
+      "en": "Not registered"
+    },
+    "auth": {
+      "zh": "未登记",
+      "en": "Not registered"
+    },
+    "params": [],
+    "fields": [],
+    "request": {},
+    "source": {
+      "zh": "未登记",
+      "en": "Not registered"
+    },
+    "notes": {
+      "zh": "接口资料尚未登记；请查阅保存的调用证据。",
+      "en": "Interface metadata has not been registered; consult saved call evidence."
+    }
   }
 }

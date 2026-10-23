@@ -2,6 +2,15 @@
 
 Publish the generated `report/` directory. Keep the rest of the run directory locally so you can rebuild and audit it.
 
+## Report instances
+
+Keep report profiles, evidence, authored content and publication receipts outside
+the checkout. Pass `--profile /absolute/instance-profile.json` to report build,
+check and package commands, or `PROFILE=/absolute/instance-profile.json` to their
+Make targets. A new instance reuses the same commands with different inputs.
+Historical full-cohort formats use an explicit `--authority-root` bundle that
+retains their original relative paths and hash-bound profile bytes.
+
 ## Report languages
 
 The Web Fetch CLI defaults to English. `run --language zh` generates Chinese only; `report <run> --language en` rebuilds both editions and opens English. A rebuild without `--language` keeps the saved choice, including Chinese-only reports created by older versions.

@@ -56,7 +56,7 @@ class LatencyDiagnosticTests(unittest.TestCase):
                 'official_results_sha256': 'different',
             }))
             (root / 'results.jsonl').write_text('unchanged\n')
-            with self.assertRaisesRegex(ValueError, 'manifest differs'):
+            with self.assertRaisesRegex(ValueError, 'explicit expected manifest hash'):
                 load_diagnostic(root, {'cases': []}, [], [])
             expected = hashlib.sha256((diagnostic / 'manifest.json').read_bytes()).hexdigest()
             with self.assertRaisesRegex(ValueError, 'preserved original matrix'):

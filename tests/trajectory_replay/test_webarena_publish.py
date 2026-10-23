@@ -499,7 +499,7 @@ def test_package_binds_report_evidence_and_release_gate(monkeypatch, tmp_path: P
     monkeypatch.setattr(
         packager,
         "validate_release",
-        lambda _report, _receipt: {"html_pages": 1, "checked_links": 0},
+        lambda _report, _receipt, **_kwargs: {"html_pages": 1, "checked_links": 0},
     )
 
     result = packager.package(report, evidence, output, tmp_path / "visual.json")
@@ -534,7 +534,7 @@ def test_package_reruns_private_preview_gate_for_old_receipt(
         "failures": [],
     }), encoding="utf-8")
     calls = []
-    monkeypatch.setattr(packager, "check_report", lambda _report: {"html_pages": 1})
+    monkeypatch.setattr(packager, "check_report", lambda _report, **_kwargs: {"html_pages": 1})
     monkeypatch.setattr(packager, "check_visual", lambda *_args: calls.append("private preview"))
 
     packager.validate_release(report, receipt)
@@ -558,7 +558,7 @@ def test_package_rejects_diagnostic_appendix_and_mixed_dataset(
     monkeypatch.setattr(packager, "PROFILE", profile)
     monkeypatch.setattr(packager, "REVIEW", review)
     monkeypatch.setattr(packager, "ATTESTATION", tmp_path / "attestation.json")
-    monkeypatch.setattr(packager, "validate_release", lambda *_args: {})
+    monkeypatch.setattr(packager, "validate_release", lambda *_args, **_kwargs: {})
     manifest = {"dataset_sha256": _sha256(dataset), "results_sha256": _sha256(evidence),
                 "diagnostic_closure_sha256": "a" * 64}
     (report / "report-manifest.json").write_text(json.dumps(manifest))

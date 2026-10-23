@@ -1081,9 +1081,9 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                                        for track in ['web','risk_control']},
                      'frozen_inputs':frozen_input_bindings(source)}
             repository=Path(__file__).resolve().parents[1]
-            with tempfile.TemporaryDirectory(prefix='report-profile-test-',dir=repository/'evaluation') as profile_dir:
+            with tempfile.TemporaryDirectory(prefix='report-profile-test-') as profile_dir:
                 profile_path=Path(profile_dir)/'current-report.json'
-                measured['comparison']['reproduction_profile']=profile_path.relative_to(repository).as_posix()
+                measured['comparison']['reproduction_profile']='instances/current-report.json'
                 measured['comparison']['report_output']='reports/synthetic-browser'
                 (source/'dataset.json').write_text(json.dumps(measured))
                 profile['frozen_inputs']=frozen_input_bindings(source)

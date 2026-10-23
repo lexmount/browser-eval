@@ -34,6 +34,15 @@ class ContentOwnershipTests(unittest.TestCase):
             self.assertIsNone(soup.select_one('.track-flow').find_parent('details'))
             self.assertTrue(soup.select_one('.track-flow p').get_text().strip())
 
+    def test_all_registered_task_guides_and_labels_have_english_editions(self):
+        from pathlib import PurePosixPath
+        from harness.web_fetch.report_i18n import TEXT, localize_html, untranslated_english_narrative
+        for track, label in TRACKS.items():
+            with self.subTest(track=track):
+                self.assertIn(label, TEXT)
+                page = localize_html(task_pass_guide(track), PurePosixPath('datasets/index.html'))
+                self.assertEqual(untranslated_english_narrative(page), [])
+
     def test_rendering_and_value_changes_are_not_confused(self):
         text=task_pass_guide('dynamic')
         for phrase in ['不是文字经常更新','异步取数','客户端组装','嵌入子页','JavaScript 不是唯一','不要求滚动']:

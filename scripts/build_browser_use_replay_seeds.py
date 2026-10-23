@@ -12,7 +12,7 @@ from harness.trajectory_replay.browser_use_seeds import build_replay_seed_manife
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--profile", default="evaluation/browser-use/current-report.json")
+    parser.add_argument("--profile", required=True)
     parser.add_argument("--evidence", action="append", required=True)
     parser.add_argument("--output", required=True)
     return parser.parse_args()

@@ -625,7 +625,7 @@ def main_comparison_inputs(argv=None) -> None:
     parser.add_argument(
         "--profile",
         type=Path,
-        default=Path("evaluation/trajectory-replay/webarena-verified/current-run.json"),
+        required=True,
     )
     parser.add_argument(
         "--corrections",

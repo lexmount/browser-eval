@@ -44,7 +44,11 @@ def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include
     monkeypatch.setattr(report_build, 'build_wcxb_report',
                         lambda *args, **kwargs: captured.append(kwargs) or tmp_path / 'index.html')
     root = Path(__file__).resolve().parents[1]
-    argv = [str(root / 'scripts/build_report.py'), '--wcxb', '--evidence', str(tmp_path),
+    profile = tmp_path / 'instance.json'
+    profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown', 'sample_manifest': 'sample.json'}))
+    binding = {'kind': 'test-content'}
+    (tmp_path / 'report-content-binding.json').write_text(json.dumps(binding))
+    argv = [str(root / 'scripts/build_report.py'), '--profile', str(profile), '--wcxb', '--evidence', str(tmp_path),
             '--output', str(tmp_path / 'new-report')]
     if include_english:
         argv.append('--include-english')
@@ -52,7 +56,6 @@ def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include
     with pytest.raises(SystemExit) as result:
         runpy.run_path(argv[0], run_name='__main__')
     assert result.value.code == 0
-    binding = json.loads((root / 'evaluation/wcxb/report-content-binding.json').read_text())
     assert captured == [{'include_english': include_english, 'language': 'en', 'authority_root': root,
                          'content_binding': binding}]
 
@@ -99,6 +102,56 @@ def test_wcxb_release_checks_bound_article_body(tmp_path, include_english, tampe
     else:
         with pytest.raises(ValueError, match='differs from bound content'):
             check_bound_interpretation(root, binding)
+
+
+@pytest.mark.parametrize('providers', [
+    ('moli', 'moli-pr643'),
+    ('moli', 'moli-pr643', 'chromium', 'obscura'),
+])
+def test_wcxb_instance_counts_versions_and_interfaces_follow_selected_evidence(tmp_path, providers):
+    root, rows, summary, truth, identities, profile, content = create_report_inputs(tmp_path)
+    rows = [row for row in rows if row['provider'] in providers]
+    summary['providers'] = {p: summary['providers'][p] for p in providers}
+    profile['providers'] = list(providers)
+    identities['moli']['reported_version'] = 'moli 2.3.4'
+    profile['candidate_source_commit'] = 'abcdef12' + '0' * 32
+    profile['max_failure_retries'] = 3
+    generate_wcxb(root, rows, summary, truth, identities, profile, content, include_english=True)
+    for prefix, count_text in [('', f'{len(providers)} 种配置'), ('en/', f'{len(providers)} configurations')]:
+        home = BeautifulSoup((root / prefix / 'index.html').read_text(), 'html.parser')
+        assert count_text in home.select_one('h1').get_text()
+        assert 'Moli 2.3.4' in home.get_text()
+        assert 'Moli moli' not in home.get_text()
+        assert 'abcdef12' in home.get_text()
+        for route in ('index.html', 'methodology/index.html', 'datasets/index.html', 'changes/index.html'):
+            text = (root / prefix / route).read_text()
+            assert 'six configurations' not in text
+            assert '六种配置' not in text
+            assert 'five browsers' not in text
+            assert '五款浏览器' not in text
+            if not prefix:
+                from harness.web_fetch.wcxb_report_check import ReportShape, require_bilingual_shape
+                zh, en = ReportShape(), ReportShape()
+                zh.feed(text)
+                en.feed((root / 'en' / route).read_text())
+                require_bilingual_shape(zh, en, route)
+        method = (root / prefix / 'methodology/index.html').read_text()
+        assert 'Kitesurf receives' not in method
+        interfaces = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(), 'html.parser').select_one('pre').get_text()
+        assert 'kitesurf:' not in interfaces
+        assert ('"engine": "chromium"' in interfaces) == ('chromium' in providers)
+        from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
+        from harness.web_fetch.wcxb_report_check import require_home_interpretation
+        _, calls = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, set(truth))
+        paired = summarize_full_paired_latency(calls, set(truth))
+        lang = 'zh' if not prefix else 'en'
+        html = (root / prefix / 'index.html').read_text()
+        checked = require_home_interpretation(html, summary, paired, lang, scores=rows)
+        checked.select_one('[data-f1-relation="higher"]')['data-count'] = '99'
+        with pytest.raises(ValueError, match='counts differ'):
+            require_home_interpretation(checked, summary, paired, lang, scores=rows)
+        assert ('最多重试 3 次' if lang == 'zh' else 'up to 3 retries') in method
+        assert 'cases/5458.html' not in html
 
 
 def test_wcxb_uses_measured_versions_and_actual_configuration_count(tmp_path):
@@ -299,6 +352,9 @@ def test_wcxb_registered_aliases_use_shared_interfaces_and_bound_timing_roles(tm
     if rename:
         del summary['providers']['moli']
         del identities['moli']
+        if profile.get('paired_comparison'):
+            profile['paired_comparison'] = {key: new if value == 'moli' else value
+                                            for key,value in profile['paired_comparison'].items()}
         for row in rows:
             if row['provider'] == 'moli':
                 row['provider'] = new
@@ -323,3 +379,4 @@ def test_wcxb_registered_aliases_use_shared_interfaces_and_bound_timing_roles(tm
         example = adoption.select_one('main pre').get_text()
         assert 'Moli 1.1.7' in example
         assert 'fetch' in example
+

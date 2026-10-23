@@ -6,6 +6,21 @@ from collections import Counter
 from lexbench_webfetch.metrics import task_measured
 
 
+def implementation_inventory(records: list[dict]) -> dict[str, dict[str, int]]:
+    """Disclose retained and rerun build populations without requiring new calls."""
+    implementations = {}
+    for row in records:
+        fingerprint = (row.get("provider_metadata") or {}).get("binary_sha256")
+        if not fingerprint:
+            metadata = row.get("provider_metadata") or {}
+            version = metadata.get("reported_version") or metadata.get("browser_version")
+            fingerprint = "reported-version:" + str(version) if version else "unknown"
+        counts = implementations.setdefault(row.get("provider"), {})
+        counts[fingerprint] = counts.get(fingerprint, 0) + 1
+    return {provider: dict(sorted(counts.items()))
+            for provider, counts in implementations.items()}
+
+
 def assess_reliability(dataset: dict, records: list[dict]) -> dict:
     """Require exactly one judged result for every planned provider/case pair."""
     cases = {case["id"]: case for case in dataset.get("cases", [])}
@@ -26,6 +41,7 @@ def assess_reliability(dataset: dict, records: list[dict]) -> dict:
         if row.get("case_id") in cases
         and not task_measured(row.get("metrics", {}), cases[row["case_id"]].get("task_kind", "body"))
     )
+    implementations = implementation_inventory(records)
     errors = []
     if not cases:
         errors.append("评测集没有案例")
@@ -51,6 +67,7 @@ def assess_reliability(dataset: dict, records: list[dict]) -> dict:
         "extra": [{"provider": p, "case_id": c} for p, c in extra],
         "duplicates": [{"provider": p, "case_id": c, "count": counts[(p, c)]} for p, c in duplicates],
         "unjudged": [{"provider": p, "case_id": c} for p, c in unjudged],
+        "implementation_inventory": implementations,
         "errors": errors,
         "publication_policy": "all_planned_provider_case_pairs_must_exist_once_and_be_judged",
     }

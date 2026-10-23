@@ -9,7 +9,11 @@ from harness.web_fetch.methods import method_access
 
 class HeadlessAccessTests(unittest.TestCase):
     def test_all_measured_engines_have_account_and_official_sources(self):
+        from harness.web_fetch.methods import browser_method_registry
+        for name in browser_method_registry():
+            self.assertTrue(method_access(name, [])['links'])
         accesses = {name: method_access(name, []) for name in SPECS}
+
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'adoption').mkdir()
@@ -56,7 +60,8 @@ class HeadlessAccessTests(unittest.TestCase):
             row['provider_metadata']['reported_version']=version
             self.assertEqual(method_version(row),version)
         self.assertEqual(method_version({'provider':'chromium','provider_metadata':{'browser_version':'155.0.8059.39'}}),'155.0.8059.39')
-        self.assertEqual(method_version({'provider':'kitesurf','provider_metadata':{'browser_version':'145.0.0.0'}}),'Beta · 托管后端版本未公开')
+        self.assertNotIn('145.0.0.0',str(method_version({'provider':'kitesurf','provider_metadata':{'browser_version':'145.0.0.0'}})))
+        self.assertEqual(method_version({'provider':'kitesurf','provider_metadata':{'reported_version':'service-build-9'}}),'service-build-9')
 
 
 if __name__ == '__main__':

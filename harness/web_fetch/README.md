@@ -117,12 +117,18 @@ home, outside Git.
 ## WCXB scoring
 
 `wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is
-`scripts/score_wcxb_results.py`; `--profile` selects an explicit experiment profile
-and defaults to `evaluation/wcxb/current-report.json`. The profile's ordered
+`scripts/score_wcxb_results.py`; the required `--profile` argument selects an
+external experiment profile. The profile's ordered
 participants must match the cohort certificate exactly. Adding or renaming a
 participant in a separately certified cohort requires data changes rather than
 scorer branches. This scoring option does not change the current report's
 publication authority or the certification runner's supported participants.
+
+For WCXB execution, the external profile also declares `expected_versions`, a
+map from each participant ID to its exact reported CLI version. Use `null` only
+for an interface that exposes no version. This machine identity is separate from
+the display label and the profile-bound binary hash. No historical report supplies
+a default browser version.
 
 The scorer loads the profile-pinned evaluator bytes and validates the complete
 source-qualified scope, execution identity, logical outputs, every retained
@@ -189,15 +195,15 @@ originals, binds any public redaction and runs the maintained release checks.
 
 ### Report instances
 
-Live WebFetch reports are data instances, not renderer subclasses. An instance's
-`evaluation/<instance>/current-report.json` binds its complete `cohort_plan`,
+Live WebFetch reports are data instances, not renderer subclasses. A diagnostic instance's
+external profile binds its complete `cohort_plan`,
 implementation, external `diagnostic_input` (data-home-relative path and SHA-256),
 and publication target. The input manifest owns cohort evidence paths, reviewed
 findings, explanatory prose and examples. It does not contain rendering code.
 
 ```bash
-uv run --frozen python scripts/build_report.py --profile evaluation/<instance>/current-report.json --output <new-report-directory>
-uv run --frozen python scripts/check_diagnostic_report.py <new-report-directory> --profile evaluation/<instance>/current-report.json
+uv run --frozen python scripts/build_report.py --profile /absolute/instance/profile.json --output <new-report-directory>
+uv run --frozen python scripts/check_diagnostic_report.py <new-report-directory> --profile /absolute/instance/profile.json
 ```
 
 Set `BROWSER_EVAL_DATA_HOME` when the external evidence uses a nondefault root.
@@ -252,6 +258,9 @@ configuration hashes are captured before calls. Moli binary hashing occurs durin
 validation, not each measured fetch; a changed binary requires revalidation.
 
 ### Retries
+
+A repair run may retain successful results and rerun only failed or affected cases. Keep every physical call and select the final response under the declared retry/correction policy. Recompute scores for the complete selected result population when the scorer changes; rescoring does not require new provider calls. If executable builds differ, disclose their fingerprints and selected result counts as cumulative results. This does not establish the full-suite result or speed of one build.
+
 
 All methods default to one retry after a failed task. Set
 `--max-failure-retries N` to any nonnegative integer; `0` disables retries.
@@ -1004,7 +1013,7 @@ uv run --frozen python scripts/assemble_webmainbench_evidence.py \
   --source-root /absolute/path/provider-shards \
   --dataset /absolute/path/WebMainBench_545.jsonl \
   --sample-manifest evaluation/public-webmainbench-200.json \
-  --profile evaluation/current-report.json \
+  --profile /absolute/path/report-profile.json \
   --review /absolute/path/passing-review.json \
   --output /absolute/path/new-assembled-evidence
 ```

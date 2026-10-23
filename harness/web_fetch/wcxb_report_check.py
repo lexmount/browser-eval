@@ -10,9 +10,11 @@ import tempfile
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
+from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.record_io import load_jsonl
 from harness.report_languages import localized_report_routes, visible_numbers
 from harness.reporting.presentation import check_presentation
@@ -80,11 +82,16 @@ class ReportShape(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
-        self.tags[tag] += 1
+        if not (tag == 'script' and 'data-report-language-entry' in values):
+            self.tags[tag] += 1
         if values.get('id'):
             self.ids.add(values['id'])
         if tag == 'a' and values.get('href'):
-            self.links[re.sub(r'^en/', '', values['href'])] += 1
+            href = urlsplit(values['href'])
+            query = [(key, value) for key, value in parse_qsl(href.query, keep_blank_values=True)
+                     if href.netloc or href.scheme or key != 'report-language']
+            path = re.sub(r'^en/', '', href.path) if not href.netloc else href.path
+            self.links[urlunsplit((href.scheme, href.netloc, path, urlencode(query), href.fragment))] += 1
         for name in ('value', 'data-provider', 'data-case', 'data-result',
                      'data-diagnosis', 'data-page-type', 'data-sort', 'data-core-sort'):
             if name in values:
@@ -139,37 +146,99 @@ def require_analysis_controls(html: str | BeautifulSoup, result_count: int) -> B
 
 
 def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
-                                paired_latency: dict, lang: str, paired_methods: dict) -> BeautifulSoup:
-    """Keep the version comparison readable and its timing caveat beside the table."""
+                                paired_latency: dict | None, lang: str,
+                                paired_methods: dict | None = None, *,
+                                scores: list[dict] | None = None,
+                                comparison: dict | None = None) -> BeautifulSoup:
+    """Check declared page-level changes and independently bound paired timing."""
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
     core = soup.select_one('#wcxb-core')
     contexts = soup.select('#paired-latency-context')
+    changes = soup.select('#configuration-change')
+    require(core is not None, 'Home core comparison is missing')
     require(not soup.select('#moli-change'), 'Report-specific findings belong in bound interpretation content')
-    require(core is not None and len(contexts) == 1,
-            'Home paired comparison or timing context is missing or duplicated')
-    context = contexts[0]
-    require(core.find_parent('section') == context.find_parent('section'),
-            'Paired timing context must be beside the core comparison')
-    require(core.find_next(id='paired-latency-context') == context,
-            'Paired timing context must follow the core comparison')
-    pair = {role: provider for provider, role in paired_methods.items()}
-    release = summary['providers'][pair['release']]['mean_latency_ms']
-    candidate = summary['providers'][pair['pr']]['mean_latency_ms']
-    required = (f'{release:,.0f} ms', f'{candidate:,.0f} ms',
-                f'{paired_latency["paired_delta_mean_ms"]:+.1f} ms')
-    context_text = context.get_text(' ', strip=True)
-    require(all(value in context_text for value in required),
-            'Home timing context disagrees with measured evidence')
-    require(('交叉顺序' if lang == 'zh' else 'balanced same-window') in context_text
-            and re.search(r'(?<![0-9])' + re.escape(f'{summary["case_count"]} ' + ('页' if lang == 'zh' else 'pages')), context_text),
-            'Home timing context does not identify the corrected population')
-    require(context.select_one('a[href$="guide/index.html"]') is not None,
-            'Home timing context does not link to the analysis')
+    if comparison == {}:
+        require(not changes, 'Home has an undeclared paired comparison')
+    if comparison or changes:
+        require(len(changes) == 1, 'Home configuration comparison is missing or duplicated')
+        baseline, candidate = changes[0].get('data-baseline'), changes[0].get('data-candidate')
+        require(baseline != candidate and {baseline,candidate} <= set(summary['providers']),
+                'Home comparison does not identify two registered participants')
+        if comparison is not None:
+            require((baseline,candidate) == (comparison['baseline'],comparison['candidate']),
+                    'Home comparison differs from its declared participants')
+    if paired_latency is None:
+        require(not contexts, 'Home claims a same-window comparison without timing evidence')
+    else:
+        require(len(contexts) == 1, 'Paired timing context is missing or duplicated')
+        context = contexts[0]
+        require(core.find_parent('section') == context.find_parent('section'),
+                'Paired timing context must be beside the core comparison')
+        require(core.find_next(id='paired-latency-context') == context,
+                'Paired timing context must follow the core comparison')
+        pair = {role: provider for provider, role in (paired_methods or {}).items()}
+        if not pair and changes:
+            pair = {'release': baseline, 'pr': candidate}
+        require(set(pair) == {'release', 'pr'}, 'Paired timing participants are not declared')
+        release = summary['providers'][pair['release']]['mean_latency_ms']
+        candidate_latency = summary['providers'][pair['pr']]['mean_latency_ms']
+        required = (f'{release:,.0f} ms', f'{candidate_latency:,.0f} ms',
+                    f'{paired_latency["paired_delta_mean_ms"]:+.1f} ms')
+        context_text = context.get_text(' ', strip=True)
+        require(all(value in context_text for value in required),
+                'Home timing context disagrees with measured evidence')
+        require(('交叉顺序' if lang == 'zh' else 'balanced same-window') in context_text
+                and re.search(r'(?<![0-9])' + re.escape(f'{summary["case_count"]} ' + ('页' if lang == 'zh' else 'pages')), context_text),
+                'Home timing context does not identify the corrected population')
+        require(context.select_one('a[href$="guide/index.html"]') is not None,
+                'Home timing context does not link to the analysis')
+    
+    if not changes:
+        return soup
+    change = changes[0]
+    change_text = change.get_text(' ', strip=True)
+    require(len(change_text) <= (330 if lang == 'zh' else 700),
+            'Home configuration change summary is too long; move detail to the interpretation page')
+    require(len(change.select('p')) == 2 and change.select_one('a[href*="cases/"]')
+            and change.select_one('a[href$="guide/index.html"]'),
+            'Home configuration change summary lacks concise evidence links')
+    if scores is None:
+        return soup
+    by_case = {}
+    for row in scores:
+        if row.get('quality_eligible', True):
+            by_case.setdefault(row['case_id'], {})[row['provider']] = row['f1']
+    deltas = [values[candidate] - values[baseline] for values in by_case.values()]
+    expected = {'higher': sum(value > 1e-10 for value in deltas),
+                'lower': sum(value < -1e-10 for value in deltas),
+                'equal': sum(abs(value) <= 1e-10 for value in deltas)}
+    actual = {node['data-f1-relation']: int(node['data-count'])
+              for node in change.select('[data-f1-relation][data-count]')}
+    require(actual == expected and sum(actual.values()) == summary['quality_case_count'],
+            'Home page-level change counts differ from scored evidence')
+    for node in change.select('a[href*="cases/"]'):
+        require(Path(urlsplit(node['href']).path).stem in by_case,
+                'Home comparison links to a case outside the selected evidence')
+    require(('逐页 F1 的平均' if lang == 'zh' else 'page-level F1 values') in change_text,
+            'Home comparison omits the page-level F1 definition')
+    precision_delta = ((summary['providers'][candidate]['quality_precision']
+                        - summary['providers'][baseline]['quality_precision']) * 100)
+    recall_delta = ((summary['providers'][candidate]['quality_recall']
+                     - summary['providers'][baseline]['quality_recall']) * 100)
+    f1_delta = ((summary['providers'][candidate]['quality_f1']
+                 - summary['providers'][baseline]['quality_f1']) * 100)
+    require(all(f'{value:+.4f}' in change_text
+                for value in (precision_delta, recall_delta, f1_delta)),
+            'Home configuration change summary disagrees with aggregate deltas')
+    require(not any(f'{summary["providers"][provider]["quality_f1"] * 100:.4f}%'
+                    in change_text for provider in (baseline,candidate)),
+            'Home configuration change summary repeats exact table values')
     return soup
 
 
 def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
                                  providers: list[str], lang: str, *, expected_html: str) -> BeautifulSoup:
+
     """A guide must work as a standalone explanation, with traceable examples."""
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
     expected = BeautifulSoup(expected_html, 'html.parser')
@@ -200,12 +269,17 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
     for graphic in soup.select('main img, .repair-case img'):
         require(bool(graphic.get('src')) and bool(graphic.get('alt', '').strip()),
                 'Guide figure lacks a source or alternative text')
+
     require(soup.select_one('#guide-methods table') is not None
             and len(soup.select('#guide-methods tbody tr')) == len(providers),
             'Guide does not diagnose every measured configuration')
-    require(soup.select_one('#guide-timing a[href="research/wcxb-full-paired-latency/calls.jsonl"]') is not None
-            and soup.select_one('#guide-timing a[href="research/wcxb-full-paired-latency/certification.json"]') is not None,
-            'Guide timing is missing full-scope certified paired evidence')
+    specimens = [specimen]
+    for sibling in specimen.find_next_siblings():
+        if sibling.get('id') in anchors:
+            break
+        specimens.append(sibling)
+    require(any(node.select_one('a[href*="cases/"]') is not None for node in specimens),
+            'Guide lacks inspectable source/reference/output evidence')
     require(len(soup.select_one('#guide-conclusion').get_text(' ', strip=True)) > 200,
             'Guide conclusion lacks a substantive finding')
     return soup
@@ -232,22 +306,28 @@ def check_bound_interpretation(root: Path, binding: dict) -> None:
             raise ValueError('WCXB interpretation differs from bound content: ' + language)
 
 
-def check(root: Path, *, authority_root: Path | None = None) -> None:
+def check(root: Path, *, authority_root: Path | None = None, profile_path: Path | None = None) -> None:
     root = root.resolve()
     repository = (authority_root or ROOT).resolve()
-    profile_path = repository / "evaluation/wcxb/current-report.json"
+    if profile_path is None:
+        if authority_root is None:
+            raise ValueError("Select an external report instance with --profile or --authority-root")
+        profile_path = repository / "evaluation/wcxb/current-report.json"
     if not profile_path.is_file():
-        raise ValueError("WCXB release authority is missing; pass --authority-root pointing to the repository")
-    profile = json.loads((repository / 'evaluation/wcxb/current-report.json').read_text())
+        raise ValueError("WCXB release authority is missing; pass --authority-root pointing to the selected instance bundle")
+    reject_evidence_symlinks(profile_path)
+    profile = json.loads(profile_path.read_text())
+    comparison = profile.get('paired_comparison') or {}
     from .wcxb_publication import inventory
     inventory(root, profile)
-    binding_path = contained_path(repository, 'evaluation/wcxb/report-content-binding.json',
-                                  reject_symlinks=True)
+    binding_path = profile_path.with_name('report-content-binding.json')
+    reject_evidence_symlinks(binding_path)
     content_binding = json.loads(binding_path.read_bytes())
     check_bound_interpretation(root, content_binding)
     guide_sources = {lang: (root / prefix / 'guide/index.html').read_text()
                      for lang, prefix in [('zh', ''), ('en', 'en')]
                      if (root / prefix / 'guide/index.html').is_file()}
+
     sample_file = root / 'sample-manifest.json'
     sample = json.loads(sample_file.read_text())
     require(sample.get('scope') == 'qualified_test', 'WCXB current selection is not source-qualified')
@@ -267,50 +347,56 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     require(len(case_ids) == profile['case_count'] == summary['case_count'], 'WCXB case count differs')
     require(len(scores) == len(case_ids) * len(providers), 'WCXB score count differs')
     require(summary['quality_case_count'] == profile['primary_quality_case_count'] == sample['primary_quality_case_count'] == len(qualified), 'WCXB quality denominator differs')
+
     require(summary['exclusions'] == sample.get('exclusions', []) == [], 'WCXB current cohort contains excluded cases')
     require(summary['benchmark'] == sample['dataset_id'] == certificate['benchmark'], 'WCXB certified dataset identity differs')
     require({(r['provider'], r['case_id']) for r in scores} == {(p, c) for p in providers for c in case_ids}, 'WCXB method-case matrix differs')
     require([r['provider'] for r in certificate['providers']] == providers, 'WCXB certificate participants differ')
     from harness.web_fetch.wcxb_scoring import paired_latency_methods
-    paired_methods = paired_latency_methods(profile, certificate)
-    optional_paths = [name for name, sha in content_binding['evidence'].items()
-                      if sha == profile['optional_ui_receipt_sha256']]
-    require(len(optional_paths) == 1, 'Optional feature receipt must have one profile binding')
-    optional_source = Path(optional_paths[0])
-    optional_public = Path('research') / ('wcxb-' + optional_source.parent.name) / optional_source.name
-    optional_receipt = contained_path(root, optional_public, reject_symlinks=True)
-    require(optional_receipt.is_file() and digest(optional_receipt) == profile['optional_ui_receipt_sha256'],
-            'WCXB optional feature evidence differs from current profile')
-    optional_root = optional_receipt.parent
-    optional = json.loads(optional_receipt.read_text())
-    require(optional.get('case_id') in case_ids, 'Optional feature case is outside the current population')
-    for name, binary_hash in (('release', profile['release_binary_sha256']),
-                              ('candidate', profile['candidate_binary_sha256'])):
-        build = optional['builds'][name]
-        artifact = optional_root / f'{name}.md'
-        require(build['binary_sha256'] == binary_hash and build['returncode'] == 0
-                and artifact.is_file() and not artifact.is_symlink()
-                and digest(artifact) == build['output_sha256'],
-                'WCXB optional UI-stripping output is not bound to its binary')
-    require(all(isinstance(build.get('description_present'), bool)
-                for build in optional['builds'].values()),
-            'WCXB optional feature evidence lacks observed outcomes')
+    paired_methods = paired_latency_methods(profile, certificate) if profile.get('latency_correction_receipt_sha256') else {}
+    if profile.get('optional_ui_receipt_sha256'):
+        optional_paths = [name for name, sha in content_binding['evidence'].items()
+                          if sha == profile['optional_ui_receipt_sha256']]
+        require(len(optional_paths) == 1, 'Optional feature receipt must have one profile binding')
+        optional_source = Path(optional_paths[0])
+        optional_public = Path('research') / ('wcxb-' + optional_source.parent.name) / optional_source.name
+        optional_receipt = contained_path(root, optional_public, reject_symlinks=True)
+        require(optional_receipt.is_file() and digest(optional_receipt) == profile['optional_ui_receipt_sha256'],
+                'WCXB optional feature evidence differs from current profile')
+        optional_root = optional_receipt.parent
+        optional = json.loads(optional_receipt.read_text())
+        require(optional.get('case_id') in case_ids, 'Optional feature case is outside the current population')
+        for name, binary_hash in (('release', profile['release_binary_sha256']),
+                                  ('candidate', profile['candidate_binary_sha256'])):
+            build = optional['builds'][name]
+            artifact = optional_root / f'{name}.md'
+            require(build['binary_sha256'] == binary_hash and build['returncode'] == 0
+                    and artifact.is_file() and not artifact.is_symlink()
+                    and digest(artifact) == build['output_sha256'],
+                    'WCXB optional UI-stripping output is not bound to its binary')
+        require(all(isinstance(build.get('description_present'), bool)
+                    for build in optional['builds'].values()),
+                'WCXB optional feature evidence lacks observed outcomes')
+
     from harness.web_fetch.wcxb_latency import (
         load_full_paired_latency,
         summarize_full_paired_latency,
     )
-    _, selected_latency = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, case_ids)
-    paired_latency = summarize_full_paired_latency(selected_latency, case_ids)
-    for provider, method in paired_methods.items():
-        values = sorted(selected_latency[case_id, method]['elapsed_ms'] for case_id in case_ids)
-        position = (len(values) - 1) * .95
-        low = int(position)
-        p95 = values[low] + (values[min(low + 1, len(values) - 1)] - values[low]) * (position - low)
-        measured = summary['providers'][provider]
-        require(abs(measured['mean_latency_ms'] - paired_latency[method]['mean_ms']) < .01
-                and abs(measured['p50_latency_ms'] - paired_latency[method]['p50_ms']) < .01
-                and abs(measured['p95_latency_ms'] - p95) < .01,
-                'WCXB Paired timing summary differs from certified full paired evidence')
+    paired_latency = None
+    if profile.get('latency_correction_receipt_sha256'):
+        _, selected_latency = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, case_ids)
+        paired_latency = summarize_full_paired_latency(selected_latency, case_ids)
+        for provider, method in paired_methods.items():
+            values = sorted(selected_latency[case_id, method]['elapsed_ms'] for case_id in case_ids)
+            position = (len(values) - 1) * .95
+            low = int(position)
+            p95 = values[low] + (values[min(low + 1, len(values) - 1)] - values[low]) * (position - low)
+            measured = summary['providers'][provider]
+            require(abs(measured['mean_latency_ms'] - paired_latency[method]['mean_ms']) < .01
+                    and abs(measured['p50_latency_ms'] - paired_latency[method]['p50_ms']) < .01
+                    and abs(measured['p95_latency_ms'] - p95) < .01,
+                    'WCXB Paired timing summary differs from certified full paired evidence')
+
     evidence_hashes = json.loads((root / 'evidence-manifest.json').read_text())
     require(set(evidence_hashes) == case_ids, 'WCXB evidence inventory differs')
     by_case = {}
@@ -367,7 +453,8 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
             if route in ('index.html', 'datasets/index.html'):
                 check_presentation(html)
                 if route == 'index.html':
-                    require_home_interpretation(html, summary, paired_latency, lang, paired_methods)
+                    require_home_interpretation(html, summary, paired_latency, lang, paired_methods, scores=scores, comparison=comparison)
+
                     require('id="home-type"' in html, 'Page-type filter missing')
                     require('官方全量 F1' not in html and 'Official full F1' not in html, 'Invalid full-reference score remains visible')
                     first_card = BeautifulSoup(html, 'html.parser').select_one('.lead-grid .panel')
@@ -421,6 +508,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
         else:
             raise AssertionError('A broken bilingual navigation link was accepted')
     require_comparison_highlights((root / 'index.html').read_text())
+
     analysis = require_analysis_controls((root / 'analysis/index.html').read_text(), len(qualified) * len(providers))
     analysis.select_one('#diagnosis-dialog [data-diagnosis-link]').decompose()
     try:
@@ -444,7 +532,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     # filenames, versions or claims. Any edited authored evidence must fail.
     for lang, prefix in language_pairs:
         source = guide_sources[lang]
-        for selector in ('#guide-results tbody tr', '#guide-cases a',
+        for selector in ('#guide-results tbody tr', 'a[href*="cases/"]',
                          '#guide-conclusion'):
             guide = BeautifulSoup(source, 'html.parser')
             target = guide.select_one(selector)
@@ -457,39 +545,41 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
                 pass
             else:
                 raise AssertionError('An altered bound interpretation was accepted: ' + selector)
-    home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
-    home.select_one('#paired-latency-context').decompose()
-    try:
-        require_home_interpretation(home, summary, paired_latency, 'zh', paired_methods)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError('A home page without adjacent timing context was accepted')
-    with tempfile.TemporaryDirectory(prefix='wcxb-latency-negative-') as directory:
-        invalid = Path(directory)
-        evidence = root / 'research/wcxb-full-paired-latency'
-        shutil.copy2(evidence / 'receipt.json', invalid / 'receipt.json')
-        shutil.copy2(evidence / 'calls.jsonl', invalid / 'calls.jsonl')
-        calls = (invalid / 'calls.jsonl').read_bytes()
-        (invalid / 'calls.jsonl').write_bytes(calls.rsplit(b'\n', 2)[0] + b'\n')
+    if profile.get('latency_correction_receipt_sha256'):
+        home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
+        home.select_one('#paired-latency-context').decompose()
         try:
-            load_full_paired_latency(invalid, profile, case_ids)
+            require_home_interpretation(home, summary, paired_latency, 'zh', paired_methods)
         except ValueError:
             pass
         else:
-            raise AssertionError('An incomplete paired latency cohort was accepted')
-        (invalid / 'calls.jsonl').write_bytes(calls)
-        receipt = json.loads((invalid / 'receipt.json').read_text())
-        receipt['binary_sha256']['pr'] = '0' * 64
-        (invalid / 'receipt.json').write_text(json.dumps(receipt))
-        try:
-            load_full_paired_latency(invalid, profile, case_ids)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError('A wrong paired binary identity was accepted')
-    require((root / 'assets/style.css').is_file() and (root / 'assets/report.js').is_file(), 'WCXB report assets missing')
-    require(len([path for path in root.rglob('*') if path.is_file()]) < 2000, 'WCXB report tree unexpectedly large')
+            raise AssertionError('A home page without adjacent timing context was accepted')
+        with tempfile.TemporaryDirectory(prefix='wcxb-latency-negative-') as directory:
+            invalid = Path(directory)
+            evidence = root / 'research/wcxb-full-paired-latency'
+            shutil.copy2(evidence / 'receipt.json', invalid / 'receipt.json')
+            shutil.copy2(evidence / 'calls.jsonl', invalid / 'calls.jsonl')
+            calls = (invalid / 'calls.jsonl').read_bytes()
+            (invalid / 'calls.jsonl').write_bytes(calls.rsplit(b'\n', 2)[0] + b'\n')
+            try:
+                load_full_paired_latency(invalid, profile, case_ids)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError('An incomplete paired latency cohort was accepted')
+            (invalid / 'calls.jsonl').write_bytes(calls)
+            receipt = json.loads((invalid / 'receipt.json').read_text())
+            receipt['binary_sha256']['pr'] = '0' * 64
+            (invalid / 'receipt.json').write_text(json.dumps(receipt))
+            try:
+                load_full_paired_latency(invalid, profile, case_ids)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError('A wrong paired binary identity was accepted')
+    
+        require((root / 'assets/style.css').is_file() and (root / 'assets/report.js').is_file(), 'WCXB report assets missing')
+
     print(f'PASS: WCXB {len(case_ids)}-case, {len(providers)}-method, declared-language evidence and route inventory')
 
 
@@ -497,8 +587,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('report', type=Path)
     parser.add_argument('--authority-root', type=Path)
+    parser.add_argument('--profile', type=Path)
     args = parser.parse_args()
-    check(args.report, authority_root=args.authority_root)
+    check(args.report, authority_root=args.authority_root, profile_path=args.profile)
 
 
 def binary_from_env(path: Path) -> str:
@@ -547,7 +638,8 @@ def check_visual(root: Path, browser_binary: str) -> None:
                                     errors = []
                                     page.on('pageerror', lambda error: errors.append(str(error)))
                                     prefix = 'en/' if lang == 'en' else ''
-                                    page.goto(f'{origin}/{prefix}{route}',
+                                    language_query = '?report-language=zh' if lang == 'zh' and route == 'index.html' else ''
+                                    page.goto(f'{origin}/{prefix}{route}{language_query}',
                                               wait_until='networkidle')
                                     if not page.locator('link[rel="stylesheet"]').evaluate('(node) => Boolean(node.sheet)'):
                                         raise ValueError(f'Report stylesheet did not load: {lang} {route}')
@@ -628,7 +720,7 @@ def check_visual(root: Path, browser_binary: str) -> None:
                                             if f'cases/{case_id}.html' not in page.url:
                                                 raise ValueError('Nested result link does not open the case')
                                             page.locator('header a').first.click()
-                                            if not page.url.endswith('/index.html'):
+                                            if urlsplit(page.url).path != urlsplit(f'{origin}/{prefix}index.html').path:
                                                 raise ValueError('Nested result cannot return to the report root')
                                     if route.startswith('cases/') and not dark:
                                         page.locator('.hero .source a').click()

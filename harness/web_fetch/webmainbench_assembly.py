@@ -647,7 +647,7 @@ def sample_main(argv=None, *, root=None):
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--sample-manifest", type=Path, required=True)
     parser.add_argument("--review", type=Path, required=True)
-    parser.add_argument("--profile", type=Path, default=(root or Path.cwd()) / "evaluation/current-report.json")
+    parser.add_argument("--profile", type=Path, required=True)
     args = parser.parse_args(argv)
     assemble(args.source_root, args.output, args.dataset, args.profile,
              sample_manifest=args.sample_manifest, review_path=args.review)
@@ -661,7 +661,7 @@ def main() -> None:
     parser.add_argument(
         "--profile",
         type=Path,
-        default=ROOT / "evaluation/webmainbench-full/current-report.json",
+        required=True,
     )
     parser.add_argument(
         "--variants", type=Path, help="Variant registry bound by the report profile"

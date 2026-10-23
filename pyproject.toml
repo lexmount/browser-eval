@@ -3,10 +3,11 @@ name = "browser-harness-eval"
 version = "0.1.0"
 description = "Evaluation harness for web fetching, browser trajectory replay and autonomous agents"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY.md"]
 requires-python = ">=3.11"
 dependencies = [
-  "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@5ac291a592fec849d86bbb791a80579cc7a6c2c6",
+  "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@6bd263ed98030a883e66ac75a47ac4e7fbae4ad1",
   "beautifulsoup4>=4.12,<5",
   "fastcdc==1.7.0",
 ]
@@ -93,7 +94,7 @@ select = ["B", "E", "F", "I", "UP"]
 "harness/trajectory_replay/public_webarena/metrics.py" = ["F401", "I001"]
 
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -101,8 +102,10 @@ include = ["harness*"]
 
 [tool.setuptools.package-data]
 "harness" = ["licenses/*.txt"]
+"harness.trajectory_replay" = ["messages.json"]
+"harness.browser_use" = ["report-translations.json"]
 "harness.lexbench" = ["assets/*.js", "assets/*.cjs"]
-"harness.web_fetch" = ["data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]
+"harness.web_fetch" = ["report-translations.json", "data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]
 "harness.web_fetch.workers" = ["*.mts", "*.mjs", "*.c"]
 "harness.environments.webarena" = ["runtime/*.ini"]
 

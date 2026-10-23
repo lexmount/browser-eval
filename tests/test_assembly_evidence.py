@@ -77,7 +77,7 @@ def test_canonical_dataset_promotes_an_explicit_full_review_policy(source, tmp_p
     (root / 'dataset.json').write_text(json.dumps(baseline))
     revise(root, root / 'dataset.json', root_cause_category='answer-surface',
         root_cause='Synthetic retained-answer correction is checked on the complete cohort.',
-        regression_ids=['answer-title-supplies-required-fact'])
+        regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'])
     baseline = json.loads((root / 'dataset.json').read_text())
     canonical = tmp_path / 'canonical.json'
     promoted = json.loads(json.dumps(baseline))
@@ -721,7 +721,7 @@ def test_scored_cohort_composition_keeps_authority_without_starting_review(sourc
     root, _ = source
     revise(root, root / 'dataset.json', root_cause_category='answer-surface',
         root_cause='Synthetic retained-answer correction is checked on the complete cohort.',
-        regression_ids=['answer-title-supplies-required-fact'])
+        regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'])
     assert valid_scoring_revision(root)
     original_bytes = (root / 'results.jsonl').read_bytes()
     original_history = (root / 'scoring-revisions.json').read_bytes()
@@ -809,7 +809,7 @@ def test_scored_cohort_composition_rejects_invalid_authority_or_changed_verdict(
         (root / 'dataset.json').write_text(json.dumps(metadata))
     revise(root, root / 'dataset.json', root_cause_category='answer-surface',
         root_cause='Synthetic retained-answer correction is checked on the complete cohort.',
-        regression_ids=['answer-title-supplies-required-fact'])
+        regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'])
     dataset = json.loads((root / 'dataset.json').read_text())
     case = EvalCase(**dataset['cases'][0])
     class Fixture(Provider):

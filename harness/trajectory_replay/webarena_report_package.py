@@ -6,16 +6,21 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
 from pathlib import Path
 
 from harness.reporting.publication import package_archive
-from harness.trajectory_replay.report_compaction import validate_compact_report
+from harness.trajectory_replay.report_compaction import (
+    check_compact_navigation,
+    compact_report,
+    validate_compact_report,
+)
 from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report_check import check as check_report
 from harness.trajectory_replay.webarena_report_visual import check as check_visual
 from harness.trajectory_replay.webarena_report_visual import receipt_is_current
 
-PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
+PROFILE: Path | None = None
 REVIEW = Path("research/trajectory-replay-failure-review.json")
 ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
 ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
@@ -41,8 +46,10 @@ def tree_sha256(root: Path) -> str:
     return digest.hexdigest()
 
 
-def validate_release(report: Path, visual_receipt: Path) -> dict[str, int]:
-    summary = check_report(report)
+def validate_release(
+    report: Path, visual_receipt: Path, *, profile_path: Path | None = None
+) -> dict[str, int]:
+    summary = check_report(report, profile_path=profile_path)
     if not receipt_is_current(report, visual_receipt):
         check_visual(report, visual_receipt)
     return summary
@@ -59,8 +66,18 @@ def package(
     review_path: Path | None = None,
     attestation_path: Path | None = None,
 ) -> dict:
+    if package_report is None and sum(path.is_file() for path in report.rglob("*")) > MAX_FILES:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="replay-package-", dir=output.parent) as temporary:
+            compact = Path(temporary) / "report"
+            compact_report(report, compact)
+            return package(report, evidence, output, visual_receipt, package_report=compact,
+                           profile_path=profile_path, review_path=review_path,
+                           attestation_path=attestation_path)
     packaged = package_report or report
     profile_path = profile_path or PROFILE
+    if profile_path is None:
+        raise ValueError("Select an external report instance with --profile")
     review_path = review_path or REVIEW
     attestation_path = attestation_path or ATTESTATION
     if not evidence.is_file():
@@ -71,7 +88,7 @@ def package(
     summary = {}
 
     def validate() -> None:
-        summary.update(validate_release(report, visual_receipt))
+        summary.update(validate_release(report, visual_receipt, profile_path=profile_path))
         report_manifest = json.loads((report / "report-manifest.json").read_text(encoding="utf-8"))
         profile = json.loads(profile_path.read_text(encoding="utf-8"))
         dataset_path = bound_dataset_path(profile)
@@ -93,7 +110,8 @@ def package(
         if report_manifest.get("diagnostic_closure_sha256"):
             raise ValueError("diagnostic-only appendices cannot enter the replay release")
         if packaged != report:
-            compact = validate_compact_report(packaged, max_files=MAX_FILES)
+            compact = validate_compact_report(packaged, max_files=MAX_FILES, source=report)
+            check_compact_navigation(packaged)
             if compact["task_routes"] != report_manifest["task_count"] or compact[
                 "result_routes"
             ] != report_manifest["logical_results"]:
@@ -132,7 +150,7 @@ def main() -> None:
     parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=ARCHIVE)
     parser.add_argument("--visual-receipt", type=Path, default=VISUAL_RECEIPT)
-    parser.add_argument("--profile", type=Path, default=PROFILE)
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument("--review", type=Path, default=REVIEW)
     parser.add_argument("--attestation", type=Path, default=ATTESTATION)
     args = parser.parse_args()

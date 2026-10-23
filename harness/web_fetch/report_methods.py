@@ -16,6 +16,7 @@ def display_name(name):
     return browser_method_label(name)
 
 
+
 def adoption_counts(data,names):
     result=[]
     for name in names:
@@ -35,6 +36,24 @@ def adoption_counts(data,names):
         result.append({'provider':name,'repository_count':len(repos) if sigs is not None else None,'file_count':len(files) if sigs is not None else None,'signatures':sorted(sigs or []),'repositories':list(repos.values())})
     return sorted(result,key=lambda x:(x['repository_count'] is None,-(x['repository_count'] or 0),x['provider']))
 
+def _implementation_scope(records, *, section, table, cell, esc):
+    from .reliability import implementation_inventory
+    from .report import model_text
+    inventories = implementation_inventory(records)
+    if not inventories:
+        return ""
+    rows = [("", cell(esc(name)) + cell("<code>" + esc(fingerprint) + "</code>") + cell(str(count)))
+            for name, counts in sorted(inventories.items())
+            for fingerprint, count in counts.items()]
+    explanation = model_text(
+        "表中列出每个方法采用的结果数及其版本依据。unknown 表示未记录版本；reported-version 表示仅记录了版本名称，未核验二进制。多个版本合并的累计成绩不代表某一个版本独立跑完整套任务。",
+        "Every selected result is counted below. unknown means no version was recorded; reported-version identifies a recorded version label without a verified binary. When several builds are combined, the cumulative score is not a complete run by any single build.")
+    return section(model_text("局部重跑与结果来源", "Partial reruns and result provenance"),
+                   "<p>" + explanation + "</p>" + table(
+                       [model_text("方法", "Method"), model_text("版本依据", "Version evidence"), model_text("采用结果数", "Selected results")],
+                       rows, metrics=[]), "implementation-scope")
+
+
 def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True):
     if records and all(row.get('provider_type') == 'fixture' for row in records):
         body = hero('合成示例适配器', '离线检查安装、评分、证据和报告导航。') + section(
@@ -45,7 +64,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
                 '<p><code>fetch(EvalCase, timeout) → ProviderResult</code></p>'
                 '<p>输入为任务定义与超时预算，输出为预设的内容或错误。完整输出见该方法的结果详情。</p>',
                 'interface-' + name)
-        return body
+        return body + _implementation_scope(records, section=section, table=table, cell=cell, esc=esc)
     dataset=json.loads((out/'dataset.json').read_text()) if (out/'dataset.json').is_file() else {}
     native=measurement_presentation(dataset).native_outputs
     if not authored and not native:
@@ -69,7 +88,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
                           'interface-'+name)
         for anchor in sorted(anchors):
             body+=section('费用信息','<p>本轮结果未绑定价格资料；费用取决于调用方配置与服务账单。</p>',anchor)
-        return body
+        return body + _implementation_scope(records, section=section, table=table, cell=cell, esc=esc)
     source=Path(__file__).resolve().parents[2]/'research/provider-adoption.json'
     data=json.loads(source.read_text());names=sorted({r['provider'] for r in records})
     counts=adoption_counts(data,sorted(set(PROFILES)|set(names)))
@@ -126,4 +145,4 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
         ('interfaces','接口与示例',render_interfaces(out,records)),
         ('scope','统计口径',scope),
     ]))
-    return body
+    return body + _implementation_scope(records, section=section, table=table, cell=cell, esc=esc)

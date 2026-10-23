@@ -428,53 +428,22 @@ def test_fix_log_missing_source_diff_is_explicit_and_binary_bound(
             report_module._load_fix_log(profile)
 
 
-def test_cross_track_control_localizes_mechanism_evidence_and_keeps_links() -> None:
+def test_cross_track_control_localizes_measured_contract_counts_and_evidence() -> None:
     bridge = json.loads(Path("research/browser-use-trajectory-replay-bridge.json").read_text())
     report_module._validate_replay_contract_definitions(bridge)
     attempts = [
         {"model": model, "engine": engine, "task_id": task_id, "score": 0}
-        for model in report_module.MODEL_LABELS
-        for engine in report_module.ENGINE_LABELS
-        for tasks in bridge["original_contract_task_groups"].values()
-        for task_id in tasks
+        for model in report_module.MODEL_LABELS for engine in report_module.ENGINE_LABELS
+        for tasks in bridge["original_contract_task_groups"].values() for task_id in tasks
     ]
     chinese = report_module._trajectory_replay_control(bridge, attempts)
     english = localize_html(chinese, PurePosixPath("analysis/index.html"))
-    assert "第 9 个决策" in chinese
-    assert "第 40 个决策" in chinese
-    assert "decision 9" in english
-    assert "Decision 40" in english
-    assert "reasoning_effort=low" in chinese and "reasoning_effort=low" in english
-    assert "81 条保留官方原合同，9 条使用修订合同" in chinese
-    assert "81 retain the original official contract and 9 use revised contracts" in english
-    assert "同一官方 evaluator" not in chinese
-    assert "same official evaluator" not in english
-    assert "<td>59</td><td>1</td>" in chinese and "<td>22</td><td>8</td>" in chinese
-    assert "notification_area" in english and "Referer" in english
+    assert "recorded_response" in english and "HAR" in english
+    assert "<td>59</td><td>1</td>" in chinese
+    assert "<td>22</td><td>8</td>" in chinese
     assert "0/81" in english and "0/59" in english and "0/22" in english
     assert "post-hoc diagnostic" in english
-    assert "固定动作、预录回答与绑定合同的重放验收结果" in chinese
-    assert (
-        "Replay acceptance for fixed actions, prerecorded responses, and bound contracts" in english
-    )
-    assert "recorded_response" in chinese and "recorded_response" in english
-    assert "不证明当前浏览器读到了所需数据" in chinese
-    assert "does not prove that the current browser read the required data" in english
-    assert "也不证明 Agent 在本次运行中计算出了答案" in chinese
-    assert "or that the Agent computed the answer during this run" in english
-    assert "要求网络事件的合同仍会检查本次 HAR" in chinese
-    assert "Contracts requiring network events still check the current HAR" in english
-    assert "给定可行路径后的执行能力" not in chinese
-    assert "measures execution after a viable path is given" not in english
-    assert "新发现的视口设置缺陷要求重新核对这一归因" in chinese
-    assert "viewport configuration defect requires that attribution to be reassessed" in english
-    assert "Task 173" in english and "widths of 992 or more" in english
-    assert "37 道检索题均只使用回答验收" in chinese
-    assert "All 37 retrieval tasks" in english
-    assert "the other 53 tasks cannot replace the original 90 as a new ranking" in english
-    for result_id in ("gpt-6-astra-chromium-124", "gpt-5.6-sol-moli-510"):
-        assert f"results/{result_id}.html#trajectory" in chinese
-        assert f"results/{result_id}.html#trajectory" in english
+    assert 'evidence-viewer.html?src=data/trajectory-replay-bridge.json' in english
     assert not any("\u4e00" <= char <= "\u9fff" for char in english)
 
 
@@ -598,7 +567,15 @@ def test_replay_bridge_checks_trajectory_profile_hash(tmp_path: Path) -> None:
 
 
 def test_replay_bridge_accepts_current_bound_profile() -> None:
-    profile = json.loads(Path("evaluation/browser-use/current-report.json").read_text())
+    bridge_source = Path("research/browser-use-trajectory-replay-bridge.json")
+    bridge_data = json.loads(bridge_source.read_text())
+    profile = {
+        "selection_sha256": bridge_data["selection_sha256"],
+        "trajectory_replay_bridge": {
+            "source_path": str(bridge_source.resolve()),
+            "source_sha256": report_module._sha256(bridge_source),
+        },
+    }
     bridge = report_module._load_trajectory_replay_bridge(
         profile, selection_sha256=profile["selection_sha256"]
     )
@@ -961,21 +938,27 @@ def _use_single_model_profile(monkeypatch) -> None:
     real_read_json = report_module._read_json
 
     def read_json(path: Path) -> dict:
-        value = real_read_json(path)
-        if path == Path("evaluation/browser-use/current-report.json"):
+        if path == Path("fixture-profile.json"):
+            value = {
+                "engines": ["chromium", "moli"],
+                "engine_labels": {"chromium": "Chromium", "moli": "Moli 1.1.3"},
+                "baseline_engine": "chromium",
+                "models": ["gpt-5.6-sol"],
+                "model_labels": {"gpt-5.6-sol": "GPT-5.6 Sol"},
+            }
             return {
                 **value,
                 "models": ["gpt-5.6-sol"],
                 "model_labels": {"gpt-5.6-sol": "GPT-5.6 Sol"},
                 "trajectory_replay_bridge": {},
             }
-        return value
+        return real_read_json(path)
 
     monkeypatch.setattr(report_module, "_read_json", read_json)
     monkeypatch.setattr(
         report_module,
         "load_failure_cause_review",
-        lambda: {
+        lambda *_args: {
             "schema": "lex_browser_use_layered_failure_cause_review/2",
             "cohorts": {},
         },
@@ -1067,6 +1050,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         evidence=evidence,
         output=output,
         selection_path=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+        profile_path=Path("fixture-profile.json"),
         language=language,
     )
     if language is not None:
@@ -1321,10 +1305,12 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
             {
                 "protocol": {
                     "cowagent_commit": "abc123",
+                    "max_task_executions": 3,
                     "model": "gpt-5.6-sol",
                     "reasoning_effort": "low",
                 },
                 "environment": {
+                    "platform": "Linux fixture host",
                     "site_access_host": "192.168.5.2",
                     "docker_architecture": "aarch64",
                     "docker_server_version": "28.0",
@@ -1356,6 +1342,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
         evidence=evidence,
         output=output,
         selection_path=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+        profile_path=Path("fixture-profile.json"),
     )
     text = (output / "reproduce/index.html").read_text(encoding="utf-8")
 
@@ -1375,22 +1362,33 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     assert "90 题 Browser Use 完整结果" in home_text
     assert "90 题核心指标" in home_text
     assert "首次成功与重试恢复" not in home_text
-    assert "Chromium 780×437/493、Moli 1920×1080" in home_text
-    assert "不是统一视口下的资源效率结论" in home_text
-    assert "共同成功子集也保留了历史视口差异" in home_text
+    assert "Chromium 780×437/493、Moli 1920×1080" not in home_text
+    assert "不能视为统一视口下的资源效率结论" in home_text
+    assert "共同成功子集仍保留各配置记录的运行环境" in home_text
     english_home = localize_html(home_text, PurePosixPath("index.html"))
-    assert "not resource efficiency at a common viewport" in english_home
-    assert "common-success subset also retains the historical viewport differences" in english_home
+    assert "resource efficiency at a common viewport" in english_home
+    assert "common-success subset retains each configuration" in english_home
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
-    assert "ContainerManager.start(reset=True)" in methodology_text
+    assert "环境准备回执" in methodology_text
     assert "192.168.5.2" in methodology_text
     assert "不含点击序列" in methodology_text
+    for page in (methodology_text, text):
+        assert "Colima" not in page
+        assert "macOS" not in page
+    assert "Linux fixture host" in text
+    assert "官方数据 812 题" not in methodology_text
+    assert "663" not in methodology_text
     assert "计划与实际对照" in methodology_text
-    assert "不能视为浏览器是唯一变量的实验" in methodology_text
+    assert "每题执行上限：3" in methodology_text
+    assert "冻结配置及实际执行记录" in methodology_text
+    assert "下一轮轨迹重放" not in methodology_text
+    assert "678 个候选" not in methodology_text
+    assert "Mac 上可以继续扩展哪些实例" not in methodology_text
     assert "只替换浏览器</td>" not in methodology_text
     english_methodology = localize_html(methodology_text, PurePosixPath("methodology/index.html"))
-    assert "the browser was not the only experimental variable" in english_methodology
+    assert "frozen configuration and recorded executions" in english_methodology
+    assert "execution limit per task: 3" in english_methodology
     for name in (
         "changes/index.html",
         "datasets/index.html",
@@ -1487,7 +1485,7 @@ def test_joint_report_builds_two_model_by_two_browser_matrix(tmp_path: Path, mon
     real_read_json = report_module._read_json
 
     def read_json(path: Path) -> dict:
-        if path == Path("evaluation/browser-use/current-report.json"):
+        if path == Path("fixture-profile.json"):
             return {
                 "engines": ["chromium", "moli"],
                 "engine_labels": {"chromium": "Chromium", "moli": "Moli"},
@@ -1501,7 +1499,7 @@ def test_joint_report_builds_two_model_by_two_browser_matrix(tmp_path: Path, mon
     monkeypatch.setattr(
         report_module,
         "load_failure_cause_review",
-        lambda: {
+        lambda *_args: {
             "schema": "lex_browser_use_layered_failure_cause_review/2",
             "cohorts": {},
         },
@@ -1512,10 +1510,15 @@ def test_joint_report_builds_two_model_by_two_browser_matrix(tmp_path: Path, mon
         evidence=[model_a, model_b],
         output=output,
         selection_path=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+        profile_path=Path("fixture-profile.json"),
     )
 
     data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert set(data["summary"]) == {"model-a", "model-b"}
+    # A new instance must not inherit another report's release or review claims.
+    assert json.loads((output / "report-changes.json").read_text()) == {}
+    assert "2026-09-" not in (output / "changes/index.html").read_text()
+
     assert data["summary"]["model-a"]["chromium"]["completed"] == 1
     assert data["summary"]["model-b"]["moli"]["completed"] == 1
     assert len(list((output / "results").glob("*.html"))) == 4
@@ -1576,3 +1579,43 @@ def test_pairing_uses_dynamic_baseline_for_three_browsers(monkeypatch) -> None:
     assert comparisons["first"]["baseline_engine"] == "baseline"
     assert comparisons["first"]["comparison_only"] == 1
     assert comparisons["third"]["comparison_only"] == 2
+
+
+def test_replay_control_uses_selected_counts_and_origin_inventory():
+    bridge = {
+        "effective_results": {
+            "chromium": {"tasks": 7, "passes": 5},
+            "fixture": {"tasks": 7, "passes": 3},
+        },
+        "chromium_trajectory_provenance": {
+            "expert_repair_spec": 2,
+            "successful_browser_use_execution": 5,
+            "successful_browser_use_execution_by_origin": {"fixture-model_fixture": 5},
+        },
+        "contract_counts": {"official_task_contract": 5, "corrected_replay_contract": 2},
+        "source_contract_counts": {
+            "authoritative_successful_browser_use_execution": {
+                "official_task_contract": 3,
+                "corrected_replay_contract": 2,
+            },
+            "expert_repair_spec": {"official_task_contract": 2, "corrected_replay_contract": 0},
+        },
+        "correction_categories": {
+            "event_selection": [],
+            "event_selection_and_expected": [],
+            "reference_or_acceptance": [],
+        },
+    }
+    page = report_module._trajectory_replay_control(bridge)
+    english = localize_html(page, PurePosixPath("analysis/index.html"))
+    assert "5/7" in page and "3/7" in page
+    bridge["effective_results"]["moli"] = {"tasks": 7, "passes": 4, "label": "Replay browser 9"}
+    from unittest.mock import patch
+    with patch.dict(report_module.ENGINE_LABELS, {"moli": "Unrelated autonomous browser 99"}):
+        isolated = report_module._trajectory_replay_control(bridge)
+    assert "Replay browser 9" in isolated
+    assert "Unrelated autonomous browser 99" not in isolated
+    assert "fixture-model_fixture" in page
+    assert "recorded_response" in english and "HAR" in english
+    for obsolete in ("90/90", "36", "37", "Task 173", "Task 676", "Colima"):
+        assert obsolete not in page

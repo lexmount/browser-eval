@@ -217,8 +217,8 @@ def test_collector_cli_preserves_repository_default_and_supports_caller_default(
     monkeypatch.setattr(timing, 'collect', lambda **kw: captured.append(kw) or {})
     repository = tmp_path / 'repository' if repository_default else None
     timing.main(['--dataset', 'dataset', '--manifest', 'manifest.json',
-                 '--release', 'released', '--candidate', 'candidate', '--output', 'new'], root=repository)
-    assert captured[0]['profile'] == (repository or tmp_path) / 'evaluation/wcxb/current-report.json'
+                 '--release', 'released', '--candidate', 'candidate', '--output', 'new', '--profile', str(tmp_path/'selected.json')], root=repository)
+    assert captured[0]['profile'] == tmp_path / 'selected.json'
 
 
 @pytest.mark.parametrize('options', [[], ['--profile', '/explicit/profile.json'], ['--profile=/explicit/profile.json']])
@@ -227,4 +227,4 @@ def test_existing_certification_command_keeps_its_repository_authority(monkeypat
     captured = []
     monkeypatch.setattr(timing, 'certify', lambda argv: captured.append(argv))
     certification.main(['wcxb-latency', *options])
-    assert captured == [options or ['--profile', str(certification.ROOT / 'evaluation/wcxb/current-report.json')]]
+    assert captured == [options]

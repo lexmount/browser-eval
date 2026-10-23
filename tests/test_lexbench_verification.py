@@ -165,18 +165,20 @@ def report(tmp_path):
     for lang in ("zh", "en"):
         render_chart(
             combined,
-            site / f"assets/moli-all-success-resources-{lang}.svg",
+            site / f"assets/comparison-all-success-resources-{lang}.svg",
             ("memory", "cpu"),
             lang,
         )
         render_chart(
             comparison,
-            site / f"assets/moli-version-success-resources-{lang}.svg",
+            site / f"assets/comparison-version-success-resources-{lang}.svg",
             ("pss", "cpu"),
             lang,
         )
     save(site, "reproduction/plot_version_summary.py", b"# synthetic chart source\n")
-    save(site, "index.html", b'<html lang="zh-CN"></html>')
+    messages = (ROOT / 'scripts/moli_report/messages.json').read_text().replace('<', '\\u003c')
+    shell = '<script type="application/json" id="report-messages">' + messages + '</script>'
+    save(site, "index.html", ('<html lang="zh-CN">' + shell + '</html>').encode())
     save(site, "en/index.html", b'<html lang="en"></html>')
     save(site, "README.md", b"Synthetic offline evidence")
     save(site, "app.js", (ROOT / "scripts/moli_report/app.js").read_bytes())
@@ -467,7 +469,7 @@ def test_chinese_only_report_passes_release_checks_without_english_charts(report
     assert not list((site / "assets").glob("*-en.svg"))
 
 
-@pytest.mark.parametrize("stale", ["en/guide.html", "assets/moli-all-success-resources-en.svg"])
+@pytest.mark.parametrize("stale", ["en/guide.html", "assets/comparison-all-success-resources-en.svg"])
 def test_chinese_only_report_rejects_stale_english(report, stale):
     site, model = chinese_only_report(report)
     save(site, stale, b"stale English output")

@@ -125,7 +125,7 @@ def test_complete_check_rejects_unbound_review_before_evidence(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "relative", ["../outside.json", "/tmp/review.json", "research/linked.json"]
+    "relative", ["../outside.json", "research/linked.json"]
 )
 def test_complete_check_rejects_escaping_or_linked_review(tmp_path, relative):
     root = tmp_path / "authority"
@@ -166,3 +166,57 @@ def test_linked_authority_profile_is_rejected(tmp_path):
             require_complete=False,
             authority_root=root,
         )
+
+
+def test_external_profile_and_bound_review_do_not_use_default_authority(tmp_path, monkeypatch):
+    root = tmp_path / 'authority'
+    source = tmp_path / 'external-review.json'
+    source.write_text('{}')
+    profile = authority(root, failure_cause_review={
+        'required_for_publication': True, 'source_path': str(source),
+        'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest()})
+    import harness.browser_use.report as renderer
+    for name in ('ENGINE_LABELS', 'MODEL_LABELS', 'BASELINE_ENGINE'):
+        monkeypatch.setattr(renderer, name, getattr(renderer, name))
+    external = tmp_path / 'instance.json'
+    external.write_bytes(profile.read_bytes())
+    (profile.parent / 'webarena-verified-pilot.json').write_text('{}')
+    profile.unlink()
+    def evidence_boundary(_paths):
+        raise LookupError('bound external inputs reached')
+    monkeypatch.setattr(checker, '_load_evidence_bundles', evidence_boundary)
+    with pytest.raises(LookupError, match='external inputs reached'):
+        checker.check(tmp_path / 'report', tmp_path / 'evidence', None,
+                      require_complete=True, profile_path=external, authority_root=root)
+    source.write_text('{"changed":true}')
+    with pytest.raises(ValueError, match='bound to the failure-cause review'):
+        checker.check(tmp_path / 'report', tmp_path / 'evidence', None,
+                      require_complete=True, profile_path=external, authority_root=root)
+
+
+@pytest.mark.parametrize("defect", [None, "count", "host", "diagram"])
+def test_methodology_uses_selected_evidence_instead_of_historical_deployment(defect):
+    content = (
+        '<figure id="deployment-flow"></figure><p>Linux fixture · selected.gateway</p>'
+        '<table id="methodology-evaluators"><tbody><tr>'
+        '<td>FixtureEvaluator</td><td>2</td></tr></tbody></table>'
+        '<table id="methodology-sites"><tbody><tr><td>new-site</td><td>2</td></tr></tbody></table>'
+    )
+    tasks = [
+        {
+            "sites": ["new-site"],
+            "contract": {"evaluation_contract": [{"evaluator": "FixtureEvaluator"}]},
+        }
+    ] * 2
+    environment = {"platform": "Linux fixture", "site_access_host": "selected.gateway"}
+    if defect == "count":
+        content = content.replace("<td>2</td>", "<td>812</td>", 1)
+    if defect == "host":
+        content = content.replace("selected.gateway", "historical.gateway")
+    if defect == "diagram":
+        content = content.replace('id="deployment-flow"', 'id="unrelated"')
+    if defect is None:
+        checker.check_methodology_evidence(content, tasks, environment)
+    else:
+        with pytest.raises(ValueError, match="methodology"):
+            checker.check_methodology_evidence(content, tasks, environment)

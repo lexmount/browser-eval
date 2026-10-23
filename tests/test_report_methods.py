@@ -183,6 +183,75 @@ def test_report_labels_distinguish_release_and_source_build_with_same_version(tm
     assert provider_label('moli-release')==original
 
 
+def test_method_guide_discloses_retained_success_and_repaired_failure_builds(tmp_path):
+    from harness.web_fetch.report_methods import render_methods
+    from harness.web_fetch.report import hero, section, table, cell, link, esc
+    records = [{'provider': 'sample', 'provider_type': 'fixture',
+                'provider_metadata': {'binary_sha256': build}}
+               for build in ('retained-build', 'retained-build', 'repair-build')]
+    body = render_methods(tmp_path, records, hero=hero, section=section,
+                          table=table, cell=cell, link=link, esc=esc)
+    assert 'implementation-scope' in body
+    assert 'retained-build' in body and 'repair-build' in body
+    assert '>2<' in body and '>1<' in body
+    assert '累计成绩不代表某一个版本' in body
+    single = render_methods(tmp_path, records[:2], hero=hero, section=section,
+                            table=table, cell=cell, link=link, esc=esc)
+    assert 'implementation-scope' in single
+    assert 'retained-build' in single and '>2<' in single
+    unknown = render_methods(tmp_path, [{'provider': 'cloud', 'provider_type': 'fixture'}],
+                             hero=hero, section=section, table=table, cell=cell, link=link, esc=esc)
+    assert 'unknown' in unknown and '>1<' in unknown
+
+
+def test_bound_external_method_registry_is_scoped_to_its_report(tmp_path):
+    from harness.web_fetch.methods import with_measured_method_labels, native_browser_engine, browser_method_label, browser_method_registry
+    @with_measured_method_labels
+    def render(out,dataset,records):
+        assert native_browser_engine('external-build') == 'moli'
+        assert browser_method_label('external-build') == 'External Moli build'
+        assert browser_method_registry()['external-build']['source_url'] == 'https://example.test/build'
+        return 'rendered'
+    dataset={'comparison':{'method_registry':{'external-build':{'engine':'moli','label':'External Moli build','source_url':'https://example.test/build'}}}}
+    assert render(tmp_path,dataset,[]) == 'rendered'
+    import json
+    (tmp_path/'dataset.json').write_text(json.dumps(dataset))
+    assert render(tmp_path,{'external-case':{'id':'external-case'}},[]) == 'rendered'
+    assert native_browser_engine('external-build') is None
+
+
+def test_new_participant_interface_and_access_are_bound_data(tmp_path):
+    import json
+    from harness.web_fetch.methods import with_measured_method_labels
+    from harness.web_fetch.report_interfaces import render_interfaces
+    (tmp_path/'answer.txt').write_text('A complete saved answer')
+    (tmp_path/'adoption').mkdir()
+    contract={'entry':'Future CLI v9 fetch URL','auth':'No account',
+              'params':[['url','string','Target page']],
+              'fields':[['body','string','Returned text']],
+              'request':{'url':'https://example.test/'},
+              'source':'harness/web_fetch/providers/headless_worker.py',
+              'notes':'Explicit instance contract.'}
+    access={'account':'No account','configuration':'Set FUTURE_BINARY.',
+            'env_vars':['FUTURE_BINARY'],'links':[['Source','https://example.test/install']]}
+    dataset={'comparison':{'method_registry':{'future-version':{
+        'engine':'moli','label':'Future participant','report_interface':contract,
+        'report_access':access}}}}
+    rows=[{'provider':'future-version','provider_type':'headless_markdown',
+           'provider_metadata':{'reported_version':'future 9.0.0'},
+           'case_id':'example','attempt_id':'future__example',
+           'artifact_path':'answer.txt','ok':True}]
+    @with_measured_method_labels
+    def render(out, definition, records):
+        return render_interfaces(out,records)
+    html=render(tmp_path,dataset,rows)
+    output=json.loads((tmp_path/'adoption/interfaces/future-version.json').read_text())
+    assert output['interface']==contract and output['access']==access
+    assert 'Future CLI v9 fetch URL' in html
+    assert 'MOLI_BINARY' not in json.dumps(output)
+    assert '1.1.5' not in json.dumps(output)
+
+
 def test_method_model_selects_direct_english_fields_without_reverse_translation(monkeypatch):
     records = [{'provider': 'moli', 'provider_type': 'moli_webfetch',
                 'provider_metadata': {'reported_version': 'moli 9.9.9', 'dump': 'markdown',
@@ -199,3 +268,4 @@ def test_method_model_selects_direct_english_fields_without_reverse_translation(
     observed = method_page_model('moli', 'Moli', records, language='en')
     assert '1/1 records' in observed['configuration']
     assert not re.search(r'[\u4e00-\u9fff]', observed['configuration'])
+

@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.privacy import LOCAL_PATH_RE, WEB_URL_RE
+from harness.reporting.templates import template_identity
 from harness.trajectory_replay.report_languages import language_roots, report_languages
 from harness.web_fetch.safety import reject_evidence_symlinks
 
@@ -51,6 +52,9 @@ def _check_interpretation(
     results: list[dict] | None = None,
     participants: list[str] | None = None,
 ) -> None:
+    manifest_path = root / "report-manifest.json"
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
+    derived = manifest.get("interpretation_kind") == "data-derived"
     sections = []
     for language_root in language_roots(root):
         integrated = BeautifulSoup(
@@ -63,11 +67,13 @@ def _check_interpretation(
             raise ValueError("integrated and standalone article content differs")
         if offline.select("script, link[rel=stylesheet]"):
             raise ValueError("standalone article must be script-free and self-contained")
-        if not article.select("figure img") or not all(
+        if (not derived and not article.select("figure img")) or not all(
             image.get("src", "").startswith("data:image/png;base64,")
             for image in standalone.select("img")
         ):
             raise ValueError("article needs illustrations embedded in its offline view")
+        if derived and not article.select("table, .failure-bars"):
+            raise ValueError("data-derived interpretation needs measured tables or distributions")
         if not integrated.select('a[href="article.html"][download]'):
             raise ValueError("article download is missing")
         if any(
@@ -516,10 +522,20 @@ def _check_formal_execution_scope(manifest: dict) -> None:
         raise ValueError("formal report requires a complete method-reset task cohort")
 
 
-def check(report_dir: Path) -> dict[str, int]:
+def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, int]:
     reject_evidence_symlinks(report_dir)
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
+    if (manifest.get("profile_sha256")
+            and manifest.get("template") != template_identity("trajectory-replay")):
+        raise ValueError("report bypasses the maintained replay template")
+    if profile_path is not None:
+        if (profile_path.is_symlink() or manifest.get("profile_sha256")
+                != hashlib.sha256(profile_path.read_bytes()).hexdigest()):
+            raise ValueError("report was built from a different instance profile")
+        profile = json.loads(profile_path.read_text())
+        if manifest.get("execution_backend") != profile.get("execution_backend"):
+            raise ValueError("report backend differs from the bound instance profile")
     for lang, note in (manifest.get("measurement_notes") or {}).items():
         language_root = root if lang == "zh" else root / lang
         for name in ("index.html", "environment.html"):
@@ -657,12 +673,13 @@ def check(report_dir: Path) -> dict[str, int]:
         results_page = (language_root / "results.html").read_text(encoding="utf-8")
         _check_failure_matrix(results_page, results, participants)
         if "successful-distributions" not in results_page or (
-            "Playwright 动作耗时" not in results_page
-            and "Playwright action latency" not in results_page
+            "浏览器动作耗时" not in results_page
+            and "Browser action latency" not in results_page
         ):
             raise ValueError("result analysis is missing its detailed latency distributions")
     _check_formal_execution_scope(manifest)
-    if manifest.get("formal_reference_validity") is True:
+    if (manifest.get("formal_reference_validity") is True
+            and manifest.get("execution_backend") is not None):
         if manifest.get("execution_backend") != "playwright":
             raise ValueError("formal replay report must bind the Playwright backend")
         for language_root in language_roots(root):
@@ -937,8 +954,9 @@ def check(report_dir: Path) -> dict[str, int]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("report_dir", type=Path)
+    parser.add_argument("--profile", type=Path)
     args = parser.parse_args()
-    print(json.dumps(check(args.report_dir), ensure_ascii=False))
+    print(json.dumps(check(args.report_dir, profile_path=args.profile), ensure_ascii=False))
 
 
 if __name__ == "__main__":

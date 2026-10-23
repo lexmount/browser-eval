@@ -12,11 +12,20 @@ Read the repository's `AGENTS.md` first. Project rules override this general ski
 Before writing report HTML, resolve the track through `scripts/report_template.py`. Inspect the maintained implementation and its pinned example. Reuse that implementation and its release checks; a different cohort or diagnostic evidence state calls for a data adapter or explicit mode. If no track fits, create the smallest reusable renderer with a synthetic runnable example and behavioral checks, then register it in `configs/report-templates.json`. Improve the owning template and this skill from demonstrated gaps, without embedding run-specific prose or copying old measurements. A report must carry the selected template identity and input hashes so its release check can detect a bypass.
 
 Derive bilingual counts, budgets and method labels from the selected inputs.
+Bind cohort-specific access and interface documentation in the participant registry;
+reuse engine-level adapter contracts instead of adding per-version renderer tables.
 Keep report-specific prose and its translations in explicitly bound content;
 do not choose a historical article from provider names or task-family guesses.
 Without a content binding, render the maintained data-derived explanation.
 Prove reuse through the public build and check entries with a different external
 task/method inventory, not only by searching for old numbers in source code.
+Exercise assembly and packaging with that external profile as well. Participant
+IDs, labels, interfaces and comparison roles come from the instance registry;
+a new cohort must not inherit a historical method's account or timing claims.
+Disclose declared literal, fact, body-region, record, resource and identity checks
+separately. A task instruction is not a full-text reference. Preserve frozen
+verdicts while exposing passes without verified page identity, blocked-page
+markers and unexpected resource URLs as diagnostics.
 
 An explicitly requested diagnostic report may be delivered separately from a certified benchmark release. Use the diagnostic build/check entry, label its evidence state and certification gaps on every page, preserve saved scores and outputs, and do not publish rankings or upgrade certification. It does not waive any certified-release reference or review gate. Presentation fixes add no provider calls. Update only the owning code, relevant instructions and demonstrated regression scenarios; do not mechanically modify every skill or copy report-specific conclusions into instructions.
 

@@ -284,7 +284,7 @@ worker cannot be reported as the selected host runtime.
 The resource cohort dataset and package bind its size, providers, concurrency,
 sample interval, cgroup-v2 backend, CPU/memory limits, network isolation,
 required metrics, image ID and executable hashes. Do not substitute the
-10-method `evaluation/current-report.json` profile for this separate cohort.
+general Web Fetch report profile for this separate cohort.
 Headless resource packaging fails if CPU, memory or network evidence is missing;
 the report release check requires grouped winners whenever the cohort is present.
 
@@ -377,9 +377,7 @@ review history only when its scope and judgments match the final results. These 
 covered by the repository test suite. Fix invalid evidence or implementation
 before release.
 
-The preserved public destination for this comparison is the separate app-domain
-Sites project `UUAhhQMnrGwm`. The current 10-method report is the separate
-project declared by `evaluation/current-report.json`; never use a headless
-receipt or evidence bundle to update it.
+The selected external report profile binds its publication target and expected
+version. Each comparison keeps its own receipt and evidence bundle.
 
 固定参考答案默认保持冻结。`source_verification.reference_mode: live_exact` 是实时参考核验的显式声明；旧来源记录和缺少新版验收契约均不构成该声明。普通重跑不得据此重新抓取或更新答案。

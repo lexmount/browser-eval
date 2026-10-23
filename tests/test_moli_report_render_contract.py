@@ -1,5 +1,7 @@
 """Exercise the report's public fixed-layout comparison components."""
 
+import json
+import re
 import shutil
 import subprocess
 import unittest
@@ -19,3 +21,14 @@ class MoliReportRenderContractTests(unittest.TestCase):
             capture_output=True,
             text=True,
         )
+
+
+def test_catalog_editions_have_matching_keys_and_parameters():
+    root = Path(__file__).resolve().parents[1]
+    catalog = json.loads((root / "scripts/moli_report/messages.json").read_text())
+    english = catalog["en"]["messages"]
+    chinese = catalog["zh"]["messages"]
+    assert english.keys() == chinese.keys()
+    for key in english:
+        assert set(re.findall(r"\{value\d+\}", english[key])) == set(
+            re.findall(r"\{value\d+\}", chinese[key]))

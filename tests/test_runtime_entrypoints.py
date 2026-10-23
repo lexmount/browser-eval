@@ -1,5 +1,4 @@
 from lexbench_webfetch.inputs import definition_path
-import hashlib
 import json
 import re
 import shutil
@@ -218,38 +217,21 @@ class RuntimeEntrypointTests(unittest.TestCase):
             self.assertEqual(set(providers), expected, track)
             self.assertEqual(len(providers), 10, track)
 
-    def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
-        profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
-        self.assertEqual(profile['comparison_kind'], 'wcxb_frozen_html_to_markdown')
-        self.assertEqual(profile['dataset_id'], 'wcxb-v1-test-qualified-five-browsers')
-        self.assertEqual(profile['case_count'], 504)
-        self.assertEqual(profile['primary_quality_case_count'], 504)
-        self.assertEqual(profile['sample_manifest'], 'evaluation/public-wcxb-test-qualified.json')
-        manifest = ROOT / profile['sample_manifest']
-        self.assertEqual(profile['sample_manifest_sha256'], hashlib.sha256(manifest.read_bytes()).hexdigest())
-        self.assertEqual(len(json.loads(manifest.read_text())['cases']), profile['case_count'])
-        self.assertEqual(
-            set(profile['providers']),
-            {'kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium', 'moli-pr643'},
-        )
-        self.assertEqual(profile['runs_per_case'], 1)
-        self.assertEqual(profile['max_failure_retries'], 1)
-        self.assertEqual(
-            profile['source_dataset_sha256'],
-            '080a35a399880bb74ce23f40d9a1008f974500716af183a990f8701ab3e5e7bb',
-        )
-        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-site.lexmount.cn')
-        self.assertEqual(profile['artifact_hub_site'], 'p3sFcZrww_nx')
-        self.assertRegex(profile['artifact_hub_expected_version'], r'^ver_[0-9a-f]+$')
-
-    def test_publication_receipt_must_target_current_site(self) -> None:
-        profile = ROOT / 'evaluation/wcxb/current-report.json'
-        self.assertEqual(current_publication_target(profile),
-                         ('https://artifact-site.lexmount.cn', 'p3sFcZrww_nx'))
-        for slug in ('uTWj6VaWPYCh', 'UUAhhQMnrGwm', 'UeZE1vfcEOrM'):
-            with self.assertRaisesRegex(ValueError, 'expected'):
-                require_publication_site({'slug':slug}, profile,
-                                         'https://artifact-site.lexmount.cn')
+    def test_publication_receipt_must_target_selected_instance(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory) / "report.json"
+            for slug in ("report-one", "report-two"):
+                profile.write_text(json.dumps({
+                    "artifact_hub_base_url": "https://reports.example.org",
+                    "artifact_hub_site": slug,
+                }))
+                self.assertEqual(current_publication_target(profile),
+                                 ("https://reports.example.org", slug))
+                self.assertEqual(require_publication_site(
+                    {"slug": slug}, profile, "https://reports.example.org"), slug)
+                with self.assertRaisesRegex(ValueError, "expected"):
+                    require_publication_site({"slug": "another-report"}, profile,
+                                             "https://reports.example.org")
 
     def test_publication_version_defaults_to_profile_and_rejects_override(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

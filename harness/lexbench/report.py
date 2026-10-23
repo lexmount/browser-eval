@@ -12,9 +12,6 @@ import shutil
 import statistics
 
 ROOT = pathlib.Path(os.environ.get("BROWSER_EVAL_DATA_HOME", pathlib.Path.home() / ".browser-eval"))
-BENCH_ROOT = pathlib.Path(
-    os.environ.get("LEXBENCH_REPORT_RUNNER_ROOT", ROOT / "work/moli-1.1.8-failures-linux")
-)
 from harness.record_io import load_jsonl
 from harness.report_languages import english_notice, generated_languages, write_language_contract
 from harness.resource_calibration import duration_calibration
@@ -26,12 +23,18 @@ from .resource_evidence import load_matrix
 from .resource_summary import summarize as summarize_linux_profiles
 from .resource_summary import validate_summary as validate_linux_summary
 
-DEFAULT_RUNS = ROOT / "runs/moli-1.1.8-failures-linux"
 REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
-DEFAULT_SOURCE = REPOSITORY_ROOT / "scripts/moli_report"
-DEFAULT_OUTPUT = ROOT / "reports/moli-1.1.8-failures-site"
-VERSION_RUNS = ROOT / "runs/moli-114-118-memory-repro"
-DEFAULT_FUNCTIONAL_CORRECTION = ROOT / "runs/moli-method-corrections-20260920"
+
+
+def read_comparison_task(roots, relative, *, expected_sha256):
+    """Read exact measured task bytes from the declared source roots."""
+    for root in roots:
+        path = contained_path(root, relative, reject_symlinks=True)
+        if path.is_file():
+            data = path.read_bytes()
+            if hashlib.sha256(data).hexdigest() == expected_sha256:
+                return data
+    raise ValueError("Measured task bytes are missing from declared sources: " + str(relative))
 
 
 def write_presentation(source, output, combined, version, macos=None, *, include_english=False):
@@ -49,7 +52,7 @@ def write_presentation(source, output, combined, version, macos=None, *, include
     for name, comparison, metrics in comparisons:
         for language in languages:
             render_chart(
-                comparison, assets / f"moli-{name}-success-resources-{language}.svg",
+                comparison, assets / f"comparison-{name}-success-resources-{language}.svg",
                 metrics, language,
             )
     entries = [("zh-CN", "", "index.html")]
@@ -62,7 +65,8 @@ def write_presentation(source, output, combined, version, macos=None, *, include
     for language, base, entry in entries:
         target = output / entry
         target.parent.mkdir(exist_ok=True)
-        shell = template.replace("{{lang}}", language).replace("{{base}}", base)
+        messages = (source / "messages.json").read_text().replace("<", "\\u003c")
+        shell = template.replace("{{lang}}", language).replace("{{base}}", base).replace("{{messages}}", messages)
         for name in ("style.css", "app.js"):
             digest = hashlib.sha256((source / name).read_bytes()).hexdigest()[:12]
             shell = shell.replace(name, f"{name}?v={digest}")
@@ -74,20 +78,20 @@ def main(argv=None):
     parser.add_argument(
         "--profile",
         type=pathlib.Path,
-        default=REPOSITORY_ROOT / "evaluation/moli/current-report.json",
+        required=True,
     )
-    parser.add_argument("--cohort", type=pathlib.Path, default=DEFAULT_RUNS / "report-cohort.json")
+    parser.add_argument("--cohort", type=pathlib.Path)
     parser.add_argument("--summary", type=pathlib.Path)
-    parser.add_argument("--source", type=pathlib.Path, default=DEFAULT_SOURCE)
-    parser.add_argument("--output", type=pathlib.Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--source", type=pathlib.Path)
+    parser.add_argument("--output", type=pathlib.Path)
     parser.add_argument(
         "--include-english", action="store_true", help="Also generate English pages and charts"
     )
     parser.add_argument(
-        "--vendor-dir", type=pathlib.Path, default=ROOT / "reports/moli-1.1.8-failures-src"
+        "--vendor-dir", type=pathlib.Path
     )
     parser.add_argument(
-        "--functional-correction", type=pathlib.Path, default=DEFAULT_FUNCTIONAL_CORRECTION
+        "--functional-correction", type=pathlib.Path
     )
     parser.add_argument(
         "--fixed-summary",
@@ -101,10 +105,25 @@ def main(argv=None):
     parser.add_argument("--resource-matrix", type=pathlib.Path)
     parser.add_argument("--linux-resource-profiles", type=pathlib.Path)
     args = parser.parse_args(argv)
+    report_profile = json.loads(args.profile.read_bytes())
+    paths = report_profile.get("paths", {})
+
+    def configured_path(name, override=None):
+        value = override if override is not None else paths.get(name)
+        if not value:
+            parser.error(f"Report profile requires paths.{name} or an explicit CLI path")
+        value = pathlib.Path(value).expanduser()
+        return value if value.is_absolute() else (REPOSITORY_ROOT if name == "source" else ROOT) / value
+
+    for name in ("cohort", "source", "output", "vendor_dir", "functional_correction"):
+        setattr(args, name, configured_path(name, getattr(args, name)))
+    BENCH_ROOT = configured_path("runner", os.environ.get("LEXBENCH_REPORT_RUNNER_ROOT"))
+    VERSION_RUNS = configured_path("version_runs")
+    VERSION_CANDIDATE = configured_path("version_candidate")
+    LAYOUT_POLICY_ROOT = configured_path("layout_policy_runner")
     RUNS = args.cohort.parent
     if args.summary is None:
         args.summary = RUNS / "report-runs.json"
-    report_profile = json.loads(args.profile.read_bytes())
     resource_builds = report_profile.get("resource_builds", {})
     # The report profile names the experiment; the chart schema names plotted calls.
     # Convert once at this boundary instead of passing the profile to render_chart.
@@ -771,7 +790,7 @@ def main(argv=None):
             "Invalid Lexbench report evidence: set(version_protocol['functional_tasks']) == set(selected) and len(version_protocol['functional_tasks']) == len(selected)"
         )
     functional_114 = contained_path(
-        VERSION_RUNS, "114_off_differential_candidate_20260920", reject_symlinks=True
+        VERSION_CANDIDATE.parent, VERSION_CANDIDATE.name, reject_symlinks=True
     )
     functional_manifest = json.loads(
         contained_path(functional_114, "run_manifest.json", reject_symlinks=True).read_text()
@@ -1023,7 +1042,7 @@ def main(argv=None):
                     "Invalid Lexbench report evidence: re.fullmatch('[A-Za-z0-9_-]+', run_id)"
                 )
             run_root = contained_path(
-                ROOT / "work/lexbench-layout-policy-v3",
+                LAYOUT_POLICY_ROOT,
                 pathlib.Path("runs") / run_id,
                 reject_symlinks=True,
             )
@@ -1057,20 +1076,12 @@ def main(argv=None):
                 source_tasks[task["task_id"]] = task
         for case in candidate["cases"]:
             task = source_tasks[case["task_id"]]
-            bench_root = ROOT / "work/lexbench-layout-policy-v3"
-            task_path = contained_path(bench_root, task["path"], reject_symlinks=True)
-            if not (
-                task_path.resolve().is_relative_to(bench_root.resolve())
-                and (not task_path.is_symlink())
-            ):
-                raise ValueError(
-                    "Invalid Lexbench report evidence: task_path.resolve().is_relative_to(bench_root.resolve()) and (not task_path.is_symlink())"
-                )
-            task_bytes = task_path.read_bytes()
-            if not sha(task_bytes) == task["sha256"] == case["task_sha256"]:
-                raise ValueError(
-                    "Invalid Lexbench report evidence: sha(task_bytes) == task['sha256'] == case['task_sha256']"
-                )
+            if task["sha256"] != case["task_sha256"]:
+                raise ValueError("Candidate summary differs from its task manifest")
+            task_bytes = read_comparison_task(
+                [BENCH_ROOT, LAYOUT_POLICY_ROOT], task["path"],
+                expected_sha256=task["sha256"],
+            )
             case_detail = fixed_case_data[case["task_id"]]
             if "task_sha256" in case_detail:
                 if not case_detail["task_sha256"] == task["sha256"]:
@@ -1434,6 +1445,11 @@ def main(argv=None):
         ],
         "macos_comparison": macos_comparison,
         "version_comparison": version_comparison,
+        "input_definition_variants": {
+            cid: {"baseline_sha256": selected[cid][1], "comparison_sha256": item["task_sha256"]}
+            for cid, item in fixed_case_data.items()
+            if item.get("task_sha256") and item["task_sha256"] != selected[cid][1]
+        },
         "functional_methods": functional_methods,
         "fixed_candidates": fixed_candidates,
         "macos_resource": macos_resource,

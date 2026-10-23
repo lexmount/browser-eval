@@ -821,7 +821,7 @@ def sample_review_main(argv=None, *, root=None) -> None:
         default=None,
         help="Comma-separated provider shards; the default is the publishable matrix",
     )
-    parser.add_argument("--profile", type=Path, default=(root or Path.cwd()) / "evaluation/current-report.json")
+    parser.add_argument("--profile", type=Path, required=True)
     args = parser.parse_args(argv)
     if args.output.exists() or args.output.is_symlink():
         raise ValueError("Review output exists; refusing to overwrite")

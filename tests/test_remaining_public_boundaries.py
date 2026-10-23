@@ -73,7 +73,7 @@ def test_existing_evidence_is_preserved_before_loading_inputs(tmp_path, entry):
                                        '--verified-commit', 'b']),
         'catalog-actions': (main_audit, ['--catalog', 'missing', '--portable-suite', 'missing',
                                         '--action-overrides', 'missing']),
-        'replay-merge': (main_merge, ['--seeds', 'missing', '--qualified-dataset', 'missing',
+        'replay-merge': (main_merge, ['--profile', 'missing', '--seeds', 'missing', '--qualified-dataset', 'missing',
                                      '--base-receipt', 'missing']),
     }
     function, args = commands[entry]

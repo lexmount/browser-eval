@@ -175,7 +175,7 @@ def validate(model, site, check_files=True):
         for language in languages:
             expected = pathlib.Path(directory) / f"{language}.svg"
             render_chart(combined, expected, ("memory", "cpu"), language)
-            actual = site / f"assets/moli-all-success-resources-{language}.svg"
+            actual = site / f"assets/comparison-all-success-resources-{language}.svg"
             if not actual.is_file() or actual.read_bytes() != expected.read_bytes():
                 fail("combined chart does not match measured registry")
     candidates = model.get("fixed_candidates") or {}
@@ -518,7 +518,7 @@ def validate(model, site, check_files=True):
                 ):
                     fail("macOS chart metric or change")
         for lang in languages:
-            path = site / f"assets/moli-macos-success-resources-{lang}.svg"
+            path = site / f"assets/comparison-macos-success-resources-{lang}.svg"
             if (
                 not path.is_file()
                 or "RSS" not in path.read_text()
@@ -758,9 +758,9 @@ def validate(model, site, check_files=True):
     ):
         fail("version comparison data target")
     charts = {
-        "zh": (site / "assets/moli-version-success-resources-zh.svg", "372 题成功率与资源消耗"),
+        "zh": (site / "assets/comparison-version-success-resources-zh.svg", "372 题成功率与资源消耗"),
         "en": (
-            site / "assets/moli-version-success-resources-en.svg",
+            site / "assets/comparison-version-success-resources-en.svg",
             "Success on 372 cases vs. resource use",
         ),
     }
@@ -1031,16 +1031,16 @@ def main(argv=None):
         "--release", action="store_true", help="Require the complete bound method matrix"
     )
     parser.add_argument(
-        "--profile", type=pathlib.Path, help="Release profile (defaults to the repository profile)"
+        "--profile", type=pathlib.Path, help="External release profile"
     )
     args = parser.parse_args(argv)
     if args.profile is not None and not args.release:
         parser.error("--profile requires --release")
     profile = None
     if args.release:
-        profile_path = args.profile or (
-            pathlib.Path(__file__).resolve().parents[2] / "evaluation/moli/current-report.json"
-        )
+        if args.profile is None:
+            parser.error("--release requires --profile")
+        profile_path = args.profile
         if not profile_path.is_file():
             parser.error("Release profile is unavailable; supply --profile")
         profile = json.loads(profile_path.read_bytes())

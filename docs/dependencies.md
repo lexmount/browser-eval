@@ -61,7 +61,7 @@ Choose the scorer named by the experiment's [profile and correction records](../
 
 | Other inputs | Setup and version record |
 | --- | --- |
-| [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Current profile](../evaluation/wcxb/current-report.json) |
+| [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | External run profile supplied with `--profile` |
 | WebArena sites and human recordings | [Deployment and replay guide](webarena-fixed-trajectory-reproduction.md) |
 | Historical source pages | Import approved copies using [reference-input validation](reference-inputs.md) |
 

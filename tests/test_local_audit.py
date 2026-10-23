@@ -953,8 +953,8 @@ def test_retrospective_page_review_preserves_call_and_checks_other_requirements(
     missing['acceptance_contract']['stable_text_anchors'].append(
         {'id': 'missing', 'alternatives': ['A required fact that was not returned']})
     bad = {**annotation, 'case_sha256': canonical_json_sha256(missing)}
-    with pytest.raises(ValueError, match='unavailable page identity'):
-        adjudication_evidence.score_reviewed_page_identity(tmp_path, missing, record, bad, captures)
+    assert not task_passed(True, adjudication_evidence.score_reviewed_page_identity(
+        tmp_path, missing, record, bad, captures))
 
 
 def test_retrospective_page_review_requires_bound_receipt(tmp_path):

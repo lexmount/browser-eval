@@ -20,17 +20,19 @@ from typing import Any
 
 from harness.record_io import load_jsonl
 from harness.report_languages import write_language_contract
+from harness.reporting.assets import bound_json_asset
+from harness.reporting.templates import template_identity
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 
-from .failure_cause_review import (
-    DEFAULT_REVIEW_PATH as FAILURE_CAUSE_REVIEW_PATH,
-)
 from .failure_cause_review import (
     LAYERED_REVIEW_SCHEMA,
     extract_failure_cause_review_cohort,
     load_failure_cause_review,
     localized_cause,
     validate_failure_cause_review,
+)
+from .failure_cause_review import (
+    review_path as failure_review_path,
 )
 from .failure_cause_review import (
     sha256 as file_sha256,
@@ -45,9 +47,9 @@ from .publication import (
     trajectory,
     trajectory_label,
 )
-from .selection import PilotSelection, load_pilot, validate_against_official
+from .selection import PilotSelection, load_pilot, report_selection_path, validate_against_official
 
-ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli 1.1.3"}
+ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli"}
 MODEL_LABELS = {"gpt-5.6-sol": "GPT-5.6 Sol"}
 BASELINE_ENGINE = "chromium"
 TIER_LABELS = {"easy": "简单", "medium": "中等", "hard": "困难"}
@@ -57,8 +59,6 @@ SITE_LABELS = {
     "reddit": "Reddit",
     "gitlab": "GitLab",
 }
-MUTATE_IDS = {399, 404, 441, 506}
-NAVIGATE_IDS = {44, 45, 118}
 RESEARCH_ROOT = Path(__file__).parents[2] / "research"
 
 
@@ -289,7 +289,7 @@ def _table(
     table_id: str = "",
     classes: str = "",
 ) -> str:
-    head = "".join(f"<th>{_e(x)}</th>" for x in headers)
+    head = "".join(f"<th>{x if isinstance(x, Safe) else _e(x)}</th>" for x in headers)
     body = "".join(
         "<tr>" + "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in row) + "</tr>"
         for row in rows
@@ -299,12 +299,6 @@ def _table(
         f' class="{_e(classes)}"' if classes else ""
     )
     return f'<div class="table-wrap"><table{attrs}>{cap}<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'
-
-
-def _task_type(task_id: int) -> str:
-    return (
-        "MUTATE" if task_id in MUTATE_IDS else "NAVIGATE" if task_id in NAVIGATE_IDS else "RETRIEVE"
-    )
 
 
 def _attempt_id(row: dict[str, Any]) -> str:
@@ -663,7 +657,8 @@ def _paired_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _resolve_tasks(
-    selection: PilotSelection, *, expected_data_checksum: str | None = None
+    selection: PilotSelection, *, expected_data_checksum: str | None = None,
+    dataset_path: Path | None = None
 ) -> list[dict[str, Any]]:
     try:
         from harness.environments.webarena.runtime import (
@@ -671,6 +666,12 @@ def _resolve_tasks(
         )
 
         benchmark = configure_benchmark()
+        if dataset_path is not None:
+            from webarena_verified import WebArenaVerified
+            if dataset_path.is_symlink() or not dataset_path.is_file():
+                raise ValueError("Frozen official dataset is missing or symlinked")
+            benchmark = WebArenaVerified(config=benchmark.config.model_copy(
+                update={"test_data_file": dataset_path}))
         if expected_data_checksum:
             dataset_path = Path(benchmark.config.test_data_file)
             actual_data_checksum = _sha256(dataset_path)
@@ -713,7 +714,7 @@ def _resolve_tasks(
             raise ValueError(f"official task {task['task_id']} has no evaluator contract")
         expected = (evals[0].get("expected") or {}) if evals else {}
         task["task_type"] = str(
-            expected.get("task_type") or _task_type(int(task["task_id"]))
+            expected.get("task_type") or "UNKNOWN"
         ).upper()
     return tasks
 
@@ -801,7 +802,7 @@ def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
         "benchmark": (
             "任务 / evaluator",
             "排除并修复",
-            "修正验收合同，通过独立预检后重跑四种配置。",
+            "修正验收合同，通过独立预检后重跑全部参评配置。",
         ),
         "site": ("自托管站点", "排除并修复", "修复依赖、会话或保存链路，通过读写预检后重跑。"),
         "evidence": (
@@ -883,7 +884,7 @@ def _clean_subset_table(
             table_id="clean-subset-table",
             classes="core-comparison-table",
         )
-        + '<p class="fine">这是事后诊断口径，不是官方新分数。它按任务统一剔除任一配置已证实受任务/evaluator、站点、共享环境或参考状态干扰的任务，保证四个配置分母一致。</p>'
+        + '<p class="fine">这是事后诊断口径，不是官方新分数。它按任务统一剔除任一配置已证实受任务/evaluator、站点、共享环境或参考状态干扰的任务，保证各配置分母一致。</p>'
         f'<p class="fine">本轮剔除 {len(excluded)} 题：{_e("、".join(f"#{task_id}" for task_id in sorted(excluded)))}。</p>'
     )
 
@@ -1127,12 +1128,12 @@ def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> l
                     _winner(
                         f"{current['passed']}/{current['completed']}",
                         won=key in higher_metrics["passed"],
-                        label="四种配置中通过数最高",
+                        label="全部配置中通过数最高",
                     ),
                     _winner(
                         _pct(current["score"]),
                         won=key in higher_metrics["score"],
-                        label="四种配置中通过率最高",
+                        label="全部配置中通过率最高",
                     ),
                     _metric_stack(
                         [
@@ -1481,7 +1482,7 @@ def _english_page(body: str) -> str:
 
 
 def _hero(eyebrow: str, title: str, lead: str) -> str:
-    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{_e(title)}</h1><p class="lead">{_e(lead)}</p></div></section>'
+    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{_e(title)}</h1><p class="lead">{lead if isinstance(lead, Safe) else _e(lead)}</p></div></section>'
 
 
 def _section(title: str, body: str) -> str:
@@ -2252,84 +2253,54 @@ def _replay_original_contract_rows(
 def _trajectory_replay_control(
     bridge: dict[str, Any] | None, attempts: list[dict[str, Any]] | None = None
 ) -> str:
+    """Explain the selected replay comparison without inheriting a past article."""
     if bridge is None:
         return ""
-    result = bridge["effective_results"]
+    from .report_i18n import bilingual_text
+
+    def text(zh, en):
+        return Safe(bilingual_text(zh, en))
+
+    result_rows = [
+        [str(value.get("label") or key.capitalize()), f"{value['passes']}/{value['tasks']}"]
+        for key, value in bridge["effective_results"].items()
+        if isinstance(value, dict) and 'tasks' in value and 'passes' in value
+    ]
     provenance = bridge["chromium_trajectory_provenance"]
-    origins = provenance["successful_browser_use_execution_by_origin"]
-    diagnostic = ""
+    source_labels = {
+        "authoritative_successful_browser_use_execution": text("历史成功轨迹", "Historical successful executions"),
+        "expert_repair_spec": text("专家修复轨迹", "Expert-repaired trajectories"),
+    }
+    source_rows = [
+        [source_labels["authoritative_successful_browser_use_execution"], provenance["successful_browser_use_execution"]],
+        [source_labels["expert_repair_spec"], provenance["expert_repair_spec"]],
+        *[[Safe(f'<span data-origin="{_e(origin)}">{_e(origin.replace("_", " × "))}</span>'), count]
+          for origin, count in provenance["successful_browser_use_execution_by_origin"].items()],
+    ]
+    contract_rows = [
+        [source_labels.get(source, source.replace("_", " ")), counts["official_task_contract"], counts["corrected_replay_contract"]]
+        for source, counts in bridge["source_contract_counts"].items()
+    ]
+    body = '<section id="trajectory-replay-control"><h2>' + text(
+        "固定轨迹控制", "Fixed-trajectory control") + '</h2><p>' + text(
+        "轨迹重放执行固定动作，验收使用预录回答（recorded_response）和本次网络记录（HAR）。它不测 Agent 的自主规划；回答通过也不证明本次读到了目标数据。要求网络事件的合同仍检查本次 HAR。",
+        "Replay executes fixed actions and evaluates the recorded_response and current HAR. It does not measure autonomous Agent planning; an accepted recorded answer does not establish a fresh reading. Contracts requiring network events still inspect the current HAR.") + '</p>'
+    body += _table([text("配置", "Configuration"), text("通过数／任务数", "Passes / tasks")], result_rows)
+    body += '<h3>' + text("轨迹来源", "Trajectory provenance") + '</h3>'
+    body += _table([text("来源", "Source"), text("任务数", "Tasks")], source_rows)
+    body += '<h3>' + text("轨迹来源与验收合同", "Trajectory source and acceptance contract") + '</h3>'
+    body += _table([text("来源", "Source"), text("官方原合同", "Original official contract"), text("修订合同", "Revised contract")], contract_rows)
     if attempts is not None:
-        diagnostic_rows = "".join(
-            "<tr>" + "".join(f"<td>{_e(cell)}</td>" for cell in row) + "</tr>"
-            for row in _replay_original_contract_rows(bridge, attempts)
-        )
-        diagnostic = (
-            '<h3>保留原合同的任务仍有自主执行失败</h3>'
-            '<p>下表固定排除修订合同任务，按轨迹来源统计自主执行的官方通过数。'
-            '这是事后诊断，主报告分母仍为 90；历史成功路径经过筛选，不能把此表当成新的能力排名。</p>'
-            '<div class="table-scroll"><table><thead><tr><th>配置</th><th>全部原合同任务</th>'
-            '<th>历史成功路径来源</th><th>专家修复路径来源</th></tr></thead><tbody>'
-            + diagnostic_rows + '</tbody></table></div>'
-        )
-    contract_rows = "".join(
-        f'<tr><td>{label}</td><td>{counts["official_task_contract"]}</td><td>{counts["corrected_replay_contract"]}</td></tr>'
-        for source, label in (("authoritative_successful_browser_use_execution", "历史成功轨迹"), ("expert_repair_spec", "专家修复轨迹"))
-        for counts in [bridge["source_contract_counts"][source]]
-    )
-    correction_rows = "".join(
-        f'<tr><td>{label}</td><td>{", ".join(map(str, bridge["correction_categories"][key]))}</td><td>{description}</td></tr>'
-        for key, label, description in (
-            ("event_selection", "仅修改事件选择", "按匹配条件选择保存请求，避免随后请求覆盖。"),
-            ("event_selection_and_expected", "事件选择与预期字段修改", "修订路由、请求字段或 Referer 条件，并匹配所需异步请求。"),
-            ("reference_or_acceptance", "参考答案或验收要求修改", "涉及商品名、表单字段、商品选择规则、未提交表单状态及冗余保存要求。"),
-        )
-    )
-    return (
-        '<section id="trajectory-replay-control"><h2>固定轨迹控制：它验证浏览器执行，不测自主规划</h2>'
-        '<p><strong>Chromium 的 90/90 不是 CowAgent 的 90/90。</strong>轨迹重放把既定 BrowserTool 调用交给浏览器，模型调用数为 0；'
-        'Chromium 的 90/90 表示这 90 组固定动作、预录回答与绑定验收合同通过了重放验收，其中部分合同经过修订。它不让 Agent 在当次运行中观察、检索、比较、选择或决定何时结束。</p>'
-        '<p>验收使用轨迹预录回答（recorded_response）与本次网络记录（HAR）。对于检索问答题，通过不证明当前浏览器读到了所需数据，也不证明 Agent 在本次运行中计算出了答案；要求网络事件的合同仍会检查本次 HAR 是否包含对应请求。</p>'
-        '<p>90 题中的 37 道检索题均只使用回答验收，不要求网络事件：36 题沿用原合同，Task 279 使用修订合同。这 37 题的本轮读数与答案尚未验证；原评分保留，其余 53 题也不能替代原 90 题成为新的排名。</p>'
-        '<div class="answer-strip"><article><b>Chromium：90/90</b><p>固定动作、预录回答与绑定合同的重放验收结果。</p></article>'
-        f'<article><b>Moli：{result["moli"]["passes"]}/{result["moli"]["tasks"]}</b><p>同一固定路径仍有 36 条失败，不能把浏览器差异归零。</p></article>'
-        f'<article><b>路径来源：{provenance["expert_repair_spec"]} + {provenance["successful_browser_use_execution"]}</b><p>30 条专家修复路径，加 60 条历史成功的 Browser Use 路径。</p></article></div>'
-        '<p>后 60 条在进入重放集之前已经按“成功”条件筛选，其中 '
-        f'{origins["gpt-5.6-sol_chromium"]} 条来自 Sol × Chromium、{origins["gpt-5.6-sol_moli"]} 条来自 Sol × Moli、'
-        f'{origins["gpt-6-astra_chromium"]} 条来自 Astra × Chromium。'
-        '因此固定轨迹成绩受给定路径、预录回答和验收合同共同约束，不能作为 Agent 决策能力、模型能力或完整 90 题自主通过率的反事实估计。</p>'
-        '<h3>轨迹来源与验收合同</h3>'
-        f'<p>90 条轨迹中，{bridge["contract_counts"]["official_task_contract"]} 条保留官方原合同，{bridge["contract_counts"]["corrected_replay_contract"]} 条使用修订合同。专家修复轨迹不一定修改验收；历史成功轨迹也可能修订验收。合同差异与路径来源需同时考虑。</p>'
-        '<div class="table-scroll"><table><thead><tr><th>轨迹来源</th><th>官方原合同</th><th>修订合同</th></tr></thead><tbody>'
-        + contract_rows + '</tbody></table></div>'
-        '<div class="table-scroll"><table><thead><tr><th>修订类别</th><th>任务</th><th>验收差异</th></tr></thead><tbody>'
-        + correction_rows + '</tbody></table></div>'
-        + diagnostic +
-        '<p>历史复核曾将 Moli 的 36 个固定轨迹失败归为浏览器责任；新发现的视口设置缺陷要求重新核对这一归因。'
-        '历史 Browser Use 的 Chromium 实际宽度为 780，Moli 为 1920；Task 173 的搜索链接在宽度达到 992 时由网页 CSS 隐藏。'
-        '该任务的失败不能单凭可见性超时归因于浏览器。历史分数保留，统一视口后的比较须重新冻结完整任务范围与轨迹资格。</p>'
-        '<p class="source-note">数据绑定：<a href="evidence-viewer.html?src=data/trajectory-replay-bridge.json">跨轨迹控制摘要</a>；'
-        '<a href="evidence-viewer.html?src=data/trajectory-replay-failure-review.json">36 个 Moli 固定轨迹失败的逐题复核</a>。</p>'
-        '<h3>从失败结果追到决策与运行设置</h3>'
-        '<p><a href="results/gpt-5.6-sol-chromium-676.html#verification">Task 676 · Sol × Chromium · 验收证据</a>：'
-        '官方合同要求带 filters[status]=fraud 的订单列表 XHR。HAR 已记录该请求、200 状态和正确 Referer；'
-        '<a href="results/gpt-5.6-sol-chromium-676.html#trajectory">操作轨迹</a>显示 Suspected Fraud 已生效。'
-        'NetworkEventEvaluator._filter_events_by_criteria 却对 NAVIGATE + GET 只保留最后的文档导航，遗漏 XHR；'
-        '默认 last_event_only 又可能在同路径请求中选中后来的 notification_area。两个模型的 Chromium 结果都受此影响。'
-        '<a href="results/gpt-5.6-sol-moli-676.html#verification">Moli 的同题证据</a>还缺少 XHR Referer。'
-        '重放修订既改变事件选择，也移除了 Referer 条件；后者并非 Chromium 这次误判的原因。四个配置的原始失败分数保持不变。</p>'
-        '<p><a href="results/gpt-6-astra-chromium-124.html#trajectory">Task 124 · Astra × Chromium</a>：'
-        'Agent 在第 9 个决策就结束，未耗尽 40 步。轨迹把 wireless earphone 查询扩大成 earphone，'
-        '工具结果仍显示 Items 1 to 12 of 24 total，最终却提交 min=0.01、max=287.64。'
-        '失败发生在候选资格与检索完整性判断；轨迹中有可读结果，不能用浏览器不可操作或步骤不足解释。'
-        '当前运行器依赖模型执行提示中的完成自检，没有独立验证候选全集。提示要求自检并不等于已经完成自检。</p>'
-        '<p><a href="results/gpt-5.6-sol-moli-510.html#trajectory">Task 510 · Sol × Moli</a>：'
-        '第 40 个决策仍在调用工具，最终回答承认尚未结账。'
-        'harness/browser_use/runner.py 的 _exhausted_agent_steps 检测这一状态，并通过 _max_steps_response 标记未完成。'
-        '这证明预算上限中断了流程，但所选 Hiquphon Tweeters 本身也不符合官方目标；增加预算能否完成正确购买仍需对照实验。</p>'
-        '<p>两模型均使用 reasoning_effort=low 和 40 步上限。'
-        'harness/browser_use/model.py 限定 low，runner.py 在创建适配器时也传入 low。'
-        '现有分数只反映这套 Agent、工具与推理设置；尚无固定观察输入、仅改变推理档位的实验，不能把分数接近解释为模型能力相同。</p></section>'
-    )
+        body += '<p>' + text(
+            "以下为保留原合同任务的事后诊断，不替代自主执行的完整任务分母或官方结果。",
+            "The following post-hoc diagnostic uses original-contract tasks. It does not replace the full autonomous-run population or official outcomes.") + '</p>'
+        body += _table([text("配置", "Configuration"), text("全部原合同任务", "All original-contract tasks"), text("历史成功路径来源", "Historical-success paths"), text("专家修复路径来源", "Expert-repaired paths")], _replay_original_contract_rows(bridge, attempts))
+    body += '<p class="source-note"><a href="evidence-viewer.html?src=data/trajectory-replay-bridge.json">' + text(
+        "跨轨迹控制证据", "Cross-track control evidence") + '</a>'
+    if bridge.get("moli_failure_review"):
+        body += ' · <a href="evidence-viewer.html?src=data/trajectory-replay-failure-review.json">' + text(
+            "固定轨迹失败复核", "Replay failure review") + '</a>'
+    return body + '</p></section>'
 
 
 def _automatic_failure_counts(attempts: list[dict[str, Any]]) -> Counter[str]:
@@ -2357,28 +2328,6 @@ def _automatic_failure_figure(counts: Counter[str]) -> str:
     return '<div class="verdict-strip" aria-label="官方 evaluator 的失败规则组合">' + cards + "</div>"
 
 
-def _resource_summary_cards(common_resources: tuple[int, list[list[Any]]]) -> str:
-    task_count, rows = common_resources
-    if not task_count:
-        return '<p class="callout">当前没有四种配置最终都成功的任务，资源差异暂不比较。</p>'
-
-    def values(engine: str, column: int) -> list[float]:
-        label = ENGINE_LABELS[engine]
-        return [float(str(row[column]).split()[0].replace(",", "")) for row in rows if row[1] == label]
-
-    chromium_memory, moli_memory = values("chromium", 5), values("moli", 5)
-    chromium_tool, moli_tool = values("chromium", 3), values("moli", 3)
-    chromium_cpu, moli_cpu = values("chromium", 6), values("moli", 6)
-    return (
-        '<div class="decision-grid"><article><h3>Moli 的内存区间更低</h3><p>'
-        f'{task_count} 题最终共同成功样本中，Moli 峰值内存 P50 为 {min(moli_memory):.1f}–{max(moli_memory):.1f} MiB；'
-        f'Chromium 为 {min(chromium_memory):.1f}–{max(chromium_memory):.1f} MiB。</p></article>'
-        '<article><h3>Chromium 的工具耗时与 CPU 更低</h3><p>'
-        f'BrowserTool P50：Chromium {min(chromium_tool):.1f}–{max(chromium_tool):.1f} 秒，Moli {min(moli_tool):.1f}–{max(moli_tool):.1f} 秒；'
-        f'CPU 时间 P50：Chromium {min(chromium_cpu):.1f}–{max(chromium_cpu):.1f} 秒，Moli {min(moli_cpu):.1f}–{max(moli_cpu):.1f} 秒。</p></article></div>'
-    )
-
-
 def _article_body(
     paired: dict[str, Any],
     attempts: list[dict[str, Any]],
@@ -2389,111 +2338,100 @@ def _article_body(
     automatic_failure_counts: Counter[str],
     trajectory_replay_bridge: dict[str, Any] | None,
 ) -> str:
-    total_task_count = len(tasks)
+    from .report_i18n import bilingual_text
+
+    text = bilingual_text
+    task_count = len(tasks)
+    configurations = {(row['model'], row['engine']) for row in attempts}
+    configuration_count = len(configurations)
+    expected_count = task_count * configuration_count
+    complete = {(row['model'], row['engine'], int(row['task_id'])) for row in attempts} == {
+        (model, engine, int(task['task_id'])) for model, engine in configurations for task in tasks}
+    scope = '完整结果' if complete else '已记录结果'
     excluded = _external_interference_task_ids(verified_causes)
-    eligible_attempts = [
-        row for row in attempts if int(row["task_id"]) not in excluded
-    ]
-    diagnostic_task_count = total_task_count - len(excluded)
-    task_count = total_task_count
+    eligible = [row for row in attempts if int(row['task_id']) not in excluded]
+    clean_count = task_count - len(excluded)
+    failed = [row for row in attempts if float(row.get('score') or 0) < 1]
     summary = _primary_summary(attempts)
-    paired = _paired_summary(attempts)
-    raw_failed_result_count = sum(float(row.get("score") or 0) < 1 for row in attempts)
+    pairs = _paired_summary(attempts)
     comparison_rows = [
-        [
-            MODEL_LABELS[model],
-            ENGINE_LABELS[item["baseline_engine"]],
-            ENGINE_LABELS[item["comparison_engine"]],
-            item["paired"],
-            item["both_pass"],
-            item["baseline_only"],
-            item["comparison_only"],
-            item["both_fail"],
-        ]
-        for model, model_pairs in paired.items()
-        for item in model_pairs["comparisons"].values()
+        [MODEL_LABELS[model], ENGINE_LABELS[item['baseline_engine']],
+         ENGINE_LABELS[item['comparison_engine']], item['paired'], item['both_pass'],
+         item['baseline_only'], item['comparison_only'], item['both_fail']]
+        for model, group in pairs.items() for item in group['comparisons'].values()
     ]
-    discordant = sum(row[5] + row[6] for row in comparison_rows)
-    cause_rows = [
-        [
-            Safe(f'<a href="results/{_e(result_id)}.html#verification">{_e(result_id)}</a>'),
-            (diagnosis.get("subcategory") or {}).get("zh") or "—",
-            (diagnosis.get("reason") or {}).get("zh") or "—",
-        ]
-        for result_id, diagnosis in sorted(verified_causes.items())
-    ]
-    if raw_failed_result_count:
-        cause_section = (
-            _failure_cause_table(verified_causes)
-            + '<details class="evidence-details"><summary>查看每个失败结果的核验结论</summary>'
-            + _table(
-                ["结果编号", "原因分类", "核验结论"],
-                cause_rows,
-                caption="人工核验用于解释官方失败结果，不修改分数。修复后需要重新运行才能产生新成绩。",
-            )
-            + "</details>"
-            if len(cause_rows) == raw_failed_result_count
-            else f'<p class="callout">当前有 {raw_failed_result_count} 个原始失败结果，详细原因仍在核验中；未核验结果不展示推测。</p>'
-        )
-    else:
-        cause_section = '<p class="callout success">本轮没有失败结果，无需生成失败根因记录。</p>'
-    common_count, resource_rows = _common_final_success_resource_rows(attempts)
-    clean = _primary_summary(eligible_attempts)
     clean_rows = [
-        [
-            MODEL_LABELS[model],
-            ENGINE_LABELS[engine],
-            f"{values['passed']}/{values['completed']}",
-            _pct(values["score"]),
-        ]
-        for model, model_summary in clean.items()
-        for engine, values in model_summary.items()
+        [MODEL_LABELS[model], ENGINE_LABELS[engine], f"{value['passed']}/{value['completed']}", _pct(value['score'])]
+        for model, group in _primary_summary(eligible).items() for engine, value in group.items()
     ]
-    coverage = review.get("coverage") or {}
-    reviewed_attempts = int(coverage.get("reviewed_attempts") or 0)
-    recorded_attempts = int(coverage.get("recorded_attempts") or 0)
-    clean_task_count = diagnostic_task_count
-    return (
-        '<article class="publication-article interpretation-v2"><header class="essay-head"><div class="eyebrow">Browser Use 能力评测</div>'
-        f"<h1>{task_count} 题 Browser Use 完整结果：Chromium 与 Moli 的成功率、代价与失败根因</h1>"
-        f'<p class="lead">首页按预注册的 {total_task_count} 题展示四种配置的官方 evaluator 结果。其中 {len(excluded)} 题经复核存在验收合同、站点、共享状态或参考状态干扰；这些题仍保留在 90 题官方结果中，另外提供 {diagnostic_task_count} 题事后诊断子集。</p>'
-        '<p class="source-note">WebArena‑Verified 1.2.3 · CowAgent · 模型推理强度固定为低 · 官方程序化 evaluator</p>'
-        '<p class="page-links"><a href="datasets/">查看评测集</a><a href="analysis/">下钻全部结果</a><a href="data/interpretation-evidence.json" download>下载论点与证据</a></p></header>'
-        '<section><h2>90 题核心指标</h2>'
-        + _table(
-            ["模型", "浏览器", "通过任务", "通过率", "Agent 总耗时", "BrowserTool 耗时", "Tokens"],
-            _summary_comparison_rows(summary),
-            table_id="home-core-metrics",
-            classes="core-comparison-table",
+    chapters = []
+    for model, engine in sorted(configurations):
+        failures = [row for row in failed if row['model'] == model and row['engine'] == engine]
+        if not failures:
+            continue
+        ids = {_attempt_id(row) for row in failures}
+        causes = {key: value for key, value in verified_causes.items() if key in ids}
+        label = f'{MODEL_LABELS[model]} × {ENGINE_LABELS[engine]}'
+        specimen = next(iter(causes), _attempt_id(failures[0]))
+        cause = causes.get(specimen) or {}
+        reason = cause.get('reason') or {}
+        explanation = text(str(reason.get('zh') or '此结果尚无已核验根因。'),
+                           str(reason.get('en') or 'This result has no verified root cause.'))
+        chapters.append(
+            f'<section data-browser-failure-profile="{_e(model)}-{_e(engine)}"><h3>{_e(label)}</h3>'
+            + text(f'{len(failures)} 个失败结果，其中 {len(causes)} 个已有根因复核。',
+                   f'{len(failures)} failed results; {len(causes)} have a verified cause.')
+            + _failure_cause_table(causes)
+            + f'<p><a href="results/{_e(specimen)}.html#verification">{_e(specimen)}</a> · {explanation}</p></section>'
         )
-        + f'<p class="source-note">每个模型×浏览器配置都保留完整 {task_count} 题。以上是官方 evaluator 决定的最终逻辑结果；物理执行记录可在单题证据页下钻。</p></section>'
-        '<section><h2>按同题比较浏览器</h2><p>浏览器对比必须留在同一模型层内。汇总数会隐藏互换的成败任务；下表给出同题对照。</p>'
-        + _table(["模型", "浏览器 A", "浏览器 B", "同题数", "两边都通过", "A 通过、B 失败", "A 失败、B 通过", "两边都失败"], comparison_rows, caption=f"每行只比较同一模型下的 {task_count} 个配对任务。")
-        + f'<p>两个模型层合计有 {discordant} 个单边通过，可用于定位兼容性问题；样本量和方向都不支持总体优劣判断。<a href="analysis/#same-task">查看 {task_count} 题的四配置矩阵 →</a></p></section>'
-        + _trajectory_replay_control(trajectory_replay_bridge, attempts)
-        + '<section id="failure-findings"><h2>程序判分落点与复核根因</h2><p>程序判分先说明哪类规则未通过；人工复核再沿最终回答、evaluator 断言、HAR 和 Agent 轨迹追到直接原因。这两个层次需要分开。</p><h3>程序判分落点</h3>'
-        + _automatic_failure_figure(automatic_failure_counts)
-        + '<p class="source-note">“网络副作用未通过”只描述程序判分位置。它可能源于 Agent 没有提交，也可能源于 evaluator、站点或 HAR 采集问题。</p><h3>复核根因</h3>'
-        + _failure_scope_figure(verified_causes)
-        + cause_section
-        + '<div class="evidence-examples"><article><h3>Agent 行为</h3><p>例如漏掉商品、选错最优候选、写错字段，或在 40 步前提前结束。这些属于当前 Agent × 模型配置的真实失败。</p></article><article><h3>验收规则</h3><p><a href="results/gpt-6-astra-chromium-699.html#verification">Task 699</a> 的 evaluator 在比较实际提交前就因单元素 Alternatives 配置抛错；<a href="results/gpt-6-astra-chromium-528.html#verification">Task 528</a> 要求“不提交”，验收却要求 POST。这些 0 分不能归给模型或浏览器。</p></article><article><h3>站点与环境</h3><p>Magento 搜索或库存保存服务失效，以及 <a href="results/gpt-6-astra-chromium-77.html#verification">Task 77</a> 的并发状态污染，都会让正确操作无法通过。</p></article><article><h3>浏览器证据</h3><p>Moli 的部分 HAR 没有 Referer 或响应正文，例如 <a href="results/gpt-6-astra-moli-595.html#verification">Task 595</a> 和 <a href="results/gpt-6-astra-moli-676.html#verification">Task 676</a>。页面可能已经操作成功，但 evaluator 无法从网络记录确认；这是浏览器集成层的有效信号。</p></article></div>'
-        + f'<h3>90 题官方结果与事后诊断分开看</h3><p>首页主结果始终使用完整 {total_task_count} 题官方 evaluator 分母。为了观察排除已知外部干扰后的差异，下表再按整题、四种配置一致排除 {len(excluded)} 题，得到 {clean_task_count} 题事后诊断子集。</p>'
-        + _table(["模型", "浏览器", f"{clean_task_count} 题通过", "通过率"], clean_rows, table_id="home-qualified-results", classes="core-comparison-table")
-        + f'<p class="source-note">这是事后诊断子集，不是正式分数，也不替代 90 题官方结果。{raw_failed_result_count} 个原始失败记录继续保存在结果页和核验记录中。</p></section>'
-        '<section><h2>审查覆盖与边界</h2><div class="audit-ladder"><article><span>1</span><b>证据完整性</b><p>'
-        + f'{reviewed_attempts}/{recorded_attempts} 个证据包由程序核对文件存在性、哈希、JSON 可读性、回答 / 分数 / 状态一致性和运行身份。</p></article><article><span>2</span><b>官方程序验收</b><p>每题按最终回答和必要网络副作用判分；没有 LLM judge。</p></article><article><span>3</span><b>失败根因复核</b><p>{len(verified_causes)}/{raw_failed_result_count} 个原始最终失败结果逐条阅读错误、断言、最终回答、HAR 和 Agent 轨迹，归类并给出处理边界。</p></article></div>'
-        + '<p class="callout"><strong>审查分为完整性检查和失败根因复核。</strong> 前者确认“证据包与 evaluator 记录一致”；后者检查 evaluator 语义，并识别出 Task 699 等问题。已通过结果没有再做独立语义盲审，其判定依据仍是官方 evaluator。<a href="review/">查看核验记录 →</a></p></section>'
-        f'<section><h2>完整 {task_count} 题的速度与浏览器资源</h2><p>均值、P50、P95 都在四种完整配置中统一比较。CPU、内存和网络只计浏览器容器，不含 CowAgent 或模型服务；模型会改变动作数量和页面停留时间，因此这里比较整套配置，不能单独归因于浏览器内核。</p>'
-        + '<p class="source-note">历史轨迹记录的视口为 Chromium 780×437/493、Moli 1920×1080。视口差异会影响渲染、CPU 和内存；以下数值与最低值标记仅描述各自实际运行条件，不是统一视口下的资源效率结论。正式效率比较须统一设置后完整重跑。</p>'
+    common_count, resource_rows = _common_final_success_resource_rows(attempts)
+    coverage = review.get('coverage') or {}
+    reviewed = int(coverage.get('reviewed_attempts') or 0)
+    recorded = int(coverage.get('recorded_attempts') or 0)
+    return (
+        '<article class="publication-article interpretation-v2"><header class="essay-head"><div class="eyebrow">Browser Use</div><h1>'
+        + text(f'{task_count} 题 Browser Use {scope}', f'Browser Use results across {task_count} declared tasks')
+        + '</h1><p class="lead">'
+        + text(f'声明范围为 {task_count} 个任务、{configuration_count} 种配置，已记录 {len(attempts)}/{expected_count} 个逻辑结果。官方 evaluator 的结果保留不变；另列排除 {len(excluded)} 个已核验外部干扰任务后的 {clean_count} 题诊断子集。',
+               f'The declared scope contains {task_count} tasks and {configuration_count} configurations; {len(attempts)}/{expected_count} logical results are recorded. Official evaluator results remain unchanged. A separate {clean_count}-task diagnostic subset excludes {len(excluded)} tasks with verified external interference.')
+        + '</p><p class="page-links"><a href="datasets/">查看评测集</a><a href="analysis/">下钻全部结果</a><a href="data/interpretation-evidence.json" download>下载论点与证据</a></p></header><section><h2>'
+        + text(f'{task_count} 题核心指标', f'Core metrics across {task_count} tasks') + '</h2>'
+        + _table(['模型', '浏览器', '通过任务', '通过率', 'Agent 总耗时', 'BrowserTool 耗时', 'Tokens'],
+                 _summary_comparison_rows(summary), table_id='home-core-metrics', classes='core-comparison-table')
+        + '<p class="source-note">' + text('每个模型与浏览器配置使用同一任务范围；结果页保留全部物理执行。',
+            'Every configuration uses the same task scope; result pages retain all physical executions.') + '</p></section>'
+        + '<section><h2>按同题比较浏览器</h2>'
+        + _table(['模型', '浏览器 A', '浏览器 B', '同题数', '两边都通过', 'A 通过、B 失败', 'A 失败、B 通过', '两边都失败'], comparison_rows)
+        + _trajectory_replay_control(trajectory_replay_bridge, attempts) + '</section>'
+        + '<section id="failure-findings"><h2>程序判分落点与复核根因</h2>'
+        + text('程序判分说明未通过的规则；根因复核解释已有证据支持的原因，两者不互相替代。',
+               'Programmatic findings identify failed rules; cause reviews explain the evidence-supported cause. They serve different purposes.')
+        + _automatic_failure_figure(automatic_failure_counts) + _failure_scope_figure(verified_causes)
+        + ''.join(chapters) + '<h3>' + text('官方结果与事后诊断', 'Official results and post-hoc diagnostics') + '</h3>'
+        + _table(['模型', '浏览器', text(f'{clean_count} 题通过', f'Passes across {clean_count} tasks'), '通过率'], clean_rows,
+                 table_id='home-qualified-results', classes='core-comparison-table')
+        + '<p class="source-note">' + text('诊断子集不替代官方分数，原始失败证据继续保留。',
+               'The diagnostic subset does not replace official scores. Original failure evidence remains available.') + '</p></section>'
+        + '<section><h2>审查覆盖与边界</h2><div class="audit-ladder"><article><h3>证据完整性</h3>'
+        + text(f'{reviewed}/{recorded} 个物理执行证据包经过完整性核对。', f'Integrity checks cover {reviewed}/{recorded} physical-execution evidence bundles.')
+        + '</article><article><h3>官方程序验收</h3>'
+        + text('每题检查最终回答和任务声明的网络副作用，不使用 LLM judge。', 'Each task checks the final answer and declared network effects, without an LLM judge.')
+        + '</article><article><h3>失败根因复核</h3>'
+        + text(f'{len(verified_causes)}/{len(failed)} 个失败逻辑结果有已绑定的原因复核。', f'Bound cause reviews cover {len(verified_causes)}/{len(failed)} failed logical results.')
+        + '</article></div><p>' + text('已通过结果没有再做独立语义盲审', 'Passed results have not received an independent blind semantic review.') + '</p><a href="review/">查看核验记录 →</a></section>'
+        + '<section><h2>' + text(f'完整 {task_count} 题的速度与浏览器资源', f'Latency and browser resources across {task_count} tasks') + '</h2>'
+        + text(f'均值、P50、P95 在全部 {configuration_count} 种配置中比较。CPU、内存和网络只计浏览器，不含 Agent 和模型服务。',
+               f'Mean, P50 and P95 compare all {configuration_count} configurations. CPU, memory and network cover the browser, excluding the Agent and model service.')
         + _resource_comparison_table(summary)
-        + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 每项只标记四种配置中数值唯一最低者。CPU 时间与网络总量累计逻辑结果使用的全部执行；内存来自 Browser Use 执行阶段的浏览器容器采样。</p></section>'
-        '<section><h2>共同成功任务的性能与资源</h2><p>下表限定为四种配置最终都通过的 '
-        + str(common_count)
-        + ' 题，并以每题最终逻辑结果包含的全部物理执行计算 P50；这样不会把快速失败误当成性能优势。</p>'
-        + _table(["模型", "浏览器", "Agent 链路 P50", "BrowserTool P50", "Tokens P50", "峰值内存 P50", "CPU 时间 P50"], resource_rows, table_id="home-resource-table", classes="core-comparison-table")
-        + _resource_summary_cards((common_count, resource_rows))
-        + '<p class="source-note">共同成功子集也保留了历史视口差异，不能据此得出统一视口下的资源效率结论。Agent 链路还包含模型推理和页面等待，因此不能解读为纯内核性能。</p></section>'
-        f'<section><h2>工程结论</h2><p>完整 {task_count} 题官方结果是本报告的主口径；{clean_task_count} 题事后诊断子集只用于分离已知外部干扰，不改写成绩。</p><p>Moli 的内存占用明显更低，但 HAR 完整性、工具耗时和部分任务兼容性还需修复；Chromium 在本轮 Sol 层多通过 3 题，Astra 层通过数相同，但当前每种配置只有一个正式样本，不能外推成总体优势。</p><div class="essay-note"><h3>下一轮验证</h3><p>先修复可控的合同、evaluator、站点和共享状态问题，再按同一协议完整重跑 90 题四种配置；历史官方分数在新证据批次出现前保持不变。</p></div></section></article>'
+        + text('最低值标记只描述各配置的实际运行条件，不能视为统一视口下的资源效率结论。',
+               'Minimum markers describe the recorded configuration; they do not establish resource efficiency at a common viewport.')
+        + '</section><section><h2>共同成功任务的性能与资源</h2>'
+        + text(f'{common_count} 个任务在全部配置中最终通过；下表以每个逻辑结果的全部物理执行计算 P50。',
+               f'All configurations finally passed {common_count} tasks. The table computes P50 over all physical executions within each logical result.')
+        + _table(['模型', '浏览器', 'Agent 链路 P50', 'BrowserTool P50', 'Tokens P50', '峰值内存 P50', 'CPU 时间 P50'], resource_rows,
+                 table_id='home-resource-table', classes='core-comparison-table')
+        + text('共同成功子集仍保留各配置记录的运行环境，不能据此推断统一条件下的资源效率。', 'The common-success subset retains each configuration’s recorded environment; it does not establish resource efficiency under identical conditions.')
+        + '</section></article>'
     )
 
 
@@ -2702,7 +2640,7 @@ def _attempt_table(
         cells = "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in values)
         rows.append(
             f'<tr data-tier="{p["tier"]}" data-site="{(task.get("sites") or [""])[0]}" '
-            f'data-kind="{task.get("task_type") or _task_type(p["task_id"])}" data-result="{result}" '
+            f'data-kind="{task.get("task_type") or "UNKNOWN"}" data-result="{result}" '
             f'data-model="{p["model"]}" data-engine="{p["engine"]}" data-failure="{failure}" '
             f'data-search="{_e(" ".join([p["id"], str(task.get("intent") or ""), automatic_failure, subcategory, reason, _failure_diagnosis(result_record, row)]))}">{cells}</tr>'
         )
@@ -2908,17 +2846,20 @@ def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False)
         _write_json(stage / "data/fix-log.json", {**model, "artifacts": list(artifacts.values())})
 
 
-def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path, include_english: bool = False, language: str | None = None) -> Path:
+def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path, include_english: bool = False, language: str | None = None, profile_path: Path | None = None) -> Path:
     from harness.report_languages import includes_english, select_report_language
+
+    from .report_i18n import bilingual_text
     include_english = includes_english(language, include_english)
-    mac_expansion = json.loads(
-        (RESEARCH_ROOT / "webarena-mac-expansion.json").read_text(encoding="utf-8")
-    )
-    mac_counts = mac_expansion["official_counts"]
-    profile = _read_json(Path("evaluation/browser-use/current-report.json"))
+    if profile_path is None:
+        raise ValueError("An explicit report profile is required; pass --profile")
+    if profile_path.is_symlink():
+        raise ValueError("Symlinked report profile is forbidden")
+    profile = _read_json(profile_path)
     fix_log = _load_fix_log(profile)
     _configure_engine_labels(profile)
     _configure_models(profile)
+    selection_path = report_selection_path(profile, selection_path)
     selection = load_pilot(selection_path)
     trajectory_replay_bridge = _load_trajectory_replay_bridge(
         profile, selection_sha256=selection.sha256
@@ -2961,7 +2902,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
     public_attempts = [_public_attempt(r) for r in attempts]
     attempts_sha256 = {bundle["model"]: bundle["attempts_sha256"] for bundle in bundles}
     failed_result_ids = {row["id"] for row in public_attempts if float(row.get("score") or 0) < 1}
-    default_failure_cause_review = load_failure_cause_review()
+    default_failure_cause_review = load_failure_cause_review(failure_review_path(profile))
     verified_causes: dict[str, dict[str, Any]] = {}
     failure_reviews: dict[str, dict[str, Any]] = {}
     for bundle in bundles:
@@ -2989,11 +2930,17 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         public["verified_failure_subcategory"] = subcategory
         public["verified_failure_reason"] = reason
     official = (manifest.get("environment") or {}).get("official_evaluator") or {}
+    if profile.get("official_dataset"):
+        frozen = profile["official_dataset"]
+        if frozen.get("sha256") != official.get("data_checksum"):
+            raise ValueError("Frozen official dataset does not match the measured task source")
     tasks = _resolve_tasks(
-        selection, expected_data_checksum=str(official.get("data_checksum") or "") or None
+        selection, expected_data_checksum=str(official.get("data_checksum") or "") or None,
+        dataset_path=(Path(profile["official_dataset"]["path"]) if profile.get("official_dataset") else None),
     )
     task_count = len(tasks)
     result_count = len(attempts)
+    reasoning_effort = str(config.get("reasoning_effort") or protocol.get("reasoning_effort") or profile.get("reasoning_effort") or "未记录")
     max_agent_steps = str(
         config.get("max_agent_steps") or protocol.get("max_agent_steps") or "未记录"
     )
@@ -3077,7 +3024,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         (stage / "index.html").write_text(
             _page(title="首页", active="home", body=home), encoding="utf-8"
         )
-        release_data = _read_json(Path("research/report-changes.json"))
+        _, release_data = bound_json_asset(
+            profile.get("report_history"), root=profile_path.parent)
         releases = release_data.get("browser_use_releases") or []
         changes = _hero(
             "Report releases",
@@ -3147,6 +3095,9 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 encoding="utf-8",
             )
 
+        def translated(zh, en):
+            return Safe(bilingual_text(zh, en))
+
         benchmarks = [
             [
                 "WebArena‑Verified",
@@ -3189,83 +3140,77 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         methodology = _hero(
             "Methodology",
             "评最终结果，不评参考点击路径",
-            "唯一成绩来源是未修改的 WebArena‑Verified 1.2.3 evaluator；确定性证据审计只验证记录一致性。",
+            translated("唯一成绩来源是运行记录绑定的官方 evaluator；确定性证据审计只验证记录一致性。", "Scores come from the official evaluator bound by the execution records; deterministic auditing checks evidence consistency."),
         ) + _section(
             "候选 benchmark 的验收边界",
             _table(["Benchmark", "评什么", "验收对象", "判分", "问题"], benchmarks),
         )
+        evaluator_counts = Counter(
+            rule.get("evaluator", "UnknownEvaluator")
+            for task in tasks
+            for rule in (task.get("contract") or {}).get("evaluation_contract", [])
+        )
+        selected_sites = Counter(site for task in tasks for site in task.get("sites", []))
+        site_images = environment.get("site_images") or config.get("site_images") or {}
         methodology += _section(
             "本轮判分链",
-            f'<ol class="flow"><li>预注册 {task_count} 题</li><li>逐题重置站点</li><li>CowAgent 自主规划</li><li>只替换浏览器</li><li>官方 evaluator 验收</li><li>确定性证据复核</li></ol><p>官方数据 812 题全部配置 AgentResponseEvaluator，其中 663 题还配置 NetworkEventEvaluator。所有已配置 evaluator 都返回 1.0 才通过。它检查最终结果和必要副作用，不要求复刻参考动作序列。</p>',
+            f'<ol class="flow"><li>预注册 {task_count} 题</li><li>CowAgent 自主规划</li><li>BrowserTool</li><li>官方 evaluator 验收</li><li>确定性证据复核</li></ol>'
+            + '<p>' + translated(
+                "以下计数来自本轮选中任务的冻结验收合同。所有已配置 evaluator 都返回 1.0 才通过。",
+                "The counts below come from the selected tasks' frozen acceptance contracts. Every configured evaluator must return 1.0 for a task to pass.") + '</p>'
+            + _table(["Evaluator", translated("任务数", "Tasks")], sorted(evaluator_counts.items()), table_id="methodology-evaluators"),
         )
         methodology += _section(
             f"这 {task_count} 题如何部署并由 Agent 执行",
-            '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="WebArena-Verified 本地部署、CowAgent 自主操作、双浏览器对照与程序化验收流程" width="1672" height="941"><figcaption>图 1 · 从官方站点镜像、逐题隔离与健康检查，到 CowAgent 观察—决策—操作闭环，再到 Chromium/Moli 对照和官方程序化验收。窄屏可横向滚动查看。</figcaption></figure>'
-            f"<p><strong>站点确实部署在本机，不是公网代站。</strong>macOS 上的 Docker 由 Colima 虚拟机承载；运行配置记录的 <code>{_e(site_access_host)}</code> 是浏览器容器访问 macOS 宿主发布端口所用的 Colima 网关，不是评测网站自身地址。Shopping、Shopping Admin、Reddit、GitLab 四个官方站点镜像通过 Docker 端口发布到这个入口，独立的 Chromium/Moli 浏览器容器据此访问本地站点。</p>"
-            f"<p>WebArena‑Verified 当前提供 Shopping、Shopping Admin、Reddit、GitLab、Wikipedia、Map 六类环境。本轮 {task_count} 题只覆盖前四类；Wikipedia 与 Map 需要额外大型数据卷，因此没有部署，也没有任务进入成绩。</p>"
-            + (
-                f"<p>运行器在每个物理执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。本轮 {preparation_receipt_count}/{len(source_attempts)} 个物理执行都保存了环境准备回执，并与对应执行记录绑定。</p>"
-                if preparation_receipts_complete
-                else "<p>运行器在每个物理执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。当前证据尚未完整保存逐执行环境准备回执，因此不能把每次准备成功当成已独立核验的事实。</p>"
-            )
-            + f"<p>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 {max_agent_steps} 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每次物理执行都保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
-            + _table(
-                ["站点", "本轮访问地址", "应用端口", "环境控制端口", "状态"],
-                [
-                    ["Shopping", f"http://{site_access_host}:7770", "7770", "7771", "本轮已部署"],
-                    [
-                        "Shopping Admin",
-                        f"http://{site_access_host}:7780/admin",
-                        "7780",
-                        "7781",
-                        "本轮已部署",
-                    ],
-                    ["Reddit", f"http://{site_access_host}:9999", "9999", "9998", "本轮已部署"],
-                    ["GitLab", f"http://{site_access_host}:8023", "8023", "8024", "本轮已部署"],
-                    ["Wikipedia", "—", "8888", "8889", f"未部署；不在 {task_count} 题"],
-                    ["Map", "—", "3030", "3031", f"未部署；不在 {task_count} 题"],
-                ],
-            )
-            + (
-                f'<p class="callout success"><strong>环境准备证据：</strong>{preparation_receipt_count}/{len(source_attempts)} 个物理执行均记录 reset、ready、应用健康检查和登录准备状态；事件流随后证明 CowAgent 自主产生 BrowserTool 调用序列。</p>'
-                if preparation_receipts_complete
-                else '<p class="callout"><strong>证据边界：</strong>事件流能证明 CowAgent 在准备完成后产生了 BrowserTool 调用序列；镜像 ID、digest、代码提交与网关记录限定了本地运行身份。逐执行环境准备回执尚不完整。</p>'
-            )
+            '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="Browser Use evaluation flow: tasks, recorded environment, autonomous actions, registered browsers and official evaluators"><figcaption>'
+            + translated("流程图说明职责；本轮部署身份与环境准备范围见下表及逐执行证据。",
+                         "The diagram explains responsibilities. The recorded deployment and preparation coverage are specified below and in each execution's evidence.")
+            + '</figcaption></figure><p>'
+            + translated(
+                f"预注册文件不含点击序列。CowAgent 在最多 {max_agent_steps} 步内观察页面、请求模型决策并生成 BrowserTool 调用。具体浏览器、版本和环境以运行记录为准。",
+                f"The selection contains no click sequence. CowAgent observes pages, requests model decisions and generates BrowserTool calls within a {max_agent_steps}-step budget. Browser versions and environment identity follow the execution records.") + '</p>'
+            + _table([translated("环境字段", "Environment field"), translated("本轮身份", "Recorded identity")], [
+                [translated("宿主", "Host"), environment.get("platform", "—")],
+                [translated("Docker 上下文", "Docker context"), config.get("docker_context", "—")],
+                [translated("站点访问入口", "Site access host"), site_access_host],
+            ])
+            + _table([translated("站点", "Site"), translated("选中任务数", "Selected tasks"), translated("记录的镜像", "Recorded image")], [
+                [SITE_LABELS.get(site, site), count, (site_images.get(site) or {}).get("reference", "—")]
+                for site, count in sorted(selected_sites.items())
+            ], table_id="methodology-sites")
+            + '<p>' + translated(
+                f"环境准备回执：{preparation_receipt_count}/{len(source_attempts)} 个物理执行。逐执行的重置、就绪和健康检查状态以对应回执为准。",
+                f"Environment preparation receipts: {preparation_receipt_count}/{len(source_attempts)} physical executions. Reset, readiness and health-check states follow the corresponding receipts.") + '</p>'
             + '<p class="page-links">'
             + "".join(
-                f'<a href="results/{model_id}-{engine}-44.html#trajectory">查看 {_e(MODEL_LABELS[model_id])} · {_e(ENGINE_LABELS[engine])} 自主轨迹示例</a>'
-                for model_id in MODEL_LABELS
-                for engine in ENGINE_LABELS
-                if (model_id, engine, 44) in by_attempt
-            )
-            + '<a href="reproduce/">核对镜像与运行身份</a></p>',
-        )
-        methodology += _section(
-            "Mac 上可以继续扩展哪些实例",
-            f"<p>下一轮轨迹重放固定使用本报告当前 {task_count} 题，不扩充任务范围。若未来另行扩充 Browser Use 评测，当前四个已实跑站点可预检 {mac_counts['current_four_sites_single_site']} 个单站任务；计入只依赖这四站的跨站任务后，共有 {mac_counts['current_four_sites_including_cross_site']} 个候选，其中 hard 子集 {mac_counts['current_four_sites_hard_including_cross_site']} 个。</p>"
-            + _table(
-                ["环境", "Apple Silicon Mac 状态", "完整集单站题", "hard 单站题", "约束"],
-                mac_expansion["environments"],
-                caption="Wikipedia 与 Map 的容量来自官方环境说明；状态中的“实跑”只指本项目已有执行证据。",
-            )
-            + '<p class="callout"><strong>最小扩展方案：</strong>先从四个已验证站点的 678 个候选中做可完成性预检和分层抽样；Wikipedia、Map 等大数据环境后置。这样扩容不会先引入新的部署变量。</p>'
-            '<p class="page-links"><a href="https://github.com/ServiceNow/webarena-verified">官方任务集与安装说明</a><a href="https://servicenow.github.io/webarena-verified/dev/environments/">官方环境容量说明</a></p>',
+                f'<a href="results/{model_id}-{engine}-{example_id}.html#trajectory">'
+                + translated(f"{MODEL_LABELS[model_id]} · {ENGINE_LABELS[engine]} 自主轨迹示例",
+                             f"{MODEL_LABELS[model_id]} · {ENGINE_LABELS[engine]} autonomous trajectory") + '</a>'
+                for model_id in MODEL_LABELS for engine in ENGINE_LABELS
+                for example_id in [next((int(task["task_id"]) for task in tasks
+                                         if (model_id, engine, int(task["task_id"])) in by_attempt), None)]
+                if example_id is not None
+            ) + '<a href="reproduce/">核对镜像与运行身份</a></p>',
         )
         methodology += _section(
             "固定协议",
             _table(
                 ["项目", "规则"],
                 [
-                    ["Agent / 模型", f"CowAgent；{model}；模型推理强度为低"],
-                    ["计划与实际对照", "计划固定任务、数据、模型、提示和资源上限，仅替换浏览器；历史执行的视口实际不一致，不能视为浏览器是唯一变量的实验"],
-                    ["结果口径", "每题×浏览器一个最终逻辑结果；二元通过率；逐题配对"],
+                    ["Agent / 模型", Safe(bilingual_text(f"CowAgent；{model}；推理强度 {reasoning_effort}", f"CowAgent; {model}; reasoning effort {reasoning_effort}"))],
+                    ["计划与实际对照", Safe(bilingual_text("模型、提示、工具、资源和执行环境以冻结配置及实际执行记录为准。", "Model, prompt, tool, resource and environment controls follow the frozen configuration and recorded executions."))],
+                    ["结果口径", Safe(bilingual_text("每题×模型×浏览器一个最终逻辑结果；二元通过率；逐题配对。", "One retained logical result per task, model and browser; binary acceptance and task-paired comparison."))],
                     [
                         "执行上限",
-                        "代码最多允许两次执行；本报告按冻结运行协议选取正式结果，实际执行耗时和模型用量累计",
+                        Safe(bilingual_text(
+                            f"冻结协议的每题执行上限：{protocol.get('max_task_executions') or profile.get('max_task_executions') or '未记录'}；实际执行耗时和模型用量累计。",
+                            f"Frozen execution limit per task: {protocol.get('max_task_executions') or profile.get('max_task_executions') or 'not recorded'}; execution latency and model usage are cumulative.")),
                     ],
                     [
                         "排除",
-                        "不纳入无法稳定验收的实时任务；本轮排除需大型数据卷的 Wikipedia / Map",
+                        Safe(bilingual_text(
+                            "只报告冻结任务清单及其验收合同覆盖的任务。",
+                            "Only tasks and acceptance contracts in the frozen selection are reported.")),
                     ],
                     ["裁判", "官方程序化 evaluator；无 LLM judge；人工不得改分"],
                 ],
@@ -3302,16 +3247,18 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         analysis = _hero(
             "Results",
             "结果分析",
-            "四种配置先在同一张表和同一任务矩阵中比较；失败结果可直接打开诊断，查看发生位置、程序报错、复核根因、轨迹、画面和日志。",
+            "全部参评配置在同一张表和任务矩阵中比较；失败结果可打开诊断和证据。",
         )
         analysis += _section(
             f"完整 {len(tasks)} 题结果入口",
-            '<p>四种配置的通过率、耗时、Tokens 与浏览器资源总表已放在首页，避免在分析页重复。这里直接进入同题矩阵和逐结果失败诊断。</p>'
+            '<p>' + bilingual_text('首页比较全部配置的通过率、耗时、Tokens 和浏览器资源；本页提供同题矩阵与逐结果诊断。', 'The homepage compares pass rates, latency, tokens and browser resources across all configurations. This page owns the same-task matrix and result diagnosis.') + '</p>'
             '<p class="page-links"><a href="./#home-core-metrics">查看首页核心指标</a></p>',
         )
         analysis += _section(
             f"同题全配置对比：完整 {len(tasks)} 题",
-            "<p>每行是一道预注册任务，四列分别对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。</p>"
+            "<p>" + bilingual_text(
+                f"每行是一道预注册任务，{len(MODEL_LABELS) * len(ENGINE_LABELS)} 列对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。",
+                f"Each row is a registered task, with {len(MODEL_LABELS) * len(ENGINE_LABELS)} columns for model-by-browser configurations. Filter for disagreement, all-pass or all-fail tasks.") + "</p>"
             + _same_task_comparison(tasks, attempts),
         ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
         analysis += _section(
@@ -3685,13 +3632,13 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         site_images = environment.get("site_images") or {}
         reproduce += _section(
             "部署环境与网络拓扑",
-            "<p>本轮 Docker daemon 运行在 macOS 上的 Colima 虚拟机中。站点容器把应用端口发布到 Docker 宿主；两个浏览器容器通过其容器内 <code>host.docker.internal</code> 对应的网关地址访问这些端口。运行时记录的地址是 <code>"
-            + _e(environment.get("site_access_host") or "未记录")
-            + "</code>。它属于本轮私有网络，不应复制为其他机器的固定地址。</p>"
+            "<p>" + translated(
+                "下表展示运行记录中的宿主、容器运行时、站点访问入口与镜像身份。它们属于所选证据，不作为其他报告实例的默认部署配置。",
+                "The table shows the recorded host, container runtime, site access entry and image identities. These describe the selected evidence and do not prescribe deployment defaults for another instance.") + "</p>"
             + _table(
                 ["层", "本轮身份", "作用"],
                 [
-                    ["宿主", environment.get("platform", "—"), "运行 Colima 与报告 runner"],
+                    ["宿主", environment.get("platform", "—"), translated("记录的执行宿主", "Recorded execution host")],
                     [
                         "Docker",
                         f"{environment.get('docker_name', '—')} · {environment.get('docker_architecture', '—')} · {environment.get('docker_server_version', '—')}",
@@ -3705,7 +3652,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     [
                         "ARM 兼容模式",
                         (environment.get("site_runtime_compatibility") or {}).get("mode", "未启用"),
-                        "运行部分 amd64 PHP 站点镜像",
+                        translated("记录的运行兼容配置", "Recorded runtime compatibility"),
                     ],
                 ],
             )
@@ -3750,7 +3697,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     ],
                 ],
             )
-            + '<p class="fine">账号隔离只用于避免用户级对象冲突，不能替代环境 lane。Task 77/771 的旧证据来自修正前的共享状态，正式比较已将整题四种配置一并排除；只有新的完整四配置证据批次才能重新纳入。</p>',
+            + '<p class="fine">' + bilingual_text('账号隔离用于避免用户级对象冲突，不能替代环境隔离。已核验的外部干扰与诊断子集见首页。', 'Account isolation prevents user-object collisions; it does not replace environment isolation. The homepage identifies verified external interference and its diagnostic subset.') + '</p>',
         )
         reproduce += _section(
             "公开复现入口",
@@ -3769,7 +3716,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 ["范围", "本轮做法", "外部付费账号"],
                 [
                     ["四个自托管站点", "官方 Docker 镜像与内置测试账号；每题前重置", "不需要"],
-                    ["模型 API", f"{model}，reasoning=low", "需要相应 API 权限"],
+                    ["模型 API", f"{model}, reasoning={reasoning_effort}", "需要相应 API 权限"],
                     ["Artifact Hub", "只发布脱敏静态报告", "发布者需已有站点权限"],
                 ],
             ),
@@ -3878,6 +3825,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         )
         audit = {
             "schema": "lex_browser_use_report/3",
+            "profile_sha256": _sha256(profile_path),
+            "template": template_identity("browser-use"),
             "result_count": len(attempts),
             "score_authority": {
                 bundle["model"]: (
@@ -3909,7 +3858,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     model_id: review_value.get("bindings") or {}
                     for model_id, review_value in failure_reviews.items()
                 },
-                "source_sha256": file_sha256(FAILURE_CAUSE_REVIEW_PATH),
+                "source_sha256": file_sha256(failure_review_path(profile)),
             },
             "review": {
                 "coverage": review.get("coverage"),
@@ -3940,7 +3889,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 "models": list(MODEL_LABELS),
                 "model_labels": MODEL_LABELS,
                 "baseline_engine": BASELINE_ENGINE,
-                "max_task_executions": 2,
+                "max_task_executions": protocol.get("max_task_executions") or profile.get("max_task_executions"),
                 "environment_reset": (
                     "official site containers reset before every execution; "
                     f"{preparation_receipt_count}/{len(source_attempts)} execution-scoped "
@@ -4072,16 +4021,19 @@ def main() -> None:
         help="isolated evidence directory for one model; repeat once per model",
     )
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument(
         "--selection",
         type=Path,
-        default=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+        default=None,
     )
     from harness.report_languages import add_language_argument, primary_report_language
     add_language_argument(parser)
     parser.add_argument("--include-english", action="store_true", help="Generate both editions; --language selects the homepage")
     args = parser.parse_args()
-    print(build_report(evidence=args.evidence, output=args.output, selection_path=args.selection, include_english=args.include_english, language=args.language or primary_report_language(args.output)))
+    configuration = _read_json(args.profile)
+    selection_path = report_selection_path(configuration, args.selection)
+    print(build_report(evidence=args.evidence, output=args.output, selection_path=selection_path, include_english=args.include_english, language=args.language or primary_report_language(args.output), profile_path=args.profile))
 
 
 if __name__ == "__main__":

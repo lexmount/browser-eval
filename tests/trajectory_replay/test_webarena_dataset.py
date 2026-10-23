@@ -20,14 +20,11 @@ from harness.trajectory_replay.webarena_plan import (
 )
 
 
-def test_repository_dataset_covers_the_current_frozen_selection() -> None:
+def test_committed_trajectories_match_their_task_contract() -> None:
     root = Path(__file__).resolve().parents[2]
-    profile = json.loads(
-        (root / "evaluation/trajectory-replay/webarena-verified/current-run.json").read_text(
-            encoding="utf-8"
-        )
+    selection = json.loads(
+        (root / "evaluation/browser-use/webarena-verified-pilot.json").read_text()
     )
-    selection = json.loads((root / profile["task_selection"]["path"]).read_text(encoding="utf-8"))
     dataset = json.loads(
         (root / "evaluation/trajectory-replay/webarena-verified/trajectories.json").read_text(
             encoding="utf-8"
@@ -36,9 +33,15 @@ def test_repository_dataset_covers_the_current_frozen_selection() -> None:
 
     expected_ids = {int(item["task_id"]) for item in selection["tasks"]}
     actual_ids = {int(item["task_id"]) for item in dataset["trajectories"]}
-    required = int(profile["qualification"]["required_task_count"])
+    required = len(expected_ids)
 
-    assert required == 90
+    assert required > 0
+    assert (
+        dataset["selection_sha256"]
+        == hashlib.sha256(
+            (root / "evaluation/browser-use/webarena-verified-pilot.json").read_bytes()
+        ).hexdigest()
+    )
     assert expected_ids == actual_ids
     assert dataset["counts"] == {
         "verified_tasks": required,
@@ -46,7 +49,7 @@ def test_repository_dataset_covers_the_current_frozen_selection() -> None:
     }
     for item in dataset["trajectories"]:
         verification = item["verification"]
-        assert verification["browsers"] == [profile["qualification"]["reference_engine"]]
+        assert verification["browsers"] == [dataset["promotion_policy"]["qualification_browser"]]
         assert verification["process_status"] == "pass"
         assert verification["evaluator_status"] == "pass"
         assert verification["model_calls"] == 0
