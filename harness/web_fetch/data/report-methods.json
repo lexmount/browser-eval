@@ -6158,9 +6158,9 @@
         "zh": "托管 Fetch 接入代码（能力范围）",
         "en": "Hosted Fetch adapter (implemented scope)"
       },
-      "url": "https://github.com/lexmount/browser-eval/blob/38d224ec/harness/web_fetch/providers/hosted_fetch.py",
-      "checked_at": "2026-10-23",
-      "checked_version": "38d224ec"
+      "url": "https://github.com/lexmount/browser-eval/blob/1c2f5d310700db97968d5f75e9a89c96f9505840/harness/web_fetch/providers/hosted_fetch.py",
+      "checked_at": "2026-10-25",
+      "checked_version": "1c2f5d310700db97968d5f75e9a89c96f9505840"
     }
   },
   "output_contract_labels": {
