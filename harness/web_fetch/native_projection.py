@@ -54,9 +54,7 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
         field = ('body' if provider_type == 'browser_use_fetch' else
                  'markdown' if provider_type == 'crawl4ai_cloud' else 'content')
         value = payload.get(field)
-        fmt = ('text' if isinstance(value, str) else
-               'json' if provider_type == 'browserbase_fetch' and interface == 'json'
-               and isinstance(value, (dict, list)) else 'empty')
+        fmt = 'text' if isinstance(value, str) else 'empty'
         declaration = {'schema_version': 2, 'content_pointer': [field],
                        'content_format': fmt if successful_http else 'empty',
                        'optional_content': True, 'result_fields': {}}

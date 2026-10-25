@@ -406,88 +406,48 @@
       }
     },
     "brightdata_unlocker": {
+      "extends": "hosted_fetch_adapter",
       "endpoint": "POST https://api.brightdata.com/request",
       "interface_method": "brightdata",
       "contract": {
         "zh": "已知网址交给 Web Unlocker，返回原生 Markdown。",
         "en": "Send a known URL to Web Unlocker and retain native Markdown."
-      },
-      "output": "Markdown",
-      "freshness": {
-        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
-        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
-      },
-      "leaderboard": {
-        "zh": "网页文字提取",
-        "en": "Webpage text retrieval"
       }
     },
     "browserbase_fetch": {
+      "extends": "hosted_fetch_adapter",
       "endpoint": "POST https://api.browserbase.com/v1/fetch",
       "interface_method": "browserbase",
       "contract": {
         "zh": "通过 Fetch 接口获取网页文字，不替换为浏览器会话。",
         "en": "Retrieve webpage text through Fetch without substituting a browser session."
-      },
-      "output": "Markdown",
-      "freshness": {
-        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
-        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
-      },
-      "leaderboard": {
-        "zh": "网页文字提取",
-        "en": "Webpage text retrieval"
       }
     },
     "browser_use_fetch": {
+      "extends": "hosted_fetch_adapter",
       "endpoint": "POST https://fetch.browser-use.com/fetch",
       "interface_method": "browser-use-fetch",
       "contract": {
         "zh": "通过 fetch-use 获取网页文字，不启动 Agent。",
         "en": "Retrieve webpage text through fetch-use without an Agent."
-      },
-      "output": "Markdown",
-      "freshness": {
-        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
-        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
-      },
-      "leaderboard": {
-        "zh": "网页文字提取",
-        "en": "Webpage text retrieval"
       }
     },
     "deepseek_fetch": {
+      "extends": "hosted_fetch_adapter",
       "endpoint": "POST https://api.deepseek.com/v1/tools/fetch",
       "interface_method": "deepseek-fetch-api",
       "contract": {
         "zh": "只发送网址；正文与标题分别保留。",
         "en": "Send only the URL; retain content and title separately."
-      },
-      "output": "Markdown",
-      "freshness": {
-        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
-        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
-      },
-      "leaderboard": {
-        "zh": "网页文字提取",
-        "en": "Webpage text retrieval"
       }
     },
     "crawl4ai_cloud": {
+      "extends": "hosted_fetch_adapter",
       "endpoint": "POST https://api.crawl4ai.com/scrape",
       "interface_method": "crawl4ai-cloud",
       "contract": {
         "zh": "调用 Cloud 抓取接口，与本机开源库分别登记。",
         "en": "Call the Cloud scrape API, registered separately from the local library."
-      },
-      "output": "Markdown",
-      "freshness": {
-        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
-        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
-      },
-      "leaderboard": {
-        "zh": "网页文字提取",
-        "en": "Webpage text retrieval"
       }
     }
   },
@@ -6464,6 +6424,17 @@
             "en": "Rendering depends on the native service and selected configuration; offline checks do not establish page execution capability."
           }
         }
+      }
+    },
+    "hosted_fetch_adapter": {
+      "output": "Markdown",
+      "freshness": {
+        "zh": "抓取、缓存及内部重试由服务负责；实际参数和耗时以调用记录为准；测试程序的失败重试次数以冻结的运行配置为准。",
+        "en": "Retrieval, caching and internal retries are service-owned; actual parameters and timing come from call evidence; caller failure retries follow the frozen run configuration."
+      },
+      "leaderboard": {
+        "zh": "网页文字提取",
+        "en": "Webpage text retrieval"
       }
     }
   },
