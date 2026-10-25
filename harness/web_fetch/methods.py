@@ -36,7 +36,7 @@ def _resolve_catalog_templates(data):
         return merge(resolve(templates[parent], (*chain, parent)), row)
 
     return {**data, **{section: {name: resolve(row) for name, row in data[section].items()}
-                      for section in ('methods', 'adapters')}}
+                      for section in ('methods', 'adapters') if section in data}}
 
 
 @lru_cache(maxsize=1)
