@@ -11,6 +11,13 @@ Make targets. A new instance reuses the same commands with different inputs.
 Historical full-cohort formats use an explicit `--authority-root` bundle that
 retains their original relative paths and hash-bound profile bytes.
 
+An optional `benchmark_release` path/hash binding in the external profile fixes
+the selected benchmark edition. Builds and packages retain
+`benchmark-release.json`; presentation rebuilds keep its dataset and scoring
+identity. See [benchmark editions](benchmarks.md#benchmark-editions) for the
+version and comparison rules. A newer task package must not silently update
+an older report.
+
 ## Report languages
 
 The Web Fetch CLI defaults to English. `run --language zh` generates Chinese only; `report <run> --language en` rebuilds both editions and opens English. A rebuild without `--language` keeps the saved choice, including Chinese-only reports created by older versions.
@@ -78,7 +85,7 @@ Example runs remain diagnostic after upload. Publishing does not certify benchma
 
 ## Maintained benchmark releases
 
-Formal releases use the selected track's package/publish commands after certification, required review and release checks. See [architecture](architecture.md#reports-and-publication) and the [track guides](../README.md#what-it-tests).
+Formal releases use the selected track's package/publish commands after certification, required review and release checks. See [architecture](architecture.md#reports-and-publication) and the [track guides](../README.md#evaluation-tracks).
 
 | Requirement | Why it matters |
 | --- | --- |

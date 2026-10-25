@@ -29,6 +29,11 @@ def _require(condition, detail):
 
 
 def validate_release(source: Path, *, presentation_binding: Path | None = None, snapshot_audit=False) -> bool:
+    from .report_version import check_release
+    dataset_path = source / "dataset.json"
+    dataset = json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
+    records = load_jsonl(source / "results.jsonl")
+    check_release(source, dataset, records)
     manifest_path=source/'report-manifest.json'
     audit_state=manifest_path.is_file() and json.loads(manifest_path.read_text()).get('evidence_state')=='published_snapshot_score_audit'
     if snapshot_audit:
@@ -43,9 +48,6 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None, 
         from .report_build import validate_local_presentation
         validate_local_presentation(source, presentation_binding)
         return False
-    dataset_path = source / "dataset.json"
-    dataset = json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
-    records = load_jsonl(source / "results.jsonl")
     from .reference_lifecycle import require_certifiable_evidence
     manifests = []
     for name in ('manifest.json', 'execution.json'):

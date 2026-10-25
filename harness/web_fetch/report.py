@@ -2215,6 +2215,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   description=f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类任务。'
  if local_pass_rate_ranking(dataset):
   description=model_text(f'{len(cases)} 个案例 · {len(names)} 种方法 · 按本轮任务通过率排序。',f'{len(cases)} cases · {len(names)} methods · Ordered by task pass rate for this sample.')
+ release_path=out/'benchmark-release.json'
+ if release_path.is_file():
+  release=json.loads(release_path.read_text())
+  description='<span>'+description+'</span> · <a data-benchmark-release="'+esc(release['version'])+'" href="benchmark-release.json">'+esc('bench v'+release['version'])+'</a>'
  home='<div class="home-page">'+hero('Web Fetch 评测报告',description)
  from .report_explainer import render_explainer
  TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else '本报告的任务范围与验收规则'

@@ -140,6 +140,8 @@ def main(argv: list[str] | None = None) -> None:
         return
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json")
+    parser.add_argument("--benchmark-release", type=Path,
+                        help="Frozen benchmark edition; checked before any external calls")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--work-root", type=Path, required=True)
     parser.add_argument("--providers", required=True, help="Comma-separated names or configured with --provider-config")
@@ -219,6 +221,16 @@ def main(argv: list[str] | None = None) -> None:
             publication_state="diagnostic",
             unqualified_reference_cases=sorted(unqualified),
         )
+    release_raw = None
+    release_path = args.benchmark_release or args.dataset.parent / 'benchmark-release.json'
+    if args.benchmark_release or release_path.exists():
+        from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+        from lexbench_webfetch.versions import verify_release
+        if release_path.is_symlink():
+            parser.error('Benchmark release rejects symlinks')
+        release_raw = release_path.read_bytes()
+        verify_release(json.loads(release_raw), dataset, exact_dataset=False,
+                       scoring_source_sha256=SCORING_SOURCE_SHA256)
     # Reject malformed execution contracts before doing any external captures.
     from harness.web_fetch.reference_lifecycle import (
         requires_browser_observation,
@@ -324,6 +336,13 @@ def main(argv: list[str] | None = None) -> None:
     if args.provider_config:
         benchmark.extend(["--provider-config", str(args.provider_config)])
     run(benchmark_runner.main, benchmark)
+    if release_raw is not None:
+        (args.output / 'benchmark-input-release.json').write_bytes(release_raw)
+        execution_path = args.output / 'execution.json'
+        execution = json.loads(execution_path.read_text())
+        execution['aggregate']['benchmark_release'] = {
+            'path': 'benchmark-input-release.json', 'sha256': hashlib.sha256(release_raw).hexdigest()}
+        execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2) + '\n')
 
     # Re-capture HTTP evidence after every provider call has completed, then
     # choose browser fallbacks from that post-call evidence. Reusing the

@@ -285,6 +285,9 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     _write(contract_path, contract)
     dataset["comparison"]["local_run_contract_sha256"] = _digest(contract_path)
     _write(evidence / "dataset.json", dataset)
+    from lexbench_webfetch.versions import freeze_release
+    freeze_release(evidence / "dataset.json", evidence / "benchmark-release.json",
+                   benchmark="local-fixture", version="1.0.0")
     monkeypatch.setattr(local_execution_contract, "ROOT", tmp_path / "repo")
     assert local_audit.require_local_audit(evidence, dataset, records) is None
     changed_contract = {**contract, 'timeout_seconds': timeout + 1}
@@ -293,6 +296,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
             evidence, dataset, records, changed_contract, {'batches': [batch]})
     output = tmp_path / "report"
     build_report(evidence, output, local_audit=True, include_english=include_english)
+    from harness.web_fetch.report_version import check_release
+    check_release(output, json.loads((output / "dataset.json").read_text()), records)
     home = (output / "index.html").read_text()
     assert "本地未认证诊断快照" in home
     assert "查看调用链问题和日志留存范围" not in home
@@ -345,6 +350,10 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     (output / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in frozen_rows))
     manifest = json.loads((output / "report-manifest.json").read_text())
     manifest["results_sha256"] = _digest(output / "results.jsonl")
+    historical_edition = json.loads((output / "benchmark-release.json").read_text())
+    historical_edition["scoring_source_sha256"] = historical_scorer
+    _write(output / "benchmark-release.json", historical_edition)
+    manifest["benchmark_release"]["sha256"] = _digest(output / "benchmark-release.json")
     manifest["template"] = {"renderer": "historical-template"}
     _write(output / "report-manifest.json", manifest)
     binding = {"comparison_kind": "uniform_native_local_measurement",

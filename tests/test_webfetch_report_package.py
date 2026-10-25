@@ -131,6 +131,57 @@ def test_retained_success_and_failure_rerun_can_be_packaged_together(tmp_path):
     assert archive.is_file()
 
 
+@pytest.mark.parametrize("damage", [None, "missing", "changed", "dropped-binding", "wrong-label"])
+def test_ordinary_package_and_publication_require_the_bound_benchmark_edition(tmp_path, damage):
+    from lexbench_webfetch.scoring import score_attempt
+    from lexbench_webfetch.versions import create_release
+    from harness.web_fetch.publication_check import check
+
+    source, archive = report_tree(tmp_path, sampled=True)
+    dataset_path = source / "dataset.json"
+    dataset = json.loads(dataset_path.read_text())
+    for case in dataset["cases"]:
+        case["url"] = "https://example.test/" + case["id"]
+    dataset_path.write_text(json.dumps(dataset))
+    cases = {case["id"]: case for case in dataset["cases"]}
+    rows = [json.loads(line) for line in (source / "results.jsonl").read_text().splitlines()]
+    for row in rows:
+        row["ok"] = True
+        row["metrics"] = score_attempt(cases[row["case_id"]],
+                                       (source / row["artifact_path"]).read_bytes(), ok=True)
+    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    release = create_release(dataset, benchmark="sample", version="1.0.0")
+    sidecar = source / "benchmark-release.json"
+    sidecar.write_text(json.dumps(release))
+    manifest = {"benchmark_release": {"path": sidecar.name,
+        "sha256": hashlib.sha256(sidecar.read_bytes()).hexdigest(),
+        "benchmark": "sample", "version": "1.0.0"}}
+    (source / "report-manifest.json").write_text(json.dumps(manifest))
+    home = source / "index.html"
+    home.write_text(home.read_text() + '<a data-benchmark-release="1.0.0" '
+                    'href="benchmark-release.json">sample v1.0.0</a>')
+    report_package.build(source, archive)
+    check(archive, source)
+    before = archive.read_bytes()
+    if damage is None:
+        return
+    if damage == "missing":
+        sidecar.unlink()
+    elif damage == "changed":
+        release["version"] = "99.0.0"
+        sidecar.write_text(json.dumps(release))
+    elif damage == "dropped-binding":
+        (source / "report-manifest.json").write_text('{}')
+    else:
+        home.write_text(home.read_text().replace('data-benchmark-release="1.0.0"',
+                                                 'data-benchmark-release="99.0.0"'))
+    with pytest.raises(ValueError, match="[Bb]enchmark"):
+        report_package.build(source, archive)
+    assert archive.read_bytes() == before
+    with pytest.raises(ValueError, match="[Bb]enchmark"):
+        check(archive, source)
+
+
 @pytest.mark.parametrize(
     "damage",
     [

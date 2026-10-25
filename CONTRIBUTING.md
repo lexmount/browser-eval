@@ -27,6 +27,22 @@ Test both accepted and rejected scenarios. Fix scoring rules rather than editing
 
 Write documentation in English. Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Preserve original task text, quotations and frozen acceptance inputs. Reports follow their track's language settings.
 
+Benchmark changes follow [benchmark editions](docs/benchmarks.md#benchmark-editions).
+Keep human-readable editions, immutable dataset/scorer hashes and the package
+commit together. A minor scoring correction requires common-edition rescoring;
+changed task populations or requests require a major edition.
+
+## Update Web Fetch dependencies and methods
+
+Update the pinned evaluator with `make bump-lexbench REV=<full merged commit>`.
+It verifies upstream main ancestry and updates the lock and definition hashes.
+Historical report certificates retain their original evaluator identities.
+
+Register Web Fetch products in `harness/web_fetch/data/report-methods.json`;
+executable versions and run parameters come from saved evidence. See
+[method metadata](harness/web_fetch/README.md#report-method-metadata) and
+[adding a method or release](harness/web_fetch/README.md#adding-a-method-or-release).
+
 ## PR and commit titles
 
 Use `<type>(<scope>): <summary>` for PR titles and new commit subjects. The scope is optional; use the module or feature affected, such as `scoring` or `webfetch`.

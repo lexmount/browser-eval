@@ -148,6 +148,9 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                             'evidence_sha256': 'b' * 64}}
             dataset.write_text(json.dumps({'tool': 'web_fetch', 'comparison': {}, 'cases': [case, fixed, resource]}))
             original = dataset.read_bytes()
+            from lexbench_webfetch.versions import freeze_release
+            edition = root / 'benchmark-release.json'
+            freeze_release(dataset, edition, benchmark='frozen-example', version='1.0.0')
             config = root / 'providers.json'
             config.write_text(json.dumps({'providers': {'fixture': {'type': 'fixture'}}}))
             (root / 'evaluation/list-references').mkdir(parents=True)
@@ -175,6 +178,9 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             measured = json.loads((output / 'dataset.json').read_text())
             self.assertEqual(measured['cases'], [case, fixed, resource])
             self.assertEqual(dataset.read_bytes(), original)
+            self.assertEqual((output / 'benchmark-input-release.json').read_bytes(), edition.read_bytes())
+            release_binding = json.loads((output / 'execution.json').read_text())['aggregate']['benchmark_release']
+            self.assertEqual(release_binding['sha256'], hashlib.sha256(edition.read_bytes()).hexdigest())
             self.assertEqual(measured['comparison']['source_reference_policy'],
                              'frozen_benchmark_inputs_with_explicit_live_exact_checks')
             batches = json.loads((output / 'execution.json').read_text())['batches']
