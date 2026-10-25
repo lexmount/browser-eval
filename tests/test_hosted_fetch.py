@@ -107,7 +107,7 @@ class HostedFetchTest(unittest.TestCase):
                     self.assertIsNone(result.status_code)
                 elif kind == 'browser_use_fetch':
                     self.assertNotIn('retry', body)
-                    self.assertEqual(body['timeout_ms'], 45000)
+                    self.assertNotIn('timeout_ms', body)
                     self.assertEqual(body['output_format'], 'markdown')
                     session = body['session_id']
                     self.provider(kind).fetch(self.case, 45)

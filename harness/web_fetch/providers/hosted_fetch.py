@@ -97,7 +97,7 @@ class HostedFetchProvider(Provider):
             headers = {"Authorization": f"Bearer {key}"}
         else:
             headers = {"X-Browser-Use-API-Key": key}
-            body.update(method="GET", output_format=output_format, timeout_ms=min(120000, int(budget * 1000)),
+            body.update(method="GET", output_format=output_format,
                         follow_redirects=True, max_redirects=10,
                         proxy_country=self.config.get("proxy_country", "US"),
                         session_id=self._session_id)

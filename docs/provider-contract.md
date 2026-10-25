@@ -43,7 +43,6 @@ These adapters implement webpage body/structure tasks. Unsupported document,
 media and file tasks fail before transport, without helper downloads or a
 substitute browser/Agent. Rendering and internal retries remain service-owned;
 offline adapter checks do not establish JavaScript capability or task pass rates.
-Only Markdown output is supported by these adapters.
 
 Retain complete native responses separately from score-bearing answer fields.
 An API HTTP 200 does not prove target retrieval succeeded: explicit service or
@@ -53,9 +52,9 @@ requests, response headers/body and errors; it cannot expose undisclosed service
 internals. Only Bright Data receives the native debug option.
 
 `dns_mode: system` uses the local resolver for API hosts; target-site DNS belongs
-to the service. No automatic DNS fallback is added. Browser Use receives the call
-budget through `timeout_ms`; the other services retain their native defaults
-within the outer deadline. Historical runs keep their recorded configuration.
+to the service. No automatic DNS fallback is added. All five services retain their
+native internal timeout defaults within the caller's deadline. Historical runs
+keep their recorded configuration.
 
 API references: [Bright Data](https://docs.brightdata.com/api-reference/rest-api/unlocker/unlock-website),
 [fetch-use](https://browser-use.com/posts/fetch-use),
@@ -153,8 +152,8 @@ other adapters remain selectable, and the no-argument CLI still uses a fixture.
 - `crawl4ai-cloud` is distinct from local `crawl4ai`: browser versions and
   extraction differ, and old local results must not be relabeled as Cloud.
   Cloud uses service-cleaned Markdown; retain its engine/cache/usage fields.
-  The selected configuration uniformly enables the service's native residential
-  proxy, which adds provider charges; never switch proxy policy in response to scores.
+  Its configured native proxy adds provider charges; never switch proxy policy
+  in response to scores.
 
 For diagnostics, supply frozen tasks and a new external output. `--measure-only`
 retains scored evidence without building a report; it does not certify a cohort.
