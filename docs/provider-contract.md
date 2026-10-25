@@ -37,7 +37,7 @@ runner and scorer. Their credentials and fixed options are declared in
 | Browser Use Fetch | `BROWSER_USE_API_KEY` | `/fetch`, Markdown, fresh session, US proxy; no Agent |
 | Browserbase Fetch | `BROWSERBASE_API_KEY` | `/v1/fetch`, Markdown, redirects and native proxy enabled; no Project ID |
 | DeepSeek Fetch API | `DEEPSEEK_API_KEY` | `/v1/tools/fetch`, URL-only request; retain content and title |
-| Crawl4AI Cloud | `CRAWL4AI_CLOUD_API_KEY` | `/scrape`, `format=md`, `engine=browser`, `proxy=none` |
+| Crawl4AI Cloud | `CRAWL4AI_CLOUD_API_KEY` | `/scrape`, `format=md`, `engine=browser`, `proxy=residential` |
 
 These adapters implement webpage body/structure tasks. Unsupported document,
 media and file tasks fail before transport, without helper downloads or a
@@ -153,8 +153,8 @@ other adapters remain selectable, and the no-argument CLI still uses a fixture.
 - `crawl4ai-cloud` is distinct from local `crawl4ai`: browser versions and
   extraction differ, and old local results must not be relabeled as Cloud.
   Cloud uses service-cleaned Markdown; retain its engine/cache/usage fields.
-  Native proxy options are supported but `none` remains the configured default;
-  choose any paid proxy policy before calls, never in response to scores.
+  The selected configuration uniformly enables the service's native residential
+  proxy, which adds provider charges; never switch proxy policy in response to scores.
 
 For diagnostics, supply frozen tasks and a new external output. `--measure-only`
 retains scored evidence without building a report; it does not certify a cohort.

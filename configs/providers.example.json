@@ -17,7 +17,7 @@
       "type": "crawl4ai_cloud",
       "api_key": "${CRAWL4AI_CLOUD_API_KEY}",
       "engine": "browser",
-      "proxy": "none",
+      "proxy": "residential",
       "output_format": "markdown",
       "dns_mode": "system",
       "log_level": "debug",
