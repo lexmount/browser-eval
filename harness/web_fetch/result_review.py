@@ -104,8 +104,23 @@ def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=Non
         if revision_checks is None:
             revision_checks = {}
         if source not in revision_checks:
-            revision_checks[source] = valid_scoring_revision_chain(source)
-        if not revision_checks[source]:
+            root = Path(source)
+            candidates = [root / 'result-review.json', *sorted((root / 'review-history').glob('*.json'))]
+            authenticated = []
+            for path in candidates:
+                if not path.is_file() or path.is_symlink():
+                    continue
+                raw = path.read_bytes()
+                if valid_scoring_revision_chain(root, review_sha256=hashlib.sha256(raw).hexdigest()):
+                    authenticated.extend(json.loads(raw).get('attempts', []))
+            persisted = {row['attempt_id']: row for row in load_jsonl(root / 'results.jsonl')}
+            revision_checks[source] = (authenticated, persisted)
+        authenticated, persisted = revision_checks[source]
+        original = persisted.get(record['attempt_id'])
+        if (reviewed not in authenticated or original is None
+                or reviewed.get('attempt_id') != record['attempt_id']
+                or original['ok'] != record['ok'] or original['metrics'] != record['metrics']
+                or review_input_identity(original) != review_input_identity(record)):
             raise
         return verdict
 

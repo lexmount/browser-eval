@@ -943,12 +943,12 @@ def valid_scoring_revision(source) -> bool:
     return _valid_scoring_revision(source, validate_reviews=True)
 
 
-def valid_scoring_revision_chain(source) -> bool:
+def valid_scoring_revision_chain(source, *, review_sha256=None) -> bool:
     """Validate receipts and review bindings without re-entering verdict validation."""
-    return _valid_scoring_revision(source, validate_reviews=False)
+    return _valid_scoring_revision(source, validate_reviews=False, review_sha256=review_sha256)
 
 
-def _valid_scoring_revision(source, *, validate_reviews) -> bool:
+def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> bool:
     """Return true only for a continuous receipt chain ending at current evidence."""
     if source is None:
         return False
@@ -984,6 +984,8 @@ def _valid_scoring_revision(source, *, validate_reviews) -> bool:
         for candidate in review_candidates:
             try:
                 raw = candidate.read_bytes()
+                if review_sha256 is not None and sha256(raw) != review_sha256:
+                    continue
                 review = json.loads(raw)
                 if validate_reviews:
                     require_blind_result_review(root, dataset, records, review)
@@ -994,6 +996,8 @@ def _valid_scoring_revision(source, *, validate_reviews) -> bool:
                 blind_review_hashes.add(sha256(raw))
             except (OSError, ValueError, TypeError, KeyError, StopIteration):
                 continue
+    if review_sha256 is not None and review_sha256 not in blind_review_hashes:
+        return False
     if review_path.is_file():
         try:
             from .result_review import require_result_review

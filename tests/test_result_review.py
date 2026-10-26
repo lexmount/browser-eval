@@ -181,6 +181,19 @@ class ResultReviewTests(unittest.TestCase):
             self.assertTrue(valid_scoring_revision(root))
             self.assertEqual(require_blind_result_review(root, dataset, records)['reviewed_attempts'], 1)
             self.assertEqual(require_result_review(root, dataset, records)['reviewed_attempts'], 1)
+            import copy
+            altered = copy.deepcopy(review)
+            altered['attempts'][0].update(machine_verdict='fail', final_verdict='fail')
+            original_bytes = (root / 'result-review.json').read_bytes()
+            for validator in (require_blind_result_review, require_result_review):
+                with self.assertRaisesRegex(ValueError, 'Historical scoring metrics'):
+                    validator(root, dataset, records, review_document=altered)
+            self.assertEqual((root / 'result-review.json').read_bytes(), original_bytes)
+            self.assertTrue(valid_scoring_revision(root))
+            altered_records = copy.deepcopy(records)
+            altered_records[0]['metrics']['content_pass'] = False
+            with self.assertRaisesRegex(ValueError, 'Historical scoring metrics'):
+                require_blind_result_review(root, dataset, altered_records, review_document=review)
             review['attempts'][0]['final_verdict'] = 'fail'
             (root / 'result-review.json').write_text(json.dumps(review))
             self.assertFalse(valid_scoring_revision(root))
