@@ -87,6 +87,11 @@ class HostedFetchTest(unittest.TestCase):
                 title=result.title,final_url=result.final_url,request_url=self.case.url)
         for option in ({'engine':'invalid'},{'proxy':'invalid'},{'output_format':'html'}):
             self.assertTrue(self.provider('crawl4ai_cloud',**option).validate())
+        for field in ('engine', 'proxy'):
+            for value in ([], {}, None, True, 1):
+                with self.subTest(field=field, value=value):
+                    self.assertIn('unsupported ' + field,
+                        self.provider('crawl4ai_cloud', **{field: value}).validate())
 
     @patch('harness.web_fetch.providers.hosted_fetch.request')
     def test_latest_article_track_preserves_native_answer_and_rejects_tampering(self, call):

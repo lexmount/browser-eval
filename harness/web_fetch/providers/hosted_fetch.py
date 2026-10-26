@@ -60,9 +60,9 @@ class HostedFetchProvider(Provider):
         if self.type == "browserbase_fetch" and not isinstance(self.config.get("proxies", False), bool):
             errors.append("proxies must be boolean")
         if self.type == "crawl4ai_cloud":
-            if self.config.get("engine", "browser") not in {"auto", "browser-light", "browser"}:
+            if self.config.get("engine", "browser") not in ("auto", "browser-light", "browser"):
                 errors.append("unsupported engine")
-            if self.config.get("proxy", "none") not in {"none", "isp", "residential"}:
+            if self.config.get("proxy", "none") not in ("none", "isp", "residential"):
                 errors.append("unsupported proxy")
         output_format = self.config.get("output_format", "markdown")
         if output_format != "markdown":
