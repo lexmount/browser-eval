@@ -667,6 +667,8 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
                 diagnostics = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
                 browser_pids = {int(pid) for pid in re.findall(
                     r"(?m)^\S+\s+pw:browser <launched> pid=(\d+)\s*$", diagnostics)}
+                browser_pids.difference_update(int(pid) for pid in re.findall(
+                    r"(?m)^\S+\s+pw:browser \[pid=(\d+)\] <process did exit:", diagnostics))
                 owned = {process.pid}
                 initial = _capture_process_snapshot()
                 while True:
@@ -674,6 +676,8 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
                     if children <= owned:
                         break
                     owned.update(children)
+                if initial:
+                    browser_pids.intersection_update(owned)
                 for sig in (signal.SIGTERM, signal.SIGKILL):
                     targets = (owned | browser_pids) - {process.pid}
                     if sig == signal.SIGKILL:

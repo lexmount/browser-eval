@@ -468,3 +468,32 @@ def test_timeout_escalation_preserves_reused_pids_and_kills_surviving_owned_chil
     assert (child, signal.SIGTERM) in signals
     assert ((child, signal.SIGKILL) in signals) == (not reused)
     assert groups == [(started[0], signal.SIGTERM)]
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='POSIX browser ownership')
+@pytest.mark.parametrize('mode', ['exited', 'reused'])
+def test_timeout_does_not_signal_closed_browser_receipts_or_unowned_reused_pids(monkeypatch, mode):
+    launch = capture.subprocess.Popen
+    worker_pid = []
+    signalled = []
+    unrelated = 99999999
+    def worker(*args, **kwargs):
+        process = launch(*args, **kwargs)
+        worker_pid.append(process.pid)
+        return process
+    def processes(*args, **kwargs):
+        if mode == 'exited':
+            raise FileNotFoundError('no process listing')
+        return f'{worker_pid[0]} 0 worker-start\n{unrelated} 1 unrelated-start\n'
+    log = f'2026-10-26T00:00:00Z pw:browser <launched> pid={unrelated}\n'
+    if mode == 'exited':
+        log += f'2026-10-26T00:00:01Z pw:browser [pid={unrelated}] <process did exit: exitCode=0, signal=null>\n'
+    monkeypatch.setattr(capture.subprocess, 'Popen', worker)
+    monkeypatch.setattr(capture.subprocess, 'check_output', processes)
+    monkeypatch.setattr(capture, 'os', SimpleNamespace(name='posix', environ=os.environ,
+        kill=lambda pid, sig: signalled.append((pid, sig)), killpg=os.killpg))
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM',
+        f'import sys,time; sys.stderr.write({log!r}); sys.stderr.flush(); time.sleep(30)')
+    result = capture._capture_in_process(case_with(), 20, 1)
+    assert result['status'] == 'failure'
+    assert signalled == []
