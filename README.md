@@ -16,17 +16,18 @@ Browser Eval is an extensible evaluation harness for browsers and web agents. It
 
 ## Evaluation tracks
 
-The following workflows have runnable guides. Additional workflows, including Web Search, can use the same adapter and task-contract model; see [contributing](CONTRIBUTING.md).
+The following workflows have runnable guides. New workflows use the same adapter and task-contract model; see [contributing](CONTRIBUTING.md).
 
 | Track | What it tests | Guide |
 | --- | --- | --- |
+| Web Search / SERP | Compare returned search results, relevance, latency and cost | [Offline example](examples/web_search/README.md) · [Track guide](harness/web_search/README.md) |
 | Web Fetch | Retrieve the requested page content, records, resources or files | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
 | Browser Trajectory Replay | Complete the same recorded browser actions across implementations | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | Let an Agent use different browsers to complete tasks | [CowAgent + WebArena](examples/browser_use/README.md) |
 
 Web Fetch supports local browsers, hosted services and extraction tools. See [adapters](docs/provider-contract.md) for available methods and [dependencies](docs/dependencies.md) for installation requirements. Replay and Browser Use have separate runners and environments.
 
-Task definitions and scoring come from the selected benchmark: [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), WebMainBench, WCXB or WebArena. See [benchmark integration](docs/benchmarks.md).
+Task definitions and scoring come from the selected benchmark: [LexBench Web Search](https://github.com/lexmount/lexbench-websearch), [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), WebMainBench, WCXB or WebArena. See [benchmark integration](docs/benchmarks.md).
 
 ## Quickstart
 

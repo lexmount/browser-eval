@@ -1,0 +1,354 @@
+{
+  "schema": "web-search-normalization-regressions/1",
+  "regressions": [
+    {
+      "id": "relative-serp-links",
+      "controls": [
+        {
+          "id": "relative",
+          "method": {
+            "adapter": "brightdata"
+          },
+          "protocol": {
+            "top_k": 5,
+            "normalize_top_k": true,
+            "result_url_resolution": "request-url/1"
+          },
+          "request": {
+            "url": "https://www.google.com/search?q=synthetic"
+          },
+          "case": {
+            "family": "web",
+            "anchors": [
+              "https://www.google.com/goto?url=synthetic"
+            ]
+          },
+          "payload": {
+            "organic": [
+              {
+                "link": "/goto?url=synthetic",
+                "title": "Synthetic result"
+              }
+            ]
+          },
+          "error": false,
+          "expected_urls": [
+            "https://www.google.com/goto?url=synthetic"
+          ],
+          "expected_metrics": {
+            "anchor_hit_5": 1,
+            "reciprocal_rank": 1
+          }
+        },
+        {
+          "id": "absolute",
+          "method": {
+            "adapter": "brightdata"
+          },
+          "protocol": {
+            "top_k": 5,
+            "normalize_top_k": true,
+            "result_url_resolution": "request-url/1"
+          },
+          "request": {
+            "url": "https://www.google.com/search?q=synthetic"
+          },
+          "case": {
+            "family": "web",
+            "anchors": [
+              "https://www.google.com/goto?url=synthetic"
+            ]
+          },
+          "payload": {
+            "organic": [
+              {
+                "link": "https://www.google.com/goto?url=synthetic",
+                "title": "Synthetic result"
+              }
+            ]
+          },
+          "error": false,
+          "expected_urls": [
+            "https://www.google.com/goto?url=synthetic"
+          ],
+          "expected_metrics": {
+            "anchor_hit_5": 1,
+            "reciprocal_rank": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "unsafe-serp-links",
+      "controls": [
+        {
+          "id": "script",
+          "method": {
+            "adapter": "brightdata"
+          },
+          "protocol": {
+            "top_k": 5,
+            "normalize_top_k": true,
+            "result_url_resolution": "request-url/1"
+          },
+          "request": {
+            "url": "https://www.google.com/search?q=synthetic"
+          },
+          "case": {
+            "family": "web",
+            "anchors": [
+              "https://www.google.com/goto?url=synthetic"
+            ]
+          },
+          "payload": {
+            "organic": [
+              {
+                "link": "javascript:alert(1)",
+                "title": "Synthetic result"
+              }
+            ]
+          },
+          "error": true
+        },
+        {
+          "id": "credentials",
+          "method": {
+            "adapter": "brightdata"
+          },
+          "protocol": {
+            "top_k": 5,
+            "normalize_top_k": true,
+            "result_url_resolution": "request-url/1"
+          },
+          "request": {
+            "url": "https://www.google.com/search?q=synthetic"
+          },
+          "case": {
+            "family": "web",
+            "anchors": [
+              "https://www.google.com/goto?url=synthetic"
+            ]
+          },
+          "payload": {
+            "organic": [
+              {
+                "link": "https://REDACTED:REDACTED@example.org/",
+                "title": "Synthetic result"
+              }
+            ]
+          },
+          "error": true
+        }
+      ]
+    },
+    {
+      "id": "top-five-boundary",
+      "controls": [
+        {
+          "id": "invalid-sixth",
+          "method": {
+            "adapter": "brightdata"
+          },
+          "protocol": {
+            "top_k": 5,
+            "normalize_top_k": true,
+            "result_url_resolution": "request-url/1"
+          },
+          "request": {
+            "url": "https://www.google.com/search?q=synthetic"
+          },
+          "case": {
+            "family": "web",
+            "anchors": [
+              "https://www.google.com/goto?url=synthetic"
+            ]
+          },
+          "payload": {
+            "organic": [
+              {
+                "link": "https://www.google.com/goto?url=synthetic",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/1",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/2",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/3",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/4",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "javascript:alert(1)",
+                "title": "Synthetic result"
+              }
+            ]
+          },
+          "error": false,
+          "expected_urls": [
+            "https://www.google.com/goto?url=synthetic",
+            "https://example.org/1",
+            "https://example.org/2",
+            "https://example.org/3",
+            "https://example.org/4"
+          ],
+          "expected_metrics": {
+            "anchor_hit_5": 1,
+            "reciprocal_rank": 1
+          }
+        },
+        {
+          "id": "invalid-fifth",
+          "method": {
+            "adapter": "brightdata"
+          },
+          "protocol": {
+            "top_k": 5,
+            "normalize_top_k": true,
+            "result_url_resolution": "request-url/1"
+          },
+          "request": {
+            "url": "https://www.google.com/search?q=synthetic"
+          },
+          "case": {
+            "family": "web",
+            "anchors": [
+              "https://www.google.com/goto?url=synthetic"
+            ]
+          },
+          "payload": {
+            "organic": [
+              {
+                "link": "https://www.google.com/goto?url=synthetic",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/1",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/2",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/3",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "javascript:alert(1)",
+                "title": "Synthetic result"
+              }
+            ]
+          },
+          "error": true
+        },
+        {
+          "id": "null-sixth",
+          "method": {
+            "adapter": "brightdata"
+          },
+          "protocol": {
+            "top_k": 5,
+            "normalize_top_k": true,
+            "result_url_resolution": "request-url/1"
+          },
+          "request": {
+            "url": "https://www.google.com/search?q=synthetic"
+          },
+          "case": {
+            "family": "web",
+            "anchors": [
+              "https://www.google.com/goto?url=synthetic"
+            ]
+          },
+          "payload": {
+            "organic": [
+              {
+                "link": "https://www.google.com/goto?url=synthetic",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/1",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/2",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/3",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/4",
+                "title": "Synthetic result"
+              },
+              null
+            ]
+          },
+          "error": false,
+          "expected_urls": [
+            "https://www.google.com/goto?url=synthetic",
+            "https://example.org/1",
+            "https://example.org/2",
+            "https://example.org/3",
+            "https://example.org/4"
+          ],
+          "expected_metrics": {
+            "anchor_hit_5": 1,
+            "reciprocal_rank": 1
+          }
+        },
+        {
+          "id": "null-fifth",
+          "method": {
+            "adapter": "brightdata"
+          },
+          "protocol": {
+            "top_k": 5,
+            "normalize_top_k": true,
+            "result_url_resolution": "request-url/1"
+          },
+          "request": {
+            "url": "https://www.google.com/search?q=synthetic"
+          },
+          "case": {
+            "family": "web",
+            "anchors": [
+              "https://www.google.com/goto?url=synthetic"
+            ]
+          },
+          "payload": {
+            "organic": [
+              {
+                "link": "https://www.google.com/goto?url=synthetic",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/1",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/2",
+                "title": "Synthetic result"
+              },
+              {
+                "link": "https://example.org/3",
+                "title": "Synthetic result"
+              },
+              null
+            ]
+          },
+          "error": true
+        }
+      ]
+    }
+  ]
+}

@@ -49,8 +49,13 @@ def evidence_tree_identity(root: Path) -> dict[str, str]:
     reject_evidence_symlinks(root)
     if not root.is_dir():
         raise ValueError('Evidence root must be an existing directory')
-    return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in root.rglob('*') if path.is_file()}
+    identity = {}
+    for path in root.rglob('*'):
+        if path.is_file():
+            with path.open('rb') as stream:
+                identity[str(path.relative_to(root))] = hashlib.file_digest(
+                    stream, 'sha256').hexdigest()
+    return identity
 
 
 def stage_evidence_revision(source: Path, output: Path, operation):

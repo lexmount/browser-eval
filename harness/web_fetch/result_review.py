@@ -5,7 +5,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from harness.record_io import parse_jsonl
+from harness.record_io import file_sha256, load_jsonl, parse_jsonl
 
 from .anomaly_review import require_anomaly_review
 from lexbench_webfetch.metrics import task_passed
@@ -51,7 +51,7 @@ def review_raw_artifacts(record):
 
 
 def _sha256(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return file_sha256(path)
 
 
 def review_input_identity(record):
@@ -88,7 +88,62 @@ def review_input_identity(record):
     }
 
 
-def _require_result_review(source, dataset, records, review_document=None, *, anomaly_gate):
+def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=None, historical_sources=(), historical_authority=False):
+    """Read current scores normally and frozen historical scores from their bound review."""
+    try:
+        return ('pass' if task_passed(
+            record['ok'], record['metrics'], case.get('task_kind', 'body')) else 'fail')
+    except ValueError as error:
+        if str(error) != (
+                'Historical scoring metrics require their frozen scorer or a complete offline rescore'):
+            raise
+        if historical_authority:
+            return (reviewed or {}).get('machine_verdict')
+        from .reference_lifecycle import valid_scoring_revision_chain
+        verdict = (reviewed or {}).get('machine_verdict')
+        if verdict not in {'pass', 'fail'}:
+            raise
+        if revision_checks is None:
+            revision_checks = {}
+        def same_review(left, right):
+            return {k: v for k, v in left.items() if k != 'adjudication' or v is not None} == {
+                k: v for k, v in right.items() if k != 'adjudication' or v is not None}
+
+        for authority in dict.fromkeys((source, *historical_sources)):
+            if authority not in revision_checks:
+                root = Path(authority)
+                candidates = [root / 'result-review.json', *sorted((root / 'review-history').glob('*.json'))]
+                source_dataset = json.loads((root / 'dataset.json').read_text())
+                source_records = load_jsonl(root / 'results.jsonl')
+                authenticated = []
+                for path in candidates:
+                    if not path.is_file() or path.is_symlink():
+                        continue
+                    raw = path.read_bytes()
+                    if valid_scoring_revision_chain(root, review_sha256=hashlib.sha256(raw).hexdigest()):
+                        document = json.loads(raw)
+                        try:
+                            _require_result_review(root, source_dataset, source_records, document,
+                                                   anomaly_gate=False, historical_authority=True)
+                        except (ValueError, TypeError, KeyError):
+                            continue
+                        authenticated.extend(document.get('attempts', []))
+                persisted = {row['attempt_id']: row for row in source_records}
+                cases = {row['id']: row for row in source_dataset['cases']}
+                revision_checks[authority] = (authenticated, persisted, cases)
+            authenticated, persisted, cases = revision_checks[authority]
+            original = persisted.get(record['attempt_id'])
+            if (original is not None and reviewed.get('attempt_id') == record['attempt_id']
+                    and cases.get(record['case_id']) == case
+                    and any(same_review(reviewed, row) for row in authenticated)
+                    and original['ok'] == record['ok'] and original['metrics'] == record['metrics']
+                    and review_input_identity(original) == review_input_identity(record)):
+                return verdict
+        raise
+
+
+
+def _require_result_review(source, dataset, records, review_document=None, *, anomaly_gate, historical_sources=(), historical_authority=False):
     required = dataset.get('comparison', {}).get('require_independent_result_review', False)
     path = source / 'result-review.json'
     if review_document is None and not path.is_file():
@@ -107,6 +162,8 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
     if bindings.get('results_sha256') != _sha256(source/'results.jsonl'):
         raise ValueError('Result review is bound to different results')
     scope = protocol.get('scope', 'all')
+    if historical_authority and (scope != 'all' or protocol.get('machine_judgments_withheld') is not True):
+        raise ValueError('Historical authority requires a complete independent review')
     if scope not in {'all','machine-failures'}:
         raise ValueError('Unsupported result review scope')
     declared_scope = dataset.get('comparison', {}).get('independent_result_review_scope')
@@ -135,10 +192,12 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
         raise ValueError(f'Result review has unresolved attempts: {len(unresolved)}')
     by_id = {record['attempt_id']: record for record in records}
     cases = {case['id']: case for case in dataset.get('cases', [])}
+    revision_checks = {}
     for row in attempts:
         record = by_id[row['attempt_id']]
-        machine = ('pass' if task_passed(record['ok'], record['metrics'],
-                   cases[record['case_id']].get('task_kind', 'body')) else 'fail')
+        machine = _machine_verdict(
+            source, record, cases[record['case_id']], reviewed=row, revision_checks=revision_checks,
+            historical_sources=historical_sources, historical_authority=historical_authority)
         if row.get('machine_verdict') != machine:
             raise ValueError('Result review machine verdict no longer matches persisted scoring')
         if row.get('final_verdict') != machine:
@@ -155,15 +214,15 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
     return review
 
 
-def require_blind_result_review(source, dataset, records, review_document=None):
+def require_blind_result_review(source, dataset, records, review_document=None, *, historical_sources=()):
     """Validate a recorded blind review without requiring the later anomaly phase."""
     return _require_result_review(
-        source, dataset, records, review_document, anomaly_gate=False)
+        source, dataset, records, review_document, anomaly_gate=False, historical_sources=historical_sources)
 
 
-def require_result_review(source, dataset, records, review_document=None):
+def require_result_review(source, dataset, records, review_document=None, *, historical_sources=()):
     return _require_result_review(
-        source, dataset, records, review_document, anomaly_gate=True)
+        source, dataset, records, review_document, anomaly_gate=True, historical_sources=historical_sources)
 
 
 class IndependentReviewRequired(ValueError):
@@ -289,14 +348,15 @@ def archive_superseded_result_review(path: Path, *, before_dataset: bytes,
 
 
 def _read_review_evidence(source, *, skip_blank=False):
-    dataset_bytes = contained_path(source, "dataset.json", reject_symlinks=True).read_bytes()
-    results_bytes = contained_path(source, "results.jsonl", reject_symlinks=True).read_bytes()
+    dataset_path = contained_path(source, "dataset.json", reject_symlinks=True)
+    results_path = contained_path(source, "results.jsonl", reject_symlinks=True)
+    dataset_bytes = dataset_path.read_bytes()
     return (
         json.loads(dataset_bytes),
-        parse_jsonl(results_bytes, skip_blank=skip_blank),
+        load_jsonl(results_path, skip_blank=skip_blank),
         {
             "dataset_sha256": hashlib.sha256(dataset_bytes).hexdigest(),
-            "results_sha256": hashlib.sha256(results_bytes).hexdigest(),
+            "results_sha256": file_sha256(results_path),
         },
     )
 
@@ -327,20 +387,39 @@ def write_review_document(target, review, *, before_replace=None):
             temporary.unlink(missing_ok=True)
 
 
-def install_result_review(evidence, review, *, anomaly_gate=True, skip_blank=False):
+def install_result_review(evidence, review, *, anomaly_gate=True, skip_blank=False, historical_sources=()):
     """Validate a review against current evidence before replacing the installed file."""
     if not isinstance(review, dict):
         raise ValueError("An explicit result review document is required")
     dataset, records, bindings = _read_review_evidence(evidence, skip_blank=skip_blank)
     validator = require_result_review if anomaly_gate else require_blind_result_review
-    validator(evidence, dataset, records, review)
+    if historical_sources:
+        validator(evidence, dataset, records, review, historical_sources=historical_sources)
+    else:
+        validator(evidence, dataset, records, review)
     target = contained_path(evidence, "result-review.json", reject_symlinks=True)
 
     def unchanged():
         if _read_review_evidence(evidence, skip_blank=skip_blank)[2] != bindings:
             raise ValueError("Review evidence changed before installation")
 
+    previous = target.read_bytes() if target.exists() else None
     write_review_document(target, review, before_replace=unchanged)
+    installed = target.read_bytes()
+    try:
+        if historical_sources:
+            from .assembly import bind_assembled_scoring_revision
+            bind_assembled_scoring_revision(evidence, historical_sources=historical_sources)
+    except BaseException:
+        if target.read_bytes() == installed:
+            if previous is None:
+                target.unlink()
+            else:
+                with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as stream:
+                    backup = Path(stream.name)
+                    stream.write(previous)
+                backup.replace(target)
+        raise
     return target
 
 
@@ -515,23 +594,26 @@ def merge_refresh_reviews(
         raise ValueError("Prior review must not contain accepted unreviewed passes")
 
     reusable = set()
+    revision_checks = {}
     for attempt_id, row in current.items():
         old = previous.get(attempt_id)
         case_id = row["case_id"]
-        current_machine = (
-            "pass"
-            if task_passed(
-                row["ok"], row["metrics"], current_cases[case_id].get("task_kind", "body")
-            )
-            else "fail"
-        )
-        if (
-            old is not None
-            and old.get("case_id") == case_id
-            and prior_cases.get(case_id) == current_cases[case_id]
-            and review_input_identity(old) == review_input_identity(row)
-            and prior_attempts.get(attempt_id, {}).get("final_verdict") == current_machine
-        ):
+        reviewed = prior_attempts.get(attempt_id)
+        eligible = (old is not None and old.get('case_id') == case_id
+                    and prior_cases.get(case_id) == current_cases[case_id]
+                    and review_input_identity(old) == review_input_identity(row)
+                    and reviewed is not None)
+        if not eligible:
+            continue
+        try:
+            current_machine = _machine_verdict(
+                prior_evidence, row, current_cases[case_id], reviewed=reviewed,
+                revision_checks=revision_checks)
+        except ValueError as error:
+            if str(error) != 'Historical scoring metrics require their frozen scorer or a complete offline rescore':
+                raise
+            continue
+        if reviewed.get('final_verdict') == current_machine:
             reusable.add(attempt_id)
     required = set(current) - reusable
     if not required:
@@ -581,15 +663,9 @@ def merge_refresh_reviews(
     # the current persisted score. Reviewer-visible inputs were checked above.
     normalized_attempts = []
     for record, reviewed in zip(current_records, attempts):
-        machine = (
-            "pass"
-            if task_passed(
-                record["ok"],
-                record["metrics"],
-                current_cases[record["case_id"]].get("task_kind", "body"),
-            )
-            else "fail"
-        )
+        source = prior_evidence if record['attempt_id'] in reusable else supplemental_evidence
+        machine = _machine_verdict(
+            source, record, current_cases[record['case_id']], reviewed=reviewed, revision_checks=revision_checks)
         reviewed = dict(reviewed)
         reviewed["machine_verdict"] = machine
         reviewed["final_verdict"] = machine
@@ -631,7 +707,8 @@ def merge_refresh_reviews(
         row["final_verdict"] != row["machine_verdict"] for row in attempts
     )
     anomaly_gate = not current_dataset.get("comparison", {}).get("require_anomaly_review", False)
-    return install_result_review(evidence, merged, anomaly_gate=anomaly_gate)
+    return install_result_review(evidence, merged, anomaly_gate=anomaly_gate,
+                                 historical_sources=(prior_evidence, supplemental_evidence))
 
 
 def rebase_review(

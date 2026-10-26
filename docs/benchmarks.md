@@ -6,6 +6,7 @@ Browser Eval executes tasks, adapts browsers and providers, calls the selected b
 | --- | --- |
 | Self-authored Web Fetch task populations, prompts and acceptance requirements | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) |
 | LexBench task catalogs and frozen source-input bindings | LexBench Web Fetch |
+| Web Search tasks, provenance, source qualifications and deterministic retrieval scoring | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) |
 | Browser/provider adapters, execution policy and credential loading | Browser Eval |
 | Task model, deterministic acceptance scorer, file-byte checks, compiler and scenario registry | LexBench Web Fetch |
 | Rescoring orchestration and evidence revision machinery | Browser Eval |
@@ -262,3 +263,13 @@ part of each saved call; a participant name is not a version receipt.
 
 Shared adapter documentation describes interfaces by engine. Adding a version
 or renaming a participant requires data changes, without another renderer entry.
+
+## Web Search integration
+
+LexBench Web Search is installed from the immutable commit in `pyproject.toml` and `uv.lock`. Its task files and scoring code have one owner in that repository. Browser Eval provides providers, model/human annotation collection, latency/billing collection, audits and report publication. Report-specific execution profiles and receipts live with external evidence, selected explicitly by the caller. No sibling checkout is required.
+
+`uv run --frozen lexbench-websearch validate scenarios-v1` checks the installed definitions. The harness resolves explicit dataset/field/hash references before freezing a run. Resolving the split historical profiles reproduces the original profile bytes and hashes, so saved calls keep their original identity. Model judgment evidence and measured results stay outside both repositories.
+
+Change search queries, references or scoring in LexBench Web Search and pin the resulting commit here. Change provider behavior or report generation in Browser Eval. See the pinned benchmark's [data provenance](https://github.com/lexmount/lexbench-websearch/blob/a6d7b92987e32ef52563ee68bac4343db5686d95/docs/data.md) and [evaluation protocol](https://github.com/lexmount/lexbench-websearch/blob/a6d7b92987e32ef52563ee68bac4343db5686d95/docs/evaluation.md).
+
+Update a merged Search benchmark revision with `make bump-lexbench BENCHMARK=lexbench-websearch REV=<full-commit>`. The shared updater checks upstream main ancestry and updates the package, lock and dataset-hash binding together. The initial extraction PR depends on the companion benchmark PR landing first.

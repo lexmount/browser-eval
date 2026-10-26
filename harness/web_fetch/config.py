@@ -76,6 +76,8 @@ def load_runtime_env(path: Path | None = None) -> None:
     if path is not None or selected.exists():
         load_env_file(selected, override_credentials=True,
                       credentials_allowed=selected.resolve() == (ROOT / ".env").resolve())
+    if path is not None:
+        os.environ.setdefault("BROWSER_EVAL_REPORT_LANGUAGE", "en")
 
 
 def load_env_file(path: Path, *, override_credentials: bool = False, credentials_allowed: bool = True) -> None:

@@ -119,3 +119,5 @@ Optional Claude review requires `ENABLE_CLAUDE_REVIEW=true` and `CLAUDE_CODE_OAU
 ## License
 
 Contributions use the [Apache License 2.0](LICENSE). Preserve third-party licenses, copyright notices and source attributions described in [THIRD_PARTY](THIRD_PARTY.md).
+
+Version changes require an explicit human release request. Code synchronization, review fixes, tests and report rebuilds must not automatically bump package, benchmark or report edition numbers, rewrite frozen release catalogs, or create/push release tags. Reuse existing build versions and record source hashes; keep unreleased changes separate from a certified edition.

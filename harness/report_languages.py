@@ -2,17 +2,45 @@
 
 import html
 import json
+import os
 import re
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+class ReportLanguageError(ValueError):
+    """Invalid report-language configuration, before evaluation starts."""
+
+
 SUPPORTED_REPORT_LANGUAGES = ("en", "zh")
 REPORT_PAGE_MARKER = '<meta name="browser-eval-report" content="1">'
+REPORT_LANGUAGE_ENV = "BROWSER_EVAL_REPORT_LANGUAGE"
+REPORT_LANGUAGE_ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+
+
+def configured_report_language(
+    *, supported: tuple[str, ...] = SUPPORTED_REPORT_LANGUAGES
+) -> str:
+    """Return the environment-selected language, or the public English default."""
+    from dotenv import dotenv_values
+
+    configured = os.environ.get(REPORT_LANGUAGE_ENV)
+    if configured is None:
+        configured = dotenv_values(REPORT_LANGUAGE_ENV_FILE).get(REPORT_LANGUAGE_ENV)
+    selected = (configured or "").strip().lower() or "en"
+    if selected in SUPPORTED_REPORT_LANGUAGES and selected not in supported:
+        return supported[0]
+    if selected not in supported:
+        if configured:
+            raise ReportLanguageError(
+                f"{REPORT_LANGUAGE_ENV} must be one of {', '.join(supported)}; got {selected}"
+            )
+        return supported[0]
+    return selected
 
 
 def includes_english(language: str | None, include_english: bool = False) -> bool:
     if language is not None and language not in SUPPORTED_REPORT_LANGUAGES:
-        raise ValueError("Unsupported primary report language; choose en or zh")
+        raise ReportLanguageError("Unsupported primary report language; choose en or zh")
     return include_english or language == "en"
 
 
@@ -24,14 +52,19 @@ def add_language_argument(parser, *, default=None) -> None:
 
 
 def language_metadata_path(root: Path) -> Path:
-    path = root / "report-languages.json"
-    return path if path.is_file() else root / "report-manifest.json"
+    for name in ("report-languages.json", "report-manifest.json"):
+        path = root / name
+        if path.is_file():
+            return path
+    return root / "report-manifest.json"
 
 
-def primary_report_language(root: Path, *, default: str = "en") -> str:
+def primary_report_language(root: Path, *, default: str | None = None) -> str:
     path = language_metadata_path(root)
     value = json.loads(path.read_text()) if path.is_file() else {}
-    language = value.get("primary_language", "zh" if value else default)
+    language = value.get("primary_language", "zh") if value else (
+        default or configured_report_language()
+    )
     if language not in SUPPORTED_REPORT_LANGUAGES:
         raise ValueError("Unsupported primary report language; choose en or zh")
     return language
@@ -40,9 +73,14 @@ def primary_report_language(root: Path, *, default: str = "en") -> str:
 def resolve_report_language(root: Path, language: str | None = None, *,
                             supported: tuple[str, ...] = SUPPORTED_REPORT_LANGUAGES) -> str:
     """Prefer explicit choice, then saved choice, then the renderer's default."""
-    selected = language if language is not None else primary_report_language(root, default=supported[0])
+    if language is not None:
+        selected = language
+    elif language_metadata_path(root).is_file():
+        selected = primary_report_language(root)
+    else:
+        selected = configured_report_language(supported=supported)
     if selected not in supported:
-        raise ValueError(f"This report supports only {', '.join(supported)}; requested {selected}")
+        raise ReportLanguageError(f"This report supports only {', '.join(supported)}; requested {selected}")
     return selected
 
 
@@ -72,7 +110,7 @@ def select_report_language(root: Path, language: str) -> Path:
 
             def chinese_home(match):
                 parts = urlsplit(html.unescape(match[2]))
-                if parts.scheme or parts.netloc:
+                if parts.scheme or parts.netloc or match[2].startswith("#"):
                     return match[0]
                 target = (route_base / parts.path).resolve() if parts.path or base else page.resolve()
                 if target not in {root.resolve(), (root / "index.html").resolve()}:
@@ -83,7 +121,7 @@ def select_report_language(root: Path, language: str) -> Path:
                 href = urlunsplit(parts._replace(query=urlencode(query)))
                 return match[1] + html.escape(href, quote=True) + match[3]
             text = re.sub(
-                r'<header\b[^>]*>.*?</header>',
+                r'<(?P<tag>header|nav)\b[^>]*>.*?</(?P=tag)>',
                 lambda header: re.sub(r'(<a\b[^>]*?\bhref=")([^"]*)(")', chinese_home, header[0]),
                 text, flags=re.S,
             )

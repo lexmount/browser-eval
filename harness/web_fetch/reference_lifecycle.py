@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from harness.record_io import load_jsonl, parse_jsonl
+from harness.record_io import file_sha256, load_jsonl, parse_jsonl
 
 from lexbench_webfetch.metrics import normalize_for_match, normalize_resource_url
 from .reference_inputs import input_tree, read_dataset_bytes
@@ -939,6 +939,16 @@ def finalize_reference_checks(run_dir: Path, observations_path: Path, now=None) 
 
 
 def valid_scoring_revision(source) -> bool:
+    """Validate the receipt chain and its independent result reviews."""
+    return _valid_scoring_revision(source, validate_reviews=True)
+
+
+def valid_scoring_revision_chain(source, *, review_sha256=None) -> bool:
+    """Validate receipts and review bindings without re-entering verdict validation."""
+    return _valid_scoring_revision(source, validate_reviews=False, review_sha256=review_sha256)
+
+
+def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> bool:
     """Return true only for a continuous receipt chain ending at current evidence."""
     if source is None:
         return False
@@ -951,7 +961,7 @@ def valid_scoring_revision(source) -> bool:
     except (OSError, ValueError, TypeError):
         return False
     current_dataset = sha256((root/'dataset.json').read_bytes())
-    current_results = sha256((root/'results.jsonl').read_bytes())
+    current_results = file_sha256(root/'results.jsonl')
     review_path = root/'result-review.json'
     review_hash = sha256(review_path.read_bytes()) if review_path.is_file() else None
     assembled_review_valid = False
@@ -974,18 +984,28 @@ def valid_scoring_revision(source) -> bool:
         for candidate in review_candidates:
             try:
                 raw = candidate.read_bytes()
+                if review_sha256 is not None and sha256(raw) != review_sha256:
+                    continue
                 review = json.loads(raw)
-                require_blind_result_review(root, dataset, records, review)
+                if validate_reviews:
+                    require_blind_result_review(root, dataset, records, review)
+                elif (review.get('schema_version') != 1
+                      or review.get('bindings') != {'dataset_sha256': current_dataset,
+                                                     'results_sha256': current_results}):
+                    continue
                 blind_review_hashes.add(sha256(raw))
             except (OSError, ValueError, TypeError, KeyError, StopIteration):
                 continue
+    if review_sha256 is not None and review_sha256 not in blind_review_hashes:
+        return False
     if review_path.is_file():
         try:
             from .result_review import require_result_review
             if dataset is None or records is None:
                 dataset = json.loads((root/'dataset.json').read_text())
                 records = load_jsonl(root/'results.jsonl')
-            assembled_review_valid = require_result_review(root, dataset, records) is not None
+            assembled_review_valid = (require_result_review(root, dataset, records) is not None
+                                      if validate_reviews else review_hash in blind_review_hashes)
         except (OSError, ValueError, TypeError, KeyError, StopIteration):
             assembled_review_valid = False
 
@@ -1159,6 +1179,13 @@ def valid_scoring_revision(source) -> bool:
                 return False
             previous_scoring_source = None
         previous_output = output_binding
+    if review_sha256 is not None and not any(
+        row.get('kind') == 'audited_assembled_scoring_revision'
+        and row.get('independent_result_review_sha256') == review_sha256
+        and bridged((row.get('output_dataset_sha256'), row.get('output_results_sha256')),
+                    (current_dataset, current_results)) for row in rows
+    ):
+        return False
     if previous_scoring_source is not None:
         current_scoring_sources = {
             row.get('metrics', {}).get('scoring_source_sha256') for row in (records or [])
@@ -1199,7 +1226,7 @@ def latency_correction_original_elapsed(source, *, records=None) -> dict[tuple[s
         raise ReferenceLifecycleError("Invalid latency correction receipt") from error
     if (not isinstance(receipt, dict)
             or receipt.get("schema_version") != 1
-            or receipt.get("output_results_sha256") != sha256(results_path.read_bytes())
+            or receipt.get("output_results_sha256") != file_sha256(results_path)
             or receipt.get("task_decision_changes") != 0
             or receipt.get("selection") not in {
                 "same four cases for all three Moli versions; final round always selected, never best-of",
@@ -1254,7 +1281,7 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
     except (OSError, ValueError, TypeError):
         return {}
     current_dataset = sha256((root / "dataset.json").read_bytes())
-    current_results = sha256((root / "results.jsonl").read_bytes())
+    current_results = file_sha256(root / "results.jsonl")
     from lexbench_webfetch.scoring_regressions import valid_correction_provenance
     if not isinstance(receipts, list):
         return {}

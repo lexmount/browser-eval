@@ -5,6 +5,7 @@ import socket
 import time
 import zipfile
 from email.utils import parsedate_to_datetime
+from http.client import RemoteDisconnected
 from pathlib import PurePosixPath
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
@@ -78,7 +79,7 @@ def put_file(request, path, data):
                 interval = min(delay, 30)
                 time.sleep(interval)
                 delay -= interval
-        except (TimeoutError, socket.timeout, URLError):
+        except (TimeoutError, socket.timeout, URLError, RemoteDisconnected):
             if attempt == 3:
                 raise
             delay=min(2**attempt,4)
