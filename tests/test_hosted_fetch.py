@@ -38,6 +38,19 @@ class HostedFetchTest(unittest.TestCase):
 
 
     @patch('harness.web_fetch.providers.hosted_fetch.request')
+    def test_explicit_service_errors_do_not_require_success_fields(self, call):
+        for kind in TYPES[1:]:
+            for payload, expected in (({'error': 'blocked'}, 'api_error'),
+                                      ({}, 'invalid_response')):
+                with self.subTest(kind=kind, payload=payload):
+                    raw = json.dumps(payload).encode()
+                    call.return_value = HttpResponse(200, ENDPOINTS[kind], {}, raw)
+                    result = self.provider(kind).fetch(self.case, 30)
+                    self.assertEqual(result.error_type, expected)
+                    self.assertEqual(result.content, '')
+                    self.assertEqual(base64.b64decode(result.metadata['_raw_response_b64']), raw)
+
+    @patch('harness.web_fetch.providers.hosted_fetch.request')
     def test_brightdata_invalid_utf8_retains_response_evidence(self, call):
         self.case.source_benchmark['input_media_kind'] = 'html_page'
         raw = b'Invalid UTF-8: \xff'
@@ -75,6 +88,8 @@ class HostedFetchTest(unittest.TestCase):
             ({'markdown':''}, 200, 'empty_content'),
             ({'markdown':'body','success':False}, 200, 'api_error'),
             ({'markdown':'body','ok':False}, 200, 'api_error'),
+            ({'success':False,'error':'blocked'}, 200, 'api_error'),
+            ({'ok':False}, 200, 'api_error'),
         ]:
             call.reset_mock()
             raw=json.dumps(payload).encode()

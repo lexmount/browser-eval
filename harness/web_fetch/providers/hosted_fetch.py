@@ -187,10 +187,10 @@ class HostedFetchProvider(Provider):
                           "rate_limit" if response.status == 429 else
                           "quota" if response.status == 402 else "api_error")
             message = f"Fetch API returned HTTP {response.status}; inspect retained response"
-        elif malformed:
-            error_type, message = "invalid_response", "Fetch API returned an invalid text response envelope"
         elif service_error:
             error_type, message = "api_error", "Fetch service reported an error or binary output; inspect retained response"
+        elif malformed:
+            error_type, message = "invalid_response", "Fetch API returned an invalid text response envelope"
         elif status is not None and not 200 <= status < 300:
             error_type, message = "http_error", f"Target page returned HTTP {status}"
         elif not content.strip():
