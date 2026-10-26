@@ -55,13 +55,16 @@ def fetch_with_deadline(provider, case, timeout, *, native_route_ledger=None):
         output.put((time.perf_counter(), value))
     worker = threading.Thread(target=work, daemon=True, name='webfetch-answer')
     worker.start()
+    caller_deadline_exceeded = False
     try:
         completed, value = output.get(timeout=max(0, timeout - (time.perf_counter() - begin)))
     except queue.Empty:
+        caller_deadline_exceeded = True
         completed, value = time.perf_counter(), TimeoutError('End-to-end answer deadline exceeded')
     if completed - begin > timeout:
+        caller_deadline_exceeded = True
         value = TimeoutError('End-to-end answer deadline exceeded')
-    if isinstance(value, TimeoutError):
+    if caller_deadline_exceeded:
         sink = getattr(provider, "_call_diagnostics", None)
         if sink:
             sink.emit("caller", "answer_timeout", type=type(value).__name__, message=str(value),
@@ -87,6 +90,7 @@ def fetch_with_deadline(provider, case, timeout, *, native_route_ledger=None):
         if case.task_kind == 'file':
             metadata['file_evaluation'] = evaluate_files(vars(case), [])
         metadata['_answer_elapsed_ms']=answer_elapsed_ms
+        metadata['caller_deadline_exceeded'] = True
         return ProviderResult(
             False,
             '',
@@ -96,6 +100,7 @@ def fetch_with_deadline(provider, case, timeout, *, native_route_ledger=None):
         ), worker
     if isinstance(value, Exception):
         raise value
+    value.metadata['caller_deadline_exceeded'] = False
     if response_only:
         # Stop the user-observed timer before scorer input preparation/storage.
         value.metadata['_answer_elapsed_ms'] = round((completed - begin) * 1000, 2)

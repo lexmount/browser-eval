@@ -341,7 +341,7 @@ def persist_public_call_log(
             {"stage": "call_started", "at": started_at, "status_code": None,
              "error_type": None},
             {"stage": ("exception_raised" if exception is not None else
-                       "answer_deadline_exceeded" if result.error_type == "timeout" else "response_received"),
+                       "answer_deadline_exceeded" if metadata.get("caller_deadline_exceeded") else "response_received"),
              "at": completed_at, "status_code": result.status_code,
              "error_type": _public_text(result.error_type, limit=256)},
             {"stage": "call_completed", "at": completed_at,
