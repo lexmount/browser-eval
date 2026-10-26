@@ -646,10 +646,13 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
             # the driver, while their parent relationships still identify ownership.
             owned = {process.pid}
             if os.name == "posix":
-                table = subprocess.check_output(
-                    ["ps", "-A", "-o", "pid=,ppid="], text=True, timeout=1)
-                parents = {int(pid): int(parent) for pid, parent in
-                           (line.split() for line in table.splitlines())}
+                try:
+                    table = subprocess.check_output(
+                        ["ps", "-A", "-o", "pid=,ppid="], text=True, timeout=1)
+                    parents = {int(pid): int(parent) for pid, parent in
+                               (line.split() for line in table.splitlines())}
+                except (OSError, subprocess.SubprocessError):
+                    parents = {}
                 while True:
                     children = {pid for pid, parent in parents.items() if parent in owned}
                     if children <= owned:
@@ -659,6 +662,10 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
             for sig in signals:
                 try:
                     if os.name == "posix":
+                        try:
+                            os.killpg(process.pid, sig)
+                        except ProcessLookupError:
+                            pass
                         for pid in sorted(owned, reverse=True):
                             try:
                                 os.kill(pid, sig)

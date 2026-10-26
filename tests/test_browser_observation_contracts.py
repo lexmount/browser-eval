@@ -359,3 +359,24 @@ with sync_playwright() as p:
                         os.killpg(pid, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='POSIX process enumeration')
+@pytest.mark.parametrize('failure', ['missing', 'exit', 'timeout'])
+def test_capture_timeout_remains_bounded_when_process_enumeration_fails(monkeypatch, failure):
+    import subprocess
+    import time
+
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', 'import time; time.sleep(4)')
+    def unavailable(*args, **kwargs):
+        if failure == 'missing':
+            raise FileNotFoundError('ps is unavailable')
+        if failure == 'exit':
+            raise subprocess.CalledProcessError(1, 'ps')
+        raise subprocess.TimeoutExpired('ps', 1)
+    monkeypatch.setattr(capture.subprocess, 'check_output', unavailable)
+    began = time.monotonic()
+    result = capture._capture_in_process(case_with(), 20, 1)
+    assert time.monotonic() - began < 3.8
+    assert result['status'] == 'failure'
+    assert result['attempt_errors'][0]['type'] == 'TimeoutError'
