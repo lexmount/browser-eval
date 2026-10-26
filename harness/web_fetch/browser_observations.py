@@ -619,6 +619,8 @@ _CAPTURE_PROGRAM = (
 def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolved_ip=None,
                         *, observation_scope="reference", dns_mode="system"):
     """Bound browser transport and cleanup as well as page operations."""
+    if browser_binary:
+        browser_binary = str(Path(browser_binary).resolve())
     payload = dict(case=case, timeout_ms=timeout_ms, attempts=attempts,
                    browser_binary=browser_binary, resolved_ip=resolved_ip,
                    observation_scope=observation_scope, dns_mode=dns_mode)
@@ -640,20 +642,34 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
                 raise ValueError("Capture worker returned another case")
             return result
         except subprocess.TimeoutExpired:
-            # Each POSIX worker owns a new process group, including its driver.
-            # Terminate only that group so a stuck transport cannot hold pipes open.
+            # Chrome starts a detached group. Collect descendants before killing
+            # the driver, while their parent relationships still identify ownership.
+            owned = {process.pid}
+            if os.name == "posix":
+                table = subprocess.check_output(
+                    ["ps", "-A", "-o", "pid=,ppid="], text=True, timeout=1)
+                parents = {int(pid): int(parent) for pid, parent in
+                           (line.split() for line in table.splitlines())}
+                while True:
+                    children = {pid for pid, parent in parents.items() if parent in owned}
+                    if children <= owned:
+                        break
+                    owned.update(children)
             signals = (signal.SIGTERM, signal.SIGKILL) if os.name == "posix" else (None, None)
             for sig in signals:
                 try:
                     if os.name == "posix":
-                        os.killpg(process.pid, sig)
+                        for pid in sorted(owned, reverse=True):
+                            try:
+                                os.kill(pid, sig)
+                            except ProcessLookupError:
+                                pass
                     else:
                         process.kill()
                 except ProcessLookupError:
                     pass
                 try:
                     _stdout, diagnostics = process.communicate(timeout=1)
-                    break
                 except subprocess.TimeoutExpired:
                     continue
             message = f"Browser observation worker exceeded {budget:g}s wall-clock budget"
@@ -699,6 +715,8 @@ def capture_batch(
         public_ip(resolved_ip)
     if checkpoints and not browser_binary:
         raise ValueError("Checkpoint reuse requires an explicit browser binary")
+    if browser_binary:
+        browser_binary = str(Path(browser_binary).resolve())
     sources = capture_source_identity()
     binary_sha = (
         hashlib.sha256(Path(browser_binary).read_bytes()).hexdigest() if browser_binary else None

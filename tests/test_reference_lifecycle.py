@@ -562,6 +562,36 @@ class ReferenceLifecycleTests(unittest.TestCase):
         self.assertEqual(records[0]["metrics"]["reference_sha256"], sha256(self.case.ground_truth_main_content))
         self.assertEqual(json.loads((self.run / "manifest.json").read_text())["reference_checks"], original["reference_checks"])
 
+    def test_live_contract_changes_require_new_source_certification(self):
+        self.case = replace(self.case, acceptance_contract={
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'price', 'alternatives': ['Price']}]})
+        original = self.prepare_run()
+        record = json.loads((self.run / 'results.jsonl').read_text())
+        record.update(provider_type='fixture', case_name='Body', category='static')
+        (self.run / 'results.jsonl').write_text(json.dumps(record) + '\n')
+        self.finalize([self.observation(original)])
+        manifest = json.loads((self.run / 'manifest.json').read_text())
+        require_verified_reference_checks([manifest], cases=[self.case], source=self.run)
+        rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset(),
+                          dataset_path=self.dataset_path, cases=[self.case])
+        before = {p: p.read_bytes() for p in self.run.rglob('*') if p.is_file()}
+        changes = {
+            'acceptance_contract': {**self.case.acceptance_contract,
+                'stable_text_anchors': [{'id': 'price', 'alternatives': ['Provider raw output']}]},
+            'body_requirements': {'required_regions': [{'id': 'new', 'alternatives': ['Different']}]},
+            'composite_acceptance': {'required_fields': ['Different']},
+        }
+        for field, value in changes.items():
+            with self.subTest(field=field):
+                changed = replace(self.case, **{field: value})
+                with self.assertRaises(ReferenceLifecycleError):
+                    require_verified_reference_checks([manifest], cases=[changed], source=self.run)
+                with self.assertRaises(ReferenceLifecycleError):
+                    rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset(changed),
+                                      dataset_path=self.dataset_path, cases=[changed])
+                self.assertEqual(before, {p: p.read_bytes() for p in self.run.rglob('*') if p.is_file()})
+
     def verified_run(self):
         original = self.prepare_run()
         self.finalize([self.observation(original)])

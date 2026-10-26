@@ -220,7 +220,11 @@ def scope_identity(case) -> dict[str, Any]:
             ("expected_any", []), ("required_facts", []), ("required_patterns", []),
             ("forbidden_any", []), ("min_content_chars", 1), ("fact_coverage_threshold", 1.0),
             ("content_score_applicable", True), ("expected_resources", []),
-            ("resource_output_contract", {}), ("reference_answer", ""))},
+            ("resource_output_contract", {}), ("reference_answer", ""),
+            ("acceptance_contract", {}), ("body_requirements", {}),
+            ("composite_acceptance", {}))
+            if key not in {"acceptance_contract", "body_requirements", "composite_acceptance"}
+            or _get(case, key, default)},
     })
 
 

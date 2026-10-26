@@ -293,3 +293,69 @@ def test_crashed_capture_worker_does_not_erase_other_case_results(monkeypatch):
     assert row['case_id'] == 'new-task'
     assert row['status'] == 'failure'
     assert 'controlled worker failure' in row['attempt_errors'][0]['message']
+
+
+@pytest.mark.skipif(not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'), reason='explicit Chromium required')
+def test_batch_preserves_browser_path_relative_to_external_caller(tmp_path, monkeypatch, rendered_page):
+    from pathlib import Path
+
+    (tmp_path / 'browser').mkdir()
+    (tmp_path / 'browser/chrome').symlink_to(Path(os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY']).resolve())
+    monkeypatch.chdir(tmp_path)
+    # Only the loopback fixture bypasses public DNS qualification.
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM',
+        'import harness.web_fetch.browser_observations as c; '
+        'c.resolve_public_host=lambda url, ip: ("127.0.0.1", None, "local-fixture"); '
+        + capture._CAPTURE_PROGRAM)
+    task = case_with({'selector': 'main', 'text_mode': 'visible'})
+    task['url'] = rendered_page
+    result = capture.capture_batch([task], timeout_ms=10000, attempts=1,
+                                   browser_binary='browser/chrome', checkpoints=tmp_path / 'checkpoints')
+    assert result['new-task']['completion']['satisfied'], json.dumps(result, indent=2)
+    assert 'Inline formatting preserved' in result['new-task']['content_text']
+
+
+@pytest.mark.skipif(os.name != 'posix' or not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'),
+                    reason='POSIX and explicit Chromium required')
+def test_hung_driver_cleanup_removes_owned_chrome_and_preserves_another_browser(tmp_path, monkeypatch):
+    import subprocess
+    from playwright.sync_api import sync_playwright
+
+    pid_file = tmp_path / 'owned-browser.json'
+    binary = os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY']
+    program = f'''
+import json, os, signal, subprocess, time
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    browser = p.chromium.launch(executable_path={binary!r}, headless=True, args=['--no-sandbox'])
+    driver = p._impl_obj._connection._transport._proc.pid
+    table = subprocess.check_output(['ps', '-A', '-o', 'pid=,ppid='], text=True)
+    children = [int(pid) for pid, parent in (line.split() for line in table.splitlines())
+                if int(parent) == driver]
+    Path({str(pid_file)!r}).write_text(json.dumps(children))
+    os.kill(driver, signal.SIGSTOP)
+    time.sleep(30)
+'''
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', program)
+    with sync_playwright() as p:
+        unrelated = p.chromium.launch(executable_path=binary, headless=True, args=['--no-sandbox'])
+        try:
+            result = capture._capture_in_process(case_with(), 4000, 1, binary)
+            assert result['status'] == 'failure'
+            owned = json.loads(pid_file.read_text())
+            assert owned
+            for pid in owned:
+                state = subprocess.run(['ps', '-o', 'stat=', '-p', str(pid)],
+                                       capture_output=True, text=True).stdout.strip()
+                assert not state or state.startswith('Z'), (pid, state)
+            assert unrelated.new_page().evaluate('1 + 1') == 2
+        finally:
+            unrelated.close()
+            if pid_file.exists():
+                import signal
+                for pid in json.loads(pid_file.read_text()):
+                    try:
+                        os.killpg(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
