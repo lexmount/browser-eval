@@ -7,6 +7,9 @@ import sys
 from contextlib import redirect_stdout
 from pathlib import Path
 
+from harness.web_fetch.diagnostics import diagnostic_context, redact
+from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
+
 
 def main():
     root = Path.cwd()
@@ -16,8 +19,6 @@ def main():
     # JSONL response, including prints that happen during module initialization.
     sys.path.insert(0, str(root))
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-    from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
-    from harness.web_fetch.diagnostics import diagnostic_context, redact
 
     class NativeLogSink:
         def emit(self, source, event, **fields):

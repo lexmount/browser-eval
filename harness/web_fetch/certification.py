@@ -6,10 +6,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import shutil
 import sys
 from collections.abc import Callable
 from pathlib import Path
+
+from lexbench_webfetch.metrics import normalize_for_match
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+from lexbench_webfetch.versions import verify_release
 
 from harness.record_io import load_jsonl
 from harness.web_fetch import (
@@ -18,10 +23,21 @@ from harness.web_fetch import (
     evidence,
     reference_freeze,
     source_capture,
+    webmainbench_certification,
     webmainbench_runner,
 )
-from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.config import DEFAULT_CALL_TIMEOUT_SECONDS, add_failure_retry_argument
+from harness.web_fetch.reference_inputs import read_dataset_bytes
+from harness.web_fetch.reference_lifecycle import (
+    requires_browser_observation,
+    requires_fresh_reference,
+)
+from harness.web_fetch.retrieval_hints import native_fetch_dataset, parse_retrieval_hints
+from harness.web_fetch.risk_control import main as risk_control_main
+from harness.web_fetch.wcxb_dataset import validate_manifest
+from harness.web_fetch.webmainbench_correction import certify_case_correction as correction_main
+from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
+from harness.web_search.runner import main as search_main
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -36,11 +52,6 @@ def browser_observation_cases(
     cannot supply the facts/reference file that the freezer consumes.
     Malformed or missing audit rows fail closed instead of being guessed at.
     """
-    from lexbench_webfetch.metrics import normalize_for_match
-    from harness.web_fetch.reference_lifecycle import (
-        requires_browser_observation,
-        requires_fresh_reference,
-    )
 
     try:
         rows = json.loads((captures / "audit.json").read_text(encoding="utf-8"))
@@ -109,37 +120,31 @@ def run(stage: Callable[[list[str]], None], arguments: list[str]) -> None:
 def main(argv: list[str] | None = None) -> None:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["web-search"]:
-        from harness.web_search.runner import main as search_main
 
         search_main(argv[1:], certified=True)
         return
     if argv[:1] == ["webmainbench-latency"]:
-        from .webmainbench_latency_correction import certify
+        from harness.web_fetch.webmainbench_latency_correction import certify
 
         certify(argv[1:])
         return
     if argv[:1] == ["risk-control"]:
-        from harness.web_fetch.risk_control import main as risk_control_main
 
         risk_control_main(argv[1:], certified=True)
         return
     if argv[:1] == ["webmainbench-correction"]:
-        from harness.web_fetch.webmainbench_correction import (
-            certify_case_correction as correction_main,
-        )
 
         correction_main(argv[1:])
         return
     if argv[:1] == ["webmainbench-full"]:
-        from harness.web_fetch.webmainbench_certification import main as webmainbench_full_main
 
-        webmainbench_full_main(argv[1:])
+        webmainbench_certification.main(argv[1:])
         return
     if argv[:1] == ["wcxb"]:
         run_wcxb(argv[1:])
         return
     if argv[:1] == ["wcxb-latency"]:
-        from .wcxb_latency import certify
+        from harness.web_fetch.wcxb_latency import certify
         options = argv[1:]
         certify(options)
         return
@@ -181,7 +186,6 @@ def main(argv: list[str] | None = None) -> None:
         ),
     )
     args = parser.parse_args(argv)
-    import math
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error("--timeout must be positive and finite")
     if args.provider_config and not args.provider_config.is_file():
@@ -210,7 +214,6 @@ def main(argv: list[str] | None = None) -> None:
     # evidence does not turn a version rerun into live source qualification.
     unqualified = []
 
-    from harness.web_fetch.retrieval_hints import native_fetch_dataset, parse_retrieval_hints
 
     if args.retrieval_mode == "native":
         original_sha = hashlib.sha256(read_dataset_bytes(args.dataset)).hexdigest()
@@ -225,18 +228,12 @@ def main(argv: list[str] | None = None) -> None:
     release_raw = None
     release_path = args.benchmark_release or args.dataset.parent / 'benchmark-release.json'
     if args.benchmark_release or release_path.exists():
-        from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
-        from lexbench_webfetch.versions import verify_release
         if release_path.is_symlink():
             parser.error('Benchmark release rejects symlinks')
         release_raw = release_path.read_bytes()
         verify_release(json.loads(release_raw), dataset, exact_dataset=False,
                        scoring_source_sha256=SCORING_SOURCE_SHA256)
     # Reject malformed execution contracts before doing any external captures.
-    from harness.web_fetch.reference_lifecycle import (
-        requires_browser_observation,
-        requires_fresh_reference,
-    )
 
     for case in dataset["cases"]:
         if case["id"] in case_ids and requires_fresh_reference(case):
@@ -428,12 +425,10 @@ def run_wcxb(argv: list[str]) -> None:
         help="Comma-separated methods to rerun from the prior certified cohort",
     )
     args = parser.parse_args(argv)
-    from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
 
     if args.output_root.exists():
         parser.error("WCXB output root must be new and immutable")
     source_records, before = load_wcxb_source(args.dataset)
-    from harness.web_fetch.wcxb_dataset import validate_manifest
 
     manifest = json.loads(args.sample_manifest.read_text())
     profile = json.loads(args.profile.read_text())

@@ -21,6 +21,8 @@ from json_repair import repair_json
 from webarena_verified import WebArenaVerified
 from webarena_verified.environments.container.manager import ContainerManager
 
+from harness.browser_use.model import OpenAIResponsesModel
+from harness.browser_use.selection import PilotTask, load_pilot, validate_against_official
 from harness.container_isolation import require_linux_cgroup_v2
 from harness.environments.browser import (
     ENGINE_PORTS,
@@ -52,13 +54,11 @@ from harness.environments.webarena.runtime import (
     site_runtime_compatibility,
     verify_session_viewport,
 )
+from harness.record_io import load_jsonl
 from harness.resource_accounting import (
     DockerStatsResources,
     ResourceSampler,
 )
-
-from .model import OpenAIResponsesModel
-from .selection import PilotTask, load_pilot, validate_against_official
 
 ENGINE_IMAGES = configured_browser_images()
 
@@ -68,14 +68,6 @@ SCHEMA = "lex_browser_use_attempt/1"
 # repeatedly exceeded the package example's 180-second default despite becoming
 # healthy shortly afterwards. A longer ceiling changes no measured task time;
 # it only keeps environment preparation from aborting a formal cohort.
-
-
-
-
-
-
-
-
 
 
 def _load_repo_env(repo_root: Path) -> dict[str, str]:
@@ -90,16 +82,6 @@ def _load_repo_env(repo_root: Path) -> dict[str, str]:
         if os.environ.get(key):
             values[key] = os.environ[key]
     return values
-
-
-
-
-
-
-
-
-
-
 
 
 def _limit_cowagent_transport_retries(executor_class: Any) -> None:
@@ -125,45 +107,6 @@ def _limit_cowagent_transport_retries(executor_class: Any) -> None:
 
     executor_class._call_llm_stream = limited
     executor_class._lex_browser_eval_retry_limit = True
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def _system_prompt() -> str:
@@ -232,8 +175,6 @@ def _parse_agent_response(text: str) -> dict[str, Any] | str:
     except Exception:
         return text
     return repaired if isinstance(repaired, dict) else text
-
-
 
 
 def _run_attempt(  # noqa: PLR0913
@@ -484,7 +425,6 @@ def _load_completed_attempts(
     if not path.exists():
         return {}
     completed: dict[tuple[str, str, int, int], dict[str, Any]] = {}
-    from harness.record_io import load_jsonl
 
     for record_number, row in enumerate(load_jsonl(path, skip_blank=True), 1):
         model = str(row.get("model") or expected_model or "")

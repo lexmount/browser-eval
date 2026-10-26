@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from html.parser import HTMLParser
 from typing import Any
 
-from lexbench_webfetch.metrics import fact_in_text, normalize_for_match
+from lexbench_webfetch.metrics import evaluate_content, fact_in_text, normalize_for_match
 from lexbench_webfetch.models import EvalCase
 
 
@@ -95,7 +95,6 @@ def content_requirement_errors(case: EvalCase | Mapping[str, Any], text: str) ->
         ('acceptance_contract', {}), ('composite_acceptance', {}))}
     if not any(requirements.values()):
         return []
-    from lexbench_webfetch.metrics import evaluate_content
     checks = evaluate_content(text, [], **requirements, base_url=get('url', ''))
     errors = []
     if not checks['body_coverage_pass']:

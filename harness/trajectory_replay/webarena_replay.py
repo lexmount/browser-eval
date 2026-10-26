@@ -44,6 +44,13 @@ from harness.environments.webarena.runtime import (
     verify_session_viewport,
 )
 from harness.resource_accounting import DockerStatsResources, ResourceSampler
+from harness.trajectory_replay.retrieval_acceptance import (
+    PROTOCOL,
+    build_actual_response,
+    digest,
+    require_current_retrieval,
+    verify_attempt,
+)
 from harness.trajectory_replay.webarena_corrections import (
     apply_correction,
     check_replay_assertions,
@@ -296,8 +303,7 @@ def select_methods(plan: dict[str, Any], engines: list[str]) -> list[dict[str, A
 def validate_qualification_dataset(plan: dict[str, Any], path: str | Path) -> str:
     """Bind a formal comparison to the complete pre-qualified trajectory set."""
 
-    from .retrieval_acceptance import digest, require_current_retrieval
-    from .webarena_dataset import OBSERVATION_PROTOCOL
+    from harness.trajectory_replay.webarena_dataset import OBSERVATION_PROTOCOL
 
     require_current_retrieval(plan)
     dataset_path = Path(path).expanduser().resolve()
@@ -513,7 +519,6 @@ def _run_one(  # noqa: PLR0913
     resource_started = None
     recorder = CdpHarRecorder()
     records: list[dict[str, Any]] = []
-    from .retrieval_acceptance import PROTOCOL, build_actual_response
 
     attempt_id = uuid.uuid4().hex
     actual_response = None
@@ -1191,7 +1196,6 @@ def _validated_resume(
             if item.get("process_status") == "pass" and item.get("status") != "unsupported":
                 verify_state_attempt(item, plan["state_contracts"][task_id])
         if task_id in plan.get("retrieval_task_ids", []):
-            from .retrieval_acceptance import verify_attempt
 
             if item.get("status") == "pass" and not (
                 item.get("process_status") == item.get("evaluator_status") == "pass"
@@ -1360,7 +1364,6 @@ def run_replay_suite(  # noqa: PLR0913
         scope = "formal" if diagnostic_task_ids is None else "diagnostic"
     qualification_dataset_sha256 = None
     if scope != "diagnostic":
-        from .retrieval_acceptance import require_current_retrieval
 
         require_current_retrieval(plan)
     if scope in {"formal", "formal_correction_shard"}:

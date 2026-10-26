@@ -10,8 +10,8 @@ import json
 import os
 import re
 import signal
-import subprocess
 import socket
+import subprocess
 import sys
 import tempfile
 import time
@@ -22,8 +22,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from harness.reporting.publication import atomic_create, json_bytes
 from lexbench_webfetch.metrics import normalize_for_match
+from lexbench_webfetch.paths import safe_identifier
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+
+from harness.reporting.publication import atomic_create, json_bytes
 from harness.web_fetch.network_dns import (
     configure_chromium_dns_profile,
     validate_dns_mode,
@@ -31,11 +34,10 @@ from harness.web_fetch.network_dns import (
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     _resource_target_matches,
+    requires_fresh_reference,
     resource_source_scope_identity,
     scope_identity,
-    requires_fresh_reference,
 )
-from lexbench_webfetch.paths import safe_identifier
 from harness.web_fetch.source_capture import extract_html
 
 # innerText includes opacity-zero content. Descend only through ancestors of
@@ -611,11 +613,9 @@ def capture_source_identity() -> dict:
         "data/browser-observation-contracts.json",
     )
     root = Path(__file__).parent
-    from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
     return {**{name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names},
             "lexbench_webfetch/scoring": SCORING_SOURCE_SHA256}
-
 
 
 _CAPTURE_PROGRAM = (

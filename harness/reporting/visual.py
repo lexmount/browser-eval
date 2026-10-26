@@ -16,6 +16,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 from lexbench_webfetch.paths import contained_path
+
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 

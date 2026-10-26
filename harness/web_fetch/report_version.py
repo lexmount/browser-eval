@@ -4,8 +4,11 @@ import hashlib
 import json
 from pathlib import Path
 
+from bs4 import BeautifulSoup
 from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.versions import verify_release
+
+from harness.reporting.versions import check_build_version
 
 FILENAME = "benchmark-release.json"
 
@@ -100,11 +103,9 @@ def bind_release(source, output, dataset, records, *, profile=None):
 
 def check_release(root, dataset, records, *, profile=None):
     """Check the edition, rendered label and scoring identity without rescoring."""
-    from bs4 import BeautifulSoup
 
     manifest_path = root / "report-manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
-    from harness.reporting.versions import check_build_version
     check_build_version(root, manifest)
     binding = manifest.get("benchmark_release")
     expected = _profile_binding(profile)

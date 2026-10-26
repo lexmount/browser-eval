@@ -7,8 +7,10 @@ import os
 from collections import Counter
 from pathlib import Path
 
-from harness.record_io import load_jsonl
+from lexbench_webfetch.paths import contained_path
 
+from harness.record_io import load_jsonl
+from harness.web_fetch.methods import native_browser_engine
 
 
 def data_home() -> Path:
@@ -76,7 +78,7 @@ def frozen_input_bindings(evidence: Path) -> dict[str, str]:
 
 def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
     """Reject a report build when its frozen inputs differ from Git."""
-    from .reference_inputs import input_tree, read_dataset_bytes
+    from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 
     for relative in (Path("dataset.json"), Path("sources"), Path("list-references")):
         expected = canonical / relative
@@ -141,7 +143,6 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     records = load_jsonl(evidence / "results.jsonl")
     evidence_binding = profile.get("evidence_binding")
     if evidence_binding is not None:
-        from lexbench_webfetch.paths import contained_path
 
         files = evidence_binding.get("files") if isinstance(evidence_binding, dict) else None
         required = {"dataset.json", "results.jsonl", "execution.json"}
@@ -268,13 +269,12 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     if any(not identifier for identifier in attempt_ids) or len(attempt_ids) != len(set(attempt_ids)):
         failures.append("attempt_ids")
     route_contract = profile.get("native_task_route_contract")
-    from .methods import native_browser_engine
     if profile.get("comparison_kind") == "headless_markdown" and any(native_browser_engine(name) for name in providers) and route_contract is None:
         raise ValueError("Native browser report requires native_task_route_contract")
     if route_contract is not None:
         if route_contract != 4:
             raise ValueError("Unsupported native task route contract")
-        from .task_outputs import require_native_task_routes
+        from harness.web_fetch.task_outputs import require_native_task_routes
         require_native_task_routes(cases, records)
     resource_profile = profile.get("resource_profile") or {}
     if resource_profile.get("required"):

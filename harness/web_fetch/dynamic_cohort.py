@@ -10,18 +10,23 @@ from dataclasses import fields
 from datetime import datetime
 from pathlib import Path
 
+from lexbench_webfetch.models import EvalCase
+from lexbench_webfetch.paths import contained_path
+
 from harness.record_io import parse_jsonl
 from harness.web_fetch.artifacts import (
     materialize_bound_artifacts,
     materialize_reference_checks,
     verify_record_artifacts,
 )
-from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.publication_privacy import project_execution_manifest
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 from harness.web_fetch.render_evidence import validate_render_reference
-from harness.web_fetch.safety import commit_staged_evidence, reject_evidence_symlinks, validate_report_ids
-from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.safety import (
+    commit_staged_evidence,
+    reject_evidence_symlinks,
+    validate_report_ids,
+)
 from harness.web_fetch.storage import current_evidence_dir, data_home
 
 

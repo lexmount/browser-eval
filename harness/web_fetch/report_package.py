@@ -2,7 +2,6 @@
 
 import argparse
 import base64
-from functools import lru_cache
 import gzip
 import hashlib
 import html
@@ -10,17 +9,40 @@ import json
 import mimetypes
 import os
 import re
-import sys
 import shutil
+import sys
 import tempfile
 import zipfile
+from functools import lru_cache
 from pathlib import Path
+from urllib.parse import quote, urlencode
+
+from lexbench_webfetch.paths import contained_path
 
 from harness.record_io import load_jsonl
-from harness.reporting.packs import ByteBlockStore, DecompressedPackCache, read_packed_manifest, reconstruct_packed_file, write_compact_packs, write_packs
 from harness.reporting.links import validate_virtual_links
-from harness.web_fetch.publication_privacy import project_file, project_redundant_result_streams, publication_file_risk
-from harness.web_fetch.safety import evidence_tree_identity
+from harness.reporting.packs import (
+    ByteBlockStore,
+    DecompressedPackCache,
+    read_packed_manifest,
+    reconstruct_packed_file,
+    write_compact_packs,
+    write_packs,
+)
+from harness.reporting.publication import archive_inventory
+from harness.web_fetch.publication_privacy import (
+    project_file,
+    project_redundant_result_streams,
+    publication_file_risk,
+)
+from harness.web_fetch.publication_target import validate_service_base
+from harness.web_fetch.published_snapshot import check_snapshot_audit
+from harness.web_fetch.reference_lifecycle import require_certifiable_evidence
+from harness.web_fetch.report_build import validate_local_presentation
+from harness.web_fetch.report_explainer import current_browser_article_model
+from harness.web_fetch.report_version import check_release
+from harness.web_fetch.result_review import require_result_review
+from harness.web_fetch.safety import evidence_tree_identity, unlinked_path
 
 
 def _require(condition, detail):
@@ -29,7 +51,6 @@ def _require(condition, detail):
 
 
 def validate_release(source: Path, *, presentation_binding: Path | None = None, snapshot_audit=False) -> bool:
-    from .report_version import check_release
     dataset_path = source / "dataset.json"
     dataset = json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
     records = load_jsonl(source / "results.jsonl")
@@ -39,16 +60,13 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None, 
     if snapshot_audit:
         if not audit_state or presentation_binding is not None:
             raise ValueError('Snapshot packaging requires its explicit diagnostic report')
-        from .published_snapshot import check_snapshot_audit
         check_snapshot_audit(source)
         return False
     if audit_state:
         raise ValueError('Published snapshot audits require --snapshot-audit; they are not certified releases')
     if presentation_binding is not None:
-        from .report_build import validate_local_presentation
         validate_local_presentation(source, presentation_binding)
         return False
-    from .reference_lifecycle import require_certifiable_evidence
     manifests = []
     for name in ('manifest.json', 'execution.json'):
         path = source / name
@@ -58,7 +76,6 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None, 
     require_certifiable_evidence(dataset, manifests)
     content_binding = dataset.get('comparison', {}).get('report_interpretation')
     if content_binding:
-        from .report_explainer import current_browser_article_model
         current_browser_article_model(source, {case['id']:case for case in dataset['cases']},
                                       records, content_binding)
     sampled = dataset.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown"
@@ -67,7 +84,6 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None, 
         if reliability.get("complete") is not True:
             raise ValueError("Refusing to package an incomplete or unjudged benchmark report")
         if dataset.get("comparison", {}).get("require_independent_result_review"):
-            from .result_review import require_result_review
             require_result_review(source, dataset, records)
         return False
     review = json.loads((source / "result-review.json").read_text())
@@ -94,7 +110,6 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None, 
     if not binding or binding != review.get("sample_manifest_sha256"):
         raise ValueError("Sample/review binding mismatch")
     return True
-
 
 
 def _retain_inline_contract(text, original, available):
@@ -429,7 +444,6 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
     return manifest
 
 
-
 def _compact_cached_content(cached: Path, destination: Path, *, source: Path, refresh_privacy=False):
     """Reuse public files while keeping derived result projections source-authoritative."""
     manifest = read_packed_manifest(lambda name: (cached/name).read_bytes())
@@ -550,7 +564,6 @@ def _archive_identity(path: Path):
 
 def build(source: Path, archive: Path, *, presentation_binding: Path | None = None, cached_content: Path | None = None, parts_directory: Path | None = None, refresh_privacy=False, snapshot_audit=False):
     if parts_directory is not None:
-        from .safety import unlinked_path
         parts_directory = unlinked_path(parts_directory)
         if (parts_directory.exists() or parts_directory.is_relative_to(source.resolve())
             or source.resolve().is_relative_to(parts_directory)
@@ -577,7 +590,7 @@ def build(source: Path, archive: Path, *, presentation_binding: Path | None = No
             manifest = _compact_cached_content(cached_content, staging/'content', source=source, refresh_privacy=refresh_privacy)
             if parts_directory is None:
                 _write_archive(staging/'content', staged_archive)
-                from .publication_check import check
+                from harness.web_fetch.publication_check import check
                 check(staged_archive, source, presentation_binding=presentation_binding, snapshot_audit=snapshot_audit)
             if evidence_tree_identity(cached_content) != cached_identity:
                 raise ValueError('Cached public content changed during packaging')
@@ -585,7 +598,7 @@ def build(source: Path, archive: Path, *, presentation_binding: Path | None = No
             staged_parts = staging/'parts'
             partition_content(staging/'content',staged_parts)
             _write_archive(staging/'content',staged_archive)
-            from .publication_check import check
+            from harness.web_fetch.publication_check import check
             check(staged_archive,source,presentation_binding=presentation_binding,snapshot_audit=snapshot_audit,
                   external_archives=part_archives(staged_parts/'parts.json'),allow_pending_external=True)
             manifest = _wire_manifest(staging/'content')
@@ -684,7 +697,6 @@ def _build_incremental(source: Path, baseline: Path, destination: Path):
                 manifest["files"][name]["source_sha256"] = source_sha256
             changes[name] = manifest["files"][name]["sha256"]
 
-        from lexbench_webfetch.paths import contained_path
 
         for name in routes:
             allowed = explanatory_route(name)
@@ -732,7 +744,6 @@ def _build_incremental(source: Path, baseline: Path, destination: Path):
 
 def build_incremental(source: Path, baseline: Path, destination: Path, *, presentation_binding: Path | None = None):
     """Stage a presentation update against immutable source and baseline bytes."""
-    from .safety import unlinked_path
 
     source, baseline, destination = map(unlinked_path, (source, baseline, destination))
     if (
@@ -748,7 +759,7 @@ def build_incremental(source: Path, baseline: Path, destination: Path, *, presen
     with tempfile.TemporaryDirectory(prefix=".webfetch-update-", dir=destination.parent) as work:
         staged = Path(work) / "update"
         receipt = _build_incremental(source, baseline, staged)
-        from .publication_check import check
+        from harness.web_fetch.publication_check import check
 
         check(baseline, source, staged, presentation_binding=presentation_binding)
         if evidence_tree_identity(source) != before or _archive_identity(baseline) != baseline_hash:
@@ -856,7 +867,6 @@ def partition_content(content, output, *, max_bytes=300*1024*1024, max_files=200
 
 def part_archives(plan_path):
     """Resolve only immutable archives named by the private preparation plan."""
-    from lexbench_webfetch.paths import contained_path
     plan = json.loads(plan_path.read_text())
     result = {}
     for label,entry in plan['parts'].items():
@@ -868,9 +878,6 @@ def part_archives(plan_path):
 
 def bind_data_parts(archive, plan_path, publications):
     """Bind a prepared report to the exact committed versions of its data files."""
-    from urllib.parse import quote, urlencode
-    from harness.reporting.publication import archive_inventory
-    from .publication_target import validate_service_base
     part_archives(plan_path)
     plan = json.loads(plan_path.read_text())
     _require(set(publications) == set(plan['parts']),'Published data part registry differs')

@@ -1,10 +1,17 @@
 """Artifact Site's user-scoped publishing credential, separate from eval secrets."""
+
+import argparse
+import json
 import os
-from pathlib import Path
 import stat
 import tempfile
+import time
+import urllib.request
 import uuid
+from pathlib import Path
 from urllib.parse import urlsplit
+
+from harness.web_fetch.publication_target import validate_service_base
 
 
 def token_path(base_url):
@@ -94,12 +101,6 @@ def save_token(token, *, base_url, replace_existing=False):
 
 
 def authorize_main(argv=None):
-    import argparse
-    import json
-    import os
-    import time
-    import urllib.request
-
     parser = argparse.ArgumentParser(description=__doc__)
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument('--device-code')
@@ -118,7 +119,6 @@ def authorize_main(argv=None):
         if backup:print('Previous credential backed up:',backup)
         print('Existing authorization saved to the user credential file; token not displayed.')
         return
-    from harness.web_fetch.publication_target import validate_service_base
 
     args.base_url = validate_service_base(args.base_url)
     if args.timeout <= 0:

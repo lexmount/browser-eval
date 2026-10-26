@@ -1,6 +1,12 @@
 """Conserve task judgments across explicit offline corrections and exclusions."""
+
+import json
 from collections import Counter
 
+from lexbench_webfetch.metrics import task_measured, task_passed
+
+from harness.record_io import load_jsonl
+from harness.web_fetch.publication_privacy import read_evidence_binding
 
 VERDICTS = {'pass', 'fail', 'excluded', 'unavailable'}
 
@@ -70,10 +76,7 @@ def validate_ledger(ledger, records=None, *, source=None):
     if ledger.get('predecessor'):
         if source is None:
             raise ValueError('Result ledger needs its bound predecessor evidence')
-        import json
-        from .local_revision import require_local_task_replacement
-        from .publication_privacy import read_evidence_binding
-        from harness.record_io import load_jsonl
+        from harness.web_fetch.local_revision import require_local_task_replacement
         prior = json.loads(read_evidence_binding(source, ledger['predecessor']).read_text())
         validate_ledger(prior, source=source)
         count = len(prior['states'])
@@ -107,7 +110,6 @@ def validate_ledger(ledger, records=None, *, source=None):
                     or set(event['added_attempt_ids']) != added):
                 raise ValueError('Task replacement inventory differs from its physical calls')
     if records is not None:
-        from lexbench_webfetch.metrics import task_measured, task_passed
         actual = {record['attempt_id']: (
             'excluded' if record['metrics'].get('evaluation_excluded') else
             'unavailable' if not task_measured(record['metrics']) else

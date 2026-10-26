@@ -17,6 +17,12 @@ from urllib.parse import unquote, urlsplit
 
 from lexbench_webfetch.paths import contained_path
 
+from harness.reporting.publication import archive_inventory
+from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
+from harness.web_fetch.publication_target import publication_document, require_publication_version
+from harness.web_fetch.report_publish import PublishConfig, publish
+from harness.web_fetch.safety import unlinked_path
+
 REPORT_STEM = "webarena-trajectory-replay-latest"
 
 PRIVATE_IPV4 = re.compile(
@@ -102,7 +108,7 @@ def _read_json(path: Path) -> dict:
 
 
 def _report_files(formal_root: Path, summary: dict) -> list[Path]:
-    from .report import report_file_names
+    from harness.trajectory_replay.public_webarena.report import report_file_names
 
     files = []
     for name in sorted(report_file_names(summary)):
@@ -272,7 +278,7 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
 
 
 def check_report_bundle(formal_root: Path) -> dict[str, int]:
-    from .report import METRICS, PAGES
+    from harness.trajectory_replay.public_webarena.report import METRICS, PAGES
 
     reports = formal_root / "reports"
     pages_checked = 0
@@ -335,8 +341,7 @@ def check_report_bundle(formal_root: Path) -> dict[str, int]:
 
 
 def stage_report(formal_root: Path, destination: Path) -> None:
-    from .report import write_latest_report
-    from .result_audit import audit_result_set
+    from harness.trajectory_replay.public_webarena.report import write_latest_report
 
     if destination.exists() or destination.is_symlink():
         raise ValueError("report staging destination already exists")
@@ -425,13 +430,6 @@ def publish_current(
     transport=None,
 ) -> dict:
     """Submit only the profile-bound public replay package through the shared publisher."""
-    from harness.reporting.publication import archive_inventory
-    from harness.web_fetch.publication_target import (
-        publication_document,
-        require_publication_version,
-    )
-    from harness.web_fetch.report_publish import PublishConfig, publish
-    from harness.web_fetch.safety import unlinked_path
 
     paths = [
         unlinked_path(path)

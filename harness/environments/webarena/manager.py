@@ -14,8 +14,8 @@ from webarena_verified.environments.container.config import get_container_config
 from webarena_verified.environments.container.manager import ContainerManager
 from webarena_verified.types.task import WebArenaSite
 
-from .backend import DockerBackend
-from .config import RuntimeConfig, SiteConfig, normalized_architecture
+from harness.environments.webarena.backend import DockerBackend
+from harness.environments.webarena.config import RuntimeConfig, SiteConfig, normalized_architecture
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
 

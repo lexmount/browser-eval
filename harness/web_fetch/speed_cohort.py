@@ -1,4 +1,5 @@
 """Build a bound same-window latency comparison from a complete headless subcohort."""
+
 import argparse
 import hashlib
 import json
@@ -9,9 +10,11 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from lexbench_webfetch.metrics import percentile, task_passed
+
 from harness.record_io import load_jsonl
 from harness.web_fetch.artifacts import materialize_task_references
-from lexbench_webfetch.metrics import percentile, task_passed
+from harness.web_fetch.config import derive_comparison
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 
@@ -203,7 +206,6 @@ def selection_main():
     except ValueError as error:
         parser.error(str(error))
     result=deepcopy(dataset);result['cases']=selected
-    from .config import derive_comparison
     result['comparison']=derive_comparison(dataset, {'kind':'headless_same_window_speed',
         'selection':'Provider-blind reference-length quantile sampling over ordinary web body tasks; at most one case per hostname',
         'planned_before_calls':True,'case_count':len(selected)})

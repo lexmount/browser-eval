@@ -3,15 +3,21 @@
 import argparse
 import hashlib
 import json
+from collections import Counter
+from copy import deepcopy
 from pathlib import Path
 
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from lexbench_webfetch.scoring import score_attempt
+
+from harness.record_io import load_jsonl
 from harness.web_fetch.artifacts import materialize_task_references
 from harness.web_fetch.config import (
+    add_failure_retry_argument,
     derive_comparison,
     load_dataset,
     load_provider_settings,
     load_runtime_env,
-    add_failure_retry_argument,
 )
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
@@ -20,8 +26,10 @@ from harness.web_fetch.providers.runtime_identity import (
     version_number,
 )
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
-from harness.web_fetch.runner import run_evaluation
-from lexbench_webfetch.paths import safe_identifier
+from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
+from harness.web_fetch.runner import load_list_reference, run_evaluation
+from harness.web_fetch.safety import unlinked_path, validate_report_ids
+from harness.web_fetch.storage import require_current_report_profile
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -301,17 +309,6 @@ def check_evidence(
     provenance_path=None,
     report_profile=None,
 ):
-    from collections import Counter
-    from copy import deepcopy
-
-    from harness.record_io import load_jsonl
-    from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
-    from harness.web_fetch.runner import load_list_reference
-    from lexbench_webfetch.paths import contained_path
-    from harness.web_fetch.safety import unlinked_path, validate_report_ids
-    from lexbench_webfetch.scoring import score_attempt
-    from harness.web_fetch.storage import require_current_report_profile
-
     root = unlinked_path(root)
     canonical_dataset = canonical_dataset or ROOT / "evaluation/dataset.json"
     provider_config = provider_config or ROOT / "configs/providers.headless.json"

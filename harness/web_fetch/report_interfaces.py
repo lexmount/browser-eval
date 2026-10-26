@@ -1,15 +1,28 @@
 """Interfaces actually used by the benchmark, not a claim to cover entire SDKs."""
+
 import json
 import re
-from types import SimpleNamespace
+from collections import Counter
 from html import escape
-from harness.numbers import positive_number
-from lexbench_webfetch.paths import contained_path
-from .methods import native_browser_engine, browser_method_label
-from .report_components import measurement_presentation, bilingual_text
-from .providers.headless import output_mode_for_case
+from types import SimpleNamespace
 
-from .methods import report_method, report_method_catalog, method_access, metadata_matches, method_page_model, browser_method_registry
+from lexbench_webfetch.paths import contained_path
+
+from harness.numbers import positive_number
+from harness.web_fetch import artifacts as evidence_artifacts
+from harness.web_fetch.methods import (
+ browser_method_label,
+ browser_method_registry,
+ metadata_matches,
+ method_access,
+ method_page_model,
+ native_browser_engine,
+ report_method,
+ report_method_catalog,
+)
+from harness.web_fetch.models import REPORT_FAMILIES, report_family
+from harness.web_fetch.providers.headless import output_mode_for_case
+from harness.web_fetch.report_components import bilingual_text, measurement_presentation
 
 # Views of the shared catalog; execution aliases inherit their engine's metadata.
 SPECS = {name: item['interface'] for name, item in report_method_catalog()['methods'].items()
@@ -61,7 +74,6 @@ def method_spec(name, record, *, timeout_seconds=None, language="zh"):
  return base
 
 
-
 def _observed_wait(meta, *, language="zh"):
  navigation=meta.get('navigation_wait_until')
  completion=meta.get('wait_until')
@@ -71,7 +83,6 @@ def _observed_wait(meta, *, language="zh"):
  if navigation:return messages['wait_navigation'].format(navigation=navigation)
  if completion:return messages['wait_completion'].format(completion=completion)
  return messages['wait_unrecorded']
-
 
 
 def _route_template(rule, metadata):
@@ -120,7 +131,6 @@ def _observed_route(engine, meta, *, language="zh", compact=False):
 
 def browser_task_interface_matrix(cases, providers, records=None, *, compact=False, language="zh"):
  """Describe task routes, preferring persisted call metadata when available."""
- from collections import Counter
  catalog=report_method_catalog(language)
  messages=catalog['messages']
  methods=catalog['methods']
@@ -130,7 +140,6 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
  routes={name:item.get('routes',{}) for name,item in methods.items()}
  capabilities={name:item.get('capabilities',messages['not_registered']) for name,item in routes.items()}
  tracks=[]
- from .models import REPORT_FAMILIES, report_family
  for case in cases.values():
   track=report_family(case)
   if track not in tracks:tracks.append(track)
@@ -203,7 +212,6 @@ def browser_task_interface_matrix(cases, providers, records=None, *, compact=Fal
 def render_interfaces(out,records):
  messages=report_method_catalog()['messages']
  english_messages=report_method_catalog('en')['messages']
- from .artifacts import record_public_call_log_bindings, verify_public_call_log
  dataset_path=out/"dataset.json"
  dataset=json.loads(dataset_path.read_text()) if dataset_path.is_file() else {}
  comparison=dataset.get("comparison",{})
@@ -223,11 +231,11 @@ def render_interfaces(out,records):
   r=min((r for r in records if r['provider']==name), key=lambda row: case_order.get(row['case_id'], len(case_order)), default=None)
   s=method_spec(name,r,timeout_seconds=comparison.get("timeout_seconds"))
   english=method_spec(name,r,timeout_seconds=comparison.get("timeout_seconds"),language="en")
-  bindings=record_public_call_log_bindings(r) if r else []
+  bindings=evidence_artifacts.record_public_call_log_bindings(r) if r else []
   if r and native_default and not bindings:
    raise ValueError("Measured native interface requires a saved call log: "+name)
   if bindings:
-   request=json.loads(verify_public_call_log(out,bindings[-1]).read_text())["request"]
+   request=json.loads(evidence_artifacts.verify_public_call_log(out,bindings[-1]).read_text())["request"]
    model=method_page_model(name,name,[x for x in records if x["provider"]==name])
    s={**s,"entry":model["endpoint"],"params":[],"request":request,"notes":messages['interface_request_note']}
    english_model=method_page_model(name,name,[x for x in records if x["provider"]==name],language="en")

@@ -1,9 +1,5 @@
 """Small bilingual Web Search report built from frozen calls, never invented scores."""
 
-from .messages import report_text
-
-from lexbench_websearch.inputs import definition_path, implementation_sources
-
 import argparse
 import copy
 import html
@@ -17,19 +13,67 @@ from statistics import median
 from urllib.parse import parse_qs, urlsplit
 
 from bs4 import BeautifulSoup
+from lexbench_websearch import answer_rules
+from lexbench_websearch.evidence_quality import CONTAMINATION_RULE, factual_sensitivity
+from lexbench_websearch.inputs import definition_path, implementation_sources
+from lexbench_websearch.relevance import score as score_relevance
+from lexbench_websearch.relevance import summary as relevance_summary
+from lexbench_websearch.scoring import (
+    canonical_url,
+    classify,
+    evaluate,
+    factual_evidence,
+    in_domain,
+)
 
 from harness.record_io import same_json_record
+from harness.report_languages import (
+    REPORT_PAGE_MARKER,
+    check_language_contract,
+    generated_languages,
+    resolve_report_language,
+    select_report_language,
+    write_language_contract,
+)
 from harness.reporting.presentation import check_presentation
-
-from .core import aggregate, digest, normalize_response, request_cost, request_body, validate_profile, verify_bundle, write_json
-from lexbench_websearch.scoring import canonical_url, classify, evaluate, in_domain
-from lexbench_websearch.evidence_quality import factual_sensitivity, CONTAMINATION_RULE
-from .diagnostics import error_evidence, operational
-from .runner import reference_available, reference_changes
-from .profiles import load_profile, _bound
-from harness.web_search.revisions import apply_identity_correction
-from .relevance import verify_provenance, verify_protocol
-from lexbench_websearch.relevance import score as score_relevance, summary as relevance_summary
+from harness.reporting.versions import FILENAME, bind_build_version, check_build_version
+from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
+from harness.web_search.comparison import render_comparison
+from harness.web_search.core import (
+    aggregate,
+    digest,
+    normalize_response,
+    request_body,
+    request_cost,
+    validate_profile,
+    verify_bundle,
+    write_json,
+)
+from harness.web_search.diagnostics import error_evidence, operational
+from harness.web_search.messages import report_text
+from harness.web_search.pages import reader_pages
+from harness.web_search.profiles import _bound, load_profile
+from harness.web_search.relevance import (
+    export_annotations,
+    import_annotations,
+    report_authority,
+    verify_protocol,
+    verify_provenance,
+)
+from harness.web_search.review import (
+    coverage_percent,
+    factual_quality_exclusions,
+    render_detail,
+    render_summary,
+    validate_public_review,
+)
+from harness.web_search.revisions import (
+    apply_identity_correction,
+    apply_report_revision,
+    collected_projection,
+    validate_revision_binding,
+)
+from harness.web_search.runner import reference_available, reference_changes
 
 STYLE = """
 .dataset-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;align-items:end;margin:20px 0}.dataset-controls label{display:grid;gap:5px}.dataset-controls select,.dataset-controls input{width:100%;min-width:0}
@@ -136,7 +180,6 @@ def _redact_url_userinfo(raw):
 
 def public_calls(profile, rows, source, sources):
     """Keep measured outcomes; redact URL credentials and audit billing corrections."""
-    from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
     rows = copy.deepcopy(rows)
     methods = {m["id"]: m for m in profile["methods"]}
     files, redactions, corrections = {}, [], []
@@ -380,7 +423,6 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
 
 
 def _language_notice(output, languages):
-    from harness.report_languages import write_language_contract
     if languages == ["zh"] and (output / "en").exists():
         for directory in sorted((output / "en").rglob("*"), key=lambda p: len(p.parts), reverse=True):
             if directory.is_dir() and not any(directory.iterdir()):
@@ -390,7 +432,6 @@ def _language_notice(output, languages):
 
 
 def _check_report_languages(output, manifest):
-    from harness.report_languages import check_language_contract, generated_languages
     check_language_contract(output)
     if list(generated_languages(output)) != manifest.get("languages"):
         raise ValueError("Report language metadata differs from the report manifest")
@@ -398,7 +439,6 @@ def _check_report_languages(output, manifest):
 
 def assessment_profile(profile, relevance, review):
     """Describe current assessment without rewriting historical collection metadata."""
-    from .review import factual_quality_exclusions
     protocol = dict(profile["protocol"])
     exclusions = sorted(set(profile.get("factual_quality_exclusions", [])) | set(factual_quality_exclusions(review)))
     if relevance:
@@ -464,8 +504,6 @@ def build(
         }
     assessment_revision = None
     if authored.get("assessment_revision"):
-        from harness.web_search.revisions import apply_report_revision
-        from harness.web_search.revisions import validate_revision_binding
         validate_revision_binding(authored["assessment_revision"], normalizer=normalize_response, authority=authority)
         profile, rows, changes = apply_report_revision(profile, rows, authored["assessment_revision"], artifacts=public_files, normalizer=normalize_response)
         assessment_revision = {"contract": authored["assessment_revision"], "changes": changes, "implementation_sha256": {name: digest(path.read_bytes()) for name, path in implementation_sources().items()}}
@@ -482,13 +520,11 @@ def build(
     relevance_data = json.loads(relevance.read_text()) if relevance else None
     review_percent = None
     if review is not None:
-        from .review import coverage_percent, validate_public_review
         validate_public_review(profile, selected, review_data, authority=authority, relevance=relevance_data)
         review_percent = coverage_percent(review_data)
         write_json(output / "independent-review.json", review_data)
     if relevance_data:
         if "plan" not in relevance_data:
-            from .relevance import import_annotations
             relevance_data = import_annotations(profile, selected, relevance_data)
         verify_provenance(profile, selected, relevance_data, authority=authority)
         verify_protocol(profile, relevance_data, authored.get("relevance_revision"), authority=authority)
@@ -558,7 +594,6 @@ def build(
         def t(en, cn, zh=zh):
             return cn if zh else en
 
-        from .pages import reader_pages
         page_registry = reader_pages(authored.get("presentation"), reviewed=bool(review_data))
         nav = [(p["route"], p[lang]) for p in page_registry if p["nav"]]
         if reading_sections and authored.get("presentation") != "comparison-report":
@@ -656,7 +691,6 @@ def build(
                         link['data-reviewed-outputs'] = f"{review_data['output_reviewed']}/{review_data['output_total']}"
                     footer.append(link)
                 document.main.append(footer)
-            from harness.report_languages import REPORT_PAGE_MARKER
             path.write_text(str(document).replace("</head>", REPORT_PAGE_MARKER + "</head>"))
             routes.append(prefix + route)
 
@@ -1045,7 +1079,6 @@ def build(
             if query_relevance:
                 reason_label = t("Useful results: ", report_text('text_7a4d7a014722e76c')) + str(query_relevance["useful"]) + f"/{cutoff}"
             if review_data:
-                from .review import render_detail
                 detail += render_detail(review_data, r["id"], zh)
             diagnosis = reason_label
             detail += "<p>" + diagnosis + "</p>"
@@ -1065,7 +1098,6 @@ def build(
             ]
             detail_metrics = r["metrics"]
             if "reference_answer" in c:
-                from lexbench_websearch.scoring import factual_evidence
                 detail_metrics = {**r["metrics"], **factual_evidence(c, r["results"], cutoff=cutoff)}
                 metric_labels += [
                     (f"labeled_source_hit_{cutoff}", t(f"Published source in top {cutoff}", f"{report_text('text_c5a8970d6255caf1')}{cutoff}{report_text('text_c8c82eb0cadfc2bb')}")),
@@ -1245,9 +1277,7 @@ def build(
         else:
             page("performance.html", t("Latency diagnostics", report_text('text_51464dd5dcb1bce3')), authored_sections(authored, "performance", lang, rows=selected) + performance_view(profile, diagnostics, zh, evidence_prefix="../" if prefix else ""))
         if review_data:
-            from .review import render_summary
             page("review.html", t("Independent result review", report_text('text_f51205d6074e15bf')), render_summary(review_data, zh) + authored_sections(authored, "review", lang, rows=selected))
-    from harness.reporting.versions import bind_build_version, FILENAME
     build_version = bind_build_version(output)
     bundle.append({"path": FILENAME, "sha256": build_version["sha256"]})
     write_json(
@@ -1293,24 +1323,19 @@ def build(
             renderer_sha256=digest(Path(__file__).read_bytes()),
         ),
     )
-    from harness.report_languages import select_report_language
     entry = select_report_language(output, language)
     check(output, evidence_only=True)
     return entry
 
 
 def check(output, *, return_data=False, evidence_only=False):
-    from .relevance import report_authority
     authority = report_authority(output)
     manifest = json.loads((output / "manifest.json").read_text())
     if not evidence_only:
-        from harness.reporting.versions import check_build_version
         check_build_version(output, manifest)
     if manifest.get("assessment_revision"):
-        from harness.web_search.revisions import validate_revision_binding
         validate_revision_binding(manifest["assessment_revision"]["contract"], normalizer=normalize_response, authority=authority)
     _check_report_languages(output, manifest)
-    from .pages import reader_pages
     top_routes = reader_pages((manifest.get("authored") or {}).get("presentation"), reviewed=bool(manifest.get("independent_review_sha256")))
     for lang in manifest["languages"]:
         prefix = "" if lang == "zh" else lang + "/"
@@ -1369,7 +1394,6 @@ def check(output, *, return_data=False, evidence_only=False):
                 raise ValueError("Result receipt disagrees with raw response")
             row["results"] = results
     if manifest.get("independent_review_sha256"):
-        from .review import coverage_percent, validate_public_review, render_detail, render_summary
         review_path = output / "independent-review.json"
         if digest(review_path.read_bytes()) != manifest["independent_review_sha256"]:
             raise ValueError("Independent review evidence hash mismatch")
@@ -1522,7 +1546,6 @@ def check(output, *, return_data=False, evidence_only=False):
         if changes != expected_changes:
             raise ValueError("Scoring revision provenance mismatch")
         if manifest.get("assessment_revision"):
-            from harness.web_search.revisions import apply_report_revision
             revised, _, _ = apply_report_revision(revised, [], manifest["assessment_revision"]["contract"], normalizer=normalize_response)
         revised, _ = project_comparison(revised, [], manifest.get("authored") or {})
         if manifest.get("report_assessment"):
@@ -1530,7 +1553,6 @@ def check(output, *, return_data=False, evidence_only=False):
         if revised != manifest["profile"]:
             raise ValueError("Scoring revision profile mismatch")
     elif manifest.get("assessment_revision"):
-        from harness.web_search.revisions import apply_report_revision, collected_projection
         revision = manifest["assessment_revision"]
         if revision["contract"].get("normalization"):
             artifacts = {r["evidence"]["path"]: (output / r["evidence"]["path"]).read_bytes() for r in manifest["rows"]}
@@ -1808,7 +1830,6 @@ def main(argv=None):
     if args.export_annotations:
         if args.source or args.cohort:
             parser.error("Annotation export consumes an existing report")
-        from .relevance import export_annotations
         profile, selected = check(args.output, return_data=True)
         print(export_annotations(profile, selected, args.export_annotations))
         return
@@ -1819,7 +1840,7 @@ def main(argv=None):
             release_check(args.output, args.release_check, publication_plan=args.publication_plan)
         else:
             check(args.output)
-        from .delivery import export, verify
+        from harness.web_search.delivery import export, verify
         export(args.output, args.export_delivery)
         verify(args.output, args.export_delivery)
         print(args.export_delivery)
@@ -1832,7 +1853,6 @@ def main(argv=None):
         check(args.output)
         print("Web Search report checks passed")
         return
-    from harness.report_languages import resolve_report_language
     language = resolve_report_language(args.output, args.language)
     print(
         build(
@@ -1865,11 +1885,11 @@ def release_check(output, visual_receipt, *, publication_plan=None):
         if not report_manifest.get("receipt", {}).get("certified"):
             raise ValueError("A formal release requires certified collection evidence")
         if publication_plan is not None:
-            from .publication import verify_plan
+            from harness.web_search.publication import verify_plan
             verify_plan(output, publication_plan.parent)
         else:
             raise ValueError("A measured release requires an explicit publication plan")
-    from .visual import verify
+    from harness.web_search.visual import verify
     return verify(output, visual_receipt)
 
 
@@ -2198,7 +2218,6 @@ def same_task(peers, profile, zh):
 
 def latency_rounds(profile, rows, zh):
     """Expose repeated-query and reported cache state without inferring cold starts."""
-    from collections import Counter
 
     def t(en, cn):
         return cn if zh else en
@@ -2686,7 +2705,6 @@ def relevance_panel(profile, scored, evidence, zh):
 
 
 def factual_panel(profile, selected, zh, *, compact=False):
-    from lexbench_websearch.scoring import factual_evidence
     cutoff = profile["protocol"]["top_k"]
     excluded = set(profile.get('factual_quality_exclusions', []))
     cases = {c['id']: c for c in profile['cases'] if 'reference_answer' in c and c['id'] not in excluded}
@@ -2764,8 +2782,7 @@ def factual_panel(profile, selected, zh, *, compact=False):
             'This includes returned summaries and bodies after the same explicit-mirror exclusion. Added means absent when disabled and present when enabled; lost is the reverse. Search results can change, so this is the overall option effect rather than a fixed-page body-only gain.'
         ) + '</p>' + table([report_text('text_e5d4c3fe74891d30'), report_text('text_4e114db7ef22ed94'), report_text('text_741c5d468d053162'), report_text('text_f24f7c9c6114f123'), report_text('text_0006d696d8e1ec28'), report_text('text_b3206f118ce9374b')] if zh else
             ['Enabled mode', 'Pairs', 'Disabled hits', 'Enabled hits', 'Added', 'Lost'], extra)
-    from lexbench_websearch.answer_rules import POLICY_NAME
-    if any(c.get('answer_match_rule') == POLICY_NAME for c in cases.values()):
+    if any(c.get('answer_match_rule') == answer_rules.POLICY_NAME for c in cases.values()):
         return body + '<p class="muted">' + (
             report_text('text_0f0231d2c5b6ab86')
             if zh else
@@ -3258,7 +3275,6 @@ def reference_retrieval_panel(profile, rows, case_ids, zh):
 
 
 def population_summary(profile, selected, content, zh, *, diagnostics=False, relevance_scores=None):
-    from lexbench_websearch.scoring import factual_evidence
     cutoff = profile["protocol"]["top_k"]
     lang = "zh" if zh else "en"
     independent = content.get("independent_benchmarks")
@@ -3382,7 +3398,6 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
 
 
 def render_result_comparison(profile, selected, zh, *, prefix="", site_prefix="", content=None, relevance=None):
-    from .comparison import render_comparison
     profile = dict(profile, comparison_populations=metric_populations(profile, content or {}))
     return render_comparison(profile, selected, zh, relevance=relevance, primary_factual_metric="source" if (content or {}).get("summary_metrics") == "retrieval" else "answer", detail_link=lambda row: posixpath.join(site_prefix, prefix, "details", row["id"] + ".html"))
 

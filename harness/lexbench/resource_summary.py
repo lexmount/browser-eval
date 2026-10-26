@@ -9,11 +9,11 @@ import math
 import statistics
 from pathlib import Path
 
-from harness.record_io import load_jsonl
-from harness.resource_calibration import duration_calibration
 from lexbench_webfetch.paths import contained_path
 
-from .resource_evidence import digest as sha256
+from harness.lexbench.resource_evidence import digest as sha256
+from harness.record_io import load_jsonl
+from harness.resource_calibration import duration_calibration
 
 
 def stats(values: list[float]) -> dict:

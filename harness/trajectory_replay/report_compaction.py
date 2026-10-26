@@ -12,6 +12,8 @@ import shutil
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from harness.reporting.visual import browser_executable, local_report_server
+
 SHARD_COUNT = 16
 
 
@@ -222,7 +224,6 @@ def check_compact_navigation(report: Path) -> None:
     """Exercise the exported query routes and evidence, in every saved language."""
     from playwright.sync_api import sync_playwright
 
-    from harness.reporting.visual import browser_executable, local_report_server
 
     manifest = json.loads((report / 'report-manifest.json').read_text())
     rows = json.loads((report / 'data/results.json').read_text())

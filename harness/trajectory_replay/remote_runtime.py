@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import re
+import time
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
@@ -1014,11 +1015,6 @@ def main_revise(argv=None) -> None:
 
 
 def main_prepared_reset(argv=None) -> None:
-    import os
-    import time
-
-    from harness.web_fetch.safety import unlinked_path, write_new_file
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--method-id", required=True)
     parser.add_argument("--app-id", required=True, type=int)

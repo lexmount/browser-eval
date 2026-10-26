@@ -7,6 +7,9 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from dotenv import dotenv_values
+
+
 class ReportLanguageError(ValueError):
     """Invalid report-language configuration, before evaluation starts."""
 
@@ -21,7 +24,6 @@ def configured_report_language(
     *, supported: tuple[str, ...] = SUPPORTED_REPORT_LANGUAGES
 ) -> str:
     """Return the environment-selected language, or the public English default."""
-    from dotenv import dotenv_values
 
     configured = os.environ.get(REPORT_LANGUAGE_ENV)
     if configured is None:

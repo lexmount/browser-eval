@@ -14,6 +14,8 @@ import json
 import re
 import socket
 import tempfile
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -22,12 +24,14 @@ from time import monotonic
 from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup
+from lexbench_webfetch.metrics import normalize_for_match
+from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
+from lexbench_webfetch.reference_quality import audit_reference, clean_reference_text
 
 from harness.web_fetch.document_text import extract_document_text
-from lexbench_webfetch.metrics import normalize_for_match
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import scope_identity
-from lexbench_webfetch.reference_quality import audit_reference, clean_reference_text
-from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
+from harness.web_fetch.safety import unlinked_path, write_new_file
 
 
 def extract_html(raw: bytes, url: str):
@@ -327,7 +331,6 @@ def collect(
         raise ValueError("workers must be positive")
     if output.exists() or output.is_symlink():
         raise ValueError("Capture output must be a new directory")
-    from .reference_inputs import read_dataset_bytes
     cases = json.loads(read_dataset_bytes(dataset))["cases"]
     ids = [safe_identifier(case["id"]) for case in cases]
     if not ids or len(set(ids)) != len(ids):
@@ -404,16 +407,6 @@ if __name__ == "__main__":
 
 
 def resource_links_main(argv=None) -> None:
-    import argparse
-    import json
-    import urllib.error
-    import urllib.request
-    from datetime import datetime, timezone
-    from pathlib import Path
-    from urllib.parse import urljoin
-    from harness.web_fetch.reference_inputs import read_dataset_bytes
-    from harness.web_fetch.safety import unlinked_path, write_new_file
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=Path, default=Path("evaluation/dataset.json"))
     parser.add_argument("--output", type=Path, required=True)

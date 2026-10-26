@@ -6,11 +6,15 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from harness.record_io import canonical_json_sha256
 
-from harness.web_fetch.reference_inputs import read_dataset_bytes
-from harness.web_fetch.retrieval_hints import historical_native_fetch_dataset, native_fetch_dataset
 from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.scoring_regressions import require_scoring_regressions
+
+from harness.record_io import canonical_json_sha256
+from harness.web_fetch.reference_inputs import read_dataset_bytes
+from harness.web_fetch.reference_lifecycle import homepage_prompt_anchor_correction
+from harness.web_fetch.retrieval_hints import historical_native_fetch_dataset, native_fetch_dataset
+from harness.web_fetch.safety import reject_evidence_symlinks
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -54,8 +58,6 @@ def _apply_case_corrections(
     definition: dict, selected: dict[str, dict], repository: Path
 ) -> list[str]:
     """Apply compact, hash-locked reference and scoring corrections to imported cases."""
-    from lexbench_webfetch.scoring_regressions import require_scoring_regressions
-    from harness.web_fetch.reference_lifecycle import homepage_prompt_anchor_correction
 
     declaration = definition.get("case_corrections")
     if declaration is None:
@@ -161,7 +163,6 @@ def assemble_profile_dataset(
         profile_path = contained_path(repository, declared_profile, reject_symlinks=True)
         reproduction_profile = str(declared_profile)
     else:
-        from .safety import reject_evidence_symlinks
         profile_path = (profile_path_override if profile_path_override.is_absolute()
                         else repository / profile_path_override)
         reject_evidence_symlinks(profile_path)

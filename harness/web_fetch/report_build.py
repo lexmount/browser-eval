@@ -1,16 +1,28 @@
 """Build the single current report from an explicit evidence directory."""
+
 import hashlib
 import json
 import shutil
 import tempfile
+from copy import deepcopy
 from pathlib import Path
 
-from harness.reporting.versions import record_build_version
+from lexbench_webfetch.composite_tasks import validate_composite_acceptance
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from lexbench_webfetch.reference_quality import bind_annotation_evidence
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 
 from harness.record_io import file_sha256, load_jsonl
-from harness.reporting.assets import copy_bound_assets
-
-from .artifacts import (
+from harness.report_languages import generated_languages, includes_english, select_report_language
+from harness.reporting.assets import copy_bound_assets, load_bound_content
+from harness.reporting.templates import resolve_template
+from harness.reporting.versions import bind_build_version, record_build_version
+from harness.web_fetch.adjudication_evidence import (
+    require_adjudication_evidence,
+    require_current_review_state,
+)
+from harness.web_fetch.artifacts import (
     copy_cohort_evidence,
     diagnostic_log_binding,
     materialize_reference_checks,
@@ -20,13 +32,31 @@ from .artifacts import (
     verify_record_private_artifacts,
     verify_record_public_call_logs,
 )
-from .failure_diagnosis import diagnose
-from .reference_lifecycle import require_verified_reference_checks
-from .reliability import assess_reliability
-from .report import (
+from harness.web_fetch.cohort_exclusions import require_cohort_exclusions
+from harness.web_fetch.failure_diagnosis import diagnose
+from harness.web_fetch.local_audit import require_local_audit
+from harness.web_fetch.local_revision import (
+    require_current_task_replacement,
+    require_local_task_replacement,
+    validate_revision_chain,
+)
+from harness.web_fetch.native_routes import verify_native_execution_manifests
+from harness.web_fetch.publication_privacy import (
+    read_evidence_binding,
+    require_host_metadata_projection,
+    require_public_evidence_view_inventory,
+)
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
+from harness.web_fetch.reference_lifecycle import (
+    require_certifiable_evidence,
+    require_verified_reference_checks,
+)
+from harness.web_fetch.reliability import assess_reliability
+from harness.web_fetch.report import (
     TRACKS,
     failure_category,
     generate,
+    generate_cohort_diagnostic,
     generate_public_benchmark_research,
     generate_wcxb,
     generate_webmainbench,
@@ -35,25 +65,47 @@ from .report import (
     succeeded,
     webmainbench_full_machine_issue,
 )
-from .report_changes import webmainbench_history
-from lexbench_webfetch.paths import contained_path, safe_identifier
-from harness.web_fetch.safety import reject_evidence_symlinks, validate_report_ids
-from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
-from .storage import data_home, require_selection_history
-from .wcxb_latency import load_full_paired_latency
-from .webmainbench_diagnostics import validate_teds_revision_if_present
-from .webmainbench_latency_correction import prior_results_path
-from .webmainbench_latency_diagnostic import load_diagnostic as load_latency_diagnostic
+from harness.web_fetch.report_changes import webmainbench_history
+from harness.web_fetch.report_diagnostic import (
+    check_diagnostic_report,
+    load_diagnostic,
+    prepare_diagnostic_evidence,
+)
+from harness.web_fetch.report_version import check_release
+from harness.web_fetch.resource_cohort import validate_cohort
+from harness.web_fetch.result_review import require_result_review
+from harness.web_fetch.risk_control import validate_risk_control_certification
+from harness.web_fetch.safety import (
+    copy_evidence_file,
+    evidence_tree_identity,
+    reject_evidence_symlinks,
+    unlinked_path,
+    validate_report_ids,
+)
+from harness.web_fetch.storage import data_home, require_selection_history
+from harness.web_fetch.wcxb_dataset import validate_manifest
+from harness.web_fetch.wcxb_latency import load_full_paired_latency
+from harness.web_fetch.wcxb_scoring import paired_latency_methods
+from harness.web_fetch.webmainbench_correction import validate as validate_case_correction
+from harness.web_fetch.webmainbench_diagnostics import (
+    validate_reference_revision,
+    validate_teds_revision,
+    validate_teds_revision_if_present,
+    validate_webmainbench_scoring_revision,
+)
+from harness.web_fetch.webmainbench_evidence import read_method_binding
+from harness.web_fetch.webmainbench_latency_correction import prior_results_path
+from harness.web_fetch.webmainbench_latency_diagnostic import (
+    load_diagnostic as load_latency_diagnostic,
+)
+from harness.web_fetch.webmainbench_runner import load_wcxb_source
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 
 
 def _validate_stable_annotation_evidence(case, source, dataset):
     """Validate anchors against their primary or registered qualification evidence."""
-    from copy import deepcopy
 
-    from .reference_inputs import input_tree, read_dataset_bytes
-    from lexbench_webfetch.reference_quality import bind_annotation_evidence
 
     checked = deepcopy(case)
     try:
@@ -94,20 +146,12 @@ def _validate_stable_annotation_evidence(case, source, dataset):
 
 def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | None = None) -> Path:
     """Build an explicitly requested diagnostic edition using the WebFetch owner."""
-    from harness.reporting.templates import resolve_template
 
-    from .report import generate_cohort_diagnostic
-    from .report_diagnostic import (
-        check_diagnostic_report,
-        load_diagnostic,
-        prepare_diagnostic_evidence,
-    )
 
     if profile is not None:
         configuration = json.loads(profile.read_text())
         binding = configuration.get('diagnostic_input')
         if binding:
-            from .storage import data_home
             selected = source or contained_path(data_home(), binding['path'])
             if (not selected.is_file() or selected.is_symlink()
                     or file_sha256(selected) != binding['sha256']):
@@ -154,7 +198,6 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
 
 def require_risk_control_certification(source: Path, dataset: dict, records: list[dict]) -> None:
     """Validate the complete profile-bound risk-control cohort before reporting."""
-    from .risk_control import validate_risk_control_certification
 
     comparison = dataset.get("comparison", {})
     if comparison.get("kind") != "risk_control_100_moli":
@@ -189,11 +232,9 @@ def copy_methodology_assets(output, assets=None):
             shutil.copy2(source, target)
 
 
-
 def build_public_benchmark_research(source: Path, output: Path, *, include_english: bool = False,
                                 language: str | None = None) -> Path:
     """Build the research-only companion without measured evidence."""
-    from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
     marker = '.generated-report'
@@ -257,8 +298,6 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
                                include_english, language, authored_interpretation,
                                show_local_status_banners, profile_path=None):
     """Render a bound historical report using saved scores and public evidence."""
-    from harness.report_languages import select_report_language
-    from .safety import evidence_tree_identity, copy_evidence_file
     if source in output.parents:
         raise ValueError("Frozen presentation output must be outside its source tree")
     before = evidence_tree_identity(source)
@@ -296,7 +335,7 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
                 if relative in before:
                     metadata["public_" + kind + "_path"] = relative
                     metadata["public_" + kind + "_sha256"] = before[relative]
-        from .report_version import bind_release
+        from harness.web_fetch.report_version import bind_release
         release_binding = bind_release(source, staging, dataset, records, profile=profile_path)
         if release_binding:
             manifest['benchmark_release'] = release_binding
@@ -319,14 +358,11 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
 
 def write_frozen_presentation_manifest(output, manifest, *, show_local_status_banners=True, authored_interpretation=False):
     """Refresh renderer metadata while retaining the frozen measurement bindings."""
-    from harness.report_languages import generated_languages
-    from harness.reporting.templates import resolve_template
     current = dict(manifest)
     binding_path = output / 'presentation-binding.json'
     if binding_path.is_file():
         binding = json.loads(binding_path.read_text())
         if binding.get('offline_revision'):
-            from .publication_privacy import read_evidence_binding
             authority = json.loads(read_evidence_binding(output, binding['offline_revision']).read_text())
             if authority.get('kind') == 'current_local_snapshot_authority':
                 if authority.get('schema_version') != 1:
@@ -339,7 +375,6 @@ def write_frozen_presentation_manifest(output, manifest, *, show_local_status_ba
     current.update(template=resolve_template('webfetch'), languages=languages, generated_languages=languages,
                    presentation={"show_local_status_banners": show_local_status_banners,
                                  "frozen_scores": True, "authored_interpretation": authored_interpretation})
-    from harness.reporting.versions import bind_build_version
     current['browser_eval'] = bind_build_version(output)
     (output / "report-manifest.json").write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n")
 
@@ -377,7 +412,6 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                  diagnostic_preview: bool = False, language: str | None = None,
                  show_local_status_banners: bool = True,
                  presentation_binding: Path | None = None, profile_path: Path | None = None) -> Path:
-    from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
@@ -396,7 +430,6 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     diagnostic_preview = (diagnostic_preview and
         dataset_probe.get('comparison', {}).get('kind') == 'web_fetch_diagnostic')
     if not local_audit and not diagnostic_preview:
-        from .reference_lifecycle import require_certifiable_evidence
         require_certifiable_evidence(dataset_probe)
     if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
         return build_webmainbench_report(source, output, include_english=include_english,
@@ -410,9 +443,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     validate_report_ids(dataset,records)
     require_risk_control_certification(source, dataset, records)
     cases = {c['id']:c for c in dataset['cases']}
-    from .result_review import require_result_review
     if local_audit:
-        from .local_audit import require_local_audit
         result_review = require_local_audit(source, dataset, records)
     else:
         result_review = require_result_review(source, dataset, records)
@@ -441,7 +472,6 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 raise ValueError('Speed cohort output integrity failure: '+row['attempt_id'])
     resource_root=source/'resource-cohort'
     if resource_root.exists():
-        from .resource_cohort import validate_cohort
         resource_dataset, resource_records, resource_batches = validate_cohort(resource_root)
     for c in cases.values():
         annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
@@ -462,14 +492,12 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 f'Stale scoring implementation; rescore before reporting: {r["attempt_id"]}')
         contract = cases[r['case_id']].get('acceptance_contract')
         if contract:
-            from lexbench_webfetch.stable_tasks import validate_acceptance_contract
             validate_acceptance_contract(contract)
             expected = hashlib.sha256(json.dumps(contract, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
             if r['metrics'].get('acceptance_contract_sha256') != expected:
                 raise ValueError(f'Acceptance contract hash missing or mismatched: {r["attempt_id"]}')
         composite = cases[r['case_id']].get('composite_acceptance')
         if composite:
-            from lexbench_webfetch.composite_tasks import validate_composite_acceptance
             validate_composite_acceptance(composite)
             expected = hashlib.sha256(json.dumps(
                 composite, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
@@ -495,7 +523,6 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
     manifests = json.loads(execution.read_text())['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text())]
-    from .native_routes import verify_native_execution_manifests
     verify_native_execution_manifests(source, manifests, dataset, records)
     if not local_audit and not diagnostic_preview:
         require_verified_reference_checks(manifests, cases=dataset, records=records, source=source,
@@ -543,9 +570,9 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             if local_audit:
                 meta["public_log_note"] = dataset.get("comparison", {}).get("call_chain_audit", {}).get("call_log_notes", {}).get(r["attempt_id"], "")
             if local_audit and meta.get("diagnostic_log_path"):
-                from .runner import _public_text
+                from harness.web_fetch.runner import _public_text
                 diagnostic_source = contained_path(source, meta["diagnostic_log_path"])
-                from .report import runtime_log_text
+                from harness.web_fetch.report import runtime_log_text
                 raw_log = runtime_log_text(diagnostic_source.read_text(encoding="utf-8", errors="replace"))
                 safe_log = _public_text(raw_log, limit=len(raw_log)) or ""
                 public_log = "logs/" + r["attempt_id"] + ".debug.txt"
@@ -555,7 +582,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 meta["public_debug_log_path"] = public_log
                 meta["public_debug_log_sha256"] = file_sha256(destination)
             if local_audit and meta.get("raw_response_path"):
-                from .runner import _public_text
+                from harness.web_fetch.runner import _public_text
                 response_source = contained_path(source, meta["raw_response_path"])
                 response_text = response_source.read_text(encoding="utf-8", errors="replace")
                 public_response = "logs/" + r["attempt_id"] + ".response.txt"
@@ -581,7 +608,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 shutil.copy2(log_source, log_target)
                 verify_public_call_log(staging, binding)
             text=raw.read_text(encoding='utf-8',errors='replace')
-            from .title_quality import add_title_quality
+            from harness.web_fetch.title_quality import add_title_quality
             add_title_quality(r, cases[r['case_id']], source)
             saved_diagnosis = r.get('diagnosis')
             if local_audit and (saved_diagnosis or {}).get('classification_revision') == 'failure-classification-v2':
@@ -631,7 +658,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if (source / 'certification.json').is_file():
             shutil.copy2(source / 'certification.json', staging / 'certification.json')
             if dataset.get('comparison', {}).get('kind') == 'risk_control_100_moli':
-                from .risk_control import risk_control_verification_binding
+                from harness.web_fetch.risk_control import risk_control_verification_binding
                 receipt = json.loads((source / 'certification.json').read_text())
                 verification_name, _ = risk_control_verification_binding(receipt)
                 for name in ('dataset.json', 'manifest.json', 'execution.json', verification_name):
@@ -741,8 +768,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if dataset.get("comparison", {}).get("kind") == "uniform_native_local_measurement":
             shutil.copy2(source / "local-run-contract.json", staging / "local-run-contract.json")
             if (source/"providers.json").is_file():
-                from .report import NATIVE_OPTION_LABELS
-                from .publication_privacy import require_public_method_options
+                from harness.web_fetch.publication_privacy import require_public_method_options
+                from harness.web_fetch.report import NATIVE_OPTION_LABELS
                 config_bytes = contained_path(source, 'providers.json', reject_symlinks=True).read_bytes()
                 config_hash = hashlib.sha256(config_bytes).hexdigest()
                 contract = json.loads((source / 'local-run-contract.json').read_text())
@@ -771,7 +798,6 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                     'scope_description_en': 'Only explicitly configured public options for this report are shown; omitted parameters do not mean disabled. The original configuration remains private; this public copy contains only allowed fields.'}
                 (staging / 'frozen-method-options.json').write_text(
                     json.dumps(options, ensure_ascii=False, indent=2) + '\n')
-            from harness.reporting.templates import resolve_template
             (staging / "report-manifest.json").write_text(json.dumps({
                 "schema_version": 1, "template": resolve_template("webfetch"),
                 "evidence_state": "local_measurement", "certified": False,
@@ -780,16 +806,15 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 "results_sha256": file_sha256(source / "results.jsonl"),
                 "presentation": {"show_local_status_banners": show_local_status_banners},
             }, ensure_ascii=False, indent=2))
-        from .report_reading import copy_archived_reading
+        from harness.web_fetch.report_reading import copy_archived_reading
         copy_archived_reading(source,staging)
-        from .report_version import bind_release
+        from harness.web_fetch.report_version import bind_release
         release_binding = bind_release(source, staging, dataset, records, profile=profile_path)
         generate(staging,dataset,records,manifests,include_english=include_english,
                  authored_interpretation=authored_interpretation,
                  show_local_status_banners=show_local_status_banners)
         if language is not None:
             select_report_language(staging, language)
-        from harness.reporting.templates import resolve_template
         from harness.report_languages import generated_languages
         template_manifest = {'schema_version': 1, 'template': None if diagnostic_preview else resolve_template('webfetch'),
             'dataset_sha256': file_sha256(staging/'dataset.json'),
@@ -887,9 +912,7 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
 def build_webmainbench_report(source: Path, output: Path, *, include_english: bool = False,
                                 language: str | None = None, profile_path: Path | None = None) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
-    from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
-    from harness.reporting.assets import copy_bound_assets, load_bound_content
 
     authority = Path(__file__).resolve().parents[2]
     if profile_path is None:
@@ -1026,11 +1049,6 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
     """Build the separately bound complete 545-case report from certified evidence."""
     from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
 
-    from .webmainbench_diagnostics import (
-        validate_reference_revision,
-        validate_teds_revision,
-        validate_webmainbench_scoring_revision,
-    )
     if source.is_symlink() or any(path.is_symlink() for path in source.rglob('*')):
         raise ValueError('Symlinked report evidence is forbidden')
     if authority_root is None:
@@ -1054,7 +1072,6 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
     repo = authority_root
     registry_path = repo / 'evaluation/webmainbench-full/moli-variants.json'
     registry = json.loads(registry_path.read_text(encoding='utf-8'))
-    from .webmainbench_evidence import read_method_binding
     binding_name, method_binding = read_method_binding(source)
     teds_path = source / 'teds-correction.json'
     teds_receipt = json.loads(teds_path.read_text(encoding='utf-8')) if teds_path.is_file() else None
@@ -1115,7 +1132,6 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
     content_binding_path = authority_root / 'evaluation/webmainbench-full/content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
-    from harness.reporting.assets import load_bound_content
     load_bound_content(data_home() / 'report-assets/webmainbench-full', content_binding)
     failure_binding_path = authority_root / 'evaluation/webmainbench-full/failure-analysis-binding.json'
     failure_binding = json.loads(failure_binding_path.read_text(encoding='utf-8'))
@@ -1127,7 +1143,6 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
     correction_root = None
     corrected_keys = set()
     if correction_binding_path.exists():
-        from .webmainbench_correction import validate as validate_case_correction
         correction_binding = json.loads(correction_binding_path.read_text())
         correction_root = data_home() / correction_binding['relative_path']
         if digest(correction_root / 'certificate.json') != correction_binding['sha256']:
@@ -1191,7 +1206,7 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json', staging / 'provider-adoption.json')
         summaries = json.loads((source / 'score-summaries.json').read_text(encoding='utf-8'))
         if correction_root:
-            from .webmainbench_correction import apply as apply_case_correction
+            from harness.web_fetch.webmainbench_correction import apply as apply_case_correction
             raw_records = read_jsonl(source / 'original-results.jsonl')
             records, summaries = apply_case_correction(
                 correction_root, staging, records, summaries,
@@ -1249,10 +1264,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                       *, content_binding: dict, authority_root: Path,
                       include_english: bool = False, language: str | None = None) -> Path:
     """Build the one current report from a fully certified WCXB matrix."""
-    from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
-    from harness.web_fetch.wcxb_dataset import validate_manifest
-    from harness.web_fetch.webmainbench_runner import load_wcxb_source
     source, output = source.resolve(), output.resolve()
     providers = profile['providers']
     if not providers or len(set(providers)) != len(providers):
@@ -1264,7 +1276,6 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     if comparison and (baseline == candidate_id or {baseline,candidate_id} - set(providers)):
         raise ValueError('WCXB paired comparison must name two registered participants')
 
-    from harness.reporting.assets import load_bound_content
     report_content = load_bound_content(
         source / "report-assets", content_binding,
         evidence_root=source, authority_root=authority_root)
@@ -1293,7 +1304,6 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         raise ValueError('WCXB official evaluator differs from the certified profile')
     if [x['provider'] for x in certificate['providers']] != providers:
         raise ValueError('WCXB participant registry differs from the certificate')
-    from harness.web_fetch.wcxb_scoring import paired_latency_methods
     paired_methods = paired_latency_methods(profile, certificate) if profile.get('latency_correction_receipt_sha256') else {}
     rows = load_jsonl(source / 'wcxb-scores.jsonl', skip_blank=True)
     case_ids = {r['track_id'] for r in records}
@@ -1469,7 +1479,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         (staging / '.generated-report').write_text('generated\n')
         if language is not None:
             select_report_language(staging, language)
-        from .wcxb_publication import write_inventory
+        from harness.web_fetch.wcxb_publication import write_inventory
         record_build_version(staging)
         write_inventory(staging, profile)
         if output.exists():
@@ -1494,8 +1504,6 @@ def validate_local_presentation(output: Path, binding_path: Path):
     This is a presentation update of an existing hash-bound diagnostic snapshot,
     not a fresh build or certification. All measured files remain untouched.
     """
-    from lexbench_webfetch.paths import contained_path
-    from harness.report_languages import generated_languages
     output = output.resolve()
     binding = json.loads(binding_path.read_text())
     manifest_path = contained_path(output, 'report-manifest.json')
@@ -1517,28 +1525,21 @@ def validate_local_presentation(output: Path, binding_path: Path):
         if file_sha256(path) != item['sha256']:
             raise ValueError('Presentation evidence binding changed: ' + item['path'])
     if binding.get('publication_projection'):
-        from .publication_privacy import require_host_metadata_projection
         require_host_metadata_projection(output, binding['publication_projection'])
     dataset = json.loads((output / 'dataset.json').read_text())
     records = load_jsonl(contained_path(output, 'results.jsonl'))
-    from .report_version import check_release
     check_release(output, dataset, records)
     if binding.get('publication_evidence_views'):
-        from .publication_privacy import require_public_evidence_view_inventory
         require_public_evidence_view_inventory(output, binding['publication_evidence_views'], records)
-    from .native_routes import verify_native_execution_manifests
     execution = output/'execution.json'
     if execution.is_file():
         verify_native_execution_manifests(output, json.loads(execution.read_text())['batches'], dataset, records)
     scoring_sources = {row['attempt_id']: binding.get('measured_scoring_source_sha256') for row in records}
     if binding.get('offline_revision'):
-        from .local_revision import validate_revision_chain
-        from .publication_privacy import read_evidence_binding
         scoring_sources, input_dataset, input_results = validate_revision_chain(
             output, binding['offline_revision'], dataset, records)
         revision_authority = json.loads(read_evidence_binding(output, binding['offline_revision']).read_text())
         if revision_authority.get('kind') == 'current_local_snapshot_authority':
-            from .local_revision import require_current_task_replacement
             if (revision_authority.get('schema_version') != 1
                     or input_dataset is not None or input_results is not None
                     or binding.get('task_replacement')):
@@ -1552,12 +1553,10 @@ def validate_local_presentation(output: Path, binding_path: Path):
             if input_dataset is None or input_results is None:
                 raise ValueError('Historical presentation revision has no input snapshot')
             if binding.get('task_replacement'):
-                from .local_revision import require_local_task_replacement
                 previous_dataset = json.loads(read_evidence_binding(output, input_dataset).read_text())
                 previous_records = load_jsonl(read_evidence_binding(output, input_results))
                 require_local_task_replacement(output, binding['task_replacement'], previous_dataset, previous_records)
     elif binding.get('task_replacement'):
-        from .local_revision import require_local_task_replacement
         scoring_sources = require_local_task_replacement(output, binding['task_replacement'], dataset, records)
     if (len(records) != binding.get('result_count')
             or len(dataset['cases']) != binding.get('case_count')
@@ -1568,14 +1567,12 @@ def validate_local_presentation(output: Path, binding_path: Path):
         raise ValueError("Presentation snapshot must not contain symlinks")
     validate_report_ids(dataset, records)
     reliability = assess_reliability(dataset, records)
-    from .cohort_exclusions import require_cohort_exclusions
     excluded = require_cohort_exclusions(output, dataset, records)
     if (not reliability['complete'] and
             (any(reliability[key] for key in ('missing', 'extra', 'duplicates'))
              or any(item['case_id'] not in excluded for item in reliability['unjudged']))):
         raise ValueError('Presentation refresh requires the complete declared matrix')
     for row in records:
-        from .publication_privacy import read_evidence_binding
         try:
             read_evidence_binding(output, {'path': row['artifact_path'],
                                            'sha256': row['metrics']['content_sha256']})
@@ -1593,7 +1590,6 @@ def _review_refresh_changes(output, binding, dataset, records):
     baseline = binding.get('review_refresh_baseline')
     if baseline is None:
         return set(), set()
-    from .publication_privacy import read_evidence_binding
     before_dataset = json.loads(read_evidence_binding(output, baseline['dataset']).read_text())
     before_records = load_jsonl(read_evidence_binding(output, baseline['results']))
     old_cases = {case['id']: case for case in before_dataset['cases']}
@@ -1627,7 +1623,6 @@ def _current_template_refresh(output, binding, manifest):
     revision = binding.get('offline_revision')
     if not revision:
         return False
-    from .publication_privacy import read_evidence_binding
     authority = json.loads(read_evidence_binding(output, revision).read_text())
     return (authority.get('kind') == 'current_local_snapshot_authority'
             and authority.get('schema_version') == 1)
@@ -1635,7 +1630,6 @@ def _current_template_refresh(output, binding, manifest):
 
 def refresh_local_presentation(output: Path, binding_path: Path, *, review_only: bool = False) -> Path:
     """Install explanatory routes and, on request, bound fresh review details."""
-    from .safety import unlinked_path, evidence_tree_identity, copy_evidence_file
     output = unlinked_path(output)
     before_tree = evidence_tree_identity(output)
     binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
@@ -1644,7 +1638,6 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
     revised_attempt_ids = set()
     refresh_all_current_pages = False
     if review_only:
-        from .adjudication_evidence import require_adjudication_evidence, require_current_review_state
         review_path = contained_path(output, 'result-review.json', reject_symlinks=True)
         if not any(item.get('path') == 'result-review.json'
                    and item.get('sha256') == file_sha256(review_path)

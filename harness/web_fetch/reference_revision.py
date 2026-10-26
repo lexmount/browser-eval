@@ -13,7 +13,12 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
-from harness.record_io import parse_jsonl
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.scoring_regressions import ROOT_CAUSE_CATEGORIES, build_correction_provenance
+
+from harness.record_io import load_jsonl, parse_jsonl
+from harness.web_fetch.artifacts import verify_record_artifacts
+from harness.web_fetch.native_routes import native_cases_by_id
 from harness.web_fetch.reference_inputs import (
     input_tree,
     read_dataset_bytes,
@@ -26,9 +31,12 @@ from harness.web_fetch.reference_lifecycle import (
 )
 from harness.web_fetch.rescoring import rescore
 from harness.web_fetch.result_review import archive_superseded_result_review
-from harness.web_fetch.safety import commit_staged_evidence, evidence_tree_identity, reject_evidence_symlinks, validate_report_ids
-from lexbench_webfetch.paths import contained_path
-from lexbench_webfetch.scoring_regressions import ROOT_CAUSE_CATEGORIES, build_correction_provenance
+from harness.web_fetch.safety import (
+    commit_staged_evidence,
+    evidence_tree_identity,
+    reject_evidence_symlinks,
+    validate_report_ids,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -299,8 +307,6 @@ def revise(
     fields: set[str] | None = None,
 ) -> dict:
     """Publish a complete reference correction, or preserve the original bundle."""
-    from harness.record_io import load_jsonl
-    from harness.web_fetch.artifacts import verify_record_artifacts
 
     reject_evidence_symlinks(source)
     source = source.resolve()
@@ -319,7 +325,6 @@ def revise(
                 or (rows and not validator(source))
             ):
                 raise ValueError("Invalid or unbound revision history: " + name)
-    from .native_routes import native_cases_by_id
     native_cases = native_cases_by_id(source)
     for record in load_jsonl(source / "results.jsonl"):
         verify_record_artifacts(source, record, native_cases=native_cases)

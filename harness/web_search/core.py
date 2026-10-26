@@ -4,9 +4,6 @@ Anchor hits measure a declared known-page set, never exhaustive web recall.
 Unjudged URLs are not irrelevant documents. Provider scores are not judgments.
 """
 
-from lexbench_websearch.contracts import validate_cases
-from lexbench_websearch.scoring import canonical_url
-
 import hashlib
 import json
 import re
@@ -15,6 +12,11 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 from lexbench_webfetch.metrics import percentile
+from lexbench_websearch.contracts import validate_cases
+from lexbench_websearch.scoring import canonical_url, normalize_results
+
+from harness.reporting.publication import atomic_write
+from harness.web_search.adapters import BILLING_POLICIES, Adapter, adapter_for, normalize_envelope
 
 
 def digest(data):
@@ -23,19 +25,15 @@ def digest(data):
 
 def request_cost(method, status, transport_exit, payload):
     """Billing follows the provider response, not local URL acceptance."""
-    from .adapters import Adapter, adapter_for
     adapter = adapter_for(method["adapter"]) if method.get("adapter") else Adapter(None)
     return adapter.cost(method, status, transport_exit, payload)
 
 
 def request_body(adapter, case, protocol, options=None):
-    from .adapters import adapter_for
     return adapter_for(adapter).request(case, protocol, options)
 
 
 def normalize(payload, adapter=None, top_k=None, *, base_url=None, project_slots=False):
-    from .adapters import normalize_envelope
-    from lexbench_websearch.scoring import normalize_results
     payload = normalize_envelope(payload, adapter, top_k=top_k, project_slots=project_slots)
     if isinstance(payload, dict) and isinstance(payload.get("results"), list):
         pages = payload["results"][:top_k] if project_slots and top_k is not None else payload["results"]
@@ -132,7 +130,6 @@ def validate_profile(profile):
     query_limit = 4096 if protocol.get("preserve_publisher_queries") else 128
     for method in methods:
         canonical_url(method["endpoint"])
-        from .adapters import adapter_for, BILLING_POLICIES
         adapter_for(method["adapter"])
         if method.get("billing", "unknown") not in BILLING_POLICIES:
             raise ValueError("Unsupported billing policy")
@@ -166,5 +163,4 @@ def verify_bundle(root, bindings):
 
 
 def write_json(path, value):
-    from harness.reporting.publication import atomic_write
     atomic_write(Path(path), (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode())

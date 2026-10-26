@@ -36,7 +36,7 @@ naming-check: runtime-check
 
 .PHONY: lint-check
 lint-check: runtime-check
-	$(TEST_PY) -m ruff check --config 'include=["*.py"]' --select F .
+	$(TEST_PY) -m ruff check --config 'include=["*.py"]' --select F,TID252 .
 	$(TEST_PY) -m ruff check
 
 test-python: runtime-check

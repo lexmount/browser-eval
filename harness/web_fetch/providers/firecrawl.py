@@ -7,12 +7,13 @@ import math
 from urllib.parse import urlsplit
 
 from lexbench_webfetch.models import EvalCase
+
 from harness.web_fetch.models import ProviderResult
-from ..retrieval_hints import plan_for_case, native_default_case
-from ..native_projection import native_answer_projection
-from .base import Provider
-from ..native_routes import NativeRoute
-from .http_client import request
+from harness.web_fetch.native_projection import native_answer_projection
+from harness.web_fetch.native_routes import NativeRoute
+from harness.web_fetch.providers.base import Provider
+from harness.web_fetch.providers.http_client import request
+from harness.web_fetch.retrieval_hints import native_default_case, plan_for_case
 
 
 class FirecrawlProvider(Provider):

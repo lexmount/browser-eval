@@ -1,7 +1,6 @@
 """One parser for the public, answer-free dynamic retrieval contract."""
 
 from __future__ import annotations
-from lexbench_webfetch.inputs import definition_path
 
 import hashlib
 import json
@@ -11,8 +10,13 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
 from types import MappingProxyType
+from typing import Any
+
+from lexbench_webfetch.inputs import definition_path
+from lexbench_webfetch.stable_tasks import validate_acceptance_contract
+
+from harness.web_fetch.reference_inputs import input_tree
 
 # Compare against this immutable declaration; store a fresh dict in each case.
 NATIVE_RETRIEVAL_HINTS = MappingProxyType({'version': 3, 'mode': 'native'})
@@ -76,7 +80,6 @@ def task_definition_sha256(case: Mapping[str, Any]) -> str:
 
 @lru_cache(maxsize=1)
 def _verified_source_tree() -> Path:
-    from .reference_inputs import input_tree
     return input_tree(
         definition_path("evaluation/source-inputs.json").parent / "dataset.json", "sources"
     )
@@ -555,7 +558,6 @@ def native_default_case(case: Any) -> bool:
     contract = get("acceptance_contract")
     if not contract:
         return False
-    from lexbench_webfetch.stable_tasks import validate_acceptance_contract
     validate_acceptance_contract(contract)
     return True
 

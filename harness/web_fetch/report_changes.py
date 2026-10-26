@@ -1,8 +1,11 @@
 """Compact public release history: conclusions and audit evidence, not work logs."""
+
 import json
 import shutil
 from collections import defaultdict
 from pathlib import Path
+
+from harness.web_fetch.storage import research_evidence_dir
 
 ROOT=Path(__file__).resolve().parents[2]
 HEADLESS_HISTORY_START='2026-09-04-five-browser-fastest-markdown'
@@ -124,7 +127,7 @@ def webmainbench_history(data):
 
 def render_localized_release_history(data, english, evidence_links=(), *, kind='webmainbench_frozen_html_to_markdown'):
     """Render reader-facing release history without embedding release prose in report.py."""
-    from .report import hero, section, table, cell, esc, link
+    from harness.web_fetch.report import cell, esc, hero, link, section, table
     releases = localized_release_history(data, kind)
     latest, *older = releases
     def localized(row, key):
@@ -162,8 +165,7 @@ def render_webmainbench_history(data, english, evidence_links=()):
 
 
 def render_changes(out, cases, records, dataset=None):
-    from .report import hero, section, table, cell, esc, link, write
-    from .storage import research_evidence_dir
+    from harness.web_fetch.report import cell, esc, hero, link, section, table, write
     evidence_root=research_evidence_dir()
     selection=out/'file-rerun-selection.json'
     rerun_sources=[]

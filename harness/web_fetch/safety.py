@@ -1,10 +1,14 @@
 """Validation at filesystem and URL boundaries shared by runners and reports."""
+
+import ctypes
 import hashlib
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit
+
 from lexbench_webfetch.paths import safe_identifier, validate_http_url
 
 
@@ -121,10 +125,8 @@ def copy_evidence_file(source, destination):
     Never hard-link frozen inputs: writing a generated copy must not alter its
     source. Unsupported filesystems/platforms retain ordinary copy semantics.
     """
-    import shutil
     source, destination = unlinked_path(Path(source)), unlinked_path(Path(destination))
     if sys.platform == 'darwin':
-        import ctypes
         try:
             clone = ctypes.CDLL(None, use_errno=True).clonefile
         except (AttributeError, OSError):

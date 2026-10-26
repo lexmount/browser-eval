@@ -5,12 +5,20 @@ ordered byte blocks and returns byte-exact locations for their existing loaders.
 """
 from __future__ import annotations
 
+import base64
 import gzip
 import hashlib
 import json
+import mmap
+import sys
 import tempfile
+from array import array
+from bisect import bisect_right
+from collections import OrderedDict
 from collections.abc import Iterable
 from pathlib import Path
+
+from fastcdc import fastcdc
 
 
 class ByteBlockStore:
@@ -102,16 +110,12 @@ def write_packs(
     return catalog, index
 
 
-
 def write_compact_packs(entries, destination, *, architecture=None, pack_limit=16*1024*1024):
     """Content-defined deduplication with a compact, hash-bound file catalog.
 
     File hashes remain authoritative. Catalog IDs address immutable byte ranges;
     they do not duplicate millions of individual block hashes in the browser.
     """
-    from array import array
-    from fastcdc import fastcdc
-    import sys
 
     destination.mkdir(parents=True, exist_ok=True)
     ids, files, packs, starts = {}, {}, [], []
@@ -192,7 +196,6 @@ class _CompactParts:
 
 class _CompactBlocks:
     def __init__(self, sizes, packs, starts):
-        from array import array
         self.sizes, self.packs, self.starts = sizes, packs, starts
         self.offsets = array('I')
         offset, pack = 0, 0
@@ -211,7 +214,6 @@ class _CompactBlocks:
         return len(self.sizes)
 
     def __getitem__(self, key):
-        from bisect import bisect_right
         if type(key) is not int or not 0 <= key < len(self):
             raise KeyError(key)
         pack = bisect_right(self.starts, key)-1
@@ -228,8 +230,6 @@ class _CompactBlocks:
 
 def read_packed_manifest(read):
     """Normalize both maintained wire encodings without expanding the catalog."""
-    from array import array
-    import sys
     manifest = json.loads(read('manifest.json'))
     if manifest.get('schema_version') == 2:
         return manifest
@@ -276,7 +276,6 @@ def read_packed_manifest(read):
 
 
 def reconstruct_packed_file(manifest,name,pack):
-    import base64
     entry = manifest['files'][name]
     if 'inline_base64' in entry:
         raw = base64.b64decode(entry['inline_base64'],validate=True)
@@ -302,7 +301,6 @@ class DecompressedPackCache:
     the selected byte range immediately, rather than retain mapped views.
     """
     def __init__(self, read, *, max_maps=16):
-        from collections import OrderedDict
         if max_maps < 1:
             raise ValueError('Mapped pack cache must have a positive capacity')
         self.read, self.max_maps = read, max_maps
@@ -313,7 +311,6 @@ class DecompressedPackCache:
         return self
 
     def __call__(self, name):
-        import mmap
         if name in self.maps:
             self.maps.move_to_end(name)
             return self.maps[name]

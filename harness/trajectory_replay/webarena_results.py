@@ -8,15 +8,17 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .remote_runtime import (
+from harness.trajectory_replay.remote_runtime import (
     COHORT_RESET_SCOPE,
     checked_file_sha256,
     input_digest,
     selected_task_ids,
     validate_remote_cohort_reset_receipt,
 )
-from .webarena_plan import load_replay_plan
-from .webarena_replay import RECEIPT_SCHEMA, validate_qualification_dataset
+from harness.trajectory_replay.retrieval_acceptance import verify_attempt
+from harness.trajectory_replay.webarena_plan import load_replay_plan
+from harness.trajectory_replay.webarena_replay import RECEIPT_SCHEMA, validate_qualification_dataset
+from harness.web_fetch.safety import unlinked_path, write_new_file
 
 EFFECTIVE_SCHEMA = "lex_webarena_trajectory_replay_effective_suite/1"
 
@@ -157,7 +159,6 @@ def build_effective_results(
     if stale:
         raise ValueError(f"effective replay matrix contains stale trajectories: {stale}")
 
-    from .retrieval_acceptance import verify_attempt
 
     seed_candidates = {
         int(task["task_id"]): next(
@@ -624,12 +625,6 @@ def main_aggregate(argv: list[str] | None = None) -> None:
 
 
 def main_merge(argv=None) -> None:
-    import argparse
-    import json
-    from pathlib import Path
-
-    from harness.web_fetch.safety import unlinked_path, write_new_file
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile",
                         required=True)

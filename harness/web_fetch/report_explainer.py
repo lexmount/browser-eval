@@ -1,4 +1,5 @@
 """Bound report interpretations and a population-driven default summary."""
+
 import base64
 import hashlib
 import json
@@ -6,20 +7,32 @@ import re
 import statistics
 from collections import Counter
 from html import escape
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from harness.record_io import canonical_json_sha256
-
-from .report_resources import render_resource_comparison
-from .report_components import bilingual_text
-from lexbench_webfetch.metrics import task_passed, percentile
-from .methods import with_measured_method_labels
-from .report_style import STYLE
+from bs4 import BeautifulSoup
+from lexbench_webfetch.metrics import percentile, task_passed
 from lexbench_webfetch.paths import contained_path
 
-
-from .models import REPORT_FAMILIES as BROWSER_FAMILY_NAMES, report_family
+from harness.record_io import canonical_json_sha256
+from harness.web_fetch.artifacts import record_public_call_log_bindings, verify_public_call_log
+from harness.web_fetch.methods import (
+    browser_method_label,
+    method_versions,
+    native_browser_engine,
+    with_measured_method_labels,
+)
+from harness.web_fetch.models import REPORT_FAMILIES as BROWSER_FAMILY_NAMES
+from harness.web_fetch.models import report_family
+from harness.web_fetch.report_components import (
+    bilingual_text,
+    comparable_body_reference,
+    task_instruction,
+)
+from harness.web_fetch.report_interfaces import browser_task_interface_matrix, method_provenance
+from harness.web_fetch.report_resources import render_resource_comparison
+from harness.web_fetch.report_style import STYLE
 
 
 def _mean(values):
@@ -177,7 +190,6 @@ def load_browser_failure_review(out, cases, records, content):
 
 def browser_example_evidence(out, case, row, *, focus=None, reference_focus=None):
     """Project saved scoring evidence for a compact example; never rescore outputs."""
-    from .report_components import task_instruction
     m = row['metrics']
     def text(value):
         if isinstance(value, str): return value
@@ -321,7 +333,6 @@ def current_browser_article_model(out, cases, records, binding):
                 'p95': percentile(times, .95) if times else None}
     tracks = [track for track in BROWSER_FAMILY_NAMES if any(report_family(c) == track for c in cases.values())]
     failure_review = load_browser_failure_review(out, cases, records, content)
-    from .report_components import comparable_body_reference
     quality_cases=[cid for cid,case in cases.items() if report_family(case)=='web' and comparable_body_reference(case)]
     figures = content.get('figures', [])
     if not isinstance(figures, list):
@@ -341,8 +352,6 @@ def current_browser_article_model(out, cases, records, binding):
         examples.append({'row': row, 'explanation': item['explanation'],
                          'evidence': browser_example_evidence(out,cases[row['case_id']],row,focus=item.get('focus'),reference_focus=item.get('reference_focus'))})
     stats = {}
-    from .report_interfaces import method_provenance
-    from .methods import method_versions
 
     provenance = method_provenance(out)
     for name in providers:
@@ -386,8 +395,6 @@ def current_browser_article_model(out, cases, records, binding):
 
 def _offline_browser_article(body, out, cases, model):
     """Embed specimen evidence; an independent download needs no report host."""
-    from bs4 import BeautifulSoup
-    from .artifacts import record_public_call_log_bindings, verify_public_call_log
     document = BeautifulSoup(body, 'html.parser')
     for script in document.select('script'):
         script.decompose()
@@ -411,7 +418,7 @@ def _offline_browser_article(body, out, cases, model):
         for binding in record_public_call_log_bindings(row):
             snapshot = json.loads((out/'dataset.json').read_text()).get('comparison',{}).get('score_audit') if (out/'dataset.json').is_file() else None
             if snapshot:
-                from .published_snapshot import read_snapshot_public_file
+                from harness.web_fetch.published_snapshot import read_snapshot_public_file
                 log = read_snapshot_public_file(out,binding).read_text()
             else:
                 log = verify_public_call_log(out,binding).read_text()
@@ -455,7 +462,6 @@ def _offline_browser_article(body, out, cases, model):
 
 def _browser_network_rows(records, providers):
     """Summarize recorded DNS routes without filling missing metadata."""
-    from .methods import browser_method_label, native_browser_engine
     rows=[]
     for provider in providers:
         label=browser_method_label(provider)
@@ -529,7 +535,6 @@ def _browser_reviewed_error(out, model, row):
 def _render_current_browser_article(out, cases, records, binding):
     model = current_browser_article_model(out, cases, records, binding)
     content, names, stats = model['content'], model['providers'], model['stats']
-    from .methods import browser_method_label, native_browser_engine
     engine_count = len({native_browser_engine(name) or name for name in names})
     def label(name):
         return bilingual_text(browser_method_label(name) if browser_method_label(name) != name else name.title(),
@@ -565,7 +570,6 @@ def _render_current_browser_article(out, cases, records, binding):
         rate = group['passed']/group['n']
         values = [stats[n]['tracks'][track]['passed']/stats[n]['tracks'][track]['n'] for n in names]
         return f"{group['passed']}/{group['n']}<br>" + metric(name,'family_'+track,rate,values,True)
-    from .report_interfaces import browser_task_interface_matrix
     interfaces = browser_task_interface_matrix(cases, names, records, compact=True)
     english_interfaces = browser_task_interface_matrix(cases, names, records, compact=True, language='en')
     english_routes = {(name,row['track']):row['cells'][name] for row in english_interfaces['rows'] for name in names}
@@ -684,7 +688,6 @@ def _render_current_browser_article(out, cases, records, binding):
                     ('<p>独立核验范围与修订见<a href="../review/index.html">核验记录</a>。逐题原因与原始证据可从结果分析打开。</p>' if review else
                      '<p>独立结果审查：0/'+str(model['results'])+'。未经独立复判的程序通过结果：'+str(sum(stats[n]['passed'] for n in names))+'。本轮报告使用统一评分器的原始验收结果。</p>'), 'conclusions')
     # Reuse the reference article's reading components with current measured data.
-    from bs4 import BeautifulSoup
     article = BeautifulSoup(body, 'html.parser')
     parts = {node['id']:node for node in article.select('article > section[id]')}
     reading = BeautifulSoup('<article class="m-article publication-article browser-interpretation" data-browser-interpretation="1" aria-labelledby="article-title"></article>', 'html.parser')
@@ -840,7 +843,7 @@ def _render_current_browser_article(out, cases, records, binding):
                 'stats':{n:{k:v for k,v in stats[n].items() if k not in {'specimen','failure_reviews'}} for n in names}}
     guide = contained_path(out,'guide');guide.mkdir(parents=True,exist_ok=True)
     (guide/'interpretation-evidence.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
-    from .report import EXTRA
+    from harness.web_fetch.report import EXTRA
     standalone = _offline_browser_article(body,out,cases,model)
     (guide/'article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escape(content['title'])+'</title><style>'+STYLE+EXTRA+'</style></head><body>'+standalone+'</body></html>')
     return body+'<aside class="wrap"><a href="article.html" download>下载独立 HTML</a> · <a href="interpretation-evidence.json">本文计算明细</a></aside>'
@@ -849,10 +852,7 @@ def _render_current_browser_article(out, cases, records, binding):
 @with_measured_method_labels
 def check_current_browser_article(out, cases, records, binding):
     """Verify numerical populations, unique highlights and complete drilldowns."""
-    from html.parser import HTMLParser
-    from urllib.parse import urlsplit
     model = current_browser_article_model(out, cases, records, binding)
-    from .report_interfaces import browser_task_interface_matrix
     interfaces = browser_task_interface_matrix(cases, model['providers'], records, compact=True)
     expected_interfaces = {(name,row['track']):[(part['mode'],part['count'],str(part['count'])+' 题：'+part['description']) for part in row['cells'][name]]
                            for row in interfaces['rows'] for name in model['providers']}
@@ -905,7 +905,6 @@ def check_current_browser_article(out, cases, records, binding):
     for relative in ('guide/index.html','guide/article.html'):
         page=contained_path(out,relative)
         inspect=Inspect();inspect.feed(page.read_text())
-        from bs4 import BeautifulSoup
         document = BeautifulSoup(page.read_text(), 'html.parser')
         chapter_ids = [node.get('id') for node in document.select('.reading-chapter')]
         if chapter_ids != ['reading-'+key for key in ('scope','results','method','configuration','failures','conclusion')]:
@@ -1088,7 +1087,6 @@ def check_current_browser_article(out, cases, records, binding):
             if link!=expected_link or (not link.startswith('#') and not (page.parent/urlsplit(link).path).is_file()):
                 raise ValueError('Browser result evidence target is broken')
         if relative.endswith('article.html'):
-            from bs4 import BeautifulSoup
             offline = BeautifulSoup(page.read_text(),'html.parser')
             if offline.select('script,link[rel="stylesheet"]'):
                 raise ValueError('Independent article requires external runtime')
@@ -1109,7 +1107,6 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
         content_binding = json.loads(dataset_path.read_text()).get('comparison', {}).get('report_interpretation')
     if authored and content_binding is not None:
         return _render_current_browser_article(out, cases, records, content_binding)
-    from .report_components import bilingual_text
     passes = sum(task_passed(row['ok'], row['metrics'],
                  cases[row['case_id']].get('task_kind', 'body')) for row in records)
     return ('<section class="wrap"><h1>'

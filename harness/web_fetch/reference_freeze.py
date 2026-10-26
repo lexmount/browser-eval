@@ -1,4 +1,5 @@
 """Freeze independent references; require explicit promotion for scope changes."""
+
 import argparse
 import hashlib
 import json
@@ -11,29 +12,39 @@ from datetime import datetime, timezone
 from pathlib import Path, PureWindowsPath
 from urllib.parse import parse_qs, urlsplit
 
-from harness.record_io import canonical_json_sha256, read_completed_records
-from harness.web_fetch.artifacts import materialize_task_references
-from harness.web_fetch.render_evidence import content_requirement_errors
 from lexbench_webfetch.body_coverage import body_requirements
 from lexbench_webfetch.metrics import normalize_for_match
-from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes, require_mutable_inputs
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.reference_quality import clean_reference_text, reference_anchor_in_text
+from lexbench_webfetch.scoring_regressions import (
+    ROOT_CAUSE_CATEGORIES,
+    build_correction_provenance,
+    valid_correction_provenance,
+)
+
+from harness.record_io import canonical_json_sha256, read_completed_records
+from harness.web_fetch.artifacts import materialize_task_references
+from harness.web_fetch.reference_inputs import (
+    input_tree,
+    read_dataset_bytes,
+    require_mutable_inputs,
+)
 from harness.web_fetch.reference_lifecycle import (
+    _completion,
+    check_case_reference_binding,
     completed_case_records,
+    legacy_reference_cases,
+    legacy_reference_dataset,
     load_capture_observation,
+    matches_scope_identity,
     reference_cases,
     requires_browser_observation,
     requires_fresh_reference,
     scope_identity,
-    matches_scope_identity,
-    check_case_reference_binding,
-    legacy_reference_dataset,
-    legacy_reference_cases,
     timestamp,
     validate_postcheck_observation,
 )
-from lexbench_webfetch.reference_quality import clean_reference_text, reference_anchor_in_text
-from lexbench_webfetch.scoring_regressions import ROOT_CAUSE_CATEGORIES, build_correction_provenance, valid_correction_provenance
-from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.render_evidence import content_requirement_errors
 from harness.web_fetch.source_capture import capture
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -173,7 +184,6 @@ def load_browser_observations(dataset, path=None, directory=None):
 
 def compute_reference_update(dataset, captures, observations=None, *, refresh_case_ids=()):
     """Compute the one authoritative frozen dataset/change set from captures."""
-    from harness.web_fetch.reference_lifecycle import _completion
 
     frozen=deepcopy(dataset);observations=observations or {}
     audit_rows=json.loads((captures/'audit.json').read_text())

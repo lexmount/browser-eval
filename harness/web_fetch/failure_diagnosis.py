@@ -1,5 +1,9 @@
 """Evidence-based failure stage, preserving uncertainty about remote internals."""
-import json,re
+
+import json
+import re
+
+from lexbench_webfetch.metrics import task_measured
 
 
 def _platform_capability_restricted(message):
@@ -53,7 +57,6 @@ def _stable_failure(metrics):
 
 
 def diagnose(r,c,raw):
-    from lexbench_webfetch.metrics import task_measured
     if not task_measured(r['metrics'], c.get('task_kind')):
         return None
     try:payload=json.loads(raw)

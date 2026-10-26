@@ -11,6 +11,10 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
+from lexbench_webfetch.paths import contained_path
+
+from harness.web_fetch.safety import unlinked_path
+
 PILOT_SCHEMA = "lex_webarena_verified_pilot/1"
 ALLOWED_SITES = frozenset({"shopping", "shopping_admin", "reddit", "gitlab"})
 TIER_COUNTS = {"easy": 15, "medium": 30, "hard": 45}
@@ -331,9 +335,7 @@ def report_selection_path(
     profile: dict, explicit: Path | None = None, *, authority_root: Path | None = None
 ) -> Path:
     """Use the same frozen selection in report construction and packaging."""
-    from lexbench_webfetch.paths import contained_path
 
-    from harness.web_fetch.safety import unlinked_path
     binding = profile.get("task_selection") or {}
     value = explicit or binding.get("path") or "evaluation/browser-use/webarena-verified-pilot.json"
     path = Path(value)

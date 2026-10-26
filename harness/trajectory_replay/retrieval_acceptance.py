@@ -1069,7 +1069,7 @@ def verify_attempt(
     evaluation = loaded["evaluation"]
     if evaluation.get("task_id") != attempt["task_id"]:
         raise ValueError("official evaluator task differs from retrieval attempt")
-    from .webarena_dataset import _validate_evaluation_provenance
+    from harness.trajectory_replay.webarena_dataset import _validate_evaluation_provenance
 
     _validate_evaluation_provenance(evaluation, attempt, expected_data_checksum)
     accepted = (

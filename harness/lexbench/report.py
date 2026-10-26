@@ -11,17 +11,19 @@ import re
 import shutil
 import statistics
 
-ROOT = pathlib.Path(os.environ.get("BROWSER_EVAL_DATA_HOME", pathlib.Path.home() / ".browser-eval"))
+from lexbench_webfetch.paths import contained_path, safe_identifier
+
+from harness.lexbench import charts, reproduction
+from harness.lexbench.charts import combine_comparisons, render_chart
+from harness.lexbench.resource_evidence import load_matrix
+from harness.lexbench.resource_summary import summarize as summarize_linux_profiles
+from harness.lexbench.resource_summary import validate_summary as validate_linux_summary
 from harness.record_io import load_jsonl
 from harness.report_languages import english_notice, generated_languages, write_language_contract
 from harness.resource_calibration import duration_calibration
-from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from . import charts, reproduction
-from .charts import combine_comparisons, render_chart
-from .resource_evidence import load_matrix
-from .resource_summary import summarize as summarize_linux_profiles
-from .resource_summary import validate_summary as validate_linux_summary
+ROOT = pathlib.Path(os.environ.get("BROWSER_EVAL_DATA_HOME", pathlib.Path.home() / ".browser-eval"))
+
 
 REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
 

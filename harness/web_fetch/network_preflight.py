@@ -1,8 +1,11 @@
 """Reject non-public DNS addresses before a public local/remote comparison spends calls."""
+
 import ipaddress
 import socket
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
+
+from harness.web_fetch import network_dns
 
 GUARDED_NATIVE_TYPES = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin", "langchain_webbase", "moli_webfetch", "crawl4ai"}
 
@@ -67,7 +70,6 @@ def require_usable_public_dns(audit, *, allow_partial_resolution_failures=False)
 
 def preflight_guarded_providers(providers, cases):
     """Require one declared DNS environment for every local comparison method."""
-    from .network_dns import lookup_public_dns, validate_dns_mode
     native = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin", "langchain_webbase", "moli_webfetch", "crawl4ai"}
     selected = [
         provider for provider in providers
@@ -91,7 +93,7 @@ def preflight_guarded_providers(providers, cases):
         selected = [provider for provider in selected if provider not in isolated]
     if not selected:
         return None
-    modes = {validate_dns_mode(provider.config.get("dns_mode", "system")) for provider in selected}
+    modes = {network_dns.validate_dns_mode(provider.config.get("dns_mode", "system")) for provider in selected}
     if len(modes) != 1:
         raise ValueError("Selected local methods must declare the same dns_mode")
     mode = modes.pop()
@@ -101,7 +103,7 @@ def preflight_guarded_providers(providers, cases):
         def resolve(host, port, **kwargs):
             return [(socket.AF_INET if family == 4 else socket.AF_INET6,
                      socket.SOCK_STREAM, 6, '', (address, port))
-                    for address, family in lookup_public_dns(host, timeout=45)]
+                    for address, family in network_dns.lookup_public_dns(host, timeout=45)]
         audit = inspect_system_dns([case.url for case in cases], resolver=resolve)
     audit["dns_mode"] = mode
     audit["unresolved_hosts"] = [

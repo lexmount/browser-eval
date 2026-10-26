@@ -10,13 +10,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from lexbench_webfetch.paths import contained_path
+
 from harness.web_fetch.artifacts import diagnostic_log_binding
 from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
-from harness.web_fetch.reference_inputs import read_dataset_bytes, benchmark_input_path
+from harness.web_fetch.reference_inputs import benchmark_input_path, read_dataset_bytes
 from harness.web_fetch.retrieval_hints import plan_for_case
 from harness.web_fetch.storage import data_home
-
-from lexbench_webfetch.paths import contained_path
 
 
 def _digest(path: Path) -> str:
@@ -348,6 +348,8 @@ def validate(profile_path: Path) -> tuple[dict, dict, list, object, Path]:
     provider_name = profile["provider"]["name"]
     if list(config) != [provider_name]:
         raise ValueError("Risk-control provider configuration must contain one Moli method")
+
+    # Certificate validation does not load the provider execution stack.
     from harness.web_fetch.providers import build_provider
 
     provider = build_provider(provider_name, config[provider_name])
@@ -419,6 +421,7 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     execution = profile["execution"]
     proof_before = frozen_risk_control_input_snapshot(profile_path)
     pre_identity = implementation_identity(provider)
+
     from harness.web_fetch.runner import run_evaluation
 
     records, _ = run_evaluation(

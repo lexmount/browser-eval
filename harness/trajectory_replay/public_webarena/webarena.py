@@ -21,7 +21,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from .suite import TRAJECTORY_SCHEMA
+from harness.trajectory_replay.public_webarena.suite import TRAJECTORY_SCHEMA
+from harness.web_fetch.safety import unlinked_path, write_new_file
 
 HUMAN_TRAJECTORY_FOLDER_ID = "1NrN_sawtYK2V_uHnmmS8ugmGIKUAsPgt"
 HUMAN_TRAJECTORY_FOLDER_URL = "https://drive.google.com/drive/folders/" + HUMAN_TRAJECTORY_FOLDER_ID
@@ -633,7 +634,6 @@ def main_audit_traces(argv=None) -> None:
     parser.add_argument("--trace-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
-    from harness.web_fetch.safety import unlinked_path, write_new_file
 
     output = unlinked_path(args.output)
     if output.exists():
@@ -715,12 +715,6 @@ def main_audit_traces(argv=None) -> None:
 
 
 def main_catalog(argv=None) -> None:
-    import argparse
-    import json
-    from pathlib import Path
-
-    from harness.web_fetch.safety import unlinked_path, write_new_file
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--folder-html", type=Path, required=True)
     parser.add_argument("--webarena-dataset", type=Path, required=True)

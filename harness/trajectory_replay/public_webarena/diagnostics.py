@@ -24,11 +24,14 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
+from harness.environments import browser as browser_runtime
+from harness.environments.webarena import har as browser_har
 from harness.environments.webarena.config import SITE_TOKENS
 from harness.record_io import parse_jsonl
 from harness.trajectory_replay.diagnostics import (
@@ -37,10 +40,12 @@ from harness.trajectory_replay.diagnostics import (
     diagnostic_output_path,
     write_diagnostic,
 )
+from harness.trajectory_replay.public_webarena.qualification import (
+    build_probe,
+    task_contract_sha256,
+)
+from harness.trajectory_replay.public_webarena.suite import SUPPORTED_ACTIONS, load_suite
 from harness.web_fetch.safety import unlinked_path
-
-from .qualification import build_probe, task_contract_sha256
-from .suite import SUPPORTED_ACTIONS, load_suite
 
 
 def classify_failure(error: str, trace: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1294,17 +1299,6 @@ def site_urls(config: dict[str, Any], sites: tuple[str, ...]) -> dict[str, str]:
 
 
 def runtime_smoke_main(argv=None) -> None:
-    from harness.environments.browser import (
-        ENGINE_PORTS,
-        cleanup_browser_runtime,
-        configured_browser_images,
-        published_endpoint,
-        start_browser_container,
-        validate_resource_controls,
-        wait_cdp,
-    )
-    from harness.web_fetch.safety import unlinked_path
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -1314,7 +1308,7 @@ def runtime_smoke_main(argv=None) -> None:
         action="store_true",
         help="authenticate with credentials_env before starting diagnostic HAR capture",
     )
-    parser.add_argument("--engine", action="append", choices=tuple(ENGINE_PORTS))
+    parser.add_argument("--engine", action="append", choices=tuple(browser_runtime.ENGINE_PORTS))
     parser.add_argument("--cpus", type=float, default=None)
     args = parser.parse_args(argv)
     config_path = unlinked_path(args.config)
@@ -1327,21 +1321,18 @@ def runtime_smoke_main(argv=None) -> None:
     urls = site_urls(config, sites)
     if args.cpus is not None and (not math.isfinite(args.cpus) or args.cpus <= 0):
         raise ValueError("--cpus must be finite and positive")
-    from types import SimpleNamespace
 
     import docker
     from playwright.sync_api import sync_playwright
 
-    from harness.environments.webarena.har import CdpHarRecorder
-
-    from .webarena_environment import WebArenaEnvironment
+    from harness.trajectory_replay.public_webarena.webarena_environment import WebArenaEnvironment
 
     output.mkdir(parents=True)
     client = docker.from_env()
     if args.cpus is not None:
         if args.cpus <= 0:
             raise ValueError("--cpus must be positive")
-        validate_resource_controls(client.info())
+        browser_runtime.validate_resource_controls(client.info())
     receipt: dict[str, Any] = {
         "schema": "lex_webarena_runtime_smoke/1",
         "diagnostic_only": True,
@@ -1353,8 +1344,8 @@ def runtime_smoke_main(argv=None) -> None:
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "engines": {},
     }
-    images = configured_browser_images()
-    for engine in tuple(dict.fromkeys(args.engine or ENGINE_PORTS)):
+    images = browser_runtime.configured_browser_images()
+    for engine in tuple(dict.fromkeys(args.engine or browser_runtime.ENGINE_PORTS)):
         client.images.get(images[engine])
         run_id = f"runtime-smoke-{uuid.uuid4().hex[:10]}"
         network = client.networks.create(
@@ -1367,9 +1358,9 @@ def runtime_smoke_main(argv=None) -> None:
         playwright = None
         try:
             playwright = sync_playwright().start()
-            container = start_browser_container(
+            container = browser_runtime.start_browser_container(
                 client,
-                image=images[engine], cdp_port=ENGINE_PORTS[engine],
+                image=images[engine], cdp_port=browser_runtime.ENGINE_PORTS[engine],
                 engine=engine,
                 run_id=run_id,
                 cpus=args.cpus,
@@ -1378,11 +1369,11 @@ def runtime_smoke_main(argv=None) -> None:
             )
             containers[engine] = container
             container.reload()
-            endpoint = published_endpoint(
-                container, engine=engine, cdp_port=ENGINE_PORTS[engine]
+            endpoint = browser_runtime.published_endpoint(
+                container, engine=engine, cdp_port=browser_runtime.ENGINE_PORTS[engine]
             )
             browser = playwright.chromium.connect_over_cdp(
-                wait_cdp(endpoint, timeout_seconds=30, container=container)
+                browser_runtime.wait_cdp(endpoint, timeout_seconds=30, container=container)
             )
             browsers[engine] = browser
             page = browser.contexts[0].pages[0]
@@ -1399,7 +1390,7 @@ def runtime_smoke_main(argv=None) -> None:
                     ),
                     page,
                 )
-            recorder = CdpHarRecorder(page)
+            recorder = browser_har.CdpHarRecorder(page)
             pages = []
             for site, url in urls.items():
                 response = page.goto(url, wait_until="domcontentloaded", timeout=60_000)
@@ -1423,7 +1414,9 @@ def runtime_smoke_main(argv=None) -> None:
                 "har": {**har, "sha256": _sha256(har_path)},
             }
         finally:
-            cleanup_browser_runtime(browsers, playwright, containers, {engine: network})
+            browser_runtime.cleanup_browser_runtime(
+                browsers, playwright, containers, {engine: network}
+            )
     if config_path.read_bytes() != frozen_config:
         raise ValueError("Runtime configuration changed during smoke")
     (output / "receipt.json").write_text(

@@ -10,8 +10,8 @@ from contextlib import nullcontext
 from typing import Any
 from urllib.parse import urlsplit
 
-from .suite import validate_selector
-from .targets import locator_for
+from harness.trajectory_replay.public_webarena.suite import validate_selector
+from harness.trajectory_replay.public_webarena.targets import locator_for
 
 TABLE_COLUMN_EXPRESSION = r"""(table, options) => {
   const normalize = value => (value || '').replace(/\s+/g, ' ').trim();

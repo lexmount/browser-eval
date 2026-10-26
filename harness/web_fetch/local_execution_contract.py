@@ -1,12 +1,25 @@
 """Verify frozen local execution inputs and physical calls, independently of review."""
+
 import hashlib
 import json
+import math
+from datetime import datetime
 from pathlib import Path
 from types import MappingProxyType
+from urllib.parse import urlsplit
+
+from lexbench_webfetch.paths import contained_path
 
 from harness.record_io import canonical_json_sha256
-from lexbench_webfetch.paths import contained_path
-from .reference_inputs import read_dataset_bytes
+from harness.web_fetch.artifacts import (
+    record_public_call_log_bindings,
+    verify_record_public_call_logs,
+)
+from harness.web_fetch.native_projection import native_field_value
+from harness.web_fetch.network_dns import validate_dns_mode
+from harness.web_fetch.network_preflight import GUARDED_NATIVE_TYPES, require_usable_public_dns
+from harness.web_fetch.publication_privacy import read_evidence_binding
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[2]
 # Frozen schema-1 semantics, not defaults for a future multi-round protocol.
@@ -64,8 +77,6 @@ def _require_local_record_correction(source, original, corrected, receipt=None):
     if changed - {"final_url"}:
         raise ValueError("Local correction changed measured call facts")
     if "final_url" in changed:
-        from .native_projection import native_field_value
-        from .publication_privacy import read_evidence_binding
         proof = receipt.get("field_projections", {}).get(identifier, {}).get("final_url", {})
         if not proof.get('path') or not proof.get('sha256'):
             raise ValueError('Local URL correction lost its native response')
@@ -140,7 +151,6 @@ def local_measurement_cases(contract: dict, source=None) -> list[dict]:
 
 
 def _local_timeout_seconds(contract):
-    import math
     value = contract.get('timeout_seconds')
     if (isinstance(value, bool) or not isinstance(value, (int, float))
             or not math.isfinite(value) or value <= 0):
@@ -150,8 +160,6 @@ def _local_timeout_seconds(contract):
 
 def require_local_execution_contract(source, dataset, records, contract, execution):
     """Shared physical-call boundary for complete cohorts and task replacements."""
-    from .artifacts import verify_record_public_call_logs, record_public_call_log_bindings
-    from datetime import datetime
     timeout = _local_timeout_seconds(contract)
     # This mode binds one authoritative physical call per method/task. Multiple
     # rounds and retries require the certified cohort's separate lineage model.
@@ -178,7 +186,7 @@ def require_local_execution_contract(source, dataset, records, contract, executi
             _require_local_method_bindings(contract, execution["batches"], field)
         for batch in execution["batches"]:
             _require_local_batch_segments(batch)
-    from .local_execution_legacy import require_execution_lineage
+    from harness.web_fetch.local_execution_legacy import require_execution_lineage
     require_execution_lineage(
         source, contract, execution["batches"], records,
         cases=canonical["cases"], timeout_seconds=timeout,
@@ -230,8 +238,6 @@ def require_local_execution_contract(source, dataset, records, contract, executi
 
 def _require_local_runner_inputs(source, contract, execution, records):
     """Verify retained runner inputs and source observations, without certifying them."""
-    from datetime import datetime
-    from .publication_privacy import read_evidence_binding
     inputs = contract['runner_inputs']
     def read(key):
         return json.loads(read_evidence_binding(source, inputs[key]).read_text())
@@ -246,9 +252,7 @@ def _require_local_runner_inputs(source, contract, execution, records):
     dns_mode = _require_bound_dns_mode(configuration, contract['providers'], network)
     if network.get('usable_for_guarded_local_comparison') is not True:
         raise ValueError('Local runner lacks usable public DNS evidence')
-    from .network_preflight import GUARDED_NATIVE_TYPES, require_usable_public_dns
     require_usable_public_dns(network)
-    from urllib.parse import urlsplit
     method_types = {name: configuration['providers'][name].get('method_type',
                     configuration['providers'][name]['type']) for name in contract['providers']}
     if any(value in GUARDED_NATIVE_TYPES for value in method_types.values()):
@@ -300,8 +304,6 @@ def _require_local_runner_inputs(source, contract, execution, records):
 
 def _require_bound_dns_mode(configuration, providers, network):
     """Match observed DNS to guarded adapters' frozen configuration."""
-    from .network_dns import validate_dns_mode
-    from .network_preflight import GUARDED_NATIVE_TYPES
     observed = validate_dns_mode(network.get('dns_mode'))
     modes = {
         validate_dns_mode(config.get('dns_mode', 'system'))

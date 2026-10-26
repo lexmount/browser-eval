@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from harness.web_fetch.safety import unlinked_path, write_new_file
+
 SITES = ("shopping_admin", "shopping", "reddit", "gitlab", "map", "wikipedia")
 SITE_TOKENS = {site: "__" + site.upper() + "__" for site in SITES}
 WEBARENA_VERIFIED_VERSION = "1.2.3"
@@ -151,7 +153,6 @@ def main_image_lock(argv=None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
-    from harness.web_fetch.safety import unlinked_path
 
     args.output = unlinked_path(args.output)
     if args.output.exists():
@@ -165,7 +166,6 @@ def main_image_lock(argv=None) -> None:
             for site, reference in official_image_references().items()
         },
     }
-    from harness.web_fetch.safety import write_new_file
 
     write_new_file(
         args.output, (json.dumps(payload, indent=2, ensure_ascii=False) + "\n").encode("utf-8")

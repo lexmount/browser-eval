@@ -3,6 +3,8 @@
 from collections import Counter
 from statistics import mean
 
+from harness.web_search.adapters import adapter_for
+
 
 def error_evidence(row, payload):
     """Keep collection errors and nested service failure evidence distinguishable."""
@@ -22,7 +24,6 @@ def operational(rows, payloads, methods=None):
     by_method = {m["id"]: m for m in (methods or [])}
     for row in rows:
         payload = payloads.get(row["id"], {})
-        from .adapters import adapter_for
         adapter = by_method.get(row["method"], {}).get("adapter")
         if adapter:
             timing = adapter_for(adapter).timing(payload)

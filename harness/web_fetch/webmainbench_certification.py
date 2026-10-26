@@ -10,10 +10,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-from harness.web_fetch.config import load_provider_config, load_runtime_env
 from lexbench_webfetch.paths import contained_path, safe_identifier
+
+from harness.web_fetch.config import load_provider_config, load_runtime_env
 from harness.web_fetch.webmainbench_evidence import digest, read_jsonl, require_unique_attempt_ids
 from harness.web_fetch.webmainbench_runner import PROVIDERS, load_source
+from harness.web_fetch.webmainbench_scoring import verify_score
 
 
 def _read_json(root: Path, relative: str) -> dict:
@@ -233,10 +235,7 @@ def scorer_source_binding(scorer: Path) -> dict[str, str]:
         scorer, path.relative_to(scorer), reject_symlinks=True)) for path in files}
 
 
-
 def main_score(argv: list[str] | None = None) -> None:
-    from .webmainbench_scoring import verify_score
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cohort", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)

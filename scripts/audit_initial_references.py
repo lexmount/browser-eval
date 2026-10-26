@@ -16,10 +16,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
-from lexbench_webfetch.reference_quality import clean_reference_text
 from lexbench_webfetch.paths import contained_path, safe_identifier
-from lexbench_webfetch.scoring import score_attempt, SCORING_SOURCE_FILES
+from lexbench_webfetch.reference_quality import clean_reference_text
+from lexbench_webfetch.scoring import SCORING_SOURCE_FILES, score_attempt
+
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.source_capture import extract_html
 
 

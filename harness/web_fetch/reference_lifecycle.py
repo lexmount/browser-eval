@@ -5,6 +5,7 @@ caller. A completed certificate describes one run, not freshness for another.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import math
@@ -14,12 +15,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from harness.record_io import file_sha256, load_jsonl, parse_jsonl
-
 from lexbench_webfetch.metrics import normalize_for_match, normalize_resource_url
-from .reference_inputs import input_tree, read_dataset_bytes
-from .render_evidence import content_requirement_errors, validate_render_reference
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from lexbench_webfetch.scoring_regressions import valid_correction_provenance
+from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 
+from harness.record_io import file_sha256, load_jsonl, parse_jsonl
+from harness.web_fetch.native_routes import verify_native_execution_manifests
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
+from harness.web_fetch.render_evidence import content_requirement_errors, validate_render_reference
 
 HOMEPAGE_READER_SCOPE_PROMPTS = frozenset({
     "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。"
@@ -34,7 +38,6 @@ HOMEPAGE_READER_SCOPE_PROMPTS = frozenset({
     "不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、按钮控件文字、隐藏名称、"
     "网页标题和脚本文字不能代替正文。",
 })
-from lexbench_webfetch.paths import contained_path, safe_identifier
 
 
 def _same_homepage_reader_constraints(old: dict, new: dict) -> bool:
@@ -141,7 +144,6 @@ def requires_fresh_reference(case) -> bool:
     """Existing answers stay frozen unless the task explicitly selects live checks."""
     contract = _get(case, "acceptance_contract", {})
     if contract:
-        from lexbench_webfetch.stable_tasks import validate_acceptance_contract
         validate_acceptance_contract(contract)
     verification = _get(case, "source_verification", {}) or {}
     mode = verification.get("reference_mode", "frozen")
@@ -588,7 +590,6 @@ def build_observations(run_dir: Path, captures_root: Path,
 
 def observations_main(argv=None) -> None:
     """Command boundary for assembling independently captured postchecks."""
-    import argparse
 
     parser = argparse.ArgumentParser(description=build_observations.__doc__)
     parser.add_argument("--run-dir", type=Path, required=True)
@@ -1050,7 +1051,7 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
         dataset = None
         records = None
     if dataset is not None and records is not None:
-        from .result_review import require_blind_result_review
+        from harness.web_fetch.result_review import require_blind_result_review
         for candidate in review_candidates:
             try:
                 raw = candidate.read_bytes()
@@ -1070,7 +1071,7 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
         return False
     if review_path.is_file():
         try:
-            from .result_review import require_result_review
+            from harness.web_fetch.result_review import require_result_review
             if dataset is None or records is None:
                 dataset = json.loads((root/'dataset.json').read_text())
                 records = load_jsonl(root/'results.jsonl')
@@ -1079,7 +1080,6 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
         except (OSError, ValueError, TypeError, KeyError, StopIteration):
             assembled_review_valid = False
 
-    from lexbench_webfetch.scoring_regressions import valid_correction_provenance
 
     def revision_edge(value):
         if not isinstance(value, dict):
@@ -1352,7 +1352,6 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
         return {}
     current_dataset = sha256((root / "dataset.json").read_bytes())
     current_results = file_sha256(root / "results.jsonl")
-    from lexbench_webfetch.scoring_regressions import valid_correction_provenance
     if not isinstance(receipts, list):
         return {}
 
@@ -1611,7 +1610,6 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
     def valid_hash(value):
         return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
 
-    from .native_routes import verify_native_execution_manifests
     verify_native_execution_manifests(source, manifests,
         {'cases': [dict(c) if isinstance(c, dict) else vars(c) for c in case_map.values()]}
         if case_map is not None else None, records)

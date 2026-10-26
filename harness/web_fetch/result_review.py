@@ -1,15 +1,26 @@
 """Validate an independently produced, attempt-complete result review."""
+
 import argparse
 import hashlib
 import json
+import shutil
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
-from harness.record_io import file_sha256, load_jsonl, parse_jsonl
-
-from .anomaly_review import require_anomaly_review
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path
+
+from harness.record_io import file_sha256, load_jsonl, parse_jsonl
+from harness.web_fetch import artifacts as evidence_artifacts
+from harness.web_fetch.anomaly_review import detect_anomalies, require_anomaly_review
+from harness.web_fetch.reference_inputs import require_mutable_inputs
+from harness.web_fetch.reference_lifecycle import valid_reference_revision, valid_scoring_revision
+from harness.web_fetch.safety import (
+    commit_staged_evidence,
+    evidence_tree_identity,
+    stage_evidence_revision,
+)
 
 ANSWER_METADATA_FIELDS = ('links', 'images', 'videos', 'media', 'extras')
 
@@ -99,7 +110,7 @@ def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=Non
             raise
         if historical_authority:
             return (reviewed or {}).get('machine_verdict')
-        from .reference_lifecycle import valid_scoring_revision_chain
+        from harness.web_fetch.reference_lifecycle import valid_scoring_revision_chain
         verdict = (reviewed or {}).get('machine_verdict')
         if verdict not in {'pass', 'fail'}:
             raise
@@ -142,7 +153,6 @@ def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=Non
         raise
 
 
-
 def _require_result_review(source, dataset, records, review_document=None, *, anomaly_gate, historical_sources=(), historical_authority=False):
     required = dataset.get('comparison', {}).get('require_independent_result_review', False)
     path = source / 'result-review.json'
@@ -173,7 +183,6 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
         raise ValueError('The declared full review must include successful and failed attempts')
     anomaly_attempts = set()
     if anomaly_gate and dataset.get('comparison', {}).get('require_anomaly_review', False):
-        from .anomaly_review import detect_anomalies
         reviewer = {row.get('attempt_id'): row.get('reviewer_anomalies', [])
                     for row in review.get('attempts', [])}
         anomaly_attempts = set(detect_anomalies(source, records, dataset, reviewer))
@@ -408,7 +417,7 @@ def install_result_review(evidence, review, *, anomaly_gate=True, skip_blank=Fal
     installed = target.read_bytes()
     try:
         if historical_sources:
-            from .assembly import bind_assembled_scoring_revision
+            from harness.web_fetch.assembly import bind_assembled_scoring_revision
             bind_assembled_scoring_revision(evidence, historical_sources=historical_sources)
     except BaseException:
         if target.read_bytes() == installed:
@@ -1078,7 +1087,6 @@ def merge_shards_main(argv=None) -> None:
     print(f"reviewed={len(review['attempts'])} disagreements={review['disagreements']} unresolved=0")
 
 
-
 def refresh_review_attempt_ids(evidence: Path, prior_evidence: Path) -> set[str]:
     """Return attempts whose task or reviewer-visible evidence changed."""
     current_dataset, current_records, _ = _read_review_evidence(evidence, skip_blank=True)
@@ -1104,8 +1112,6 @@ def refresh_review_attempt_ids(evidence: Path, prior_evidence: Path) -> set[str]
 def prepare_review_subset(evidence: Path, output: Path, *, case_ids=None,
                           prior_evidence: Path | None = None):
     """Stage a complete hash-verified supplemental scope before exposing its directory."""
-    from .artifacts import materialize_bound_artifacts
-    from .safety import evidence_tree_identity, stage_evidence_revision
 
     if bool(case_ids) == bool(prior_evidence):
         raise ValueError("choose exactly one of case_ids or prior_evidence")
@@ -1153,7 +1159,7 @@ def prepare_review_subset(evidence: Path, output: Path, *, case_ids=None,
         (staging / "dataset.json").write_text(json.dumps(subset, ensure_ascii=False, indent=2) + "\n")
         (staging / "results.jsonl").write_text(
             "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in records))
-        materialize_bound_artifacts(staging, evidence, records)
+        evidence_artifacts.materialize_bound_artifacts(staging, evidence, records)
         if prior_evidence and evidence_tree_identity(prior_evidence) != prior_identity:
             raise ValueError("Prior review evidence changed during subset preparation")
         return {"cases": len(cases), "attempts": len(records)}
@@ -1176,14 +1182,8 @@ def prepare_subset_main(argv=None):
 
 def rebind_metadata_review(evidence: Path, prior_dataset: Path, *, rebound_at=None):
     """Rebind neutral metadata in a validated bundle, preserving immutable history."""
-    import shutil
-    from datetime import datetime, timezone
 
-    from .artifacts import verify_record_artifacts
-    from .assembly import bind_assembled_scoring_revision
-    from .reference_inputs import require_mutable_inputs
-    from .reference_lifecycle import valid_reference_revision, valid_scoring_revision
-    from .safety import commit_staged_evidence, evidence_tree_identity
+    from harness.web_fetch.assembly import bind_assembled_scoring_revision
 
     before = evidence_tree_identity(evidence)
     evidence = evidence.resolve()
@@ -1216,7 +1216,7 @@ def rebind_metadata_review(evidence: Path, prior_dataset: Path, *, rebound_at=No
             raise ValueError("Reference revision history is invalid or unbound")
         native_cases = {c['id']: c for c in prior_document['cases']}
         for record in records:
-            verify_record_artifacts(staged, record, native_cases=native_cases)
+            evidence_artifacts.verify_record_artifacts(staged, record, native_cases=native_cases)
         (staged / "dataset.json").write_bytes(current_bytes)
         results_bytes = (staged / "results.jsonl").read_bytes()
         if not rebind_unchanged_result_review(

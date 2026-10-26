@@ -24,8 +24,7 @@ from webarena_verified.types.task import WebArenaSite
 from harness.environments.webarena.backend import MAGENTO_INIT_TIMEOUT_SECONDS, DockerBackend
 from harness.environments.webarena.manager import EnvironmentManager
 from harness.environments.webarena.rainbond import RainbondSlicePool
-
-from .suite import BrowserTask
+from harness.trajectory_replay.public_webarena.suite import BrowserTask
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
 LEGACY_PORT_SITES = {

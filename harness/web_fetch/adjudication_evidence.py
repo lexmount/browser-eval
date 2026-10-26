@@ -1,13 +1,18 @@
 """Require inspectable task and answer evidence when a verdict overrides review."""
-import json
-import hashlib
-from dataclasses import dataclass
-from lexbench_webfetch.paths import contained_path
-from lexbench_webfetch.metrics import task_passed
-from .local_execution_contract import local_measurement_call_sha256
-from harness.record_io import file_sha256, canonical_json_sha256
 
-from .publication_privacy import read_evidence_binding, evidence_excerpt_matches
+import copy
+import hashlib
+import json
+from dataclasses import dataclass
+
+from lexbench_webfetch.metrics import normalize_for_match, task_measured, task_passed
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, _same_page_url, score_attempt
+
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
+from harness.web_fetch.local_execution_contract import local_measurement_call_sha256
+from harness.web_fetch.publication_privacy import evidence_excerpt_matches, read_evidence_binding
+from harness.web_fetch.result_review import review_input_identity
 
 
 def requires_adjudication(row):
@@ -18,7 +23,6 @@ def requires_adjudication(row):
 
 def current_rule_outcomes(case, record):
     """Expose only declared, computed rules as structured adjudication facts."""
-    from lexbench_webfetch.metrics import task_passed
     m = record['metrics']
     outcomes = {'task_result': {'passed': task_passed(record['ok'], m)},
                 'request_status': {'passed': bool(m.get('request_ok', record['ok']))}}
@@ -179,7 +183,6 @@ def require_adjudication_evidence(source, dataset, records, review):
 
 
 def require_current_review_state(records, review):
-    from lexbench_webfetch.metrics import task_measured, task_passed
     indexed={record['attempt_id']:record for record in records}
     rows=review.get('attempts',[])
     unreviewed=review.get('unreviewed_attempt_ids',[])
@@ -288,8 +291,6 @@ def require_retained_reviews(source, dataset, records, review):
         if retained:
             raise ValueError('Retained reviews require their original evidence')
         return set()
-    from .result_review import review_input_identity
-    from harness.record_io import load_jsonl
     receipt = json.loads(read_evidence_binding(source, binding).read_text())
     if receipt.get('kind') == 'current_retained_review_dependencies':
         return _require_current_retained_reviews(source, dataset, records, review, receipt)
@@ -350,13 +351,11 @@ def require_retained_reviews(source, dataset, records, review):
 def compact_retained_review_dependencies(source, dataset, records, review):
     """Keep actual reused opinions and decision identities, not old matrices."""
     require_retained_reviews(source, dataset, records, review)
-    from .result_review import review_input_identity
     receipt = json.loads(read_evidence_binding(source, review['retained_reviews']).read_text())
     if receipt.get('kind') == 'current_retained_review_dependencies':
         return receipt
     prior = json.loads(read_evidence_binding(source, receipt['prior_review']).read_text())
     before = json.loads(read_evidence_binding(source, receipt['prior_dataset']).read_text())
-    from harness.record_io import load_jsonl
     previous = {r['attempt_id']: r for r in load_jsonl(read_evidence_binding(source, receipt['prior_results']))}
     old_cases = {c['id']: c for c in before['cases']}
     cases = {c['id']: c for c in dataset['cases']}
@@ -384,7 +383,6 @@ def compact_retained_review_dependencies(source, dataset, records, review):
 
 
 def _require_current_retained_reviews(source, dataset, records, review, receipt):
-    from .result_review import review_input_identity
     rows = receipt.get('attempts', [])
     dependencies = {r['attempt_id']: r for r in rows}
     retained = {r['attempt_id'] for r in review.get('attempts', [])
@@ -444,8 +442,6 @@ def _require_current_retained_reviews(source, dataset, records, review, receipt)
 
 def score_reviewed_page_identity(source, case, record, annotation, captures, *, historical_scoring_source=None):
     """Apply a bound retrospective content correspondence, never a native URL."""
-    from lexbench_webfetch.metrics import normalize_for_match
-    from lexbench_webfetch.scoring import score_attempt, _same_page_url, SCORING_SOURCE_SHA256
 
     if (annotation.get("attempt_id") != record["attempt_id"]
             or annotation.get("case_sha256") != canonical_json_sha256(case)
@@ -580,7 +576,6 @@ def _require_local_review(source, dataset, records, *, review_document=None, sco
             or len(indexed) != len(rows) or set(indexed) != set(expected)):
         raise ValueError("Local independent review scope differs")
     unresolved = 0
-    from lexbench_webfetch.metrics import task_measured
     for identifier, row in indexed.items():
         record = expected[identifier]
         verdict = ("unavailable" if not task_measured(record["metrics"]) else
@@ -602,7 +597,6 @@ def _require_local_review(source, dataset, records, *, review_document=None, sco
 
 def _legacy_diagnostic_migrated_case(case):
     """Decode the exact task transition in retained legacy review receipts."""
-    import copy
     result = copy.deepcopy(case)
     hints = result.pop('forbidden_any', [])
     if hints:

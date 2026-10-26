@@ -14,9 +14,10 @@ from collections import Counter
 from numbers import Real
 from pathlib import Path
 
+from lexbench_webfetch.paths import contained_path, safe_identifier
+
 from harness.record_io import parse_jsonl
 from harness.reporting.publication import atomic_create, json_bytes
-from lexbench_webfetch.paths import contained_path, safe_identifier
 from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.wcxb_latency import load_full_paired_latency

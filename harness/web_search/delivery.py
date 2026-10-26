@@ -4,16 +4,15 @@ The report renderer and checks remain authoritative. This exporter transports
 their generated pages and raw evidence without generating alternative findings.
 """
 
-import json
-import gzip
 import base64
+import gzip
+import json
 from pathlib import Path
 from urllib.parse import quote
 
 from bs4 import BeautifulSoup
 
-from .core import digest, write_json
-
+from harness.web_search.core import digest, write_json
 
 BRIDGE = r"""
 const nativeFetch=window.fetch.bind(window);

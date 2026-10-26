@@ -13,13 +13,22 @@ from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
-
-from harness.web_fetch.safety import reject_evidence_symlinks
-from harness.record_io import load_jsonl
-from harness.report_languages import localized_report_routes, visible_numbers
-from harness.reporting.presentation import check_presentation
 from lexbench_webfetch.paths import contained_path
+
+from harness.record_io import load_jsonl
+from harness.report_languages import (
+    check_language_contract,
+    generated_languages,
+    localized_report_routes,
+    visible_numbers,
+)
+from harness.reporting.assets import authored_main
+from harness.reporting.presentation import check_presentation
+from harness.reporting.visual import local_report_server
+from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.storage import data_home
+from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
+from harness.web_fetch.wcxb_scoring import paired_latency_methods
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -238,7 +247,6 @@ def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
 
 def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
                                  providers: list[str], lang: str, *, expected_html: str) -> BeautifulSoup:
-
     """A guide must work as a standalone explanation, with traceable examples."""
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
     expected = BeautifulSoup(expected_html, 'html.parser')
@@ -294,9 +302,6 @@ def require_case_summary(html: str | BeautifulSoup, lang: str) -> BeautifulSoup:
 
 
 def check_bound_interpretation(root: Path, binding: dict) -> None:
-    from harness.report_languages import generated_languages
-    from harness.reporting.assets import authored_main
-
     for language in generated_languages(root):
         route = ('en/' if language == 'en' else '') + 'guide/index.html'
         page = contained_path(root, route, reject_symlinks=True)
@@ -318,7 +323,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
     reject_evidence_symlinks(profile_path)
     profile = json.loads(profile_path.read_text())
     comparison = profile.get('paired_comparison') or {}
-    from .wcxb_publication import inventory
+    from harness.web_fetch.wcxb_publication import inventory
     inventory(root, profile)
     binding_path = profile_path.with_name('report-content-binding.json')
     reject_evidence_symlinks(binding_path)
@@ -352,7 +357,6 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
     require(summary['benchmark'] == sample['dataset_id'] == certificate['benchmark'], 'WCXB certified dataset identity differs')
     require({(r['provider'], r['case_id']) for r in scores} == {(p, c) for p in providers for c in case_ids}, 'WCXB method-case matrix differs')
     require([r['provider'] for r in certificate['providers']] == providers, 'WCXB certificate participants differ')
-    from harness.web_fetch.wcxb_scoring import paired_latency_methods
     paired_methods = paired_latency_methods(profile, certificate) if profile.get('latency_correction_receipt_sha256') else {}
     if profile.get('optional_ui_receipt_sha256'):
         optional_paths = [name for name, sha in content_binding['evidence'].items()
@@ -378,10 +382,6 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
                     for build in optional['builds'].values()),
                 'WCXB optional feature evidence lacks observed outcomes')
 
-    from harness.web_fetch.wcxb_latency import (
-        load_full_paired_latency,
-        summarize_full_paired_latency,
-    )
     paired_latency = None
     if profile.get('latency_correction_receipt_sha256'):
         _, selected_latency = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, case_ids)
@@ -601,8 +601,6 @@ def binary_from_env(path: Path) -> str:
 
 def check_visual(root: Path, browser_binary: str) -> None:
     from playwright.sync_api import sync_playwright
-    from harness.reporting.visual import local_report_server
-    from harness.report_languages import check_language_contract, generated_languages
 
     root = root.resolve()
     check_language_contract(root)

@@ -11,24 +11,33 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from harness.record_io import file_sha256, load_jsonl, parse_jsonl, read_completed_records
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from .artifacts import (
+from harness.record_io import file_sha256, load_jsonl, parse_jsonl, read_completed_records
+from harness.web_fetch.artifacts import (
     materialize_bound_artifacts,
     materialize_reference_checks,
     materialize_task_references,
+    public_call_log_binding,
+    verify_public_call_log,
     verify_record_artifacts,
 )
-from .reference_inputs import input_tree
-from .reference_lifecycle import (
+from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.reference_lifecycle import (
     completed_case_records,
     expected_providers,
     finalize_reference_checks,
     reference_cases,
     require_verified_reference_checks,
+    requires_fresh_reference,
 )
-from harness.web_fetch.safety import commit_staged_evidence, reject_evidence_symlinks, validate_report_ids
-from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.safety import (
+    commit_staged_evidence,
+    reject_evidence_symlinks,
+    validate_report_ids,
+)
+from harness.web_fetch.storage import current_evidence_dir
+
 
 def recover_completed_batch(source: Path, manifest: dict, records: list[dict]) -> dict:
     """Bind all flushed calls from an interrupted fixed-answer physical batch.
@@ -37,9 +46,6 @@ def recover_completed_batch(source: Path, manifest: dict, records: list[dict]) -
     saved completed calls, and explicitly retains the original unfinished state.
     It never supplies missing live-reference certification or chooses scores.
     """
-    from datetime import datetime
-    from .artifacts import public_call_log_binding, verify_public_call_log
-    from .reference_lifecycle import requires_fresh_reference
 
     if (manifest.get("schema_version") != 1 or manifest.get("tool") != "web_fetch"
             or manifest.get("completed_at") or manifest.get("attempt_ids") is not None
@@ -427,8 +433,6 @@ def _project_provider_run(source: Path, output: Path, provider: str, reference_r
         )
 
 
-
-
 def project_provider_run(source: Path, output: Path, provider: str,
                          reference_root: Path | None = None,
                          case_ids: set[str] | None = None, *, retain_completed: bool = False) -> None:
@@ -472,8 +476,6 @@ def projection_main(argv=None) -> None:
 
 
 def addition_main(argv=None) -> None:
-    from .storage import current_evidence_dir
-
     parser = argparse.ArgumentParser(description='Validate and add a complete provider run.')
     parser.add_argument('run_dir', type=Path)
     parser.add_argument('--provider', required=True)

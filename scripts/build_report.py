@@ -1,10 +1,25 @@
 """Build the current measured report or its public-benchmark research companion."""
-import argparse,json,sys
+import argparse
+import json
+import sys
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.report_languages import add_language_argument, resolve_report_language, SUPPORTED_REPORT_LANGUAGES
-from harness.web_fetch.report_build import build_report, build_public_benchmark_research, build_wcxb_report, build_webmainbench_full_report, build_diagnostic_cohorts, refresh_local_presentation
+
+from harness.report_languages import (
+    SUPPORTED_REPORT_LANGUAGES,
+    add_language_argument,
+    resolve_report_language,
+)
+from harness.web_fetch.report_build import (
+    build_diagnostic_cohorts,
+    build_public_benchmark_research,
+    build_report,
+    build_wcxb_report,
+    build_webmainbench_full_report,
+    refresh_local_presentation,
+)
 from harness.web_fetch.storage import (
     current_evidence_dir,
     require_canonical_inputs,

@@ -7,22 +7,47 @@ import re
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import parse_qsl, urlencode, urlsplit
+from urllib.parse import parse_qsl, unquote, urlencode, urljoin, urlsplit
+
+from bs4 import BeautifulSoup
+from lexbench_webfetch.metrics import task_measured, task_passed
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 
 from harness.record_io import file_sha256, load_jsonl
 from harness.report_languages import check_language_contract, generated_languages, visible_numbers
 from harness.reporting.presentation import check_presentation
+from harness.reporting.templates import resolve_template
+from harness.web_fetch.adjudication_evidence import (
+    require_adjudication_evidence,
+    require_current_review_state,
+)
+from harness.web_fetch.local_audit import (
+    require_complete_local_inventory,
+    require_local_measurement,
+)
+from harness.web_fetch.local_execution_contract import local_measurement_cases
+from harness.web_fetch.methods import native_browser_engine
+from harness.web_fetch.publication_privacy import public_render_views, read_evidence_binding
 from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
 from harness.web_fetch.reliability import require_reliable
-from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.web_fetch.report import local_pass_rate_ranking
+from harness.web_fetch.report_build import validate_local_presentation
+from harness.web_fetch.report_explainer import check_current_browser_article
+from harness.web_fetch.report_interfaces import SPECS
+from harness.web_fetch.report_methods import PROFILES
+from harness.web_fetch.report_reading import render_archived_reading
+from harness.web_fetch.report_resources import check_resource_presentation
+from harness.web_fetch.report_version import check_release
+from harness.web_fetch.result_ledger import validate_ledger
 from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.storage import require_canonical_inputs, require_current_report_profile
+from harness.web_fetch.wcxb_report_check import check as check_wcxb
+from harness.web_fetch.webmainbench_report_check import check_sample_report
 
 
 def require_public_evidence_page(content, relative, views):
     """Require inspectable public downloads and honest original/public hashes."""
-    from bs4 import BeautifulSoup
-    from urllib.parse import unquote, urljoin
     content = re.sub(r'<(pre|script|style)\b[^>]*>.*?</\1>', '', content, flags=re.I | re.S)
     soup = BeautifulSoup(content, 'html.parser')
     visible = soup.get_text(' ', strip=True)
@@ -49,7 +74,6 @@ def require_public_evidence_page(content, relative, views):
 
 
 def check_public_evidence_pages(root, records):
-    from .publication_privacy import public_render_views
     views = public_render_views(root, records)
     languages = generated_languages(root)
     for row in records:
@@ -213,7 +237,6 @@ def check_localized_image_sources(zh, en, canonical):
 
 
 def check_saved_result_summary(root, dataset, records):
-    from lexbench_webfetch.metrics import task_measured, task_passed
     cases = {case['id']: case for case in dataset['cases']}
     summary = json.loads((root / 'summary.json').read_text())
     groups = {}
@@ -232,7 +255,6 @@ def check_saved_result_summary(root, dataset, records):
 
 def require_replacement_execution(root, binding, physical, logical):
     """Keep superseded task calls as history without counting them as current rows."""
-    from .publication_privacy import read_evidence_binding
     receipt = json.loads(read_evidence_binding(root, binding).read_text())
     previous = load_jsonl(read_evidence_binding(root, receipt['baseline_results']))
     calls = load_jsonl(read_evidence_binding(root, receipt['cohort_results']))
@@ -301,16 +323,14 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             (repository / profile).resolve() if not profile.is_absolute() else profile.resolve()
         )
     if (root / 'dataset.json').is_file() and (root / 'results.jsonl').is_file():
-        from .report_version import check_release
         check_release(root, json.loads((root / 'dataset.json').read_text()),
                       load_jsonl(root / 'results.jsonl'), profile=profile_path)
     if (root / 'report-manifest.json').is_file() and json.loads((root / 'report-manifest.json').read_text()).get('evidence_state') == 'published_snapshot_score_audit':
-        from .published_snapshot import check_snapshot_audit
+        from harness.web_fetch.published_snapshot import check_snapshot_audit
         if profile_path and file_sha256(profile_path) != json.loads((root / 'report-manifest.json').read_text()).get('profile_sha256'):
             raise ValueError('Snapshot audit profile changed')
         return check_snapshot_audit(root)
     if (root / "wcxb-score-summary.json").is_file():
-        from harness.web_fetch.wcxb_report_check import check as check_wcxb
 
         check_wcxb(root, authority_root=repository, profile_path=profile_path)
         return None
@@ -326,7 +346,6 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     d = json.loads((root / "dataset.json").read_text())
     manifest_path = root / 'report-manifest.json'
     if manifest_path.is_file():
-        from harness.reporting.templates import resolve_template
         manifest = json.loads(manifest_path.read_text())
         expected_template = resolve_template('webfetch', root=repository)
         if manifest.get('template') != expected_template:
@@ -352,7 +371,6 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     check_language_contract(root)
     has_english = "en" in generated_languages(root)
     if d.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown":
-        from harness.web_fetch.webmainbench_report_check import check_sample_report
 
         check_sample_report(root, d, rs, authority_root=repository, profile_path=profile_path)
         return (
@@ -365,30 +383,23 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     local_measurement = d.get("comparison", {}).get("kind") == "uniform_native_local_measurement"
     if presentation_binding and not local_measurement:
         raise ValueError("Presentation binding requires a frozen uniform-native diagnostic snapshot")
-    from .report import local_pass_rate_ranking
     sample_ranking = local_measurement and local_pass_rate_ranking(d)
     if local_measurement:
         check_local_diagnostic_presentation(root, ranked=sample_ranking)
         if (root / 'result-review.json').is_file():
-            from .adjudication_evidence import require_adjudication_evidence, require_current_review_state
             review=json.loads((root / 'result-review.json').read_text())
             require_current_review_state(rs,review)
             require_adjudication_evidence(root,d,rs,review)
         if (root / 'local-evidence/result-ledger.json').is_file():
-            from .result_ledger import validate_ledger
             ledger = validate_ledger(json.loads((root / 'local-evidence/result-ledger.json').read_text()), rs, source=root)
             if ledger['states'][-1]['source_results_sha256'] != hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest():
                 raise ValueError('Result ledger source hash differs from current results')
-        from .local_audit import require_local_measurement
-        from .local_execution_contract import local_measurement_cases
         if presentation_binding:
             if profile:
                 raise ValueError("Presentation binding cannot certify a release profile")
-            from .report_build import validate_local_presentation
             checked_binding = validate_local_presentation(root, presentation_binding)[0]
             public_payload_views = bool(checked_binding.get("publication_evidence_views"))
             if checked_binding.get('offline_revision'):
-                from .publication_privacy import read_evidence_binding
                 current_receipt = json.loads(read_evidence_binding(root, checked_binding['offline_revision']).read_text())
                 current_snapshot_authority = (current_receipt.get('kind') == 'current_local_snapshot_authority'
                                               and current_receipt.get('schema_version') == 1)
@@ -473,7 +484,6 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         safe_identifier(case["id"])
         validate_resource_source_evidence(case, canonical_dataset)
     if local_measurement:
-        from .local_audit import require_complete_local_inventory
         reliability = require_complete_local_inventory(d, rs)
     else:
         reliability = require_reliable(d, rs)
@@ -487,7 +497,6 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         safe_identifier(r["provider"])
         safe_identifier(r["case_id"])
         if public_payload_views:
-            from .publication_privacy import read_evidence_binding
             read_evidence_binding(root, {'path': r['artifact_path'],
                                          'sha256': r['metrics']['content_sha256']})
         else:
@@ -510,7 +519,6 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                 or c.get("acceptance_contract")
             )
             if local_measurement:
-                from lexbench_webfetch.stable_tasks import validate_acceptance_contract
                 if c.get("acceptance_contract"):
                     validate_acceptance_contract(c["acceptance_contract"])
                 elif not (stable_checks or c.get("task_kind") == "file"):
@@ -622,7 +630,6 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     }
     archived_manifest = root / "archived-reading.json"
     if archived_manifest.is_file():
-        from .report_reading import render_archived_reading
         # Validate the archived source before allowing its original case names.
         render_archived_reading(root, "en" if has_english else "zh")
         allowed_english_source_text.update(json.loads(archived_manifest.read_text()).get("preserved_source_names", []))
@@ -733,7 +740,6 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     track_count = len({case.get("track", "web") for case in d["cases"]})
     require_home_comparison_layout(home, track_count, diagnostic=local_measurement and not sample_ranking, sample_ranking=sample_ranking)
     if (root / "resource-cohort/resource-comparison.json").is_file():
-        from .report_resources import check_resource_presentation
         resource_summary = json.loads((root / "resource-cohort/resource-comparison.json").read_text())
         guide = (root / "guide/index.html").read_text()
         for page_name, text in [("home", home), ("guide", guide)]:
@@ -778,7 +784,7 @@ def main(argv=None, *, authority_root: Path | None = None):
     parser.add_argument("--visual-receipt",type=Path,help="Full snapshot-audit browser checks; save receipt outside the report")
     args = parser.parse_args(argv)
     if args.visual_receipt:
-        from .published_snapshot import check_snapshot_visual
+        from harness.web_fetch.published_snapshot import check_snapshot_visual
         print(check_snapshot_visual(args.root,args.visual_receipt))
     result = check(args.root, authority_root=args.authority_root, profile=args.profile, presentation_binding=args.presentation_binding, source_dataset=args.source_dataset)
     if result is not None:
@@ -790,15 +796,12 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
     out = out.resolve()
     repository = authority_root.resolve()
     if (out / "wcxb-score-summary.json").is_file():
-        from harness.web_fetch.wcxb_report_check import check as check_wcxb
 
         check_wcxb(out, authority_root=repository, profile_path=profile_path)
         return "PASS: WCXB release scope and report acceptance checks verified"
     dataset = json.loads((out / "dataset.json").read_text())
-    from bs4 import BeautifulSoup
 
     if dataset.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown":
-        from harness.web_fetch.webmainbench_report_check import check_sample_report
 
         check_sample_report(out, authority_root=repository, profile_path=profile_path)
         return (
@@ -806,12 +809,10 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
         )
     binding = dataset.get('comparison', {}).get('report_interpretation')
     if binding:
-        from .report_explainer import check_current_browser_article
         check_current_browser_article(out, {case['id']:case for case in dataset['cases']},
                                       load_jsonl(out/'results.jsonl'), binding)
     provenance_path = out / "implementation-provenance.json"
     if provenance_path.is_file():
-        from .methods import native_browser_engine
         provenance = json.loads(provenance_path.read_text())
         records = load_jsonl(out / "results.jsonl")
         home = BeautifulSoup((out / "index.html").read_text(), "html.parser")
@@ -927,7 +928,6 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
             if expected_failure not in [h.get_text() for h in soup.select("#filtered-table th")]:
                 raise ValueError(path)
     records = load_jsonl(out / 'results.jsonl')
-    from .methods import native_browser_engine
     synthetic = dataset.get('comparison', {}).get('kind') == 'synthetic_browser_report'
     if records and all(row.get('provider_type') == 'fixture' for row in records) and (
         synthetic or all(not native_browser_engine(row['provider']) for row in records)
@@ -939,7 +939,6 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
         return 'PASS: synthetic report presentation, declared adapters and bound interpretation verified'
     counts = json.loads((out / "adoption/counts.json").read_text())["methods"]
     names = {row["provider"] for row in load_jsonl(out / "results.jsonl")}
-    from harness.web_fetch.report_methods import PROFILES
 
     if not {item["provider"] for item in counts} == set(PROFILES) | names:
         raise ValueError("Report presentation check failed")
@@ -948,8 +947,6 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
     interfaces = BeautifulSoup((out / "adoption/index.html").read_text(), "html.parser").select(
         '.interface-panel[id^="interface-"]'
     )
-    from harness.web_fetch.report_interfaces import SPECS
-    from harness.web_fetch.methods import native_browser_engine
     interface_names = set(SPECS) | {name for name in names if native_browser_engine(name)}
 
     if not (
