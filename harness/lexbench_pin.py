@@ -18,19 +18,32 @@ HINT = "Run make bump-lexbench REV=<merged-commit>."
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def project_pin(project: dict, name: str = NAME) -> tuple[str, str]:
+def _subdirectory(value: str) -> str:
+    if value and (not re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", value)
+                  or any(part in {'.', '..'} for part in value.split('/'))):
+        raise ValueError("LexBench subdirectory must stay within the repository")
+    return value
+
+
+def project_pin(project: dict, name: str = NAME) -> tuple[str, str, str]:
     matches = [item for item in project["project"]["dependencies"]
                if re.match(rf"^{re.escape(name)}\s*@", item)]
     if len(matches) != 1:
         raise ValueError("Expected one direct LexBench Git dependency. " + HINT)
-    match = re.fullmatch(rf"{re.escape(name)}\s*@\s*git\+(.+)@([0-9a-f]{{40}})", matches[0])
+    match = re.fullmatch(
+        rf"{re.escape(name)}\s*@\s*git\+([^#]+)@([0-9a-f]{{40}})(?:#(.*))?", matches[0])
     if not match:
         raise ValueError("LexBench must use a full immutable Git commit. " + HINT)
-    return match.group(1), match.group(2)
+    fragment = parse_qs(match.group(3) or '', keep_blank_values=True)
+    if fragment and (set(fragment) != {'subdirectory'} or len(fragment['subdirectory']) != 1):
+        raise ValueError("Invalid LexBench subdirectory binding")
+    directory = fragment.get('subdirectory', [''])[0]
+    return match.group(1), match.group(2), _subdirectory(directory)
 
 
 def validate_binding(root: Path, name: str = NAME) -> str:
-    repository, revision = project_pin(tomllib.loads((root / "pyproject.toml").read_text()), name)
+    repository, revision, directory = project_pin(
+        tomllib.loads((root / "pyproject.toml").read_text()), name)
     lock = tomllib.loads((root / "uv.lock").read_text())
     packages = [item for item in lock["package"] if item["name"] == name]
     binding = json.loads((root / "evaluation" / (name + '.json')).read_text())
@@ -40,6 +53,8 @@ def validate_binding(root: Path, name: str = NAME) -> str:
     locked_repository = source._replace(query="", fragment="").geturl()
     if (locked_repository != repository or source.fragment != revision
             or parse_qs(source.query).get("rev") != [revision]
+            or parse_qs(source.query).get("subdirectory", ['']) != [directory]
+            or binding.get("subdirectory", '') != directory
             or binding["revision"] != revision
             or binding["repository"].removesuffix(".git") != repository.removesuffix(".git")):
         raise ValueError("LexBench project, lock and definition binding disagree. " + HINT)
@@ -105,10 +120,13 @@ def require_merged_revision(repository: str, revision: str, directory: Path) -> 
         raise ValueError("Requested LexBench revision is not in upstream main history")
 
 
-def bump(root: Path, revision: str, *, uv: str = "uv", benchmark: str = NAME) -> list[str]:
+def bump(root: Path, revision: str, *, uv: str = "uv", benchmark: str = NAME,
+         repository: str | None = None, subdirectory: str | None = None) -> list[str]:
     project_path = root / "pyproject.toml"
     text = project_path.read_text()
-    repository, old_revision = project_pin(tomllib.loads(text), benchmark)
+    old_repository, old_revision, old_directory = project_pin(tomllib.loads(text), benchmark)
+    repository = repository if repository is not None else old_repository
+    directory = _subdirectory(subdirectory if subdirectory is not None else old_directory)
     relative_binding = 'evaluation/' + benchmark + '.json'
     binding_path = root / relative_binding
     before = json.loads(binding_path.read_text())
@@ -120,10 +138,15 @@ def bump(root: Path, revision: str, *, uv: str = "uv", benchmark: str = NAME) ->
         (project / "evaluation").mkdir()
         for name in ("uv.lock", ".python-version", "README.md", "LICENSE"):
             shutil.copyfile(root / name, project / name)
-        old_url = f"git+{repository}@{old_revision}"
+        old_url = f"git+{old_repository}@{old_revision}"
+        if old_directory:
+            old_url += '#subdirectory=' + old_directory
         if text.count(old_url) != 1:
             raise ValueError("Ambiguous dependency declaration")
-        (project / "pyproject.toml").write_text(text.replace(old_url, f"git+{repository}@{revision}"))
+        new_url = f"git+{repository}@{revision}"
+        if directory:
+            new_url += '#subdirectory=' + directory
+        (project / "pyproject.toml").write_text(text.replace(old_url, new_url))
         run([uv, "lock", "--project", str(project)], project)
         run([uv, "sync", "--frozen", "--no-install-project", "--project", str(project)], project)
         definitions = Path(run([
@@ -131,6 +154,11 @@ def bump(root: Path, revision: str, *, uv: str = "uv", benchmark: str = NAME) ->
             f"from {benchmark.replace('-', '_')}.inputs import definition_path; print(definition_path({'registry.json' if benchmark == 'lexbench-websearch' else 'evaluation'!r}).parent)",
         ], project))
         after = refresh_binding(before, revision, definitions)
+        after['repository'] = repository.removesuffix('.git')
+        if directory:
+            after['subdirectory'] = directory
+        else:
+            after.pop('subdirectory', None)
         (project / relative_binding).write_text(
             json.dumps(after, ensure_ascii=False, indent=2) + "\n")
         validate_binding(project, benchmark)
@@ -152,7 +180,10 @@ def main(argv=None):
     parser.add_argument("--revision", required=True)
     parser.add_argument("--uv", default="uv")
     parser.add_argument('--benchmark', choices=['lexbench-webfetch', 'lexbench-websearch'], default=NAME)
+    parser.add_argument('--repository', help='Git repository for a source migration')
+    parser.add_argument('--subdirectory', help='Package directory within that repository')
     args = parser.parse_args(argv)
-    for change in bump(ROOT, args.revision, uv=args.uv, benchmark=args.benchmark):
+    for change in bump(ROOT, args.revision, uv=args.uv, benchmark=args.benchmark,
+                       repository=args.repository, subdirectory=args.subdirectory):
         print(change)
     print("Verified current dependency binding. Historical evidence was not changed.")

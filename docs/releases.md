@@ -28,11 +28,11 @@ Added cases can require a major benchmark edition even when accepting that editi
 
 ## Stable release scope
 
-Choose the first stable software version after the pending Web Search integration PRs have landed on main and the integrated release checks pass. Version `1.0.0` establishes the documented compatibility contract; release preparation alone does not assign that version or create a tag.
+Choose a stable software version after all changes in its declared release scope have landed on main and the integrated release checks pass. Version `1.0.0` establishes the documented compatibility contract; release preparation alone does not assign that version or create a tag.
 
 Web Fetch includes LexBench Web Fetch integration and independently selected WebMainBench and WCXB workflows. Search uses LexBench Web Search definitions and scoring. Publish the exact supported dataset editions and provider configurations with the release. Browser Trajectory Replay and Browser Use can remain available as experimental tracks with their own environment requirements.
 
-Integrate [PR #58](https://github.com/lexmount/browser-eval/pull/58) and its related Web Search changes into main before selecting the stable release commit. Until then, the main-branch package contains Web Fetch, trajectory replay and Browser Use; Search is preview code on its development branch. Run the integrated package and release checks before assigning `1.0.0`. External references, browsers, self-hosted sites and provider accounts remain separate inputs.
+Web Fetch, Web Search / SERP, Browser Trajectory Replay and Browser Use have main-branch implementations. Validate the selected tracks together on the release commit before assigning a stable version. External references, browsers, self-hosted sites and provider accounts remain separate inputs.
 
 ## Release procedure
 

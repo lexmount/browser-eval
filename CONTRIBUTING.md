@@ -118,7 +118,7 @@ Optional Claude review requires `ENABLE_CLAUDE_REVIEW=true` and `CLAUDE_CODE_OAU
 
 ## License
 
-Contributions use the [Apache License 2.0](LICENSE). Preserve third-party licenses, copyright notices and source attributions described in [THIRD_PARTY](THIRD_PARTY.md).
+Contributions use the [Apache License 2.0](LICENSE). Contributors retain copyright in their contributions; submitting a contribution grants the applicable license and does not transfer ownership to LexMount. Preserve existing copyright notices and third-party terms described in [THIRD_PARTY](THIRD_PARTY.md).
 
 ## Software releases
 

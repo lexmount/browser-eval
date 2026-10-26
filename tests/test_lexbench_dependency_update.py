@@ -115,3 +115,43 @@ def test_upstream_check_accepts_ancestor_and_rejects_unmerged_commit(tmp_path):
     require_merged_revision(str(repo), merged, tmp_path / "accepted")
     with pytest.raises(ValueError, match="not in upstream main"):
         require_merged_revision(str(repo), unmerged, tmp_path / "rejected")
+
+
+def family_binding(root, *, directory='packages/websearch'):
+    revision = 'a' * 40
+    repository = 'https://github.com/lexmount/lexbench-web-retrieval.git'
+    (root / 'evaluation').mkdir(exist_ok=True)
+    (root / 'pyproject.toml').write_text(
+        '[project]\ndependencies = ["lexbench-websearch @ git+'
+        + repository + '@' + revision + '#subdirectory=' + directory + '"]\n')
+    (root / 'uv.lock').write_text(
+        '[[package]]\nname = "lexbench-websearch"\nsource = { git = "'
+        + repository + '?rev=' + revision + '&subdirectory=' + directory + '#' + revision + '" }\n')
+    (root / 'evaluation/lexbench-websearch.json').write_text(json.dumps({
+        'repository': repository.removesuffix('.git'), 'revision': revision,
+        'subdirectory': directory,
+    }))
+    return revision
+
+
+def test_family_package_pin_binds_repository_revision_and_subdirectory(tmp_path):
+    revision = family_binding(tmp_path)
+    assert validate_binding(tmp_path, 'lexbench-websearch') == revision
+
+
+@pytest.mark.parametrize('changed', ['project', 'lock', 'binding'])
+def test_family_package_cannot_silently_select_another_subdirectory(tmp_path, changed):
+    family_binding(tmp_path)
+    relative = {'project': 'pyproject.toml', 'lock': 'uv.lock',
+                'binding': 'evaluation/lexbench-websearch.json'}[changed]
+    path = tmp_path / relative
+    path.write_text(path.read_text().replace('packages/websearch', 'packages/another'))
+    with pytest.raises(ValueError, match='disagree'):
+        validate_binding(tmp_path, 'lexbench-websearch')
+
+
+@pytest.mark.parametrize('directory', ['../websearch', '/packages/websearch', 'packages/../websearch'])
+def test_family_source_requires_a_contained_package_directory(tmp_path, directory):
+    family_binding(tmp_path, directory=directory)
+    with pytest.raises(ValueError, match='subdirectory'):
+        validate_binding(tmp_path, 'lexbench-websearch')
