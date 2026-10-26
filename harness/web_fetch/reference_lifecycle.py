@@ -1179,6 +1179,13 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
                 return False
             previous_scoring_source = None
         previous_output = output_binding
+    if review_sha256 is not None and not any(
+        row.get('kind') == 'audited_assembled_scoring_revision'
+        and row.get('independent_result_review_sha256') == review_sha256
+        and bridged((row.get('output_dataset_sha256'), row.get('output_results_sha256')),
+                    (current_dataset, current_results)) for row in rows
+    ):
+        return False
     if previous_scoring_source is not None:
         current_scoring_sources = {
             row.get('metrics', {}).get('scoring_source_sha256') for row in (records or [])

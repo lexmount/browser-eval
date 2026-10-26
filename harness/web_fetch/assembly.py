@@ -396,7 +396,7 @@ def copy_projected_review(source, output, excluded_providers):
     return True
 
 
-def bind_assembled_scoring_revision(output, *, source=None):
+def bind_assembled_scoring_revision(output, *, source=None, historical_sources=()):
     """Bind composed scoring; revalidate machine evidence without inventing review."""
     path=output/'scoring-revisions.json'
     review_path=output/'result-review.json'
@@ -445,7 +445,11 @@ def bind_assembled_scoring_revision(output, *, source=None):
         return True
     dataset=json.loads((output/'dataset.json').read_text())
     records=read_records(output)
-    require_result_review(output,dataset,records)
+    if historical_sources:
+        from .result_review import require_blind_result_review
+        require_blind_result_review(output, dataset, records, historical_sources=historical_sources)
+    else:
+        require_result_review(output, dataset, records)
     if valid_scoring_revision(output):return False
     history=json.loads(path.read_bytes())
     if not isinstance(history,list) or not history:
@@ -495,7 +499,8 @@ def bind_assembled_scoring_revision(output, *, source=None):
         (check/'scoring-revisions.json').write_text(candidate)
         if not valid_scoring_revision(check):
             raise ValueError('Assembled scoring revision would leave an invalid history')
-    path.write_text(candidate)
+    from harness.reporting.publication import atomic_write
+    atomic_write(path, candidate.encode())
     return True
 
 

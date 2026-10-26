@@ -161,6 +161,16 @@ class ResultReviewTests(unittest.TestCase):
                        'output_results_sha256': hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest()}
             (root / 'scoring-revisions.json').write_text(json.dumps([receipt]))
             self.assertTrue(valid_scoring_revision(root))
+            ordinary_review = json.loads(json.dumps(review))
+            ordinary_review['bindings']['results_sha256'] = receipt['output_results_sha256']
+            ordinary_review['attempts'][0].update(machine_verdict='fail', final_verdict='fail')
+            (root / 'result-review.json').write_text(json.dumps(ordinary_review))
+            from harness.web_fetch.reference_lifecycle import valid_scoring_revision_chain
+            self.assertFalse(valid_scoring_revision_chain(root, review_sha256=hashlib.sha256(
+                (root / 'result-review.json').read_bytes()).hexdigest()))
+            with self.assertRaisesRegex(ValueError, 'Historical scoring metrics'):
+                require_blind_result_review(root, dataset, records, ordinary_review)
+            (root / 'result-review.json').unlink()
             article = root / 'article.json'
             article.write_text('{}')
             rebind_report_interpretation(root, {'path': 'article.json',
@@ -774,6 +784,72 @@ class ResultReviewTests(unittest.TestCase):
             (current_root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in changed))
             with self.assertRaisesRegex(ValueError,'exactly every non-reusable current attempt'):
                 merge_refresh_reviews(current_root,prior_root,supplement)
+
+    def test_historical_refresh_installs_retained_and_supplemental_verdicts(self):
+        import copy
+        from harness.web_fetch.reference_lifecycle import valid_scoring_revision, scoring_revision_history_sha256
+
+        def bundle(root, cases, records):
+            root.mkdir()
+            dataset = {'comparison': {'require_independent_result_review': True}, 'cases': cases}
+            (root / 'dataset.json').write_text(json.dumps(dataset))
+            (root / 'results.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in records))
+            bindings = {name + '_sha256': hashlib.sha256((root / file).read_bytes()).hexdigest()
+                        for name, file in [('dataset', 'dataset.json'), ('results', 'results.jsonl')]}
+            review = {'schema_version': 1, 'bindings': bindings, 'reviewer': {'agent': 'fixture'},
+                      'review_protocol': {'scope': 'all', 'machine_judgments_withheld': True},
+                      'attempts': [{'attempt_id': r['attempt_id'], 'machine_verdict': 'pass' if r['metrics']['content_pass'] else 'fail',
+                                    'agent_verdict': 'pass' if r['metrics']['content_pass'] else 'fail',
+                                    'final_verdict': 'pass' if r['metrics']['content_pass'] else 'fail'} for r in records]}
+            (root / 'result-review.json').write_text(json.dumps(review))
+            receipt = {'kind': 'audited_assembled_scoring_revision', 'provider_calls': 0,
+                       'input_dataset_sha256': bindings['dataset_sha256'], 'input_results_sha256': bindings['results_sha256'],
+                       'output_dataset_sha256': bindings['dataset_sha256'], 'output_results_sha256': bindings['results_sha256'],
+                       'changed_cases': [], 'task_decision_changes': [],
+                       'source_scoring_receipts_sha256': scoring_revision_history_sha256([]),
+                       'independent_result_review_sha256': hashlib.sha256((root / 'result-review.json').read_bytes()).hexdigest()}
+            (root / 'scoring-revisions.json').write_text(json.dumps([receipt]))
+            self.assertTrue(valid_scoring_revision(root))
+            return dataset, review
+
+        for mode in ('changed', 'new', 'broken-history'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory)
+                prior, current, supplement = (base / name for name in ('prior', 'current', 'supplement'))
+                cases = [{'id': key, 'task_kind': 'body'} for key in ('a', 'b')]
+                rows = [{'attempt_id': 'p__' + key, 'provider': 'p', 'case_id': key, 'ok': True,
+                         'metrics': {'content_pass': True, 'forbidden_hits': [], 'content_sha256': 'a' * 64}} for key in ('a', 'b')]
+                bundle(prior, cases, rows)
+                new_cases, new_rows = copy.deepcopy(cases), copy.deepcopy(rows)
+                replacement = {**copy.deepcopy(rows[-1]), 'metrics': {'content_pass': False, 'forbidden_hits': [], 'content_sha256': 'b' * 64}}
+                if mode == 'new':
+                    replacement.update(attempt_id='p__c', case_id='c')
+                    new_cases.append({'id': 'c', 'task_kind': 'body'})
+                    new_rows.append(replacement)
+                else:
+                    new_rows[-1] = replacement
+                bundle(supplement, [next(c for c in new_cases if c['id'] == replacement['case_id'])], [replacement])
+                current.mkdir()
+                (current / 'dataset.json').write_text(json.dumps({'comparison': {'require_independent_result_review': True}, 'cases': new_cases}))
+                (current / 'results.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in new_rows))
+                history = json.loads((prior / 'scoring-revisions.json').read_text())
+                if mode == 'broken-history':
+                    history[0]['source_scoring_receipts_sha256'] = '0' * 64
+                (current / 'scoring-revisions.json').write_text(json.dumps(history))
+                before = {p.name: p.read_bytes() for p in current.iterdir()}
+                if mode == 'broken-history':
+                    with self.assertRaises(ValueError):
+                        merge_refresh_reviews(current, prior, supplement)
+                    self.assertEqual(before, {p.name: p.read_bytes() for p in current.iterdir()})
+                    continue
+                merge_refresh_reviews(current, prior, supplement)
+                dataset = json.loads((current / 'dataset.json').read_text())
+                checked = require_result_review(current, dataset, new_rows)
+                self.assertEqual(checked['reviewed_attempts'], len(new_rows))
+                self.assertEqual(checked['review_protocol']['matrix_refresh_review']['retained_attempts'], len(rows) - (mode != 'new'))
+                self.assertTrue(valid_scoring_revision(current))
+                for file in ('dataset.json', 'results.jsonl'):
+                    self.assertEqual((current / file).read_bytes(), before[file])
 
     def test_matrix_refresh_stages_blind_review_before_full_anomaly_investigation(self):
         with tempfile.TemporaryDirectory() as directory:
