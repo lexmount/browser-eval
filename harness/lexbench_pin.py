@@ -25,13 +25,18 @@ def _subdirectory(value: str) -> str:
     return value
 
 
-def project_pin(project: dict, name: str = NAME) -> tuple[str, str, str]:
+def _project_dependency(project: dict, name: str) -> str:
     matches = [item for item in project["project"]["dependencies"]
                if re.match(rf"^{re.escape(name)}\s*@", item)]
     if len(matches) != 1:
         raise ValueError("Expected one direct LexBench Git dependency. " + HINT)
+    return matches[0]
+
+
+def project_pin(project: dict, name: str = NAME) -> tuple[str, str, str]:
     match = re.fullmatch(
-        rf"{re.escape(name)}\s*@\s*git\+([^#]+)@([0-9a-f]{{40}})(?:#(.*))?", matches[0])
+        rf"{re.escape(name)}\s*@\s*git\+([^#]+)@([0-9a-f]{{40}})(?:#(.*))?",
+        _project_dependency(project, name))
     if not match:
         raise ValueError("LexBench must use a full immutable Git commit. " + HINT)
     fragment = parse_qs(match.group(3) or '', keep_blank_values=True)
@@ -124,7 +129,7 @@ def bump(root: Path, revision: str, *, uv: str = "uv", benchmark: str = NAME,
          repository: str | None = None, subdirectory: str | None = None) -> list[str]:
     project_path = root / "pyproject.toml"
     text = project_path.read_text()
-    old_repository, old_revision, old_directory = project_pin(tomllib.loads(text), benchmark)
+    old_repository, _old_revision, old_directory = project_pin(tomllib.loads(text), benchmark)
     repository = repository if repository is not None else old_repository
     directory = _subdirectory(subdirectory if subdirectory is not None else old_directory)
     relative_binding = 'evaluation/' + benchmark + '.json'
@@ -138,15 +143,14 @@ def bump(root: Path, revision: str, *, uv: str = "uv", benchmark: str = NAME,
         (project / "evaluation").mkdir()
         for name in ("uv.lock", ".python-version", "README.md", "LICENSE"):
             shutil.copyfile(root / name, project / name)
-        old_url = f"git+{old_repository}@{old_revision}"
-        if old_directory:
-            old_url += '#subdirectory=' + old_directory
-        if text.count(old_url) != 1:
+        declaration = _project_dependency(tomllib.loads(text), benchmark)
+        if text.count(declaration) != 1:
             raise ValueError("Ambiguous dependency declaration")
         new_url = f"git+{repository}@{revision}"
         if directory:
             new_url += '#subdirectory=' + directory
-        (project / "pyproject.toml").write_text(text.replace(old_url, new_url))
+        updated = declaration[:declaration.index('git+')] + new_url
+        (project / "pyproject.toml").write_text(text.replace(declaration, updated))
         run([uv, "lock", "--project", str(project)], project)
         run([uv, "sync", "--frozen", "--no-install-project", "--project", str(project)], project)
         definitions = Path(run([
