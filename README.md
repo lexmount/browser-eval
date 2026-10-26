@@ -12,7 +12,7 @@
 
 </div>
 
-Browser Eval evaluates Web Fetch, fixed browser trajectories and autonomous Browser Use, with Web Search available in preview. Compare task results, latency and resource use through shared adapters, saved evidence and inspectable reports.
+Browser Eval is an evaluation harness for browsers and web agents. Connect a benchmark and a browser or service adapter to run tasks, record responses and timing, apply the benchmark's scoring rules, and generate comparison reports with the original evidence.
 
 ## Evaluation tracks
 

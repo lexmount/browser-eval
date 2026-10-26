@@ -12,7 +12,7 @@
 
 </div>
 
-Browser Eval 支持 Web Fetch、固定轨迹重放和自主 Browser Use 评测，并提供 Web Search 预览实现。通过共用的适配器、保存的证据和可查阅的报告，比较任务结果、延迟与资源用量。
+Browser Eval 是面向浏览器和 Web Agent 的评测脚手架（evaluation harness）。接入评测集和浏览器或服务适配器后，就能运行任务、记录响应和耗时、按评测集的规则评分，并生成带原始证据的对比报告。
 
 ## 评测流程
 
