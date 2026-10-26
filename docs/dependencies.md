@@ -10,6 +10,15 @@ Install the base CLI with `uv sync --frozen`. Add only the extras needed by your
 
 Use the declared Git source for the evaluator. A registry package with the same name and version may contain different code.
 
+## Core task and parsing dependencies
+
+| Dependency | Role | Version authority |
+| --- | --- | --- |
+| [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Task model, catalogs, deterministic acceptance scoring and frozen input validation | Immutable Git revision in `pyproject.toml` and `uv.lock`; [benchmark integration](benchmarks.md) |
+| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Query definitions, provenance, source qualifications and retrieval scoring | Immutable Git revision in `pyproject.toml` and `uv.lock`; [Search guide](../harness/web_search/README.md) |
+| [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) | HTML parsing | `pyproject.toml` and `uv.lock` |
+| [FastCDC](https://github.com/iscc/fastcdc-py) | Content chunking | `pyproject.toml` and `uv.lock` |
+
 ## Git-based runtime dependencies
 
 | Dependency | Repository and relevant branch | Required source |

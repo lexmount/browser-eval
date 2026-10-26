@@ -114,10 +114,10 @@ The archive excludes `.git`, untracked files and local installations. Extract it
 
 </details>
 
-Optional Claude review requires `ENABLE_CLAUDE_REVIEW=true` and `CLAUDE_CODE_OAUTH_TOKEN`. Ordinary CI needs neither. Review uses disposable GitHub-hosted runners.
-
 ## License
 
-Contributions use the [Apache License 2.0](LICENSE). Preserve third-party licenses, copyright notices and source attributions described in [THIRD_PARTY](THIRD_PARTY.md).
+Contributions use the [Apache License 2.0](LICENSE). Contributors retain copyright in their contributions; submitting a contribution grants the applicable license and does not transfer ownership to LexMount. Preserve existing copyright notices and third-party terms described in [THIRD_PARTY](THIRD_PARTY.md).
 
-Version changes require an explicit human release request. Code synchronization, review fixes, tests and report rebuilds must not automatically bump package, benchmark or report edition numbers, rewrite frozen release catalogs, or create/push release tags. Reuse existing build versions and record source hashes; keep unreleased changes separate from a certified edition.
+## Software releases
+
+Follow the [release guide](docs/releases.md) for software compatibility, version changes and release checks. Benchmark editions and report builds have separate identities. Routine review fixes and report rebuilds retain the current version; bump versions and publish tags only for an explicitly requested release.
