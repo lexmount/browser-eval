@@ -685,7 +685,10 @@ def _terminate_capture_processes(process, diagnostics, signalled=None):
                 pass
     for pid in owned - browser_pids - {process.pid}:
         try:
-            os.kill(pid, signal.SIGKILL)
+            if os.getpgid(pid) == pid:
+                os.killpg(pid, signal.SIGKILL)
+            else:
+                os.kill(pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
     if process.pid in owned:

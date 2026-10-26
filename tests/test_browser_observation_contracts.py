@@ -464,7 +464,7 @@ def test_hard_timeout_signals_only_currently_owned_children_once(monkeypatch, re
         os.killpg(pid, sig)
     monkeypatch.setattr(capture.subprocess, 'Popen', worker)
     monkeypatch.setattr(capture.subprocess, 'check_output', process_table)
-    monkeypatch.setattr(capture, 'os', SimpleNamespace(name='posix', environ=os.environ,
+    monkeypatch.setattr(capture, 'os', SimpleNamespace(name='posix', environ=os.environ, getpgid=lambda pid: started[0],
         kill=lambda pid, sig: signals.append((pid, sig)), killpg=terminate_group))
     monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', 'import time; time.sleep(30)')
     result = capture._capture_in_process(case_with(), 20, 1)
@@ -493,7 +493,7 @@ def test_timeout_does_not_signal_closed_browser_receipts_or_unowned_reused_pids(
         log += f'2026-10-26T00:00:01Z pw:browser [pid={unrelated}] <process did exit: exitCode=0, signal=null>\n'
     monkeypatch.setattr(capture.subprocess, 'Popen', worker)
     monkeypatch.setattr(capture.subprocess, 'check_output', processes)
-    monkeypatch.setattr(capture, 'os', SimpleNamespace(name='posix', environ=os.environ,
+    monkeypatch.setattr(capture, 'os', SimpleNamespace(name='posix', environ=os.environ, getpgid=os.getpgid,
         kill=lambda pid, sig: signalled.append((pid, sig)), killpg=os.killpg))
     monkeypatch.setattr(capture, '_CAPTURE_PROGRAM',
         f'import sys,time; sys.stderr.write({log!r}); sys.stderr.flush(); time.sleep(30)')
@@ -577,7 +577,7 @@ time.sleep(30)
         os.killpg(pid, sig)
     monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', program)
     monkeypatch.setattr(capture.subprocess, 'check_output', unavailable)
-    monkeypatch.setattr(capture, 'os', SimpleNamespace(name='posix', environ=os.environ,
+    monkeypatch.setattr(capture, 'os', SimpleNamespace(name='posix', environ=os.environ, getpgid=os.getpgid,
         kill=os.kill, killpg=kill_group))
     try:
         result = capture._capture_in_process(case_with(), 20, 1)
@@ -669,3 +669,58 @@ def test_unrelated_live_pid_in_stale_receipt_survives_failed_discovery(monkeypat
             assert unrelated.poll() is None, 'unrelated process killed by stale launch receipt'
         finally:
             unrelated.kill()
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='POSIX late browser descendants')
+def test_delayed_launch_receipt_cleans_children_created_after_snapshot(tmp_path, monkeypatch):
+    import signal
+    import subprocess
+    import time
+
+    trigger = tmp_path / 'spawn-child'
+    browser_pid = tmp_path / 'browser.pid'
+    child_pid = tmp_path / 'child.pid'
+    browser_program = f'''import os,subprocess,sys,time
+from pathlib import Path
+Path({str(browser_pid)!r}).write_text(str(os.getpid()))
+while not Path({str(trigger)!r}).exists(): time.sleep(.01)
+child=subprocess.Popen([sys.executable,'-c','import os,signal,time; os.kill(os.getpid(),signal.SIGSTOP); time.sleep(30)'])
+Path({str(child_pid)!r}).write_text(str(child.pid))
+print(f'2026-10-26T00:00:00Z pw:browser <launched> pid={{os.getpid()}}',file=sys.stderr,flush=True)
+time.sleep(30)
+'''
+    program = f'''import subprocess,sys,time
+subprocess.Popen([sys.executable,'-c',{browser_program!r}], start_new_session=True)
+time.sleep(30)
+'''
+    snapshot = subprocess.check_output
+    def delayed_snapshot(*args, **kwargs):
+        table = snapshot(*args, **kwargs)
+        if browser_pid.exists() and not trigger.exists():
+            trigger.touch()
+            deadline = time.monotonic() + 1
+            while not child_pid.exists() and time.monotonic() < deadline:
+                time.sleep(.01)
+            time.sleep(.05)
+        return table
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', program)
+    monkeypatch.setattr(capture.subprocess, 'check_output', delayed_snapshot)
+    try:
+        result = capture._capture_in_process(case_with(), 20, 1)
+        assert result['status'] == 'failure'
+        pid = int(child_pid.read_text())
+        deadline = time.monotonic() + 2
+        while True:
+            state = subprocess.run(['ps', '-o', 'stat=', '-p', str(pid)],
+                capture_output=True, text=True, timeout=1).stdout.strip()
+            if not state or state.startswith('Z'):
+                break
+            assert time.monotonic() < deadline, 'late browser child survived cleanup'
+            time.sleep(.02)
+    finally:
+        for path in (child_pid, browser_pid):
+            if path.exists():
+                try:
+                    os.kill(int(path.read_text()), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
