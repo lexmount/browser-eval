@@ -858,3 +858,40 @@ def test_unknown_reference_mode_is_not_hidden_by_a_stable_contract():
             'version': 1, 'schema': 'body_text', 'minimum_records': 0,
             'stable_text_anchors': [{'id': 'title', 'alternatives': ['Article']}]},
             'source_verification': {'reference_mode': 'live_excat'}})
+
+
+def test_original_scope_certificate_survives_unchanged_inputs_but_rejects_rule_changes(tmp_path):
+    from harness.web_fetch.reference_freeze import load_browser_observations
+    fixture = json.loads((Path(__file__).parent / 'fixtures/legacy-live-reference.json').read_text())
+    for relative, text in fixture['files'].items():
+        target = tmp_path / relative; target.parent.mkdir(parents=True, exist_ok=True); target.write_text(text)
+    dataset = json.loads((tmp_path / 'dataset.json').read_text())
+    case = EvalCase(**dataset['cases'][0])
+    manifest = json.loads((tmp_path / 'manifest.json').read_text())
+    # The runner may serialize its saved dataset differently from the input file.
+    manifest['dataset_sha256'] = sha256(json.dumps(dataset, indent=4))
+    (tmp_path / 'manifest.json').write_text(json.dumps(manifest))
+    observation = tmp_path / 'browser-observation.json'
+    observation.write_text(json.dumps({case.id: fixture['observation']}))
+    assert load_browser_observations(dataset, path=observation)[case.id] == fixture['observation']
+    require_verified_reference_checks([manifest], cases=[case], source=tmp_path)
+    require_verified_reference_checks([manifest], cases=[case], source=tmp_path, equivalent_capture_bindings=True)
+    for field in ('acceptance_contract', 'body_requirements', 'composite_acceptance'):
+        changed = replace(case, **{field: {'required_fields': ['changed']}})
+        with pytest.raises(ReferenceLifecycleError):
+            require_verified_reference_checks([manifest], cases=[changed], source=tmp_path)
+        with pytest.raises(ReferenceLifecycleError):
+            rescore_evaluation(run_dir=tmp_path, dataset_meta={**dataset, 'cases': [changed.__dict__]},
+                dataset_path=tmp_path / 'dataset.json', cases=[changed])
+    rescore_evaluation(run_dir=tmp_path, dataset_meta=dataset, dataset_path=tmp_path / 'dataset.json', cases=[case])
+    require_verified_reference_checks([manifest], cases=[case], source=tmp_path)
+
+    from harness.web_fetch.artifacts import materialize_reference_checks
+    packaged = tmp_path / 'package'; packaged.mkdir()
+    (packaged / 'dataset.json').write_text(json.dumps({**dataset, 'presentation': 'new'}))
+    materialize_reference_checks(packaged, tmp_path, [manifest])
+    require_verified_reference_checks([manifest], cases=[case], source=packaged)
+    original_input = next(packaged.glob('reference-checks/dataset-*.json'))
+    original_input.write_text(original_input.read_text() + ' ')
+    with pytest.raises(ReferenceLifecycleError):
+        require_verified_reference_checks([manifest], cases=[case], source=packaged)

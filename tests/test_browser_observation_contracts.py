@@ -412,6 +412,8 @@ def test_worker_launch_failure_is_checkpointed_without_aborting_the_batch(tmp_pa
     original = capture.subprocess.Popen
     calls = []
     def launch(*args, **kwargs):
+        if capture._CAPTURE_PROGRAM not in args[0]:
+            return original(*args, **kwargs)
         calls.append(1)
         if len(calls) == 1:
             raise OSError('controlled process launch failure')
@@ -606,6 +608,8 @@ def test_worker_pipe_error_is_checkpointed_and_next_case_runs(tmp_path, monkeypa
     launch = capture.subprocess.Popen
     workers = []
     def start(*args, **kwargs):
+        if capture._CAPTURE_PROGRAM not in args[0]:
+            return launch(*args, **kwargs)
         process = launch(*args, **kwargs)
         if not workers:
             communicate = process.communicate
@@ -724,3 +728,34 @@ time.sleep(30)
                     os.kill(int(path.read_text()), signal.SIGKILL)
                 except ProcessLookupError:
                     pass
+
+
+@pytest.mark.parametrize('pgrep_status', [0, 1, 2])
+def test_batch_requires_working_process_discovery_before_launch(monkeypatch, pgrep_status):
+    from types import SimpleNamespace
+    launches = []
+    monkeypatch.setattr(capture, '_capture_process_snapshot', lambda: {})
+    monkeypatch.setattr(capture.subprocess, 'run', lambda *a, **kw: SimpleNamespace(returncode=pgrep_status))
+    monkeypatch.setattr(capture, '_capture_in_process', lambda case, *a, **kw: launches.append(case['id']) or {'status': 'success'})
+    def batch():
+        return capture.capture_batch([case_with()], timeout_ms=1000, attempts=1)
+    if pgrep_status in (0, 1):
+        batch(); assert launches
+    else:
+        with pytest.raises(ValueError, match='process discovery'):
+            batch()
+        assert not launches
+
+
+@pytest.mark.skipif(not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'), reason='explicit Chromium required')
+def test_missing_process_tools_reject_real_browser_before_acquisition(monkeypatch):
+    launches = []
+    def unavailable(*args, **kwargs):
+        raise FileNotFoundError('process query unavailable')
+    monkeypatch.setattr(capture.subprocess, 'check_output', unavailable)
+    monkeypatch.setattr(capture.subprocess, 'run', unavailable)
+    monkeypatch.setattr(capture.subprocess, 'Popen', lambda *a, **kw: launches.append(a))
+    with pytest.raises(ValueError, match='process discovery'):
+        capture.capture_batch([case_with()], timeout_ms=20, attempts=1,
+                              browser_binary=os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY'])
+    assert launches == []

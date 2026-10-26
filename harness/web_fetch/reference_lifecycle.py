@@ -204,11 +204,12 @@ def completed_case_records(dataset, case, records):
     return relevant if set(methods) == expected else None
 
 
-def scope_identity(case) -> dict[str, Any]:
+def scope_identity(case, *, version=2) -> dict[str, Any]:
     verification = _get(case, "source_verification", {}) or {}
     benchmark = _get(case, "source_benchmark", {}) or {}
     render = benchmark.get("render_evidence", {})
     return deepcopy({
+        **({"schema_version": 2} if version == 2 else {}),
         "case_id": _get(case, "id"), "url": _get(case, "url"),
         "track": _get(case, "track", "web"), "task_kind": _get(case, "task_kind", "body"),
         "task_prompt": _get(case, "task_prompt", ""),
@@ -224,7 +225,7 @@ def scope_identity(case) -> dict[str, Any]:
             ("acceptance_contract", {}), ("body_requirements", {}),
             ("composite_acceptance", {}))
             if key not in {"acceptance_contract", "body_requirements", "composite_acceptance"}
-            or _get(case, key, default)},
+            or (version == 2 and _get(case, key, default))},
     })
 
 
@@ -445,6 +446,7 @@ def evaluation_scope_identity(case) -> dict[str, Any]:
     exact selector in each batch's strict binding and postcheck.
     """
     identity = scope_identity(case)
+    identity.pop("schema_version", None)
     identity.pop("selector", None)
     _normalize_draft_mutable_body_metadata(identity)
     return identity
@@ -452,6 +454,7 @@ def evaluation_scope_identity(case) -> dict[str, Any]:
 
 def _binding_evaluation_scope_identity(binding: dict) -> dict[str, Any]:
     identity = deepcopy(binding.get("scope_identity", {}))
+    identity.pop("schema_version", None)
     identity.pop("selector", None)
     _normalize_draft_mutable_body_metadata(identity)
     return identity
@@ -683,20 +686,67 @@ def check_case_reference_fresh(case, dataset_path: Path, binding: dict | None, n
         raise ReferenceLifecycleError("Frozen reference binding changed during the run", "reference_changed")
 
 
-def check_case_reference_binding(case, binding: dict) -> None:
+def legacy_reference_dataset(manifest, source=None, dataset_path=None):
+    """Recover omitted legacy rule fields from the original hash-bound input."""
+    bindings = manifest.get('reference_checks', {}).get('cases', {})
+    if not any(row.get('scope_identity', {}).get('schema_version', 1) == 1
+               for row in bindings.values()):
+        return None
+    digests = {digest for digest in (
+        manifest.get('dataset_sha256'),
+        manifest.get('reference_checks', {}).get('postcheck', {}).get('dataset_sha256'))
+        if isinstance(digest, str) and re.fullmatch(r'[0-9a-f]{64}', digest)}
+    candidates = []
+    if source is not None:
+        candidates.extend(Path(source) / f'reference-checks/dataset-{digest}.json' for digest in digests)
+        candidates.append(Path(source) / 'dataset.json')
+    if dataset_path is not None:
+        candidates.append(Path(dataset_path))
+    for path in candidates:
+        if path.is_file() and not path.is_symlink():
+            raw = path.read_bytes()
+            if sha256(raw) in digests:
+                return raw
+    return None
+
+
+def legacy_reference_cases(raw):
+    return {row['id']: row for row in json.loads(raw)['cases']} if raw else {}
+
+
+def preserve_legacy_reference_dataset(manifest, source, output):
+    raw = legacy_reference_dataset(manifest, source)
+    if raw is not None:
+        target = contained_path(output, f'reference-checks/dataset-{sha256(raw)}.json', reject_symlinks=True)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(raw)
+
+
+def check_case_reference_binding(case, binding: dict, *, original_case=None) -> None:
     """Offline rescores must use the original capture; no freshness claim is made."""
+    version = binding.get('scope_identity', {}).get('schema_version', 1)
+    if version not in (1, 2) or (version == 1 and any(
+            _get(case, key, {}) != _get(original_case or {}, key, {})
+            for key in ('acceptance_contract', 'body_requirements', 'composite_acceptance'))):
+        raise ReferenceLifecycleError('Legacy rules differ from the hash-bound original dataset', 'reference_changed')
     reference = _get(case, "ground_truth_main_content", "")
     if (sha256(reference) != binding.get("reference_sha256")
             or sha256(normalize_for_match(reference)) != binding.get("expected_normalized_sha256")
-            or scope_identity(case) != binding.get("scope_identity")
+            or scope_identity(case, version=version) != binding.get("scope_identity")
             or _get(case, "source_verification", {}) != binding.get("source_verification")
             or ("render_evidence" in binding and
                 (_get(case, "source_benchmark", {}) or {}).get("render_evidence") != binding["render_evidence"])):
         raise ReferenceLifecycleError("Rescore requires the original frozen reference and capture binding", "reference_changed")
 
 
-def check_case_equivalent_reference_binding(case, binding: dict) -> None:
+def check_case_equivalent_reference_binding(case, binding: dict, *, original_case=None) -> None:
     """Allow distinct independent captures only when reference bytes and scope are identical."""
+    if binding.get('scope_identity', {}).get('schema_version', 1) == 1 and original_case is not None:
+        binding = deepcopy(binding)
+        binding['scope_identity']['evaluation_contract'].update({
+            key: _get(original_case, key, {})
+            for key in ('acceptance_contract', 'body_requirements', 'composite_acceptance')
+            if _get(original_case, key, {})})
     reference = _get(case, "ground_truth_main_content", "")
     verification = _get(case, "source_verification", {})
     if (sha256(reference) != binding.get("reference_sha256")
@@ -802,8 +852,8 @@ def _selected_records(batch, records, original_elapsed=None):
     return selected
 
 
-def _postcheck_case(binding, case, observation, records, now):
-    check_case_reference_binding(case, binding)
+def _postcheck_case(binding, case, observation, records, now, original_case=None):
+    check_case_reference_binding(case, binding, original_case=original_case)
     if observation.get("independent") is not True:
         raise ReferenceLifecycleError("Observation must attest independent capture, not provider output")
     if observation.get("scope_identity") != binding["scope_identity"]:
@@ -896,6 +946,7 @@ def finalize_reference_checks(run_dir: Path, observations_path: Path, now=None) 
     outcomes = []
     for batch in guarded:
         checks = batch["reference_checks"]
+        original_cases = legacy_reference_cases(legacy_reference_dataset(batch, run_dir))
         results = {}
         try:
             if input_error:
@@ -906,7 +957,7 @@ def finalize_reference_checks(run_dir: Path, observations_path: Path, now=None) 
                     if identifier not in cases:
                         raise ReferenceLifecycleError("Reference case absent from frozen dataset")
                     results[identifier] = _postcheck_case(binding, cases[identifier], observations[identifier],
-                        [r for r in selected if r["case_id"] == identifier], checked)
+                        [r for r in selected if r["case_id"] == identifier], checked, original_cases.get(identifier))
                 except (ReferenceLifecycleError, KeyError, TypeError, ValueError, OverflowError) as error:
                     results[identifier] = {"status": getattr(error, "status", "reference_unverified"), "error": str(error)}
         except (ReferenceLifecycleError, KeyError, TypeError, ValueError, OverflowError) as error:
@@ -1583,6 +1634,7 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
             checks = batch["reference_checks"]
             if not isinstance(checks, dict) or checks.get("status") != "verified":
                 raise ReferenceLifecycleError("Live reference checks are not verified")
+            original_cases = legacy_reference_cases(legacy_reference_dataset(batch, source))
             bindings, post = checks.get("cases"), checks.get("postcheck")
             if (checks.get("schema_version") != 1
                     or checks.get("max_age_seconds") != MAX_REFERENCE_AGE_SECONDS
@@ -1660,9 +1712,9 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
                     elif allow_scoring_rule_revision:
                         check_case_scoring_revision_binding(case_map[identifier], binding)
                     elif equivalent_capture_bindings:
-                        check_case_equivalent_reference_binding(case_map[identifier], binding)
+                        check_case_equivalent_reference_binding(case_map[identifier], binding, original_case=original_cases.get(identifier))
                     else:
-                        check_case_reference_binding(case_map[identifier], binding)
+                        check_case_reference_binding(case_map[identifier], binding, original_case=original_cases.get(identifier))
                 relevant = [r for r in selected if r["case_id"] == identifier] if selected is not None else None
                 if relevant is not None:
                     if not relevant:

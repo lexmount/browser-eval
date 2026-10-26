@@ -41,6 +41,8 @@ from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 from .reference_lifecycle import (
     ReferenceLifecycleError,
     check_case_reference_binding,
+    legacy_reference_dataset,
+    legacy_reference_cases,
     check_case_reference_fresh,
     is_diagnostic_evidence,
     preflight_reference_checks,
@@ -1007,6 +1009,8 @@ def rescore_evaluation(
         cases = [case_by_id[identifier] for identifier in selected_ids]
     # Validate the entire batch before touching metrics, datasets or results.
     # Historical records without a binding retain the legacy rescore behavior.
+    legacy_input = legacy_reference_dataset(manifest, run_dir, dataset_path)
+    original_cases = legacy_reference_cases(legacy_input)
     bindings = manifest.get("reference_checks", {}).get("cases", {})
     for record in records:
         if "reference_sha256" in record.get("metrics", {}) or record["case_id"] in bindings:
@@ -1015,7 +1019,7 @@ def rescore_evaluation(
             if (binding is None or case is None
                     or record.get("metrics", {}).get("reference_sha256") != binding["reference_sha256"]):
                 raise ReferenceLifecycleError("Rescore has no matching original reference binding")
-            check_case_reference_binding(case, binding)
+            check_case_reference_binding(case, binding, original_case=original_cases.get(case.id))
     for record in records:
         case = case_by_id.get(record["case_id"])
         if case is None:
@@ -1034,6 +1038,10 @@ def rescore_evaluation(
         apply_request_status(record)
         record["metrics"]["deadline_overrun"] = previous_deadline
 
+    if legacy_input is not None:
+        legacy_path = contained_path(run_dir, f'reference-checks/dataset-{hashlib.sha256(legacy_input).hexdigest()}.json', reject_symlinks=True)
+        legacy_path.parent.mkdir(parents=True, exist_ok=True)
+        legacy_path.write_bytes(legacy_input)
     tmp = run_dir / "results.jsonl.tmp"
     tmp.write_text("".join(json.dumps(record, ensure_ascii=True) + "\n" for record in records), encoding="utf-8")
     tmp.replace(run_dir / "results.jsonl")

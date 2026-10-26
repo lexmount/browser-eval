@@ -418,3 +418,54 @@ def test_batch_writes_every_case_before_failing_closed(tmp_path, monkeypatch):
     assert set(rows) == {'unreachable', 'reachable'}
     assert rows['unreachable']['status'] == 'failure'
     assert rows['reachable']['status'] == 'success'
+
+
+@pytest.mark.skipif(not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'), reason='explicit Chromium required')
+@pytest.mark.parametrize('missing', [None, 'text', 'image'])
+def test_mixed_live_resource_capture_freezes_text_and_preserves_resource_checks(tmp_path, missing):
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+    from datetime import datetime, timezone
+    import hashlib
+    from harness.web_fetch.reference_freeze import compute_reference_update
+    from harness.web_fetch.reference_lifecycle import preflight_reference_checks
+
+    class Page(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = ('' if missing == 'text' else '<article>Required article anchor</article>')
+            body += '' if missing == 'image' else '<img src="/photo.png">'
+            self.send_response(200); self.send_header('Content-Type', 'text/html'); self.end_headers()
+            self.wfile.write(('<body>' + body + '</body>').encode())
+        def log_message(self, *args): pass
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Page)
+    thread = Thread(target=server.serve_forever, daemon=True); thread.start()
+    url = f'http://127.0.0.1:{server.server_port}/'
+    evidence = {'case_id': 'mixed', 'url': url, 'source': 'Independent HTTP; no provider output',
+        'state': 'captured', 'status': 200, 'checked_at': datetime.now(timezone.utc).isoformat(),
+        'resources': [{'tag': 'img', 'url': url + 'photo.png'}]}
+    folder = tmp_path / 'sources/mixed'; folder.mkdir(parents=True)
+    raw = json.dumps(evidence).encode(); (folder / 'evidence.json').write_bytes(raw)
+    (tmp_path / 'audit.json').write_text('[]')
+    case = {'id': 'mixed', 'url': url, 'track': 'image', 'task_kind': 'resource',
+        'ground_truth_main_content': 'Required article anchor',
+        'required_facts': [{'id': 'body', 'alternatives': ['Required article anchor']}],
+        'expected_resources': [{'id': 'photo', 'urls': [url + 'photo.png']}],
+        'source_verification': {'reference_mode': 'live_exact', 'observation_route': 'browser',
+            'state': 'valid', 'method': 'Independent browser', 'checked_at': evidence['checked_at'],
+            'evidence_path': 'sources/mixed/evidence.json', 'evidence_sha256': hashlib.sha256(raw).hexdigest()}}
+    def freeze():
+        row = browser_capture.capture(case, 3000, os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY'])
+        frozen, _, _ = compute_reference_update({'cases': [case]}, tmp_path, {'mixed': row})
+        path = tmp_path / 'dataset.json'; path.write_text(json.dumps(frozen))
+        checks = preflight_reference_checks(frozen['cases'], path)
+        assert checks['cases']['mixed']['reference_sha256']
+        assert frozen['cases'][0]['ground_truth_main_content'] == 'Required article anchor'
+        assert row['target_matches'][0]['satisfied']
+    try:
+        if missing:
+            with pytest.raises((ValueError, TimeoutError)):
+                freeze()
+        else:
+            freeze()
+    finally:
+        server.shutdown(); server.server_close(); thread.join()

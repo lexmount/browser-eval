@@ -142,7 +142,7 @@ def load_browser_observations(dataset, path=None, directory=None):
     for cid,row in observations.items():
         if not isinstance(row,dict) or row.get('case_id')!=cid:
             raise ValueError('Browser observation case ID mismatch: '+cid)
-        if row.get('scope_identity')!=scope_identity(cases[cid]):
+        if row.get('scope_identity')!=scope_identity(cases[cid], version=row.get('scope_identity', {}).get('schema_version', 1)):
             raise ValueError('Browser observation scope identity mismatch: '+cid)
         binary=(row.get('observer') or {}).get('binary')
         if (not isinstance(binary,str) or Path(binary).is_absolute()

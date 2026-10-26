@@ -33,6 +33,7 @@ from harness.web_fetch.reference_lifecycle import (
     _resource_target_matches,
     resource_source_scope_identity,
     scope_identity,
+    requires_fresh_reference,
 )
 from lexbench_webfetch.paths import safe_identifier
 from harness.web_fetch.source_capture import extract_html
@@ -309,6 +310,8 @@ def capture(
     if resolved_ip is not None:
         resolved_ip = public_ip(resolved_ip)
     frames = []
+    captured = None
+    capture_text = case.get("task_kind") != "resource" or requires_fresh_reference(case)
     dns_metadata = {"dns_mode": dns_mode}
     browser_version = None
     primary_response_server_addr = None
@@ -353,7 +356,7 @@ def capture(
             if case.get("task_kind") == "resource":
                 captured = capture_resource_observation(page, case, timeout_ms, begin)
                 final_url, title = page.url, page.title()
-            else:
+            if capture_text:
                 page.wait_for_function(
                     "([selector, minimum]) => "
                     "document.querySelectorAll(selector).length >= minimum",
@@ -440,7 +443,7 @@ def capture(
         "primary_response_server_addr": primary_response_server_addr,
         **dns_metadata,
     }
-    if case.get("task_kind") == "resource":
+    if not capture_text:
         return {
             "case_id": case["id"],
             "status": "success",
@@ -471,6 +474,9 @@ def capture(
         "content_text": content,
         "selector": policy.description,
         "capture_policy": asdict(policy),
+        **({key: value for key, value in captured.items()
+            if key not in {"content_text", "selector", "observation_method", "observed_records", "completion"}}
+           if captured is not None else {}),
         "observation_method": observation_method,
         **(
             {"outer_html": outer_html, "settle_budget_ms": 2000, "visible_frames": frames}
@@ -482,6 +488,7 @@ def capture(
         "observer": observer,
         "completion": {
             "satisfied": bool(normalized)
+            and (captured is None or captured["completion"]["satisfied"])
             and elapsed <= timeout_ms
             and all(frame["status"] == "success" for frame in frames)
             and (
@@ -809,6 +816,15 @@ def capture_batch(
         raise ValueError("Checkpoint reuse requires an explicit browser binary")
     if browser_binary:
         browser_binary = str(Path(browser_binary).resolve())
+    if not _capture_process_snapshot():
+        try:
+            discovery = subprocess.run(["pgrep", "-f", "--", "--user-data-dir="],
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1)
+            usable = discovery.returncode in (0, 1)
+        except (OSError, subprocess.SubprocessError):
+            usable = False
+        if not usable:
+            raise ValueError("Browser capture requires working ps or pgrep process discovery")
     sources = capture_source_identity()
     binary_sha = (
         hashlib.sha256(Path(browser_binary).read_bytes()).hexdigest() if browser_binary else None
