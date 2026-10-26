@@ -20,13 +20,14 @@ Browser Eval 是面向浏览器和 Web Agent 的可扩展评测框架，将任�
 
 | 流程 | 测什么 | 使用指南 |
 | --- | --- | --- |
+| Web Search / SERP | 比较搜索结果、相关性、耗时和费用 | [离线示例](../examples/web_search/README.md) · [专项指南](../harness/web_search/README.md) |
 | Web Fetch | 获取任务要求的网页正文、记录、资源或文件 | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
 | 轨迹重放 | 比较不同浏览器能否完成同一组录制动作 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | 让 Agent 使用不同浏览器完成任务 | [CowAgent + WebArena](../examples/browser_use/README.md) |
 
 Web Fetch 支持本地浏览器、在线服务和提取工具。可用方法见[适配器说明](../docs/provider-contract.md)，安装要求见[依赖说明](../docs/dependencies.md)。轨迹重放和 Browser Use 各有自己的运行入口与环境。
 
-题目和评分规则来自选定的评测集：[LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、WebMainBench、WCXB 或 WebArena。接入方式见[评测集指南](../docs/benchmarks.md)。
+题目和评分规则来自选定的评测集：[LexBench Web Search](https://github.com/lexmount/lexbench-websearch)、[LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、WebMainBench、WCXB 或 WebArena。接入方式见[评测集指南](../docs/benchmarks.md)。
 
 ## 快速开始
 

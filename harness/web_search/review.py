@@ -21,6 +21,7 @@ from threading import Event
 
 from .core import normalize_response
 from .diagnostics import error_evidence
+from harness.reporting.publication import atomic_write
 
 
 def sha(data):
@@ -32,7 +33,6 @@ def encoded(value):
 
 
 def save(path, value):
-    from harness.reporting.publication import atomic_write
     atomic_write(path, encoded(value))
 
 
@@ -195,11 +195,13 @@ def make_cases(profile, rows, report):
     hydrated, failures = [], {}
     for row in rows:
         path = report / row["evidence"]["path"]
-        if (path.is_symlink() or not path.is_file()
-                or sha(path.read_bytes()) != row["evidence"]["sha256"]):
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("Raw evidence changed")
+        raw = path.read_bytes()
+        if sha(raw) != row["evidence"]["sha256"]:
             raise ValueError("Raw evidence changed")
         try:
-            payload = json.loads(path.read_bytes())
+            payload = json.loads(raw)
         except ValueError:
             if row["http_status"] == 200 and not row["error"]:
                 raise ValueError("Successful response is not JSON: " + row["id"])
@@ -721,6 +723,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
 
     active = {}
     active_lock = threading.Lock()
+    stopping = Event()
     # Runtime credentials must never become retained review evidence.
     stale_auth = root / "codex-home" / "auth.json"
     stale_auth.unlink(missing_ok=True)
@@ -736,6 +739,8 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
     rate_limited = Event()
 
     def execute_locked(entry):
+        if stopping.is_set():
+            return entry["id"], "interrupted"
         if _successful(root, entry, contract):
             return entry["id"], "reused"
         job = root / "jobs" / entry["id"]
@@ -765,11 +770,16 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
             "command": command,
         }
         with (attempt / "stdout.log").open("wb") as out, (attempt / "stderr.log").open("wb") as err:
-            process = subprocess.Popen(
-                command, stdin=subprocess.PIPE, stdout=out, stderr=err, start_new_session=True,
-                env={**{k: v for k, v in os.environ.items() if k in {"PATH", "TMPDIR", "LANG", "LC_ALL"}}, "CODEX_HOME": str(isolated_home.resolve()), "HOME": runtime.name}
-            )
             with active_lock:
+                if stopping.is_set():
+                    state.update(status="interrupted", returncode=None)
+                    save(attempt / "status.json", state)
+                    save(job / "status.json", state)
+                    return entry["id"], "interrupted"
+                process = subprocess.Popen(
+                    command, stdin=subprocess.PIPE, stdout=out, stderr=err, start_new_session=True,
+                    env={**{k: v for k, v in os.environ.items() if k in {"PATH", "TMPDIR", "LANG", "LC_ALL"}}, "CODEX_HOME": str(isolated_home.resolve()), "HOME": runtime.name}
+                )
                 active[entry["id"]] = (process, job / "status.json", state)
             state["pid"] = process.pid
             save(job / "status.json", state)
@@ -791,13 +801,14 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
                 if process.returncode != 0:
                     raise ValueError("Codex exited unsuccessfully")
                 validate_result(packet, json.loads(result_path.read_bytes()), entry["sha256"], source_mode=_source_mode(contract))
-                (job / "result.json").write_bytes(result_path.read_bytes())
+                atomic_write(job / "result.json", result_path.read_bytes())
                 state.update(status="completed", result_sha256=sha(result_path.read_bytes()))
             except (subprocess.TimeoutExpired, ValueError, OSError) as error:
                 if process.poll() is None:
                     os.killpg(process.pid, signal.SIGKILL)
                     process.wait()
-                state.update(status="failed", returncode=process.returncode, error=str(error))
+                state.update(status="interrupted" if stopping.is_set() else "failed",
+                             returncode=process.returncode, error=str(error))
             with active_lock:
                 active.pop(entry["id"], None)
             state["finished_at"] = time.time()
@@ -847,13 +858,15 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         return [results[entry["id"]] for entry in entries if entry["id"] in results]
     finally:
         with active_lock:
+            stopping.set()
             remaining = list(active.values())
-        for process, path, state in remaining:
+        for process, _, _ in remaining:
             if process.poll() is None:
-                os.killpg(process.pid, signal.SIGKILL)
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
                 process.wait()
-            state.update(status="interrupted", returncode=process.returncode)
-            save(path, state)
         pool.shutdown(wait=True, cancel_futures=True)
         runtime.cleanup()
 
