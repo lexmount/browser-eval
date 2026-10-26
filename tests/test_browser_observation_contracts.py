@@ -596,3 +596,43 @@ time.sleep(30)
                 os.kill(int(pid_file.read_text()), signal.SIGKILL)
             except ProcessLookupError:
                 pass
+
+
+@pytest.mark.parametrize('failure_call', [1, 2])
+def test_worker_pipe_error_is_checkpointed_and_next_case_runs(tmp_path, monkeypatch, failure_call):
+    launch = capture.subprocess.Popen
+    workers = []
+    def start(*args, **kwargs):
+        process = launch(*args, **kwargs)
+        if not workers:
+            communicate = process.communicate
+            calls = []
+            def fail_pipe(*args, **kwargs):
+                calls.append(1)
+                if len(calls) == failure_call:
+                    raise OSError('controlled worker pipe failure')
+                return communicate(*args, **kwargs)
+            process.communicate = fail_pipe
+        workers.append(process)
+        return process
+    monkeypatch.setattr(capture.subprocess, 'Popen', start)
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM',
+        'import json,sys,time; p=json.load(sys.stdin); '
+        'time.sleep(30 if p["case"]["id"]=="new-task" else 0); '
+        'print(json.dumps(dict(case_id=p["case"]["id"],status="success",completion=dict(satisfied=True))))')
+    binary = tmp_path / 'browser'
+    binary.write_bytes(b'fixture binary')
+    try:
+        result = capture.capture_batch([case_with(), {**case_with(), 'id': 'next-task'}],
+            timeout_ms=20, attempts=1, browser_binary=str(binary), checkpoints=tmp_path / 'checkpoints')
+        assert result['new-task']['status'] == 'failure'
+        assert result['new-task']['attempt_errors'][0]['type'] == 'OSError'
+        assert 'controlled worker pipe failure' in result['new-task']['attempt_errors'][0]['message']
+        assert result['next-task']['status'] == 'success'
+        assert len(list((tmp_path / 'checkpoints').glob('*.json'))) == 2
+        assert workers[0].poll() is not None
+    finally:
+        for process in workers:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=2)

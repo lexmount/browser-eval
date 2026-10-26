@@ -704,37 +704,50 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
     except OSError as error:
         message, error_type = str(error), type(error).__name__
     else:
-        with ExitStack() as cleanup:
-            for pipe in (process.stdin, process.stdout, process.stderr):
-                if pipe is not None:
-                    cleanup.callback(pipe.close)
-            try:
-                stdout, stderr = process.communicate(json.dumps(payload), timeout=budget)
-                _terminate_capture_processes(process, stderr)
-                if process.returncode:
-                    raise RuntimeError(stderr[-1000:] or f"Capture worker exited {process.returncode}")
-                result = json.loads(stdout)
-                if not isinstance(result, dict) or result.get('case_id') != case['id']:
-                    raise ValueError("Capture worker returned another case")
-                return result
-            except subprocess.TimeoutExpired as error:
-                partial = error.stderr or b""
-                diagnostics = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
-                signalled = _terminate_capture_processes(process, diagnostics)
+        signalled = set()
+        try:
+            with ExitStack() as cleanup:
+                for pipe in (process.stdin, process.stdout, process.stderr):
+                    if pipe is not None:
+                        cleanup.callback(pipe.close)
                 try:
-                    _stdout, diagnostics = process.communicate(timeout=1)
-                except subprocess.TimeoutExpired as drain_error:
-                    partial = drain_error.stderr or diagnostics
+                    stdout, stderr = process.communicate(json.dumps(payload), timeout=budget)
+                    _terminate_capture_processes(process, stderr, signalled)
+                    if process.returncode:
+                        raise RuntimeError(stderr[-1000:] or f"Capture worker exited {process.returncode}")
+                    result = json.loads(stdout)
+                    if not isinstance(result, dict) or result.get('case_id') != case['id']:
+                        raise ValueError("Capture worker returned another case")
+                    return result
+                except subprocess.TimeoutExpired as error:
+                    partial = error.stderr or b""
                     diagnostics = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
+                    _terminate_capture_processes(process, diagnostics, signalled)
                     try:
-                        process.wait(timeout=1)
-                    except subprocess.TimeoutExpired:
-                        pass
+                        _stdout, diagnostics = process.communicate(timeout=1)
+                    except subprocess.TimeoutExpired as drain_error:
+                        partial = drain_error.stderr or diagnostics
+                        diagnostics = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
+                        try:
+                            process.wait(timeout=1)
+                        except subprocess.TimeoutExpired:
+                            pass
+                    _terminate_capture_processes(process, diagnostics, signalled)
+                    message = f"Browser observation worker exceeded {budget:g}s wall-clock budget"
+                    error_type = "TimeoutError"
+                except (RuntimeError, ValueError) as error:
+                    message, error_type = str(error), type(error).__name__
+        except OSError as error:
+            message, error_type = str(error), type(error).__name__
+            try:
                 _terminate_capture_processes(process, diagnostics, signalled)
-                message = f"Browser observation worker exceeded {budget:g}s wall-clock budget"
-                error_type = "TimeoutError"
-            except (RuntimeError, ValueError) as error:
-                message, error_type = str(error), type(error).__name__
+            except OSError:
+                pass
+            try:
+                process.kill()
+                process.wait(timeout=1)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
     row = _failed_observation(
         case, {"browser": "Chromium", "binary": "explicit" if browser_binary else "Playwright default",
                "dns_mode": dns_mode},
