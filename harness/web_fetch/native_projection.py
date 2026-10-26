@@ -337,7 +337,11 @@ def project_native_answer(payload, declaration, *, historical_scoring_source=Non
         if not isinstance(payload, bytes):
             raise ValueError('Native byte projection requires bytes')
         if kind == 'utf8':
-            return payload.decode('utf-8'), {}
+            try:
+                return payload.decode('utf-8'), {}
+            except UnicodeDecodeError:
+                # Invalid text remains raw evidence, never repaired answer text.
+                return '', {}
         if kind == 'empty':
             return '', {}
         raise ValueError('Unknown native byte projection')

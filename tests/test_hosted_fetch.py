@@ -38,6 +38,31 @@ class HostedFetchTest(unittest.TestCase):
 
 
     @patch('harness.web_fetch.providers.hosted_fetch.request')
+    def test_brightdata_invalid_utf8_retains_response_evidence(self, call):
+        self.case.source_benchmark['input_media_kind'] = 'html_page'
+        raw = b'Invalid UTF-8: \xff'
+        call.return_value = HttpResponse(200, ENDPOINTS['brightdata_unlocker'], {}, raw)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = {'id': 'invalid-utf8', 'cases': [vars(self.case)]}
+            dataset_path = root / 'input.json'
+            dataset_path.write_text(json.dumps(dataset))
+            records, _ = run_evaluation(
+                output_dir=root, dataset_meta=dataset,
+                dataset_path=dataset_path, cases=[self.case],
+                providers=[self.provider('brightdata_unlocker', uniform_native_parameters=True)],
+                provider_config_path=Path('providers.json'), runs=1,
+                timeout=30, delay=0, max_failure_retries=0)
+            record = records[0]
+            self.assertFalse(record['ok'])
+            self.assertEqual(record['error_type'], 'invalid_response')
+            self.assertEqual((root / record['artifact_path']).read_bytes(), b'')
+            metadata = record['provider_metadata']
+            self.assertEqual((root / metadata['raw_response_path']).read_bytes(), raw)
+            self.assertEqual(metadata['raw_response_sha256'], hashlib.sha256(raw).hexdigest())
+            call.assert_called_once()
+
+    @patch('harness.web_fetch.providers.hosted_fetch.request')
     def test_crawl4ai_cloud_errors_and_projection(self, call):
         from harness.web_fetch.native_projection import require_native_answer_projection
         provider = self.provider('crawl4ai_cloud')

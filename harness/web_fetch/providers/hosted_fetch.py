@@ -136,7 +136,10 @@ class HostedFetchProvider(Provider):
         malformed = False
         service_error = False
         if self.type == "brightdata_unlocker":
-            content = response.body.decode("utf-8") if api_ok else ""
+            try:
+                content = response.body.decode("utf-8") if api_ok else ""
+            except UnicodeDecodeError:
+                malformed = True
             metadata["native_answer_projection"] = native_answer_projection(
                 self.type, case, {}, response.status)
             metadata["upstream_http_status_available"] = False
