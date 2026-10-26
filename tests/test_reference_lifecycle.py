@@ -879,11 +879,22 @@ def test_original_scope_certificate_survives_unchanged_inputs_but_rejects_rule_c
     require_verified_reference_checks([manifest], cases=[case], source=tmp_path, equivalent_capture_bindings=True)
     for field in ('acceptance_contract', 'body_requirements', 'composite_acceptance'):
         changed = replace(case, **{field: {'required_fields': ['changed']}})
+        with pytest.raises(ValueError):
+            load_browser_observations({**dataset, 'cases': [changed.__dict__]}, path=observation)
+        if getattr(case, field):
+            removed = replace(case, **{field: {}})
+            with pytest.raises(ValueError):
+                load_browser_observations({**dataset, 'cases': [removed.__dict__]}, path=observation)
         with pytest.raises(ReferenceLifecycleError):
             require_verified_reference_checks([manifest], cases=[changed], source=tmp_path)
         with pytest.raises(ReferenceLifecycleError):
             rescore_evaluation(run_dir=tmp_path, dataset_meta={**dataset, 'cases': [changed.__dict__]},
                 dataset_path=tmp_path / 'dataset.json', cases=[changed])
+    unbound = tmp_path / 'unbound'; unbound.mkdir()
+    unbound_observation = unbound / 'browser-observation.json'
+    unbound_observation.write_bytes(observation.read_bytes())
+    with pytest.raises(ValueError):
+        load_browser_observations(dataset, path=unbound_observation)
     rescore_evaluation(run_dir=tmp_path, dataset_meta=dataset, dataset_path=tmp_path / 'dataset.json', cases=[case])
     require_verified_reference_checks([manifest], cases=[case], source=tmp_path)
 

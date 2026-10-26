@@ -25,6 +25,9 @@ from harness.web_fetch.reference_lifecycle import (
     requires_fresh_reference,
     scope_identity,
     matches_scope_identity,
+    check_case_reference_binding,
+    legacy_reference_dataset,
+    legacy_reference_cases,
     timestamp,
     validate_postcheck_observation,
 )
@@ -141,11 +144,26 @@ def load_browser_observations(dataset, path=None, directory=None):
     unknown=set(observations)-set(cases)
     if unknown:
         raise ValueError('Unknown browser observation case: '+sorted(unknown)[0])
+    original_manifest={};original_cases={}
+    if any(isinstance(row,dict) and isinstance(row.get('scope_identity',{}),dict)
+           and row.get('scope_identity',{}).get('schema_version',1)==1
+           for row in observations.values()):
+        source=path.parent if path else directory
+        manifest_path=contained_path(source,'manifest.json',reject_symlinks=True)
+        if not manifest_path.is_file():
+            raise ValueError('Legacy browser observations require their original run manifest; capture again with scope version 2')
+        original_manifest=json.loads(manifest_path.read_text())
+        original_cases=legacy_reference_cases(legacy_reference_dataset(original_manifest,source))
     for cid,row in observations.items():
         if not isinstance(row,dict) or row.get('case_id')!=cid:
             raise ValueError('Browser observation case ID mismatch: '+cid)
         if not matches_scope_identity(cases[cid], row.get('scope_identity')):
             raise ValueError('Browser observation scope identity mismatch: '+cid)
+        if row.get('scope_identity',{}).get('schema_version',1)==1:
+            binding=original_manifest.get('reference_checks',{}).get('cases',{}).get(cid)
+            if not isinstance(binding,dict) or binding.get('scope_identity')!=row.get('scope_identity'):
+                raise ValueError('Legacy browser observation differs from its original capture scope: '+cid)
+            check_case_reference_binding(cases[cid],binding,original_case=original_cases.get(cid))
         binary=(row.get('observer') or {}).get('binary')
         if (not isinstance(binary,str) or Path(binary).is_absolute()
                 or PureWindowsPath(binary).drive or '/' in binary or '\\' in binary):
