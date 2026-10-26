@@ -725,9 +725,9 @@ def preserve_legacy_reference_dataset(manifest, source, output):
 def check_case_reference_binding(case, binding: dict, *, original_case=None) -> None:
     """Offline rescores must use the original capture; no freshness claim is made."""
     version = binding.get('scope_identity', {}).get('schema_version', 1)
-    if version not in (1, 2) or (version == 1 and any(
-            _get(case, key, {}) != _get(original_case or {}, key, {})
-            for key in ('acceptance_contract', 'body_requirements', 'composite_acceptance'))):
+    if version not in (1, 2) or (version == 1 and (original_case is None or any(
+            _get(case, key, {}) != _get(original_case, key, {})
+            for key in ('acceptance_contract', 'body_requirements', 'composite_acceptance')))):
         raise ReferenceLifecycleError('Legacy rules differ from the hash-bound original dataset', 'reference_changed')
     reference = _get(case, "ground_truth_main_content", "")
     if (sha256(reference) != binding.get("reference_sha256")
@@ -741,7 +741,9 @@ def check_case_reference_binding(case, binding: dict, *, original_case=None) -> 
 
 def check_case_equivalent_reference_binding(case, binding: dict, *, original_case=None) -> None:
     """Allow distinct independent captures only when reference bytes and scope are identical."""
-    if binding.get('scope_identity', {}).get('schema_version', 1) == 1 and original_case is not None:
+    if binding.get('scope_identity', {}).get('schema_version', 1) == 1:
+        if original_case is None:
+            raise ReferenceLifecycleError('Legacy rules require the hash-bound original dataset', 'reference_changed')
         binding = deepcopy(binding)
         binding['scope_identity']['evaluation_contract'].update({
             key: _get(original_case, key, {})

@@ -895,3 +895,9 @@ def test_original_scope_certificate_survives_unchanged_inputs_but_rejects_rule_c
     original_input.write_text(original_input.read_text() + ' ')
     with pytest.raises(ReferenceLifecycleError):
         require_verified_reference_checks([manifest], cases=[case], source=packaged)
+
+    stripped = replace(case, body_requirements={}, acceptance_contract={}, composite_acceptance={})
+    for equivalent in (False, True):
+        with pytest.raises(ReferenceLifecycleError):
+            require_verified_reference_checks([manifest], cases=[stripped], source=packaged,
+                                              equivalent_capture_bindings=equivalent)
