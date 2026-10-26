@@ -759,13 +759,22 @@ def check_case_reference_binding(case, binding: dict, *, original_case=None) -> 
 
 def check_case_equivalent_reference_binding(case, binding: dict, *, original_case=None) -> None:
     """Allow distinct independent captures only when reference bytes and scope are identical."""
-    if binding.get('scope_identity', {}).get('schema_version', 1) == 1:
+    version = binding.get('scope_identity', {}).get('schema_version', 1)
+    if version not in (1, 2):
+        raise ReferenceLifecycleError('Unsupported reference scope version', 'reference_changed')
+    if version == 1:
         if original_case is None:
             raise ReferenceLifecycleError('Legacy rules require the hash-bound original dataset', 'reference_changed')
         binding = deepcopy(binding)
+        contract = binding['scope_identity']['evaluation_contract']
         for key in ('acceptance_contract', 'body_requirements', 'composite_acceptance'):
-            if _get(original_case, key, {}):
-                binding['scope_identity']['evaluation_contract'].setdefault(key, _get(original_case, key))
+            original = _get(original_case, key, {})
+            if key in contract and contract[key] != original:
+                raise ReferenceLifecycleError('Legacy rules differ from the hash-bound original dataset', 'reference_changed')
+            if original:
+                contract[key] = original
+            else:
+                contract.pop(key, None)
     reference = _get(case, "ground_truth_main_content", "")
     verification = _get(case, "source_verification", {})
     if (sha256(reference) != binding.get("reference_sha256")

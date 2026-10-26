@@ -1,5 +1,4 @@
 """Synthetic clocks and captures only: no network, browsers or real providers."""
-import pytest
 import json
 import tempfile
 import unittest
@@ -9,7 +8,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
 from lexbench_webfetch.models import EvalCase
+
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.reference_lifecycle import (
     ReferenceLifecycleError,
@@ -20,6 +21,7 @@ from harness.web_fetch.reference_lifecycle import (
     preflight_reference_checks,
     require_verified_reference_checks,
     resource_source_scope_identity,
+    scope_identity,
     sha256,
     validate_resource_source_evidence,
 )
@@ -913,3 +915,34 @@ def test_original_scope_certificate_survives_unchanged_inputs_but_rejects_rule_c
         with pytest.raises(ReferenceLifecycleError):
             require_verified_reference_checks([manifest], cases=[stripped], source=packaged,
                                               equivalent_capture_bindings=equivalent)
+
+
+@pytest.mark.parametrize('fixture_name', ['legacy-live-reference.json', 'legacy-contract-reference.json'])
+@pytest.mark.parametrize('field', ['acceptance_contract', 'body_requirements', 'composite_acceptance'])
+def test_equivalent_legacy_capture_rejects_conflicting_embedded_rules(fixture_name, field):
+    fixture = json.loads((Path(__file__).parent / 'fixtures' / fixture_name).read_text())
+    original = EvalCase(**json.loads(fixture['files']['dataset.json'])['cases'][0])
+    manifest = json.loads(fixture['files']['manifest.json'])
+    binding = manifest['reference_checks']['cases'][original.id]
+    before = deepcopy(binding)
+    check_case_equivalent_reference_binding(original, binding, original_case=original)
+    assert binding == before
+
+    changed_rule = {'required_fields': ['a different requirement']}
+    changed = replace(original, **{field: changed_rule})
+    conflicting = deepcopy(binding)
+    conflicting['scope_identity']['evaluation_contract'][field] = changed_rule
+    for check in (check_case_reference_binding, check_case_equivalent_reference_binding):
+        with pytest.raises(ReferenceLifecycleError):
+            check(changed, conflicting, original_case=original)
+
+
+@pytest.mark.parametrize('version', [0, 3])
+def test_equivalent_capture_rejects_unknown_scope_versions(version):
+    fixture = json.loads((Path(__file__).parent / 'fixtures/legacy-live-reference.json').read_text())
+    case = EvalCase(**json.loads(fixture['files']['dataset.json'])['cases'][0])
+    binding = json.loads(fixture['files']['manifest.json'])['reference_checks']['cases'][case.id]
+    binding['scope_identity'] = {**scope_identity(case), 'schema_version': version}
+    for check in (check_case_reference_binding, check_case_equivalent_reference_binding):
+        with pytest.raises(ReferenceLifecycleError):
+            check(case, binding, original_case=case)
