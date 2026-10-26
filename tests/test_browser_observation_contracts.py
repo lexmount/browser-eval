@@ -318,11 +318,12 @@ def test_batch_preserves_browser_path_relative_to_external_caller(tmp_path, monk
 @pytest.mark.skipif(os.name != 'posix' or not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'),
                     reason='POSIX and explicit Chromium required')
 @pytest.mark.parametrize('discovery_failure', [None, 'missing', 'exit', 'timeout'])
-@pytest.mark.parametrize('stalled_process', ['driver', 'browser'])
+@pytest.mark.parametrize('stalled_process', ['driver', 'browser', 'driver-exit'])
 def test_hung_driver_cleanup_removes_owned_chrome_and_preserves_another_browser(tmp_path, monkeypatch, discovery_failure, stalled_process):
     import subprocess
     from playwright.sync_api import sync_playwright
 
+    monkeypatch.setenv('DEBUG_COLORS', '1')
     pid_file = tmp_path / 'owned-browser.json'
     binary = os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY']
     program = f'''
@@ -344,6 +345,8 @@ with sync_playwright() as p:
     children = sorted(children)
     Path({str(pid_file)!r}).write_text(json.dumps(children))
     os.kill(driver if {stalled_process!r} == 'driver' else children[0], signal.SIGSTOP)
+    if {stalled_process!r} == 'driver-exit':
+        os.kill(driver, signal.SIGKILL)
     time.sleep(30)
 '''
     monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', program)
@@ -455,7 +458,7 @@ def test_hard_timeout_signals_only_currently_owned_children_once(monkeypatch, re
     def process_table(*args, **kwargs):
         snapshots.append(1)
         parent = 1 if reused else started[0]
-        return f'{started[0]} 0\n{child} {parent}\n'
+        return f'{started[0]} 0 worker\n{child} {parent} child\n'
     def terminate_group(pid, sig):
         groups.append((pid, sig))
         os.killpg(pid, sig)
@@ -484,7 +487,7 @@ def test_timeout_does_not_signal_closed_browser_receipts_or_unowned_reused_pids(
     def processes(*args, **kwargs):
         if mode == 'exited':
             raise FileNotFoundError('no process listing')
-        return f'{worker_pid[0]} 0\n{unrelated} 1\n'
+        return f'{worker_pid[0]} 0 worker\n{unrelated} 1 unrelated\n'
     log = f'2026-10-26T00:00:00Z pw:browser <launched> pid={unrelated}\n'
     if mode == 'exited':
         log += f'2026-10-26T00:00:01Z pw:browser [pid={unrelated}] <process did exit: exitCode=0, signal=null>\n'
@@ -497,3 +500,42 @@ def test_timeout_does_not_signal_closed_browser_receipts_or_unowned_reused_pids(
     result = capture._capture_in_process(case_with(), 20, 1)
     assert result['status'] == 'failure'
     assert signalled == []
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='POSIX inherited pipe writer')
+def test_surviving_inherited_pipe_writer_does_not_abort_batch_or_checkpointing(tmp_path, monkeypatch):
+    import signal
+    import time
+
+    pid_file = tmp_path / 'writer.pid'
+    child = ("import os,sys,time; from pathlib import Path; pid=os.fork();\n"
+             "if pid: sys.exit(0)\n"
+             f"Path({str(pid_file)!r}).write_text(str(os.getpid())); "
+             "sys.stderr.write('controlled inherited pipe writer\\n'); sys.stderr.flush(); time.sleep(30)")
+    program = f'''import json,subprocess,sys,time
+params=json.load(sys.stdin)
+if params['case']['id']=='new-task':
+    subprocess.run([sys.executable,'-c',{child!r}],check=True)
+    time.sleep(30)
+else:
+    print(json.dumps(dict(case_id=params['case']['id'],status='success',completion=dict(satisfied=True))))
+'''
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', program)
+    binary = tmp_path / 'browser'
+    binary.write_bytes(b'fixture browser identity')
+    cases = [case_with(), {**case_with(), 'id': 'next-task'}]
+    began = time.monotonic()
+    try:
+        result = capture.capture_batch(cases, timeout_ms=20, attempts=1,
+            browser_binary=str(binary), checkpoints=tmp_path / 'checkpoints')
+        assert time.monotonic() - began < 6
+        assert result['new-task']['status'] == 'failure'
+        assert 'controlled inherited pipe writer' in result['new-task']['worker_diagnostics']
+        assert result['next-task']['status'] == 'success'
+        assert len(list((tmp_path / 'checkpoints').glob('*.json'))) == 2
+    finally:
+        if pid_file.exists():
+            try:
+                os.kill(int(pid_file.read_text()), signal.SIGKILL)
+            except ProcessLookupError:
+                pass

@@ -620,11 +620,60 @@ _CAPTURE_PROGRAM = (
 def _capture_process_snapshot():
     try:
         table = subprocess.check_output(
-            ["ps", "-A", "-o", "pid=,ppid="], text=True, timeout=1)
-        return {int(pid): int(parent) for pid, parent in
-                (line.split() for line in table.splitlines())}
+            ["ps", "-ww", "-A", "-o", "pid=,ppid=,args="], text=True, timeout=1)
+        return {int(pid): (int(parent), command) for pid, parent, command in
+                (line.split(maxsplit=2) for line in table.splitlines())}
     except (OSError, ValueError, subprocess.SubprocessError):
         return {}
+
+
+def _terminate_capture_processes(process, diagnostics):
+    """Stop one worker and browsers authenticated by its launch receipts."""
+    browser_pids = {int(pid) for pid in re.findall(
+        r"(?m)^\S+\s+pw:browser <launched> pid=(\d+)\s*$", diagnostics)}
+    browser_pids.difference_update(int(pid) for pid in re.findall(
+        r"(?m)^\S+\s+pw:browser \[pid=(\d+)\] <process did exit:", diagnostics))
+    profiles = {}
+    launching = None
+    for line in diagnostics.splitlines():
+        if re.match(r"^\S+\s+pw:browser <launching> ", line):
+            profile = re.search(r"--user-data-dir=(.+?) --remote-debugging-pipe(?: |$)", line)
+            launching = profile[1] if profile else None
+        launched = re.match(r"^\S+\s+pw:browser <launched> pid=(\d+)\s*$", line)
+        if launched and launching:
+            profiles[int(launched[1])] = launching
+    if process.returncode is not None and not browser_pids:
+        return
+    owned = {process.pid} if process.returncode is None else set()
+    initial = _capture_process_snapshot()
+    while True:
+        children = {pid for pid, (parent, _) in initial.items() if parent in owned}
+        if children <= owned:
+            break
+        owned.update(children)
+    if initial:
+        browser_pids = {pid for pid in browser_pids if pid in owned or (
+            pid in initial and pid in profiles
+            and ('--user-data-dir=' + profiles[pid] + ' ') in (initial[pid][1] + ' '))}
+    # Signal each owned target once, before further waiting or reaping.
+    for pid in browser_pids:
+        try:
+            os.killpg(pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+    for pid in owned - browser_pids - {process.pid}:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    if process.returncode is None:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
 
 
 def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolved_ip=None,
@@ -645,14 +694,18 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
             [sys.executable, "-c", _CAPTURE_PROGRAM], stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
             cwd=Path(__file__).resolve().parents[2], start_new_session=os.name == "posix",
-            env={**os.environ, "DEBUG": "pw:api,pw:browser"},
+            env={**os.environ, "DEBUG": "pw:api,pw:browser", "DEBUG_COLORS": "0"},
         )
     except OSError as error:
         message, error_type = str(error), type(error).__name__
     else:
-        with process:
+        with ExitStack() as cleanup:
+            for pipe in (process.stdin, process.stdout, process.stderr):
+                if pipe is not None:
+                    cleanup.callback(pipe.close)
             try:
                 stdout, stderr = process.communicate(json.dumps(payload), timeout=budget)
+                _terminate_capture_processes(process, stderr)
                 if process.returncode:
                     raise RuntimeError(stderr[-1000:] or f"Capture worker exited {process.returncode}")
                 result = json.loads(stdout)
@@ -660,44 +713,18 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
                     raise ValueError("Capture worker returned another case")
                 return result
             except subprocess.TimeoutExpired as error:
-                # Chrome starts a detached group. Collect descendants before killing
-                # the driver, while their parent relationships still identify ownership.
-                # The launcher receipt survives an unavailable process-list command.
                 partial = error.stderr or b""
                 diagnostics = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
-                browser_pids = {int(pid) for pid in re.findall(
-                    r"(?m)^\S+\s+pw:browser <launched> pid=(\d+)\s*$", diagnostics)}
-                browser_pids.difference_update(int(pid) for pid in re.findall(
-                    r"(?m)^\S+\s+pw:browser \[pid=(\d+)\] <process did exit:", diagnostics))
-                owned = {process.pid}
-                initial = _capture_process_snapshot()
-                while True:
-                    children = {pid for pid, parent in initial.items() if parent in owned}
-                    if children <= owned:
-                        break
-                    owned.update(children)
-                if initial:
-                    browser_pids.intersection_update(owned)
-                # The acquisition has already failed its hard deadline. Kill once,
-                # before reaping any process, rather than signalling saved PIDs again.
-                for pid in browser_pids:
-                    try:
-                        os.killpg(pid, signal.SIGKILL)
-                    except (ProcessLookupError, PermissionError):
-                        try:
-                            os.kill(pid, signal.SIGKILL)
-                        except ProcessLookupError:
-                            pass
-                for pid in owned - browser_pids - {process.pid}:
-                    try:
-                        os.kill(pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
+                _terminate_capture_processes(process, diagnostics)
                 try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                _stdout, diagnostics = process.communicate(timeout=1)
+                    _stdout, diagnostics = process.communicate(timeout=1)
+                except subprocess.TimeoutExpired as drain_error:
+                    partial = drain_error.stderr or diagnostics
+                    diagnostics = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
+                    try:
+                        process.wait(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        pass
                 message = f"Browser observation worker exceeded {budget:g}s wall-clock budget"
                 error_type = "TimeoutError"
             except (RuntimeError, ValueError) as error:
