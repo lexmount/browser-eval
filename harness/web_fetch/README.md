@@ -80,7 +80,7 @@ report-group registry used by configuration, execution and presentation.
 `browser_observations.py` owns browser reference capture; the corresponding
 `scripts/capture_headless_browser_observations.py` command only parses the shared
 entry point. Install the `headless-eval` extra and a Playwright Chromium
-browser, or pass `--browser-binary` with an installed Chromium executable.
+browser, or pass `--browser-binary` with an installed Chromium executable. Batch capture requires POSIX process isolation.
 New tasks declare their completion and content scope in the task definition:
 
 ```json

@@ -617,9 +617,21 @@ _CAPTURE_PROGRAM = (
 )
 
 
+def _capture_process_snapshot():
+    try:
+        table = subprocess.check_output(
+            ["ps", "-A", "-o", "pid=,ppid=,lstart="], text=True, timeout=1)
+        return {int(pid): (int(parent), started) for pid, parent, started in
+                (line.split(maxsplit=2) for line in table.splitlines())}
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return {}
+
+
 def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolved_ip=None,
                         *, observation_scope="reference", dns_mode="system"):
     """Bound browser transport and cleanup as well as page operations."""
+    if os.name != "posix":
+        raise ValueError("Browser reference batch capture requires POSIX process isolation")
     if browser_binary:
         browser_binary = str(Path(browser_binary).resolve())
     payload = dict(case=case, timeout_ms=timeout_ms, attempts=attempts,
@@ -656,41 +668,30 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
                 browser_pids = {int(pid) for pid in re.findall(
                     r"(?m)^\S+\s+pw:browser <launched> pid=(\d+)\s*$", diagnostics)}
                 owned = {process.pid}
-                if os.name == "posix":
-                    try:
-                        table = subprocess.check_output(
-                            ["ps", "-A", "-o", "pid=,ppid="], text=True, timeout=1)
-                        parents = {int(pid): int(parent) for pid, parent in
-                                   (line.split() for line in table.splitlines())}
-                    except (OSError, subprocess.SubprocessError):
-                        parents = {}
-                    while True:
-                        children = {pid for pid, parent in parents.items() if parent in owned}
-                        if children <= owned:
-                            break
-                        owned.update(children)
-                signals = (signal.SIGTERM, signal.SIGKILL) if os.name == "posix" else (None, None)
-                for sig in signals:
-                    try:
-                        if os.name == "posix":
-                            for browser_pid in browser_pids:
-                                try:
-                                    os.kill(browser_pid, sig)
-                                except ProcessLookupError:
-                                    pass
-                            try:
-                                os.killpg(process.pid, sig)
-                            except ProcessLookupError:
-                                pass
-                            for pid in sorted(owned, reverse=True):
-                                try:
-                                    os.kill(pid, sig)
-                                except ProcessLookupError:
-                                    pass
-                        else:
-                            process.kill()
-                    except ProcessLookupError:
-                        pass
+                initial = _capture_process_snapshot()
+                while True:
+                    children = {pid for pid, (parent, _) in initial.items() if parent in owned}
+                    if children <= owned:
+                        break
+                    owned.update(children)
+                for sig in (signal.SIGTERM, signal.SIGKILL):
+                    targets = (owned | browser_pids) - {process.pid}
+                    if sig == signal.SIGKILL:
+                        current = _capture_process_snapshot()
+                        targets = {pid for pid in targets if pid in initial and pid in current
+                                   and initial[pid][1] == current[pid][1]}
+                    for pid in targets:
+                        try:
+                            os.kill(pid, sig)
+                        except ProcessLookupError:
+                            pass
+                    # A timed-out communicate has not reaped the worker, so this
+                    # process-group identity remains owned until communication finishes.
+                    if process.returncode is None:
+                        try:
+                            os.killpg(process.pid, sig)
+                        except ProcessLookupError:
+                            pass
                     try:
                         _stdout, diagnostics = process.communicate(timeout=1)
                     except subprocess.TimeoutExpired:
@@ -723,6 +724,8 @@ def capture_batch(
     workers=1,
 ):
     """Checkpoint independent observations against capture code, policy and binary."""
+    if os.name != "posix":
+        raise ValueError("Browser reference batch capture requires POSIX process isolation")
     if any(type(value) is not int or value < 1 for value in (timeout_ms, attempts, workers)):
         raise ValueError("Browser observation budgets and workers must be positive integers")
     dns_mode = validate_dns_mode(dns_mode)

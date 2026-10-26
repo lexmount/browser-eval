@@ -425,3 +425,46 @@ def test_worker_launch_failure_is_checkpointed_without_aborting_the_batch(tmp_pa
     assert result['new-task']['attempt_errors'][0]['type'] == 'OSError'
     assert result['next-task']['status'] == 'success'
     assert len(list((tmp_path / 'checkpoints').glob('*.json'))) == 2
+
+
+def test_unsupported_batch_platform_is_rejected_before_launch(monkeypatch):
+    monkeypatch.setattr(capture, 'os', SimpleNamespace(name='nt'))
+    monkeypatch.setattr(capture.subprocess, 'Popen', lambda *a, **kw: pytest.fail('unsupported launch'))
+    with pytest.raises(ValueError, match='POSIX'):
+        capture.capture_batch([case_with()], timeout_ms=1000, attempts=1)
+    with pytest.raises(ValueError, match='POSIX'):
+        capture._capture_in_process(case_with(), 1000, 1)
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='POSIX process escalation')
+@pytest.mark.parametrize('reused', [False, True])
+def test_timeout_escalation_preserves_reused_pids_and_kills_surviving_owned_children(monkeypatch, reused):
+    import signal
+
+    launch = capture.subprocess.Popen
+    started = []
+    signals = []
+    groups = []
+    snapshots = []
+    child = 99999999
+    def worker(*args, **kwargs):
+        process = launch(*args, **kwargs)
+        started.append(process.pid)
+        return process
+    def process_table(*args, **kwargs):
+        snapshots.append(1)
+        stamp = 'new-start' if reused and len(snapshots) > 1 else 'old-start'
+        return f'{started[0]} 0 worker-start\n{child} {started[0]} {stamp}\n'
+    def terminate_group(pid, sig):
+        groups.append((pid, sig))
+        os.killpg(pid, sig)
+    monkeypatch.setattr(capture.subprocess, 'Popen', worker)
+    monkeypatch.setattr(capture.subprocess, 'check_output', process_table)
+    monkeypatch.setattr(capture, 'os', SimpleNamespace(name='posix', environ=os.environ,
+        kill=lambda pid, sig: signals.append((pid, sig)), killpg=terminate_group))
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', 'import time; time.sleep(30)')
+    result = capture._capture_in_process(case_with(), 20, 1)
+    assert result['status'] == 'failure'
+    assert (child, signal.SIGTERM) in signals
+    assert ((child, signal.SIGKILL) in signals) == (not reused)
+    assert groups == [(started[0], signal.SIGTERM)]
