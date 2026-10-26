@@ -111,15 +111,23 @@ def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=Non
             if authority not in revision_checks:
                 root = Path(authority)
                 candidates = [root / 'result-review.json', *sorted((root / 'review-history').glob('*.json'))]
+                source_dataset = json.loads((root / 'dataset.json').read_text())
+                source_records = load_jsonl(root / 'results.jsonl')
                 authenticated = []
                 for path in candidates:
                     if not path.is_file() or path.is_symlink():
                         continue
                     raw = path.read_bytes()
                     if valid_scoring_revision_chain(root, review_sha256=hashlib.sha256(raw).hexdigest()):
-                        authenticated.extend(json.loads(raw).get('attempts', []))
-                persisted = {row['attempt_id']: row for row in load_jsonl(root / 'results.jsonl')}
-                cases = {row['id']: row for row in json.loads((root / 'dataset.json').read_text())['cases']}
+                        document = json.loads(raw)
+                        try:
+                            _require_result_review(root, source_dataset, source_records, document,
+                                                   anomaly_gate=False, historical_authority=True)
+                        except (ValueError, TypeError, KeyError):
+                            continue
+                        authenticated.extend(document.get('attempts', []))
+                persisted = {row['attempt_id']: row for row in source_records}
+                cases = {row['id']: row for row in source_dataset['cases']}
                 revision_checks[authority] = (authenticated, persisted, cases)
             authenticated, persisted, cases = revision_checks[authority]
             original = persisted.get(record['attempt_id'])
@@ -133,7 +141,7 @@ def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=Non
 
 
 
-def _require_result_review(source, dataset, records, review_document=None, *, anomaly_gate, historical_sources=()):
+def _require_result_review(source, dataset, records, review_document=None, *, anomaly_gate, historical_sources=(), historical_authority=False):
     required = dataset.get('comparison', {}).get('require_independent_result_review', False)
     path = source / 'result-review.json'
     if review_document is None and not path.is_file():
@@ -152,6 +160,8 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
     if bindings.get('results_sha256') != _sha256(source/'results.jsonl'):
         raise ValueError('Result review is bound to different results')
     scope = protocol.get('scope', 'all')
+    if historical_authority and (scope != 'all' or protocol.get('machine_judgments_withheld') is not True):
+        raise ValueError('Historical authority requires a complete independent review')
     if scope not in {'all','machine-failures'}:
         raise ValueError('Unsupported result review scope')
     declared_scope = dataset.get('comparison', {}).get('independent_result_review_scope')
@@ -183,8 +193,8 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
     revision_checks = {}
     for row in attempts:
         record = by_id[row['attempt_id']]
-        machine = _machine_verdict(
-            source, record, cases[record['case_id']], reviewed=row, revision_checks=revision_checks, historical_sources=historical_sources)
+        machine = (row.get('machine_verdict') if historical_authority else _machine_verdict(
+            source, record, cases[record['case_id']], reviewed=row, revision_checks=revision_checks, historical_sources=historical_sources))
         if row.get('machine_verdict') != machine:
             raise ValueError('Result review machine verdict no longer matches persisted scoring')
         if row.get('final_verdict') != machine:
@@ -380,7 +390,10 @@ def install_result_review(evidence, review, *, anomaly_gate=True, skip_blank=Fal
         raise ValueError("An explicit result review document is required")
     dataset, records, bindings = _read_review_evidence(evidence, skip_blank=skip_blank)
     validator = require_result_review if anomaly_gate else require_blind_result_review
-    validator(evidence, dataset, records, review, historical_sources=historical_sources)
+    if historical_sources:
+        validator(evidence, dataset, records, review, historical_sources=historical_sources)
+    else:
+        validator(evidence, dataset, records, review)
     target = contained_path(evidence, "result-review.json", reject_symlinks=True)
 
     def unchanged():

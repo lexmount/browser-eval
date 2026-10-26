@@ -812,14 +812,37 @@ class ResultReviewTests(unittest.TestCase):
             self.assertTrue(valid_scoring_revision(root))
             return dataset, review
 
-        for mode in ('changed', 'new', 'broken-history'):
+        for mode in ('changed', 'new', 'broken-history', 'bad-protocol', 'incomplete', 'unresolved'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 base = Path(directory)
                 prior, current, supplement = (base / name for name in ('prior', 'current', 'supplement'))
                 cases = [{'id': key, 'task_kind': 'body'} for key in ('a', 'b')]
                 rows = [{'attempt_id': 'p__' + key, 'provider': 'p', 'case_id': key, 'ok': True,
                          'metrics': {'content_pass': True, 'forbidden_hits': [], 'content_sha256': 'a' * 64}} for key in ('a', 'b')]
-                bundle(prior, cases, rows)
+                _, prior_review = bundle(prior, cases, rows)
+                if mode in {'bad-protocol', 'incomplete', 'unresolved'}:
+                    if mode == 'bad-protocol':
+                        prior_review['review_protocol']['machine_judgments_withheld'] = False
+                    elif mode == 'incomplete':
+                        prior_review['attempts'].pop()
+                    else:
+                        prior_review['attempts'][-1]['final_verdict'] = None
+                    (prior / 'result-review.json').write_text(json.dumps(prior_review))
+                    authority = json.loads((prior / 'scoring-revisions.json').read_text())
+                    authority[0]['independent_result_review_sha256'] = hashlib.sha256((prior / 'result-review.json').read_bytes()).hexdigest()
+                    (prior / 'scoring-revisions.json').write_text(json.dumps(authority))
+                    current.mkdir()
+                    document = {'comparison': {'require_independent_result_review': True}, 'cases': cases[:1]}
+                    (current / 'dataset.json').write_text(json.dumps(document))
+                    (current / 'results.jsonl').write_text(json.dumps(rows[0]) + '\n')
+                    proposed = json.loads(json.dumps(prior_review))
+                    proposed['review_protocol'] = {'scope': 'all', 'machine_judgments_withheld': True}
+                    proposed['attempts'] = [prior_review['attempts'][0]]
+                    proposed['bindings'] = {name + '_sha256': hashlib.sha256((current / file).read_bytes()).hexdigest()
+                        for name, file in [('dataset', 'dataset.json'), ('results', 'results.jsonl')]}
+                    with self.assertRaisesRegex(ValueError, 'Historical scoring metrics'):
+                        require_blind_result_review(current, document, rows[:1], proposed, historical_sources=(prior,))
+                    continue
                 new_cases, new_rows = copy.deepcopy(cases), copy.deepcopy(rows)
                 replacement = {**copy.deepcopy(rows[-1]), 'metrics': {'content_pass': False, 'forbidden_hits': [], 'content_sha256': 'b' * 64}}
                 if mode == 'new':
