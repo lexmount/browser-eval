@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from harness.record_io import canonical_json_sha256, read_completed_records
 from harness.web_fetch.artifacts import materialize_task_references
+from harness.web_fetch.render_evidence import content_requirement_errors
 from lexbench_webfetch.body_coverage import body_requirements
 from lexbench_webfetch.metrics import normalize_for_match
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes, require_mutable_inputs
@@ -240,6 +241,9 @@ def compute_reference_update(dataset, captures, observations=None, *, refresh_ca
                     case,row,browser_observation=cid in observations)})
         case['ground_truth_main_content']=text
         if old_requirements is not None:case['body_requirements']=new_requirements
+        errors=content_requirement_errors(case,text)
+        if errors:
+            raise ValueError(f'Reference requirements not met: {cid}: {errors}')
         case['source_verification'].update(state='valid',checked_at=timestamp,
             selector=selector,method=method,
             reference_sha256=hashlib.sha256(text.encode()).hexdigest())

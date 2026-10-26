@@ -87,6 +87,27 @@ def _coverage(text: str, facts: list[dict[str, Any]]) -> dict[str, Any]:
             "all_present": bool(groups) and hits == len(groups), "groups": groups}
 
 
+def content_requirement_errors(case: EvalCase | Mapping[str, Any], text: str) -> list[str]:
+    """Check declared text requirements for any independently captured task."""
+    get = case.get if isinstance(case, Mapping) else lambda key, default=None: getattr(case, key, default)
+    requirements = {key: get(key, default) or default for key, default in (
+        ('body_requirements', {}), ('required_patterns', []),
+        ('acceptance_contract', {}), ('composite_acceptance', {}))}
+    if not any(requirements.values()):
+        return []
+    from lexbench_webfetch.metrics import evaluate_content
+    checks = evaluate_content(text, [], **requirements, base_url=get('url', ''))
+    errors = []
+    if not checks['body_coverage_pass']:
+        errors.append('body_requirements_not_met')
+    if not all(row['pass'] for row in checks['pattern_results']):
+        errors.append('pattern_requirements_not_met')
+    for field, label in (('stable_task_pass', 'record'), ('composite_acceptance_pass', 'composite')):
+        if checks.get(field) is False:
+            errors.append(f'{label}_requirements_not_met')
+    return errors
+
+
 def validate_render_reference(
     case: EvalCase | Mapping[str, Any], initial_html: str | bytes, rendered_text: str,
 ) -> dict[str, Any]:
@@ -152,22 +173,8 @@ def validate_render_reference(
         for group in coverage[key]["groups"]:
             if not group["pass"]:
                 errors.append(f"{key}_missing_fact:{group['id']}")
-    if body_requirements or required_patterns or acceptance_contract or composite_acceptance:
-        from lexbench_webfetch.metrics import evaluate_content
-        for key in ("reference", "rendered"):
-            checks = evaluate_content(texts[key], [], body_requirements=body_requirements,
-                                      required_patterns=required_patterns,
-                                      acceptance_contract=acceptance_contract,
-                                      composite_acceptance=composite_acceptance,
-                                      base_url=get("url", ""))
-            if not checks["body_coverage_pass"]:
-                errors.append(f"{key}_body_requirements_not_met")
-            if not all(row['pass'] for row in checks['pattern_results']):
-                errors.append(f"{key}_pattern_requirements_not_met")
-            for field, label in (("stable_task_pass", "record"),
-                                 ("composite_acceptance_pass", "composite")):
-                if checks.get(field) is False:
-                    errors.append(f"{key}_{label}_requirements_not_met")
+    for key in ("reference", "rendered"):
+        errors.extend(f"{key}_{error}" for error in content_requirement_errors(case, texts[key]))
     evidence = (get("source_benchmark", {}) or {}).get("render_evidence", {})
     completion = evidence.get("completion", {})
     condition = completion.get("condition")

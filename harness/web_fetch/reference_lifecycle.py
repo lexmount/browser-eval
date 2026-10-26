@@ -18,7 +18,7 @@ from harness.record_io import file_sha256, load_jsonl, parse_jsonl
 
 from lexbench_webfetch.metrics import normalize_for_match, normalize_resource_url
 from .reference_inputs import input_tree, read_dataset_bytes
-from .render_evidence import validate_render_reference
+from .render_evidence import content_requirement_errors, validate_render_reference
 
 
 HOMEPAGE_READER_SCOPE_PROMPTS = frozenset({
@@ -602,6 +602,9 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
     if not isinstance(verification.get("method"), str) or not verification["method"].strip():
         raise ReferenceLifecycleError(f"{identifier}: independent verification method is missing")
     _fresh(verification.get("checked_at"), now)
+    errors = content_requirement_errors(case, reference)
+    if errors:
+        raise ReferenceLifecycleError(f"{identifier}: reference requirements not met: {errors}")
     actual_hash = sha256(reference)
     if verification.get("reference_sha256") != actual_hash:
         raise ReferenceLifecycleError(f"{identifier}: reference SHA-256 mismatch", "reference_changed")

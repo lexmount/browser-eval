@@ -432,7 +432,7 @@ def test_mixed_live_resource_capture_freezes_text_and_preserves_resource_checks(
 
     class Page(BaseHTTPRequestHandler):
         def do_GET(self):
-            body = ('' if missing == 'text' else '<article>Required article anchor</article>')
+            body = ('<article>Unrelated article text</article>' if missing == 'text' else '<article>Required article anchor</article>')
             body += '' if missing == 'image' else '<img src="/photo.png">'
             self.send_response(200); self.send_header('Content-Type', 'text/html'); self.end_headers()
             self.wfile.write(('<body>' + body + '</body>').encode())
@@ -448,7 +448,8 @@ def test_mixed_live_resource_capture_freezes_text_and_preserves_resource_checks(
     (tmp_path / 'audit.json').write_text('[]')
     case = {'id': 'mixed', 'url': url, 'track': 'image', 'task_kind': 'resource',
         'ground_truth_main_content': 'Required article anchor',
-        'required_facts': [{'id': 'body', 'alternatives': ['Required article anchor']}],
+        'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'body', 'alternatives': ['Required article anchor']}]},
         'expected_resources': [{'id': 'photo', 'urls': [url + 'photo.png']}],
         'source_verification': {'reference_mode': 'live_exact', 'observation_route': 'browser',
             'state': 'valid', 'method': 'Independent browser', 'checked_at': evidence['checked_at'],
