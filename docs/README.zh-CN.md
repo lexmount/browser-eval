@@ -22,7 +22,7 @@ Browser Eval 是面向浏览器和 Web Agent 的评测脚手架（evaluation har
 | --- | --- | --- | --- |
 | Web Fetch | 获取任务要求的网页正文、记录、资源或文件 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
 | Web Search（预览） | 比较搜索结果、相关性、来源检索、延迟与计费 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [实现与接入 PR #58](https://github.com/lexmount/browser-eval/pull/58) · [搜索评测指南](https://github.com/lexmount/browser-eval/blob/codex/report-release-checks/harness/web_search/README.md) |
-| 轨迹重放 | 比较不同浏览器能否完成同一组录制动作 | [仓库自建固定动作任务集](../examples/trajectory_replay/tasks.v4.json)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
+| 轨迹重放 | 比较不同浏览器能否完成同一组录制动作 | [仓库自建固定动作任务集](../examples/trajectory_replay/tasks.v4.json)，改编自 [Lexbench-Headless-Browser 场景设计](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | 让 Agent 使用不同浏览器完成任务 | [WebArena-Verified](https://github.com/ServiceNow/webarena-verified)，使用[固定版本的评测器分支](https://github.com/lexmount/webarena-verified/tree/lex-main)和[明确选定的任务](../evaluation/browser-use/webarena-verified-pilot.json) | [CowAgent + WebArena](../examples/browser_use/README.md) |
 
 Web Fetch 支持本地浏览器、在线服务和提取工具。可用方法见[适配器说明](../docs/provider-contract.md)，安装要求见[依赖说明](../docs/dependencies.md)。轨迹重放和 Browser Use 各有自己的运行入口与环境。
@@ -76,7 +76,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 | [Moli](https://github.com/lexmount/moli) | 与其他参与者按相同任务规则评测的浏览器 |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | Lexmount WebFetch 服务的命令行客户端 |
 | [Artifact Site](https://github.com/lexmount/artifact-site) | 报告托管、不可变版本和访问权限 |
-| [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 协议、自动化驱动和 Web 平台评测 |
+| [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 自建轨迹的场景设计来源；另有独立的协议、自动化驱动和 Web 平台评测 |
 | [WebMainBench 分支](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 冻结 HTML 提取任务与有记录的评分修正 |
 | [WebArena-Verified 分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) | Browser Use 和 WebArena 轨迹重放的题目与评测器 |
 | [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | 独立的内容提取评测集 |

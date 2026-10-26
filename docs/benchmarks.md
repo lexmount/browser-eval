@@ -52,6 +52,8 @@ Change task requirements in LexBench, freeze a new dataset/catalog/manifest vers
 
 The retained `harness/lexbench/` module concerns historical headless-browser comparisons. It is unrelated to the `lexbench-webfetch` input package and remains an execution/report adapter.
 
+The curated [Browser Trajectory Replay suite](../examples/trajectory_replay/tasks.v4.json) records [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios) in each applicable task's `source.design_basis`. It adapts those capabilities to public-page actions with its own exact expected outputs. This suite does not execute the complete upstream task population. The [public WebArena replay](../examples/trajectory_replay/public_webarena/README.md) instead uses qualified human recordings and the WebArena-Verified evaluator.
+
 ## Benchmark editions
 
 Use a benchmark version together with exact task/reference and scoring-source
