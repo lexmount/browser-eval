@@ -26,13 +26,13 @@ While the software remains `0.x`, use a minor release for new functionality or b
 
 Added cases can require a major benchmark edition even when accepting that edition is a compatible software feature. The [benchmark contract](benchmarks.md#benchmark-editions) defines `direct`, `rescore` and `separate` comparisons. Pin upstream code commits and external input hashes alongside readable versions. Rebuilding presentation preserves saved calls and the selected benchmark edition.
 
-## First stable release
+## Stable release scope
 
-Use `v1.0.0` for the first release that commits to Web Fetch and Web Search compatibility. An extra `v0.2.0` publication is not required: `0.2.0` is the current source version, and the first published software release can be `1.0.0`.
+Choose the first stable software version after the pending Web Search integration PRs have landed on main and the integrated release checks pass. Version `1.0.0` establishes the documented compatibility contract; release preparation alone does not assign that version or create a tag.
 
 Web Fetch includes LexBench Web Fetch integration and independently selected WebMainBench and WCXB workflows. Search uses LexBench Web Search definitions and scoring. Publish the exact supported dataset editions and provider configurations with the release. Browser Trajectory Replay and Browser Use can remain available as experimental tracks with their own environment requirements.
 
-Integrate [PR #58](https://github.com/lexmount/browser-eval/pull/58) into main before selecting the stable release commit. Until then, the main-branch package contains Web Fetch, trajectory replay and Browser Use; Search is preview code on its development branch. Run the integrated package and release checks before assigning `1.0.0`. External references, browsers, self-hosted sites and provider accounts remain separate inputs.
+Integrate [PR #58](https://github.com/lexmount/browser-eval/pull/58) and its related Web Search changes into main before selecting the stable release commit. Until then, the main-branch package contains Web Fetch, trajectory replay and Browser Use; Search is preview code on its development branch. Run the integrated package and release checks before assigning `1.0.0`. External references, browsers, self-hosted sites and provider accounts remain separate inputs.
 
 ## Release procedure
 
