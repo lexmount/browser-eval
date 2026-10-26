@@ -12,7 +12,7 @@ from .providers import build_provider
 from .report_build import build_report
 from .runner import rescore_evaluation, run_evaluation
 from .storage import data_home
-from harness.report_languages import add_language_argument, primary_report_language
+from harness.report_languages import ReportLanguageError, add_language_argument, resolve_report_language
 
 EXAMPLES = Path(__file__).parent / "data"
 
@@ -26,6 +26,7 @@ def command_run(args: argparse.Namespace) -> int:
     if args.output.exists() or args.output.is_symlink():
         raise SystemExit("Output must be a new directory; existing evidence is immutable")
     load_runtime_env(args.env_file)
+    language = resolve_report_language(args.output / "report", args.language)
     dataset_meta, cases = load_dataset(args.dataset)
     provider_configs = load_provider_config(args.provider_config)
     names = [name.strip() for name in args.providers.split(",") if name.strip()]
@@ -52,7 +53,7 @@ def command_run(args: argparse.Namespace) -> int:
         max_failure_retries=args.max_failure_retries,
     )
     report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True,
-                               language=args.language)
+                               language=language)
     print(f"Report: {report_path.resolve()}")
     kinds={case.id:case.task_kind for case in cases}
     failures = [r for r in records if not task_passed(r['ok'],r['metrics'],kinds[r['case_id']])]
@@ -60,7 +61,7 @@ def command_run(args: argparse.Namespace) -> int:
 
 
 def command_report(args: argparse.Namespace) -> int:
-    language = args.language or primary_report_language(args.run_dir / 'report')
+    language = resolve_report_language(args.run_dir / 'report', args.language)
     report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True,
                                language=language)
     print(f"Report: {report_path.resolve()}")
@@ -68,9 +69,9 @@ def command_report(args: argparse.Namespace) -> int:
 
 
 def command_rescore(args: argparse.Namespace) -> int:
+    language = resolve_report_language(args.run_dir / "report", args.language)
     dataset, cases = load_dataset(args.dataset)
     records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
-    language = args.language or primary_report_language(args.run_dir / 'report')
     report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True,
                                language=language)
     print(f"Rescored {len(records)} persisted attempts; report: {report_path.resolve()}")
@@ -111,7 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
-    add_language_argument(run, default="en")
+    add_language_argument(run)
     run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")
@@ -164,4 +165,8 @@ def main() -> None:
     args = parser.parse_args()
     if getattr(args, "output", "sentinel") is None:
         args.output = default_run_dir()
-    raise SystemExit(args.handler(args))
+    try:
+        result = args.handler(args)
+    except ReportLanguageError as error:
+        parser.error(str(error))
+    raise SystemExit(result)

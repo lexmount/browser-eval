@@ -60,6 +60,14 @@ class ArtifactPublisherTests(unittest.TestCase):
         self.assertEqual(request.call_args_list[1],request.call_args_list[2])
         self.assertEqual([call.args[0] for call in sleep.call_args_list],[1,2])
 
+    @patch('harness.web_fetch.publication.time.sleep')
+    def test_closed_connection_retries_same_staged_file_without_restarting_upload(self, sleep):
+        from http.client import RemoteDisconnected
+        request = Mock(side_effect=[RemoteDisconnected('closed before response'), (200, b'ok')])
+        self.assertEqual(put_file(request, '/uploads/current/file', b'unchanged bytes'), (200, b'ok'))
+        self.assertEqual(request.call_args_list[0], request.call_args_list[1])
+        sleep.assert_called_once_with(1)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

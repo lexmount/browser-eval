@@ -965,10 +965,7 @@ def _use_single_model_profile(monkeypatch) -> None:
     )
 
 
-@pytest.mark.parametrize("language", [None, "en", "zh"])
-def test_report_publishes_one_final_logical_result_and_aggregates_cost(
-    tmp_path: Path, monkeypatch, language
-) -> None:
+def build_browser_use_fixture(tmp_path: Path, monkeypatch, language="zh", *, failed=False):
     _use_single_model_profile(monkeypatch)
     evidence = tmp_path / "evidence"
     output = tmp_path / "report"
@@ -1005,13 +1002,18 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
             "model_usage": {"total_tokens": 80},
         },
     ]
+    if failed:
+        rows[-1]["score"] = 0
     for row in rows:
         execution_dir = evidence / f"{row['engine']}-{row['attempt']}"
         execution_dir.mkdir()
         paths = {}
         for label, filename, payload in (
             ("response", "response.json", {"execution": row["attempt"]}),
-            ("evaluation", "evaluation.json", {"score": row["score"]}),
+            ("evaluation", "evaluation.json", {
+                "score": row["score"], "evaluator": "AgentResponseEvaluator",
+                "error": "Fixture expected mutation missing" if not row["score"] else None,
+            }),
             (
                 "events",
                 "events.json",
@@ -1053,6 +1055,14 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         profile_path=Path("fixture-profile.json"),
         language=language,
     )
+    return output, evidence, report
+
+
+@pytest.mark.parametrize("language", [None, "en", "zh"])
+def test_report_publishes_one_final_logical_result_and_aggregates_cost(
+    tmp_path: Path, monkeypatch, language
+) -> None:
+    output, evidence, report = build_browser_use_fixture(tmp_path, monkeypatch, language)
     if language is not None:
         contract = json.loads((output / "report-languages.json").read_text())
         assert contract["primary_language"] == language

@@ -37,7 +37,8 @@ def test_wcxb_language_output_and_every_language_link(tmp_path, include_english)
 
 
 @pytest.mark.parametrize('include_english', [False, True])
-def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include_english):
+@pytest.mark.parametrize('language', ['en', 'zh'])
+def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include_english, language):
     from harness.web_fetch import report_build
 
     captured = []
@@ -48,7 +49,7 @@ def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include
     profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown', 'sample_manifest': 'sample.json'}))
     binding = {'kind': 'test-content'}
     (tmp_path / 'report-content-binding.json').write_text(json.dumps(binding))
-    argv = [str(root / 'scripts/build_report.py'), '--profile', str(profile), '--wcxb', '--evidence', str(tmp_path),
+    argv = [str(root / 'scripts/build_report.py'), '--language', language, '--profile', str(profile), '--wcxb', '--evidence', str(tmp_path),
             '--output', str(tmp_path / 'new-report')]
     if include_english:
         argv.append('--include-english')
@@ -56,7 +57,7 @@ def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include
     with pytest.raises(SystemExit) as result:
         runpy.run_path(argv[0], run_name='__main__')
     assert result.value.code == 0
-    assert captured == [{'include_english': include_english, 'language': 'en', 'authority_root': root,
+    assert captured == [{'include_english': include_english, 'language': language, 'authority_root': root,
                          'content_binding': binding}]
 
 

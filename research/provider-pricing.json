@@ -1,7 +1,36 @@
 {
   "checked_at": "2026-09-03",
   "currency": "USD",
-  "scope": "公开 Web Fetch / Contents / Extract / Scrape / Markdown 报价；不作为历史调用账单",
+  "scope": "公开 Web Fetch / Contents / Extract / Scrape / Markdown 与 Search 报价；不作为历史调用账单",
+  "search_products": [
+    {
+      "id": "browserbase-search",
+      "verified_at": "2026-10-22",
+      "currency": "USD",
+      "billing_unit": "search",
+      "rates_per_1000": {"parallel-fast": 1, "parallel-advanced": 5, "exa": 7},
+      "commitment": "Paid plans start at USD 20/month with 1,000 shared searches. Rates are per search request; the comparison of successful calls does not imply failed requests are free.",
+      "sources": ["https://docs.browserbase.com/platform/search/overview#providers-and-modes", "https://www.browserbase.com/pricing"]
+    },
+    {
+      "id": "brightdata-serp",
+      "verified_at": "2026-10-22",
+      "currency": "USD",
+      "billing_unit": "successful request",
+      "rates_per_1000": {"pay-as-you-go": 1.5},
+      "commitment": "Pay-as-you-go; free tier lists 5,000 requests per month. Scale costs USD 499/month for 380,000 requests, with USD 1.3 per 1,000 additional requests.",
+      "sources": ["https://brightdata.com/pricing/serp"]
+    },
+    {
+      "id": "serper-search",
+      "verified_at": "2026-10-22",
+      "currency": "USD",
+      "billing_unit": "successful query",
+      "rates_per_1000": {"starter": 1, "standard": 0.75, "scale": 0.5, "ultimate": 0.3},
+      "commitment": "Prepaid credits, valid for six months. Minimum purchase: USD 50 for 50,000 credits. Taxes excluded; registration offers 2,500 free queries.",
+      "sources": ["https://serper.dev/"]
+    }
+  ],
   "providers": [
     {
       "id": "firecrawl", "label": "Firecrawl · Scrape",
