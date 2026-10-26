@@ -554,10 +554,13 @@ def test_browser_launched_during_failed_discovery_is_stopped(tmp_path, monkeypat
 from pathlib import Path
 json.load(sys.stdin)
 while not Path({str(trigger)!r}).exists(): time.sleep(.01)
-child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)'],
+child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)',
+    '--user-data-dir='+{str(tmp_path / 'profile')!r},'--remote-debugging-pipe'],
     start_new_session=True, stdout={"None" if inherit_pipes else "subprocess.DEVNULL"},
     stderr={"None" if inherit_pipes else "subprocess.DEVNULL"})
 Path({str(pid_file)!r}).write_text(str(child.pid))
+print('2026-10-26T00:00:00Z pw:browser <launching> browser --user-data-dir='
+      +{str(tmp_path / 'profile')!r}+' --remote-debugging-pipe',file=sys.stderr,flush=True)
 print(f'2026-10-26T00:00:00Z pw:browser <launched> pid={{child.pid}}',file=sys.stderr,flush=True)
 time.sleep(30)
 '''
@@ -636,3 +639,33 @@ def test_worker_pipe_error_is_checkpointed_and_next_case_runs(tmp_path, monkeypa
             if process.poll() is None:
                 process.kill()
                 process.wait(timeout=2)
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='POSIX browser ownership')
+@pytest.mark.parametrize('fallback_available', [False, True])
+def test_unrelated_live_pid_in_stale_receipt_survives_failed_discovery(monkeypatch, fallback_available):
+    import subprocess
+    import sys
+
+    run = subprocess.run
+    with subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'],
+                          start_new_session=True) as unrelated:
+        log = ('2026-10-26T00:00:00Z pw:browser <launching> chrome '
+               '--user-data-dir=/tmp/browser-eval-expired-profile --remote-debugging-pipe\n'
+               f'2026-10-26T00:00:00Z pw:browser <launched> pid={unrelated.pid}\n')
+        monkeypatch.setattr(capture, '_CAPTURE_PROGRAM',
+            f'import sys,time; sys.stderr.write({log!r}); sys.stderr.flush(); time.sleep(30)')
+        def unavailable(*args, **kwargs):
+            raise FileNotFoundError('process listing unavailable')
+        def fallback(args, **kwargs):
+            if args[0] == 'pgrep' and not fallback_available:
+                raise FileNotFoundError('fallback unavailable')
+            return run(args, **kwargs)
+        monkeypatch.setattr(capture.subprocess, 'check_output', unavailable)
+        monkeypatch.setattr(capture.subprocess, 'run', fallback)
+        try:
+            result = capture._capture_in_process(case_with(), 20, 1)
+            assert result['status'] == 'failure'
+            assert unrelated.poll() is None, 'unrelated process killed by stale launch receipt'
+        finally:
+            unrelated.kill()

@@ -657,6 +657,21 @@ def _terminate_capture_processes(process, diagnostics, signalled=None):
         browser_pids = {pid for pid in browser_pids if pid in owned or (
             pid in initial and pid in profiles
             and ('--user-data-dir=' + profiles[pid] + ' ') in (initial[pid][1] + ' '))}
+    else:
+        verified = set()
+        for pid in browser_pids:
+            if pid not in profiles:
+                continue
+            try:
+                matches = subprocess.run(
+                    ["pgrep", "-f", "--", re.escape("--user-data-dir=" + profiles[pid]) + "( |$)"],
+                    capture_output=True, text=True, timeout=1, check=False,
+                )
+                if matches.returncode == 0 and str(pid) in matches.stdout.split():
+                    verified.add(pid)
+            except (OSError, subprocess.SubprocessError):
+                pass
+        browser_pids = verified
     owned.difference_update(signalled)
     signalled.update(owned | browser_pids)
     # Signal each owned target once, before further waiting or reaping.
