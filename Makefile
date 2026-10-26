@@ -216,4 +216,4 @@ test-native-adapters:
 .PHONY: bump-lexbench
 bump-lexbench:
 	@test -n "$(REV)" || (echo 'REV=<full merged LexBench commit> is required' >&2; exit 2)
-	$(PY) scripts/bump_lexbench.py --revision "$(REV)" --uv "$(UV)" --benchmark "$(or $(BENCHMARK),lexbench-webfetch)" $(if $(REPOSITORY),--repository "$(REPOSITORY)",) $(if $(filter undefined,$(origin SUBDIRECTORY)),,--subdirectory "$(SUBDIRECTORY)")
+	$(PY) scripts/bump_lexbench.py --revision "$(REV)" --uv "$(UV)" --benchmark "$(or $(BENCHMARK),lexbench-webfetch)"

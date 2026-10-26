@@ -16,12 +16,12 @@ Browser Eval is an evaluation harness for browsers and web agents. Connect a ben
 
 ## Evaluation tracks
 
-Each track selects its own benchmark, task population and scoring rules. The harness supplies execution adapters, saved evidence and reports.
+The main branch includes the three browser workflows below. Web Search is implemented on the development branch linked in its row; it is not included in the current main-branch package.
 
 | Track | What it tests | Benchmarks and task suites | Guide |
 | --- | --- | --- | --- |
-| Web Fetch | Retrieve the requested page content, records, resources or files | [LexBench Web Fetch](https://github.com/lexmount/lexbench-web-retrieval/blob/main/docs/webfetch.md), [WebMainBench](https://github.com/opendatalab/WebMainBench), [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
-| Web Search / SERP | Compare search results, relevance, source retrieval, latency and billing | [LexBench Web Search](https://github.com/lexmount/lexbench-web-retrieval/blob/main/packages/websearch/README.md): scenario queries and a SimpleQA Verified retrieval adaptation | [Offline example](examples/web_search/README.md) · [Track guide](harness/web_search/README.md) |
+| Web Fetch | Retrieve the requested page content, records, resources or files | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), [WebMainBench](https://github.com/opendatalab/WebMainBench), [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
+| Web Search (preview) | Compare search results, relevance, source retrieval, latency and billing | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch): scenario queries and a SimpleQA Verified retrieval adaptation | [Implementation and integration PR #58](https://github.com/lexmount/browser-eval/pull/58) · [Search guide](https://github.com/lexmount/browser-eval/blob/codex/report-release-checks/harness/web_search/README.md) |
 | Browser Trajectory Replay | Complete the same recorded browser actions across implementations | [Repository-curated fixed-action suite](examples/trajectory_replay/tasks.v4.json), adapted from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios); [qualified WebArena human recordings](evaluation/browser-use-public/webarena-human-suite.json), checked with the [WebArena-Verified evaluator](https://github.com/lexmount/webarena-verified/tree/lex-main) | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | Let an Agent use different browsers to complete tasks | [WebArena-Verified](https://github.com/ServiceNow/webarena-verified), using the [pinned evaluator fork](https://github.com/lexmount/webarena-verified/tree/lex-main) and [declared task selection](evaluation/browser-use/webarena-verified-pilot.json) | [CowAgent + WebArena](examples/browser_use/README.md) |
 
@@ -65,13 +65,14 @@ To share a report online, publish its `report/` directory through [Artifact Site
 
 The current package version is `0.2.0`. Software tags use `vMAJOR.MINOR.PATCH`; benchmark editions and hosted report versions are independent. A report records all three identities so rebuilding a report does not relabel its tasks or saved calls.
 
-Use [the release guide](docs/releases.md) for compatibility rules, release checks and the scope of the first software release. A stable release commits to documented commands, input contracts and saved-evidence compatibility; it does not guarantee that every browser or live website passes every task.
+Use [the release guide](docs/releases.md) for compatibility rules, release checks and the scope of the first software release. Web Search remains a preview until its integration reaches main. A stable release commits to documented commands, input contracts and saved-evidence compatibility; it does not guarantee that every browser or live website passes every task.
 
 ## Related repositories
 
 | Repository | Role |
 | --- | --- |
-| [LexBench Web Retrieval](https://github.com/lexmount/lexbench-web-retrieval) | Benchmark family: [Web Fetch](https://github.com/lexmount/lexbench-web-retrieval/blob/main/docs/webfetch.md) and [Web Search](https://github.com/lexmount/lexbench-web-retrieval/blob/main/packages/websearch/README.md), with separate task populations and scoring |
+| [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Versioned Web Fetch tasks, acceptance scoring and frozen input bindings |
+| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Versioned search queries, source references and retrieval scoring |
 | [Moli](https://github.com/lexmount/moli) | Browser evaluated through the same task contracts as other participants |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | CLI client for the Lexmount WebFetch service; separate from the evaluation harness |
 | [Artifact Site](https://github.com/lexmount/artifact-site) | Report hosting, immutable versions and access controls |

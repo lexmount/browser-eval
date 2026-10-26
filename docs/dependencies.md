@@ -14,10 +14,11 @@ Use the declared Git source for the evaluator. A registry package with the same 
 
 | Dependency | Role | Version authority |
 | --- | --- | --- |
-| [LexBench Web Fetch](https://github.com/lexmount/lexbench-web-retrieval/blob/main/docs/webfetch.md) | Task model, catalogs, deterministic acceptance scoring and frozen input validation | Immutable Git revision in `pyproject.toml` and `uv.lock`; [benchmark integration](benchmarks.md) |
-| [LexBench Web Search](https://github.com/lexmount/lexbench-web-retrieval/blob/main/packages/websearch/README.md) | Search queries, source references and deterministic retrieval scoring | Immutable Git revision in `pyproject.toml` and `uv.lock`; [benchmark integration](benchmarks.md#web-search-integration) |
+| [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Task model, catalogs, deterministic acceptance scoring and frozen input validation | Immutable Git revision in `pyproject.toml` and `uv.lock`; [benchmark integration](benchmarks.md) |
 | [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) | HTML parsing | `pyproject.toml` and `uv.lock` |
 | [FastCDC](https://github.com/iscc/fastcdc-py) | Content chunking | `pyproject.toml` and `uv.lock` |
+
+Search development uses [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) for query definitions and retrieval scoring. Its integration is tracked in [PR #58](https://github.com/lexmount/browser-eval/pull/58); it is not a dependency of the current main-branch package.
 
 ## Git-based runtime dependencies
 

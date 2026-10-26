@@ -16,12 +16,12 @@ Browser Eval 是面向浏览器和 Web Agent 的评测脚手架（evaluation har
 
 ## 评测流程
 
-每种评测流程分别选择评测集、题目范围和评分规则；脚手架负责适配器调用、证据保存和报告。
+主分支包含下列三种浏览器评测流程。Web Search 已在表中链接的开发分支实现，当前主分支的软件包尚未包含它。
 
 | 流程 | 测什么 | 对应评测集与任务集 | 使用指南 |
 | --- | --- | --- | --- |
-| Web Fetch | 获取任务要求的网页正文、记录、资源或文件 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-web-retrieval/blob/main/docs/webfetch.md)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
-| Web Search / SERP | 比较搜索结果、相关性、来源检索、延迟与计费 | [LexBench Web Search](https://github.com/lexmount/lexbench-web-retrieval/blob/main/packages/websearch/README.md)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [离线示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
+| Web Fetch | 获取任务要求的网页正文、记录、资源或文件 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
+| Web Search（预览） | 比较搜索结果、相关性、来源检索、延迟与计费 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [实现与接入 PR #58](https://github.com/lexmount/browser-eval/pull/58) · [搜索评测指南](https://github.com/lexmount/browser-eval/blob/codex/report-release-checks/harness/web_search/README.md) |
 | 轨迹重放 | 比较不同浏览器能否完成同一组录制动作 | [仓库自建固定动作任务集](../examples/trajectory_replay/tasks.v4.json)，改编自 [Lexbench-Headless-Browser 场景设计](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | 让 Agent 使用不同浏览器完成任务 | [WebArena-Verified](https://github.com/ServiceNow/webarena-verified)，使用[固定版本的评测器分支](https://github.com/lexmount/webarena-verified/tree/lex-main)和[明确选定的任务](../evaluation/browser-use/webarena-verified-pilot.json) | [CowAgent + WebArena](../examples/browser_use/README.md) |
 
@@ -65,13 +65,14 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 
 当前软件包版本是 `0.2.0`。软件标签采用 `v主版本.次版本.补丁版本`，评测集和托管报告各有独立版本。报告记录这三种身份，因此重建报告不会改换题目版本或保存的调用。
 
-兼容规则、发布检查和首个软件发行版的范围见[发布指南](../docs/releases.md)。稳定版承诺的是文档中的命令、输入约定和历史证据兼容性；浏览器与在线网站的逐题表现仍由评测结果说明。
+兼容规则、发布检查和首个软件发行版的范围见[发布指南](../docs/releases.md)。Web Search 在接入主分支前保持预览状态。稳定版承诺的是文档中的命令、输入约定和历史证据兼容性；浏览器与在线网站的逐题表现仍由评测结果说明。
 
 ## 相关仓库
 
 | 仓库 | 用途 |
 | --- | --- |
-| [LexBench Web Retrieval](https://github.com/lexmount/lexbench-web-retrieval) | 评测家族：[Web Fetch](https://github.com/lexmount/lexbench-web-retrieval/blob/main/docs/webfetch.md) 和 [Web Search](https://github.com/lexmount/lexbench-web-retrieval/blob/main/packages/websearch/README.md) 各自维护题目和评分 |
+| [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Web Fetch 题目、验收评分和冻结输入绑定 |
+| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | 搜索问题、来源参考和检索评分 |
 | [Moli](https://github.com/lexmount/moli) | 与其他参与者按相同任务规则评测的浏览器 |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | Lexmount WebFetch 服务的命令行客户端 |
 | [Artifact Site](https://github.com/lexmount/artifact-site) | 报告托管、不可变版本和访问权限 |

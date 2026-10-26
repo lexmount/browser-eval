@@ -4,9 +4,9 @@ Browser Eval executes tasks, adapts browsers and providers, calls the selected b
 
 | Responsibility | Owner |
 | --- | --- |
-| Self-authored Web Fetch task populations, prompts and acceptance requirements | [LexBench Web Fetch](https://github.com/lexmount/lexbench-web-retrieval/blob/main/docs/webfetch.md) |
+| Self-authored Web Fetch task populations, prompts and acceptance requirements | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) |
 | LexBench task catalogs and frozen source-input bindings | LexBench Web Fetch |
-| Web Search tasks, provenance, source qualifications and deterministic retrieval scoring | [LexBench Web Search](https://github.com/lexmount/lexbench-web-retrieval/blob/main/packages/websearch/README.md) |
+| Web Search tasks, provenance, source qualifications and deterministic retrieval scoring | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) |
 | Browser/provider adapters, execution policy and credential loading | Browser Eval |
 | Task model, deterministic acceptance scorer, file-byte checks, compiler and scenario registry | LexBench Web Fetch |
 | Rescoring orchestration and evidence revision machinery | Browser Eval |
@@ -275,17 +275,3 @@ LexBench Web Search is installed from the immutable commit in `pyproject.toml` a
 Change search queries, references or scoring in LexBench Web Search and pin the resulting commit here. Change provider behavior or report generation in Browser Eval. See the pinned benchmark's [data provenance](https://github.com/lexmount/lexbench-websearch/blob/a6d7b92987e32ef52563ee68bac4343db5686d95/docs/data.md) and [evaluation protocol](https://github.com/lexmount/lexbench-websearch/blob/a6d7b92987e32ef52563ee68bac4343db5686d95/docs/evaluation.md).
 
 Update a merged Search benchmark revision with `make bump-lexbench BENCHMARK=lexbench-websearch REV=<full-commit>`. The shared updater checks upstream main ancestry and updates the package, lock and dataset-hash binding together. The initial extraction PR depends on the companion benchmark PR landing first.
-
-## Select a package from the retrieval family
-
-[LexBench Web Retrieval](https://github.com/lexmount/lexbench-web-retrieval) keeps Fetch at the repository root and Search in `packages/websearch/`. Their package names and Python imports remain independent. A Git source for Search must include that subdirectory; binding only a repository and commit would select the wrong build root.
-
-Use the existing updater to select a merged family commit. It stages installation, checks the full main-branch ancestry, and updates the project, lock and definition binding together. For Search:
-
-```sh
-make bump-lexbench BENCHMARK=lexbench-websearch REV=<full-merged-commit> \
-  REPOSITORY=https://github.com/lexmount/lexbench-web-retrieval.git \
-  SUBDIRECTORY=packages/websearch
-```
-
-For Fetch, select the same repository without `SUBDIRECTORY`. Installed definitions and frozen scorer bytes retain their exact identities. Historical pins continue to identify their original commits; a repository migration does not authorize changed tasks, reference answers or benchmark editions.
