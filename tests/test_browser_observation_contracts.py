@@ -539,3 +539,60 @@ else:
                 os.kill(int(pid_file.read_text()), signal.SIGKILL)
             except ProcessLookupError:
                 pass
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='POSIX late browser launch')
+@pytest.mark.parametrize('inherit_pipes', [False, True])
+def test_browser_launched_during_failed_discovery_is_stopped(tmp_path, monkeypatch, inherit_pipes):
+    import signal
+    import time
+
+    process_status = capture.subprocess.run
+    trigger = tmp_path / 'launch'
+    pid_file = tmp_path / 'browser.pid'
+    program = f'''import json,subprocess,sys,time
+from pathlib import Path
+json.load(sys.stdin)
+while not Path({str(trigger)!r}).exists(): time.sleep(.01)
+child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)'],
+    start_new_session=True, stdout={"None" if inherit_pipes else "subprocess.DEVNULL"},
+    stderr={"None" if inherit_pipes else "subprocess.DEVNULL"})
+Path({str(pid_file)!r}).write_text(str(child.pid))
+print(f'2026-10-26T00:00:00Z pw:browser <launched> pid={{child.pid}}',file=sys.stderr,flush=True)
+time.sleep(30)
+'''
+    def unavailable(*args, **kwargs):
+        trigger.touch()
+        deadline = time.monotonic() + 1
+        while not pid_file.exists() and time.monotonic() < deadline:
+            time.sleep(.01)
+        time.sleep(.05)
+        raise FileNotFoundError('process discovery unavailable')
+    signals = []
+    def kill_group(pid, sig):
+        signals.append(pid)
+        os.killpg(pid, sig)
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', program)
+    monkeypatch.setattr(capture.subprocess, 'check_output', unavailable)
+    monkeypatch.setattr(capture, 'os', SimpleNamespace(name='posix', environ=os.environ,
+        kill=os.kill, killpg=kill_group))
+    try:
+        result = capture._capture_in_process(case_with(), 20, 1)
+        assert result['status'] == 'failure'
+        browser_pid = int(pid_file.read_text())
+        assert browser_pid in signals
+        assert len(signals) == len(set(signals))
+        deadline = time.monotonic() + 2
+        while True:
+            state = process_status(['ps', '-o', 'stat=', '-p', str(browser_pid)],
+                capture_output=True, text=True, timeout=1).stdout.strip()
+            if not state or state.startswith('Z'):
+                break
+            assert time.monotonic() < deadline, 'late browser survived capture timeout'
+            time.sleep(.02)
+    finally:
+        if pid_file.exists():
+            try:
+                os.kill(int(pid_file.read_text()), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
