@@ -318,7 +318,8 @@ def test_batch_preserves_browser_path_relative_to_external_caller(tmp_path, monk
 @pytest.mark.skipif(os.name != 'posix' or not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'),
                     reason='POSIX and explicit Chromium required')
 @pytest.mark.parametrize('discovery_failure', [None, 'missing', 'exit', 'timeout'])
-def test_hung_driver_cleanup_removes_owned_chrome_and_preserves_another_browser(tmp_path, monkeypatch, discovery_failure):
+@pytest.mark.parametrize('stalled_process', ['driver', 'browser'])
+def test_hung_driver_cleanup_removes_owned_chrome_and_preserves_another_browser(tmp_path, monkeypatch, discovery_failure, stalled_process):
     import subprocess
     from playwright.sync_api import sync_playwright
 
@@ -342,7 +343,7 @@ with sync_playwright() as p:
         children.update(descendants)
     children = sorted(children)
     Path({str(pid_file)!r}).write_text(json.dumps(children))
-    os.kill(driver, signal.SIGSTOP)
+    os.kill(driver if {stalled_process!r} == 'driver' else children[0], signal.SIGSTOP)
     time.sleep(30)
 '''
     monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', program)
@@ -438,7 +439,7 @@ def test_unsupported_batch_platform_is_rejected_before_launch(monkeypatch):
 
 @pytest.mark.skipif(os.name != 'posix', reason='POSIX process escalation')
 @pytest.mark.parametrize('reused', [False, True])
-def test_timeout_escalation_preserves_reused_pids_and_kills_surviving_owned_children(monkeypatch, reused):
+def test_hard_timeout_signals_only_currently_owned_children_once(monkeypatch, reused):
     import signal
 
     launch = capture.subprocess.Popen
@@ -453,8 +454,8 @@ def test_timeout_escalation_preserves_reused_pids_and_kills_surviving_owned_chil
         return process
     def process_table(*args, **kwargs):
         snapshots.append(1)
-        stamp = 'new-start' if reused and len(snapshots) > 1 else 'old-start'
-        return f'{started[0]} 0 worker-start\n{child} {started[0]} {stamp}\n'
+        parent = 1 if reused else started[0]
+        return f'{started[0]} 0\n{child} {parent}\n'
     def terminate_group(pid, sig):
         groups.append((pid, sig))
         os.killpg(pid, sig)
@@ -465,9 +466,8 @@ def test_timeout_escalation_preserves_reused_pids_and_kills_surviving_owned_chil
     monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', 'import time; time.sleep(30)')
     result = capture._capture_in_process(case_with(), 20, 1)
     assert result['status'] == 'failure'
-    assert (child, signal.SIGTERM) in signals
-    assert ((child, signal.SIGKILL) in signals) == (not reused)
-    assert groups == [(started[0], signal.SIGTERM)]
+    assert signals == ([] if reused else [(child, signal.SIGKILL)])
+    assert groups == [(started[0], signal.SIGKILL)]
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='POSIX browser ownership')
@@ -484,7 +484,7 @@ def test_timeout_does_not_signal_closed_browser_receipts_or_unowned_reused_pids(
     def processes(*args, **kwargs):
         if mode == 'exited':
             raise FileNotFoundError('no process listing')
-        return f'{worker_pid[0]} 0 worker-start\n{unrelated} 1 unrelated-start\n'
+        return f'{worker_pid[0]} 0\n{unrelated} 1\n'
     log = f'2026-10-26T00:00:00Z pw:browser <launched> pid={unrelated}\n'
     if mode == 'exited':
         log += f'2026-10-26T00:00:01Z pw:browser [pid={unrelated}] <process did exit: exitCode=0, signal=null>\n'

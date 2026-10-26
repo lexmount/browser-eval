@@ -620,9 +620,9 @@ _CAPTURE_PROGRAM = (
 def _capture_process_snapshot():
     try:
         table = subprocess.check_output(
-            ["ps", "-A", "-o", "pid=,ppid=,lstart="], text=True, timeout=1)
-        return {int(pid): (int(parent), started) for pid, parent, started in
-                (line.split(maxsplit=2) for line in table.splitlines())}
+            ["ps", "-A", "-o", "pid=,ppid="], text=True, timeout=1)
+        return {int(pid): int(parent) for pid, parent in
+                (line.split() for line in table.splitlines())}
     except (OSError, ValueError, subprocess.SubprocessError):
         return {}
 
@@ -672,34 +672,32 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
                 owned = {process.pid}
                 initial = _capture_process_snapshot()
                 while True:
-                    children = {pid for pid, (parent, _) in initial.items() if parent in owned}
+                    children = {pid for pid, parent in initial.items() if parent in owned}
                     if children <= owned:
                         break
                     owned.update(children)
                 if initial:
                     browser_pids.intersection_update(owned)
-                for sig in (signal.SIGTERM, signal.SIGKILL):
-                    targets = (owned | browser_pids) - {process.pid}
-                    if sig == signal.SIGKILL:
-                        current = _capture_process_snapshot()
-                        targets = {pid for pid in targets if pid in initial and pid in current
-                                   and initial[pid][1] == current[pid][1]}
-                    for pid in targets:
-                        try:
-                            os.kill(pid, sig)
-                        except ProcessLookupError:
-                            pass
-                    # A timed-out communicate has not reaped the worker, so this
-                    # process-group identity remains owned until communication finishes.
-                    if process.returncode is None:
-                        try:
-                            os.killpg(process.pid, sig)
-                        except ProcessLookupError:
-                            pass
+                # The acquisition has already failed its hard deadline. Kill once,
+                # before reaping any process, rather than signalling saved PIDs again.
+                for pid in browser_pids:
                     try:
-                        _stdout, diagnostics = process.communicate(timeout=1)
-                    except subprocess.TimeoutExpired:
-                        continue
+                        os.killpg(pid, signal.SIGKILL)
+                    except (ProcessLookupError, PermissionError):
+                        try:
+                            os.kill(pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                for pid in owned - browser_pids - {process.pid}:
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                _stdout, diagnostics = process.communicate(timeout=1)
                 message = f"Browser observation worker exceeded {budget:g}s wall-clock budget"
                 error_type = "TimeoutError"
             except (RuntimeError, ValueError) as error:
