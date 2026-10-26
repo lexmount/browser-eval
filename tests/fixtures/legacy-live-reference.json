@@ -1,0 +1,50 @@
+{
+  "source_revision": "e9cdf6b53a3733a2fa7fd449f6adcc8c345e75c5",
+  "source_sha256": "ab70a859cab9a76e7382fe96f523a6298fc99de67df161f34471827663b279ce",
+  "observation": {
+    "case_id": "body",
+    "independent": true,
+    "content_text": "Price 10 dollars",
+    "checked_at": "2026-09-03T12:00:03+00:00",
+    "scope_identity": {
+      "case_id": "body",
+      "url": "https://example.test/body",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "",
+      "reference_scope": "Complete article",
+      "selector": null,
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [
+          "Price"
+        ],
+        "required_facts": [],
+        "required_patterns": [],
+        "forbidden_any": [],
+        "min_content_chars": 1,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "resource_output_contract": {},
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 100,
+      "timeout_ms": 1000
+    },
+    "observer": {
+      "binary": "explicit"
+    }
+  },
+  "files": {
+    "results.jsonl": "{\"attempt_id\": \"p__body__r001\", \"case_id\": \"body\", \"provider\": \"p\", \"ok\": true, \"started_at\": \"2026-09-03T12:00:00+00:00\", \"elapsed_ms\": 1000, \"artifact_path\": \"artifacts/output.txt\", \"metrics\": {\"reference_sha256\": \"b8981cae1071848c08e8e784911a07169ae111c3fad7599cba42d485f3602423\", \"content_sha256\": \"f03809d54d25826fd516a82676f1aa5727cb95b15e5aebe6d23b0a3439694e04\"}, \"provider_type\": \"fixture\", \"case_name\": \"Body\", \"category\": \"static\"}\n",
+    "manifest.json": "{\n  \"schema_version\": 1,\n  \"tool\": \"web_fetch\",\n  \"started_at\": \"2026-09-03T12:00:00+00:00\",\n  \"completed_at\": \"2026-09-03T12:00:02+00:00\",\n  \"attempt_count\": 1,\n  \"attempt_ids\": [\n    \"p__body__r001\"\n  ],\n  \"providers\": [\n    {\n      \"name\": \"p\",\n      \"type\": \"synthetic\"\n    }\n  ],\n  \"dataset\": {\n    \"id\": \"test\",\n    \"case_count\": 1\n  },\n  \"parameters\": {\n    \"runs\": 1\n  },\n  \"reference_checks\": {\n    \"schema_version\": 1,\n    \"status\": \"verified\",\n    \"preflight_checked_at\": \"2026-09-03T12:00:00+00:00\",\n    \"max_age_seconds\": 1800,\n    \"cases\": {\n      \"body\": {\n        \"reference_sha256\": \"b8981cae1071848c08e8e784911a07169ae111c3fad7599cba42d485f3602423\",\n        \"expected_normalized_sha256\": \"5abcaeca8b85a7185181880e89ce1967736a71d99c7115e5664037cae4ab9a30\",\n        \"checked_at\": \"2026-09-03T11:59:00+00:00\",\n        \"scope_identity\": {\n          \"case_id\": \"body\",\n          \"url\": \"https://example.test/body\",\n          \"track\": \"web\",\n          \"task_kind\": \"body\",\n          \"task_prompt\": \"\",\n          \"reference_scope\": \"Complete article\",\n          \"selector\": null,\n          \"source_benchmark\": {},\n          \"render_scope\": null,\n          \"evaluation_contract\": {\n            \"expected_any\": [\n              \"Price\"\n            ],\n            \"required_facts\": [],\n            \"required_patterns\": [],\n            \"forbidden_any\": [],\n            \"min_content_chars\": 1,\n            \"fact_coverage_threshold\": 1.0,\n            \"content_score_applicable\": true,\n            \"expected_resources\": [],\n            \"resource_output_contract\": {},\n            \"reference_answer\": \"\"\n          }\n        },\n        \"source_verification\": {\n          \"state\": \"valid\",\n          \"reference_mode\": \"live_exact\",\n          \"method\": \"independent source capture\",\n          \"checked_at\": \"2026-09-03T11:59:00+00:00\",\n          \"reference_sha256\": \"b8981cae1071848c08e8e784911a07169ae111c3fad7599cba42d485f3602423\",\n          \"reference_scope\": \"Complete article\"\n        }\n      }\n    },\n    \"postcheck\": {\n      \"checked_at\": \"2026-09-03T12:00:04+00:00\",\n      \"status\": \"verified\",\n      \"evidence_path\": \"reference-checks/observations-e73e1ba0b9e034178aa0befff88c8d6bbd652c3122865cb0828a238bd87f0278.json\",\n      \"evidence_sha256\": \"e73e1ba0b9e034178aa0befff88c8d6bbd652c3122865cb0828a238bd87f0278\",\n      \"results_sha256\": \"0ed79bc42eb7de483a6af2e2aaa0e1170506a4aaacc2ff0320facb06bbded49c\",\n      \"dataset_sha256\": \"d0bc15c2d0aee7910ff073721507b3e35c83bc4b3a86ad0a70ed64da500f6478\",\n      \"cases\": {\n        \"body\": {\n          \"status\": \"verified\",\n          \"checked_at\": \"2026-09-03T12:00:03+00:00\",\n          \"latest_call_finished_at\": \"2026-09-03T12:00:01+00:00\",\n          \"content_sha256\": \"b8981cae1071848c08e8e784911a07169ae111c3fad7599cba42d485f3602423\",\n          \"normalized_sha256\": \"5abcaeca8b85a7185181880e89ce1967736a71d99c7115e5664037cae4ab9a30\"\n        }\n      }\n    }\n  },\n  \"dataset_sha256\": \"d0bc15c2d0aee7910ff073721507b3e35c83bc4b3a86ad0a70ed64da500f6478\"\n}\n",
+    "dataset.json": "{\"tool\": \"web_fetch\", \"id\": \"test\", \"cases\": [{\"id\": \"body\", \"name\": \"Body\", \"url\": \"https://example.test/body\", \"category\": \"static\", \"expected_any\": [\"Price\"], \"description\": \"\", \"tags\": [], \"required_facts\": [], \"forbidden_any\": [], \"diagnostic_any\": [], \"min_content_chars\": 1, \"fact_coverage_threshold\": 1.0, \"ground_truth_evidence\": [], \"task_prompt\": \"\", \"reference_answer\": \"\", \"source_benchmark\": {}, \"ground_truth_main_content\": \"Price 10 dollars\", \"expected_resources\": [], \"resource_output_contract\": {}, \"content_score_applicable\": true, \"track\": \"web\", \"required_patterns\": [], \"source_verification\": {\"state\": \"valid\", \"reference_mode\": \"live_exact\", \"method\": \"independent source capture\", \"checked_at\": \"2026-09-03T11:59:00+00:00\", \"reference_sha256\": \"b8981cae1071848c08e8e784911a07169ae111c3fad7599cba42d485f3602423\", \"reference_scope\": \"Complete article\"}, \"task_kind\": \"body\", \"acceptance_contract\": {}, \"composite_acceptance\": {}, \"mutable_body_policy\": {}, \"body_requirements\": {\"version\": 3, \"unit\": \"region_compact_hexagram_recall\", \"minimum_coverage\": 0.8, \"minimum_floor\": 0.6, \"minimum_region_passes\": 1, \"segmentation_method\": \"balanced_tokens_fallback\", \"regions\": [{\"id\": \"body-region-1\", \"text\": \"price 10 dollars\", \"source_text\": \"price 10 dollars\", \"segmentation_method\": \"balanced_tokens_fallback\"}]}, \"retrieval_hints\": {}, \"source_review_url\": \"\", \"evaluation_url\": \"\", \"page_identity_required\": false, \"expected_final_url\": \"\", \"expected_document_language\": \"\", \"document_language_match\": \"primary\", \"expected_document_language_present\": true, \"target_language\": \"\", \"target_region\": \"\", \"rule_review\": {}}]}",
+    "artifacts/output.txt": "Provider raw output stays unchanged",
+    "reference-checks/observations-e73e1ba0b9e034178aa0befff88c8d6bbd652c3122865cb0828a238bd87f0278.json": "[{\"case_id\": \"body\", \"independent\": true, \"content_text\": \"Price 10 dollars\", \"checked_at\": \"2026-09-03T12:00:03+00:00\", \"scope_identity\": {\"case_id\": \"body\", \"url\": \"https://example.test/body\", \"track\": \"web\", \"task_kind\": \"body\", \"task_prompt\": \"\", \"reference_scope\": \"Complete article\", \"selector\": null, \"source_benchmark\": {}, \"render_scope\": null, \"evaluation_contract\": {\"expected_any\": [\"Price\"], \"required_facts\": [], \"required_patterns\": [], \"forbidden_any\": [], \"min_content_chars\": 1, \"fact_coverage_threshold\": 1.0, \"content_score_applicable\": true, \"expected_resources\": [], \"resource_output_contract\": {}, \"reference_answer\": \"\"}}, \"completion\": {\"satisfied\": true, \"elapsed_ms\": 100, \"timeout_ms\": 1000}, \"observer\": {\"binary\": \"explicit\"}}]"
+  }
+}

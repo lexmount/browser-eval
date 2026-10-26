@@ -14,7 +14,12 @@ import tempfile
 import types
 from pathlib import Path
 
+from lexbench_webfetch.paths import contained_path, safe_identifier
+
+from harness.distribution import installed_data_path
 from harness.record_io import load_jsonl
+from harness.web_fetch.safety import stage_evidence_revision
+from harness.web_fetch.webmainbench_case_correction import dimensions
 from harness.web_fetch.webmainbench_certification import verify_shard
 from harness.web_fetch.webmainbench_diagnostics import corrected_distance
 from harness.web_fetch.webmainbench_scoring import (
@@ -24,10 +29,6 @@ from harness.web_fetch.webmainbench_scoring import (
     official_calculator,
     revised_metrics,
 )
-
-from lexbench_webfetch.paths import contained_path, safe_identifier
-from harness.web_fetch.safety import stage_evidence_revision
-from harness.distribution import installed_data_path
 
 
 def digest(path):
@@ -107,9 +108,6 @@ def apply(
     validation_rows: list | None = None,
     expected_parent: str | None = None,
 ) -> tuple[list, dict]:
-    from harness.web_fetch.webmainbench_case_correction import dimensions
-    from harness.web_fetch.webmainbench_scoring import aggregate
-
     certificate, replacements, calls = validate(
         root,
         validation_rows if validation_rows is not None else original_rows,
@@ -702,7 +700,6 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
         summary = summaries[provider]
         summary["pre_scoring_correction_aggregate"] = copy.deepcopy(summary["official_aggregate"])
         summary["official_aggregate"] = aggregate(provider_rows)
-        from .webmainbench_case_correction import dimensions
         summary["dimensions"] = dimensions(provider_rows)
         summary["scorer"]["repository"] = "https://github.com/lexmount/WebMainBench"
         summary["scorer"]["commit"] = scorer_commit

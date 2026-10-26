@@ -1,8 +1,17 @@
 """Small, shared presentation components; never change measured results."""
+
+import json
+from collections import Counter, defaultdict
+from dataclasses import dataclass
 from html import escape
 from pathlib import Path
-import json
-from dataclasses import dataclass
+from urllib.parse import urlsplit
+
+from lexbench_webfetch.metrics import task_passed
+from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
+
+from harness.web_fetch.models import report_family
+from harness.web_fetch.report_i18n import TEXT
 
 
 @dataclass(frozen=True)
@@ -118,7 +127,6 @@ TRACK_CONTEXT = json.loads((Path(__file__).resolve().parent / 'data/report-track
 
 def media_population_text(track, cases):
     """Describe the declared population, without assuming a historical cohort."""
-    from .models import report_family
     selected = [case for case in (cases or {}).values() if report_family(case) == track]
     if track == 'media_file':
         return (f'输入直接指向媒体文件，共 {len(selected)} 题：必须取得原始字节，并通过各题登记的格式、长度与文件指纹要求。',
@@ -147,7 +155,6 @@ def task_pass_guide(track, base='', cases=None):
     }
     rules.update({key: value['pass_rule'] for key, value in TRACK_CONTEXT.items() if 'pass_rule' in value})
     text = rules.get(track, '按案例中登记的验收规则逐项检查。')
-    from .report_i18n import TEXT
     missing_translations = {
         'dynamic': 'Validate the initial-load scope: stable text and required record fields, counts, uniqueness and types jointly determine acceptance. Volatile members, titles and prices are checked structurally rather than frozen to old values. An HTTP shell is insufficient; rendering, embedded data and public APIs are valid routes. Full-text quality is separate and requires a complete comparable reference.',
         'document': 'Document text must satisfy request status, minimum length and every registered content check; a download link alone is insufficient. Verification and error hints are diagnostic. F1 is reported separately and is not a pass threshold.',
@@ -273,7 +280,6 @@ def list_rule_description(c):
     return f'本例按登记的稳定内容锚点及字段／数量规则核验，至少 {minimum} 个不同的具名详情入口；稳定标题、栏目、说明按登记内容核对，频繁变化的条目标题和价格只核对声明的结构与类型。通过不证明变化值的事实准确性或实时性。'
 
 
-
 SCHEMA_LABELS = {
     'table_row':'表格行',
     'earthquake':'地震条目',
@@ -312,7 +318,6 @@ def task_instruction(c):
         if c.get('track') == 'document' and 0 < len(reference) < 100:
             return '读取这个最小文档的全部可见正文。该样本只检查能否取得短文档文字，不代表多页、表格或附录能力。'
         return c.get('task_prompt', '')
-    from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS
     if contract['schema'] == 'page_identity':
         return '核对声明的页面、栏目或查询身份；不以变化中的条目名单作为固定答案。'
     if contract['schema'] == 'body_text':
@@ -349,7 +354,6 @@ def stable_rule_description(c):
 
 
 def stable_contract_details(c, *, evidence_root=None):
-    from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
     contract = c['acceptance_contract']
     schema = contract['schema']
     fields = ''.join('<li><strong>'+escape(FIELD_REQUIREMENTS[f][0])+'</strong>：'+escape(FIELD_REQUIREMENTS[f][1])+'</li>' for f in SCHEMA_FIELDS[schema])
@@ -456,9 +460,6 @@ def sources_panel():
 
 def acceptance_scope(cases, records):
     """Describe frozen requirements and saved outcomes without changing either."""
-    from collections import Counter, defaultdict
-    from urllib.parse import urlsplit
-    from lexbench_webfetch.metrics import task_passed
 
     families = defaultdict(Counter)
     affiliated = []
@@ -504,7 +505,8 @@ def acceptance_scope(cases, records):
 
 
 def render_acceptance_scope(cases, records):
-    from .report import model_text as h, section, table, cell, esc, pct, provider_label, link
+    from harness.web_fetch.report import cell, esc, link, pct, provider_label, section, table
+    from harness.web_fetch.report import model_text as h
     scope = acceptance_scope(cases, records)
     fields = ('tasks', 'identity', 'literal', 'facts', 'body_regions', 'records', 'resources', 'full_reference', 'short_length_floor')
     rows = [('', cell(esc(track)) + ''.join(cell(str(counts[key])) for key in fields))

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import html
 import importlib.resources
@@ -10,6 +11,7 @@ import math
 import re
 import shutil
 import statistics
+import tempfile
 import zipfile
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -17,8 +19,16 @@ from typing import Any
 from urllib.parse import urlencode, urlsplit
 
 from harness.record_io import load_jsonl
+from harness.report_languages import (
+    add_language_argument,
+    includes_english,
+    primary_report_language,
+    select_report_language,
+)
+from harness.reporting.assets import copy_bound_assets
 from harness.reporting.privacy import LOCAL_PATH_RE, WEB_URL_RE
 from harness.reporting.templates import template_identity
+from harness.reporting.versions import bind_build_version
 from harness.trajectory_replay.catalog_contracts import (
     LEGACY_CATALOG_CONTRACTS_SCHEMA,
     LEGACY_CATALOG_REPORT_SCHEMA,
@@ -36,12 +46,14 @@ from harness.trajectory_replay.participants import (
     resolve_participant_id,
 )
 from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
+from harness.trajectory_replay.report_inputs import bound_dataset_path, verified_dataset_path
 from harness.trajectory_replay.runtime_identity import request_bridge_identity
 from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_review import (
     load_validated_failure_review,
     programmatic_failure,
 )
+from harness.web_fetch.storage import data_home
 
 # This notice describes one retained historical cohort, not trajectory replay in
 # general.  Keying all three immutable inputs prevents a future requalified run
@@ -835,8 +847,6 @@ def _public_evidence(
     return public
 
 
-
-
 def _detail_page(
     lang: str,
     attempt: dict[str, Any],
@@ -1383,14 +1393,6 @@ if(viewer){
     (output / "assets/app.js").write_text(js, encoding="utf-8")
 
 
-
-
-
-
-
-
-
-
 def build_webarena_replay_report(
     *,
     results_path: str | Path,
@@ -1404,10 +1406,6 @@ def build_webarena_replay_report(
     include_english: bool = False,
     language: str | None = None,
 ) -> dict[str, Any]:
-    from harness.report_languages import (
-        includes_english,
-        select_report_language,
-    )
     include_english = includes_english(language, include_english)
     languages = ("zh", "en") if include_english else ("zh",)
     profile_source = Path(profile_path)
@@ -2183,7 +2181,6 @@ def build_webarena_replay_report(
         "measurement_notes": {lang: profile["measurement_notes"][lang] for lang in languages}
         if profile.get("measurement_notes") else {},
     }
-    from harness.reporting.versions import bind_build_version
     manifest['browser_eval'] = bind_build_version(output)
     _write_json(output / "report-manifest.json", manifest)
     if language is not None:
@@ -2655,15 +2652,6 @@ def validate_catalog_acceptance_report(
 
 
 def build_main(argv=None) -> None:
-    import argparse
-    import json
-    import tempfile
-    from pathlib import Path
-
-    from harness.reporting.assets import copy_bound_assets
-    from harness.trajectory_replay.report_inputs import bound_dataset_path, verified_dataset_path
-    from harness.web_fetch.storage import data_home
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--results", required=True)
     parser.add_argument("--profile", type=Path, required=True)
@@ -2687,7 +2675,6 @@ def build_main(argv=None) -> None:
         action="store_true",
         help="Explicitly generate the English report and its assets",
     )
-    from harness.report_languages import add_language_argument, primary_report_language
     add_language_argument(parser)
     args = parser.parse_args(argv)
     profile = json.loads(args.profile.read_text(encoding="utf-8"))

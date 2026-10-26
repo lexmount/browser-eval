@@ -4,16 +4,19 @@ Branches depend only on response structure and transport outcome. Keeping their
 implementation in one owner lets acquisition and saved-evidence checks replay
 the same policy rather than accepting any later declaration of allowed fields.
 """
+
 import base64
 import binascii
 import hashlib
 import json
 import re
 from functools import lru_cache
+from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import parse_qsl, quote, urljoin, urlsplit
 
 from lexbench_webfetch.paths import validate_http_url
-from pathlib import Path
+from lexbench_webfetch.resource_urls import srcset_urls
 
 
 def native_projection_source():
@@ -138,8 +141,7 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
                                   if key in _object(payload.get('metadata'))},
                 **({'files': {'pointer': ['files'], 'format': 'worker_files'}} if payload.get('files') else {})}
     if provider_type == 'moli_webfetch':
-        from .providers.moli import _route_for_case
-        from types import SimpleNamespace
+        from harness.web_fetch.providers.moli import _route_for_case
         projected_case = SimpleNamespace(**case) if isinstance(case, dict) else case
         raw = _route_for_case(projected_case, native_default=True) in {'raw_file', 'native_document_bytes'}
         return {'schema_version': 2, 'source_format': 'bytes',
@@ -192,7 +194,6 @@ def _srcset_urls(value, parser, historical_scoring_source):
     else:
         parser = historical
     if parser == SRCSET_PARSER:
-        from lexbench_webfetch.resource_urls import srcset_urls
         return srcset_urls(value)
     if parser == 'legacy-comma-split':
         return [part.strip().split()[0] for part in value.split(',') if part.strip()]
@@ -474,7 +475,6 @@ def main_document_url_from_fetch_log(stderr: str | bytes, requested_url: str) ->
     except ValueError:
         return None
     return candidate
-
 
 
 def project_native_result_fields(payload, declaration, *, request_url=None,

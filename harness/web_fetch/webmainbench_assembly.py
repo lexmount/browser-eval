@@ -11,18 +11,19 @@ import tempfile
 from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
+
 from harness.web_fetch.webmainbench_certification import verify_shard
 from harness.web_fetch.webmainbench_evidence import (
     alias_row,
     copy_alias_artifacts,
     copy_bound,
     digest,
+    load_sample_contract,
     read_jsonl,
     require_matrix,
     require_unique_attempt_ids,
-    load_sample_contract,
-    scored_shard_bindings,
     retry_chain_matches,
+    scored_shard_bindings,
 )
 from harness.web_fetch.webmainbench_runner import load_source
 from harness.web_fetch.webmainbench_scoring import aggregate, verify_score

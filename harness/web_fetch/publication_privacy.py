@@ -1,7 +1,8 @@
 """Project public evidence and execution metadata without changing measurements."""
+
 import hashlib
-from harness.record_io import file_sha256
 import html
+import io
 import json
 import re
 from collections import OrderedDict
@@ -12,12 +13,15 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from threading import Lock
-from urllib.parse import unquote_plus
+from urllib.parse import unquote_plus, urlsplit
+
+from lexbench_webfetch.paths import contained_path
+
+from harness.record_io import file_sha256
 
 
 def require_public_method_options(configuration):
  """Reject private values even when their option name is displayable."""
- from urllib.parse import urlsplit
  def contains_url_credentials(value):
   if isinstance(value,dict):return any(contains_url_credentials(v) for v in value.values())
   if isinstance(value,list):return any(contains_url_credentials(v) for v in value)
@@ -489,7 +493,6 @@ def _scan_plain_publication_risk(data):
     return None
 
 
-
 def _secret_placeholder(value):
     return bool((value.startswith('<') and value.endswith('>'))
                 or (value.startswith('[') and value.endswith(']'))
@@ -911,8 +914,6 @@ def bound_public_view(source, binding):
     A returned view verifies public bytes plus the recorded original identity;
     it does not claim that omitted original bytes have been reconstructed.
     """
-    from pathlib import Path
-    from lexbench_webfetch.paths import contained_path
     source = Path(source)
     profile_path = contained_path(source, 'presentation-binding.json', reject_symlinks=True)
     if not profile_path.is_file():
@@ -946,7 +947,6 @@ def read_evidence_binding(source, binding, *, allow_public_view=True):
     accept their separately verified public projection. Both use the same path,
     staged-write and hash checks.
     """
-    from lexbench_webfetch.paths import contained_path
     identity = EvidenceBinding.from_mapping(binding)
     path = contained_path(source, identity.path, reject_symlinks=True)
     staged = _STAGED_EVIDENCE.get()
@@ -995,7 +995,6 @@ def evidence_excerpt_matches(source, binding, sample, text):
 
 def require_public_evidence_view_inventory(source, binding, records):
     """Require complete current-answer/native-response view coverage at release."""
-    from lexbench_webfetch.paths import contained_path
     if (source/'private_artifacts').exists():
         raise ValueError('Public evidence snapshot must not contain private artifact trees')
     index = json.loads(read_evidence_binding(source, binding).read_text())
@@ -1118,7 +1117,6 @@ def publication_file_risk(name, data):
     """
     if not name.endswith('.jsonl'):
         return publication_risk(data)
-    import io
     for line in io.BytesIO(data):
         if not line.strip():
             continue

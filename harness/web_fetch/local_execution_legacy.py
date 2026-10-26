@@ -9,11 +9,14 @@ authority binds an execution_plans receipt, and their validation entry points
 and historical negative controls have been retired together. A new cohort's
 lack of such plans alone does not establish that historical evidence is unused.
 """
-from harness.record_io import file_sha256
+
 import json
+from copy import deepcopy
 
 from lexbench_webfetch.paths import contained_path
-from .local_execution_contract import LOCAL_SCHEMA1_PARAMETERS
+
+from harness.record_io import file_sha256
+from harness.web_fetch.local_execution_contract import LOCAL_SCHEMA1_PARAMETERS
 
 
 def require_execution_lineage(
@@ -77,7 +80,6 @@ def require_legacy_execution_segments(
     for key, plan in plan_values.items():
         if plans[key]["configuration"]["sha256"] != plan["provider_config_sha256"]:
             raise ValueError("Local execution configuration differs from its pre-call plan")
-    from copy import deepcopy
     normalized = deepcopy(configs["resumed"])
     for provider in normalized.get("providers", {}).values():
         for field in ("command", "required_paths"):

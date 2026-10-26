@@ -6,9 +6,11 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
 from harness.reporting.publication import (
@@ -26,8 +28,10 @@ from harness.web_fetch.publication_target import (
     publication_document,
     require_publication_site,
     require_publication_version,
+    validate_service_base,
 )
-from harness.web_fetch.safety import reject_evidence_symlinks
+from harness.web_fetch.report_package import part_archives, validate_release
+from harness.web_fetch.safety import reject_evidence_symlinks, unlinked_path
 
 STAGED_UPLOAD_THRESHOLD = 23 * 1024 * 1024
 
@@ -107,7 +111,6 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
     if config.mode not in {"create", "update", "reuse"}:
         raise ValueError("Unknown publication mode")
     if config.operation_namespace == 'webfetch':
-        from .report_package import validate_release
         validate_release(config.source, presentation_binding=config.presentation_binding,snapshot_audit=config.snapshot_audit)
     if config.visibility not in {None, "private", "unlisted", "public"}:
         raise ValueError("Unknown publication visibility")
@@ -115,12 +118,10 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
         validation_inputs = (*validation_inputs, config.presentation_binding)
     attachments, parts_plan = {}, None
     if config.parts_manifest is not None:
-        from .report_package import part_archives
         attachments = part_archives(config.parts_manifest)
         parts_plan = json.loads(config.parts_manifest.read_text())
         validation_inputs = (*validation_inputs,config.parts_manifest,*attachments.values())
     if package_check is None and (config.presentation_binding is not None or config.parts_manifest is not None or config.snapshot_audit):
-        from functools import partial
         package_check = partial(check,presentation_binding=config.presentation_binding,external_archives=attachments,snapshot_audit=config.snapshot_audit)
     protected = {config.profile.resolve(), config.archive.resolve(),
                  *(Path(path).resolve() for path in validation_inputs)}
@@ -373,16 +374,6 @@ def main(*, root: Path | None = None):
     print(json.dumps(result, ensure_ascii=False), flush=True)
 
 def rename_main(argv=None, *, default_root=None) -> None:
-    import argparse
-    import json
-    import os
-    import re
-    import urllib.request
-    from pathlib import Path
-
-    from harness.web_fetch.publication_target import validate_service_base
-    from harness.web_fetch.safety import unlinked_path
-
     root = default_root or Path.cwd()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(

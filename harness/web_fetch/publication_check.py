@@ -6,23 +6,28 @@ import hashlib
 import json
 import zipfile
 from contextlib import ExitStack
-from urllib.parse import urlsplit, parse_qs, quote
 from pathlib import Path
+from urllib.parse import parse_qs, quote, urlsplit
 
 from bs4 import BeautifulSoup
+from lexbench_webfetch.paths import contained_path
 
 from harness.record_io import parse_jsonl
 from harness.reporting.links import validate_virtual_links
-from harness.reporting.packs import DecompressedPackCache, read_packed_manifest, reconstruct_packed_file
+from harness.reporting.packs import (
+    DecompressedPackCache,
+    read_packed_manifest,
+    reconstruct_packed_file,
+)
 from harness.reporting.publication import archive_inventory
 from harness.web_fetch.publication_privacy import (
+    bound_public_view,
     project_file,
     project_redundant_result_streams,
-    publication_risk,
     publication_file_risk,
-    bound_public_view,
+    publication_risk,
 )
-from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.report_package import DATA_ATTACHMENT_HTML, validate_release
 from harness.web_fetch.safety import evidence_tree_identity
 from harness.web_fetch.webmainbench_diagnostics import (
     require_valid_teds_for_release,
@@ -39,7 +44,6 @@ def scored_output_hash(row: dict) -> str:
 
 
 def check(archive, source, overlay=None, *, presentation_binding=None, external_archives=None, allow_pending_external=False, snapshot_audit=False):
-    from .report_package import validate_release, DATA_ATTACHMENT_HTML
     validate_release(source, presentation_binding=presentation_binding, snapshot_audit=snapshot_audit)
     source_files = evidence_tree_identity(source)
     physical = archive_inventory(archive)
@@ -100,7 +104,7 @@ def check(archive, source, overlay=None, *, presentation_binding=None, external_
         if overlay and (manifest["blocks"] != baseline["blocks"] or set(manifest["files"]) != set(baseline["files"])):
             raise ValueError("Incremental overlay changed the frozen pack or file inventory")
         if overlay:
-            from .report_package import explanatory_route
+            from harness.web_fetch.report_package import explanatory_route
             for name, entry in manifest["files"].items():
                 if entry != baseline["files"][name] and not (explanatory_route(name) or name == "publication-privacy.json"):
                     raise ValueError("Incremental overlay changed measured evidence: " + name)
@@ -252,7 +256,7 @@ def check(archive, source, overlay=None, *, presentation_binding=None, external_
                 binding={'path':row['artifact_path'],'sha256':expected_hash}
                 public = bound_public_view(source,binding)
                 if public is None and snapshot_audit:
-                    from .published_snapshot import read_snapshot_public_file
+                    from harness.web_fetch.published_snapshot import read_snapshot_public_file
                     retained=read_snapshot_public_file(source,binding)
                     public=(retained,{'role':'scored_answer','published_sha256':hashlib.sha256(original).hexdigest()})
                 if (public is None or public[1]['role'] != 'scored_answer'

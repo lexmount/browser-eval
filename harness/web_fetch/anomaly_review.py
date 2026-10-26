@@ -3,15 +3,15 @@
 This is deliberately separate from verdict review: triggers are computed only after
 the blind reviewer has judged the saved answer, so they cannot prime that verdict.
 """
-from collections import defaultdict
+
 import hashlib
 import json
-from pathlib import Path
 import re
+from collections import defaultdict
+from pathlib import Path
 from statistics import median
 
 from lexbench_webfetch.paths import contained_path
-
 
 LAYERS = ('input', 'reference', 'request', 'raw', 'adapter', 'scorer', 'final_verdict')
 TRIGGER_VERSION = 2

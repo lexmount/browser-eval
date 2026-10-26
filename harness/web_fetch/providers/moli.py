@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-from contextlib import ExitStack
 import hashlib
 import math
 import os
@@ -13,19 +12,28 @@ import subprocess
 import tempfile
 import threading
 import time
+from contextlib import ExitStack
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from ..native_projection import main_document_url_from_fetch_log as _diagnostic_main_document_url
-
-from lexbench_webfetch.models import EvalCase, TRACKS
-from harness.web_fetch.models import ProviderResult
-from ..retrieval_hints import NATIVE_RETRIEVAL_HINTS, native_contract_for_case, plan_for_case
+from lexbench_webfetch.models import TRACKS, EvalCase
 from lexbench_webfetch.paths import validate_http_url
-from ..native_projection import native_answer_projection
-from .base import Provider, terminate_owned_process_tree
-from ..native_routes import NativeRoute
-from .http_client import inner_timeout_budget
+
+from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.native_projection import (
+    main_document_url_from_fetch_log as _diagnostic_main_document_url,
+)
+from harness.web_fetch.native_projection import native_answer_projection, native_fetch_diagnostics
+from harness.web_fetch.native_routes import NativeRoute, declared_input_media_kind
+from harness.web_fetch.network_dns import validate_dns_mode, validate_native_dns_library
+from harness.web_fetch.providers.base import Provider, terminate_owned_process_tree
+from harness.web_fetch.providers.headless import HeadlessProvider
+from harness.web_fetch.providers.http_client import inner_timeout_budget
+from harness.web_fetch.retrieval_hints import (
+    NATIVE_RETRIEVAL_HINTS,
+    native_contract_for_case,
+    plan_for_case,
+)
 
 _WAIT_UNTIL_VALUES = {
     "done",
@@ -112,7 +120,6 @@ def _moli_native_error_type(stderr: str | bytes) -> str:
 
 def _native_fetch_diagnostics(stderr: bytes, requested_url: str) -> tuple[int | None, bool]:
     """Use the same capture-bounded native parser as saved-call replay."""
-    from ..native_projection import native_fetch_diagnostics
     return native_fetch_diagnostics(stderr, requested_url)
 
 
@@ -131,8 +138,6 @@ def replay_native_http_error_context(stdout: bytes, diagnostic: bytes, requested
             'error_message': f'Moli returned HTTP {status}'}
 
 
-
-
 def _route_for_case(case: EvalCase, *, native_default: bool = False) -> str:
     """Select one output contract before applying page-family extraction rules."""
     if case.task_kind == "file":
@@ -140,7 +145,6 @@ def _route_for_case(case: EvalCase, *, native_default: bool = False) -> str:
     if native_default:
         if case.task_kind == "resource":
             return "native_resource_html"
-        from ..native_routes import declared_input_media_kind
         media = declared_input_media_kind(case, required=case.track == "document")
         if case.track == "document" and media in {"direct_pdf", "direct_docx"}:
             return "native_document_bytes"
@@ -185,7 +189,6 @@ class MoliWebFetchProvider(Provider):
 
     def _configuration_errors(self, binary: str | None) -> list[str]:
         errors = []
-        from ..network_dns import validate_dns_mode, validate_native_dns_library
         try:
             if validate_dns_mode(self.config.get("dns_mode", "system")) == "public_doh":
                 validate_native_dns_library(self.config.get("native_dns_library"))
@@ -305,7 +308,7 @@ class MoliWebFetchProvider(Provider):
                         "binary_sha256": binary_sha256,
                     }
                     if self.config.get("dns_mode", "system") == "public_doh":
-                        from ..network_dns import validate_native_dns_library
+                        from harness.web_fetch.network_dns import validate_native_dns_library
                         _, binding = validate_native_dns_library(self.config.get("native_dns_library"))
                         self._implementation_identity["native_dns"] = binding
         return errors
@@ -332,7 +335,6 @@ class MoliWebFetchProvider(Provider):
     def _diagnostic_file_delivery(self, case, binary, call_deadline):
         if case.task_kind != 'file':
             return None
-        from .headless import HeadlessProvider
         native = HeadlessProvider(self.name, {**self.config, 'type':'headless_markdown',
                                               'engine':'moli', 'binary':binary,
                                               'max_original_file_bytes':int(self.config.get('max_bytes',20_000_000))})
@@ -627,7 +629,7 @@ class MoliWebFetchProvider(Provider):
             diagnostic = spool_stack.enter_context(
                 Path(str(sink.path) + ".moli.stderr").open("x+b") if sink else tempfile.TemporaryFile())
             if sink: sink.emit("caller", "native_cli_start", command=command)
-            from ..network_dns import NativeDnsBroker, validate_native_dns_library
+            from harness.web_fetch.network_dns import NativeDnsBroker, validate_native_dns_library
             dns_broker = None
             process_environment = None
             metadata["dns_mode"] = self.config.get("dns_mode", "system")

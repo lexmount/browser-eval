@@ -1,19 +1,21 @@
 """An explicitly supplied historical article, separate from current measurements."""
+
+import base64
 import hashlib
-from harness.record_io import file_sha256
 import json
 import re
 import shutil
-import base64
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from bs4 import BeautifulSoup
 from lexbench_webfetch.paths import contained_path
+
+from harness.record_io import file_sha256
 
 
 def sanitize_article_html(fragment):
     """Keep static article content; never import executable HTML or global CSS."""
-    from bs4 import BeautifulSoup
     allowed = {'article', 'section', 'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
                'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'ul', 'ol', 'li', 'a', 'img',
                'figure', 'figcaption', 'pre', 'code', 'blockquote', 'strong', 'em', 'b', 'i',

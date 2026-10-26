@@ -1,16 +1,22 @@
 """Recompute shared task metrics from immutable evidence; never call providers."""
 
+import argparse
 import hashlib
 import json
+from collections import deque
+from concurrent.futures import ProcessPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-from harness.record_io import parse_jsonl
-from harness.web_fetch.artifacts import verify_record_artifacts, file_scoring_metadata
+from lexbench_webfetch.metrics import summarize, task_passed
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.response_input import apply_request_status
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
+
+from harness.record_io import canonical_json_sha256, file_sha256, parse_jsonl
+from harness.web_fetch.artifacts import file_scoring_metadata, verify_record_artifacts
 from harness.web_fetch.failure_diagnosis import diagnose
-from lexbench_webfetch.metrics import summarize
 from harness.web_fetch.models import execution_id
 from harness.web_fetch.reference_lifecycle import (
     ReferenceLifecycleError,
@@ -21,10 +27,10 @@ from harness.web_fetch.reference_lifecycle import (
     requires_fresh_reference,
 )
 from harness.web_fetch.report import failure_category, succeeded
-from lexbench_webfetch.response_input import apply_request_status
-from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.safety import validate_report_ids
-from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
+from harness.web_fetch.storage import current_evidence_dir
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def _rescore_one(arguments):
@@ -159,8 +165,6 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
         for index in selected:
             accept(index,_rescore_one(arguments(index)))
     else:
-        from collections import deque
-        from concurrent.futures import ProcessPoolExecutor
         # Bound queued records as well as workers: saved answers and diagnostics
         # can be large, so eager map would retain many duplicated payloads.
         with ProcessPoolExecutor(max_workers=jobs) as pool:
@@ -190,10 +194,6 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
 
 
 def main(argv=None):
-    import argparse
-
-    from harness.web_fetch.storage import current_evidence_dir
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path, nargs="?", default=None)
     args = parser.parse_args(argv)
@@ -231,10 +231,6 @@ def score_published_snapshot(source, dataset, *, jobs=1, recovered=None, progres
     evidence. Every changed artifact must match the saved publication receipt;
     an exact recovered original takes precedence over its public view.
     """
-    from concurrent.futures import ProcessPoolExecutor
-    from collections import deque
-    from harness.record_io import file_sha256
-    from lexbench_webfetch.metrics import task_passed
     if type(jobs) is not int or not 1 <= jobs <= 8:
         raise ValueError('Offline scoring jobs must be between 1 and 8')
     source = Path(source).resolve()
@@ -243,7 +239,7 @@ def score_published_snapshot(source, dataset, *, jobs=1, recovered=None, progres
     validate_report_ids(original, records)
     cases = {case['id']: case for case in dataset['cases']}
     old_cases = {case['id']: case for case in original['cases']}
-    from .scoring_revision import ALLOWED_FIELDS
+    from harness.web_fetch.scoring_revision import ALLOWED_FIELDS
     if cases.keys() != old_cases.keys() or dataset.get('coverage_plan') != original.get('coverage_plan'):
         raise ValueError('Published rescoring must retain the complete matrix')
     for key, prior in old_cases.items():
@@ -301,7 +297,6 @@ def score_published_snapshot(source, dataset, *, jobs=1, recovered=None, progres
                 following = next(remaining, None)
                 if following is not None:
                     pending.append(pool.submit(_score_published_row, following))
-    from harness.record_io import canonical_json_sha256
     receipt = {'kind': 'published_snapshot_rescore', 'provider_calls_added': 0,
         'corrected_dataset_sha256': canonical_json_sha256(dataset),
         'input_dataset_sha256': file_sha256(source / 'dataset.json'),

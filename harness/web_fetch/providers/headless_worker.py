@@ -7,8 +7,8 @@ import re
 import shutil
 import subprocess
 import sys
-import time
 import tempfile
+import time
 from importlib.metadata import version
 from pathlib import Path
 
@@ -19,10 +19,24 @@ _WORKER_DIRECTORY = Path(__file__).resolve().parent
 if sys.path and Path(sys.path[0]).resolve() == _WORKER_DIRECTORY:
     sys.path.pop(0)
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from harness.web_fetch.markdown import CONVERTER, converter_command, require_converter
-from harness.web_fetch.document_text import extract_document_text
-from harness.web_fetch.providers.headless import cli_command, completion_metadata, native_cdp_browser
+
 from lexbench_webfetch.paths import validate_http_url
+
+from harness.web_fetch import network_dns
+from harness.web_fetch.document_text import extract_document_text
+from harness.web_fetch.markdown import CONVERTER, converter_command, require_converter
+from harness.web_fetch.providers.headless import (
+    cli_command,
+    completion_metadata,
+    native_cdp_browser,
+)
+from harness.web_fetch.retrieval_hints import native_contract_for_case, parse_retrieval_hints
+from harness.web_fetch.task_outputs import (
+    DOCUMENT_PAGE_EXPRESSION,
+    DOCUMENT_PAGE_READY,
+    MEDIA_METADATA_EXPRESSION,
+    resource_expression,
+)
 
 
 def browser_error_type(error):
@@ -47,7 +61,6 @@ def browser_error_type(error):
 
 def require_normalized_retrieval_plan(request):
     """Keep the declared family while validating explicit native completion."""
-    from harness.web_fetch.retrieval_hints import native_contract_for_case, parse_retrieval_hints
     plan = request.get('retrieval_plan')
     track = request.get('track')
     hints = request.get('retrieval_hints')
@@ -97,10 +110,9 @@ def _native_browser_file(page, request, route_timeout, start, meta):
                 remaining_ms()/1000, output_mode='file', ca_cert=request.get('ca_cert'),
                 http_proxy=request.get('http_proxy'))
             if request.get('block_private_networks'): command.append('--block-private-networks')
-            from harness.web_fetch.network_dns import native_process_dns_environment
             attachment_dns = {}
             meta['native_attachment_dns'] = attachment_dns
-            with native_process_dns_environment(
+            with network_dns.native_process_dns_environment(
                 request.get('dns_mode', 'system'), request.get('native_dns_library'),
                 start + route_timeout, attachment_dns,
             ) as process_environment:
@@ -144,7 +156,6 @@ def _native_browser_file(page, request, route_timeout, start, meta):
 
 
 def _projection_expression(output_mode, track, detail_links=False):
-    from harness.web_fetch.task_outputs import MEDIA_METADATA_EXPRESSION, DOCUMENT_PAGE_EXPRESSION, resource_expression
     return resource_expression(track, detail_links) if output_mode == 'resource' else {'media_metadata': MEDIA_METADATA_EXPRESSION,
             'document_page': DOCUMENT_PAGE_EXPRESSION}[output_mode]
 
@@ -202,7 +213,6 @@ def _evaluate_document(page, expression, deadline, meta):
 
 def _page_projection(page, request, output_mode, meta, deadline):
     if output_mode == 'document_page':
-        from harness.web_fetch.task_outputs import DOCUMENT_PAGE_READY
         page.wait_for_function(DOCUMENT_PAGE_READY, timeout=max(1, (deadline-time.monotonic())*1000))
     return _projection_text(_evaluate_document(page, _projection_expression(output_mode, request.get('track'), request.get('resource_detail_links', False)), deadline, meta), output_mode, meta, deadline)
 
@@ -288,8 +298,7 @@ def fetch(request):
             environment = None
             if engine == 'obscura' and request.get('ca_cert'):
                 environment = {**os.environ, 'SSL_CERT_FILE': str(request['ca_cert'])}
-            from harness.web_fetch.network_dns import native_process_dns_environment
-            with native_process_dns_environment(
+            with network_dns.native_process_dns_environment(
                 request.get('dns_mode', 'system'),
                 request.get('native_dns_library'),
                 start + route_timeout,

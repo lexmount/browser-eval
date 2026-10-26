@@ -23,6 +23,10 @@ Keep original-language task text, source quotations and multilingual test fixtur
 of shared renderers: read them from the selected profile and bound evidence.
 Published historical reports retain their own content and provenance.
 
+Use absolute Python imports and keep ordinary imports at the top of the module.
+Keep an import local when loading an optional dependency, preparing a runtime
+module, avoiding a circular import or preserving test isolation.
+
 Test both accepted and rejected scenarios. Fix scoring rules rather than editing saved verdicts. Refactoring must preserve historical measurements and certificates.
 
 Write documentation in English. Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Preserve original task text, quotations and frozen acceptance inputs. Reports follow their track's language settings.

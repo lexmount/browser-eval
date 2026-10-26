@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from html.parser import HTMLParser
 from typing import Any
 
-from lexbench_webfetch.metrics import fact_in_text, normalize_for_match
+from lexbench_webfetch.metrics import evaluate_content, fact_in_text, normalize_for_match
 from lexbench_webfetch.models import EvalCase
 
 
@@ -87,6 +87,26 @@ def _coverage(text: str, facts: list[dict[str, Any]]) -> dict[str, Any]:
             "all_present": bool(groups) and hits == len(groups), "groups": groups}
 
 
+def content_requirement_errors(case: EvalCase | Mapping[str, Any], text: str) -> list[str]:
+    """Check declared text requirements for any independently captured task."""
+    get = case.get if isinstance(case, Mapping) else lambda key, default=None: getattr(case, key, default)
+    requirements = {key: get(key, default) or default for key, default in (
+        ('body_requirements', {}), ('required_patterns', []),
+        ('acceptance_contract', {}), ('composite_acceptance', {}))}
+    if not any(requirements.values()):
+        return []
+    checks = evaluate_content(text, [], **requirements, base_url=get('url', ''))
+    errors = []
+    if not checks['body_coverage_pass']:
+        errors.append('body_requirements_not_met')
+    if not all(row['pass'] for row in checks['pattern_results']):
+        errors.append('pattern_requirements_not_met')
+    for field, label in (('stable_task_pass', 'record'), ('composite_acceptance_pass', 'composite')):
+        if checks.get(field) is False:
+            errors.append(f'{label}_requirements_not_met')
+    return errors
+
+
 def validate_render_reference(
     case: EvalCase | Mapping[str, Any], initial_html: str | bytes, rendered_text: str,
 ) -> dict[str, Any]:
@@ -117,7 +137,12 @@ def validate_render_reference(
             errors.append(f"duplicate_fact_id:{identifier}")
         seen.add(identifier)
         facts.append({"id": identifier, "alternatives": alternatives})
-    if not facts:
+    body_requirements = get("body_requirements", {}) or {}
+    required_patterns = get("required_patterns", []) or []
+    acceptance_contract = get("acceptance_contract", {}) or {}
+    composite_acceptance = get("composite_acceptance", {}) or {}
+    if not facts and not (body_requirements or required_patterns or acceptance_contract
+                          or composite_acceptance):
         errors.append("required_facts_empty")
     texts = {"initial_visible": _initial_visible(html),
              "initial_payload": _payload_candidates(html),
@@ -147,6 +172,8 @@ def validate_render_reference(
         for group in coverage[key]["groups"]:
             if not group["pass"]:
                 errors.append(f"{key}_missing_fact:{group['id']}")
+    for key in ("reference", "rendered"):
+        errors.extend(f"{key}_{error}" for error in content_requirement_errors(case, texts[key]))
     evidence = (get("source_benchmark", {}) or {}).get("render_evidence", {})
     completion = evidence.get("completion", {})
     condition = completion.get("condition")

@@ -18,6 +18,11 @@ from pathlib import Path
 from typing import Any
 
 from harness.record_io import same_json_record
+from harness.trajectory_replay.webarena_corrections import (
+    apply_correction,
+    evaluate_corrected_contract,
+    load_corrections,
+)
 from harness.web_fetch.safety import unlinked_path, write_new_file
 
 
@@ -780,11 +785,6 @@ def audit_saved_correction(
             "after_catalog_sha256": _diagnostic_digest(after_catalog),
         }
     from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
-    from harness.trajectory_replay.webarena_corrections import (
-        apply_correction,
-        evaluate_corrected_contract,
-        load_corrections,
-    )
 
     benchmark = remote_benchmark(load_remote_sites(site_map))
     response = json.loads((task_dir / "actual_response.json").read_text())

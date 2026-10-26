@@ -1,4 +1,5 @@
 """Freeze independent references; require explicit promotion for scope changes."""
+
 import argparse
 import hashlib
 import json
@@ -11,14 +12,31 @@ from datetime import datetime, timezone
 from pathlib import Path, PureWindowsPath
 from urllib.parse import parse_qs, urlsplit
 
-from harness.record_io import canonical_json_sha256, read_completed_records
-from harness.web_fetch.artifacts import materialize_task_references
 from lexbench_webfetch.body_coverage import body_requirements
 from lexbench_webfetch.metrics import normalize_for_match
-from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes, require_mutable_inputs
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.reference_quality import clean_reference_text, reference_anchor_in_text
+from lexbench_webfetch.scoring_regressions import (
+    ROOT_CAUSE_CATEGORIES,
+    build_correction_provenance,
+    valid_correction_provenance,
+)
+
+from harness.record_io import canonical_json_sha256, read_completed_records
+from harness.web_fetch.artifacts import materialize_task_references
+from harness.web_fetch.reference_inputs import (
+    input_tree,
+    read_dataset_bytes,
+    require_mutable_inputs,
+)
 from harness.web_fetch.reference_lifecycle import (
+    _completion,
+    check_case_reference_binding,
     completed_case_records,
+    legacy_reference_cases,
+    legacy_reference_dataset,
     load_capture_observation,
+    matches_scope_identity,
     reference_cases,
     requires_browser_observation,
     requires_fresh_reference,
@@ -26,9 +44,7 @@ from harness.web_fetch.reference_lifecycle import (
     timestamp,
     validate_postcheck_observation,
 )
-from lexbench_webfetch.reference_quality import clean_reference_text, reference_anchor_in_text
-from lexbench_webfetch.scoring_regressions import ROOT_CAUSE_CATEGORIES, build_correction_provenance, valid_correction_provenance
-from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.render_evidence import content_requirement_errors
 from harness.web_fetch.source_capture import capture
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -139,11 +155,26 @@ def load_browser_observations(dataset, path=None, directory=None):
     unknown=set(observations)-set(cases)
     if unknown:
         raise ValueError('Unknown browser observation case: '+sorted(unknown)[0])
+    original_manifest={};original_cases={}
+    if any(isinstance(row,dict) and isinstance(row.get('scope_identity',{}),dict)
+           and row.get('scope_identity',{}).get('schema_version',1)==1
+           for row in observations.values()):
+        source=path.parent if path else directory
+        manifest_path=contained_path(source,'manifest.json',reject_symlinks=True)
+        if not manifest_path.is_file():
+            raise ValueError('Legacy browser observations require their original run manifest; capture again with scope version 2')
+        original_manifest=json.loads(manifest_path.read_text())
+        original_cases=legacy_reference_cases(legacy_reference_dataset(original_manifest,source))
     for cid,row in observations.items():
         if not isinstance(row,dict) or row.get('case_id')!=cid:
             raise ValueError('Browser observation case ID mismatch: '+cid)
-        if row.get('scope_identity')!=scope_identity(cases[cid]):
+        if not matches_scope_identity(cases[cid], row.get('scope_identity')):
             raise ValueError('Browser observation scope identity mismatch: '+cid)
+        if row.get('scope_identity',{}).get('schema_version',1)==1:
+            binding=original_manifest.get('reference_checks',{}).get('cases',{}).get(cid)
+            if not isinstance(binding,dict) or binding.get('scope_identity')!=row.get('scope_identity'):
+                raise ValueError('Legacy browser observation differs from its original capture scope: '+cid)
+            check_case_reference_binding(cases[cid],binding,original_case=original_cases.get(cid))
         binary=(row.get('observer') or {}).get('binary')
         if (not isinstance(binary,str) or Path(binary).is_absolute()
                 or PureWindowsPath(binary).drive or '/' in binary or '\\' in binary):
@@ -153,7 +184,6 @@ def load_browser_observations(dataset, path=None, directory=None):
 
 def compute_reference_update(dataset, captures, observations=None, *, refresh_case_ids=()):
     """Compute the one authoritative frozen dataset/change set from captures."""
-    from harness.web_fetch.reference_lifecycle import _completion
 
     frozen=deepcopy(dataset);observations=observations or {}
     audit_rows=json.loads((captures/'audit.json').read_text())
@@ -240,6 +270,9 @@ def compute_reference_update(dataset, captures, observations=None, *, refresh_ca
                     case,row,browser_observation=cid in observations)})
         case['ground_truth_main_content']=text
         if old_requirements is not None:case['body_requirements']=new_requirements
+        errors=content_requirement_errors(case,text)
+        if errors:
+            raise ValueError(f'Reference requirements not met: {cid}: {errors}')
         case['source_verification'].update(state='valid',checked_at=timestamp,
             selector=selector,method=method,
             reference_sha256=hashlib.sha256(text.encode()).hexdigest())

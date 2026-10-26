@@ -3,10 +3,12 @@ from __future__ import annotations
 
 from html import escape
 
-from .methods import report_method
-from .report_components import bilingual_text
-from harness.numbers import positive_number
+from bs4 import BeautifulSoup
 
+from harness.numbers import positive_number
+from harness.reporting.presentation import check_presentation
+from harness.web_fetch.methods import report_method
+from harness.web_fetch.report_components import bilingual_text
 
 GROUPS = (
     ('CPU 与计算', (
@@ -183,7 +185,6 @@ def render_resource_comparison(summary, providers):
 
 def check_resource_presentation(html, summary):
     """Verify complete-population values and unique extrema at release time."""
-    from harness.reporting.presentation import check_presentation
     soup = check_presentation(html)
     if summary.get('primary_population') != 'all_declared_calls':
         raise ValueError('Resource ranking must retain every declared call')
@@ -193,7 +194,6 @@ def check_resource_presentation(html, summary):
         raise ValueError('Resource comparison has the wrong population or denominator')
     headline = soup.select('[data-resource-winner]')
     expected_html, _ = render_resource_comparison(summary, summary['providers'])
-    from bs4 import BeautifulSoup
     expected_leaders = BeautifulSoup(expected_html, 'html.parser').select_one(
         '[data-resource-winner]')['data-resource-winner']
     if len(headline) != 1 or headline[0]['data-resource-winner'] != expected_leaders:

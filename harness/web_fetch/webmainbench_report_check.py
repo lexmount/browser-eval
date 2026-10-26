@@ -10,6 +10,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from bs4 import BeautifulSoup
+from lexbench_webfetch.metrics import percentile
+from lexbench_webfetch.paths import contained_path
 
 from harness.record_io import load_jsonl
 from harness.report_languages import (
@@ -17,14 +19,13 @@ from harness.report_languages import (
     generated_languages,
     localized_report_routes,
 )
+from harness.reporting.assets import load_bound_content
 from harness.reporting.presentation import check_presentation
-from lexbench_webfetch.metrics import percentile
 from harness.web_fetch.report import ERROR_PAGE, EXTRA, JS, STYLE
 from harness.web_fetch.report_changes import webmainbench_history
-from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision_if_present
-from harness.web_fetch.webmainbench_evidence import retry_chain_matches
+from harness.web_fetch.webmainbench_evidence import read_method_binding, retry_chain_matches
 from harness.web_fetch.webmainbench_latency_correction import (
     prior_results_path,
     validate_latency_correction,
@@ -34,8 +35,6 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def validate_sample_content(root: Path, *, authority_root: Path, binding_path: Path | None = None) -> None:
-    from harness.reporting.assets import load_bound_content
-
     selected = binding_path or contained_path(authority_root, 'evaluation/webmainbench-content-binding.json', reject_symlinks=True)
     reject_evidence_symlinks(selected)
     expected = selected.read_bytes()
@@ -199,7 +198,6 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
             or not str(target.get('share_url', '')).startswith(str(target.get('host', '')).rstrip('/') + '/v/')
             or not target.get('site_slug')):
         raise ValueError('WebMainBench publication target is not bound to the certified profile')
-    from .webmainbench_evidence import read_method_binding
     _, method_binding = read_method_binding(root)
     profile = json.loads(profile_path.read_text(encoding='utf-8'))
     expected_providers = profile["providers"] + variant_ids
@@ -884,7 +882,6 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     if digest(root / "assets" / "report.js") != EXPECTED_SCRIPT_SHA256:
         raise ValueError("Report JavaScript differs from the reviewed inspection controls")
     validate_sample_content(root, authority_root=authority_root or repo, binding_path=profile_path.parent / "webmainbench-content-binding.json")
-
 
 
 def main():

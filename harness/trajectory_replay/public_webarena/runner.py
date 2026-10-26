@@ -35,17 +35,27 @@ from harness.resource_accounting import (
     ResourceSampler,
     delta_counters,
 )
-
-from .diagnostics import diagnose_summary
-from .evaluators import EvaluatorRegistry, TaskEvidence, write_agent_response
-from .executor import execute_steps
-from .har import CdpHarRecorder
-from .metrics import summarize_attempts
-from .qualification import task_contract_sha256
-from .report import write_latest_report
-from .response_builder import build_agent_response
-from .suite import BrowserTask, load_suite, validate_ground_truth_evidence
-from .webarena_environment import WebArenaEnvironment, wall_clock_timeout
+from harness.trajectory_replay.public_webarena.diagnostics import diagnose_summary
+from harness.trajectory_replay.public_webarena.evaluators import (
+    EvaluatorRegistry,
+    TaskEvidence,
+    write_agent_response,
+)
+from harness.trajectory_replay.public_webarena.executor import execute_steps
+from harness.trajectory_replay.public_webarena.har import CdpHarRecorder
+from harness.trajectory_replay.public_webarena.metrics import summarize_attempts
+from harness.trajectory_replay.public_webarena.qualification import task_contract_sha256
+from harness.trajectory_replay.public_webarena.report import write_latest_report
+from harness.trajectory_replay.public_webarena.response_builder import build_agent_response
+from harness.trajectory_replay.public_webarena.suite import (
+    BrowserTask,
+    load_suite,
+    validate_ground_truth_evidence,
+)
+from harness.trajectory_replay.public_webarena.webarena_environment import (
+    WebArenaEnvironment,
+    wall_clock_timeout,
+)
 
 ENGINE_IMAGES = dict(DEFAULT_BROWSER_IMAGES)
 ENCODING = tiktoken.get_encoding("o200k_base")
@@ -56,10 +66,6 @@ def _remaining_task_budget_ms(deadline: float, *, phase: str) -> int:
     if remaining_ms < 1:
         raise TimeoutError(f"task wall-clock budget exhausted before {phase}")
     return remaining_ms
-
-
-
-
 
 
 def _http_origin(url: str) -> str | None:
@@ -254,8 +260,6 @@ def _capture_final_page_evidence(page: Page, artifact_dir: Path) -> dict[str, An
         },
         "capture_errors": capture_errors,
     }
-
-
 
 
 def _prepare_page(
@@ -523,8 +527,6 @@ def _environment_failure_row(
     }
 
 
-
-
 class _QuietFixtureHandler(SimpleHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:
         return
@@ -632,10 +634,6 @@ def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
             for engine, container in containers.items()
         },
     }
-
-
-
-
 
 
 def _write_run_artifacts(

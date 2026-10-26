@@ -1,8 +1,10 @@
 """Present coverage and extra-content diagnostics as separate observations."""
+
 import re
 
 from lexbench_webfetch.metrics import task_passed
-from .report_components import bilingual_text
+
+from harness.web_fetch.report_components import bilingual_text
 
 
 def quality_observations(record, case, output=''):

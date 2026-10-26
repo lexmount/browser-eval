@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import base64
-import json
 import hashlib
+import json
 import os
 import queue
 import subprocess
@@ -12,12 +12,15 @@ from pathlib import Path
 from typing import Any
 
 from lexbench_webfetch.models import EvalCase
+
+from harness.record_io import canonical_json_sha256
 from harness.web_fetch.models import ProviderResult
-from ..retrieval_hints import plan_for_case, native_default_case
-from ..native_projection import native_answer_projection
-from .base import Provider
-from ..native_routes import NativeRoute
-from .runtime_identity import validate_runtime_identity
+from harness.web_fetch.native_projection import native_answer_projection
+from harness.web_fetch.native_routes import NativeRoute, declared_input_media_kind
+from harness.web_fetch.network_dns import validate_dns_mode
+from harness.web_fetch.providers.base import Provider
+from harness.web_fetch.providers.runtime_identity import validate_runtime_identity
+from harness.web_fetch.retrieval_hints import native_default_case, plan_for_case
 
 
 class SubprocessJsonlProvider(Provider):
@@ -89,7 +92,6 @@ class SubprocessJsonlProvider(Provider):
     def validate(self) -> list[str]:
         if hasattr(self, "_implementation_identity"):
             del self._implementation_identity
-        from ..network_dns import validate_dns_mode
         try:
             mode = validate_dns_mode(self.config.get("dns_mode", "system"))
         except ValueError as error:
@@ -203,7 +205,6 @@ class SubprocessJsonlProvider(Provider):
         }
 
     def native_worker_request(self, case, timeout, diagnostic_path=None):
-        from ..native_routes import declared_input_media_kind
         media = declared_input_media_kind(case, required=False)
         return {'url': case.url, 'log_level': self.config.get('log_level'),
                 'diagnostic_path': diagnostic_path, 'timeout_seconds': timeout,
@@ -235,7 +236,6 @@ class SubprocessJsonlProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
-        from ..native_routes import declared_input_media_kind
         input_media = declared_input_media_kind(case, required=bool(
             self._native_mode and case.track == "document"))
         answer_begin = time.perf_counter()
@@ -262,7 +262,6 @@ class SubprocessJsonlProvider(Provider):
             str(self._active_diagnostics.path) if self._active_diagnostics else None,
             input_media, retrieval_plan)
         if native_route_ledger is not None:
-            from harness.record_io import canonical_json_sha256
             projected = {**request, 'url': '<input-url>',
                          'diagnostic_path': '<diagnostic-output>' if request['diagnostic_path'] else None}
             self.capture_native_request(case, native_route_ledger=native_route_ledger, transport='jsonl', interface='native_worker_command',

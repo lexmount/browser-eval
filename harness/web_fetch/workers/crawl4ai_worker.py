@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import os
 import json
 import multiprocessing
+import os
 import sys
 import tempfile
 from contextlib import AsyncExitStack, redirect_stdout
@@ -14,12 +14,14 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from harness.web_fetch.network_dns import validate_dns_mode, crawl4ai_public_dns_browser
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
 from crawl4ai.async_configs import HTTPCrawlerConfig
 from crawl4ai.async_crawler_strategy import AsyncHTTPCrawlerStrategy
 from crawl4ai.processors.pdf import PDFContentScrapingStrategy, PDFCrawlerStrategy
+
+from harness.web_fetch.native_routes import declared_input_media_kind
+from harness.web_fetch.network_dns import crawl4ai_public_dns_browser, validate_dns_mode
 
 LIBRARY_VERSION = version("crawl4ai")
 PDF_IMPLEMENTATION = (
@@ -146,7 +148,6 @@ def is_direct_pdf_document(request):
     if request.get("task_kind", "body") != "body":
         return False
     if request.get("uniform_native_parameters"):
-        from harness.web_fetch.native_routes import declared_input_media_kind
         return declared_input_media_kind(request) == "direct_pdf"
     path = urlsplit(request["url"]).path.lower().rstrip("/")
     return path.endswith(".pdf") or "/pdf/" in path

@@ -12,25 +12,42 @@ import shutil
 import tempfile
 import types
 from collections import defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 
-from harness.record_io import load_jsonl
 from lexbench_webfetch.metrics import task_passed
-from harness.web_fetch.result_review import write_review_document
+from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.scoring import score_attempt
-from lexbench_webfetch.scoring_regressions import build_correction_provenance, load_scoring_regressions
-from harness.web_fetch.webmainbench_evidence import require_matrix
+from lexbench_webfetch.scoring_regressions import (
+    build_correction_provenance,
+    load_scoring_regressions,
+    valid_correction_provenance,
+)
+
+from harness.record_io import load_jsonl
+from harness.web_fetch.result_review import write_review_document
+from harness.web_fetch.safety import (
+    evidence_tree_identity,
+    reject_evidence_symlinks,
+    stage_evidence_revision,
+    unlinked_path,
+    write_new_file,
+)
+from harness.web_fetch.webmainbench_evidence import (
+    load_sample_contract,
+    read_jsonl,
+    require_matrix,
+    scored_shard_bindings,
+)
+from harness.web_fetch.webmainbench_latency_correction import prior_results_path
 from harness.web_fetch.webmainbench_scoring import (
+    CORE_METRICS,
+    METRIC_SOURCE_MANIFEST_SHA256,
     SCORER_COMMIT,
     aggregate,
     metric_dict,
     official_calculator,
 )
-
-from lexbench_webfetch.paths import contained_path
-from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks, stage_evidence_revision
-from lexbench_webfetch.scoring_regressions import valid_correction_provenance
-from .webmainbench_latency_correction import prior_results_path
 
 ERROR_PAGE = re.compile(
     "(?:^#\\s*Error response\\b|^Error code:\\s*404\\b|ERR[_\\\\]ACCESS[_\\\\]DENIED\\b|"
@@ -531,7 +548,8 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
         (output / "score-summaries.json").write_text(
             json.dumps(summaries, ensure_ascii=False, indent=2) + "\n"
         )
-        from lexbench_webfetch import ordered_tree as ordered_tree_module, scoring as scoring_module
+        from lexbench_webfetch import ordered_tree as ordered_tree_module
+        from lexbench_webfetch import scoring as scoring_module
 
         def source_name(path):
             return path.relative_to(ROOT) if path.is_relative_to(ROOT) else Path("lexbench_webfetch") / path.name
@@ -804,11 +822,6 @@ def close(a: float, b: float) -> bool:
 
 
 def sample_review_main(argv=None, *, root=None) -> None:
-    from datetime import datetime, timezone
-
-    from .webmainbench_evidence import load_sample_contract, read_jsonl, scored_shard_bindings
-    from .webmainbench_scoring import CORE_METRICS, METRIC_SOURCE_MANIFEST_SHA256
-
     parser = argparse.ArgumentParser(description="Audit a profile-declared WebMainBench sample without the official scorer")
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--dataset", type=Path, required=True)
@@ -1168,7 +1181,6 @@ def suspicion_main(argv=None) -> None:
     parser.add_argument("--source-dataset", type=Path, required=True)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
-    from .safety import unlinked_path, write_new_file
 
     if args.output:
         args.output = unlinked_path(args.output)

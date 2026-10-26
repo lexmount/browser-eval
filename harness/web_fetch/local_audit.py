@@ -1,12 +1,18 @@
 """Fail-closed validation for explicitly non-publishable local audit bundles."""
+
 import json
 from pathlib import Path
-from harness.record_io import file_sha256, canonical_json_sha256
 
 from lexbench_webfetch.metrics import task_passed
-from .reference_inputs import input_tree
 from lexbench_webfetch.paths import contained_path
-from . import adjudication_evidence, local_execution_contract
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+from lexbench_webfetch.scoring_regressions import build_correction_provenance
+
+from harness.record_io import canonical_json_sha256, file_sha256
+from harness.web_fetch import adjudication_evidence, local_execution_contract
+from harness.web_fetch.publication_privacy import read_evidence_binding
+from harness.web_fetch.reference_inputs import benchmark_input_path, input_tree
+from harness.web_fetch.reliability import assess_reliability
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_NAME = "local-audit-manifest.json"
@@ -15,7 +21,6 @@ MANIFEST_NAME = "local-audit-manifest.json"
 def _repository_file(relative: str) -> Path:
     if not isinstance(relative, str) or not relative:
         raise ValueError("Repository evidence path is missing")
-    from .reference_inputs import benchmark_input_path
     path = benchmark_input_path(contained_path(ROOT, relative))
     cursor = ROOT
     has_symlink = False
@@ -280,7 +285,6 @@ def _require_review(source: Path, dataset: dict, records: list[dict],
 
 
 def _read_bound_receipt(source: Path, receipt: dict, relative: str) -> dict:
-    from .publication_privacy import read_evidence_binding
     expected = receipt.get("review", {}).get("bound_receipts", {}).get(relative)
     if not expected:
         raise ValueError("Local audit review receipt changed: " + relative)
@@ -357,7 +361,6 @@ def _require_lineage(source: Path, receipt: dict) -> None:
 
 
 def _require_local_scoring_revision(source, contract, records):
-    from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
     if any(r.get("metrics", {}).get("scoring_source_sha256") != SCORING_SOURCE_SHA256
            for r in records):
         raise ValueError("Local measurement has a stale scoring implementation")
@@ -372,7 +375,6 @@ def _require_local_scoring_revision(source, contract, records):
             or receipt.get("call_identities") != {
                 r["attempt_id"]: local_execution_contract.local_measurement_call_sha256(r) for r in records}):
         raise ValueError("Invalid local scoring correction binding")
-    from lexbench_webfetch.scoring_regressions import build_correction_provenance
     provenance = receipt.get("provenance") or {}
     expected_provenance = build_correction_provenance(
         provenance.get("category"), provenance.get("root_cause"),
@@ -394,7 +396,6 @@ def _require_local_scoring_revision(source, contract, records):
 
 def require_complete_local_inventory(dataset: dict, records: list[dict]) -> dict:
     """Allow explicit unknown verdicts locally, never missing physical results."""
-    from .reliability import assess_reliability
 
     comparison = dataset.get("comparison", {})
     if (comparison.get("kind") != "uniform_native_local_measurement"

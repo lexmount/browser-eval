@@ -1,21 +1,26 @@
 """Validate complete, certified WCXB version timing corrections."""
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import math
-import statistics
-import argparse
 import os
 import re
+import statistics
 import subprocess
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from harness.record_io import parse_jsonl
 from lexbench_webfetch.paths import contained_path
-from harness.web_fetch.safety import reject_evidence_symlinks
+
+from harness.record_io import parse_jsonl
+from harness.web_fetch import webmainbench_runner
+from harness.web_fetch.providers import build_provider
+from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
+from harness.web_fetch.wcxb_dataset import validate_manifest
 
 
 def load_full_paired_latency(root: Path, profile: dict, valid_cases: set[str]) -> tuple[dict, dict]:
@@ -126,9 +131,7 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
             providers: dict, binaries: dict, wait_quiet_seconds: int = 0,
             inputs: tuple[Path, ...] = ()) -> dict:
     """Collect the full declared two-build crossover; never select by outcome."""
-    from harness.web_fetch.wcxb_dataset import validate_manifest
     from harness.web_fetch.wcxb_scoring import participant_names
-    from harness.web_fetch.webmainbench_runner import fetch_record, fixture_server, load_wcxb_source
 
     if type(wait_quiet_seconds) is not int or wait_quiet_seconds < 0:
         raise ValueError('wait-quiet-seconds must be a nonnegative integer')
@@ -140,7 +143,6 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
         raise ValueError('Timing output must stay outside the source dataset')
     watched = [profile, manifest, *binaries.values(), *inputs]
     watched += [dataset / 'test/html', dataset / 'test/ground-truth', dataset / 'evaluate.py']
-    from harness.web_fetch.safety import evidence_tree_identity
 
     def source_tree():
         reject_evidence_symlinks(contained_path(dataset, 'test', reject_symlinks=True))
@@ -162,7 +164,7 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
     participant_names(authority)
     if type(authority.get('concurrency', 1)) is not int or authority.get('concurrency', 1) != 1:
         raise ValueError('Paired timing requires serial execution')
-    records, source_hash = load_wcxb_source(dataset)
+    records, source_hash = webmainbench_runner.load_wcxb_source(dataset)
     manifest_bytes = manifest.read_bytes()
     selected, _ = validate_manifest(records, source_hash, json.loads(manifest_bytes))
     hashes = {method: before[path] for method, path in binaries.items()}
@@ -196,7 +198,7 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
     output.mkdir(parents=True)
     started = datetime.now(timezone.utc).isoformat()
     calls_path = output / 'calls.jsonl'
-    with fixture_server(selected) as (base, ca), calls_path.open('x', encoding='utf-8') as sink:
+    with webmainbench_runner.fixture_server(selected) as (base, ca), calls_path.open('x', encoding='utf-8') as sink:
         for provider in providers.values():
             provider.config['ca_cert'] = str(ca)
         for round_number in (0, 1):
@@ -206,7 +208,7 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
                 first = 'release' if (index + round_number) % 2 == 0 else 'pr'
                 for order, method in enumerate((first, 'pr' if first == 'release' else 'release'), 1):
                     start = time.monotonic()
-                    response = fetch_record(providers[method], None, record,
+                    response = webmainbench_runner.fetch_record(providers[method], None, record,
                                             f"{base}/case/{record['track_id']}",
                                             authority['timeout_seconds'])
                     row = {'round': round_number, 'case': record['track_id'],
@@ -243,12 +245,9 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
     return result
 
 
-
 def certify(argv=None) -> dict:
     """Bind the complete frozen timing receipt without changing any measured calls."""
-    from harness.web_fetch.wcxb_dataset import validate_manifest
     from harness.web_fetch.wcxb_scoring import participant_names
-    from harness.web_fetch.webmainbench_runner import load_wcxb_source
 
     parser = argparse.ArgumentParser(description='Certify a complete WCXB paired latency cohort')
     parser.add_argument('--dataset', type=Path, required=True)
@@ -268,7 +267,7 @@ def certify(argv=None) -> dict:
         raw[path] = path.read_bytes()
     authority = json.loads(raw[args.profile])
     participant_names(authority)
-    records, before = load_wcxb_source(args.dataset)
+    records, before = webmainbench_runner.load_wcxb_source(args.dataset)
     selected, _ = validate_manifest(records, before, json.loads(raw[args.sample_manifest]))
     if (type(authority.get('case_count')) is not int or len(selected) != authority.get('case_count')
             or hashlib.sha256(raw[args.dataset / 'evaluate.py']).hexdigest()
@@ -276,7 +275,7 @@ def certify(argv=None) -> dict:
         raise ValueError('Paired timing scope or evaluator differs from profile')
     receipt, rows = load_full_paired_latency(args.evidence_root, authority,
                                             {row['track_id'] for row in selected})
-    _, after = load_wcxb_source(args.dataset)
+    _, after = webmainbench_runner.load_wcxb_source(args.dataset)
     reject_evidence_symlinks(contained_path(args.dataset, 'test', reject_symlinks=True))
     if (before != after or before != receipt['source_sha256']
             or hashlib.sha256(raw[args.sample_manifest]).hexdigest() != receipt['manifest_sha256']
@@ -300,12 +299,10 @@ def certify(argv=None) -> dict:
 
 def main(argv=None, *, root: Path | None = None) -> None:
     """Caller-relative CLI; existing binary flags retain their two-build meaning."""
-    import sys
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv[:1] == ['certify']:
         certify(argv[1:])
         return
-    from harness.web_fetch.providers import build_provider
 
     parser = argparse.ArgumentParser(description='Collect complete profile-bound WCXB paired timing')
     for name in ('dataset', 'manifest', 'release', 'candidate', 'output'):

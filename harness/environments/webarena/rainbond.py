@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import fcntl
 import hashlib
 import json
@@ -1079,10 +1080,6 @@ def release_slice(config_path: Path, output_dir: Path, lease_id: str) -> dict[st
 
 
 def pool_main(argv=None) -> None:
-    import argparse
-    import json
-    from pathlib import Path
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
     subparsers = parser.add_subparsers(dest="command", required=True)

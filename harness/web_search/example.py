@@ -4,9 +4,10 @@ import argparse
 import json
 from pathlib import Path
 
-from .core import digest, normalize, write_json
 from lexbench_websearch.scoring import evaluate
-from .report import build
+
+from harness.web_search.core import digest, normalize, write_json
+from harness.web_search.report import build
 
 
 def synthetic_profile():

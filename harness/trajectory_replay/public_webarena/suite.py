@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from .targets import validate_target
+from harness.trajectory_replay.public_webarena.targets import validate_target
+from harness.web_fetch.safety import unlinked_path, write_new_file
 
 SCHEMA = "lex_browser_use_tasks/4"
 LEGACY_SCHEMA = "lex_browser_use_tasks/3"
@@ -392,7 +393,10 @@ def _tertile_bounds(counts: list[int]) -> tuple[int, int]:
 
 
 def build_suite(catalog: dict[str, Any], trace_dir: Path) -> dict[str, Any]:
-    from .webarena import import_playwright_trace, validate_trace_catalog
+    from harness.trajectory_replay.public_webarena.webarena import (
+        import_playwright_trace,
+        validate_trace_catalog,
+    )
 
     validate_trace_catalog(catalog)
     imported: list[tuple[dict[str, Any], dict[str, Any]]] = []
@@ -512,7 +516,6 @@ def main_build_suite(argv=None) -> None:
     parser.add_argument("--trace-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
-    from harness.web_fetch.safety import unlinked_path, write_new_file
 
     args.output = unlinked_path(args.output)
     if args.output.exists():

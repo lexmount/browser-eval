@@ -12,9 +12,10 @@ import sys
 import time
 from pathlib import Path
 
-from harness.record_io import parse_jsonl
-
 from lexbench_webfetch.paths import contained_path
+
+from harness.record_io import parse_jsonl
+from harness.web_fetch import webmainbench_runner
 
 
 def prior_results_path(root: Path) -> Path:
@@ -192,10 +193,8 @@ def host_sample() -> dict:
 
 
 def snapshot(dataset: Path, sample: Path, official: Path) -> dict:
-    from .webmainbench_runner import load_selected_ids, load_source
-
-    selected, binding = load_selected_ids(sample)
-    source = {row["track_id"]: row for row in load_source(dataset, selected)}
+    selected, binding = webmainbench_runner.load_selected_ids(sample)
+    source = {row["track_id"]: row for row in webmainbench_runner.load_source(dataset, selected)}
     recorded = json.loads((official / "dataset.json").read_text(encoding="utf-8"))
     cases = {row["id"]: row for row in recorded["cases"]}
     if (
@@ -236,7 +235,7 @@ def validate_host_sample(sample: dict) -> None:
 
 
 def certify(argv: list[str] | None = None) -> None:
-    from .webmainbench_latency_diagnostic import _repeat_calls
+    from harness.web_fetch.webmainbench_latency_diagnostic import _repeat_calls
 
     parser = argparse.ArgumentParser(description=__doc__)
     for name in (
@@ -376,7 +375,7 @@ def certify(argv: list[str] | None = None) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
-    from .webmainbench_latency_diagnostic import _repeat_calls
+    from harness.web_fetch.webmainbench_latency_diagnostic import _repeat_calls
 
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("base", "cohort", "dataset", "sample", "output"):

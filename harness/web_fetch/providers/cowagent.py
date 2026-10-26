@@ -8,15 +8,15 @@ import re
 import sys
 from pathlib import Path
 
-from .subprocess_jsonl import SubprocessJsonlProvider
+from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
+from harness.web_fetch.safety import unlinked_path, write_new_file
+from harness.web_fetch.storage import data_home
 
 
 class CowAgentBuiltinProvider(SubprocessJsonlProvider):
     """Invoke CowAgent's repository-local WebFetch implementation unchanged."""
 
     def __init__(self, name, config):
-        from ..storage import data_home
-
         worker = Path(__file__).parents[1] / 'workers/cowagent_worker.py'
         workspace = Path(str(config.get(
             "workspace", data_home() / "runs/cowagent-workspace"
@@ -30,7 +30,6 @@ class CowAgentBuiltinProvider(SubprocessJsonlProvider):
             derived['required_paths'] = [*paths,
                 '{harness_root}/harness/web_fetch/workers/cowagent_worker.py']
         super().__init__(name, derived)
-
 
 
 EXTRACTOR_FIXTURE = '''<html><head><title>Fixture</title><script>SECRET_SCRIPT</script></head>
@@ -66,7 +65,6 @@ def probe_extractor(source):
 
 def probe_main(argv=None):
     """Execute an extractor from trusted local source, without importing its module."""
-    from ..safety import unlinked_path, write_new_file
 
     parser = argparse.ArgumentParser(description="Offline synthetic CowAgent extractor probe")
     parser.add_argument("source", type=Path)

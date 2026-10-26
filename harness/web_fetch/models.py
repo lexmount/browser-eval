@@ -4,7 +4,6 @@ import hashlib
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-
 # The frozen dataset retains image/video as source tracks. Public comparisons
 # group those cases by the deliverable a caller must receive.
 REPORT_FAMILIES = {

@@ -5,9 +5,10 @@ import hashlib
 import json
 
 from lexbench_webfetch.models import EvalCase
+
 from harness.web_fetch.models import ProviderResult
-from .base import Provider
-from ..native_routes import NativeRoute
+from harness.web_fetch.native_routes import NativeRoute
+from harness.web_fetch.providers.base import Provider
 
 
 class FixtureProvider(Provider):

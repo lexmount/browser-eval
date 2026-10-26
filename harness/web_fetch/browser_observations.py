@@ -7,7 +7,11 @@ import argparse
 import hashlib
 import ipaddress
 import json
+import os
+import re
+import signal
 import socket
+import subprocess
 import sys
 import tempfile
 import time
@@ -18,8 +22,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from harness.reporting.publication import atomic_create, json_bytes
 from lexbench_webfetch.metrics import normalize_for_match
+from lexbench_webfetch.paths import safe_identifier
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+
+from harness.reporting.publication import atomic_create, json_bytes
 from harness.web_fetch.network_dns import (
     configure_chromium_dns_profile,
     validate_dns_mode,
@@ -27,10 +34,10 @@ from harness.web_fetch.network_dns import (
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     _resource_target_matches,
+    requires_fresh_reference,
     resource_source_scope_identity,
     scope_identity,
 )
-from lexbench_webfetch.paths import safe_identifier
 from harness.web_fetch.source_capture import extract_html
 
 # innerText includes opacity-zero content. Descend only through ancestors of
@@ -53,6 +60,8 @@ PAINTED_TEXT = r"""(root) => {
         ? node.textContent : '';
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    // Unrendered elements can return textContent from innerText.
+    if (['NOSCRIPT', 'TEMPLATE'].includes(node.tagName)) return '';
     const style = getComputedStyle(node);
     if (style.display === 'none' || Number(style.opacity) === 0) return '';
     if (!affected.has(node)) return node.innerText || '';
@@ -303,6 +312,8 @@ def capture(
     if resolved_ip is not None:
         resolved_ip = public_ip(resolved_ip)
     frames = []
+    captured = None
+    capture_text = case.get("task_kind") != "resource" or requires_fresh_reference(case)
     dns_metadata = {"dns_mode": dns_mode}
     browser_version = None
     primary_response_server_addr = None
@@ -347,7 +358,7 @@ def capture(
             if case.get("task_kind") == "resource":
                 captured = capture_resource_observation(page, case, timeout_ms, begin)
                 final_url, title = page.url, page.title()
-            else:
+            if capture_text:
                 page.wait_for_function(
                     "([selector, minimum]) => "
                     "document.querySelectorAll(selector).length >= minimum",
@@ -434,7 +445,7 @@ def capture(
         "primary_response_server_addr": primary_response_server_addr,
         **dns_metadata,
     }
-    if case.get("task_kind") == "resource":
+    if not capture_text:
         return {
             "case_id": case["id"],
             "status": "success",
@@ -465,6 +476,9 @@ def capture(
         "content_text": content,
         "selector": policy.description,
         "capture_policy": asdict(policy),
+        **({key: value for key, value in captured.items()
+            if key not in {"content_text", "selector", "observation_method", "observed_records", "completion"}}
+           if captured is not None else {}),
         "observation_method": observation_method,
         **(
             {"outer_html": outer_html, "settle_budget_ms": 2000, "visible_frames": frames}
@@ -476,6 +490,7 @@ def capture(
         "observer": observer,
         "completion": {
             "satisfied": bool(normalized)
+            and (captured is None or captured["completion"]["satisfied"])
             and elapsed <= timeout_ms
             and all(frame["status"] == "success" for frame in frames)
             and (
@@ -564,6 +579,11 @@ def capture_with_retries(
                     "message": str(error)[:1000],
                 }
             )
+    return _failed_observation(case, observer, errors, attempts, timeout_ms, last_row)
+
+
+def _failed_observation(case, observer, errors, attempts, timeout_ms, last_row=None):
+    last_row = last_row or {}
     return {
         **last_row,
         "case_id": case["id"],
@@ -593,10 +613,175 @@ def capture_source_identity() -> dict:
         "data/browser-observation-contracts.json",
     )
     root = Path(__file__).parent
-    from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
     return {**{name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names},
             "lexbench_webfetch/scoring": SCORING_SOURCE_SHA256}
+
+
+_CAPTURE_PROGRAM = (
+    "import json,sys; from harness.web_fetch.browser_observations import capture_with_retries; "
+    "print(json.dumps(capture_with_retries(**json.load(sys.stdin))))"
+)
+
+
+def _capture_process_snapshot():
+    try:
+        table = subprocess.check_output(
+            ["ps", "-ww", "-A", "-o", "pid=,ppid=,args="], text=True, timeout=1)
+        return {int(pid): (int(parent), command) for pid, parent, command in
+                (line.split(maxsplit=2) for line in table.splitlines())}
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return {}
+
+
+def _terminate_capture_processes(process, diagnostics, signalled=None):
+    """Stop one worker and browsers authenticated by its launch receipts."""
+    signalled = set() if signalled is None else signalled
+    browser_pids = {int(pid) for pid in re.findall(
+        r"(?m)^\S+\s+pw:browser <launched> pid=(\d+)\s*$", diagnostics)}
+    browser_pids.difference_update(int(pid) for pid in re.findall(
+        r"(?m)^\S+\s+pw:browser \[pid=(\d+)\] <process did exit:", diagnostics))
+    profiles = {}
+    launching = None
+    for line in diagnostics.splitlines():
+        if re.match(r"^\S+\s+pw:browser <launching> ", line):
+            profile = re.search(r"--user-data-dir=(.+?) --remote-debugging-pipe(?: |$)", line)
+            launching = profile[1] if profile else None
+        launched = re.match(r"^\S+\s+pw:browser <launched> pid=(\d+)\s*$", line)
+        if launched and launching:
+            profiles[int(launched[1])] = launching
+    browser_pids.difference_update(signalled)
+    if (process.returncode is not None or process.pid in signalled) and not browser_pids:
+        return signalled
+    owned = {process.pid} if process.returncode is None and process.pid not in signalled else set()
+    initial = _capture_process_snapshot()
+    while True:
+        children = {pid for pid, (parent, _) in initial.items() if parent in owned}
+        if children <= owned:
+            break
+        owned.update(children)
+    if initial:
+        browser_pids = {pid for pid in browser_pids if pid in owned or (
+            pid in initial and pid in profiles
+            and ('--user-data-dir=' + profiles[pid] + ' ') in (initial[pid][1] + ' '))}
+    else:
+        verified = set()
+        for pid in browser_pids:
+            if pid not in profiles:
+                continue
+            try:
+                matches = subprocess.run(
+                    ["pgrep", "-f", "--", re.escape("--user-data-dir=" + profiles[pid]) + "( |$)"],
+                    capture_output=True, text=True, timeout=1, check=False,
+                )
+                if matches.returncode == 0 and str(pid) in matches.stdout.split():
+                    verified.add(pid)
+            except (OSError, subprocess.SubprocessError):
+                pass
+        browser_pids = verified
+    owned.difference_update(signalled)
+    signalled.update(owned | browser_pids)
+    # Signal each owned target once, before further waiting or reaping.
+    for pid in browser_pids:
+        try:
+            os.killpg(pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+    for pid in owned - browser_pids - {process.pid}:
+        try:
+            if os.getpgid(pid) == pid:
+                os.killpg(pid, signal.SIGKILL)
+            else:
+                os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    if process.pid in owned:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    return signalled
+
+
+def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolved_ip=None,
+                        *, observation_scope="reference", dns_mode="system"):
+    """Bound browser transport and cleanup as well as page operations."""
+    if os.name != "posix":
+        raise ValueError("Browser reference batch capture requires POSIX process isolation")
+    if browser_binary:
+        browser_binary = str(Path(browser_binary).resolve())
+    payload = dict(case=case, timeout_ms=timeout_ms, attempts=attempts,
+                   browser_binary=browser_binary, resolved_ip=resolved_ip,
+                   observation_scope=observation_scope, dns_mode=dns_mode)
+    budget = timeout_ms * attempts / 1000 + 2
+    began = time.monotonic()
+    diagnostics = ""
+    try:
+        process = subprocess.Popen(
+            [sys.executable, "-c", _CAPTURE_PROGRAM], stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            cwd=Path(__file__).resolve().parents[2], start_new_session=os.name == "posix",
+            env={**os.environ, "DEBUG": "pw:api,pw:browser", "DEBUG_COLORS": "0"},
+        )
+    except OSError as error:
+        message, error_type = str(error), type(error).__name__
+    else:
+        signalled = set()
+        try:
+            with ExitStack() as cleanup:
+                for pipe in (process.stdin, process.stdout, process.stderr):
+                    if pipe is not None:
+                        cleanup.callback(pipe.close)
+                try:
+                    stdout, stderr = process.communicate(json.dumps(payload), timeout=budget)
+                    _terminate_capture_processes(process, stderr, signalled)
+                    if process.returncode:
+                        raise RuntimeError(stderr[-1000:] or f"Capture worker exited {process.returncode}")
+                    result = json.loads(stdout)
+                    if not isinstance(result, dict) or result.get('case_id') != case['id']:
+                        raise ValueError("Capture worker returned another case")
+                    return result
+                except subprocess.TimeoutExpired as error:
+                    partial = error.stderr or b""
+                    diagnostics = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
+                    _terminate_capture_processes(process, diagnostics, signalled)
+                    try:
+                        _stdout, diagnostics = process.communicate(timeout=1)
+                    except subprocess.TimeoutExpired as drain_error:
+                        partial = drain_error.stderr or diagnostics
+                        diagnostics = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
+                        try:
+                            process.wait(timeout=1)
+                        except subprocess.TimeoutExpired:
+                            pass
+                    _terminate_capture_processes(process, diagnostics, signalled)
+                    message = f"Browser observation worker exceeded {budget:g}s wall-clock budget"
+                    error_type = "TimeoutError"
+                except (RuntimeError, ValueError) as error:
+                    message, error_type = str(error), type(error).__name__
+        except OSError as error:
+            message, error_type = str(error), type(error).__name__
+            try:
+                _terminate_capture_processes(process, diagnostics, signalled)
+            except OSError:
+                pass
+            try:
+                process.kill()
+                process.wait(timeout=1)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+    row = _failed_observation(
+        case, {"browser": "Chromium", "binary": "explicit" if browser_binary else "Playwright default",
+               "dns_mode": dns_mode},
+        [{"attempt": None, "type": error_type, "message": message}], None, timeout_ms)
+    row['completion']['elapsed_ms'] = round((time.monotonic() - began) * 1000, 2)
+    row['worker_wall_budget_ms'] = budget * 1000
+    if diagnostics:
+        row['worker_diagnostics'] = diagnostics[-4000:]
+    return row
 
 
 def capture_batch(
@@ -612,6 +797,8 @@ def capture_batch(
     workers=1,
 ):
     """Checkpoint independent observations against capture code, policy and binary."""
+    if os.name != "posix":
+        raise ValueError("Browser reference batch capture requires POSIX process isolation")
     if any(type(value) is not int or value < 1 for value in (timeout_ms, attempts, workers)):
         raise ValueError("Browser observation budgets and workers must be positive integers")
     dns_mode = validate_dns_mode(dns_mode)
@@ -627,6 +814,17 @@ def capture_batch(
         public_ip(resolved_ip)
     if checkpoints and not browser_binary:
         raise ValueError("Checkpoint reuse requires an explicit browser binary")
+    if browser_binary:
+        browser_binary = str(Path(browser_binary).resolve())
+    if not _capture_process_snapshot():
+        try:
+            discovery = subprocess.run(["pgrep", "-f", "--", "--user-data-dir="],
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1)
+            usable = discovery.returncode in (0, 1)
+        except (OSError, subprocess.SubprocessError):
+            usable = False
+        if not usable:
+            raise ValueError("Browser capture requires working ps or pgrep process discovery")
     sources = capture_source_identity()
     binary_sha = (
         hashlib.sha256(Path(browser_binary).read_bytes()).hexdigest() if browser_binary else None
@@ -683,7 +881,7 @@ def capture_batch(
         )
         if dns_mode != "system":
             options["dns_mode"] = dns_mode
-        row = capture_with_retries(
+        row = _capture_in_process(
             case, timeout_ms, attempts, browser_binary, resolved_ip, **options
         )
         guard()

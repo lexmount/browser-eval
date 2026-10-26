@@ -165,7 +165,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             self.assertEqual(frozen['cases'][0]['source_verification']['state'],'valid')
             self.assertEqual(changes[0]['case_id'],case['id'])
 
-    def test_unavailable_body_reference_stays_unavailable_when_capture_is_blocked(self):
+    def test_required_live_reference_cannot_freeze_a_blocked_empty_capture(self):
         with tempfile.TemporaryDirectory() as directory:
             captures=Path(directory)
             case={'id':'blocked-reference','name':'Blocked reference',
@@ -179,10 +179,10 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                    'sha256':'b'*64,'quality_issues':['http_status_403']}
             (captures/'audit.json').write_text(json.dumps([audit]))
 
-            frozen,changes,_=compute_reference_update({'cases':[case]},captures)
-
-            self.assertEqual(frozen['cases'][0],case)
-            self.assertEqual(changes,[])
+            with self.assertRaisesRegex(ValueError, 'requires independent browser observation'):
+                compute_reference_update({'cases':[case]},captures)
+            self.assertEqual(case['ground_truth_main_content'], '')
+            self.assertEqual(case['source_verification']['state'], 'unavailable')
 
     def test_freeze_writes_nothing_until_changed_scope_is_promoted(self):
         with tempfile.TemporaryDirectory() as directory:

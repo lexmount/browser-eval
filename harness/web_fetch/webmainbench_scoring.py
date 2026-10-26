@@ -13,7 +13,10 @@ from collections import defaultdict
 from pathlib import Path
 from threading import RLock
 
+from lexbench_webfetch.paths import contained_path
+
 from harness.record_io import load_jsonl
+from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
 
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
@@ -266,9 +269,6 @@ def main() -> None:
 
 
 def verify_score(shard: Path, provider: str, case_ids: set[str], scorer: Path, profile: dict) -> dict:
-    from lexbench_webfetch.paths import contained_path
-    from .webmainbench_evidence import digest, read_jsonl
-
     scored = read_jsonl(shard / "scored-results.jsonl")
     measured = read_jsonl(shard / "results.jsonl")
     summary = json.loads((shard / "score-summary.json").read_text(encoding="utf-8"))

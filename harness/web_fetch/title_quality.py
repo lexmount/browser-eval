@@ -6,16 +6,17 @@ missing titles are unmeasured, not false names or zero-quality text. Scores are
 conditional on returned, reference-covered titles; task acceptance still tests
 retrieval. Never write these values to word_* or use them to change task_pass.
 """
+
 import hashlib
 import json
 import re
 import statistics
 from pathlib import Path
-from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
 from lexbench_webfetch.list_verification import identity
 from lexbench_webfetch.metrics import word_overlap
 from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
 
 def reference_title(value):

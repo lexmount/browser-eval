@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 
-
 def file_sha256(path):
     """Hash file bytes without loading the entire artifact into memory.
 

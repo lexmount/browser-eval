@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
+from harness.report_languages import check_primary_report_language, generated_languages
+
 
 def report_languages(root: Path) -> tuple[str, ...]:
-    from harness.report_languages import check_primary_report_language, generated_languages
-
     check_primary_report_language(root)
     return generated_languages(root)
 

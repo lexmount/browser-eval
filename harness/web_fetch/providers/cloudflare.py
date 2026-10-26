@@ -6,18 +6,26 @@ import math
 import time
 import urllib.error
 import urllib.request
-from pathlib import Path
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from urllib.parse import urlencode, urlsplit
 
 from lexbench_webfetch.models import EvalCase
-from harness.web_fetch.models import ProviderResult
-from ..retrieval_hints import native_contract_for_case, native_default_case, plan_for_case
 from lexbench_webfetch.paths import validate_http_url
-from ..native_projection import native_answer_projection
-from .base import Provider
-from ..native_routes import NativeRoute
-from .http_client import HttpOnlyRedirectHandler, HttpResponse, request
+
+from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.native_projection import (
+    SRCSET_PARSER,
+    native_answer_projection,
+    project_native_answer,
+)
+from harness.web_fetch.native_routes import NativeRoute
+from harness.web_fetch.providers.base import Provider
+from harness.web_fetch.providers.http_client import HttpOnlyRedirectHandler, HttpResponse, request
+from harness.web_fetch.retrieval_hints import (
+    native_contract_for_case,
+    native_default_case,
+    plan_for_case,
+)
 
 _DIRECT_DOCUMENT_EXTENSIONS = (
     ".pdf",
@@ -499,7 +507,6 @@ class CloudflareMarkdownProvider(Provider):
         if not isinstance(payload, dict):
             payload = {}
         envelope_success = payload.get("success") is True
-        from ..native_projection import project_native_answer, SRCSET_PARSER
         answer_key = 'images' if case.track == 'image' else 'videos'
         meta = payload.get('meta') if isinstance(payload.get('meta'), dict) else {}
         effective_url = meta.get('finalUrl') or case.url

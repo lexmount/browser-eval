@@ -8,7 +8,11 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .participants import bind_participant, participant_registry, resolve_participant_id
+from harness.trajectory_replay.participants import (
+    bind_participant,
+    participant_registry,
+    resolve_participant_id,
+)
 
 REVIEW_SCHEMA = "lex_webarena_trajectory_replay_failure_review/1"
 

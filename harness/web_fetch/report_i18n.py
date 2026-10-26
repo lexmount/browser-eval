@@ -15,7 +15,9 @@ from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit, urlunsplit
 
+from bs4 import BeautifulSoup, Comment
 
+from harness.web_fetch.report_reading import archived_translations, render_archived_reading
 
 NAV = [
     ("datasets/index.html", "Dataset"),
@@ -49,7 +51,6 @@ TEXT = dict(_TRANSLATIONS['TEXT'])
 # Reader-facing task-family copy from report_components.py. These strings are
 # rendered on the methodology page and therefore need full English editions;
 # measured task names and prompts remain unchanged.
-
 
 
 # Some generated blocks concatenate several fixed sentences into one text node,
@@ -251,25 +252,6 @@ REGEX = [
 # Current standalone article: authored prose only.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def release_translations(history: dict) -> dict[str, str]:
     """Localize only the structured release records included in this report."""
     translations = {}
@@ -306,20 +288,10 @@ REGEX.insert(0, (
 ))
 
 
-
-
-
-
-
-
-
-
 REGEX.insert(0, (
     re.compile(r"^相对 Chromium，Moli 的平均耗时减少 ([\d.]+)%，P50 减少 ([\d.]+)%，P95 减少 ([\d.]+)%。这三项在五款中均最低；跨批次条件下，尚不能确定差距有多少来自浏览器实现。$"),
     r"Compared with Chromium, Moli reduces mean latency by \1%, P50 by \2%, and P95 by \3%. All three are the lowest of the five; with collection across batches, the share of the difference attributable to browser implementation remains uncertain.",
 ))
-
-
 
 
 REGEX.insert(0, (
@@ -396,7 +368,6 @@ REGEX.insert(0, (
     lambda match: (("Success" if match.group(1) == "成功" else "Failure") + " · HTTP "
                    + ("not provided" if match.group(2) == "未提供" else match.group(2))),
 ))
-
 
 
 REGEX.insert(0, (
@@ -743,7 +714,6 @@ def localize_html(page: str, source: PurePosixPath, *, translations=None) -> str
     return _rewrite_links(localized, source, english)
 
 
-
 REGEX.insert(0, (re.compile(r"^源码提交：(.+)$"), r"Source commit: \1"))
 
 
@@ -771,7 +741,6 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
             sources.append(out / str(route))
     history_path = out / "report-changes.json"
     translations = release_translations(json.loads(history_path.read_text())) if history_path.is_file() else {}
-    from .report_reading import archived_translations
     article_translations = archived_translations(out)
     english_root = out / "en"
     if source_routes is None and english_root.exists():
@@ -792,8 +761,6 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
         target.parent.mkdir(parents=True, exist_ok=True)
         raw=source_path.read_text(encoding="utf-8")
         if str(source)=='guide/index.html' and (out/'archived-reading.json').is_file():
-            from .report_reading import render_archived_reading
-            from bs4 import BeautifulSoup, Comment
             parsed = BeautifulSoup(raw, 'html.parser')
             article = parsed.select_one('[data-archived-reading="true"]')
             if article is None:

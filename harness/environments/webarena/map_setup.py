@@ -26,6 +26,8 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from harness.web_fetch.safety import unlinked_path, write_new_file
+
 GIB = 1024**3
 MAPPINGS = {
     "nominatim_volumes.tar": {
@@ -556,7 +558,6 @@ def map_check_main(argv=None):
     parser.add_argument("--url", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
-    from harness.web_fetch.safety import unlinked_path, write_new_file
 
     output = unlinked_path(args.output)
     if output.exists():

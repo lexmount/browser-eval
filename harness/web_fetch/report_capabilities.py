@@ -1,10 +1,18 @@
 """Official capability evidence, deliberately independent of evaluation scores."""
-import json
-from harness.numbers import positive_number
-from html import escape
-from .report_components import tabs, bilingual_text
 
-from .methods import report_method, report_method_catalog, browser_method_label, method_version, normalized_method_version
+import json
+from html import escape
+
+from harness.numbers import positive_number
+from harness.web_fetch.methods import (
+    browser_method_label,
+    method_version,
+    normalized_method_version,
+    report_method,
+    report_method_catalog,
+)
+from harness.web_fetch.report_components import bilingual_text, tabs
+from harness.web_fetch.report_interfaces import browser_task_interface_matrix
 
 
 def c(status, detail):
@@ -19,7 +27,6 @@ def task_capabilities(out, names, records, *, sources=None, language="zh"):
     """Describe the configured native task routes, without upgrading product claims."""
     catalog = report_method_catalog() if language == "zh" else report_method_catalog(language)
     sources = {key:(item["label"],item["url"]) for key,item in catalog["sources"].items()} if sources is None else sources
-    from .report_interfaces import browser_task_interface_matrix
     measured=[r for r in records if r.get('provider_metadata',{}).get('output_contract')]
     if (not measured or not all(report_method(name).get('kind') == 'browser' for name in names)
             or not (out/'dataset.json').is_file()):return None

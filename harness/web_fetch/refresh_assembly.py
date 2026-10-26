@@ -13,6 +13,15 @@ from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 
+from lexbench_webfetch.metrics import task_passed
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.scoring import load_list_reference, score_attempt
+from lexbench_webfetch.scoring_regressions import (
+    build_correction_provenance,
+    load_scoring_regressions,
+    valid_correction_provenance,
+)
+
 from harness.record_io import load_jsonl
 from harness.web_fetch.artifacts import (
     materialize_bound_artifacts,
@@ -26,17 +35,14 @@ from harness.web_fetch.assembly import (
     _copy_speed_bundle,
     _prune_shadowed_batch_attempts,
 )
-from lexbench_webfetch.metrics import task_passed
+from harness.web_fetch.native_routes import native_cases_by_id
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     reference_revision_cases,
     require_verified_reference_checks,
     valid_scoring_revision,
 )
-from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.safety import reject_evidence_symlinks, validate_report_ids
-from lexbench_webfetch.scoring import load_list_reference, score_attempt
-from lexbench_webfetch.scoring_regressions import build_correction_provenance, load_scoring_regressions, valid_correction_provenance
 from harness.web_fetch.speed_cohort import (
     build_summary as build_speed_summary,
 )
@@ -729,7 +735,6 @@ def _validate_layer_execution(
 
 
 def _verify_artifacts(root: Path, rows: list[dict]) -> None:
-    from .native_routes import native_cases_by_id
     native_cases = native_cases_by_id(root)
     for row in rows:
         verify_record_artifacts(root, row, native_cases=native_cases)

@@ -7,6 +7,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from lexbench_webfetch.paths import contained_path
+
+from harness.web_fetch.safety import unlinked_path
+
 LAYERED_REVIEW_SCHEMA = "lex_browser_use_layered_failure_cause_review/2"
 DEFAULT_REVIEW_PATH = (
     Path(__file__).parents[2] / "research/browser-use-failure-cause-review.json"
@@ -19,9 +23,7 @@ def sha256(path: Path) -> str | None:
 
 def review_path(profile: dict[str, Any], *, authority_root: Path | None = None) -> Path:
     """Resolve an explicitly bound external review or a repository-relative review."""
-    from lexbench_webfetch.paths import contained_path
 
-    from harness.web_fetch.safety import unlinked_path
     value = (profile.get("failure_cause_review") or {}).get("source_path")
     if value is None:
         value = "research/browser-use-failure-cause-review.json"

@@ -1,12 +1,23 @@
 """Explicit process-local DNS environment; never change product safety policy."""
-from contextlib import contextmanager, asynccontextmanager
+
+import asyncio
+import hashlib
 import ipaddress
 import json
+import math
+import os
+import pathlib
+import platform
+import secrets
 import socket
+import socketserver
+import subprocess
+import tempfile
 import threading
 import time
 import urllib.parse
 import urllib.request
+from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 
 DNS_ENDPOINT = "https://cloudflare-dns.com/dns-query"
@@ -157,8 +168,6 @@ class NativeDnsBroker:
     resolver is used only by this parent's HTTPS transport to the fixed DoH host.
     """
     def __init__(self, *, resolver=None, diagnostics=None):
-        import secrets
-        import socketserver
         self.resolver = resolver or lookup_public_dns
         self.diagnostics = diagnostics
         self.token = secrets.token_hex(32)
@@ -221,7 +230,6 @@ class NativeDnsBroker:
         self.thread.start()
 
     def begin_call(self, timeout):
-        import math
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("DNS timeout must be positive and finite")
         with self.trace_lock:
@@ -230,7 +238,6 @@ class NativeDnsBroker:
             self.traces = []
 
     def environment(self, library, base=None):
-        import os
         env = dict(os.environ if base is None else base)
         env.update(DYLD_INSERT_LIBRARIES=str(library),
                    BROWSER_EVAL_DNS_PORT=str(self.server.server_address[1]),
@@ -260,11 +267,8 @@ async def crawl4ai_public_dns_browser(config):
     Native launch arguments and extraction remain owned by Crawl4AI. The
     profile, browser and driver are all closed when the worker exits.
     """
-    import asyncio
-    import pathlib
-    import tempfile
-    from playwright.async_api import async_playwright
     from crawl4ai.browser_manager import BrowserManager
+    from playwright.async_api import async_playwright
 
     if config.chrome_channel != "chrome":
         raise ValueError("public_doh requires the frozen Chrome channel")
@@ -293,15 +297,11 @@ async def crawl4ai_public_dns_browser(config):
 
 
 def _native_dns_sources():
-    import pathlib
     return [pathlib.Path(__file__).resolve().parent / "workers/native_dns_darwin.c"]
 
 
 def validate_native_dns_library(library):
     """Bind native resolver bytes to current source, architecture and platform."""
-    import hashlib
-    import pathlib
-    import platform
     if platform.system() != "Darwin":
         raise ValueError("native public DNS bridge currently requires Darwin")
     if not library:
@@ -323,11 +323,6 @@ def validate_native_dns_library(library):
 
 def build_native_dns_library(destination):
     """Explicit preparation step; never compile or swap runtimes during a call."""
-    import hashlib
-    import pathlib
-    import platform
-    import subprocess
-    import tempfile
     if platform.system() != "Darwin":
         raise ValueError("native public DNS bridge currently requires Darwin")
     path = pathlib.Path(destination).expanduser().resolve()

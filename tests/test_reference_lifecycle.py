@@ -8,7 +8,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
 from lexbench_webfetch.models import EvalCase
+
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.reference_lifecycle import (
     ReferenceLifecycleError,
@@ -19,6 +21,7 @@ from harness.web_fetch.reference_lifecycle import (
     preflight_reference_checks,
     require_verified_reference_checks,
     resource_source_scope_identity,
+    scope_identity,
     sha256,
     validate_resource_source_evidence,
 )
@@ -147,10 +150,11 @@ class ReferenceLifecycleTests(unittest.TestCase):
         with self.assertRaises(ReferenceLifecycleError):
             check_case_equivalent_reference_binding(replace(equivalent, task_prompt="Different task"), binding)
 
-    def test_only_body_with_independent_metadata_is_required(self):
-        for case in (replace(self.case, source_verification={}),
-                     replace(self.case, task_kind="structure"), replace(self.case, ground_truth_main_content="")):
-            self.assertIsNone(self.checks(case))
+    def test_explicit_reference_requirements_are_independent_of_output_kind(self):
+        self.assertIsNone(self.checks(replace(self.case, source_verification={})))
+        self.assertIsNotNone(self.checks(replace(self.case, task_kind="structure")))
+        with self.assertRaisesRegex(ReferenceLifecycleError, "required live reference is missing"):
+            self.checks(replace(self.case, ground_truth_main_content=""))
         with self.assertRaisesRegex(ReferenceLifecycleError, "resource evidence binding"):
             self.checks(replace(self.case, track="image", task_kind="resource",
                                 expected_resources=[{"id": "image", "urls": ["https://example.test/a.png"]}]))
@@ -560,6 +564,36 @@ class ReferenceLifecycleTests(unittest.TestCase):
         self.assertEqual(records[0]["metrics"]["reference_sha256"], sha256(self.case.ground_truth_main_content))
         self.assertEqual(json.loads((self.run / "manifest.json").read_text())["reference_checks"], original["reference_checks"])
 
+    def test_live_contract_changes_require_new_source_certification(self):
+        self.case = replace(self.case, acceptance_contract={
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'price', 'alternatives': ['Price']}]})
+        original = self.prepare_run()
+        record = json.loads((self.run / 'results.jsonl').read_text())
+        record.update(provider_type='fixture', case_name='Body', category='static')
+        (self.run / 'results.jsonl').write_text(json.dumps(record) + '\n')
+        self.finalize([self.observation(original)])
+        manifest = json.loads((self.run / 'manifest.json').read_text())
+        require_verified_reference_checks([manifest], cases=[self.case], source=self.run)
+        rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset(),
+                          dataset_path=self.dataset_path, cases=[self.case])
+        before = {p: p.read_bytes() for p in self.run.rglob('*') if p.is_file()}
+        changes = {
+            'acceptance_contract': {**self.case.acceptance_contract,
+                'stable_text_anchors': [{'id': 'price', 'alternatives': ['Provider raw output']}]},
+            'body_requirements': {'required_regions': [{'id': 'new', 'alternatives': ['Different']}]},
+            'composite_acceptance': {'required_fields': ['Different']},
+        }
+        for field, value in changes.items():
+            with self.subTest(field=field):
+                changed = replace(self.case, **{field: value})
+                with self.assertRaises(ReferenceLifecycleError):
+                    require_verified_reference_checks([manifest], cases=[changed], source=self.run)
+                with self.assertRaises(ReferenceLifecycleError):
+                    rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset(changed),
+                                      dataset_path=self.dataset_path, cases=[changed])
+                self.assertEqual(before, {p: p.read_bytes() for p in self.run.rglob('*') if p.is_file()})
+
     def verified_run(self):
         original = self.prepare_run()
         self.finalize([self.observation(original)])
@@ -622,6 +656,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         stable = replace(
             self.case,
             id="stable",
+            source_verification={**self.case.source_verification, "reference_mode": "frozen"},
             acceptance_contract={
                 "version": 1,
                 "schema": "product",
@@ -629,7 +664,8 @@ class ReferenceLifecycleTests(unittest.TestCase):
                 "stable_text_anchors": [{"id": "section", "alternatives": ["Catalog"]}],
             },
         )
-        resource = replace(self.case, id="resource", track="image", task_kind="resource")
+        resource = replace(self.case, id="resource", track="image", task_kind="resource",
+                           source_verification={**self.case.source_verification, "reference_mode": "frozen"})
         records = [
             {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p",
              "started_at": "2026-01-01T00:00:01+00:00", "elapsed_ms": 10,
@@ -655,6 +691,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         stable = replace(
             self.case,
             id="stable",
+            source_verification={**self.case.source_verification, "reference_mode": "frozen"},
             acceptance_contract={
                 "version": 1,
                 "schema": "product",
@@ -687,6 +724,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         stable = replace(
             self.case,
             id="stable",
+            source_verification={**self.case.source_verification, "reference_mode": "frozen"},
             acceptance_contract={
                 "version": 1,
                 "schema": "product",
@@ -799,3 +837,112 @@ class ReferenceLifecycleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@pytest.mark.parametrize('track', ['web', 'dynamic', 'challenge', 'risk_control', 'document', 'image', 'video'])
+@pytest.mark.parametrize('kind', ['body', 'structure', 'resource', 'file'])
+def test_explicit_live_reference_is_selected_for_every_mixed_contract(track, kind):
+    from harness.web_fetch.reference_lifecycle import requires_fresh_reference
+    case = {'id': 'live', 'url': 'https://example.test/', 'track': track, 'task_kind': kind,
+            'ground_truth_main_content': 'Substantive independently observed article',
+            'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+                                    'stable_text_anchors': [{'id': 'title', 'alternatives': ['Article']}]},
+            'source_verification': {'reference_mode': 'live_exact'}}
+    assert requires_fresh_reference(case)
+    case['source_verification'] = {}
+    assert not requires_fresh_reference(case)
+
+
+def test_unknown_reference_mode_is_not_hidden_by_a_stable_contract():
+    from harness.web_fetch.reference_lifecycle import requires_fresh_reference
+    with pytest.raises(ReferenceLifecycleError, match='reference mode'):
+        requires_fresh_reference({'acceptance_contract': {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'title', 'alternatives': ['Article']}]},
+            'source_verification': {'reference_mode': 'live_excat'}})
+
+
+@pytest.mark.parametrize('fixture_name', ['legacy-live-reference.json', 'legacy-contract-reference.json'])
+def test_original_scope_certificate_survives_unchanged_inputs_but_rejects_rule_changes(tmp_path, fixture_name):
+    from harness.web_fetch.reference_freeze import load_browser_observations
+    fixture = json.loads((Path(__file__).parent / 'fixtures' / fixture_name).read_text())
+    for relative, text in fixture['files'].items():
+        target = tmp_path / relative; target.parent.mkdir(parents=True, exist_ok=True); target.write_text(text)
+    dataset = json.loads((tmp_path / 'dataset.json').read_text())
+    case = EvalCase(**dataset['cases'][0])
+    manifest = json.loads((tmp_path / 'manifest.json').read_text())
+    # The runner may serialize its saved dataset differently from the input file.
+    manifest['dataset_sha256'] = sha256(json.dumps(dataset, indent=4))
+    (tmp_path / 'manifest.json').write_text(json.dumps(manifest))
+    observation = tmp_path / 'browser-observation.json'
+    observation.write_text(json.dumps({case.id: fixture['observation']}))
+    assert load_browser_observations(dataset, path=observation)[case.id] == fixture['observation']
+    require_verified_reference_checks([manifest], cases=[case], source=tmp_path)
+    require_verified_reference_checks([manifest], cases=[case], source=tmp_path, equivalent_capture_bindings=True)
+    for field in ('acceptance_contract', 'body_requirements', 'composite_acceptance'):
+        changed = replace(case, **{field: {'required_fields': ['changed']}})
+        with pytest.raises(ValueError):
+            load_browser_observations({**dataset, 'cases': [changed.__dict__]}, path=observation)
+        if getattr(case, field):
+            removed = replace(case, **{field: {}})
+            with pytest.raises(ValueError):
+                load_browser_observations({**dataset, 'cases': [removed.__dict__]}, path=observation)
+        with pytest.raises(ReferenceLifecycleError):
+            require_verified_reference_checks([manifest], cases=[changed], source=tmp_path)
+        with pytest.raises(ReferenceLifecycleError):
+            rescore_evaluation(run_dir=tmp_path, dataset_meta={**dataset, 'cases': [changed.__dict__]},
+                dataset_path=tmp_path / 'dataset.json', cases=[changed])
+    unbound = tmp_path / 'unbound'; unbound.mkdir()
+    unbound_observation = unbound / 'browser-observation.json'
+    unbound_observation.write_bytes(observation.read_bytes())
+    with pytest.raises(ValueError):
+        load_browser_observations(dataset, path=unbound_observation)
+    rescore_evaluation(run_dir=tmp_path, dataset_meta=dataset, dataset_path=tmp_path / 'dataset.json', cases=[case])
+    require_verified_reference_checks([manifest], cases=[case], source=tmp_path)
+
+    from harness.web_fetch.artifacts import materialize_reference_checks
+    packaged = tmp_path / 'package'; packaged.mkdir()
+    (packaged / 'dataset.json').write_text(json.dumps({**dataset, 'presentation': 'new'}))
+    materialize_reference_checks(packaged, tmp_path, [manifest])
+    require_verified_reference_checks([manifest], cases=[case], source=packaged)
+    original_input = next(packaged.glob('reference-checks/dataset-*.json'))
+    original_input.write_text(original_input.read_text() + ' ')
+    with pytest.raises(ReferenceLifecycleError):
+        require_verified_reference_checks([manifest], cases=[case], source=packaged)
+
+    stripped = replace(case, body_requirements={}, acceptance_contract={}, composite_acceptance={})
+    for equivalent in (False, True):
+        with pytest.raises(ReferenceLifecycleError):
+            require_verified_reference_checks([manifest], cases=[stripped], source=packaged,
+                                              equivalent_capture_bindings=equivalent)
+
+
+@pytest.mark.parametrize('fixture_name', ['legacy-live-reference.json', 'legacy-contract-reference.json'])
+@pytest.mark.parametrize('field', ['acceptance_contract', 'body_requirements', 'composite_acceptance'])
+def test_equivalent_legacy_capture_rejects_conflicting_embedded_rules(fixture_name, field):
+    fixture = json.loads((Path(__file__).parent / 'fixtures' / fixture_name).read_text())
+    original = EvalCase(**json.loads(fixture['files']['dataset.json'])['cases'][0])
+    manifest = json.loads(fixture['files']['manifest.json'])
+    binding = manifest['reference_checks']['cases'][original.id]
+    before = deepcopy(binding)
+    check_case_equivalent_reference_binding(original, binding, original_case=original)
+    assert binding == before
+
+    changed_rule = {'required_fields': ['a different requirement']}
+    changed = replace(original, **{field: changed_rule})
+    conflicting = deepcopy(binding)
+    conflicting['scope_identity']['evaluation_contract'][field] = changed_rule
+    for check in (check_case_reference_binding, check_case_equivalent_reference_binding):
+        with pytest.raises(ReferenceLifecycleError):
+            check(changed, conflicting, original_case=original)
+
+
+@pytest.mark.parametrize('version', [0, 3])
+def test_equivalent_capture_rejects_unknown_scope_versions(version):
+    fixture = json.loads((Path(__file__).parent / 'fixtures/legacy-live-reference.json').read_text())
+    case = EvalCase(**json.loads(fixture['files']['dataset.json'])['cases'][0])
+    binding = json.loads(fixture['files']['manifest.json'])['reference_checks']['cases'][case.id]
+    binding['scope_identity'] = {**scope_identity(case), 'schema_version': version}
+    for check in (check_case_reference_binding, check_case_equivalent_reference_binding):
+        with pytest.raises(ReferenceLifecycleError):
+            check(case, binding, original_case=case)
