@@ -317,7 +317,8 @@ def test_batch_preserves_browser_path_relative_to_external_caller(tmp_path, monk
 
 @pytest.mark.skipif(os.name != 'posix' or not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'),
                     reason='POSIX and explicit Chromium required')
-def test_hung_driver_cleanup_removes_owned_chrome_and_preserves_another_browser(tmp_path, monkeypatch):
+@pytest.mark.parametrize('discovery_failure', [None, 'missing', 'exit', 'timeout'])
+def test_hung_driver_cleanup_removes_owned_chrome_and_preserves_another_browser(tmp_path, monkeypatch, discovery_failure):
     import subprocess
     from playwright.sync_api import sync_playwright
 
@@ -329,15 +330,30 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path={binary!r}, headless=True, args=['--no-sandbox'])
+    browser.new_page()
     driver = p._impl_obj._connection._transport._proc.pid
     table = subprocess.check_output(['ps', '-A', '-o', 'pid=,ppid='], text=True)
-    children = [int(pid) for pid, parent in (line.split() for line in table.splitlines())
-                if int(parent) == driver]
+    parents = {{int(pid): int(parent) for pid, parent in (line.split() for line in table.splitlines())}}
+    children = {{pid for pid, parent in parents.items() if parent == driver}}
+    while True:
+        descendants = {{pid for pid, parent in parents.items() if parent in children}}
+        if descendants <= children:
+            break
+        children.update(descendants)
+    children = sorted(children)
     Path({str(pid_file)!r}).write_text(json.dumps(children))
     os.kill(driver, signal.SIGSTOP)
     time.sleep(30)
 '''
     monkeypatch.setattr(capture, '_CAPTURE_PROGRAM', program)
+    if discovery_failure:
+        def unavailable(*args, **kwargs):
+            if discovery_failure == 'missing':
+                raise FileNotFoundError('ps missing')
+            if discovery_failure == 'exit':
+                raise subprocess.CalledProcessError(1, 'ps')
+            raise subprocess.TimeoutExpired('ps', 1)
+        monkeypatch.setattr(capture.subprocess, 'check_output', unavailable)
     with sync_playwright() as p:
         unrelated = p.chromium.launch(executable_path=binary, headless=True, args=['--no-sandbox'])
         try:
@@ -345,10 +361,16 @@ with sync_playwright() as p:
             assert result['status'] == 'failure'
             owned = json.loads(pid_file.read_text())
             assert owned
-            for pid in owned:
-                state = subprocess.run(['ps', '-o', 'stat=', '-p', str(pid)],
-                                       capture_output=True, text=True).stdout.strip()
-                assert not state or state.startswith('Z'), (pid, state)
+            import time
+            deadline = time.monotonic() + 2
+            while True:
+                alive = [(pid, subprocess.run(['ps', '-o', 'stat=', '-p', str(pid)],
+                          capture_output=True, text=True).stdout.strip()) for pid in owned]
+                alive = [(pid, state) for pid, state in alive if state and not state.startswith('Z')]
+                if not alive or time.monotonic() >= deadline:
+                    break
+                time.sleep(0.05)
+            assert not alive, alive
             assert unrelated.new_page().evaluate('1 + 1') == 2
         finally:
             unrelated.close()
@@ -356,7 +378,7 @@ with sync_playwright() as p:
                 import signal
                 for pid in json.loads(pid_file.read_text()):
                     try:
-                        os.killpg(pid, signal.SIGKILL)
+                        os.kill(pid, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
 
@@ -380,3 +402,26 @@ def test_capture_timeout_remains_bounded_when_process_enumeration_fails(monkeypa
     assert time.monotonic() - began < 3.8
     assert result['status'] == 'failure'
     assert result['attempt_errors'][0]['type'] == 'TimeoutError'
+
+
+def test_worker_launch_failure_is_checkpointed_without_aborting_the_batch(tmp_path, monkeypatch):
+    original = capture.subprocess.Popen
+    calls = []
+    def launch(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 1:
+            raise OSError('controlled process launch failure')
+        return original(*args, **kwargs)
+    monkeypatch.setattr(capture.subprocess, 'Popen', launch)
+    monkeypatch.setattr(capture, '_CAPTURE_PROGRAM',
+        'import json,sys; p=json.load(sys.stdin); print(json.dumps({'
+        '"case_id":p["case"]["id"],"status":"success","completion":{"satisfied":True}}))')
+    binary = tmp_path / 'browser'
+    binary.write_bytes(b'fixture binary identity')
+    cases = [case_with(), {**case_with(), 'id': 'next-task'}]
+    result = capture.capture_batch(cases, timeout_ms=1000, attempts=1,
+                                   browser_binary=str(binary), checkpoints=tmp_path / 'checkpoints')
+    assert result['new-task']['status'] == 'failure'
+    assert result['new-task']['attempt_errors'][0]['type'] == 'OSError'
+    assert result['next-task']['status'] == 'success'
+    assert len(list((tmp_path / 'checkpoints').glob('*.json'))) == 2

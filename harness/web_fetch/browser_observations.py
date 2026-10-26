@@ -8,6 +8,7 @@ import hashlib
 import ipaddress
 import json
 import os
+import re
 import signal
 import subprocess
 import socket
@@ -627,62 +628,77 @@ def _capture_in_process(case, timeout_ms, attempts, browser_binary=None, resolve
     budget = timeout_ms * attempts / 1000 + 2
     began = time.monotonic()
     diagnostics = ""
-    with subprocess.Popen(
-        [sys.executable, "-c", _CAPTURE_PROGRAM], stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        cwd=Path(__file__).resolve().parents[2], start_new_session=os.name == "posix",
-        env={**os.environ, "DEBUG": "pw:api"},
-    ) as process:
-        try:
-            stdout, stderr = process.communicate(json.dumps(payload), timeout=budget)
-            if process.returncode:
-                raise RuntimeError(stderr[-1000:] or f"Capture worker exited {process.returncode}")
-            result = json.loads(stdout)
-            if not isinstance(result, dict) or result.get('case_id') != case['id']:
-                raise ValueError("Capture worker returned another case")
-            return result
-        except subprocess.TimeoutExpired:
-            # Chrome starts a detached group. Collect descendants before killing
-            # the driver, while their parent relationships still identify ownership.
-            owned = {process.pid}
-            if os.name == "posix":
-                try:
-                    table = subprocess.check_output(
-                        ["ps", "-A", "-o", "pid=,ppid="], text=True, timeout=1)
-                    parents = {int(pid): int(parent) for pid, parent in
-                               (line.split() for line in table.splitlines())}
-                except (OSError, subprocess.SubprocessError):
-                    parents = {}
-                while True:
-                    children = {pid for pid, parent in parents.items() if parent in owned}
-                    if children <= owned:
-                        break
-                    owned.update(children)
-            signals = (signal.SIGTERM, signal.SIGKILL) if os.name == "posix" else (None, None)
-            for sig in signals:
-                try:
-                    if os.name == "posix":
-                        try:
-                            os.killpg(process.pid, sig)
-                        except ProcessLookupError:
-                            pass
-                        for pid in sorted(owned, reverse=True):
+    try:
+        process = subprocess.Popen(
+            [sys.executable, "-c", _CAPTURE_PROGRAM], stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            cwd=Path(__file__).resolve().parents[2], start_new_session=os.name == "posix",
+            env={**os.environ, "DEBUG": "pw:api,pw:browser"},
+        )
+    except OSError as error:
+        message, error_type = str(error), type(error).__name__
+    else:
+        with process:
+            try:
+                stdout, stderr = process.communicate(json.dumps(payload), timeout=budget)
+                if process.returncode:
+                    raise RuntimeError(stderr[-1000:] or f"Capture worker exited {process.returncode}")
+                result = json.loads(stdout)
+                if not isinstance(result, dict) or result.get('case_id') != case['id']:
+                    raise ValueError("Capture worker returned another case")
+                return result
+            except subprocess.TimeoutExpired as error:
+                # Chrome starts a detached group. Collect descendants before killing
+                # the driver, while their parent relationships still identify ownership.
+                # The launcher receipt survives an unavailable process-list command.
+                partial = error.stderr or b""
+                diagnostics = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
+                browser_pids = {int(pid) for pid in re.findall(
+                    r"(?m)^\S+\s+pw:browser <launched> pid=(\d+)\s*$", diagnostics)}
+                owned = {process.pid}
+                if os.name == "posix":
+                    try:
+                        table = subprocess.check_output(
+                            ["ps", "-A", "-o", "pid=,ppid="], text=True, timeout=1)
+                        parents = {int(pid): int(parent) for pid, parent in
+                                   (line.split() for line in table.splitlines())}
+                    except (OSError, subprocess.SubprocessError):
+                        parents = {}
+                    while True:
+                        children = {pid for pid, parent in parents.items() if parent in owned}
+                        if children <= owned:
+                            break
+                        owned.update(children)
+                signals = (signal.SIGTERM, signal.SIGKILL) if os.name == "posix" else (None, None)
+                for sig in signals:
+                    try:
+                        if os.name == "posix":
+                            for browser_pid in browser_pids:
+                                try:
+                                    os.kill(browser_pid, sig)
+                                except ProcessLookupError:
+                                    pass
                             try:
-                                os.kill(pid, sig)
+                                os.killpg(process.pid, sig)
                             except ProcessLookupError:
                                 pass
-                    else:
-                        process.kill()
-                except ProcessLookupError:
-                    pass
-                try:
-                    _stdout, diagnostics = process.communicate(timeout=1)
-                except subprocess.TimeoutExpired:
-                    continue
-            message = f"Browser observation worker exceeded {budget:g}s wall-clock budget"
-            error_type = "TimeoutError"
-        except (RuntimeError, ValueError) as error:
-            message, error_type = str(error), type(error).__name__
+                            for pid in sorted(owned, reverse=True):
+                                try:
+                                    os.kill(pid, sig)
+                                except ProcessLookupError:
+                                    pass
+                        else:
+                            process.kill()
+                    except ProcessLookupError:
+                        pass
+                    try:
+                        _stdout, diagnostics = process.communicate(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        continue
+                message = f"Browser observation worker exceeded {budget:g}s wall-clock budget"
+                error_type = "TimeoutError"
+            except (RuntimeError, ValueError) as error:
+                message, error_type = str(error), type(error).__name__
     row = _failed_observation(
         case, {"browser": "Chromium", "binary": "explicit" if browser_binary else "Playwright default",
                "dns_mode": dns_mode},
