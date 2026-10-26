@@ -8,7 +8,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl
 from harness.web_fetch.artifacts import (
     copy_cohort_evidence,
     materialize_bound_artifacts,
@@ -115,7 +115,7 @@ def _materialize_canonical_references(output, canonical, canonical_dataset):
 
 
 def _sha256_file(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    return file_sha256(path)
 
 
 _PROVIDER_REPLACEMENT_RECEIPT_FIELDS = {
@@ -235,9 +235,8 @@ def _selected_provider_replacement_rows(run, root, rows, receipt_path):
             raise ValueError('Invalid-call correction changed the provider binary')
         if item['category'] == 'implementation_correction':
             case = baseline_cases.get(item['case_id'])
-            if case is None or task_passed(
-                    bool(prior.get('ok')), prior.get('metrics', {}),
-                    case.get('task_kind', 'body')):
+            if (case is None or (prior.get('ok') is not False and task_passed(
+                    True, prior.get('metrics', {}), case.get('task_kind', 'body')))):
                 raise ValueError(
                     'Implementation correction baseline machine verdict is not a failure')
         seen.add(pair)
@@ -250,8 +249,8 @@ def has_bound_direct_scoring_revision(root):
     path = root/'scoring-revisions.json'
     if not path.is_file():
         return False
-    dataset_hash = hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest()
-    results_hash = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
+    dataset_hash = file_sha256(root/'dataset.json')
+    results_hash = file_sha256(root/'results.jsonl')
     try:
         receipts = json.loads(path.read_text())
     except (OSError, ValueError, TypeError):
@@ -276,8 +275,8 @@ def copy_bound_review(source, output):
     if not prior.is_file():return False
     review=json.loads(prior.read_text())
     bindings=review.get('bindings',{})
-    if (bindings.get('dataset_sha256') != hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest()
-            or bindings.get('results_sha256') != hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest()):
+    if (bindings.get('dataset_sha256') != file_sha256(output/'dataset.json')
+            or bindings.get('results_sha256') != file_sha256(output/'results.jsonl')):
         return False
     shutil.copy2(prior,output/'result-review.json')
     return True
@@ -302,10 +301,20 @@ def copy_scoring_revision_history(source, output):
         archived = contained_path(source, relative)
         if not archived.is_file() or archived.is_symlink():
             raise ValueError('Archived result review is missing or unsafe')
-        actual = hashlib.sha256(archived.read_bytes()).hexdigest()
+        actual = file_sha256(archived)
         if not isinstance(expected, str) or actual != expected:
             raise ValueError('Archived result review hash does not match scoring receipt')
         archives[relative] = archived
+    presentation = source / 'report-binding-revisions.json'
+    if presentation.is_file():
+        for receipt in json.loads(presentation.read_text()):
+            for side in ('input', 'output'):
+                relative = receipt[f'{side}_dataset_path']
+                snapshot = contained_path(source, relative, reject_symlinks=True)
+                if file_sha256(snapshot) != receipt[f'{side}_dataset_sha256']:
+                    raise ValueError('Presentation revision snapshot hash mismatch')
+                archives[relative] = snapshot
+        shutil.copy2(presentation, output / presentation.name)
     shutil.copy2(receipt_path, output/'scoring-revisions.json')
     for relative, archived in archives.items():
         target = contained_path(output, relative)
@@ -336,7 +345,7 @@ def copy_projected_latency_correction(source, output):
         return False
     receipt['changes'] = changes
     receipt['superseded_logical_results'] = len(changes)
-    receipt['output_results_sha256'] = hashlib.sha256((output / 'results.jsonl').read_bytes()).hexdigest()
+    receipt['output_results_sha256'] = file_sha256(output / 'results.jsonl')
     if isinstance(receipt.get('diagnostic_summary'), dict):
         retained = {change['provider'] for change in changes}
         receipt['diagnostic_summary'] = {name: value for name, value in receipt['diagnostic_summary'].items()
@@ -345,8 +354,8 @@ def copy_projected_latency_correction(source, output):
     # Keep it verbatim and describe this offline projection separately.
     receipt['projection'] = {
         'kind': 'immutable_attempt_subset', 'provider_calls': 0,
-        'source_receipt_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
-        'source_results_sha256': hashlib.sha256((source / 'results.jsonl').read_bytes()).hexdigest(),
+        'source_receipt_sha256': file_sha256(path),
+        'source_results_sha256': file_sha256(source / 'results.jsonl'),
         'retained_attempt_ids': [output_rows[(change['provider'], change['case_id'])]['attempt_id']
                                  for change in changes],
     }
@@ -379,8 +388,8 @@ def copy_projected_review(source, output, excluded_providers):
     review['attempts']=[row for row in review.get('attempts',[])
                         if row.get('attempt_id') in retained]
     review['bindings']={
-        'dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
-        'results_sha256':hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest(),
+        'dataset_sha256':file_sha256(output/'dataset.json'),
+        'results_sha256':file_sha256(output/'results.jsonl'),
     }
     review.setdefault('review_protocol',{})['provider_projection']={
         'excluded_providers':sorted(excluded_providers),
@@ -397,7 +406,7 @@ def copy_projected_review(source, output, excluded_providers):
     return True
 
 
-def bind_assembled_scoring_revision(output, *, source=None):
+def bind_assembled_scoring_revision(output, *, source=None, historical_sources=()):
     """Bind composed scoring; revalidate machine evidence without inventing review."""
     path=output/'scoring-revisions.json'
     review_path=output/'result-review.json'
@@ -437,8 +446,8 @@ def bind_assembled_scoring_revision(output, *, source=None):
         if receipt['task_decision_changes'] or before!=after:
             raise ValueError('Assembly revalidation changed measured calls or scores')
         receipt['inherited_scoring_authority']={
-            'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
-            'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest(),
+            'dataset_sha256':file_sha256(source/'dataset.json'),
+            'results_sha256':file_sha256(source/'results.jsonl'),
             'receipts_sha256':hashlib.sha256(inherited).hexdigest()}
         path.write_text(json.dumps([receipt],ensure_ascii=False,indent=2)+'\n')
         if not valid_scoring_revision(output):
@@ -446,7 +455,11 @@ def bind_assembled_scoring_revision(output, *, source=None):
         return True
     dataset=json.loads((output/'dataset.json').read_text())
     records=read_records(output)
-    require_result_review(output,dataset,records)
+    if historical_sources:
+        from .result_review import require_blind_result_review
+        require_blind_result_review(output, dataset, records, historical_sources=historical_sources)
+    else:
+        require_result_review(output, dataset, records)
     if valid_scoring_revision(output):return False
     history=json.loads(path.read_bytes())
     if not isinstance(history,list) or not history:
@@ -469,14 +482,14 @@ def bind_assembled_scoring_revision(output, *, source=None):
         'scored_at':datetime.now(timezone.utc).isoformat(),
         'input_dataset_sha256':history[-1]['output_dataset_sha256'],
         'input_results_sha256':history[-1]['output_results_sha256'],
-        'output_dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
-        'output_results_sha256':hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest(),
+        'output_dataset_sha256':file_sha256(output/'dataset.json'),
+        'output_results_sha256':file_sha256(output/'results.jsonl'),
         'changed_cases':list(changed.values()),
         'task_decision_changes':list(decisions.values()),
         'provider_calls':0,
         'immutable_call_fields':'attempt identity, output bytes/hash, timestamps, elapsed time, metrics and verdicts retained',
         'source_scoring_receipts_sha256':scoring_revision_history_sha256(history),
-        'independent_result_review_sha256':hashlib.sha256(review_path.read_bytes()).hexdigest(),
+        'independent_result_review_sha256':file_sha256(review_path),
     }
     scoring_source = history[-1].get('output_scoring_source_sha256')
     if scoring_source is not None:
@@ -490,13 +503,15 @@ def bind_assembled_scoring_revision(output, *, source=None):
     # A failed inherited chain must never be persisted even transiently.
     with tempfile.TemporaryDirectory() as directory:
         check=Path(directory)
+        copy_scoring_revision_history(output, check)
         for name in ('dataset.json','results.jsonl','result-review.json','reference-revisions.json'):
             source=output/name
             if source.is_file():shutil.copy2(source,check/name)
         (check/'scoring-revisions.json').write_text(candidate)
         if not valid_scoring_revision(check):
             raise ValueError('Assembled scoring revision would leave an invalid history')
-    path.write_text(candidate)
+    from harness.reporting.publication import atomic_write
+    atomic_write(path, candidate.encode())
     return True
 
 
@@ -551,12 +566,13 @@ def bind_missing_assembled_scoring_gap(output: Path, assembly_review: Path) -> b
         'provider_calls':0,
         'immutable_call_fields':'attempt identity, output bytes/hash, timestamps, elapsed time, metrics and verdicts retained',
         'source_scoring_receipts_sha256':scoring_revision_history_sha256(history[:index]),
-        'independent_result_review_sha256':hashlib.sha256(assembly_review.read_bytes()).hexdigest(),
+        'independent_result_review_sha256':file_sha256(assembly_review),
     }
     repaired=[*history[:index],bridge,*history[index:]]
     candidate=json.dumps(repaired,ensure_ascii=False,indent=2)+'\n'
     with tempfile.TemporaryDirectory() as directory:
         check=Path(directory)
+        copy_scoring_revision_history(output, check)
         for name in ('dataset.json','results.jsonl','result-review.json','reference-revisions.json'):
             source=output/name
             if source.is_file():shutil.copy2(source,check/name)
@@ -747,13 +763,13 @@ def _write_projected_reference_revisions(source, target, case_ids):
     receipt={
         'kind':'audited_reference_correction',
         'corrected_at':datetime.now(timezone.utc).isoformat(),
-        'output_dataset_sha256':hashlib.sha256((target/'dataset.json').read_bytes()).hexdigest(),
-        'output_results_sha256':hashlib.sha256((target/'results.jsonl').read_bytes()).hexdigest(),
+        'output_dataset_sha256':file_sha256(target/'dataset.json'),
+        'output_results_sha256':file_sha256(target/'results.jsonl'),
         'changed_cases':list(unique.values()),
         'task_decision_changes':[],
         'provider_calls':0,
         'immutable_call_fields':'attempt identity, output bytes/hash, timestamps and elapsed time retained',
-        'source_receipts_sha256':[hashlib.sha256(path.read_bytes()).hexdigest()],
+        'source_receipts_sha256':[file_sha256(path)],
         'revision_transitions':list({json.dumps(row,sort_keys=True):row
                                      for row in transitions}.values()),
     }
@@ -780,8 +796,8 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
         rebuilt=build_speed_summary(dataset,rows,batches,source_aggregate)
         if ({key:value for key,value in source_summary.items() if key!='bindings'} != rebuilt
                 or source_summary.get('bindings') != {
-                    'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
-                    'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()}):
+                    'dataset_sha256':file_sha256(source/'dataset.json'),
+                    'results_sha256':file_sha256(source/'results.jsonl')}):
             raise ValueError('Speed comparison is not bound to its complete source cohort')
         projected_dataset,projected_rows,projected_batches,_=_project_provider_subset(
             deepcopy(dataset),rows,batches,[],excluded_providers,original_latency)
@@ -801,8 +817,8 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
         (target/'execution.json').write_text(json.dumps(execution,ensure_ascii=False,indent=2)+'\n')
         summary=build_speed_summary(projected_dataset,projected_rows,projected_batches,aggregate)
         summary['bindings']={
-            'dataset_sha256':hashlib.sha256((target/'dataset.json').read_bytes()).hexdigest(),
-            'results_sha256':hashlib.sha256((target/'results.jsonl').read_bytes()).hexdigest(),
+            'dataset_sha256':file_sha256(target/'dataset.json'),
+            'results_sha256':file_sha256(target/'results.jsonl'),
         }
         (target/'speed-comparison.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
         copy_projected_review(source,target,excluded_providers)
@@ -925,7 +941,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         manifest.pop('reference_checks',None)  # only non-snapshot cases in this projection
         manifest.update(attempt_count=len(stable),attempt_ids=[r['attempt_id'] for r in stable])
         manifest['dataset']['case_count']=len({r['case_id'] for r in stable})
-        manifest['projection']={'kind':'non-snapshot-cases-only','source_manifest_sha256':hashlib.sha256((run/'manifest.json').read_bytes()).hexdigest()}
+        manifest['projection']={'kind':'non-snapshot-cases-only','source_manifest_sha256':file_sha256(run/'manifest.json')}
         batches.append(project_execution_manifest(manifest))
     for root in additions:
         new_dataset=json.loads((root/'dataset.json').read_text())
@@ -1093,7 +1109,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             rejected=project_execution_manifest(json.loads((run/'manifest.json').read_text()))
             rejected.pop('reference_checks',None)
             rejected.update(attempt_count=len(rows),attempt_ids=[r['attempt_id'] for r in rows])
-            rejected['projection']={'kind':'replaced-non-snapshot-case','source_manifest_sha256':hashlib.sha256((run/'manifest.json').read_bytes()).hexdigest()}
+            rejected['projection']={'kind':'replaced-non-snapshot-case','source_manifest_sha256':file_sha256(run/'manifest.json')}
             (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n')
         else:
             rejected_batches=_prune_shadowed_batch_attempts(
@@ -1175,13 +1191,13 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         consolidated={
             'kind':'audited_reference_correction',
             'corrected_at':datetime.now(timezone.utc).isoformat(),
-            'output_dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
-            'output_results_sha256':hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest(),
+            'output_dataset_sha256':file_sha256(output/'dataset.json'),
+            'output_results_sha256':file_sha256(output/'results.jsonl'),
             'changed_cases':list(unique.values()),
             'task_decision_changes':[],
             'provider_calls':0,
             'immutable_call_fields':'attempt identity, output bytes/hash, timestamps and elapsed time retained',
-            'source_receipts_sha256':sorted({hashlib.sha256((root/'reference-revisions.json').read_bytes()).hexdigest()
+            'source_receipts_sha256':sorted({file_sha256(root/'reference-revisions.json')
                                              for root in dict.fromkeys(evidence)
                                              if (root/'reference-revisions.json').is_file()}),
             'revision_transitions':list({json.dumps(row,sort_keys=True):row

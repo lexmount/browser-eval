@@ -1,7 +1,9 @@
 """JSONL records are framed by LF bytes, including during concurrent writes."""
-import json
 import hashlib
+import json
 from dataclasses import asdict
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -89,6 +91,13 @@ def test_finalized_readers_preserve_unicode_and_reject_partial_records(tmp_path,
         path.write_bytes(raw + b'\n' + partial)
         with pytest.raises((json.JSONDecodeError, UnicodeDecodeError)):
             load_jsonl(path)
+
+
+def test_finalized_reader_streams_records(tmp_path):
+    path = tmp_path / 'records.jsonl'
+    path.write_text('{"id":"one"}\n{"id":"two"}\n')
+    with patch.object(Path, 'read_bytes', side_effect=AssertionError('whole-file read')):
+        assert load_jsonl(path) == [{'id': 'one'}, {'id': 'two'}]
 
 
 def test_blank_line_policy_is_explicit_and_bare_cr_is_not_a_record_separator(tmp_path):
