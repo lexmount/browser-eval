@@ -18,16 +18,16 @@ Browser Eval 是面向浏览器和 Web Agent 的评测脚手架（evaluation har
 
 主分支包含下列三种浏览器评测流程。Web Search 已在表中链接的开发分支实现，当前主分支的软件包尚未包含它。
 
-| 流程 | 测什么 | 使用指南 |
-| --- | --- | --- |
-| Web Fetch | 获取任务要求的网页正文、记录、资源或文件 | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
-| Web Search（预览） | 比较搜索结果、相关性、来源检索、延迟与计费 | [实现与接入 PR #58](https://github.com/lexmount/browser-eval/pull/58) · [搜索评测指南](https://github.com/lexmount/browser-eval/blob/codex/report-release-checks/harness/web_search/README.md) |
-| 轨迹重放 | 比较不同浏览器能否完成同一组录制动作 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
-| Browser Use | 让 Agent 使用不同浏览器完成任务 | [CowAgent + WebArena](../examples/browser_use/README.md) |
+| 流程 | 测什么 | 对应评测集与任务集 | 使用指南 |
+| --- | --- | --- | --- |
+| Web Fetch | 获取任务要求的网页正文、记录、资源或文件 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
+| Web Search（预览） | 比较搜索结果、相关性、来源检索、延迟与计费 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [实现与接入 PR #58](https://github.com/lexmount/browser-eval/pull/58) · [搜索评测指南](https://github.com/lexmount/browser-eval/blob/codex/report-release-checks/harness/web_search/README.md) |
+| 轨迹重放 | 比较不同浏览器能否完成同一组录制动作 | [仓库自建固定动作任务集](../examples/trajectory_replay/tasks.v4.json)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
+| Browser Use | 让 Agent 使用不同浏览器完成任务 | [WebArena-Verified](https://github.com/ServiceNow/webarena-verified)，使用[固定版本的评测器分支](https://github.com/lexmount/webarena-verified/tree/lex-main)和[明确选定的任务](../evaluation/browser-use/webarena-verified-pilot.json) | [CowAgent + WebArena](../examples/browser_use/README.md) |
 
 Web Fetch 支持本地浏览器、在线服务和提取工具。可用方法见[适配器说明](../docs/provider-contract.md)，安装要求见[依赖说明](../docs/dependencies.md)。轨迹重放和 Browser Use 各有自己的运行入口与环境。
 
-题目和评分规则来自选定的评测集：[LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) 或 [WebArena-Verified](https://github.com/ServiceNow/webarena-verified)。搜索题目和评分由 [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) 维护。接入方式见[评测集指南](../docs/benchmarks.md)。
+题目与评分的维护归属、固定版本和输入要求见[评测集接入指南](../docs/benchmarks.md)。轨迹重放使用固定动作比较浏览器，Browser Use 则评测 Agent 自主决策后的任务完成情况。
 
 ## 快速开始
 
