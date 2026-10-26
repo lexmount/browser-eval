@@ -1,10 +1,9 @@
 import copy
 import hashlib
 import json
-import runpy
+import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,35 +27,38 @@ class ReportInventoryTests(unittest.TestCase):
         ]
 
     def check(self):
-        # Exercise the actual script with in-memory report files, no generated
-        # report rebuild, canonical data writes or environment/config loading.
-        root = Path('/__synthetic_inventory_report__')
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        directory = Path(temporary.name)
+        root = directory / 'report'
+        authority = directory / 'authority'
         files = {
             root/'dataset.json': json.dumps(self.dataset),
             root/'results.jsonl': '\n'.join(json.dumps(r, ensure_ascii=False) for r in self.records),
             root/'execution.json': json.dumps({'batches': [{'attempt_ids': [r['attempt_id'] for r in self.records]}]}),
             root/'index.html': '<h2>综合通过率总榜</h2> <h2>6 类任务概览</h2> 本类最高： 判分完整性 <h2>6 类分榜</h2>',
             root/'methodology/index.html': '计入耗时 不计入耗时 供应商上报的服务端耗时只作附加证据 形成可送入统一评分器的最终答案',
-            ROOT/'configs/evaluation-inventory.json': json.dumps(self.inventory),
+            authority/'configs/evaluation-inventory.json': json.dumps(self.inventory),
         }
         from harness.web_fetch.reliability import assess_reliability
         files[root/'reliability.json'] = json.dumps(assess_reliability(self.dataset,self.records))
-        read_text, read_bytes, rglob = Path.read_text, Path.read_bytes, Path.rglob
-
-        def text(path, *args, **kwargs):
-            return files[path] if path in files else read_text(path, *args, **kwargs)
-
-        def binary(path, *args, **kwargs):
-            if path in files:
-                return files[path].encode('utf-8')
-            return b'fixture' if path.is_relative_to(root) else read_bytes(path, *args, **kwargs)
-
-        def glob(path, *args, **kwargs):
-            return iter(()) if path == root else rglob(path, *args, **kwargs)
-
-        with patch.object(Path, 'read_text', text), patch.object(Path, 'read_bytes', binary), \
-                patch.object(Path, 'rglob', glob), patch('sys.argv', ['check_report.py', str(root)]):
-            runpy.run_path(str(ROOT/'scripts/check_report.py'), run_name='__main__')
+        for path, text in files.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+        for record in self.records:
+            path = root / record['artifact_path']
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b'fixture')
+        for case in self.dataset['cases']:
+            path = root / 'references' / (case['id'] + '.txt')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(case['ground_truth_main_content'])
+        from harness.report_languages import english_notice
+        (root / 'report-languages.json').write_text(json.dumps({'primary_language': 'zh', 'languages': ['zh'], 'entrypoint': 'index.html'}))
+        (root / 'en').mkdir()
+        (root / 'en/index.html').write_text(english_notice())
+        from harness.web_fetch.report_check import main
+        main([str(root)], authority_root=authority)
 
     def test_reviewed_inventory_passes(self):
         self.check()

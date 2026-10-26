@@ -88,7 +88,7 @@ def review_input_identity(record):
     }
 
 
-def _machine_verdict(source, record, case, reviewed=None):
+def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=None):
     """Read current scores normally and frozen historical scores from their bound review."""
     try:
         return ('pass' if task_passed(
@@ -97,9 +97,15 @@ def _machine_verdict(source, record, case, reviewed=None):
         if str(error) != (
                 'Historical scoring metrics require their frozen scorer or a complete offline rescore'):
             raise
-        from .reference_lifecycle import valid_scoring_revision
+        from .reference_lifecycle import valid_scoring_revision_chain
         verdict = (reviewed or {}).get('machine_verdict')
-        if verdict not in {'pass', 'fail'} or not valid_scoring_revision(source):
+        if verdict not in {'pass', 'fail'}:
+            raise
+        if revision_checks is None:
+            revision_checks = {}
+        if source not in revision_checks:
+            revision_checks[source] = valid_scoring_revision_chain(source)
+        if not revision_checks[source]:
             raise
         return verdict
 
@@ -151,10 +157,11 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
         raise ValueError(f'Result review has unresolved attempts: {len(unresolved)}')
     by_id = {record['attempt_id']: record for record in records}
     cases = {case['id']: case for case in dataset.get('cases', [])}
+    revision_checks = {}
     for row in attempts:
         record = by_id[row['attempt_id']]
         machine = _machine_verdict(
-            source, record, cases[record['case_id']], reviewed=row)
+            source, record, cases[record['case_id']], reviewed=row, revision_checks=revision_checks)
         if row.get('machine_verdict') != machine:
             raise ValueError('Result review machine verdict no longer matches persisted scoring')
         if row.get('final_verdict') != machine:
@@ -532,12 +539,13 @@ def merge_refresh_reviews(
         raise ValueError("Prior review must not contain accepted unreviewed passes")
 
     reusable = set()
+    revision_checks = {}
     for attempt_id, row in current.items():
         old = previous.get(attempt_id)
         case_id = row["case_id"]
         reviewed = prior_attempts.get(attempt_id)
         current_machine = _machine_verdict(
-            prior_evidence, row, current_cases[case_id], reviewed=reviewed)
+            prior_evidence, row, current_cases[case_id], reviewed=reviewed, revision_checks=revision_checks)
         if (
             old is not None
             and old.get("case_id") == case_id
@@ -597,7 +605,7 @@ def merge_refresh_reviews(
     for record, reviewed in zip(current_records, attempts):
         source = prior_evidence if record['attempt_id'] in reusable else supplemental_evidence
         machine = _machine_verdict(
-            source, record, current_cases[record['case_id']], reviewed=reviewed)
+            source, record, current_cases[record['case_id']], reviewed=reviewed, revision_checks=revision_checks)
         reviewed = dict(reviewed)
         reviewed["machine_verdict"] = machine
         reviewed["final_verdict"] = machine

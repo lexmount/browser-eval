@@ -939,6 +939,16 @@ def finalize_reference_checks(run_dir: Path, observations_path: Path, now=None) 
 
 
 def valid_scoring_revision(source) -> bool:
+    """Validate the receipt chain and its independent result reviews."""
+    return _valid_scoring_revision(source, validate_reviews=True)
+
+
+def valid_scoring_revision_chain(source) -> bool:
+    """Validate receipts and review bindings without re-entering verdict validation."""
+    return _valid_scoring_revision(source, validate_reviews=False)
+
+
+def _valid_scoring_revision(source, *, validate_reviews) -> bool:
     """Return true only for a continuous receipt chain ending at current evidence."""
     if source is None:
         return False
@@ -975,7 +985,12 @@ def valid_scoring_revision(source) -> bool:
             try:
                 raw = candidate.read_bytes()
                 review = json.loads(raw)
-                require_blind_result_review(root, dataset, records, review)
+                if validate_reviews:
+                    require_blind_result_review(root, dataset, records, review)
+                elif (review.get('schema_version') != 1
+                      or review.get('bindings') != {'dataset_sha256': current_dataset,
+                                                     'results_sha256': current_results}):
+                    continue
                 blind_review_hashes.add(sha256(raw))
             except (OSError, ValueError, TypeError, KeyError, StopIteration):
                 continue
@@ -985,7 +1000,8 @@ def valid_scoring_revision(source) -> bool:
             if dataset is None or records is None:
                 dataset = json.loads((root/'dataset.json').read_text())
                 records = load_jsonl(root/'results.jsonl')
-            assembled_review_valid = require_result_review(root, dataset, records) is not None
+            assembled_review_valid = (require_result_review(root, dataset, records) is not None
+                                      if validate_reviews else review_hash in blind_review_hashes)
         except (OSError, ValueError, TypeError, KeyError, StopIteration):
             assembled_review_valid = False
 
