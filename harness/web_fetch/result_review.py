@@ -88,7 +88,7 @@ def review_input_identity(record):
     }
 
 
-def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=None, historical_sources=()):
+def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=None, historical_sources=(), historical_authority=False):
     """Read current scores normally and frozen historical scores from their bound review."""
     try:
         return ('pass' if task_passed(
@@ -97,6 +97,8 @@ def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=Non
         if str(error) != (
                 'Historical scoring metrics require their frozen scorer or a complete offline rescore'):
             raise
+        if historical_authority:
+            return (reviewed or {}).get('machine_verdict')
         from .reference_lifecycle import valid_scoring_revision_chain
         verdict = (reviewed or {}).get('machine_verdict')
         if verdict not in {'pass', 'fail'}:
@@ -193,8 +195,9 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
     revision_checks = {}
     for row in attempts:
         record = by_id[row['attempt_id']]
-        machine = (row.get('machine_verdict') if historical_authority else _machine_verdict(
-            source, record, cases[record['case_id']], reviewed=row, revision_checks=revision_checks, historical_sources=historical_sources))
+        machine = _machine_verdict(
+            source, record, cases[record['case_id']], reviewed=row, revision_checks=revision_checks,
+            historical_sources=historical_sources, historical_authority=historical_authority)
         if row.get('machine_verdict') != machine:
             raise ValueError('Result review machine verdict no longer matches persisted scoring')
         if row.get('final_verdict') != machine:
