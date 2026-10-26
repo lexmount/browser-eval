@@ -860,9 +860,10 @@ def test_unknown_reference_mode_is_not_hidden_by_a_stable_contract():
             'source_verification': {'reference_mode': 'live_excat'}})
 
 
-def test_original_scope_certificate_survives_unchanged_inputs_but_rejects_rule_changes(tmp_path):
+@pytest.mark.parametrize('fixture_name', ['legacy-live-reference.json', 'legacy-contract-reference.json'])
+def test_original_scope_certificate_survives_unchanged_inputs_but_rejects_rule_changes(tmp_path, fixture_name):
     from harness.web_fetch.reference_freeze import load_browser_observations
-    fixture = json.loads((Path(__file__).parent / 'fixtures/legacy-live-reference.json').read_text())
+    fixture = json.loads((Path(__file__).parent / 'fixtures' / fixture_name).read_text())
     for relative, text in fixture['files'].items():
         target = tmp_path / relative; target.parent.mkdir(parents=True, exist_ok=True); target.write_text(text)
     dataset = json.loads((tmp_path / 'dataset.json').read_text())

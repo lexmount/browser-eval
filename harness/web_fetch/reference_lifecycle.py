@@ -229,6 +229,20 @@ def scope_identity(case, *, version=2) -> dict[str, Any]:
     })
 
 
+def matches_scope_identity(case, stored_scope) -> bool:
+    if not isinstance(stored_scope, dict):
+        return False
+    version = stored_scope.get('schema_version', 1)
+    if version not in (1, 2):
+        return False
+    expected = scope_identity(case, version=version)
+    if version == 1:
+        for key in ('acceptance_contract', 'body_requirements', 'composite_acceptance'):
+            if key in stored_scope.get('evaluation_contract', {}):
+                expected['evaluation_contract'][key] = _get(case, key, {})
+    return stored_scope == expected
+
+
 def resource_source_scope_identity(case) -> dict[str, Any]:
     """Stable source-observation scope for resource ground truth."""
     return deepcopy({
@@ -735,7 +749,7 @@ def check_case_reference_binding(case, binding: dict, *, original_case=None) -> 
     reference = _get(case, "ground_truth_main_content", "")
     if (sha256(reference) != binding.get("reference_sha256")
             or sha256(normalize_for_match(reference)) != binding.get("expected_normalized_sha256")
-            or scope_identity(case, version=version) != binding.get("scope_identity")
+            or not matches_scope_identity(case, binding.get("scope_identity"))
             or _get(case, "source_verification", {}) != binding.get("source_verification")
             or ("render_evidence" in binding and
                 (_get(case, "source_benchmark", {}) or {}).get("render_evidence") != binding["render_evidence"])):
@@ -748,10 +762,9 @@ def check_case_equivalent_reference_binding(case, binding: dict, *, original_cas
         if original_case is None:
             raise ReferenceLifecycleError('Legacy rules require the hash-bound original dataset', 'reference_changed')
         binding = deepcopy(binding)
-        binding['scope_identity']['evaluation_contract'].update({
-            key: _get(original_case, key, {})
-            for key in ('acceptance_contract', 'body_requirements', 'composite_acceptance')
-            if _get(original_case, key, {})})
+        for key in ('acceptance_contract', 'body_requirements', 'composite_acceptance'):
+            if _get(original_case, key, {}):
+                binding['scope_identity']['evaluation_contract'].setdefault(key, _get(original_case, key))
     reference = _get(case, "ground_truth_main_content", "")
     verification = _get(case, "source_verification", {})
     if (sha256(reference) != binding.get("reference_sha256")
