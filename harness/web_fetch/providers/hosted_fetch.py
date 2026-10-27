@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import json
 import uuid
 
 from lexbench_webfetch.models import EvalCase
@@ -12,7 +11,7 @@ from harness.web_fetch.native_routes import NativeRoute
 from harness.web_fetch.native_projection import native_answer_projection
 from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
 from harness.web_fetch.providers.base import Provider
-from harness.web_fetch.providers.http_client import inner_timeout_budget, request
+from harness.web_fetch.providers.http_client import inner_timeout_budget, parse_utf8_json, request
 
 
 ENDPOINTS = {
@@ -146,7 +145,7 @@ class HostedFetchProvider(Provider):
             metadata["upstream_http_status_available"] = False
         else:
             try:
-                payload = json.loads(response.body.decode("utf-8"))
+                payload = parse_utf8_json(response.body)
             except ValueError:
                 payload = None
             if not isinstance(payload, dict):

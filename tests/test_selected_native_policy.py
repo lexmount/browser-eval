@@ -171,13 +171,24 @@ def test_configured_cli_selection_reaches_runner(tmp_path):
     assert run.call_args.kwargs['max_failure_retries'] == 1
 
 
-@pytest.mark.parametrize('name', SELECTED)
+@pytest.mark.parametrize('name,route', [(name, 'body') for name in SELECTED] +
+                         [('cloudflare-markdown', 'image'), ('cloudflare-markdown', 'video'),
+                          ('moli-webfetch', 'file')])
 @pytest.mark.parametrize('origin_status', [200, 404, None])
-def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, name, origin_status):
+def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, name, route, origin_status):
     import hashlib
     import sys
     from lexbench_webfetch.metrics import task_passed
     p, c = provider(name), case()
+    file_bytes = b'\x89PNG\r\n\x1a\n' + b'fixture bytes' * 8
+    if route in {'image', 'video'}:
+        c = replace(c, track=route, task_kind='resource', expected_any=[],
+                    expected_resources=[{'urls': ['https://example.test/asset.png' if route == 'image'
+                                         else 'https://example.test/asset.mp4'], 'kind': route}])
+    elif route == 'file':
+        c = replace(c, task_kind='file', expected_any=[],
+                    source_benchmark={'input_media_kind': 'direct_image'},
+                    source_verification={'mime': 'image/png', 'file_sha256': hashlib.sha256(file_bytes).hexdigest()})
     exposed = name in {'moli-webfetch', 'firecrawl', 'cloudflare-markdown',
                        'browser-use-fetch', 'browserbase', 'crawl4ai-cloud'}
     if name == 'moli-webfetch':
@@ -185,8 +196,9 @@ def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, n
         event = (f'DEBUG fetch request complete method=GET url={c.url} '
                  f'final_url={c.url} status={origin_status}') if origin_status is not None else ''
         binary.write_text(f'#!{sys.executable}\nimport sys\n'
-            'if sys.argv[1:] == ["--version"]:\n print("moli fixture"); sys.exit(0)\n'
-            f'print("Expected")\nprint({event!r}, file=sys.stderr)\n')
+            'if sys.argv[1:] == ["--version"]:\n print("moli fixture"); sys.exit(0)\n' +
+            (f'sys.stdout.buffer.write({file_bytes!r})\n' if route == 'file' else 'print("Expected")\n') +
+            f'print({event!r}, file=sys.stderr)\n')
         binary.chmod(0o700)
         p = build_provider(name, {**p.config, 'binary': str(binary),
             'expected_reported_version': 'moli fixture',
@@ -201,6 +213,9 @@ def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, n
         'deepseek-fetch-api': {'content': 'Expected', 'title': 'Title'},
         'crawl4ai-cloud': {'markdown': 'Expected', 'origin_status': origin_status},
     }
+    if route in {'image', 'video'}:
+        payloads[name]['result'] = [{'results': [{'attributes': [
+            {'name': 'src', 'value': c.expected_resources[0]['urls'][0]}]}]}]
     # The selected Browser Use and Browserbase schemas require status on success;
     # missing status is malformed rather than an invented origin error.
     malformed = origin_status is None and name in {'browser-use-fetch', 'browserbase'}
@@ -225,4 +240,7 @@ def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, n
     assert metadata['api_http_status'] == (None if name == 'moli-webfetch' else 200)
     assert metadata['upstream_http_status_available'] == (exposed and origin_status is not None)
     assert len(list((tmp_path / 'run' / 'call-logs').rglob('*.json'))) == (1 if expected_pass else 2)
-    assert 'Expected' in (tmp_path / 'run' / row['artifact_path']).read_text()
+    from harness.web_fetch.artifacts import verify_record_artifacts
+    verify_record_artifacts(tmp_path / 'run', row)
+    if route == 'body':
+        assert 'Expected' in (tmp_path / 'run' / row['artifact_path']).read_text()

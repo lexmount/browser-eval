@@ -53,11 +53,17 @@ class HostedFetchTest(unittest.TestCase):
     @patch('harness.web_fetch.providers.hosted_fetch.request')
     def test_hosted_invalid_utf8_retains_response_evidence(self, call):
         self.case.source_benchmark['input_media_kind'] = 'html_page'
-        for kind in TYPES:
-            with self.subTest(kind=kind):
+        variants = [(kind, encoding) for kind in TYPES for encoding in
+                    (['invalid'] if kind == 'brightdata_unlocker' else ['invalid', 'bom', 'utf16'])]
+        for kind, encoding in variants:
+            with self.subTest(kind=kind, encoding=encoding):
                 call.reset_mock()
                 raw = (b'Invalid UTF-8: \xff' if kind == 'brightdata_unlocker' else
                        self.response(kind, text='BROKEN').body.replace(b'BROKEN', b'\xff'))
+                if encoding == 'bom':
+                    raw = b'\xef\xbb\xbf' + self.response(kind).body
+                elif encoding == 'utf16':
+                    raw = self.response(kind).body.decode().encode('utf-16')
                 call.return_value = HttpResponse(200, ENDPOINTS[kind], {}, raw)
                 with tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)
@@ -77,6 +83,8 @@ class HostedFetchTest(unittest.TestCase):
                     metadata = record['provider_metadata']
                     self.assertEqual((root / metadata['raw_response_path']).read_bytes(), raw)
                     self.assertEqual(metadata['raw_response_sha256'], hashlib.sha256(raw).hexdigest())
+                    from harness.web_fetch.artifacts import verify_record_artifacts
+                    verify_record_artifacts(root, record)
                     call.assert_called_once()
 
     @patch('harness.web_fetch.providers.hosted_fetch.request')

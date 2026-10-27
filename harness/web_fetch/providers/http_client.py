@@ -13,6 +13,11 @@ from lexbench_webfetch.paths import validate_http_url
 from harness.web_fetch.diagnostics import emit
 
 
+def parse_utf8_json(body: bytes) -> Any:
+    """Use the same strict wire encoding for acquisition and evidence replay."""
+    return json.loads(body.decode('utf-8'))
+
+
 @dataclass
 class HttpResponse:
     status: int

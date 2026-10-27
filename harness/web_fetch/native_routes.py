@@ -23,6 +23,7 @@ from harness.web_fetch.native_projection import (
     require_native_projection_schema,
 )
 from harness.web_fetch.publication_privacy import read_evidence_binding
+from harness.web_fetch.providers.http_client import parse_utf8_json
 from harness.web_fetch.retrieval_hints import native_default_case
 
 INPUT_MEDIA_KINDS = frozenset({
@@ -494,7 +495,10 @@ def _expected_native_declaration(root, record, raw, cases_by_id):
     if case is None or case.get('url') != record.get('url'):
         raise ValueError('Native answer selection lacks its frozen request identity')
     try:
-        payload = json.loads(raw) if record['provider_type'] not in {'moli_webfetch', 'brightdata_unlocker'} else {}
+        if record['provider_type'] in {'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud'}:
+            payload = parse_utf8_json(raw)
+        else:
+            payload = json.loads(raw) if record['provider_type'] not in {'moli_webfetch', 'brightdata_unlocker'} else {}
     except (ValueError, UnicodeDecodeError):
         payload = None
     if record['provider_type'] in {'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud'}:
