@@ -97,7 +97,7 @@ For report releases, open success and failure details, evidence dialogs and retu
 <details>
 <summary>What the package gate tests</summary>
 
-The gate builds a source archive, then a wheel from that archive. It compares installed modules and resources byte for byte and exercises TypeScript tool bridges, synthetic TEDS revisions, LangChain extraction and Crawl4AI downloads against local HTTP fixtures, including HTTP failures. Missing, stale or extra installed files fail the gate. Node tests use `node:module.stripTypeScriptTypes`.
+The gate builds a source archive, then a wheel from that archive. Standard `python -m pip` installs both formats in a clean virtual environment outside the checkout, checks dependencies with `pip check`, and runs the installed command before the wheel smoke tests. It compares installed modules and resources byte for byte and exercises TypeScript tool bridges, synthetic TEDS revisions, LangChain extraction and Crawl4AI downloads against local HTTP fixtures, including HTTP failures. Missing, stale or extra installed files fail the gate. Node tests use `node:module.stripTypeScriptTypes`.
 
 </details>
 
