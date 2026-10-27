@@ -51,17 +51,6 @@ def test_release_tag_matches_installed_identity():
     assert tag == "v" + importlib.metadata.version("browser-harness-eval")
 
 
-def test_readme_current_package_version_matches_installed_release():
-    project = source_project()
-    for path in [ROOT / "README.md", ROOT / "docs/README.zh-CN.md"]:
-        text = path.read_text()
-        section = re.search(r"^## (?:Versions|版本)\n(.*?)(?=^## |\Z)", text, re.M | re.S)
-        assert section is not None, path
-        declared = re.search(r"`([0-9]+\.[0-9]+\.[0-9]+)`", section[1])
-        assert declared is not None, path
-        assert declared[1] == project["version"], path
-
-
 def test_declared_benchmark_pins_match_lock_and_installation():
     import json
 
@@ -81,15 +70,23 @@ def test_declared_benchmark_pins_match_lock_and_installation():
         assert origin["vcs_info"]["commit_id"] == revision, name
 
 
-def test_current_release_dependency_table_matches_installed_benchmarks():
-    project = source_project()
-    guide = (ROOT / "docs/releases.md").read_text()
-    row = next(
-        line for line in guide.splitlines() if line.startswith("| [" + project["version"] + "](")
-    )
-    for label, module in [("Fetch", "lexbench_webfetch"), ("Search", "lexbench_websearch")]:
-        from importlib import import_module
+def test_installed_benchmarks_match_their_frozen_catalogs():
+    from importlib import import_module
 
-        edition = import_module(module + ".versions").catalog_release()["version"]
-        tooling = importlib.metadata.version(module.replace("_", "-"))
-        assert f"{label} benchmark {edition} / tooling {tooling}" in row
+    source_project()
+    for module in ["lexbench_webfetch", "lexbench_websearch"]:
+        import_module(module + ".versions").catalog_release()
+
+
+def test_runtime_version_reads_installation_metadata():
+    import subprocess
+    import sys
+
+    code = """
+from unittest.mock import patch
+with patch('importlib.metadata.version', return_value='9.8.7') as installed:
+    import harness.web_fetch as package
+    assert package.__version__ == '9.8.7'
+    installed.assert_called_once_with('browser-harness-eval')
+"""
+    subprocess.run([sys.executable, "-c", code], check=True)

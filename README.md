@@ -63,9 +63,7 @@ To share a report online, publish its `report/` directory through [Artifact Site
 
 ## Versions
 
-The current package version is `0.3.1`. Software tags use `vMAJOR.MINOR.PATCH`; benchmark editions and hosted report versions are independent. A report records all three identities so rebuilding a report does not relabel its tasks or saved calls.
-
-Use [the release guide](docs/releases.md) for compatibility rules, release checks and the scope of the first software release. Web Search is available as a preview; stable support is assessed through the release checks. A stable release commits to documented commands, input contracts and saved-evidence compatibility; it does not guarantee that every browser or live website passes every task.
+Published versions, changes and dependency snapshots are listed in [GitHub Releases](https://github.com/lexmount/browser-eval/releases). See [version rules](docs/releases.md) for release policy and report provenance.
 
 ## Related repositories
 

@@ -1,6 +1,6 @@
 # Software releases
 
-Browser Eval versions the execution and reporting software. The current package version is `0.3.1`; a version in source is not a published GitHub release. Software tags use `vMAJOR.MINOR.PATCH` and identify one tested commit.
+Browser Eval versions the execution and reporting software. Software tags use `vMAJOR.MINOR.PATCH` and identify one tested commit.
 
 ## Version rules
 
@@ -37,22 +37,12 @@ Web Fetch, Web Search / SERP, Browser Trajectory Replay and Browser Use have mai
 ## Release procedure
 
 1. Select a clean commit on main and declare supported tracks, benchmark pins and migrations. Check that pending work is not described as included.
-2. Align `pyproject.toml`, `harness/web_fetch/__init__.py` and `uv.lock`. Project citations stay version-neutral. Run `uv lock` when package metadata changes, retaining immutable dependency pins. The metadata tests check the lock, installed package, runtime version and bilingual citations.
+2. Set the release version in `pyproject.toml` and refresh `uv.lock`. Runtime code reads installed package metadata automatically. Project citations stay version-neutral. Run `uv lock` when package metadata changes, retaining immutable dependency pins. The metadata tests check the lock, installed package, runtime version and bilingual citations.
 3. Run `make setup-test` and `make ci` on that commit. The package gate checks installation outside the checkout. Follow each track's separate release gate when publishing benchmark reports; a software tag does not certify their measurements.
 4. Prepare release notes with supported tracks and suites, installation commands, compatible interfaces, required external inputs and migrations. Check that the source archive and wheel contain the declared version.
 5. After release approval, publish an annotated `vMAJOR.MINOR.PATCH` tag and GitHub release for that exact commit. Never move a published tag. Upload software distribution files; keep provider outputs and private report evidence outside the software release.
 
 Use a feature branch and PR for release preparation. Merging and publishing are separate maintainer actions. Record the exact commit in bug reports and experiment methods, including for unreleased branches.
-
-## Next software release
-
-| Software version | Reason | LexBench dependencies |
-| --- | --- | --- |
-| [0.3.1](https://github.com/lexmount/browser-eval/pull/69) | Prepare the corrected, strictly verifiable Search scorer and synchronized release metadata | Fetch benchmark 2.0.1 / tooling 0.3.0; Search benchmark 1.1.0 / tooling 0.1.1 |
-
-This patch is release preparation. Publish its software tag after the PR merges
-and the release checks pass. Historical 0.3.0 keeps its original dependencies;
-new Search comparisons must rescore both saved cohorts under edition 1.1.0.
 
 ## Released versions
 
@@ -64,8 +54,8 @@ this table is the index.
 | Software release | Why it was published | LexBench dependencies |
 | --- | --- | --- |
 | [0.1.0](https://github.com/lexmount/browser-eval/releases/tag/v0.1.0) | Preserve the original installable Web Fetch, Replay and Browser Use checkpoint | Fetch scoring in this repository; no separate LexBench package |
-| [0.2.0](https://github.com/lexmount/browser-eval/releases/tag/v0.2.0) | Extracted Fetch dependency and shared report-build identity | Fetch benchmark 2.0.1 / tooling 0.3.0; no Search integration |
-| [0.3.0](https://github.com/lexmount/browser-eval/releases/tag/v0.3.0) | Add Search/SERP and shared capture/source-validation fixes | Fetch benchmark 2.0.1 / tooling 0.3.0; Search benchmark 1.0.0 / tooling 0.1.0 |
+| [0.2.0](https://github.com/lexmount/browser-eval/releases/tag/v0.2.0) | Extracted Fetch dependency and shared report-build identity | Fetch benchmark 2.0.1; no Search integration |
+| [0.3.0](https://github.com/lexmount/browser-eval/releases/tag/v0.3.0) | Add Search/SERP and shared capture/source-validation fixes | Fetch benchmark 2.0.1; Search benchmark 1.0.0 |
 
 Historical 0.1.0 and 0.2.0 tags retain their original commits. A software release
 can support several separately selected benchmarks; its version never chooses
@@ -80,17 +70,24 @@ a report's population or changes saved results.
 | [Search 1.0.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-1.0.0) | First frozen Search catalog: current 149-case scenario and 831-case factual datasets, with an older scenario snapshot retained |
 | [Search 1.1.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.1.0) | Correct numeric scoring and bind the catalog to its actual scorer; rescore saved cohorts before comparing |
 
-A benchmark release uses **one tag** for its measurement contract and the
-accompanying Python tools. For example, a `bench-v1.1.0` release can contain
-benchmark edition 1.1.0 and tooling package 0.1.1. These are two fields in one
-release, not two releases or two tags. The benchmark number governs result
-comparability; the tooling number describes the CLI/Python interface. A separate
-software tag is useful only for a tooling-only release.
+A benchmark release uses one tag for its tasks, scoring rules and accompanying
+Python code. Python requires package version metadata for installation; this is
+internal packaging information, not a separate public release line.
 
-Future releases must state both fields and the exact source commit. Reports
-record the benchmark edition and actual software identity; citations to the
-project can remain version-neutral. See the [Fetch version rules](https://github.com/lexmount/lexbench-webfetch/blob/main/docs/versions.md)
-and [Search version rules](https://github.com/lexmount/lexbench-websearch/blob/main/docs/versions.md).
+## Version source and release cadence
+
+`pyproject.toml` is the software version source. Runtime `__version__` reads the
+installed distribution metadata; do not duplicate its number in Python modules
+or README files. `uv.lock` records the resolved package metadata. The software
+tag must equal the package version at a formal release; commits between releases
+retain their exact revision and source hashes without creating new tags.
+
+Release after a coherent set of changes is ready for users, or when a fix needs
+an installable release. Do not release for each PR, dependency synchronization,
+README edit or version-label correction. A benchmark edition changes only when
+its measurement contract is deliberately released. Use GitHub Releases for
+published versions and their dependency snapshots, rather than a changing
+current-version paragraph in the README.
 
 ## Citations and experiment identity
 
