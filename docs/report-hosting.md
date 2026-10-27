@@ -1,6 +1,8 @@
-# Publish a report
+# Create and share a report
 
-Publish the generated `report/` directory. Keep the rest of the run directory locally so you can rebuild and audit it.
+Open Artifact Site ([Mainland China](https://yours.lexmount.cn/artifact-site) · [Global](https://yours.lexmount.com/artifact-site)) and install the skill provided on the site. Follow it to create and publish a report, then set sharing permissions there.
+
+For a local build, publish the generated `report/` directory. Keep the rest of the run locally for rebuilding and auditing.
 
 ## Report instances
 
@@ -38,50 +40,6 @@ English builds retain a Chinese edition so readers can switch languages. Chinese
 Upload the entire report directory, including the English notice or explicitly generated edition, assets and evidence. The report root opens the selected language. Serve the directory over HTTP for evidence that loads on demand.
 
 Only `en` and `zh` are supported. Unsupported codes fail before a run starts or an existing report is replaced. Browser or operating-system language does not silently change a report. To add a language, extend the owning renderer's translation catalog and route, value and evidence-link checks; see [contributing](../CONTRIBUTING.md).
-
-## 1. Choose a site
-
-[Artifact Site](https://github.com/lexmount/artifact-site) hosts multi-page HTML reports and keeps version history. Sign in or create an account on one of these deployments:
-
-| Deployment | Website and CLI base | Publishing guide |
-| --- | --- | --- |
-| China | [https://artifact-site.lexmount.cn](https://artifact-site.lexmount.cn/) | [Guide](https://artifact-site.lexmount.cn/for-agents.md) |
-| Global | [https://yours.lexmount.com/artifact-site](https://yours.lexmount.com/artifact-site) | [Guide](https://yours.lexmount.com/artifact-site/for-agents.md) |
-| Your server | Follow the [self-hosting setup](https://github.com/lexmount/artifact-site#quick-start-local-deployment) | `<your-base>/for-agents.md` |
-
-Use the complete base URL, including `/artifact-site` on the global site. The same deployment serves its agent guide at `/for-agents.md` and MCP at `/mcp`.
-
-## 2. Upload the report
-
-With Node.js and npm installed, authorize the CLI and upload:
-
-```bash
-npx --yes @artifact-site/cli@0.4.0 login --base https://artifact-site.lexmount.cn
-npx --yes @artifact-site/cli@0.4.0 publish /absolute/path/to/run/report \
-  --share none --base https://artifact-site.lexmount.cn
-```
-
-Follow the login page to approve access. For the global site, use `--base https://yours.lexmount.com/artifact-site` in both commands; for self-hosting, use your server's base URL.
-
-These examples pin the tested CLI 0.4.0. `--share none` prevents that older client from creating an extra share link. New artifacts are private by default; check the returned owner, version, URL and access settings.
-
-An agent can also publish through MCP using the deployment's guide. To update an existing report, supply its expected current version as the guide specifies. If an operation is interrupted, recover that upload rather than creating a duplicate.
-
-## 3. Set access and check the report
-
-Choose access in the website's sharing controls:
-
-| Setting | Who can read it? |
-| --- | --- |
-| `private` | Authorized readers only |
-| `unlisted` | Anyone with the main link; absent from public discovery |
-| `public` | Publicly readable and discoverable |
-
-CLI 0.4.0 has no `visibility` command. Use the website or the current API/MCP operations documented by your deployment.
-
-Open a task result and follow its response, log and return links on the hosted report. Check that everything you share is intended to be public. Another static host works too if it preserves relative routes and evidence files.
-
-Example runs remain diagnostic after upload. Publishing does not certify benchmark results.
 
 ## Maintained benchmark releases
 
