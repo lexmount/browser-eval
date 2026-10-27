@@ -8,9 +8,10 @@ import json
 import shutil
 from pathlib import Path
 
-from harness.record_io import load_jsonl
-
 from lexbench_webfetch.paths import contained_path, safe_identifier
+
+from harness.record_io import load_jsonl
+from harness.web_fetch.webmainbench_runner import load_source
 
 
 def retry_chain_matches(row: dict, attempts: list[dict]) -> bool:
@@ -162,7 +163,6 @@ def read_method_binding(root: Path) -> tuple[str, dict]:
 
 def load_sample_contract(source: Path, manifest_path: Path, profile_path: Path):
     """Read a predeclared sample and method matrix without assuming its size or providers."""
-    from .webmainbench_runner import load_source
 
     for path in (source, manifest_path, profile_path):
         contained_path(path.parent, path.name, reject_symlinks=True)

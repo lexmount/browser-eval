@@ -5,22 +5,25 @@ import argparse
 import hashlib
 import json
 import math
-import re
 import random
+import re
+import statistics
 import subprocess
 import time
-import statistics
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from harness.record_io import load_jsonl, parse_jsonl
-
 from lexbench_webfetch.metrics import percentile
-from lexbench_webfetch.paths import contained_path
-from .webmainbench_diagnostics import ERROR_PAGE
-from .webmainbench_evidence import retry_chain_matches
-from .webmainbench_latency_correction import prior_results_path
+from lexbench_webfetch.paths import contained_path, safe_identifier
+
+from harness.record_io import load_jsonl, parse_jsonl
+from harness.web_fetch import webmainbench_runner
+from harness.web_fetch.providers.headless import LOOPBACK_SANDBOX_PROFILE
+from harness.web_fetch.safety import unlinked_path
+from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE
+from harness.web_fetch.webmainbench_evidence import retry_chain_matches
+from harness.web_fetch.webmainbench_latency_correction import prior_results_path
 
 RUNS = {'moli-115-control': 'moli', 'moli-117-repeat': 'moli-1.1.7'}
 
@@ -366,16 +369,6 @@ def prior_call_rows(path: Path) -> dict[str, dict]:
 
 
 def paired_tail_main(argv=None) -> None:
-    from .providers.headless import LOOPBACK_SANDBOX_PROFILE
-    from lexbench_webfetch.paths import safe_identifier
-    from harness.web_fetch.safety import unlinked_path
-    from .webmainbench_runner import (
-        fixture_server,
-        load_selected_ids,
-        load_source,
-        verify_loopback_sandbox,
-    )
-
     parser = argparse.ArgumentParser(
         description="Repeat declared paired Moli latency calls serially."
     )
@@ -425,14 +418,14 @@ def paired_tail_main(argv=None) -> None:
         )
         if result.stdout.strip() != f"moli {version}":
             raise ValueError("Moli version mismatch: " + version)
-    selected_ids, sample = load_selected_ids(args.sample)
+    selected_ids, sample = webmainbench_runner.load_selected_ids(args.sample)
     if args.formal_correction and sample["case_count"] != 200:
         raise ValueError("Expected frozen 200-page sample")
     source_options = {"expected_count": args.source_count}
     if args.source_sha256:
         source_options["expected_sha256"] = args.source_sha256
     source = {
-        row["track_id"]: row for row in load_source(args.dataset, selected_ids, **source_options)
+        row["track_id"]: row for row in webmainbench_runner.load_source(args.dataset, selected_ids, **source_options)
     }
     if not source:
         raise ValueError("Paired timing requires a nonempty sample")
@@ -494,8 +487,8 @@ def paired_tail_main(argv=None) -> None:
         }
     (args.output / "runner-source.py").write_bytes(frozen_source)
     (args.output / "selection.json").write_text(json.dumps(selection, indent=2) + "\n")
-    with fixture_server([source[case_id] for case_id in cases]) as (base, ca_cert):
-        selection["network_probe"] = verify_loopback_sandbox(base, ca_cert, source[cases[0]])
+    with webmainbench_runner.fixture_server([source[case_id] for case_id in cases]) as (base, ca_cert):
+        selection["network_probe"] = webmainbench_runner.verify_loopback_sandbox(base, ca_cert, source[cases[0]])
         (args.output / "selection.json").write_text(json.dumps(selection, indent=2) + "\n")
         with (args.output / "calls.jsonl").open("w") as stream:
             for round_index in range(args.rounds):

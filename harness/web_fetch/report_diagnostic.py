@@ -1,4 +1,5 @@
 """Validate a diagnostic report model without upgrading it to certification."""
+
 import hashlib
 import json
 import math
@@ -8,9 +9,19 @@ from collections import Counter
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
-from harness.record_io import load_jsonl
-
+from bs4 import BeautifulSoup
+from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
+
+from harness.record_io import load_jsonl
+from harness.reporting.presentation import check_presentation
+from harness.reporting.versions import check_build_version
+from harness.web_fetch.artifacts import (
+    verify_record_private_artifacts,
+    verify_record_public_call_logs,
+)
+from harness.web_fetch.publication_privacy import project_file, publication_risk
+from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 
 
 def require_diagnostic_scope(model, profile):
@@ -63,10 +74,6 @@ def _saved_implementation_identity(record, batches):
 
 def prepare_diagnostic_evidence(spec_path, output):
     """Adapt complete saved cohorts and bound reviews, never make provider calls."""
-    from .artifacts import verify_record_private_artifacts, verify_record_public_call_logs
-    from lexbench_webfetch.metrics import task_passed
-    from .publication_privacy import project_file
-    from .reference_lifecycle import require_verified_reference_checks
 
     spec_path, output = Path(spec_path).resolve(), Path(output)
     spec = json.loads(spec_path.read_text())
@@ -431,18 +438,13 @@ def load_diagnostic(source):
 
 def check_diagnostic_report(output, profile=None):
     """Enforce the shared reader structure and evidence dialogs at release."""
-    from bs4 import BeautifulSoup
 
-    from harness.reporting.presentation import check_presentation
-
-    from .publication_privacy import publication_risk
 
     output = Path(output)
     model, files = load_diagnostic(output)
     if profile is not None:
         require_diagnostic_scope(model, json.loads(Path(profile).read_text()))
     manifest = json.loads((output / "report-manifest.json").read_text())
-    from harness.reporting.versions import check_build_version
     check_build_version(output, manifest)
     if profile is not None:
         binding = json.loads(Path(profile).read_text()).get('diagnostic_input')

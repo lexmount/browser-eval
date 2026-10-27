@@ -9,15 +9,23 @@ import urllib.request
 from pathlib import Path
 from urllib.parse import quote
 
+from lexbench_webfetch.paths import contained_path
+
+from harness.reporting import links as report_links
 from harness.reporting.publication import (
-    PublicationOperation, archive_inventory, atomic_write, json_bytes, package_archive,
-    public_share_context, snapshot_publication,
+    PublicationOperation,
+    archive_inventory,
+    atomic_write,
+    json_bytes,
+    package_archive,
+    public_share_context,
+    snapshot_publication,
 )
+from harness.web_fetch import wcxb_report_check
 from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.publication import upload_large_archive
 from harness.web_fetch.publication_target import publication_base, require_publication_version
 from harness.web_fetch.report_publish import response_json
-from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
 from harness.web_fetch.storage import data_home
 
@@ -58,9 +66,6 @@ def inventory(report: Path, profile: dict) -> dict[str, str]:
 
 
 def package(source: Path, archive: Path, receipt: Path, *, authority_root: Path, profile_path: Path | None = None) -> dict:
-    from harness.reporting.links import check as check_links
-    from harness.web_fetch.wcxb_report_check import check as check_report
-
     profile_path = profile_path or authority_root / 'evaluation/wcxb/current-report.json'
     binding_path = profile_path.with_name('report-content-binding.json')
     reject_evidence_symlinks(profile_path)
@@ -71,8 +76,8 @@ def package(source: Path, archive: Path, receipt: Path, *, authority_root: Path,
 
     def validate():
         inventory(source, profile)
-        check_report(source, authority_root=authority_root, profile_path=profile_path)
-        check_links(source)
+        wcxb_report_check.check(source, authority_root=authority_root, profile_path=profile_path)
+        report_links.check(source)
 
     def attest(staged):
         files = inventory(source, profile)

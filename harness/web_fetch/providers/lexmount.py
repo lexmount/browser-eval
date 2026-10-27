@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from lexbench_webfetch.models import EvalCase
-from harness.web_fetch.models import ProviderResult
-from ..retrieval_hints import plan_for_case
-from .base import Provider
-from .http_client import inner_timeout_budget, request
 
+from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.providers.base import Provider
+from harness.web_fetch.providers.http_client import inner_timeout_budget, request
+from harness.web_fetch.retrieval_hints import plan_for_case
 
 _ENGINES = {
     "auto",

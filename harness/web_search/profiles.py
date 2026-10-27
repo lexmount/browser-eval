@@ -2,17 +2,21 @@
 
 import copy
 import json
+import os
+from collections import Counter
 from pathlib import Path
 
-
-from .core import digest, validate_profile
+from lexbench_webfetch.paths import contained_path
 from lexbench_websearch.inputs import resolve_profile
+
+from harness.web_fetch.publication_target import validate_service_base
+from harness.web_search.core import digest, validate_profile
+
 
 def authority_root(path, root=None):
     if path is None:
         raise ValueError("Select an external Search instance with --profile")
     return Path(root).resolve() if root is not None else Path(path).resolve().parent
-
 
 
 def _inside(root, relative):
@@ -123,7 +127,6 @@ def publication_authority(manifest, path, *, root=None, planned_target=None, exp
             raise ValueError("Publication plan no longer matches the exact live target")
         target = planned_target
 
-    from harness.web_fetch.publication_target import validate_service_base
     validate_service_base(target['base_url'])
     if not target.get("slug") or not target.get("versionId") or target.get("url") != target["base_url"].rstrip("/") + "/s/" + target["slug"]:
         raise ValueError("Incomplete live search publication target")
@@ -152,7 +155,6 @@ def publication_authority(manifest, path, *, root=None, planned_target=None, exp
 
 def publication_metadata(manifest, review, relevance):
     """Derive release populations from the same evidence used by the renderer."""
-    from collections import Counter
     profile = manifest['profile']
     factual = {c['id'] for c in profile['cases'] if 'reference_answer' in c}
     excluded = factual & set(profile.get('factual_quality_exclusions', []))
@@ -168,8 +170,6 @@ def publication_metadata(manifest, review, relevance):
 
 def verify_publication_inputs(manifest, target, *, root=None, data_home=None):
     """Verify pinned source and previous-release files before a replacement upload."""
-    from lexbench_webfetch.paths import contained_path
-    import os
     root = Path(root) if root is not None else None
     data_home = Path(data_home) if data_home is not None else Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval")).expanduser()
     bound_paths = {}

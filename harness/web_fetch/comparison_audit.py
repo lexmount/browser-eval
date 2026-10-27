@@ -9,17 +9,22 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from harness.record_io import parse_jsonl
-
-from .artifacts import diagnostic_log_binding, verify_public_call_log, verify_record_artifacts
 from lexbench_webfetch.metrics import task_passed
-from .reference_lifecycle import require_verified_reference_checks
-from .reference_lifecycle import is_diagnostic_evidence
 from lexbench_webfetch.paths import contained_path, safe_identifier
-from harness.web_fetch.safety import reject_evidence_symlinks
-from .task_outputs import require_native_task_routes
-from .retrieval_hints import parse_retrieval_hints
 
+from harness.record_io import parse_jsonl
+from harness.web_fetch.artifacts import (
+    diagnostic_log_binding,
+    verify_public_call_log,
+    verify_record_artifacts,
+)
+from harness.web_fetch.reference_lifecycle import (
+    is_diagnostic_evidence,
+    require_verified_reference_checks,
+)
+from harness.web_fetch.retrieval_hints import parse_retrieval_hints
+from harness.web_fetch.safety import reject_evidence_symlinks
+from harness.web_fetch.task_outputs import require_native_task_routes
 
 _IDENTITY_FIELDS = {
     "label",

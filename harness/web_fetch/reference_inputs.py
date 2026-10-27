@@ -12,16 +12,24 @@ from pathlib import Path
 from urllib.parse import quote, urlsplit, urlunsplit
 from urllib.request import urlopen
 
-from harness.reporting.assets import copy_bound_assets
-from harness.reporting.packs import read_packed_file
-from lexbench_webfetch.paths import contained_path, safe_identifier
-from harness.web_fetch.safety import reject_evidence_symlinks
-from harness.web_fetch.storage import data_home
-
 from lexbench_webfetch.inputs import (
-    digest, load_manifest as _load_manifest, verify_catalog, verify_tree, definition_path,
+    definition_path,
+    digest,
+    verify_catalog,
+    verify_tree,
+)
+from lexbench_webfetch.inputs import (
+    load_manifest as _load_manifest,
+)
+from lexbench_webfetch.inputs import (
     require_mutable_inputs as validate_mutable_candidate,
 )
+from lexbench_webfetch.paths import contained_path, safe_identifier
+
+from harness.reporting.assets import copy_bound_assets
+from harness.reporting.packs import read_packed_file
+from harness.web_fetch.safety import reject_evidence_symlinks
+from harness.web_fetch.storage import data_home
 
 MANIFEST_NAME = "source-inputs.json"
 ROOT = Path(__file__).resolve().parents[2]

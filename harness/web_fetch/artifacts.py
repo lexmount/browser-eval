@@ -7,13 +7,21 @@ every aggregation/publication boundary; they are never projected into a report.
 from __future__ import annotations
 
 import hashlib
-from harness.record_io import file_sha256
 import json
 import shutil
 from pathlib import Path
 from typing import Any, Iterable
 
+from lexbench_webfetch import file_acceptance
 from lexbench_webfetch.paths import contained_path, safe_identifier
+
+from harness.record_io import file_sha256
+from harness.web_fetch import native_routes
+from harness.web_fetch.publication_privacy import original_evidence_size, read_evidence_binding
+from harness.web_fetch.reference_lifecycle import (
+    latency_correction_original_elapsed,
+    preserve_legacy_reference_dataset,
+)
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 PRIVATE_ARTIFACT_ROOT = "private_artifacts"
@@ -22,7 +30,6 @@ PUBLIC_CALL_LOG_ROOT = "call-logs"
 
 def file_scoring_metadata(case, metadata: dict, source: Path) -> dict:
     """Recheck delivered file bytes against current rules without changing call evidence."""
-    from lexbench_webfetch.file_acceptance import evaluate_files
 
     case = case if isinstance(case, dict) else vars(case)
     evaluation = metadata.get("file_evaluation")
@@ -47,7 +54,7 @@ def file_scoring_metadata(case, metadata: dict, source: Path) -> dict:
         if hashlib.sha256(raw).hexdigest() != item.get("sha256"):
             raise ValueError("Delivered file integrity failure: " + item["artifact_path"])
         payloads.append(raw)
-    current = evaluate_files(case, payloads)
+    current = file_acceptance.evaluate_files(case, payloads)
     if len(current["files"]) != len(delivered):
         raise ValueError("Delivered file evaluation changed the file count")
     current["files"] = [{**old, **new} for old, new in zip(delivered, current["files"], strict=True)]
@@ -171,7 +178,6 @@ def verify_public_call_log(root: Path, binding: dict[str, Any], *, allow_public_
         raise ValueError("Public call log output must stay under artifacts")
     claimed = payload["output"]
     if allow_public_views:
-        from .publication_privacy import read_evidence_binding, original_evidence_size
         answer = {'path': output_path.as_posix(), 'sha256': claimed['sha256']}
         read_evidence_binding(root, answer)
         size = original_evidence_size(root, answer)
@@ -377,15 +383,13 @@ def verify_record_artifacts(root: Path, record: dict[str, Any], *, native_cases=
         if not source.is_file() or file_sha256(source) != digest:
             raise ValueError('Artifact differs from its result binding: ' + relative)
     verify_record_public_call_logs(root, record)
-    from harness.web_fetch.native_routes import verify_saved_native_answer
-    verify_saved_native_answer(root, record, cases_by_id=native_cases)
+    native_routes.verify_saved_native_answer(root, record, cases_by_id=native_cases)
 
 
 def materialize_bound_artifacts(output: Path, source_root: Path, records: list[dict]) -> None:
     """Verify acquisition-time authority before copying declared evidence."""
     copies = {}
-    from .native_routes import native_cases_by_id
-    native_cases = native_cases_by_id(source_root)
+    native_cases = native_routes.native_cases_by_id(source_root)
     for record in records:
         verify_record_artifacts(source_root, record, native_cases=native_cases)
         for relative, digest in artifact_bindings(record):
@@ -409,9 +413,9 @@ def materialize_bound_artifacts(output: Path, source_root: Path, records: list[d
 
 def materialize_reference_checks(output: Path, source: Path, batches: list[dict]) -> None:
     """Retain hash-bound source observations and native execution contracts."""
-    from .native_routes import materialize_native_route_contracts
-    materialize_native_route_contracts(output, source, batches)
+    native_routes.materialize_native_route_contracts(output, source, batches)
     for batch in batches:
+        preserve_legacy_reference_dataset(batch, source, output)
         post = batch.get('reference_checks', {}).get('postcheck', {})
         if not post:
             continue
@@ -490,7 +494,6 @@ def copy_cohort_evidence(source, target, dataset, records, batches, *,
         if include_private and (source / 'result-review.json').is_file():
             allowed.add('result-review.json')
         if 'latency-corrections.json' in allowed:
-            from .reference_lifecycle import latency_correction_original_elapsed
             latency_correction_original_elapsed(source)
     native_cases = {case['id']: case for case in dataset['cases']}
     for record in records:

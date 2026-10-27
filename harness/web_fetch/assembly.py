@@ -1,4 +1,5 @@
 """Assemble exact headless measurements, never selecting retries by score."""
+
 import argparse
 import hashlib
 import json
@@ -8,29 +9,37 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from lexbench_webfetch.metrics import task_passed
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.scoring_regressions import (
+    active_scoring_regressions,
+    build_correction_provenance,
+    valid_correction_provenance,
+)
+
 from harness.record_io import file_sha256, load_jsonl
+from harness.reporting.publication import atomic_write
 from harness.web_fetch.artifacts import (
     copy_cohort_evidence,
     materialize_bound_artifacts,
     materialize_reference_checks,
     materialize_task_references,
 )
-from lexbench_webfetch.metrics import task_passed
 from harness.web_fetch.publication_privacy import project_execution_manifest
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     latency_correction_original_elapsed,
     reference_revision_cases,
-    require_verified_reference_checks,
     require_certifiable_evidence,
+    require_verified_reference_checks,
     requires_fresh_reference,
     scoring_revision_history_sha256,
     valid_scoring_revision,
 )
-from harness.web_fetch.result_review import require_result_review
-from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.resource_cohort import validate_cohort
+from harness.web_fetch.result_review import require_blind_result_review, require_result_review
 from harness.web_fetch.safety import reject_evidence_symlinks, unlinked_path, validate_report_ids
-from lexbench_webfetch.scoring_regressions import build_correction_provenance, valid_correction_provenance
+from harness.web_fetch.scoring_revision import revise
 from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -421,8 +430,6 @@ def bind_assembled_scoring_revision(output, *, source=None, historical_sources=(
         inherited=path.read_bytes()
         if inherited != (source/'scoring-revisions.json').read_bytes():
             raise ValueError('Inherited scoring authority differs from declared source')
-        from lexbench_webfetch.scoring_regressions import active_scoring_regressions
-        from .scoring_revision import revise
         controls=active_scoring_regressions()
         history=json.loads(inherited)
         identifiers=list(dict.fromkeys(identifier for receipt in history
@@ -456,7 +463,6 @@ def bind_assembled_scoring_revision(output, *, source=None, historical_sources=(
     dataset=json.loads((output/'dataset.json').read_text())
     records=read_records(output)
     if historical_sources:
-        from .result_review import require_blind_result_review
         require_blind_result_review(output, dataset, records, historical_sources=historical_sources)
     else:
         require_result_review(output, dataset, records)
@@ -510,7 +516,6 @@ def bind_assembled_scoring_revision(output, *, source=None, historical_sources=(
         (check/'scoring-revisions.json').write_text(candidate)
         if not valid_scoring_revision(check):
             raise ValueError('Assembled scoring revision would leave an invalid history')
-    from harness.reporting.publication import atomic_write
     atomic_write(path, candidate.encode())
     return True
 
@@ -1245,7 +1250,6 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         _copy_speed_bundle(speed_cohort,output/'speed-cohort',speed_dataset,
                            speed_rows,speed_batches,excluded_providers=exclude_providers)
     if resource_cohort:
-        from .resource_cohort import validate_cohort
         resource_dataset, resource_rows, resource_batches = validate_cohort(resource_cohort)
         if {row['provider'] for row in resource_rows} & set(exclude_providers):
             raise ValueError('Excluded providers remain in the resource cohort')

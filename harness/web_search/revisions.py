@@ -1,12 +1,14 @@
 """Re-evaluate saved evidence with explicit external correction authority."""
-from pathlib import Path
-from copy import deepcopy
+
 import json
-from lexbench_websearch.scoring import evaluate
+from copy import deepcopy
+from pathlib import Path
+
+from lexbench_websearch.answer_rules import POLICY_NAME, RULE_VERSION, reference_rule
 from lexbench_websearch.contracts import validate_cases
 from lexbench_websearch.inputs import digest
-from lexbench_websearch.answer_rules import POLICY_NAME
-from lexbench_websearch.qualification import validate_regressions, _qualified, _equivalent
+from lexbench_websearch.qualification import _equivalent, _qualified, validate_regressions
+from lexbench_websearch.scoring import evaluate
 
 
 def _rescore(profile, rows):
@@ -109,13 +111,11 @@ def apply_report_revision(profile, rows, revision, *, artifacts=None, normalizer
         for case in cases.values():
             if case.get("reference_answer"):
                 case["answer_match_rule"] = revision["answer_match_rule"]
-    from lexbench_websearch.answer_rules import RULE_VERSION
 
     if revision.get("answer_annotation_rule") not in (None, RULE_VERSION):
         raise ValueError("Answer derivation revision uses an unsupported annotation rule")
     derivations = revision.get("answer_derivations", [])
     if derivations:
-        from lexbench_websearch.answer_rules import RULE_VERSION, reference_rule
 
         if (revision.get("answer_annotation_rule") != RULE_VERSION
                 or not {"published-answer-citation-metadata", "literal-bracketed-answer"}.issubset(revision["regression_ids"])):

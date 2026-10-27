@@ -10,6 +10,8 @@ from html import escape, unescape
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
+from bs4 import BeautifulSoup
+
 from harness.web_fetch import __version__
 
 FILENAME = "browser-eval-version.json"
@@ -87,7 +89,6 @@ def bind_build_version(root):
 
 def check_build_version(root, manifest):
     """Keep legacy reports readable; verify every declared build and label."""
-    from bs4 import BeautifulSoup
 
     binding = manifest.get("browser_eval")
     path = root / FILENAME

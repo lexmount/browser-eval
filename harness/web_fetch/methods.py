@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-import json
 import hashlib
-import inspect
-from copy import deepcopy
 import importlib.metadata
+import inspect
+import json
 import re
 from collections import Counter
-from functools import lru_cache, wraps
 from contextvars import ContextVar
+from copy import deepcopy
+from functools import lru_cache, wraps
 from pathlib import Path
 from typing import Any
+
+from harness.distribution import installed_data_path
 
 
 def _resolve_catalog_templates(data):
@@ -204,7 +206,6 @@ def _execution_browser_method_registry():
     """Use the execution registry for release and source-build participants."""
     path = Path(__file__).resolve().parents[2] / "configs/providers.headless.json"
     if not path.is_file():
-        from harness.distribution import installed_data_path
         try:
             path = installed_data_path("share/browser-harness-eval/providers.headless.json")
         except importlib.metadata.PackageNotFoundError:
@@ -279,7 +280,6 @@ def method_version(record, provenance=None, *, language="zh"):
     return str(browser_version) if browser_version else None
 
 
-
 def method_versions(records, provenance=None):
  """Keep distinct measured binaries visible when their reported versions coincide."""
  versions={}
@@ -292,7 +292,6 @@ def method_versions(records, provenance=None):
  multiple=len({digest for hashes in versions.values() for digest in hashes})>1
  return [version+(' ['+', '.join(sorted(digest[:8] for digest in hashes))+']'
                  if multiple and hashes else '') for version,hashes in sorted(versions.items())]
-
 
 
 def with_measured_method_labels(render):
@@ -385,7 +384,6 @@ def is_browser_comparison(records: list[dict[str, Any]]) -> bool:
 def method_info(provider_type: str, *, language="zh") -> dict[str, Any]:
     registry = METHOD_REGISTRY if language == "zh" else report_method_catalog(language)["adapters"]
     return registry.get(provider_type, report_method_catalog(language)["unregistered_adapter"])
-
 
 
 ROUTE_LABELS = report_method_catalog()["route_labels"]

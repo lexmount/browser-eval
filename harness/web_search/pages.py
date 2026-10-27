@@ -1,6 +1,7 @@
 """One top-level page registry for navigation, release checks and local captures."""
 
-from .messages import report_text
+from harness.web_search.messages import report_text
+
 _STANDARD = (
     ("home", "index.html", "Overview", report_text('text_fea405f9b01d1416'), True),
     ("dataset", "dataset.html", "Queries", report_text('text_a18713d1bce780df'), True),

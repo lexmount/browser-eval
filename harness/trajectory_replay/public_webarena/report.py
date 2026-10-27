@@ -12,9 +12,11 @@ from typing import Any
 from urllib.parse import urlparse
 
 from harness.distribution import installed_data_path
-
-from .publication import REPORT_STEM, public_projection
-from .result_audit import ResultAuditError, audit_result_set
+from harness.trajectory_replay.public_webarena.publication import REPORT_STEM, public_projection
+from harness.trajectory_replay.public_webarena.result_audit import (
+    ResultAuditError,
+    audit_result_set,
+)
 
 ROOT = Path(__file__).resolve().parents[3]
 PAGES = tuple(

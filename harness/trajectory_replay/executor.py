@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from contextlib import nullcontext
 from typing import Any
 
-from .suite import validate_selector
+from harness.trajectory_replay.suite import validate_selector
 
 
 def _body_text(page: Any, timeout: int, limit: int) -> str:

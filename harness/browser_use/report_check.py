@@ -9,6 +9,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
+from bs4 import BeautifulSoup
 from lexbench_webfetch.paths import contained_path
 
 from harness.browser_use.failure_cause_review import (
@@ -39,6 +40,7 @@ from harness.report_languages import check_language_contract, generated_language
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.templates import template_identity
+from harness.reporting.versions import check_build_version
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 FORBIDDEN_READER_TERMS = (
@@ -310,7 +312,6 @@ def _check_public_privacy(report_dir: Path) -> None:
 
 def check_methodology_evidence(content: str, tasks: list[dict], environment: dict) -> None:
     """Require displayed deployment and evaluator facts to match the selected evidence."""
-    from bs4 import BeautifulSoup
 
     soup = BeautifulSoup(content, "html.parser")
     expected = {
@@ -478,7 +479,6 @@ def check(
         raise ValueError("report is missing one or more required report pages")
     selection = load_pilot(selection_path)
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
-    from harness.reporting.versions import check_build_version
     check_build_version(report_dir, audit)
     if audit.get("profile_sha256") and audit.get("template") != template_identity("browser-use"):
         raise ValueError("report bypasses the maintained Browser Use template")

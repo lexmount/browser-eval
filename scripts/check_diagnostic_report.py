@@ -3,9 +3,11 @@ import argparse
 import json
 import sys
 from pathlib import Path
+
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from harness.web_fetch.report_diagnostic import check_diagnostic_report
+
 from harness.web_fetch.publication import verify_published_tree
+from harness.web_fetch.report_diagnostic import check_diagnostic_report
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)

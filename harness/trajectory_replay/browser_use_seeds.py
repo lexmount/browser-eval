@@ -9,6 +9,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import load_jsonl
+
 SCHEMA = "lex_browser_use_replay_seeds/2"
 
 _REF_ACTIONS = {"click", "fill", "select"}
@@ -212,7 +214,6 @@ def _authoritative_rows(root: Path) -> tuple[dict[str, Any], list[dict[str, Any]
     if not model:
         raise ValueError(f"evidence manifest does not identify a model: {root}")
     grouped: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
-    from harness.record_io import load_jsonl
 
     for row in load_jsonl(root / "attempts.jsonl", skip_blank=True):
         grouped[(str(row["engine"]), int(row["task_id"]))].append(row)

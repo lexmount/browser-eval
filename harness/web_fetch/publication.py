@@ -1,21 +1,22 @@
 """Artifact Hub large-bundle transport; credentials remain with the caller."""
+
+import hashlib
+import io
 import json
 import math
 import socket
 import time
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from email.utils import parsedate_to_datetime
 from http.client import RemoteDisconnected
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 
 
 def verify_published_tree(source, archive, *, excluded=('.generated-report',)):
     """Compare every deployed file with the submitted tree without extracting ZIPs."""
-    import hashlib
-    import io
-    from pathlib import Path
     source = Path(source)
     paths = list(source.rglob('*'))
     if any(p.is_symlink() for p in paths):
@@ -124,7 +125,6 @@ def upload_large_archive(request, archive, slug=None, expected=None, title='Web 
         put_file(request, endpoint + '/files/index.html', bundle.read(entry))
         remaining = [info for info in files if info.filename != 'index.html']
         if max_workers > 1:
-            from concurrent.futures import ThreadPoolExecutor, as_completed
             with ThreadPoolExecutor(max_workers=max_workers) as pool:
                 pending = {
                     pool.submit(put_file, request,

@@ -8,7 +8,10 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+from lexbench_webfetch.scoring_regressions import ROOT_CAUSE_CATEGORIES, build_correction_provenance
+
 from harness.record_io import file_sha256, parse_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
@@ -22,10 +25,10 @@ from harness.web_fetch.result_review import (
     archive_superseded_result_review,
     rebind_unchanged_result_review,
 )
-from lexbench_webfetch.paths import contained_path
 from harness.web_fetch.safety import validate_report_ids
-from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
-from lexbench_webfetch.scoring_regressions import ROOT_CAUSE_CATEGORIES, build_correction_provenance
+
+ROOT = Path(__file__).resolve().parents[2]
+
 
 ALLOWED_FIELDS = {
     "page_identity_required",
@@ -274,7 +277,6 @@ def _revise_unlocked(
 
 def rebind_report_interpretation(source: Path, binding: dict, *, implementation_binding: dict | None = None):
     """Bind presentation content while preserving the scored output bytes."""
-    from .reference_lifecycle import valid_scoring_revision
     source = source.resolve()
     if not valid_scoring_revision(source):
         raise ValueError('Report binding requires a valid existing scoring chain')

@@ -1,11 +1,13 @@
 """Different upstream checkouts must execute their own code and respect deadlines."""
+import json
+import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
-
 from lexbench_webfetch.models import EvalCase
+
 from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
 
 
@@ -84,3 +86,18 @@ def test_import_failure_has_a_structured_error(providers):
     assert not answer.ok
     assert answer.error_type == 'ImportError'
     assert answer.error_message == 'missing synthetic dependency'
+
+
+def test_worker_runs_from_source_without_an_installed_harness(providers):
+    provider = providers[0]
+    executable, *arguments = provider.config['command']
+    result = subprocess.run(
+        [executable, '-I', '-S', *arguments],
+        cwd=provider.config['repo_path'],
+        input=json.dumps({'url': case().url, 'timeout_seconds': 5}) + '\n',
+        text=True, capture_output=True, timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    response = json.loads(result.stdout)
+    assert response['ok'] and response['content'] == 'first'
+    assert 'spoofed protocol' in result.stderr

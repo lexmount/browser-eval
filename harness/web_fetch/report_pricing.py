@@ -1,6 +1,8 @@
 """Source-backed commercial prices, separate from measured benchmark outcomes."""
+
 import json
 import math
+from html import escape
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[2] / 'research/provider-pricing.json'
@@ -38,7 +40,6 @@ def render_pricing(out, names, *, table, cell, link, esc):
         english = translations.get(value) if isinstance(value, str) else None
         if english is None:
             return original
-        from html import escape
         return '<span data-report-en="' + escape(english, quote=True) + '">' + original + '</span>'
 
     dest = out / 'adoption'

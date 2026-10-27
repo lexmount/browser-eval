@@ -23,16 +23,22 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-ROOT = Path(__file__).resolve().parents[2]
+from lexbench_webfetch.models import EvalCase
 
 from harness.record_io import parse_jsonl
-from harness.web_fetch.config import load_provider_config, load_runtime_env, add_failure_retry_argument
-from lexbench_webfetch.models import EvalCase
+from harness.web_fetch.config import (
+    add_failure_retry_argument,
+    load_provider_config,
+    load_runtime_env,
+)
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.headless import LOOPBACK_SANDBOX_PROFILE
 from harness.web_fetch.runner import classify_exception
+
+ROOT = Path(__file__).resolve().parents[2]
+
 
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"

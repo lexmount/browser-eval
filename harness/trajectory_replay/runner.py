@@ -29,19 +29,15 @@ from harness.environments.browser import (
     wait_cdp,
 )
 from harness.resource_accounting import DockerStatsResources, ResourceSampler, delta_counters
-
-from .diagnostics import diagnose_summary
-from .executor import execute_steps, judge_outputs, validate_outputs
-from .metrics import summarize_attempts
-from .report import write_latest_report
-from .suite import BrowserTask, load_suite, validate_ground_truth_evidence
+from harness.trajectory_replay.diagnostics import diagnose_summary
+from harness.trajectory_replay.executor import execute_steps, judge_outputs, validate_outputs
+from harness.trajectory_replay.metrics import summarize_attempts
+from harness.trajectory_replay.report import write_latest_report
+from harness.trajectory_replay.suite import BrowserTask, load_suite, validate_ground_truth_evidence
+from harness.web_fetch.safety import unlinked_path
 
 ENGINE_IMAGES = configured_browser_images()
 ENCODING = tiktoken.get_encoding("o200k_base")
-
-
-
-
 
 
 def _http_origin(url: str) -> str | None:
@@ -118,8 +114,6 @@ def _resource_result(
         result["network_rx_bytes_per_second"] = result["network_rx_bytes"] / duration_ms * 1000
         result["network_tx_bytes_per_second"] = result["network_tx_bytes"] / duration_ms * 1000
     return result
-
-
 
 
 def _prepare_page(page: Page, visited_origins: set[str], *, settle_ms: int) -> Page:
@@ -228,8 +222,6 @@ def _run_task(
     }
 
 
-
-
 class _QuietFixtureHandler(SimpleHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:
         return
@@ -299,8 +291,6 @@ def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-
-
 def _write_run_artifacts(
     output: Path, rows: list[dict[str, Any]], summary: dict[str, Any], manifest: dict[str, Any]
 ) -> None:
@@ -337,7 +327,6 @@ def run_evaluation(
 ) -> dict[str, Any]:
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
-    from harness.web_fetch.safety import unlinked_path
     output = unlinked_path(Path(output_dir))
     if output.exists():
         raise ValueError("Output must be a new directory; existing evidence is immutable")

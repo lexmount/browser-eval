@@ -7,12 +7,22 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from harness.record_io import load_jsonl
-
 from lexbench_webfetch.paths import contained_path, safe_identifier
+
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import evidence_tree_identity, stage_evidence_revision
-from .webmainbench_evidence import copy_alias_artifacts, copy_bound, require_unique_attempt_ids, retry_chain_matches
-from .webmainbench_scoring import CORE_METRICS, DATASET_SHA256, SCORER_COMMIT, aggregate
+from harness.web_fetch.webmainbench_evidence import (
+    copy_alias_artifacts,
+    copy_bound,
+    require_unique_attempt_ids,
+    retry_chain_matches,
+)
+from harness.web_fetch.webmainbench_scoring import (
+    CORE_METRICS,
+    DATASET_SHA256,
+    SCORER_COMMIT,
+    aggregate,
+)
 
 AXES = ("language", "level", "table", "code", "equation")
 SHARD_FILES = ("scored-results.jsonl", "results.jsonl", "physical-attempts.jsonl",

@@ -9,6 +9,7 @@ import html
 import json
 import math
 import re
+from collections import Counter
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
@@ -17,6 +18,7 @@ from bs4 import BeautifulSoup
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.privacy import LOCAL_PATH_RE, WEB_URL_RE
 from harness.reporting.templates import template_identity
+from harness.reporting.versions import check_build_version
 from harness.trajectory_replay.report_languages import language_roots, report_languages
 from harness.web_fetch.safety import reject_evidence_symlinks
 
@@ -455,8 +457,6 @@ def _check_result_detail_semantics(text: str, evidence: dict, status: str) -> No
 
 def _check_failure_matrix(page: str, results: list[dict], participants: list[str]) -> None:
     """Recompute cells independently; also verify each count's filter target."""
-    from collections import Counter
-    from urllib.parse import parse_qs
 
     soup = BeautifulSoup(page, "html.parser")
     matrix = soup.select_one("[data-failure-matrix]")
@@ -526,7 +526,6 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
     reject_evidence_symlinks(report_dir)
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
-    from harness.reporting.versions import check_build_version
     check_build_version(root, manifest)
     if (manifest.get("profile_sha256")
             and manifest.get("template") != template_identity("trajectory-replay")):

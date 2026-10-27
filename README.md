@@ -8,26 +8,26 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
 
-[Quickstart](#quickstart) · [Tracks](#evaluation-tracks) · [Reports](#reports) · [Contributing](CONTRIBUTING.md)
+[Quickstart](#quickstart) · [Tracks](#evaluation-tracks) · [Reports](#reports) · [Versions](#versions) · [Related projects](#related-repositories) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
-Browser Eval is an extensible evaluation harness for browsers and web agents. It combines task contracts, adapters, saved evidence and scoring to produce inspectable reports.
+Browser Eval is an evaluation harness for browsers and web agents. Connect a benchmark and a browser or service adapter to run tasks, record responses and timing, apply the benchmark's scoring rules, and generate comparison reports with the original evidence.
 
 ## Evaluation tracks
 
-The following workflows have runnable guides. New workflows use the same adapter and task-contract model; see [contributing](CONTRIBUTING.md).
+The main branch includes all four tracks below. Each track provides a runnable example and a guide to its benchmark inputs and environment.
 
-| Track | What it tests | Guide |
-| --- | --- | --- |
-| Web Search / SERP | Compare returned search results, relevance, latency and cost | [Offline example](examples/web_search/README.md) · [Track guide](harness/web_search/README.md) |
-| Web Fetch | Retrieve the requested page content, records, resources or files | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
-| Browser Trajectory Replay | Complete the same recorded browser actions across implementations | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
-| Browser Use | Let an Agent use different browsers to complete tasks | [CowAgent + WebArena](examples/browser_use/README.md) |
+| Track | What it tests | Benchmarks and task suites | Guide |
+| --- | --- | --- | --- |
+| Web Fetch | Retrieve the requested page content, records, resources or files | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), [WebMainBench](https://github.com/opendatalab/WebMainBench), [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
+| Web Search (preview) | Compare search results, relevance, source retrieval, latency and billing | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch): scenario queries and a SimpleQA Verified retrieval adaptation | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
+| Browser Trajectory Replay | Complete the same recorded browser actions across implementations | [Repository-curated fixed-action suite](examples/trajectory_replay/tasks.v4.json), adapted from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios); [qualified WebArena human recordings](evaluation/browser-use-public/webarena-human-suite.json), checked with the [WebArena-Verified evaluator](https://github.com/lexmount/webarena-verified/tree/lex-main) | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
+| Browser Use | Let an Agent use different browsers to complete tasks | [WebArena-Verified](https://github.com/ServiceNow/webarena-verified), using the [pinned evaluator fork](https://github.com/lexmount/webarena-verified/tree/lex-main) and [declared task selection](evaluation/browser-use/webarena-verified-pilot.json) | [CowAgent + WebArena](examples/browser_use/README.md) |
 
 Web Fetch supports local browsers, hosted services and extraction tools. See [adapters](docs/provider-contract.md) for available methods and [dependencies](docs/dependencies.md) for installation requirements. Replay and Browser Use have separate runners and environments.
 
-Task definitions and scoring come from the selected benchmark: [LexBench Web Search](https://github.com/lexmount/lexbench-websearch), [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), WebMainBench, WCXB or WebArena. See [benchmark integration](docs/benchmarks.md).
+See [benchmark integration](docs/benchmarks.md) for task and scoring ownership, pinned versions and input requirements. The replay suites adapt fixed actions for browser comparison; Browser Use evaluates autonomous Agent decisions.
 
 ## Quickstart
 
@@ -62,6 +62,29 @@ English is the default; add `--language zh` when running or rebuilding for Chine
 Each new report records its Browser Eval build and selected benchmark edition, with exact code and input hashes. See [versioning](docs/benchmarks.md#benchmark-editions) for comparison rules and [reference inputs](docs/reference-inputs.md) for historical data.
 
 To share a report online, publish its `report/` directory through [Artifact Site](https://github.com/lexmount/artifact-site), following the [hosting guide](docs/report-hosting.md). Choose access permissions there. Formal benchmark releases also require the checks in their track guide.
+
+## Versions
+
+The current package version is `0.2.0`. Software tags use `vMAJOR.MINOR.PATCH`; benchmark editions and hosted report versions are independent. A report records all three identities so rebuilding a report does not relabel its tasks or saved calls.
+
+Use [the release guide](docs/releases.md) for compatibility rules, release checks and the scope of the first software release. Web Search is available as a preview; stable support is assessed through the release checks. A stable release commits to documented commands, input contracts and saved-evidence compatibility; it does not guarantee that every browser or live website passes every task.
+
+## Related repositories
+
+| Repository | Role |
+| --- | --- |
+| [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Versioned Web Fetch tasks, acceptance scoring and frozen input bindings |
+| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Versioned search queries, source references and retrieval scoring |
+| [Moli](https://github.com/lexmount/moli) | Browser evaluated through the same task contracts as other participants |
+| [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | CLI client for the Lexmount WebFetch service; separate from the evaluation harness |
+| [Artifact Site](https://github.com/lexmount/artifact-site) | Report hosting, immutable versions and access controls |
+| [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | Scenario design source for curated replay; separate protocol, driver and web-platform benchmarks |
+| [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [upstream](https://github.com/opendatalab/WebMainBench) | Frozen-HTML extraction tasks and declared scoring corrections |
+| [WebArena-Verified fork](https://github.com/lexmount/webarena-verified/tree/lex-main) · [upstream](https://github.com/ServiceNow/webarena-verified) | Tasks and evaluator for Browser Use and WebArena trajectory replay |
+| [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | Independent content-extraction benchmark |
+| [CowAgent](https://github.com/zhayujie/CowAgent), [OpenClaw](https://github.com/openclaw/openclaw), [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Agent execution and Web Fetch tool baselines |
+
+[Dependency sources and pins](docs/dependencies.md) cover Playwright, extraction libraries and supporting runtimes. [Third-party notices](THIRD_PARTY.md) cover attribution and data rights. Cite the benchmark and upstream data used alongside Browser Eval.
 
 ## Contribute
 

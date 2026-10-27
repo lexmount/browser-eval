@@ -9,7 +9,8 @@ from email.message import Message
 from typing import Any
 
 from lexbench_webfetch.paths import validate_http_url
-from ..diagnostics import emit
+
+from harness.web_fetch.diagnostics import emit
 
 
 @dataclass

@@ -1,4 +1,6 @@
 """Materialize bound report assets from a Git-external source tree."""
+
+import argparse
 import hashlib
 import json
 import os
@@ -9,6 +11,8 @@ from contextlib import ExitStack
 from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
+
+from harness.reporting.packs import read_packed_file
 from harness.web_fetch.safety import unlinked_path
 
 
@@ -22,7 +26,6 @@ def authored_main(raw: bytes) -> str:
 
 def restore_bound_content(export, binding, destination):
     """Recover declared authored fields from an immutable, verified export."""
-    from harness.reporting.packs import read_packed_file
 
     source = binding['source']
     if source['recovery']['kind'] != 'html-main-json-v1':
@@ -74,8 +77,6 @@ def restore_bound_content(export, binding, destination):
 
 
 def restore_main():
-    import argparse
-
     parser = argparse.ArgumentParser(description='Restore authored content from a pinned export')
     parser.add_argument('--binding', type=Path, required=True)
     parser.add_argument('--export', type=Path, required=True)

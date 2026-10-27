@@ -6,12 +6,12 @@ import hashlib
 import uuid
 
 from lexbench_webfetch.models import EvalCase
-from ..models import ProviderResult
-from ..native_routes import NativeRoute
-from ..native_projection import native_answer_projection
-from ..network_dns import public_dns_context, validate_dns_mode
-from .base import Provider
-from .http_client import inner_timeout_budget, request
+from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.native_routes import NativeRoute
+from harness.web_fetch.native_projection import native_answer_projection
+from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
+from harness.web_fetch.providers.base import Provider
+from harness.web_fetch.providers.http_client import inner_timeout_budget, request
 
 
 ENDPOINTS = {

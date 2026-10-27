@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .runner import run_evaluation
+from harness.trajectory_replay.runner import run_evaluation
 
 
 def main() -> None:

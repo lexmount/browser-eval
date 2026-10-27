@@ -11,15 +11,20 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from bs4 import BeautifulSoup
+from lexbench_webfetch import metrics
+from lexbench_webfetch.metrics import task_passed
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 from harness.record_io import load_jsonl, parse_jsonl
-
 from harness.web_fetch import anomaly_review, result_review
-from lexbench_webfetch import metrics
-from .anomaly_review import LAYERS, TRIGGER_VERSION, detect_anomalies
-from .artifacts import artifact_bindings, record_private_bindings, verify_record_artifacts
-from lexbench_webfetch.metrics import task_passed
-from .result_review import (
+from harness.web_fetch.anomaly_review import LAYERS, TRIGGER_VERSION, detect_anomalies
+from harness.web_fetch.artifacts import (
+    artifact_bindings,
+    record_private_bindings,
+    verify_record_artifacts,
+)
+from harness.web_fetch.native_routes import native_cases_by_id
+from harness.web_fetch.result_review import (
     install_result_review,
     require_blind_result_review,
     require_result_review,
@@ -27,7 +32,6 @@ from .result_review import (
     review_raw_artifacts,
     write_review_document,
 )
-from lexbench_webfetch.paths import contained_path, safe_identifier
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 SCHEMA = {
@@ -1252,7 +1256,6 @@ def bind_review_workspace(evidence, work, records, bindings, options, *, prior=N
     if current != bindings:
         raise ValueError("Review evidence changed during execution")
     artifacts = {}
-    from .native_routes import native_cases_by_id
     native_cases = native_cases_by_id(evidence)
     for record in records:
         verify_record_artifacts(evidence, record, native_cases=native_cases)

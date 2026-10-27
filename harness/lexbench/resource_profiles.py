@@ -18,9 +18,10 @@ import re
 import subprocess
 from pathlib import Path
 
+from lexbench_webfetch.paths import contained_path, safe_identifier
+
 from harness.lexbench.resource_summary import validate_population
 from harness.record_io import load_jsonl
-from lexbench_webfetch.paths import contained_path, safe_identifier
 
 
 def sha256(path: Path) -> str:

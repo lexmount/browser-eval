@@ -1,9 +1,10 @@
 """Provider transport registry. Add a provider here without changing the collector."""
+
+import json
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
-import json
 from urllib.parse import urlencode
-import re
 
 BILLING_POLICIES = frozenset({'unknown', 'http-200', 'http-200-nonempty'})
 
@@ -41,7 +42,6 @@ class Adapter:
         if not self.telemetry or not isinstance(payload, dict):
             return {}
         return {key: payload.get(key) for key in ("timing", "usage", "cache", "attempts", "stop_reason", "coverage")}
-
 
 
 def _options(options, allowed):

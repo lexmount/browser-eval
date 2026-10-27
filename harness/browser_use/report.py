@@ -18,26 +18,20 @@ from io import BytesIO
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from harness.record_io import load_jsonl
-from harness.report_languages import write_language_contract
-from harness.reporting.assets import bound_json_asset
-from harness.reporting.templates import template_identity
-from harness.web_fetch.report_style import STYLE as SHARED_STYLE
-
-from .failure_cause_review import (
+from harness.browser_use.failure_cause_review import (
     LAYERED_REVIEW_SCHEMA,
     extract_failure_cause_review_cohort,
     load_failure_cause_review,
     localized_cause,
     validate_failure_cause_review,
 )
-from .failure_cause_review import (
+from harness.browser_use.failure_cause_review import (
     review_path as failure_review_path,
 )
-from .failure_cause_review import (
+from harness.browser_use.failure_cause_review import (
     sha256 as file_sha256,
 )
-from .publication import (
+from harness.browser_use.publication import (
     evaluator_summary,
     evidence_metadata,
     read_public_json,
@@ -47,7 +41,23 @@ from .publication import (
     trajectory,
     trajectory_label,
 )
-from .selection import PilotSelection, load_pilot, report_selection_path, validate_against_official
+from harness.browser_use.selection import (
+    PilotSelection,
+    load_pilot,
+    report_selection_path,
+    validate_against_official,
+)
+from harness.record_io import load_jsonl
+from harness.report_languages import (
+    add_language_argument,
+    includes_english,
+    primary_report_language,
+    select_report_language,
+    write_language_contract,
+)
+from harness.reporting.assets import bound_json_asset
+from harness.reporting.templates import template_identity
+from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli"}
 MODEL_LABELS = {"gpt-5.6-sol": "GPT-5.6 Sol"}
@@ -60,7 +70,6 @@ SITE_LABELS = {
     "gitlab": "GitLab",
 }
 RESEARCH_ROOT = Path(__file__).parents[2] / "research"
-
 
 
 def _finding_text(diagnosis: dict[str, Any], field: str) -> str:
@@ -2256,7 +2265,9 @@ def _trajectory_replay_control(
     """Explain the selected replay comparison without inheriting a past article."""
     if bridge is None:
         return ""
-    from .report_i18n import bilingual_text
+
+    # Report assets are loaded only when rendering, not for CLI help.
+    from harness.browser_use.report_i18n import bilingual_text
 
     def text(zh, en):
         return Safe(bilingual_text(zh, en))
@@ -2338,7 +2349,7 @@ def _article_body(
     automatic_failure_counts: Counter[str],
     trajectory_replay_bridge: dict[str, Any] | None,
 ) -> str:
-    from .report_i18n import bilingual_text
+    from harness.browser_use.report_i18n import bilingual_text
 
     text = bilingual_text
     task_count = len(tasks)
@@ -2750,7 +2761,6 @@ def _load_fix_log(profile: dict[str, Any]) -> dict[str, Any]:
     return load_fix_log(profile, sanitize_value=sanitize)
 
 
-
 def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False) -> None:
     """Render both views from one manifest; screenshots never imply pixel change."""
     lang = "en" if english else "zh"
@@ -2776,7 +2786,7 @@ def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False)
     def save(name: str, title: str, body: str) -> None:
         page = _page(title=title, active="fixes", body=body, depth=1)
         if english:
-            from .report_i18n import localize_html
+            from harness.browser_use.report_i18n import localize_html
 
             page = localize_html(page, PurePosixPath(f"fixes/{name}"))
         (folder / name).write_text(page, encoding="utf-8")
@@ -2847,9 +2857,8 @@ def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False)
 
 
 def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path, include_english: bool = False, language: str | None = None, profile_path: Path | None = None) -> Path:
-    from harness.report_languages import includes_english, select_report_language
+    from harness.browser_use.report_i18n import bilingual_text
 
-    from .report_i18n import bilingual_text
     include_english = includes_english(language, include_english)
     if profile_path is None:
         raise ValueError("An explicit report profile is required; pass --profile")
@@ -3984,7 +3993,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         )
         _write_fix_log(stage, fix_log)
         if include_english:
-            from .report_i18n import write_english_report
+            from harness.browser_use.report_i18n import write_english_report
 
             write_english_report(stage)
             _write_fix_log(stage, fix_log, english=True)
@@ -4031,7 +4040,6 @@ def main() -> None:
         type=Path,
         default=None,
     )
-    from harness.report_languages import add_language_argument, primary_report_language
     add_language_argument(parser)
     parser.add_argument("--include-english", action="store_true", help="Generate both editions; --language selects the homepage")
     args = parser.parse_args()

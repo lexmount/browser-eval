@@ -15,6 +15,7 @@ Browser Eval supplies execution, evidence handling and reporting for web fetchin
 Public WebArena human-recording replay is isolated under
 `harness/trajectory_replay/public_webarena/` with its [own examples and release
 contract](../examples/trajectory_replay/public_webarena/README.md).
+The curated replay tasks also record [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) as a scenario design source.
 `harness/lexbench/` adapts retained Lexbench comparisons; it does not define a
 fourth browser score or replace a track's execution and evaluator contracts.
 

@@ -16,8 +16,11 @@ from harness.reporting.publication import (
     json_bytes,
     recover_binding,
 )
-
-from .publication import build, check_report_bundle, stage_report
+from harness.trajectory_replay.public_webarena.publication import (
+    build,
+    check_report_bundle,
+    stage_report,
+)
 
 
 def _run_json(command: list[str], project_root: Path) -> dict:

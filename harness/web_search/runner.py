@@ -10,11 +10,22 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.web_fetch.config import ROOT, load_runtime_env
-from harness.record_io import read_completed_records
-
-from .core import digest, normalize_response, request_body, request_cost, validate_profile, verify_bundle, write_json
+from lexbench_websearch import inputs as benchmark_inputs
 from lexbench_websearch.scoring import evaluate
+
+from harness.record_io import read_completed_records
+from harness.web_fetch.config import ROOT, load_runtime_env
+from harness.web_search.adapters import adapter_for
+from harness.web_search.core import (
+    digest,
+    normalize_response,
+    request_body,
+    request_cost,
+    validate_profile,
+    verify_bundle,
+    write_json,
+)
+from harness.web_search.profiles import load_profile_bytes
 
 
 def call_budgets(profile):
@@ -183,10 +194,6 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
     return retained
 
 
-from .adapters import adapter_for
-from .profiles import load_profile_bytes
-
-
 def http_call(url, body=None, header=None, timeout=20):
     """Hard total timeout; credentials enter curl on stdin and never appear in argv."""
     with tempfile.TemporaryDirectory(prefix="search-http-") as temp:
@@ -305,15 +312,13 @@ def collection_implementation():
         "harness/web_search/adapters.py", "harness/web_search/profiles.py",
         "harness/web_fetch/config.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
     )
-    from lexbench_websearch.inputs import implementation_sources
     sources = {name: ROOT / name for name in names}
-    sources.update({"dependencies/lexbench_websearch/" + name: path for name, path in implementation_sources().items()})
+    sources.update({"dependencies/lexbench_websearch/" + name: path for name, path in benchmark_inputs.implementation_sources().items()})
     return {name: digest(source.read_bytes()) for name, source in sources.items()}
 
 
 def implementation_source(relative):
-    from lexbench_websearch.inputs import implementation_sources
-    return implementation_sources()[relative.removeprefix("dependencies/lexbench_websearch/")] if relative.startswith("dependencies/") else ROOT / relative
+    return benchmark_inputs.implementation_sources()[relative.removeprefix("dependencies/lexbench_websearch/")] if relative.startswith("dependencies/") else ROOT / relative
 
 
 def validate_resume_implementation(output, contract):

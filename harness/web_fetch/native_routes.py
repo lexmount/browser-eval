@@ -1,12 +1,29 @@
 """Declared native input and route contracts, independent of URLs and answers."""
-import json
-from dataclasses import dataclass
-from harness.record_io import canonical_json_sha256, file_sha256
-from .config import DEFAULT_CALL_TIMEOUT_SECONDS
 
-from .native_projection import (
-    SCORE_ANSWER_FIELDS, require_native_projection_schema, require_native_answer_projection,
+import hashlib
+import json
+import re
+import shutil
+import threading
+from copy import deepcopy
+from dataclasses import dataclass
+from datetime import datetime, timezone
+
+from lexbench_webfetch.file_acceptance import evaluate_files
+from lexbench_webfetch.paths import contained_path
+
+from harness.record_io import canonical_json_sha256, file_sha256
+from harness.web_fetch.config import DEFAULT_CALL_TIMEOUT_SECONDS
+from harness.web_fetch.native_projection import (
+    SCORE_ANSWER_FIELDS,
+    native_answer_projection,
+    native_projection_policy,
+    native_projection_source,
+    require_native_answer_projection,
+    require_native_projection_schema,
 )
+from harness.web_fetch.publication_privacy import read_evidence_binding
+from harness.web_fetch.retrieval_hints import native_default_case
 
 INPUT_MEDIA_KINDS = frozenset({
     'html_page', 'direct_pdf', 'direct_docx', 'direct_text',
@@ -45,7 +62,6 @@ class NativeRequestSignature:
 
     @classmethod
     def parse(cls, item, *, field):
-        import re
         def reject(name):
             raise ValueError('Native route ' + field + name + ' is invalid')
         if not isinstance(item, dict):
@@ -113,7 +129,6 @@ def native_route_cell(provider, case, *, timeout_seconds=DEFAULT_CALL_TIMEOUT_SE
     endpoint = None
     if transport == 'http':
         endpoint, _ = provider.native_http_arguments(case, timeout_seconds)
-    from .native_projection import native_projection_policy
     cell = {'method': key[0], 'provider_type': method, 'track': track, 'task_kind': kind, 'input_media_kind': media,
             'transport': transport, 'interface': interface, 'answer_fields': fields,
             'configured_parameters': provider.native_configured_parameters(),
@@ -146,7 +161,6 @@ def _request_parameters(provider, case, cell, timeout_seconds):
 
 
 def normalized_http_parameters(case, arguments):
-    from copy import deepcopy
     body = deepcopy(arguments.get('json_body'))
     if not isinstance(body, dict):
         raise ValueError('Native HTTP request lacks its declared input field')
@@ -170,7 +184,6 @@ def normalized_http_parameters(case, arguments):
             'timeout_seconds': arguments.get('timeout'), 'max_bytes': arguments.get('max_bytes')}
 
 
-
 class NativeRouteLedger:
     """Freeze class-level intent before calls; reject observed per-case drift.
 
@@ -180,8 +193,6 @@ class NativeRouteLedger:
     response, URL pattern, or expected answer selects a route.
     """
     def __init__(self, cases, providers, *, timeout_seconds=DEFAULT_CALL_TIMEOUT_SECONDS):
-        from datetime import datetime, timezone
-        import threading
         self.timeout_seconds = timeout_seconds
         self.cells, self.observed, self.calls, self.errors = {}, {}, {}, []
         self.physical_attempts = {}
@@ -197,7 +208,6 @@ class NativeRouteLedger:
             for provider in self.providers.values():
                 key, cell = native_route_cell(provider, case, timeout_seconds=self.timeout_seconds)
                 if case.track == 'dynamic':
-                    from .retrieval_hints import native_default_case
                     if not native_default_case(case):
                         raise ValueError('Native dynamic inputs require a stable acceptance contract')
                 cell['request_parameters'] = _request_parameters(provider, case, cell, timeout_seconds)
@@ -212,15 +222,11 @@ class NativeRouteLedger:
         self.binding = None
 
     def write(self, source, *, dataset_sha256, runtime_source_sha256):
-        import hashlib
-        import json
         self.document.update(dataset_sha256=dataset_sha256, runtime_source_sha256=runtime_source_sha256)
         raw = (json.dumps(self.document, ensure_ascii=False, indent=2)+'\n').encode()
         path = source/'native-route-contract.json'
         if path.exists():
             raise ValueError('Native route contract already exists; do not overwrite a run')
-        from .native_projection import native_projection_source
-        from lexbench_webfetch.paths import contained_path
         for cell in self.cells.values():
             policy = cell['answer_selection_policy']
             policy_source = native_projection_source()
@@ -281,7 +287,6 @@ class NativeRouteLedger:
 
     def receipt(self, provider, case, *, ok=None):
         """Transport started means entry to the outbound call, not server receipt."""
-        from copy import deepcopy
         key, _ = native_route_cell(provider, case, timeout_seconds=self.timeout_seconds)
         with self.lock:
             ordinal = self.physical_attempts.get((provider.name, case.id), 1)
@@ -297,13 +302,8 @@ class NativeRouteLedger:
                     'protocol_errors': [dict(e) for e in self.errors if e['method']==provider.name and e['case_id']==case.id]}
 
 
-
 def verify_native_route_contract(source, manifest, dataset, records):
     """Shared execution/release check for newly declared native cohorts only."""
-    import hashlib
-    import json
-    from datetime import datetime
-    from lexbench_webfetch.paths import contained_path
     if manifest.get('native_route_errors'):
         raise ValueError('Native route protocol was violated')
     binding = manifest.get('native_route_contract')
@@ -429,9 +429,6 @@ def verify_native_execution_manifests(source, manifests, dataset, records):
 
 def materialize_native_route_contracts(output, source, manifests):
     """Copy hash-bound frozen contracts, deduplicating multiple cohort roots."""
-    import re
-    import shutil
-    from lexbench_webfetch.paths import contained_path
     for manifest in manifests:
         binding = manifest.get('native_route_contract')
         if not binding:
@@ -481,7 +478,6 @@ def materialize_native_route_contracts(output, source, manifests):
 
 def native_cases_by_id(root):
     """Read one operation's case authority; never cache mutable evidence globally."""
-    from lexbench_webfetch.paths import contained_path
     path = contained_path(root, 'dataset.json', reject_symlinks=True)
     if not path.is_file():
         return None
@@ -493,7 +489,6 @@ def native_cases_by_id(root):
 
 
 def _expected_native_declaration(root, record, raw, cases_by_id):
-    from .native_projection import native_answer_projection
     cases_by_id = native_cases_by_id(root) if cases_by_id is None else cases_by_id
     case = (cases_by_id or {}).get(record.get('case_id'))
     if case is None or case.get('url') != record.get('url'):
@@ -520,13 +515,10 @@ def verify_saved_native_answer(root, record, *, cases_by_id=None):
     Older calls with no declaration need a separately recorded historical audit;
     their missing acquisition declarations must never be invented in place.
     """
-    from .publication_privacy import read_evidence_binding
-    from lexbench_webfetch.paths import contained_path
     metadata = record.get('provider_metadata', {})
     declaration = metadata.get('native_answer_projection')
     policy = metadata.get('native_route_receipt', {}).get('answer_selection_policy')
     if policy is not None:
-        from .native_projection import native_projection_policy
         if policy != native_projection_policy(record.get('provider_type')):
             raise ValueError('Native answer selection policy implementation differs from its pre-call freeze')
         read_evidence_binding(root, {'path': policy['source_path'],
@@ -586,7 +578,6 @@ def verify_saved_native_answer(root, record, *, cases_by_id=None):
         diagnostic=diagnostic, transport_receipt=metadata.get('source_transport_receipt'),
         historical_scoring_source=record.get('metrics', {}).get('scoring_source_sha256'))
     if files or 'file_evaluation' in metadata:
-        from lexbench_webfetch.file_acceptance import evaluate_files
         source_verification = {}
         cases_by_id = native_cases_by_id(root) if cases_by_id is None else cases_by_id
         if cases_by_id is not None:

@@ -1,20 +1,32 @@
 """Provider-centred introduction and reproducible, sample-scoped adoption counts."""
+
 import json
 from pathlib import Path
-from .methods import method_info, method_page_model, browser_method_label, method_version
-from .report_components import tabs,cards,measurement_presentation
-from .report_interfaces import render_interfaces
-from .report_capabilities import render_capabilities
-from .report_pricing import render_pricing
 
-from .methods import report_method, report_method_catalog
+from harness.web_fetch.methods import (
+    browser_method_label,
+    method_info,
+    method_page_model,
+    method_version,
+    report_method,
+    report_method_catalog,
+)
+from harness.web_fetch.reliability import implementation_inventory
+from harness.web_fetch.report_capabilities import render_capabilities
+from harness.web_fetch.report_components import (
+    bilingual_text,
+    cards,
+    measurement_presentation,
+    tabs,
+)
+from harness.web_fetch.report_interfaces import render_interfaces
+from harness.web_fetch.report_pricing import render_pricing
 
 PROFILES = {name: (item['profile']['kind'], item['profile']['description'], item['source_url'])
             for name,item in report_method_catalog()['methods'].items() if item.get('profile')}
 
 def display_name(name):
     return browser_method_label(name)
-
 
 
 def adoption_counts(data,names):
@@ -37,8 +49,7 @@ def adoption_counts(data,names):
     return sorted(result,key=lambda x:(x['repository_count'] is None,-(x['repository_count'] or 0),x['provider']))
 
 def _implementation_scope(records, *, section, table, cell, esc):
-    from .reliability import implementation_inventory
-    from .report import model_text
+    from harness.web_fetch.report import model_text
     inventories = implementation_inventory(records)
     if not inventories:
         return ""
@@ -114,7 +125,6 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
             english_desc=method_page_model(name,name,[row for row in records if row['provider']==name],language='en')['contract']
             english_info={**english_info,'output':'Native product output; actual responses and logs retained','freshness':'Cache and wait settings are in the frozen configuration'}
             info={**info,'output':'产品原生返回；保留实际输出与日志','freshness':'缓存与等待选项见本轮固定配置'}
-        from .report_components import bilingual_text
         intro.append(('',cell(link('../providers/'+name+'.html',display_name(name),browser_method_label(name,language='en')))+cell(bilingual_text(kind,english_kind))+cell(bilingual_text(desc,english_desc))+cell(bilingual_text(info['output'],english_info['output']))+cell(bilingual_text(info['freshness'],english_info['freshness']))+cell(link(url,'文档 / 源码 ↗'))))
     for item in counts:
         name=item['provider'];n=item['repository_count'];known=n is not None

@@ -8,47 +8,118 @@ import re
 import shutil
 import statistics
 from collections import Counter, defaultdict
+from collections import Counter as WordCounter
 from contextvars import ContextVar
 from dataclasses import dataclass
 from functools import wraps
+from math import ceil
 from pathlib import Path
 from urllib.parse import urlencode, urlsplit
 
-from harness.record_io import load_jsonl
-
-from .failure_diagnosis import diagnose
-from harness.numbers import nonnegative_number
-from .methods import ROUTE_LABELS, method_page_model, is_browser_comparison, browser_method_label, browser_method_registry, native_browser_engine
-
-from lexbench_webfetch.metrics import percentile, task_measured, task_passed
-from harness.web_fetch.models import REPORT_FAMILIES, execution_id, report_family
+from bs4 import BeautifulSoup
+from lexbench_webfetch.body_coverage import (
+ _compact_with_positions,
+ _global_region_allocation,
+ compact_ngrams,
+ evaluate_body_requirements,
+ native_markup_body_text,
+ tokens,
+)
+from lexbench_webfetch.dynamic_lists import visible_html_text
+from lexbench_webfetch.metrics import normalize_for_match, percentile, task_measured, task_passed
 from lexbench_webfetch.models import TRACKS
-from .report_components import (
+from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.reference_quality import is_html_document_or_fragment
+from lexbench_webfetch.response_input import answer_input
+from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS, _parse_records, _visible
+
+from harness.numbers import nonnegative_number
+from harness.record_io import load_jsonl
+from harness.report_languages import (
+ check_language_contract,
+ english_notice,
+ generated_languages,
+ primary_report_language,
+ select_report_language,
+ write_language_contract,
+)
+from harness.web_fetch.adjudication_evidence import adjudication_reason
+from harness.web_fetch.failure_diagnosis import diagnose
+from harness.web_fetch.methods import (
+ ROUTE_LABELS,
+ browser_method_label,
+ browser_method_registry,
+ is_browser_comparison,
+ method_access,
+ method_page_model,
+ method_version,
+ method_versions,
+ native_browser_engine,
+ report_method,
+ report_method_catalog,
+ versioned_method_label,
+ with_measured_method_labels,
+)
+from harness.web_fetch.models import REPORT_FAMILIES, execution_id, report_family
+from harness.web_fetch.publication_privacy import (
+ project_evidence_view,
+ public_render_views,
+ read_evidence_binding,
+ require_public_method_options,
+)
+from harness.web_fetch.reliability import assess_reliability
+from harness.web_fetch.report_changes import (
+ ROOT,
+ localized_release_history,
+ render_changes,
+ render_localized_release_history,
+ render_webmainbench_history,
+ require_review_rounds,
+)
+from harness.web_fetch.report_components import (
  basis_label,
+ comparable_body_reference,
  examples,
+ list_rule_description,
+ measurement_presentation,
  metric_guide,
  metric_legend,
- measurement_presentation,
  reference_label,
  reference_status,
  reference_text,
+ render_acceptance_scope,
  sources_panel,
  stable_contract_details,
  tabs,
+ task_contract_guide,
  task_instruction,
+ task_pass_guide,
 )
-from .report_interfaces import method_provenance
-from .methods import method_access, method_version, method_versions
-
-from .report_methods import PROFILES, adoption_counts
-from .methods import report_method, report_method_catalog
-from .report_resources import render_resource_comparison
-from .report_style import STYLE
-from lexbench_webfetch.paths import contained_path
+from harness.web_fetch.report_diagnostic import (
+ FAILURE_TYPES,
+ diagnostic_call_summary,
+ diagnostic_cohort_summary,
+ diagnostic_failure_counts,
+ diagnostic_findings,
+ diagnostic_specimen_excerpt,
+)
+from harness.web_fetch.report_explainer import (
+ _article_speed_population,
+ load_browser_failure_review,
+ render_explainer,
+)
+from harness.web_fetch.report_i18n import write_english_report
+from harness.web_fetch.report_interfaces import _observed_route, method_provenance, method_spec
+from harness.web_fetch.report_methods import PROFILES, adoption_counts, render_methods
+from harness.web_fetch.report_quality import render_quality_observations
+from harness.web_fetch.report_reading import render_archived_reading
+from harness.web_fetch.report_resources import render_resource_comparison
+from harness.web_fetch.report_style import STYLE
+from harness.web_fetch.result_ledger import validate_ledger
 from harness.web_fetch.safety import safe_href, validate_report_ids
-from .webmainbench_diagnostics import ERROR_PAGE
-
-
+from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
+from harness.web_fetch.wcxb_scoring import paired_latency_methods
+from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE
 
 
 def format_wcxb_conditional_latency(value: float | None) -> str:
@@ -65,7 +136,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
      or any(not isinstance(report_content['guide'].get(lang),str)
             or not report_content['guide'][lang].strip() for lang in languages)):
   raise ValueError('WCXB authored interpretation lacks requested languages')
- from collections import Counter as WordCounter
  providers=list(summary['providers'])
  comparison=profile.get('paired_comparison') or {}
  baseline=comparison.get('baseline')
@@ -88,8 +158,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  for row in rows:by_case[row['case_id']][row['provider']]=row
  if len(by_case)!=case_count or any(set(group)!=set(providers) for group in by_case.values()):
   raise ValueError('WCXB same-case matrix is incomplete')
- from .wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
- from .wcxb_scoring import paired_latency_methods
  paired_methods={}
  pair={}
  paired_latency=None
@@ -161,7 +229,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  def browser_label(provider):
   if profile.get('participants',{}).get(provider,{}).get('label'):
    return profile['participants'][provider]['label']
-  from .methods import versioned_method_label
   record={'provider':provider, 'provider_metadata':identities[provider]}
   registered=report_method(provider,record)
   base=registered.get('label',{}).get('en',identities[provider].get('engine') or provider)
@@ -268,8 +335,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
   flow_labels=(['冻结 HTML',f'{len(providers)} 种配置转换','最终响应与重试','官方逐页评分','有效参考汇总'] if lang=='zh' else ['Frozen HTML',f'{len(providers)} conversions','Final response and retries','Official page score','Qualified aggregate'])
   flow_source='flowchart LR\n A["'+flow_labels[0]+'"] --> B["'+flow_labels[1]+'"]\n B --> C["'+flow_labels[2]+'"]\n C --> D["'+flow_labels[3]+'"]\n D --> E["'+flow_labels[4]+'"]\n C -- '+('失败重试' if lang=='zh' else 'failure retry')+' --> B'
   flow='<div class="panel"><h2>'+('一页怎样变成一行结果' if lang=='zh' else 'From one page to one result')+'</h2><div class="flow"><div class="flow-fallback">'+' <b class="arrow">→</b> '.join(f'<span class="tag">{esc(label)}</span>' for label in flow_labels)+'</div><pre class="mermaid" hidden>'+esc(flow_source)+'</pre></div></div>'
-  from .report_interfaces import method_spec, _observed_route
-  from .methods import native_browser_engine
   measured_records={p:{'provider':p,'provider_metadata':identities[p]} for p in providers}
   route_descriptions={p:_observed_route(native_browser_engine(p,measured_records[p]),identities[p],language=lang) for p in providers}
   interface_specs={p:method_spec(p,measured_records[p],language=lang) for p in providers}
@@ -353,7 +418,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
    preview_section=f'<section class="panel" id="preview"><h2>{"冻结 HTML 阅读视图" if lang=="zh" else "Frozen HTML reading view"}</h2><p>{preview_note} <a href="{raw_input}">{"下载完整输入与证据 JSON" if lang=="zh" else "Download complete input and evidence JSON"}</a></p>{preview}</section>'
    body=f'<div class="hero"><h1>{esc(case)} · {esc(type_label(lang,gt["page_type"]))}</h1><p class="source"><a href="{href(lang,"cases/"+case+".html#preview")}" title="{"阅读冻结 HTML" if lang=="zh" else "Read frozen HTML"}">{esc(group[providers[0]]["original_url"])}</a></p></div>{qualification}<section><h2>{esc(x["summary"])}</h2><div class="scroll"><table><thead><tr>'+''.join(f'<th>{esc(x[k])}</th>' for k in ('provider','precision','recall','f1'))+f'<th>{"应包含命中" if lang=="zh" else "Required hits"}</th><th>{"应排除误命中" if lang=="zh" else "Forbidden hits"}</th><th>{esc(x["diagnosis"])}</th></tr></thead><tbody>'+same+f'</tbody></table></div></section>{preview_section}<section class="panel" id="reference"><h2>{esc(x["reference"])}</h2><p><a href="{evidence_path}">{"完整证据 JSON" if lang=="zh" else "Complete evidence JSON"}</a> · <a href="{source_link}">{esc(x["source"])} HTML.gz</a></p><details data-output><summary>{"冻结 HTML 输入" if lang=="zh" else "Frozen HTML input"}</summary><pre data-src="{evidence_path}"></pre></details><pre>{esc(readable_output(reference))}</pre></section>'+''.join(panels)
    page(lang,f'cases/{case}.html',case,body)
- from harness.report_languages import write_language_contract
  write_language_contract(out, include_english=include_english)
 
 def provider_label(name):
@@ -675,7 +739,7 @@ def run_log_section(out,record,output):
   if not path.is_file():continue
   raw=path.read_bytes();observed=hashlib.sha256(raw).hexdigest()
   if _RENDER_CONTEXT.get().score_audit:
-   from .published_snapshot import read_snapshot_public_file
+   from harness.web_fetch.published_snapshot import read_snapshot_public_file
    read_snapshot_public_file(out,binding)
   else:
    if binding.get('sha256') and binding['sha256']!=observed:raise ValueError(f'Call log hash mismatch: {record["attempt_id"]}')
@@ -916,14 +980,6 @@ _RESEARCH_ROUTES=[
 @_scoped_render
 def generate_cohort_diagnostic(out, model):
  """Render live cohort diagnostics through the maintained WebFetch components."""
- from .report_diagnostic import (
-  FAILURE_TYPES,
-  diagnostic_call_summary,
-  diagnostic_cohort_summary,
-  diagnostic_failure_counts,
-  diagnostic_findings,
-  diagnostic_specimen_excerpt,
- )
  token=_RENDER_CONTEXT.set(RenderContext('<div class="wrap callout"><strong>实时网页诊断</strong><p>'+esc(model['scope_note'])+'</p></div>'))
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  diagnostic_style='''
@@ -1094,7 +1150,6 @@ def generate_public_benchmark_research(out:Path,research:dict,*,include_english:
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
  (out/'assets/report.js').write_text(JS,encoding='utf-8')
- from .report_changes import ROOT, localized_release_history, render_localized_release_history
  release_history=localized_release_history(
   json.loads((ROOT/'research/report-changes.json').read_text(encoding='utf-8')),
   'public_benchmark_research')
@@ -1208,7 +1263,6 @@ def generate_public_benchmark_research(out:Path,research:dict,*,include_english:
   accounts+=section(h('实测阶段','Measurement phase'),f'<p>{h("届时按方法单独列出官方安装入口、版本和所需环境变量名，不公开值。","The measured edition will list official installation sources, versions and required environment-variable names per method, never their values.")}</p>')
   _research_write(out,'accounts/index.html',h('账号与安装','Accounts and setup'),accounts,english)
  (out/'research.json').write_text(json.dumps(research,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
- from harness.report_languages import write_language_contract
  write_language_contract(out,include_english=include_english)
  return out/'index.html'
 
@@ -1294,7 +1348,6 @@ def _evidence_chunks(text, width=620, overlap=100):
  return chunks
 
 def _best_evidence_excerpt(expected, output):
- from lexbench_webfetch.body_coverage import tokens
  wanted=Counter(tokens(expected))
  if not wanted:return ''
  best='';best_score=0
@@ -1304,12 +1357,10 @@ def _best_evidence_excerpt(expected, output):
  return best if best_score>=min(.25,3/max(1,sum(wanted.values()))) else ''
 
 def _normalized_evidence_lines(output):
- from lexbench_webfetch.metrics import normalize_for_match
  return [[line,normalize_for_match(line),None] for raw in output.splitlines() if (line:=raw.strip())]
 
 def _exact_evidence_lines(expected, output, *, normalized_lines=None):
  """Locate one bounded, verbatim fragment; never repeat a whole long HTML line."""
- from lexbench_webfetch.metrics import normalize_for_match
  normalized_expected=normalize_for_match(expected)
  lines=_normalized_evidence_lines(output) if normalized_lines is None else normalized_lines
  for entry in lines:
@@ -1356,9 +1407,7 @@ def _call_log_excerpt(item):
 
 def _body_region_evidence(content,contract):
  """Map canonical scorer allocations to complete lines without changing scoring output."""
- from math import ceil
 
- from lexbench_webfetch.body_coverage import _global_region_allocation, compact_ngrams, tokens
  version=contract['version'];size=6 if version==3 else 3
  units=tokens(content) if version==1 else compact_ngrams(content,size)
  predicted=Counter(units);expected={}
@@ -1414,21 +1463,16 @@ def _position_label(index,total):
 
 def _body_scoring_text(record, output):
  """Use the scorer's body input; titles belong only to answer diagnostics."""
- from lexbench_webfetch.response_input import answer_input
  content=answer_input(output.encode('utf-8'),record.get('provider_metadata'),
                       ok=record.get('ok',False),status_code=record.get('status_code'))[0]
- from lexbench_webfetch.reference_quality import is_html_document_or_fragment
  if is_html_document_or_fragment(content):
-  from lexbench_webfetch.dynamic_lists import visible_html_text
   content=visible_html_text(content)
  else:
-  from lexbench_webfetch.body_coverage import native_markup_body_text
   fallback=html.unescape(re.sub(r"<(script|style|template)\b[^>]*>.*?</\1\s*>","",content,flags=re.I|re.S))
   content=native_markup_body_text(content,fallback)
  return content
 
 def body_region_rows(case, metrics, output, *, frozen_scores=False):
- from lexbench_webfetch.body_coverage import evaluate_body_requirements
  contract=case.get('body_requirements') or {}
  if not contract:return [],''
  saved_regions=metrics.get('body_region_results',[])
@@ -1437,7 +1481,6 @@ def body_region_rows(case, metrics, output, *, frozen_scores=False):
   # The frozen-build boundary validates the saved metric and answer hashes.
   # A newer normalizer or a redacted public answer cannot reproduce the old
   # matching-text identity. Render the saved allocation without rescoring it.
-  from .publication_privacy import project_evidence_view
   evidence={}
   for item in saved_regions:
    passages=[]
@@ -1449,7 +1492,6 @@ def body_region_rows(case, metrics, output, *, frozen_scores=False):
   evidence_counts={item['id']:item.get('matched_units',item.get('matched_tokens',0)) for item in saved_regions}
   recalculated={item['id']:item for item in saved_regions}
  elif saved_regions and all('matched_output_passages' in item for item in saved_regions):
-  from lexbench_webfetch.body_coverage import _compact_with_positions
   matching_text=_compact_with_positions(output)[0]
   digest=hashlib.sha256(matching_text.encode()).hexdigest()
   if any(item.get('matching_text_sha256')!=digest for item in saved_regions):
@@ -1561,8 +1603,6 @@ def _stable_field_comparison(metrics,item):
  """Find the closest parsed record for a structured anchor, for display only."""
  schema=metrics.get('stable_task_schema')
  if schema!='quote':return None
- from lexbench_webfetch.metrics import normalize_for_match
- from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS, _parse_records, _visible
  candidates=[]
  for alternative in item.get('alternatives',[]):
   expected=_parse_records(_visible(alternative,schema),schema)
@@ -1586,7 +1626,6 @@ def _quote_field_issue(metrics):
   if comparison and comparison[2].get('quote') and comparison[2].get('author'):
    comparisons.append(comparison)
  if not comparisons:return ''
- from lexbench_webfetch.metrics import normalize_for_match
  compact=0
  for expected,returned,_ in comparisons:
   left=normalize_for_match(expected.get('tags','')).replace(' ','')
@@ -1615,7 +1654,6 @@ def stable_anchor_evidence(metrics,output):
   if comparison:
    expected_fields,returned_fields,exact=comparison
    labels={'quote':'引文','author':'作者','tags':'标签'};rows=[]
-   from lexbench_webfetch.metrics import normalize_for_match
    for field in ('quote','author','tags'):
     wanted=expected_fields.get(field,'');got=returned_fields.get(field,'')
     compact=(normalize_for_match(wanted).replace(' ','')==normalize_for_match(got).replace(' ',''))
@@ -1727,7 +1765,6 @@ def reason(r,c):
   return '正文没有抓全；低于目标的位置为：'+'、'.join(failed)+'。下方会把完整标准答案与实际返回并排展示。'
  if r.get('diagnosis'):return r['diagnosis']['evidence']
  if c.get('task_kind')=='structure':
-  from .report_components import list_rule_description
   return f"检出 {r['metrics'].get('named_entry_count',0)} 个具名详情入口。"+list_rule_description(c)
  if r['metrics'].get('page_identity_required') and r['metrics'].get('page_identity_status') != 'verified':
   return '未通过：最终网页身份缺少证据，保留在计划任务分母中。'
@@ -1764,7 +1801,6 @@ def stable_checks(m):
 def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagnostic=False):
  excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
  records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
- from .report_components import comparable_body_reference
  title_scope=track=='challenge' and any('title_quality' in r for r in records if report_family(cases[r['case_id']])==track)
  selected={k:c for k,c in cases.items() if report_family(c)==track and k not in excluded}
  text_track=track in {'web','dynamic','document','challenge','risk_control'} and any(c.get('task_kind','body') in {'body','structure'} for c in selected.values())
@@ -1817,7 +1853,6 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
  if text_track:
   covered=sum(comparable_body_reference(c) for c in selected.values())
   note=f'完整参考覆盖 {covered}/{len(selected)}；缺少参考只影响全文指标，不影响任务结果。有参考时，请求失败计 0；请求成功但任务未通过仍按实际正文评分。'
-  from .report_components import list_rule_description
   identity_rules=list(dict.fromkeys(list_rule_description(c) for c in selected.values()
    if c.get('task_kind')=='structure' and not c.get('acceptance_contract')))
   if identity_rules:note+=' '+esc(' '.join(identity_rules))
@@ -1845,7 +1880,6 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
   result='<details class="ranking-metric-help"><summary>指标说明 · 通过率、质量与耗时</summary>'+metric_legend(heads)+'</details>'+result
  if title_scope:result+=title_diagnostics(groups,selected,base,id or 'ranking-'+track)
  result+=matched_latency(groups,cases,base)
- from .report_components import task_pass_guide
  return task_pass_guide(track,base,selected)+'<p class="source-note">'+note+'</p>'+result
 
 def matched_latency(groups,cases,base):
@@ -1883,7 +1917,6 @@ def overview_all_call_latency(records,cases):
 def result_ledger_section(out, records, prefix=''):
  path=out/'local-evidence/result-ledger.json'
  if not path.is_file():return ''
- from .result_ledger import validate_ledger
  ledger=validate_ledger(json.loads(path.read_text()),records,source=out)
  rows=[('',cell(esc(row['id']))+cell(str(row['before_passes']))+cell(str(row['added_passes']))+
            cell(str(row['removed_passes']))+cell(str(row['totals']['pass']))+
@@ -1891,7 +1924,6 @@ def result_ledger_section(out, records, prefix=''):
  return section('评分修正账目','<p>每轮增加、减少与最终通过数均从逐条状态记录计算；排除结果保留原始调用，不计入比较分母。</p>'+table(['阶段','修正前通过','新增通过','减少通过','修正后通过','排除比较'],rows,metrics=[])+link(prefix+'local-evidence/result-ledger.json','下载逐条增减账目'),'result-ledger')
 
 def overview_matched_latency(records,cases):
- from .report_explainer import _article_speed_population
  names=sorted({r['provider'] for r in records})
  keys={(r['provider'],r['case_id']) for r in records}
  if not names or len(keys)!=len(records) or any((name,cid) not in keys for name in names for cid in cases):
@@ -2133,12 +2165,10 @@ def local_audit_banner(dataset):
   return '<div class="wrap callout" role="alert" data-evidence-state="local_measurement"><strong>本地未认证诊断快照 · 不可用于排名</strong><p>来源未在调用前后完成全量核验。保存的评分、质量指标和复核记录仅供诊断，不代表正式发布或认证结果。</p><p>'+note+'</p></div>'
  return '<div class="wrap callout"><strong>'+model_text('本地审核版','Local audit report')+'</strong><p>'+model_text('本报告未正式发布。工具版本、调用时间与核验范围以保存记录为准。','This report is not a formal release. Consult the saved records for tool versions, call times and verification scope.')+'</p></div>'
 
-from .methods import with_measured_method_labels
 
 @with_measured_method_labels
 @_scoped_render
 def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None,dataset_case_ids:set[str]|None=None,frozen_scores:bool=False,english_routes=None,diagnostic_view_paths=()):
- from .publication_privacy import public_render_views
  _public_views=public_render_views(out,records)
  if english_routes is not None and not presentation_only:
   raise ValueError('Scoped English refresh requires presentation_only=True')
@@ -2160,7 +2190,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  diagnostic=bool(score_audit) or (local_snapshot and not local_pass_rate_ranking(dataset))
  if local_snapshot and not show_local_status_banners:
   raise ValueError('Uncertified local diagnostic status cannot be hidden')
- from .reliability import assess_reliability
  reliability=assess_reliability(dataset,records)
  if reliability['complete']:
   reliability_banner=''
@@ -2202,7 +2231,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  failure_reviews={}
  content_binding=dataset.get('comparison',{}).get('report_interpretation')
  if content_binding:
-  from .report_explainer import load_browser_failure_review
   article_content=json.loads(contained_path(out,content_binding['path']).read_text())
   failure_reviews=load_browser_failure_review(out,cases,records,article_content)
  bycase=defaultdict(list);byprovider=defaultdict(list)
@@ -2220,7 +2248,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   release=json.loads(release_path.read_text())
   description='<span>'+description+'</span> · <a data-benchmark-release="'+esc(release['version'])+'" href="benchmark-release.json">'+esc('bench v'+release['version'])+'</a>'
  home='<div class="home-page">'+hero('Web Fetch 评测报告',description)
- from .report_explainer import render_explainer
  TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else '本报告的任务范围与验收规则'
  if authored_interpretation and dataset.get('comparison',{}).get('report_interpretation'):
   binding=dataset['comparison']['report_interpretation']
@@ -2235,7 +2262,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   guide=section('如何读取本轮结果','<p>比例只对应本报告列出的案例与配置。先看总榜和分榜，再打开具体案例，对照验收要求与实际返回。请求成功只表示方法正常返回；任务通过表示返回内容满足该案例的全部要求。</p><p>评分规则与计时范围见“评测方法”，检查和修正记录见“核验记录”，方法版本、固定配置与日志范围见“环境与复现”。</p>')
  else:
   guide=render_explainer(out,cases,records,table=table,cell=cell,link=link,authored=authored_interpretation)
- from .report_reading import render_archived_reading
  guide=render_archived_reading(out) or guide
  write(out,'guide/index.html','报告解读',guide)
  panels=[]
@@ -2282,7 +2308,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   if c.get('resource_output_contract',{}).get('unexpected')=='reject':
    status_note+='<p class="callout">资源输出契约：只允许在答案图片字段中返回登记的目标、别名或匹配规则；额外图片会使任务未通过。</p>'
   if c.get('task_kind')=='structure':
-   from .report_components import list_rule_description
    status_note='<p class="callout">'+esc(list_rule_description(c))+'</p><p>任务结果与耗时进入主榜；全文指标无完整参考时显示 —。</p>'
    if (out/'list-references'/f'{c["id"]}.json').exists():status_note+='<p>'+link('../list-references/'+c['id']+'.json','名称与链接核验依据')+'</p>'
    rules='<div class="guide-grid"><article class="guide-card"><h3>登记任务规则</h3><p>'+esc(list_rule_description(c))+'</p></article><article class="guide-card"><h3>稳定内容与变化字段</h3><p>稳定标题、栏目、说明按登记内容核对；频繁变化的名单、条目标题、排序、价格或 ID 不固定为旧快照取值，按声明的字段结构、类型、数量及唯一性核验。登录页、重复入口、空链接不计入。</p></article></div>'
@@ -2334,7 +2359,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   if not c.get('ground_truth_main_content'):
    rows[6]=('',cell('全文完整度 / 纯净度 / F1')+cell('— / — / —（全文指标无完整参考，未评测）'))
   else:
-   from .report_components import comparable_body_reference
+   from harness.web_fetch.report_components import comparable_body_reference
    if not comparable_body_reference(c):
     rows[6]=('',cell('快照文字诊断 · 完整度 / 纯净度 / F1')+cell(' / '.join(pct(m.get(k)) for k in ['word_recall','word_precision','word_f1'])+'；参考含不固定取值的字段，仅为历史快照诊断，不进入主表全文均值。'))
   if r.get('status_code') is None:
@@ -2398,7 +2423,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   caveat=''
   if c.get('track')=='dynamic':caveat='<p class="source-note">按本例实际登记规则判定。“条目未完整匹配”表示未找到完整字段组合，不表示每个字段都不存在。稳定标题、栏目、说明按登记内容核对；频繁变化的名单和价格按字段结构、类型、数量及唯一性核验，不固定旧快照取值。全文指标仅在有完整、可比的参考时另算，不证明变化值的事实准确性或实时性。</p>'
   if c.get('task_kind')=='structure':
-   from .report_components import list_rule_description
    caveat='<p class="source-note">'+esc(list_rule_description(c))+link('../datasets/'+c['id']+'.html','规则与独立参考')+'</p>'
   if 'stable_task_pass' in m:
    caveat='<p class="source-note">本次任务按稳定内容与条目结构共同判定。全文指标须有完整、可比的参考，不能由条目数量推算。</p>'
@@ -2442,7 +2466,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    if s:facts.extend([('独立源页复查',f"{s.get('checked_at','')} · HTTP {s.get('status','未取得')} · {s.get('title') or s.get('error','')}"),('复查边界',d['source_check_boundary'])])
    summary+='<details class="technical-details"><summary>查看失败分类与归因边界</summary>'+table(['项目','依据'],[('',cell(esc(k))+cell(esc(v))) for k,v in facts],metrics=[])+"</details>"
   body=hero(esc(c['name']),hero_meta)+section('结论',summary,'overview')
-  from .report_quality import render_quality_observations
   body+=section('目标覆盖与附加内容',render_quality_observations(r,c,output,esc=esc),'quality-diagnostics')
   reviewed=audited_attempts.get(r['attempt_id'])
   if reviewed:
@@ -2458,7 +2481,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
     proof=reviewed['adjudication_evidence']
     adjudication_en=proof.get('reason_en')
     if not adjudication_en and proof.get('rule_assertions'):
-     from .adjudication_evidence import adjudication_reason
      adjudication_en=adjudication_reason(proof['rule_assertions'],language='en')
     review_rows.append(('分歧裁定',proof.get('summary_zh',reviewed['adjudication'])))
    body+=section('独立结果核验',table(
@@ -2602,7 +2624,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  write_support(out,records,manifests,authored_interpretation=authored_interpretation)
  if score_audit:
   render_score_audit(out,score_audit,score_binding)
- from .report_changes import render_changes
  if records and all(row.get('provider_type') == 'fixture' for row in records):
   write(out,'changes/index.html','示例说明',hero('合成示例','本报告由本地测试适配器生成。没有正式评测发布记录。'))
  elif not authored_interpretation:
@@ -2613,7 +2634,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  else:
   render_changes(out,cases,records,dataset)
  for relative in diagnostic_view_paths:
-  from bs4 import BeautifulSoup
   with (out/relative).open(encoding='utf-8') as source_header:
    previous=BeautifulSoup(source_header.read(8192),'html.parser')
   heading=previous.find('h1');source_heading=previous.find('h2',string='记录来源')
@@ -2621,18 +2641,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   note=source_heading.find_next('p')
   diagnostic_view_page(out,str(Path(relative).with_suffix('.txt')),heading.get_text(),note.get_text() if note else '')
  if include_english:
-  from .report_i18n import write_english_report
   write_english_report(out,source_routes=english_routes)
- from harness.report_languages import write_language_contract
  if presentation_only and (out/'report-languages.json').is_file():
-  from harness.report_languages import check_language_contract, generated_languages
   if ('en' in generated_languages(out)) != include_english:
    raise ValueError('Presentation refresh cannot change generated languages')
   if not include_english:
-   from harness.report_languages import english_notice
    (out/'en').mkdir(exist_ok=True)
    (out/'en/index.html').write_text(english_notice(), encoding='utf-8')
-  from harness.report_languages import primary_report_language, select_report_language
   if primary_report_language(out) == 'en':
    select_report_language(out, 'en')
   check_language_contract(out)
@@ -2643,7 +2658,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
 
 def current_local_review_findings(out,dataset,records,audit):
  """Describe the current snapshot from bound calls, never cached release prose."""
- from .publication_privacy import read_evidence_binding
  receipt=json.loads(read_evidence_binding(out,dataset['comparison']['task_replacement']).read_text())
  added=receipt['provider_calls_added']
  cases={c['id']:c for c in dataset['cases']}
@@ -2698,7 +2712,6 @@ def write_review_page(out,records):
  if not metadata_path.is_file():
   raise ValueError('A reviewed report requires research/report-changes.json')
  changes=json.loads(metadata_path.read_text())
- from .report_changes import require_review_rounds
  rounds=(audit['review_rounds'] if audit.get('kind')=='local_independent_review' else require_review_rounds(changes))
  rounds_html=''.join(
   f'<article class="review-round"><div class="round-label">第 {i} 轮<br><small>{esc(row.get("date",""))}</small></div><div><h3>{model_text(row.get("title",""),row.get("title_en"))}</h3><p><b>范围：</b>{model_text(row.get("scope",""),row.get("scope_en"))}</p><p><b>发现：</b>{model_text(row.get("finding",""),row.get("finding_en"))}</p><p><b>纠正：</b>{model_text(row.get("fix",""),row.get("fix_en"))}</p><p class="round-result"><b>未完成：</b>{model_text(row.get("pending",""),row.get("pending_en"))}</p></div></article>'
@@ -2748,7 +2761,6 @@ NATIVE_OPTION_LABELS={'wait_until':'页面完成条件','block_private_networks'
 
 def load_frozen_method_options(out,records):
  """Bind displayed controls to their actual configuration and call scope."""
- from .publication_privacy import read_evidence_binding, require_public_method_options
  document=json.loads((out/'frozen-method-options.json').read_text())
  if document.get('schema_version')!=2 or not document.get('source_config'):
   raise ValueError('Frozen option display requires a bound configuration and call scope')
@@ -2850,7 +2862,6 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  dataset=json.loads((out/'dataset.json').read_text()) if (out/'dataset.json').is_file() else {}
  local_matrix=measurement_presentation(dataset).local_matrix
  headless=is_headless_cohort(records)
- from .report_components import task_contract_guide
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')
  if headless:
   methodology+=section('从参考到发布','<div class="guide-grid"><article class="guide-card"><h3>1 · 冻结参考</h3><p>锁定既定题目、答案和验收规则；只有明确声明需要实时参考的任务才重新采集源页。</p></article><article class="guide-card"><h3>2 · 执行调用</h3><p>同一 URL、任务和截止时间；各方法使用其最快的正式任务原生产物路线，保留版本、输出与哈希。</p></article><article class="guide-card"><h3>3 · 测后核验</h3><p>核对冻结题目、答案、规则和调用记录；需要实时参考的任务另做前后采集，确认参考未变。</p></article><article class="guide-card"><h3>4 · 结果独立审查</h3><p>独立审查按明确指定的范围开展，检查输出、参考答案和验收规则；本轮审查覆盖见下方，不把程序评分当成独立审查。</p></article></div>'+review_summary(out,'../'),'评测流程')
@@ -2910,7 +2921,6 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
   methodology+='<p>'+model_text(
    '正文验收使用原生接口交付的内容，不以额外解析器补齐回答。原始文件任务按其字节验收规则核对；请求、输出与错误保留在逐次调用证据中。',
    'Text acceptance uses content delivered by the native interface, without an additional parser completing the answer. Original-file tasks use their byte-acceptance rules; requests, outputs and errors remain in per-call evidence.')+'</p>'
- from .report_components import render_acceptance_scope
  if dataset.get('cases'):
   methodology+=render_acceptance_scope({case['id']:case for case in dataset['cases']},records)
  score_binding=dataset.get('comparison',{}).get('score_audit')
@@ -3024,7 +3034,6 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  write(out,'reproduce/index.html','环境与复现',support)
  write(out,'accounts/index.html','账号与安装',render_account_requirements(records))
 
- from .report_methods import render_methods
  write(out,'adoption/index.html','方法介绍',render_methods(out,records,hero=hero,section=section,table=table,cell=cell,link=link,esc=esc,authored=authored_interpretation))
 
 
@@ -3038,7 +3047,6 @@ _WMB_ROUTES=[
 
 
 def _wmb_html_preview(source,english=False):
- from bs4 import BeautifulSoup
  soup=BeautifulSoup(source,'html.parser')
  # This is an inert reading view, never a replay of untrusted website scripts.
  for node in soup.select('script,iframe,object,embed,base,meta,link,svg,math,video,audio,source'):
@@ -3097,8 +3105,6 @@ def _wmb_denominator_example(records, english, case_count, provider=None):
  matrix+='<tr><td>'+h('答案无公式','No reference formula')+'</td><td><b>'+str(counts[(False,False)])+'</b><span>'+h('两侧空：跳过','Both empty: skip')+'</span></td><td><b>'+str(counts[(False,True)])+'</b><span>'+h('只在输出：0 分计入','Output only: zero enters')+'</span></td></tr>'
  matrix+='<tr><td>'+h('答案有公式','Reference formula present')+'</td><td><b>'+str(counts[(True,False)])+'</b><span>'+h('只在答案：0 分计入','Reference only: zero enters')+'</span></td><td><b>'+str(counts[(True,True)])+'</b><span>'+h('两侧都有：相似度计入','Both present: similarity enters')+'</span></td></tr></tbody></table></div>'
  return '<div class="wmb-denominator-example"><h3 id="denominator-example">'+h('公式计分范围：','Formula-scoring population: ')+esc(provider)+' · '+str(scored)+' / '+str(case_count)+'</h3><div class="wmb-flow">'+fallback+'<pre class="mermaid" hidden>'+esc(flow_source)+'</pre></div>'+matrix+'<p class="source-note">'+h(f'公式分只平均右上、左下、右下共 {scored} 页；其中 {counts[(False,True)]+counts[(True,False)]} 页计 0 分。分母由两份 Markdown 中识别出的公式决定，不是“有正文的页数”，也不是“答对的页数”。',f'The formula mean uses the upper-right, lower-left and lower-right cells: {scored} pages, including {counts[(False,True)]+counts[(True,False)]} zero scores. Recognition in the two Markdown files determines the denominator; it is neither the body-text count nor a count of correct pages.')+'</p></div>'
-
-
 
 
 def _wmb_latency_summary(records,names):
@@ -3240,7 +3246,6 @@ def _wmb_guide(*, english, names, labels, cases, bycase, case_count, score, deno
    stats.append('<span>'+esc(labels.get(row['provider'],row['provider']))+': '+_wmb_pct(details.get('score'))+' · '+length_text+'</span>')
   evidence=''
   if out is not None:
-   from pathlib import Path
    paths=[(h('参考内容','Reference'),Path('references')/(case_id+'.md'))]
    if selected:paths.append((labels.get(selected[0]['provider'],selected[0]['provider']),Path(selected[0]['artifact_path'])))
    for title,relative in paths:
@@ -3277,7 +3282,6 @@ def _wmb_guide(*, english, names, labels, cases, bycase, case_count, score, deno
   paragraph('按所需交付内容查看分项和逐页证据。结论只适用于本次声明的输入、版本与运行条件；新实验需要自己的证据和解读。',
             'Use component scores and per-page evidence for the required output. Conclusions apply to the declared inputs, versions and conditions; a new experiment needs its own evidence and interpretation.'))
  return '<div class="wrap wmb-editorial"><article><h1>'+h('结果解读','Reading the results')+'</h1>'+overall+scope+content+tables+version+delivery+decision+'</article></div>'
-
 
 
 def _wmb_write(out,path,title,body,english=False):
@@ -3471,7 +3475,6 @@ def _wmb_result_detail(r,c,output,reference,labels,metric_labels,failure_notes,c
 @with_measured_method_labels
 def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,manifests:list,review:dict|None=None,research:dict|None=None,corrections:dict|None=None,adoption_data:dict|None=None,fixture_correction:dict|None=None,teds_revision:tuple|None=None,anomaly_review:dict|None=None,latency_diagnostic:dict|None=None,*,include_english:bool=False,report_content:dict|None=None):
  """Render the current WebMainBench report with the established report shell."""
- from .report_changes import render_webmainbench_history
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
  (out/'assets/report.js').write_text(JS,encoding='utf-8')
@@ -3722,8 +3725,6 @@ flowchart LR
   adoption=hero(h('方法介绍','Methods'),h('比较本轮登记的 {method_count} 种执行配置；版本与接口见下表。','Compare the {method_count} registered configurations; versions and interfaces are listed below.'))
   adoption+=section(h('本轮实现','Measured implementations'),table([h('方法','Method'),h('版本','Version'),h('二进制 SHA-256','Binary SHA-256'),h('部署','Deployment')],provider_rows,metrics=[]))
   interface_rows=[]
-  from .report_interfaces import method_spec, _observed_route
-  from .methods import report_method_catalog
   language='en' if english else 'zh'
   for name in names:
    example=next((r for r in records if r['provider']==name and r['ok']),next(r for r in records if r['provider']==name))
@@ -3821,7 +3822,6 @@ flowchart LR
    reference_text=contained_path(out,'references/'+case_id+'.md').read_text(encoding='utf-8')
    attempt_body=_wmb_result_detail(r,c,output_text,reference_text,labels,metric_labels,failure_notes,corrected,english)
    _wmb_write(out,'attempts/'+attempt_id+'.html',labels[r['provider']]+' · '+case_id,attempt_body,english)
- from harness.report_languages import write_language_contract
  write_language_contract(out,include_english=include_english)
 
 
@@ -4491,7 +4491,6 @@ def render_score_audit(out, audit, binding):
  controls='<label>筛选方法 <select id="audit-provider" onchange="document.querySelectorAll(\'[data-audit-provider]\').forEach(r=>r.hidden=this.value!==\'\'&&r.dataset.auditProvider!==this.value)"><option value="">全部方法</option>'+''.join('<option value="'+esc(item['provider'])+'">'+esc(provider_label(item['provider']))+'</option>' for item in audit['providers'])+'</select></label>'
  markup=table(['方法','题目','旧判定','修复前','修复后','原因分类','证据'],inventory,metrics=[])
  # Keep paragraphs in the evidence sections, outside the fixed-height inventory.
- from bs4 import BeautifulSoup
  document=BeautifulSoup(markup,'html.parser')
  for element,item in zip(document.select('tbody tr'),audit['changes']):element['data-audit-provider']=item['provider']
  body+=section('逐项判定',controls+'<div style="max-height:60vh;overflow:auto">'+str(document)+'</div>')

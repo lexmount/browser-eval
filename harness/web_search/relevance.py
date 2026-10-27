@@ -1,24 +1,27 @@
 """Blind, pooled top-k preview relevance scoring for Web Search results."""
 
-from lexbench_websearch.rubric import JUDGE_PROMPT, known_prompt
-
-
+import argparse
+import base64
 import hashlib
 import json
+import os
+import re
+import time
+import urllib.error
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from ipaddress import ip_address
 from pathlib import Path
+from urllib.parse import urlsplit
 
-from .messages import report_text
-
-from lexbench_websearch.scoring import canonical_url
+from dotenv import dotenv_values
 from lexbench_websearch.relevance import candidate_packet, score, validate_source_rule_regressions
+from lexbench_websearch.rubric import JUDGE_PROMPT, known_prompt
+from lexbench_websearch.scoring import canonical_url
 
-
-
-
-
-
-
-
+from harness.web_fetch import config as runtime_config
+from harness.web_fetch.config import load_runtime_env
+from harness.web_search.messages import report_text
 
 
 def verify_protocol(profile, evidence, revision=None, *, authority=None):
@@ -150,8 +153,6 @@ def verify_provenance(profile, rows, evidence, *, authority=None):
         raise ValueError("Cross-check grades are invalid")
 
 
-
-
 def import_annotations(profile, rows, submitted):
     """Validate complete frozen human input, then restore private rank mappings."""
     packet, rankings = candidate_packet(profile, rows)
@@ -178,8 +179,6 @@ def export_annotations(profile, rows, destination):
 
 
 ANNOTATION_HTML = report_text('text_38d7f4992b5eb237')
-
-
 
 
 def judge_input(packet):
@@ -287,8 +286,6 @@ def legacy_evidence_allowed(evidence, kind, registry=None):
 
 
 def validate_judge_url(value):
-    from ipaddress import ip_address
-    from urllib.parse import urlsplit
     base = urlsplit(value)
     hostname = base.hostname
     try:
@@ -405,7 +402,6 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
                 raise ValueError("Model judge configuration differs across calls")
         if strict:
             _validate_judge_field_references(call["response"])
-            import base64
 
             attempts = call.get("attempts", [])
             if not attempts or len(attempts) > configuration["attempt_limit"]:
@@ -449,16 +445,7 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
 
 def judge_main(argv=None):
     """Explicit model judging, resumable from immutable per-query receipts."""
-    import argparse
-    import base64
-    import os
-    import time
-    import urllib.error
-    import urllib.request
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-    from pathlib import Path
 
-    from harness.web_fetch.config import load_runtime_env
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", type=Path, required=True)
@@ -484,7 +471,6 @@ def judge_main(argv=None):
         "--disable-thinking", action="store_true", help="Pass enable_thinking=false through Bifrost"
     )
     args = parser.parse_args(argv)
-    import re
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.token_env):
         raise ValueError("Judge credential variable must be a valid environment variable name")
     if args.token_env not in {"SEARCH_JUDGE_API_KEY", "BIFROST_API_KEY"}:
@@ -495,12 +481,10 @@ def judge_main(argv=None):
     token = os.environ.get(args.token_env, "")
     if not token.strip() or "\r" in token or "\n" in token:
         raise ValueError(f"Set a nonempty {args.token_env} in the repository .env")
-    from dotenv import dotenv_values
-    from harness.web_fetch import config as runtime_config
     configured_base = dotenv_values(runtime_config.ROOT / ".env").get("SEARCH_JUDGE_BASE_URL", "")
     if not configured_base or validate_judge_url(configured_base).netloc != validate_judge_url(args.base_url).netloc:
         raise ValueError("Judge endpoint host must match repository SEARCH_JUDGE_BASE_URL")
-    from .report import check
+    from harness.web_search.report import check
 
     profile, rows = check(args.report, return_data=True, evidence_only=True)
     source_requirements = (

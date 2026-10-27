@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -25,6 +26,7 @@ from harness.trajectory_replay.runtime_identity import (
 )
 from harness.trajectory_replay.webarena_corrections import apply_correction, load_corrections
 from harness.trajectory_replay.webarena_replay import _json_sha256
+from harness.web_fetch.safety import unlinked_path, write_new_file
 
 RESULTS_SCHEMA = "lex_webarena_catalog_comparison_results/1"
 DATASET_SCHEMA = "lex_webarena_catalog_comparison_dataset/1"
@@ -376,13 +378,7 @@ def build_catalog_comparison_results(
 
 
 def inputs_main(argv=None) -> None:
-    import argparse
-    import hashlib
-    import json
-    from pathlib import Path
-
     from harness.trajectory_replay.catalog_contracts import file_sha256
-    from harness.web_fetch.safety import unlinked_path, write_new_file
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)

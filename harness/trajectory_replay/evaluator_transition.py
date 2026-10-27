@@ -15,11 +15,14 @@ from harness.trajectory_replay.catalog_contracts import file_sha256, validate_pa
 from harness.trajectory_replay.webarena_corrections import (
     apply_correction,
     evaluate_corrected_contract,
+    load_corrections,
 )
 from harness.trajectory_replay.webarena_runtime_source import (
     WEBARENA_VERIFIED_FORK_URL,
     WEBARENA_VERIFIED_REVISION,
+    verify_webarena_runtime_source,
 )
+from harness.web_fetch.safety import unlinked_path, write_new_file
 
 TRANSITION_SCHEMA = "lex_webarena_evaluator_transition/1"
 RECEIPT_SCHEMA = "lex_webarena_evaluator_transition_receipt/3"
@@ -158,7 +161,6 @@ def reevaluate_pass(
     corrections: Any,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return the current evaluation and a binding for the immutable old evidence."""
-    from harness.web_fetch.safety import unlinked_path
 
     task_dir = unlinked_path(task_dir)
 
@@ -308,9 +310,6 @@ def _old_evaluation_identity(value: str) -> tuple[int, str, str]:
 def main(argv=None) -> None:
     from harness.trajectory_replay.catalog_contracts import verify_physical_evidence
     from harness.trajectory_replay.remote_runtime import remote_benchmark
-    from harness.trajectory_replay.webarena_corrections import load_corrections
-    from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
-    from harness.web_fetch.safety import unlinked_path, write_new_file
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--transition", type=Path, required=True)

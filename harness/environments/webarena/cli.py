@@ -10,9 +10,9 @@ from typing import Any
 from webarena_verified.environments.setup import setup_init
 from webarena_verified.types.task import WebArenaSite
 
-from .config import SITES, RuntimeConfig
-from .manager import EnvironmentManager
-from .map_archives import verify_archives
+from harness.environments.webarena.config import SITES, RuntimeConfig
+from harness.environments.webarena.manager import EnvironmentManager
+from harness.environments.webarena.map_archives import verify_archives
 
 
 def _write_receipt(path: Path | None, payload: dict[str, Any]) -> None:

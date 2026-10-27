@@ -8,10 +8,13 @@ model cannot express (currently final DOM state).
 
 from __future__ import annotations
 
+import argparse
 import copy
 import hashlib
 import json
+import os
 import re
+import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass
 from importlib.resources import files
@@ -19,14 +22,19 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:
-    from webarena_verified.types.eval import TaskEvalResult
-    from webarena_verified.types.task import WebArenaVerifiedTask
+from lexbench_webfetch.paths import contained_path
 
+from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.trajectory_replay.webarena_runtime_source import (
     WEBARENA_VERIFIED_FORK_URL,
     verify_webarena_runtime_source,
 )
+from harness.web_fetch.safety import unlinked_path, write_new_file
+
+if TYPE_CHECKING:
+    from webarena_verified.types.eval import TaskEvalResult
+    from webarena_verified.types.task import WebArenaVerifiedTask
+
 
 SCHEMA = "lex_webarena_replay_task_corrections/1"
 DEFAULT_CORRECTIONS_PATH = (
@@ -845,8 +853,6 @@ def check_replay_assertions(
 
 
 def _revision_file_sha256(path: Path) -> str:
-    from harness.web_fetch.safety import unlinked_path
-
     path = unlinked_path(path)
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"missing or symlinked source: {path}")
@@ -854,10 +860,6 @@ def _revision_file_sha256(path: Path) -> str:
 
 
 def _load_dataset_revision_bindings(path: Path | None = None) -> dict[int, dict[str, Any]]:
-    from lexbench_webfetch.paths import contained_path
-
-    from harness.web_fetch.safety import unlinked_path
-
     root = Path(__file__).resolve().parents[2]
     path = unlinked_path(
         path
@@ -893,8 +895,6 @@ def revise_dataset(
     revision_bindings_path: Path | None = None,
 ) -> dict[str, Any]:
     from harness.environments.webarena.runtime import configure_benchmark
-    from harness.trajectory_replay.retrieval_acceptance import validate_contract
-    from harness.web_fetch.safety import unlinked_path
 
     base_path = unlinked_path(base_path)
     corrections_path = unlinked_path(corrections_path)
@@ -1040,10 +1040,6 @@ def revise_dataset(
 
 
 def main_dataset_revision(argv=None) -> None:
-    import argparse
-
-    from harness.web_fetch.safety import unlinked_path, write_new_file
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--corrections", type=Path, required=True)
@@ -1076,8 +1072,6 @@ def main_dataset_revision(argv=None) -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     if replacing:
-        import os
-        import tempfile
 
         with tempfile.NamedTemporaryFile(dir=args.output.parent, delete=False) as stream:
             staged = Path(stream.name)

@@ -13,6 +13,7 @@ from harness.environments.browser import configured_browser_images
 from harness.environments.webarena.runtime import (
     SITE_PORTS,
 )
+from harness.trajectory_replay import webarena_corrections
 from harness.trajectory_replay.browser_use_seeds import (
     _authoritative_rows,
     _contains_ref,
@@ -329,13 +330,12 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
     )
     from harness.webarena_state import load_profile_contracts, require_supersession
 
-    from .webarena_corrections import load_corrections
 
     state_contracts = load_profile_contracts(
         (profile.get("scoring") or {}).get("observed_state"), repo_root
     )
     if state_contracts:
-        corrections = load_corrections()
+        corrections = webarena_corrections.load_corrections()
         for task_id, contract in state_contracts.items():
             if task_id not in {int(task["task_id"]) for task in seed_tasks}:
                 raise ValueError("state contract outside replay task selection")
@@ -373,7 +373,6 @@ NAVIGATION_CONTEXT_LOSS = (
 COMPLETION_CANDIDATES = (
     "evaluation/trajectory-replay/webarena-verified/mutation-completion-candidates.json"
 )
-
 
 
 def _render_observation_script(script: str, values: dict[str, Any]) -> str:

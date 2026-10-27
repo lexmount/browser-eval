@@ -18,38 +18,55 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+from lexbench_webfetch.metrics import summarize, task_passed
+from lexbench_webfetch.models import EvalCase, validate_case
+from lexbench_webfetch.paths import contained_path, safe_identifier
+from lexbench_webfetch.response_input import apply_request_status
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 
 from harness.record_io import load_jsonl
-
-from .artifacts import (
+from harness.reporting.versions import software_identity
+from harness.web_fetch.artifacts import (
     PRIVATE_ARTIFACT_ROOT,
     PUBLIC_CALL_LOG_ROOT,
     diagnostic_log_binding,
+    file_scoring_metadata,
     materialize_task_references,
     raw_response_binding,
     verify_record_artifacts,
     verify_record_private_artifacts,
     verify_record_public_call_logs,
 )
-from .call_boundary import fetch_with_deadline
-from .config import DEFAULT_FAILURE_RETRIES
-from lexbench_webfetch.metrics import summarize, task_passed
+from harness.web_fetch.call_boundary import fetch_with_deadline
+from harness.web_fetch.config import DEFAULT_FAILURE_RETRIES
+from harness.web_fetch.diagnostics import CallDiagnostics
 from harness.web_fetch.models import AttemptRecord, ProviderResult
-from lexbench_webfetch.models import EvalCase, validate_case
-from .providers import Provider
-from .reference_inputs import read_dataset_bytes, benchmark_input_path, input_tree
-from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
-from .reference_lifecycle import (
+from harness.web_fetch.native_projection import (
+    require_native_answer_projection,
+    require_native_projection_schema,
+)
+from harness.web_fetch.native_routes import (
+    NativeRouteLedger,
+    declared_input_media_kind,
+    native_cases_by_id,
+    verify_native_route_contract,
+)
+from harness.web_fetch.network_preflight import preflight_guarded_providers
+from harness.web_fetch.providers import Provider
+from harness.web_fetch.publication_privacy import redact_url_queries
+from harness.web_fetch.reference_inputs import benchmark_input_path, read_dataset_bytes, input_tree
+from harness.web_fetch.reference_lifecycle import (
     ReferenceLifecycleError,
     check_case_reference_binding,
     check_case_reference_fresh,
     is_diagnostic_evidence,
+    legacy_reference_cases,
+    legacy_reference_dataset,
     preflight_reference_checks,
+    validate_resource_source_evidence,
 )
-from .diagnostics import CallDiagnostics
-from lexbench_webfetch.response_input import apply_request_status
-from lexbench_webfetch.paths import contained_path, safe_identifier
-from lexbench_webfetch.scoring import load_list_reference, score_attempt
 
 
 class IncompleteEvaluationError(RuntimeError):
@@ -169,7 +186,6 @@ def _public_text(value: Any, *, limit: int = 4096) -> str | None:
     text = _AUTH_SECRET_VALUE.sub(lambda match: match.group(1) + "[REDACTED]", text)
     text = _JSON_SECRET_VALUE.sub(lambda match: match.group(1) + "[REDACTED]" + match.group(3), text)
     text = _LINE_SECRET_VALUE.sub(lambda match: match.group(1) + match.group(2) + " [REDACTED]", text)
-    from .publication_privacy import redact_url_queries
     text, _ = redact_url_queries(text)
     text = _POSIX_LOCAL_PATH.sub("[local-path]", text)
     text = _WINDOWS_LOCAL_PATH.sub("[local-path]", text)
@@ -180,7 +196,6 @@ def _public_url(value: Any) -> str | None:
     """Keep public HTTP(S) targets while redacting credentials and secret query values."""
     if value is None:
         return None
-    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
     try:
         parsed = urlsplit(str(value))
     except ValueError:
@@ -391,7 +406,6 @@ def persist_result_artifacts(
     """Persist one physical call without changing its scored answer bytes."""
     discarded_late_answer = (not result.ok and result.error_type == 'timeout'
                              and result.content == '')
-    from .native_projection import require_native_answer_projection, require_native_projection_schema
     if result.metadata.get('native_answer_projection'):
         require_native_projection_schema(result.metadata['native_answer_projection'])
     raw = result.metadata.get('_raw_response_b64')
@@ -527,7 +541,6 @@ def run_evaluation(
         if provider.config.get("uniform_native_parameters"):
             if runs != 1:
                 raise ValueError("fixed native calls require one run")
-            from .native_routes import declared_input_media_kind
             for case in cases:
                 provider.check_native_call(case)
                 declared_input_media_kind(case)
@@ -538,7 +551,6 @@ def run_evaluation(
         raise ValueError('Provider names must be unique within an execution')
     if len({case.id for case in cases}) != len(cases):
         raise ValueError('Task IDs must be unique within an execution')
-    from .native_routes import NativeRouteLedger
     native_routes = (NativeRouteLedger(cases, providers, timeout_seconds=timeout)
                      if any(p.config.get('uniform_native_parameters') for p in providers) else None)
     for filename in ['artifacts', PUBLIC_CALL_LOG_ROOT, 'manifest.json', 'dataset.json',
@@ -548,7 +560,6 @@ def run_evaluation(
         raise ValueError("unknown reference policy")
     if reference_policy == "frozen_existing":
         # Explicit local measurement of existing rules; no live-source claim.
-        from .reference_lifecycle import validate_resource_source_evidence
         for case in cases:
             validate_resource_source_evidence(case, dataset_path)
         frozen_dataset_sha256 = hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest()
@@ -561,7 +572,6 @@ def run_evaluation(
             raise ValueError(
                 f"provider {provider.name!r} missing configuration: {', '.join(missing)}"
             )
-    from .network_preflight import preflight_guarded_providers
     network_audit = preflight_guarded_providers(providers, cases)
     output_dir.mkdir(parents=True, exist_ok=True)
     materialize_task_references(
@@ -575,7 +585,6 @@ def run_evaluation(
     started_at = utc_now()
     records: list[dict[str, Any]] = []
 
-    from harness.reporting.versions import software_identity
     manifest = {
         "schema_version": 1,
         "runtime_source_sha256": hashlib.sha256(SCORING_SOURCE_SHA256.encode()+b'\0'+b'\0'.join(
@@ -874,7 +883,7 @@ def run_evaluation(
                         ).to_dict()
                         apply_request_status(record)
                         record["completed_at"] = finished
-                        from .models import execution_id
+                        from harness.web_fetch.models import execution_id
                         record['run_id'] = execution_id(record)
                         passed = task_passed(record['ok'],record['metrics'],case.task_kind)
                         state = "PASS" if passed else "FAIL"
@@ -958,7 +967,6 @@ def run_evaluation(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     if native_routes is not None:
-        from .native_routes import verify_native_route_contract
         verify_native_route_contract(output_dir, manifest, dataset_meta, records)
     expected_attempts = len(cases) * len(providers) * runs
     if len(records) != expected_attempts or manifest["unexecuted"]:
@@ -983,7 +991,6 @@ def rescore_evaluation(
         contained_path(run_dir,filename)
     case_by_id = {case.id: case for case in cases}
     records = load_records(run_dir)
-    from .native_routes import native_cases_by_id
     native_cases = native_cases_by_id(run_dir)
     for record in records:
         if record.get("metrics", {}).get("content_sha256"):
@@ -1016,6 +1023,8 @@ def rescore_evaluation(
         cases = [case_by_id[identifier] for identifier in selected_ids]
     # Validate the entire batch before touching metrics, datasets or results.
     # Historical records without a binding retain the legacy rescore behavior.
+    legacy_input = legacy_reference_dataset(manifest, run_dir, dataset_path)
+    original_cases = legacy_reference_cases(legacy_input)
     bindings = manifest.get("reference_checks", {}).get("cases", {})
     for record in records:
         if "reference_sha256" in record.get("metrics", {}) or record["case_id"] in bindings:
@@ -1024,14 +1033,13 @@ def rescore_evaluation(
             if (binding is None or case is None
                     or record.get("metrics", {}).get("reference_sha256") != binding["reference_sha256"]):
                 raise ReferenceLifecycleError("Rescore has no matching original reference binding")
-            check_case_reference_binding(case, binding)
+            check_case_reference_binding(case, binding, original_case=original_cases.get(case.id))
     for record in records:
         case = case_by_id.get(record["case_id"])
         if case is None:
             raise ValueError(f"run contains case absent from dataset: {record['case_id']}")
         artifact = contained_path(run_dir,record["artifact_path"])
         previous_deadline = bool(record.get("metrics", {}).get("deadline_overrun"))
-        from .artifacts import file_scoring_metadata
         record["metrics"] = score_attempt(
             case, artifact.read_bytes(), ok=bool(record.get("ok")),
             title=record.get('title'), final_url=record.get('final_url'),
@@ -1043,6 +1051,10 @@ def rescore_evaluation(
         apply_request_status(record)
         record["metrics"]["deadline_overrun"] = previous_deadline
 
+    if legacy_input is not None:
+        legacy_path = contained_path(run_dir, f'reference-checks/dataset-{hashlib.sha256(legacy_input).hexdigest()}.json', reject_symlinks=True)
+        legacy_path.parent.mkdir(parents=True, exist_ok=True)
+        legacy_path.write_bytes(legacy_input)
     tmp = run_dir / "results.jsonl.tmp"
     tmp.write_text("".join(json.dumps(record, ensure_ascii=True) + "\n" for record in records), encoding="utf-8")
     tmp.replace(run_dir / "results.jsonl")

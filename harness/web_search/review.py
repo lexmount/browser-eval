@@ -2,26 +2,33 @@
 
 from __future__ import annotations
 
-from .messages import report_text
-
 import argparse
 import hashlib
 import json
 import os
 import re
-import signal
 import shutil
+import signal
+import subprocess
 import tempfile
 import threading
-import subprocess
 import time
+from collections import Counter
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from html import escape
 from pathlib import Path
 from threading import Event
+from urllib.parse import urlsplit
 
-from .core import normalize_response
-from .diagnostics import error_evidence
+from lexbench_webfetch.paths import contained_path
+from lexbench_websearch.relevance import candidate_packet
+from lexbench_websearch.scoring import candidate_identity, classify
+
 from harness.reporting.publication import atomic_write
+from harness.web_search.core import normalize_response
+from harness.web_search.diagnostics import error_evidence
+from harness.web_search.messages import report_text
+from harness.web_search.relevance import legacy_evidence_allowed
 
 
 def sha(data):
@@ -120,7 +127,6 @@ def _input_text(contract, packet, packet_hash):
     )
 
 
-
 def _object(properties):
     return {
         "type": "object",
@@ -189,7 +195,6 @@ SCHEMA = _object(
 
 def make_cases(profile, rows, report):
     """Return full, blinded cases and a private mapping to original row IDs."""
-    from lexbench_websearch.relevance import candidate_packet
 
     methods = {method["id"]: method for method in profile["methods"]}
     hydrated, failures = [], {}
@@ -303,7 +308,6 @@ def report_binding(profile, rows):
 
 def row_state(profile, row, relevance=None):
     """Use the report's relevance labels and quarantine rules for review selection."""
-    from lexbench_websearch.scoring import classify, candidate_identity
     case = next(c for c in profile["cases"] if c["id"] == row["case_id"])
     labels = (relevance or {}).get("labels", {}).get(case["id"])
     grades = None if labels is None else [
@@ -331,7 +335,7 @@ def freeze(report, destination, **options):
 
 
 def _freeze(report, destination, *, model=None, budget=180000, scope="failures", authorization=None, source_mode="frozen"):
-    from .report import check
+    from harness.web_search.report import check
 
     if source_mode not in REVIEW_PROMPTS:
         raise ValueError("Review source mode must be frozen or live")
@@ -431,7 +435,6 @@ def _freeze(report, destination, *, model=None, budget=180000, scope="failures",
 
 
 def frozen_path(root, relative):
-    from lexbench_webfetch.paths import contained_path
     path = Path(relative)
     if path.is_absolute():
         try:
@@ -707,8 +710,6 @@ def _successful(root, entry, contract):
         return validate_result(packet, json.loads(result_path.read_bytes()), entry["sha256"], source_mode=_source_mode(contract))
     except (OSError, ValueError, KeyError, TypeError):
         return None
-
-
 
 
 def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
@@ -995,7 +996,6 @@ def validate_public_review(profile, rows, evidence, *, authority=None, relevance
         raise ValueError("Failure-only review cannot change the quality population")
     if profile.get("independent_result_review_scope") == "all" and scope != "all":
         raise ValueError("This report explicitly requires a complete result review")
-    from .relevance import legacy_evidence_allowed
     proof = evidence.get("provenance")
     if not proof and not legacy_evidence_allowed(evidence, "review", authority):
         raise ValueError("Independent review requires frozen contract, packets and execution receipts")
@@ -1162,8 +1162,6 @@ def validate_public_review(profile, rows, evidence, *, authority=None, relevance
 
 def candidate_packet_for_review(profile, rows):
     # Candidate coverage is a URL pool; no original grades enter this check.
-    from lexbench_websearch.relevance import candidate_packet
-
     packet, rankings = candidate_packet(profile, rows)
     custom = {p["case_id"]: p["candidates"] for p in packet["blind_candidate_packets"]}
     return (
@@ -1184,8 +1182,6 @@ def coverage_percent(evidence):
 
 
 def render_summary(evidence, zh=True):
-    from collections import Counter
-
     counts = Counter(d["resolution"] for d in evidence["adjudications"].values())
     title = (report_text('text_521deef44b4ce505') if zh else "Result audit") + f" · {coverage_percent(evidence)}%"
     text = (
@@ -1221,7 +1217,6 @@ def render_summary(evidence, zh=True):
         + "</p>"
     )
     body += '<p data-unreviewed-passes>' + (report_text('review_unreviewed') if zh else 'Accepted passing outputs without review: ') + str(evidence.get('accepted_unreviewed_passes', 0)) + '</p>'
-    from html import escape
     reference_cases = [c for c in evidence["cases"] if c["dataset_review"]["status"] == "issue"]
     if reference_cases:
         body += '<details><summary>' + (report_text('text_84a8421bb5133e4f') if zh else "Per-query reference decisions") + '</summary><div class="scroll inventory"><table><thead><tr>'
@@ -1245,8 +1240,6 @@ def render_summary(evidence, zh=True):
 
 
 def render_detail(evidence, row_id, zh=True):
-    from html import escape
-
     for case in evidence["cases"]:
         opinion = next((o for o in case["output_reviews"] if o["row_id"] == row_id), None)
         if opinion is None:
@@ -1264,7 +1257,6 @@ def render_detail(evidence, row_id, zh=True):
             ) + " " + escape(decision["reason"]) + '</p>'
         body += '<details><summary>' + (report_text('text_73abe0f2d9af6695') if zh else 'Original review opinion, evidence and decisions') + '</summary><p>' + escape(opinion['reason']) + '</p><p>' + escape(opinion['evidence']) + '</p>'
         if case["dataset_review"]["status"] == "issue":
-            from urllib.parse import urlsplit
 
             body += (
                 "<h3>"

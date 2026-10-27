@@ -1,15 +1,20 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import os
 import signal
 import subprocess
 import time
+from abc import ABC, abstractmethod
+from copy import deepcopy
+from functools import partial
 from typing import Any
 
 from lexbench_webfetch.models import EvalCase
+
 from harness.web_fetch.models import ProviderResult
-from ..retrieval_hints import NATIVE_RETRIEVAL_HINTS
+from harness.web_fetch.native_routes import normalized_http_parameters
+from harness.web_fetch.providers.http_client import inner_timeout_budget
+from harness.web_fetch.retrieval_hints import NATIVE_RETRIEVAL_HINTS
 
 
 def terminate_owned_process_tree(process):
@@ -91,7 +96,6 @@ class Provider(ABC):
 
     def native_configured_parameters(self):
         """Return the adapter's explicitly public configuration diagnostics."""
-        from copy import deepcopy
         return {key: deepcopy(self.config[key])
                 for key in self.native_configuration_fields if key in self.config}
 
@@ -103,8 +107,6 @@ class Provider(ABC):
         self.name = name
         self.config = config
         self.type = str(config.get("type", name))
-        from functools import partial
-        from .http_client import inner_timeout_budget
         self._native_mode = bool(config.get('uniform_native_parameters'))
         self.http_timeout_budget = partial(inner_timeout_budget, native_default=self._native_mode)
         self.request_arguments = (self._native_request_arguments if self._native_mode
@@ -150,7 +152,6 @@ class Provider(ABC):
                 raise ValueError('Native adapter arguments differ from its canonical request builder')
             endpoint, kwargs = native_endpoint, native_arguments
         if ledger is not None:
-            from ..native_routes import normalized_http_parameters
             self.capture_native_request(case, transport='http', endpoint=endpoint, native_route_ledger=ledger,
                                         parameters=normalized_http_parameters(case, kwargs))
         return callback(endpoint, **kwargs)
@@ -200,53 +201,53 @@ class Provider(ABC):
 def build_provider(name: str, config: dict[str, Any]) -> Provider:
     provider_type = config.get("type")
     if provider_type in {"brightdata_unlocker", "browser_use_fetch", "browserbase_fetch", "deepseek_fetch", "crawl4ai_cloud"}:
-        from .hosted_fetch import HostedFetchProvider
+        from harness.web_fetch.providers.hosted_fetch import HostedFetchProvider
         return HostedFetchProvider(name, config)
     if provider_type in {"headless_html", "headless_markdown"}:
-        from .headless import HeadlessProvider
+        from harness.web_fetch.providers.headless import HeadlessProvider
         return HeadlessProvider(name, config)
     if provider_type == "moli_webfetch":
-        from .moli import MoliWebFetchProvider
+        from harness.web_fetch.providers.moli import MoliWebFetchProvider
 
         return MoliWebFetchProvider(name, config)
     if provider_type == "http":
-        from .http import HttpProvider
+        from harness.web_fetch.providers.http import HttpProvider
 
         return HttpProvider(name, config)
     if provider_type == "cowagent_builtin":
-        from .cowagent import CowAgentBuiltinProvider
+        from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
 
         return CowAgentBuiltinProvider(name, config)
     if provider_type in {"lexmount", "lexmount_cn"}:
-        from .lexmount import LexmountProvider
+        from harness.web_fetch.providers.lexmount import LexmountProvider
 
         return LexmountProvider(name, config)
     if provider_type == "firecrawl":
-        from .firecrawl import FirecrawlProvider
+        from harness.web_fetch.providers.firecrawl import FirecrawlProvider
 
         return FirecrawlProvider(name, config)
     if provider_type == "tavily_extract":
-        from .tavily import TavilyExtractProvider
+        from harness.web_fetch.providers.tavily import TavilyExtractProvider
 
         return TavilyExtractProvider(name, config)
     if provider_type == "exa_contents":
-        from .exa import ExaContentsProvider
+        from harness.web_fetch.providers.exa import ExaContentsProvider
 
         return ExaContentsProvider(name, config)
     if provider_type == "cloudflare_markdown":
-        from .cloudflare import CloudflareMarkdownProvider
+        from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 
         return CloudflareMarkdownProvider(name, config)
     if provider_type == "cloudflare_content":
-        from .cloudflare import CloudflareContentProvider
+        from harness.web_fetch.providers.cloudflare import CloudflareContentProvider
 
         return CloudflareContentProvider(name, config)
     if provider_type == "subprocess_jsonl":
-        from .subprocess_jsonl import SubprocessJsonlProvider
+        from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
 
         return SubprocessJsonlProvider(name, config)
     if provider_type == "fixture":
-        from .fixture import FixtureProvider
+        from harness.web_fetch.providers.fixture import FixtureProvider
 
         return FixtureProvider(name, config)
     raise ValueError(f"unknown provider type: {provider_type!r}")

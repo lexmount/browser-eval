@@ -7,8 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-
-from .methods import report_method_catalog
+from harness.web_fetch.methods import report_method_catalog
 
 
 def account_checklist() -> list[dict[str, Any]]:

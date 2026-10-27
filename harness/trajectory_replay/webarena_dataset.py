@@ -18,6 +18,7 @@ from harness.trajectory_replay.retrieval_acceptance import (
     require_current_retrieval,
     verify_attempt,
 )
+from harness.trajectory_replay.webarena_corrections import apply_correction, load_corrections
 from harness.trajectory_replay.webarena_plan import (
     load_replay_plan,
     replay_calls_binding_sha256,
@@ -73,10 +74,6 @@ def _official_evaluator_names() -> dict[int, tuple[str, ...]]:
 def _effective_correction_bindings() -> dict[int, tuple[str, str, str, tuple[str, ...]]]:
     from harness.environments.webarena.runtime import (
         configure_benchmark,
-    )
-    from harness.trajectory_replay.webarena_corrections import (  # noqa: PLC0415
-        apply_correction,
-        load_corrections,
     )
 
     benchmark = configure_benchmark()

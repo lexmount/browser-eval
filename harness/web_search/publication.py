@@ -1,19 +1,31 @@
 """Freeze and verify the next release before updating its existing Artifact Site."""
+
 import argparse
-from datetime import UTC, datetime
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import zipfile
+from datetime import UTC, datetime
+from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
+
 from harness.reporting.publication import atomic_write
-from harness.web_fetch.report_publish import PublishConfig, publish as publish_package
-from .core import digest
 from harness.web_fetch.config import ROOT
-from .profiles import current_selection, authority_root, publication_metadata, collection_receipts
+from harness.web_fetch.report_publish import PublishConfig
+from harness.web_fetch.report_publish import publish as publish_package
+from harness.web_search import delivery as report_delivery
+from harness.web_search import profiles
+from harness.web_search import report as search_report
+from harness.web_search import visual as report_visual
+from harness.web_search.core import digest
+from harness.web_search.profiles import (
+    authority_root,
+    collection_receipts,
+    current_selection,
+    publication_metadata,
+)
 
 
 def data_home():
@@ -25,11 +37,8 @@ def save(path, value):
 
 
 def prepare(report, visual, content, sources, work, *, profile):
-    from .report import check
-    from .delivery import export, verify as verify_delivery
-    from .visual import verify as verify_visual
-    check(report)
-    verify_visual(report, visual)
+    search_report.check(report)
+    report_visual.verify(report, visual)
     manifest = json.loads((report / "manifest.json").read_bytes())
     if not manifest["receipt"].get("certified") or manifest["receipt"].get("synthetic"):
         raise ValueError("Publication requires certified measured evidence")
@@ -74,8 +83,8 @@ def prepare(report, visual, content, sources, work, *, profile):
         bindings[cohort + "_profile"] = {k: expected[cohort][k] for k in ("path", "sha256")}
         bind(cohort + "_receipt", source / "receipt.json", cohort + "-receipt.json")
         bind(cohort + "_frozen_profile", source / "profile.json", cohort + "-profile.json")
-    export(report, work / "delivery")
-    verify_delivery(report, work / "delivery")
+    report_delivery.export(report, work / "delivery")
+    report_delivery.verify(report, work / "delivery")
     bind("delivery_index", work / "delivery/delivery-index.json", "delivery-index.json")
     archive = work / "report.zip"
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as output:
@@ -100,7 +109,6 @@ def prepare(report, visual, content, sources, work, *, profile):
 
 
 def verify_plan(report, work):
-    from .profiles import publication_authority, verify_publication_inputs
     plan = json.loads((work / "publication-plan.json").read_bytes())
     manifest = json.loads((report / "manifest.json").read_bytes())
     if digest((work / "report.zip").read_bytes()) != plan["archive_sha256"] or plan["target"]["archive_sha256"] != plan["archive_sha256"]:
@@ -121,7 +129,7 @@ def verify_plan(report, work):
         if live.get("versionId") == activated.get("versionId") and live.get("archive_sha256") == plan["archive_sha256"]:
             expected = {k: live[k] for k in ("base_url", "slug", "versionId", "visibility")}
             candidate = dict(candidate, versionId=live["versionId"])
-    publication_authority(manifest, profile, root=root, planned_target=candidate, expected_target=expected)
+    profiles.publication_authority(manifest, profile, root=root, planned_target=candidate, expected_target=expected)
     visual_binding = plan["target"]["bindings"]["visual_acceptance"]
     visual = contained_path(data_home(), visual_binding["path"], reject_symlinks=True)
     if json.loads(visual.read_bytes())["manifest_sha256"] != digest((report / "manifest.json").read_bytes()):
@@ -130,7 +138,7 @@ def verify_plan(report, work):
     if digest((work / "delivery/delivery-index.json").read_bytes()) != delivery_binding["sha256"]:
         raise ValueError("Publication delivery index changed")
 
-    verify_publication_inputs(manifest, plan["target"], root=root)
+    profiles.verify_publication_inputs(manifest, plan["target"], root=root)
     return plan
 
 

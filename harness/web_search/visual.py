@@ -5,11 +5,22 @@ import argparse
 import json
 from pathlib import Path
 
-from harness.reporting.visual import (
-    browser_executable, file_sha256, layout_passes, local_page,
-    local_report_server, prepare_check, settle_theme, validate_routes, write_receipt,
-)
 from lexbench_webfetch.paths import contained_path
+
+from harness.reporting import visual as shared_visual
+from harness.reporting.visual import (
+    browser_executable,
+    file_sha256,
+    layout_passes,
+    local_page,
+    local_report_server,
+    prepare_check,
+    settle_theme,
+    validate_routes,
+    write_receipt,
+)
+from harness.web_search import pages
+from harness.web_search.pages import reader_pages
 
 SCHEMA = 'web-search-reader-capture/2'
 WIDTH, HEIGHT = 1280, 900
@@ -17,8 +28,6 @@ WIDTH, HEIGHT = 1280, 900
 
 def producer_sources() -> dict[str, str]:
     """Qualify same-named modules so neither producer binding is overwritten."""
-    from harness.reporting import visual as shared_visual
-    from . import pages
 
     return {
         'harness/web_search/visual.py': file_sha256(Path(__file__)),
@@ -29,7 +38,6 @@ def producer_sources() -> dict[str, str]:
 
 def routes(report: Path) -> list[tuple[str, str, str]]:
     manifest = json.loads((report / 'manifest.json').read_text())
-    from .pages import reader_pages
     chapters = [(p["key"], p["route"]) for p in reader_pages((manifest.get("authored") or {}).get("presentation"), reviewed=bool(manifest.get("independent_review_sha256")))]
     languages = manifest.get('languages') or [manifest['primary_language']]
     result = [(lang, name, (lang + '/' if lang != 'zh' else '') + route)

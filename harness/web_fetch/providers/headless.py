@@ -2,29 +2,32 @@
 from __future__ import annotations
 
 import base64
-from contextlib import contextmanager
-import socket
 import hashlib
 import importlib.util
 import json
 import math
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from ..markdown import converter_package, require_converter
 from lexbench_webfetch.models import EvalCase
-from harness.web_fetch.models import ProviderResult
-from ..retrieval_hints import native_contract_for_case, plan_for_case
 from lexbench_webfetch.paths import validate_http_url
-from .base import Provider, terminate_owned_process_tree
-from .runtime_identity import require_expected_provider_versions
+
+from harness.web_fetch.markdown import converter_package, require_converter
+from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.network_dns import validate_dns_mode, validate_native_dns_library
+from harness.web_fetch.providers.base import Provider, terminate_owned_process_tree
+from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
+from harness.web_fetch.providers.runtime_identity import require_expected_provider_versions
+from harness.web_fetch.retrieval_hints import native_contract_for_case, plan_for_case
 
 ENGINES = ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium')
 LOOPBACK_SANDBOX_PROFILE = (
@@ -234,7 +237,11 @@ def cli_command(
         raise ValueError('unsupported native metadata route')
     ms = str(max(1, math.ceil(timeout * 1000)))
     if output_mode in {'resource', 'media_metadata', 'document_page'}:
-        from ..task_outputs import MEDIA_METADATA_EXPRESSION, DOCUMENT_PAGE_EXPRESSION, resource_expression
+        from harness.web_fetch.task_outputs import (
+            DOCUMENT_PAGE_EXPRESSION,
+            MEDIA_METADATA_EXPRESSION,
+            resource_expression,
+        )
         expression = resource_expression(track, detail_links) if output_mode == 'resource' else {'media_metadata': MEDIA_METADATA_EXPRESSION, 'document_page': DOCUMENT_PAGE_EXPRESSION}[output_mode]
         if engine == 'obscura':
             command = [binary, 'fetch', '--eval', expression, '--timeout', str(math.ceil(timeout)), '--quiet']
@@ -379,7 +386,6 @@ class HeadlessProvider(Provider):
             except (KeyError, OSError, ValueError) as error:
                 errors.append('native_metadata:' + str(error))
         resource_interval = self.config.get('resource_sample_interval_ms')
-        from ..network_dns import validate_dns_mode, validate_native_dns_library
         try:
             dns_mode = validate_dns_mode(self.config.get('dns_mode', 'system'))
             if engine == 'kitesurf' and dns_mode != 'system':
@@ -438,7 +444,7 @@ class HeadlessProvider(Provider):
         return errors
 
     def _resource_runner(self):
-        from ..container_resources import ContainerResourceRunner
+        from harness.web_fetch.container_resources import ContainerResourceRunner
 
         return ContainerResourceRunner(
             self.config['resource_container_image'],
@@ -575,7 +581,12 @@ class HeadlessProvider(Provider):
                                    else 'public cloud CDP' if engine == 'kitesurf'
                                    else 'local process')}
         if output_mode in {'resource', 'media_metadata', 'document_page'}:
-            from ..task_outputs import MEDIA_METADATA_EXPRESSION, DOCUMENT_PAGE_EXPRESSION, resource_expression, resource_detail_links
+            from harness.web_fetch.task_outputs import (
+                DOCUMENT_PAGE_EXPRESSION,
+                MEDIA_METADATA_EXPRESSION,
+                resource_detail_links,
+                resource_expression,
+            )
             projection = resource_expression(case.track, resource_detail_links(case)) if output_mode == 'resource' else {'media_metadata': MEDIA_METADATA_EXPRESSION, 'document_page': DOCUMENT_PAGE_EXPRESSION}[output_mode]
             metadata['output_projection_sha256'] = hashlib.sha256(projection.encode('utf-8')).hexdigest()
         normalized_plan = completion_plan.worker_dict() if completion_plan else None
@@ -615,7 +626,6 @@ class HeadlessProvider(Provider):
                 'harness_content_assembly': False,
             }
         if engine == 'kitesurf' and output_mode == 'markdown' and resource_interval is None:
-            from .cloudflare import CloudflareMarkdownProvider
             cloudflare = CloudflareMarkdownProvider(self.name, {
                 'account_id': self.config['account_id'], 'api_token': self.config['api_token'],
                 'browser': 'kitesurf', 'wait_until': self.config.get('wait_until', 'networkidle2'),
@@ -827,7 +837,7 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
     browser = None
     with tempfile.TemporaryFile() as log:
         environment = {**os.environ, 'SSL_CERT_FILE': str(request['ca_cert'])} if engine == 'obscura' and request.get('ca_cert') else None
-        from ..network_dns import native_process_dns_environment
+        from harness.web_fetch.network_dns import native_process_dns_environment
         with native_process_dns_environment(
             request.get('dns_mode', 'system'),
             request.get('native_dns_library'),

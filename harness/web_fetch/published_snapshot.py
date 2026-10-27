@@ -6,11 +6,22 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
+from bs4 import BeautifulSoup
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
-from .scoring_revision import ALLOWED_FIELDS, correction_provenance
+
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
+from harness.report_languages import generated_languages
+from harness.reporting.presentation import check_presentation
+from harness.reporting.templates import resolve_template
+from harness.reporting.visual import browser_executable, local_report_server, settle_theme
+from harness.web_fetch.report import generate
+from harness.web_fetch.report_build import _install_report_tree, write_frozen_result_summary
+from harness.web_fetch.report_check import check_saved_result_summary
+from harness.web_fetch.report_explainer import check_current_browser_article
+from harness.web_fetch.report_version import check_release, load_release
+from harness.web_fetch.scoring_revision import ALLOWED_FIELDS, correction_provenance
 
 
 def _bound(root, binding):
@@ -66,7 +77,6 @@ def validate_snapshot_audit(source, profile_path):
     audit = json.loads(inputs['review'].read_text())
     scoring_source = SCORING_SOURCE_SHA256
     if config.get('benchmark_release'):
-        from .report_version import load_release
         _, release = load_release(source, dataset, records, profile=profile_path)
         scoring_source = release['scoring_source_sha256']
     old_cases = {row['id']: row for row in baseline['cases']}
@@ -156,10 +166,6 @@ def validate_snapshot_audit(source, profile_path):
 
 def build_snapshot_audit(source, output, *, profile):
     """Keep the original report routes and metric populations, adding score review."""
-    from .report import generate
-    from .report_build import _install_report_tree, write_frozen_result_summary
-    from harness.reporting.templates import resolve_template
-    from harness.report_languages import generated_languages
     source, output = Path(source).resolve(), Path(output).resolve()
     if source == output or source in output.parents or output in source.parents:
         raise ValueError('Snapshot audit needs a separate output tree')
@@ -217,7 +223,7 @@ def build_snapshot_audit(source, output, *, profile):
         (staging / 'dataset.json').write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n')
         shutil.copy2(inputs['results'], staging / 'results.jsonl')
         batches = json.loads((staging / 'execution.json').read_text())['batches']
-        from .report_version import bind_release
+        from harness.web_fetch.report_version import bind_release
         release_binding = bind_release(source, staging, dataset, records, profile=profile)
         generate(staging, dataset, records, batches, authored_interpretation=True, frozen_scores=True)
         write_frozen_result_summary(staging, dataset, records)
@@ -240,8 +246,6 @@ def build_snapshot_audit(source, output, *, profile):
 
 def check_snapshot_audit(root):
     """Deterministic checks for matrix values, disclosure and reviewed evidence."""
-    from bs4 import BeautifulSoup
-    from .report_check import check_saved_result_summary
     root = Path(root)
     manifest=json.loads((root/'report-manifest.json').read_text())
     if manifest.get('evidence_state')!='published_snapshot_score_audit' or manifest.get('certified') is not False:
@@ -252,7 +256,6 @@ def check_snapshot_audit(root):
             raise ValueError('Snapshot audit input changed: '+name)
     dataset = json.loads((root/'dataset.json').read_text())
     rows = load_jsonl(root/'results.jsonl')
-    from .report_version import check_release
     check_release(root, dataset, rows)
     if dataset.get('definition_revision'):
         revision_path=_bound(root,dataset['definition_revision'])
@@ -274,8 +277,6 @@ def check_snapshot_audit(root):
     if scope is None or any(str(value) not in scope.get_text() for value in expected_scope):
         raise ValueError('Snapshot report lost its scoring input scope')
     audit_html = BeautifulSoup((root/'audit/index.html').read_text(), 'html.parser')
-    from .report_explainer import check_current_browser_article
-    from harness.reporting.presentation import check_presentation
     check_current_browser_article(root,{case['id']:case for case in dataset['cases']},rows,dataset['comparison']['report_interpretation'])
     for route in ['index.html','guide/index.html','analysis/index.html','audit/index.html']:
         check_presentation((root/route).read_text())
@@ -324,7 +325,6 @@ def read_snapshot_public_file(root, binding):
 def check_snapshot_visual(root, receipt):
     """Exercise native route classes, themes, narrow layouts and evidence dialogs."""
     from playwright.sync_api import sync_playwright
-    from harness.reporting.visual import browser_executable, local_report_server, settle_theme
     root, receipt = Path(root).resolve(), Path(receipt).resolve()
     if receipt == root or root in receipt.parents:
         raise ValueError('Visual receipts belong outside the public report')

@@ -1,7 +1,7 @@
 # GitHub workflows
 
-`ci.yml` runs on main pushes and pull requests. Disposable GitHub-hosted runners install Python 3.11, uv 0.7.8 and Node.js 22, then run `make setup-test` and `make ci`. Contributors use the same local entry points.
+`ci.yml` tests main pushes and pull requests. All CI checks use Python 3.11, uv 0.7.8 and Node.js 22. Contributors use `make setup-test` and `make ci` locally.
 
-`claude.yml` provides optional English code review. Maintainers must set `ENABLE_CLAUDE_REVIEW=true` and `CLAUDE_CODE_OAUTH_TOKEN`; ordinary CI does not require them. Review uses GitHub-hosted runners, without a personal host or local Claude/Bun installation.
+Code review is dispatched by the organization's [public OCR workflow](https://github.com/lexmount/github-policy-public/blob/main/.github/workflows/codex-code-review.yml). The dispatch job confirms durable task acceptance; the separate `ocr-review` status reports the backend's findings. The repository does not need a copied OCR workflow or local review credentials. Organization Rulesets manage review requirements separately from CI.
 
-When enabled, opened, updated, ready-for-review and reopened non-draft PRs trigger review. `@claude` in issues, PR comments or reviews uses the interactive step and receives the comment's request. `CLAUDE_REVIEW_STANDARDS` owns shared review guidance and references `AGENTS.md` and relevant skills. New commits cancel older review runs for the same PR.
+Project requirements remain in [AGENTS.md](../../AGENTS.md), with benchmark-specific requirements in [.agents/skills/benchmark-report](../../.agents/skills/benchmark-report/SKILL.md). Backend review-policy configuration is managed separately from the repository's workflows.

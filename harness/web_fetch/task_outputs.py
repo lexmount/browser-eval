@@ -5,6 +5,14 @@ projection reads text already loaded in a browser viewer or page; it never
 downloads document bytes for external conversion.
 """
 
+import hashlib
+import json
+from types import SimpleNamespace
+
+from harness.web_fetch.methods import native_browser_engine
+from harness.web_fetch.providers.headless import output_mode_for_case
+from harness.web_fetch.retrieval_hints import NATIVE_RETRIEVAL_HINTS, native_contract_for_case
+
 RESOURCE_PAGE_EXPRESSION = r"""
 (() => {
   const urls = new Set();
@@ -73,7 +81,6 @@ def resource_detail_links(case):
 
 def resource_expression(track, detail_links=False):
     """Select resource element types from the declared task, never its answers."""
-    import json
     selectors = {'image':'img,picture source',
                  'video':'video,video source,audio,audio source,iframe,a[href]'}
     if track not in selectors:
@@ -160,20 +167,14 @@ DOCUMENT_PAGE_READY = r"""
 """
 
 
-
 def require_native_task_routes(cases, records):
     """Reject substitutions and stale task adapters before report publication."""
-    import hashlib
-    from types import SimpleNamespace
-    from .providers.headless import output_mode_for_case
-    from .retrieval_hints import NATIVE_RETRIEVAL_HINTS, native_contract_for_case
 
     inventory = {case['id']: SimpleNamespace(id=case['id'], url=case['url'], track=case.get('track','web'), task_kind=case.get('task_kind','body'), retrieval_hints=case.get('retrieval_hints',{}), source_benchmark=case.get('source_benchmark',{}), expected_resources=[{'kind':r.get('kind')} for r in case.get('expected_resources',[])]) for case in cases}
     expressions = {'resource':RESOURCE_PAGE_EXPRESSION, 'media_metadata':MEDIA_METADATA_EXPRESSION,
                    'document_page':DOCUMENT_PAGE_EXPRESSION}
     failures = []
     for row in records:
-        from .methods import native_browser_engine
         provider = (
             'moli'
             if row.get('provider_type') == 'moli_webfetch'

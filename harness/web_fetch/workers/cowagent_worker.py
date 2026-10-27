@@ -7,6 +7,12 @@ import sys
 from contextlib import redirect_stdout
 from pathlib import Path
 
+# Direct execution starts in the upstream checkout, without an installed harness.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+
+from harness.web_fetch.diagnostics import diagnostic_context, redact
+from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
+
 
 def main():
     root = Path.cwd()
@@ -14,10 +20,7 @@ def main():
     workspace.mkdir(parents=True, exist_ok=True)
     # Only this process imports upstream code. Its prints cannot impersonate a
     # JSONL response, including prints that happen during module initialization.
-    sys.path.insert(0, str(root))
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-    from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
-    from harness.web_fetch.diagnostics import diagnostic_context, redact
+    sys.path.insert(1, str(root))
 
     class NativeLogSink:
         def emit(self, source, event, **fields):

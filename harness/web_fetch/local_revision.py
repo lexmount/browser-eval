@@ -1,19 +1,52 @@
 """Validate task replacements and offline revisions of a bound local snapshot."""
+
+import copy
+import fcntl
 import hashlib
 import json
-import fcntl
 import shutil
 import tempfile
+from collections import Counter
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
-from harness.record_io import file_sha256, canonical_json_sha256, load_jsonl
-
-from .cohort_exclusions import require_cohort_exclusions
+from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 from lexbench_webfetch.scoring_regressions import require_scoring_regressions
-from .scoring_revision import ALLOWED_FIELDS
-from .publication_privacy import EvidenceBinding, read_evidence_binding, staged_evidence_reads
+
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
+from harness.web_fetch.adjudication_evidence import (
+    _require_local_review,
+    _require_page_identity_review,
+    compact_retained_review_dependencies,
+    prepare_reviewed_page_identities,
+)
+from harness.web_fetch.cohort_exclusions import apply_cohort_exclusions, require_cohort_exclusions
+from harness.web_fetch.local_execution_contract import (
+    local_measurement_cases,
+    require_local_execution_contract,
+)
+from harness.web_fetch.native_projection import (
+    native_projection_regressions,
+    project_native_answer,
+    project_native_result_fields,
+)
+from harness.web_fetch.native_routes import verify_native_execution_manifests
+from harness.web_fetch.providers.moli import replay_native_http_error_context
+from harness.web_fetch.publication_privacy import (
+    EvidenceBinding,
+    bound_public_view,
+    original_evidence_size,
+    project_file,
+    read_evidence_binding,
+    staged_evidence_reads,
+)
+from harness.web_fetch.report import runtime_log_text
+from harness.web_fetch.result_review import review_input_identity
+from harness.web_fetch.runner import _public_text
+from harness.web_fetch.scoring_revision import ALLOWED_FIELDS
 
 
 @dataclass(frozen=True)
@@ -70,7 +103,6 @@ def _require_revision_regressions(identifiers):
     """A revision cites controls in the layer whose boundary it changes."""
     if not identifiers:
         raise ValueError('Local revision requires executable regression provenance')
-    from .native_projection import native_projection_regressions
     native = native_projection_regressions()
     scoring = [identifier for identifier in identifiers if identifier not in native]
     if scoring:
@@ -207,7 +239,6 @@ def require_local_task_replacement(source, binding, dataset, records):
         raise ValueError('Task replacement altered an inherited or newly measured result')
     if any(r['metrics'].get('evaluation_excluded') for r in calls):
         raise ValueError('Replacement task cannot be excluded after seeing its results')
-    from .local_execution_contract import require_local_execution_contract
     if not receipt.get('execution_contract') or not receipt.get('cohort_execution'):
         raise ValueError('Task replacement requires its complete execution contract')
     contract = json.loads(read_evidence_binding(source, receipt['execution_contract']).read_text())
@@ -258,7 +289,6 @@ def require_local_revision(source, binding, dataset, records):
 
 
 def _current_row_identity(case, record):
-    from .result_review import review_input_identity
     return {'attempt_id': record['attempt_id'], 'case_sha256': canonical_json_sha256(case),
             'record_sha256': canonical_json_sha256(record),
             'scoring_source_sha256': record['metrics']['scoring_source_sha256'],
@@ -266,7 +296,6 @@ def _current_row_identity(case, record):
 
 
 def _require_current_row_evidence(source, record, diagnostic_projection=None):
-    from .result_review import review_input_identity
     identity = review_input_identity(record)
     read_evidence_binding(source, {'path': record['artifact_path'],
                         'sha256': record['metrics']['content_sha256']})
@@ -282,7 +311,6 @@ def _require_current_row_evidence(source, record, diagnostic_projection=None):
 
 
 def _require_diagnostic_projection(source, record, proof):
-    from .result_review import review_input_identity
     diagnostic = review_input_identity(record)['diagnostic_log']
     call = record.get('provider_metadata', {}).get('call_log')
     if (proof.get('attempt_id') != record['attempt_id']
@@ -309,10 +337,6 @@ def _require_diagnostic_projection(source, record, proof):
 
 def _compact_diagnostic_projections(source, records, private_manifest, *, public_log_updates=None):
     """Verify private originals once; emit honest public-view receipts only."""
-    from .result_review import review_input_identity
-    from .report import runtime_log_text
-    from .runner import _public_text
-    from .publication_privacy import project_file
     private = None
     bound_public_logs = set()
     def collect_paths(value):
@@ -508,7 +532,6 @@ def require_current_task_replacement(source, receipt, dataset, records):
             read_evidence_binding(source, capture)
     contract = json.loads(read_evidence_binding(source, scope['execution_contract']).read_text())
     execution = json.loads(read_evidence_binding(source, scope['execution']).read_text())
-    from .local_execution_contract import local_measurement_cases, require_local_execution_contract
     frozen = local_measurement_cases(contract, source)
     current = {case['id']: case for case in dataset['cases']}
     if {case['id'] for case in frozen} != {scope['added_case_id']}:
@@ -580,15 +603,12 @@ def require_current_snapshot_authority(source, receipt, dataset, records):
         execution_binding = receipt.get('current_execution')
         if not execution_binding or read_evidence_binding(source, execution_binding) != execution:
             raise ValueError('Current execution inventory lacks its actual binding')
-        from collections import Counter
         physical = Counter(identifier for batch in json.loads(execution.read_text())['batches']
                            for identifier in batch['attempt_ids'])
         if physical != Counter(row['attempt_id'] for row in records):
             raise ValueError('Current execution physical/logical inventory differs')
-        from .native_routes import verify_native_execution_manifests
         verify_native_execution_manifests(source, json.loads(execution.read_text())['batches'],
                                          dataset, records)
-    from .adjudication_evidence import _require_local_review
     review = receipt.get('current_review')
     declared = dataset.get('comparison', {}).get('independent_review')
     if declared is not None and declared != review:
@@ -612,7 +632,6 @@ def _install_compact_local_snapshot(source, binding, *, reference_authorities=()
     opinions remain exact. The caller may delete obsolete states after this
     succeeds and the ordinary presentation boundary accepts the returned binding.
     """
-    from .adjudication_evidence import compact_retained_review_dependencies
     source = Path(source)
     dataset = json.loads((source/'dataset.json').read_text())
     records = load_jsonl(source/'results.jsonl')
@@ -715,7 +734,6 @@ def compact_local_snapshot(source, binding, **options):
     execution_path = source/'execution.json'
     original_execution = execution_path.read_bytes() if execution_path.is_file() else None
     if original_execution is not None:
-        from collections import Counter
         execution = json.loads(original_execution)
         current = {row['attempt_id'] for row in records}
         physical = Counter(identifier for batch in execution['batches']
@@ -744,8 +762,6 @@ def compact_local_snapshot(source, binding, **options):
             aggregate['batch_count'] = len(execution['batches'])
             execution['inventory_scope'] = 'current_snapshot_attempts'
             execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2)+'\n')
-    import tempfile
-    import shutil
     temporary = tempfile.TemporaryDirectory(prefix='current-diagnostic-projection-')
     backups = {}
     try:
@@ -778,8 +794,6 @@ def compact_local_snapshot(source, binding, **options):
 
 def _project_native_correction(source, original, request, *, historical_scoring_source=None):
     """One projection path for preparing and verifying an offline correction."""
-    from .native_projection import project_native_answer, project_native_result_fields
-    from .publication_privacy import original_evidence_size
     metadata = original.get('provider_metadata', {})
     native = read_evidence_binding(source, request['native_response'])
     if (request['native_response']['sha256'] != metadata.get('raw_response_sha256')
@@ -827,7 +841,6 @@ def _require_native_answer_correction(source, original, corrected, proof, *, his
         # A disclosed native public view projects public answer bytes. Compare
         # its explicitly paired answer view even while private scoring bytes
         # are temporarily restored; neither view reconstructs the original.
-        from .publication_privacy import bound_public_view
         native_view = bound_public_view(source, proof['native_response'])
         answer_view = bound_public_view(source, after)
         if (native_view is None or answer_view is None
@@ -850,8 +863,6 @@ def _require_native_answer_correction(source, original, corrected, proof, *, his
 
 def _native_context_proof(source, original, request):
     """Replay context from one bound physical call, preserving its answer bytes."""
-    from .providers.moli import replay_native_http_error_context
-    from .publication_privacy import original_evidence_size
     if (set(request) != {'attempt_id', 'stdout', 'diagnostic', 'call_log', 'projection'}
             or request['attempt_id'] != original['attempt_id']
             or original.get('provider_type') != 'moli_webfetch'):
@@ -999,7 +1010,6 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
     if any(new_rows[key]['metrics'].get('scoring_source_sha256') != value
            for key, value in expected_scoring.items()):
         raise ValueError('Local revision scoring source binding changed')
-    from lexbench_webfetch.metrics import task_passed
     if receipt.get('input_verdicts'):
         verdicts = _read_input_verdicts(source, receipt['input_verdicts'],
             receipt['input_results']['sha256'], old_rows)
@@ -1011,7 +1021,6 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
                    and verdicts[row['attempt_id']] != task_passed(row['ok'], row['metrics'])]
     if transitions != receipt['task_verdict_changes']:
         raise ValueError('Local revision verdict transitions differ from input proof')
-    from .adjudication_evidence import _require_page_identity_review
     _require_page_identity_review(source, dataset, records, scoring_sources=expected_scoring)
     require_cohort_exclusions(source, dataset, records)
     return expected_scoring, before_dataset, previous
@@ -1037,11 +1046,6 @@ def revise_local_snapshot(source, configuration):
 
 def _revise_local_snapshot(source, configuration, transaction):
     """Apply declared score-only changes in a separate snapshot, retaining predecessors."""
-    import copy
-    from datetime import datetime, timezone
-    from lexbench_webfetch.scoring import score_attempt, load_list_reference, SCORING_SOURCE_SHA256
-    from .cohort_exclusions import apply_cohort_exclusions
-    from lexbench_webfetch.metrics import task_passed
 
     config = json.loads(configuration.read_text())
     regressions = config.get('regression_ids', [])
@@ -1142,7 +1146,6 @@ def _revise_local_snapshot(source, configuration, transaction):
             'rule_revision': bool(config.get('rule_revision')),
             'input_results_sha256': input_results_sha256}
         selected.append(row['attempt_id'])
-    from .adjudication_evidence import prepare_reviewed_page_identities
     identity_updates = prepare_reviewed_page_identities(source, original_dataset, dataset, records)
     identity_binding = identity_updates.binding if identity_updates else None
     if identity_updates:

@@ -10,9 +10,12 @@ from collections.abc import Iterator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
-from .config import configure_browser_docker_host, load_runtime_env
-from .qualification import task_ids_from_scope
-from .runner import run_evaluation
+from harness.trajectory_replay.public_webarena.config import (
+    configure_browser_docker_host,
+    load_runtime_env,
+)
+from harness.trajectory_replay.public_webarena.qualification import task_ids_from_scope
+from harness.trajectory_replay.public_webarena.runner import run_evaluation
 
 
 @contextmanager
@@ -36,8 +39,6 @@ def qualification_lock(
     finally:
         fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
         handle.close()
-
-
 
 
 def main() -> None:

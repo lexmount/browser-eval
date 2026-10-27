@@ -9,8 +9,9 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from lexbench_webfetch.models import EvalCase, validate_case
-from .reference_inputs import read_dataset_bytes
-from .retrieval_hints import (
+
+from harness.web_fetch.reference_inputs import read_dataset_bytes
+from harness.web_fetch.retrieval_hints import (
     native_default_case,
     parse_retrieval_hints,
     task_definition_sha256,

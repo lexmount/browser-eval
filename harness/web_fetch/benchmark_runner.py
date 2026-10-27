@@ -3,20 +3,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .artifacts import materialize_bound_artifacts, materialize_task_references
-from .config import (
-    DEFAULT_CALL_TIMEOUT_SECONDS, load_dataset, load_provider_config,
-    load_runtime_env, add_failure_retry_argument, resolve_provider_selection,
+from harness.web_fetch.artifacts import materialize_bound_artifacts, materialize_task_references
+from harness.web_fetch.config import (
+    DEFAULT_CALL_TIMEOUT_SECONDS,
+    add_failure_retry_argument,
+    load_dataset,
+    load_provider_config,
+    load_runtime_env,
+    resolve_provider_selection,
 )
-from .providers import build_provider
-from .reference_inputs import input_tree
-from .report_build import build_report
-from .runner import preflight_declared_capacity, run_evaluation
-from .storage import data_home
+from harness.web_fetch.network_preflight import preflight_guarded_providers
+from harness.web_fetch.providers import build_provider
+from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.report_build import build_report
+from harness.web_fetch.runner import preflight_declared_capacity, run_evaluation
+from harness.web_fetch.storage import data_home
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -41,7 +47,6 @@ def main(argv=None):
                         help='Positive per-call deadline in seconds, retained in execution evidence')
     add_failure_retry_argument(parser)
     args=parser.parse_args(argv)
-    import math
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error('--timeout must be positive and finite')
     if args.provider_config and not args.provider_config.is_file():
@@ -100,7 +105,6 @@ def main(argv=None):
             missing=provider.validate()
             if missing:errors.append(f'{scope}/{name}: missing {", ".join(missing)}')
     if errors:parser.error('\n'.join(errors))
-    from .network_preflight import preflight_guarded_providers
     try:
         network_audit = preflight_guarded_providers(selected_providers, cases)
     except ValueError as error:
