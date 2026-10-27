@@ -97,14 +97,13 @@ make ci
 
 ## 引用 Browser Eval
 
-使用以下引用或 [CITATION.cff](../CITATION.cff)，并注明实际使用的提交。
+项目引用：[CITATION.cff](../CITATION.cff)。
 
 ```bibtex
 @software{browser_eval_2026,
   author = {{Browser Eval contributors}},
   title = {Browser Eval},
   year = {2026},
-  version = {0.2.0},
   url = {https://github.com/lexmount/browser-eval}
 }
 ```

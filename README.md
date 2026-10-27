@@ -97,14 +97,13 @@ make ci
 
 ## Cite Browser Eval
 
-Use this citation or [CITATION.cff](CITATION.cff), and record the commit used.
+Project citation: [CITATION.cff](CITATION.cff).
 
 ```bibtex
 @software{browser_eval_2026,
   author = {{Browser Eval contributors}},
   title = {Browser Eval},
   year = {2026},
-  version = {0.2.0},
   url = {https://github.com/lexmount/browser-eval}
 }
 ```
