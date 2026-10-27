@@ -44,21 +44,42 @@ Web Fetch, Web Search / SERP, Browser Trajectory Replay and Browser Use have mai
 
 Use a feature branch and PR for release preparation. Merging and publishing are separate maintainer actions. Record the exact commit in bug reports and experiment methods, including for unreleased branches.
 
-## Release history and the next checkpoint
+## Released versions
 
-| Version | Scope | Source |
+Each GitHub release is the version's changelog: why it was published, the
+changes since its predecessor, exact source and benchmark pins, validation,
+installation and comparison implications. The release page owns these details;
+this table is the index.
+
+| Software release | Why it was published | LexBench dependencies |
 | --- | --- | --- |
-| `0.1.0` | Original software checkpoint | `03c9a5e94619000480c92b8e517c16165dc2a7f4` |
-| `0.2.0` | Shared report-build identity and reusable Web Fetch reports | `30645af1ba2520b4d089cbef32979e088cffe277` |
-| `0.3.0` | Web Search integration, shared capture fixes and release metadata checks | This release preparation; tag the merged commit after validation |
+| [0.1.0](https://github.com/lexmount/browser-eval/releases/tag/v0.1.0) | Preserve the original installable Web Fetch, Replay and Browser Use checkpoint | Fetch scoring in this repository; no separate LexBench package |
+| [0.2.0](https://github.com/lexmount/browser-eval/releases/tag/v0.2.0) | Extracted Fetch dependency and shared report-build identity | Fetch benchmark 2.0.1 / tooling 0.3.0; no Search integration |
+| [0.3.0](https://github.com/lexmount/browser-eval/releases/tag/v0.3.0) | Add Search/SERP and shared capture/source-validation fixes | Fetch benchmark 2.0.1 / tooling 0.3.0; Search benchmark 1.0.0 / tooling 0.1.0 |
 
-The first two versions were previously tagged. Restore deleted tags to their
-original Git objects; never reuse their names for newer code. Restoration does
-not rerun an experiment or alter its results. Use `0.3.1` for a compatible fix
-after this release, `0.4.0` for another feature release or a breaking change
-while developing, and `1.0.0` when the documented interfaces are ready for a
-long-term compatibility promise. A stable Web Fetch workflow alone does not
-make every track a stable API.
+Historical 0.1.0 and 0.2.0 tags retain their original commits. A software release
+can support several separately selected benchmarks; its version never chooses
+a report's population or changes saved results.
+
+## Benchmark release index
+
+| Benchmark release | Scope and reason |
+| --- | --- |
+| [Fetch 1.0.0](https://github.com/lexmount/lexbench-webfetch/releases/tag/bench-v1.0.0) | Preserve the historical 430-task report contract and scorer |
+| [Fetch 2.0.1](https://github.com/lexmount/lexbench-webfetch/releases/tag/bench-v2.0.1) | Expanded 550-entry catalog with complete compatibility fingerprints; separate population from 1.x |
+| [Search 1.0.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-1.0.0) | First frozen Search catalog: current 149-case scenario and 831-case factual datasets, with an older scenario snapshot retained |
+
+A benchmark release uses **one tag** for its measurement contract and the
+accompanying Python tools. For example, a `bench-v1.1.0` release can contain
+benchmark edition 1.1.0 and tooling package 0.1.1. These are two fields in one
+release, not two releases or two tags. The benchmark number governs result
+comparability; the tooling number describes the CLI/Python interface. A separate
+software tag is useful only for a tooling-only release.
+
+Future releases must state both fields and the exact source commit. Reports
+record the benchmark edition and actual software identity; citations to the
+project can remain version-neutral. See the [Fetch version rules](https://github.com/lexmount/lexbench-webfetch/blob/main/docs/versions.md)
+and [Search version rules](https://github.com/lexmount/lexbench-websearch/blob/main/docs/versions.md).
 
 ## Citations and experiment identity
 
