@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from lexbench_webfetch.body_coverage import evaluate_body_requirements
 from lexbench_webfetch.metrics import normalize_for_match, normalize_resource_url
 from lexbench_webfetch.paths import contained_path, safe_identifier
 from lexbench_webfetch.scoring_regressions import valid_correction_provenance
@@ -147,9 +148,9 @@ def requires_fresh_reference(case) -> bool:
         validate_acceptance_contract(contract)
     verification = _get(case, "source_verification", {}) or {}
     mode = verification.get("reference_mode", "frozen")
-    if mode not in {"frozen", "live_exact"}:
-        raise ReferenceLifecycleError("Unknown reference mode; use frozen or live_exact")
-    return mode == "live_exact"
+    if mode not in {"frozen", "live_exact", "live_body"}:
+        raise ReferenceLifecycleError("Unknown reference mode; use frozen, live_exact or live_body")
+    return mode in {"live_exact", "live_body"}
 
 
 def expected_providers(dataset, case):
@@ -175,6 +176,29 @@ def reference_cases(dataset):
             requires_browser_observation(case)
             cases[identifier] = case
     return cases
+
+
+def body_source_qualifies(case, content):
+    """Test an independent current body against unchanged declared body requirements."""
+    body = _get(case, "body_requirements", {})
+    if not body or not isinstance(content, str) or not content.strip():
+        raise ReferenceLifecycleError("Live body qualification needs a body contract and source text")
+    return evaluate_body_requirements(content, body)["body_coverage_pass"]
+
+
+def verify_body_qualification(case, source, verification):
+    """Recheck retained current-source bytes against the original body contract."""
+    identifier = safe_identifier(_get(case, "id"))
+    try:
+        source = contained_path(input_tree(Path(source) / "dataset.json", "sources"),
+                                f"{identifier}/source-qualification.txt",
+                                reject_symlinks=True).read_text(encoding="utf-8")
+    except (OSError, ValueError) as error:
+        raise ReferenceLifecycleError(f"{identifier}: current body qualification is missing") from error
+    if sha256(source) != verification.get("qualification_sha256"):
+        raise ReferenceLifecycleError(f"{identifier}: current body qualification hash mismatch")
+    if not body_source_qualifies(case, source):
+        raise ReferenceLifecycleError(f"{identifier}: current source no longer satisfies frozen body", "reference_changed")
 
 
 def requires_browser_observation(case):
@@ -623,6 +647,8 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
     actual_hash = sha256(reference)
     if verification.get("reference_sha256") != actual_hash:
         raise ReferenceLifecycleError(f"{identifier}: reference SHA-256 mismatch", "reference_changed")
+    if verification.get("reference_mode") == "live_body":
+        verify_body_qualification(case, dataset_path.parent, verification)
     binding = {
         "reference_sha256": actual_hash,
         "expected_normalized_sha256": sha256(normalize_for_match(reference)),
@@ -908,7 +934,10 @@ def _postcheck_case(binding, case, observation, records, now, original_case=None
     normalized = sha256(normalize_for_match(content))
     if "content_sha256" in observation and observation["content_sha256"] != actual:
         raise ReferenceLifecycleError("Observation content hash mismatch")
-    return {"status": "verified" if normalized == binding["expected_normalized_sha256"] else "reference_changed",
+    qualified = (body_source_qualifies(case, content)
+                 if binding["source_verification"].get("reference_mode") == "live_body"
+                 else normalized == binding["expected_normalized_sha256"])
+    return {"status": "verified" if qualified else "reference_changed",
             "checked_at": observation["checked_at"], "latest_call_finished_at": latest.isoformat(),
             "content_sha256": actual, "normalized_sha256": normalized}
 
@@ -1708,11 +1737,20 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
             for identifier, binding in bindings.items():
                 safe_identifier(identifier)
                 result = post["cases"][identifier]
+                live_body = binding.get("source_verification", {}).get("reference_mode") == "live_body"
+                if live_body:
+                    if source is None or observations is None:
+                        raise ReferenceLifecycleError("Live body certificate requires retained source observations")
+                    original_body_case = {'id': identifier, 'body_requirements':
+                        binding.get('scope_identity', {}).get('evaluation_contract', {}).get('body_requirements')}
+                    verify_body_qualification(original_body_case, source, binding['source_verification'])
+                    if not body_source_qualifies(original_body_case, observations[identifier].get('content_text')):
+                        raise ReferenceLifecycleError("Post-call source no longer satisfies frozen body", "reference_changed")
                 if (not isinstance(result, dict) or result.get("status") != "verified"
                         or not valid_hash(binding.get("reference_sha256"))
                         or not valid_hash(binding.get("expected_normalized_sha256"))
                         or not valid_hash(result.get("content_sha256"))
-                        or result.get("normalized_sha256") != binding["expected_normalized_sha256"]
+                        or (not live_body and result.get("normalized_sha256") != binding["expected_normalized_sha256"])
                         or not isinstance(binding.get("scope_identity"), dict)
                         or binding["scope_identity"].get("case_id") != identifier
                         or not isinstance(binding["scope_identity"].get("evaluation_contract"), dict)):

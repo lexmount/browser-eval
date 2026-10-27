@@ -127,6 +127,17 @@ body regions, record contracts, composite fields and patterns as well as facts;
 a fact group is optional when another
 content requirement establishes the source scope.
 
+For live URLs whose revised acceptance depends on frozen body text, explicitly
+select `source_verification.reference_mode: live_body`. The existing certified
+entry captures current source text before and after calls. Both observations
+must satisfy the original body requirements; neither observation replaces the
+frozen reference, regions or thresholds. The freezer retains a hash-bound
+`source-qualification.txt` beside task sources. Preflight checks its freshness
+and contents, and certification rechecks retained pre/post evidence. Missing or
+incompatible sources reject the cohort; they are not provider failures. Small
+changes within the declared coverage tolerance remain valid. Unsupported
+consumers must reject the mode rather than omit its source checks.
+
 ## WCXB scoring
 
 `wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is
@@ -1248,7 +1259,7 @@ Lightpanda 使用 `--dump markdown --json` 的原生正文；Obscura 使用其�
 不重新审核入选资格，不读取历史资格调查原文，也不因旧归档缺失而改成诊断结果。
 新增题目、修改参考或验收规则时，仍须通过相应构建与修订流程核验来源。
 固定答案不会因为有来源核验信息、旧核验日期或缺少新版验收契约而自动变成实时参考。
-只有题目明确声明 `source_verification.reference_mode: live_exact`，才执行调用前冻结和调用后核验。
+题目明确声明 `source_verification.reference_mode: live_exact` 时，执行调用前冻结和调用后精确核验；`live_body` 则在调用前后用原正文规则核验当前来源，保留原参考、分区和门槛。来源核验缺失或不通过时，不能认证为正式结果。
 没有该声明时，执行器保持题库中的答案和评分规则不变。明确修订参考答案仍走独立的参考修订入口。
 
 已授权的错误修正应自动完成：先查明共享原因并添加必要的正反测试，再冻结受影响的完整调用范围，经认证入口补跑。

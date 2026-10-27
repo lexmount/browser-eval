@@ -31,6 +31,7 @@ from harness.web_fetch.reference_inputs import (
 )
 from harness.web_fetch.reference_lifecycle import (
     _completion,
+    body_source_qualifies,
     check_case_reference_binding,
     completed_case_records,
     legacy_reference_cases,
@@ -253,6 +254,18 @@ def compute_reference_update(dataset, captures, observations=None, *, refresh_ca
         if missing_facts:
             raise ValueError('Required fact missing from independent reference: '
                              +cid+'/'+missing_facts[0])
+        if case.get('source_verification', {}).get('reference_mode') == 'live_body':
+            if not body_source_qualifies(case, text):
+                raise ValueError('Current source no longer satisfies frozen body: ' + cid)
+            case['source_verification'].update(
+                state='valid', checked_at=timestamp, selector=selector, method=method,
+                observation_route='browser' if cid in observations else 'http',
+                reference_sha256=hashlib.sha256(case['ground_truth_main_content'].encode()).hexdigest(),
+                qualification_sha256=hashlib.sha256(text.encode()).hexdigest())
+            contexts[cid] = {'row': row, 'missing_facts': missing_facts,
+                             'browser_observation': cid in observations,
+                             'qualification_text': text}
+            continue
         old=case['ground_truth_main_content']
         if normalize_for_match(old)==normalize_for_match(text):text=old
         old_requirements=case.get('body_requirements')
@@ -370,6 +383,8 @@ def main(argv=None):
                                        and not capture_record['quality_issues'] else 'needs_review')
             (target/'current-capture.json').write_text(
                 json.dumps(capture_record,ensure_ascii=False,indent=2)+'\n')
+        if 'qualification_text' in contexts[cid]:
+            (target/'source-qualification.txt').write_text(contexts[cid]['qualification_text'], encoding='utf-8')
         (target/'reference.txt').write_text(case['ground_truth_main_content'])
     (args.output/'dataset.json').write_text(json.dumps(dataset,ensure_ascii=False,indent=2)+'\n')
     refresh={'schema_version':1,'changed':changes,
@@ -391,7 +406,7 @@ def main(argv=None):
             json.dumps(dataset,ensure_ascii=False,indent=2)+'\n')
     (args.output/'reference-refresh.json').write_text(
         json.dumps(refresh,ensure_ascii=False,indent=2)+'\n')
-    print('Frozen exact-reference cases:',sum(requires_fresh_reference(c) for c in dataset['cases']),'; changed full-text references:', len(changes))
+    print('Qualified live-reference cases:',sum(requires_fresh_reference(c) for c in dataset['cases']),'; changed full-text references:', len(changes))
 
 
 def load_resumable_observations(checkpoint, cases):
