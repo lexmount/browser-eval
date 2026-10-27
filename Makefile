@@ -71,8 +71,15 @@ package-check: runtime-check
 	test "$$#" -eq 1; test -f "$$1"; \
 	wheel="$$1"; \
 	cd "$$package_run"; \
-	$(UV) run --no-project --isolated --python 3.11 --with "$$wheel" \
-	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
+	$(UV) venv --seed --python 3.11 "$$package_run/pip-venv"; \
+	pip_python="$$package_run/pip-venv/bin/python"; \
+	set -- "$$package_build"/*.tar.gz; test "$$#" -eq 1; \
+	"$$pip_python" -m pip install "$$1"; \
+	"$$pip_python" -m pip check; \
+	"$$package_run/pip-venv/bin/browser-harness-eval" validate; \
+	"$$pip_python" -m pip install --force-reinstall --no-deps "$$wheel"; \
+	"$$pip_python" -m pip check; \
+	"$$pip_python" "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
 	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown"; \
 	$(UV) run --no-project --isolated --python 3.11 --with "$${wheel}[webmainbench-eval]" \
 	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
