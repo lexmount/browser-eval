@@ -93,9 +93,9 @@ def test_changed_or_missing_source_is_rejected_before_scoring(tmp_path, current)
         reference_freeze.compute_reference_update(dataset, captures)
 
 
-@pytest.mark.parametrize("damage", ["missing", "tampered", "stale"])
+@pytest.mark.parametrize("damage", ["missing", "tampered", "newlines", "stale"])
 def test_preflight_requires_intact_fresh_qualification(tmp_path, damage):
-    dataset, captures, source = inputs(tmp_path)
+    dataset, captures, source = inputs(tmp_path, TEXT + "\n")
     output = tmp_path / "frozen"
     reference_freeze.main(
         ["--dataset", str(source), "--captures", str(captures), "--output", str(output)]
@@ -106,6 +106,8 @@ def test_preflight_requires_intact_fresh_qualification(tmp_path, damage):
         receipt.unlink()
     if damage == "tampered":
         receipt.write_text("changed")
+    if damage == "newlines":
+        receipt.write_bytes(receipt.read_bytes().replace(b"\n", b"\r\n"))
     if damage == "stale":
         frozen["cases"][0]["source_verification"]["checked_at"] = "2020-01-01T00:00:00Z"
     with pytest.raises(ReferenceLifecycleError):
@@ -157,7 +159,7 @@ def certified_run(tmp_path, monkeypatch, invalid_phase=None, current_text=None):
     current = (
         "A completely rewritten document about unrelated subjects. " * 50
         if invalid_phase == "pre"
-        else current_text or TEXT.replace("stars", "moon")
+        else (current_text or TEXT.replace("stars", "moon")) + "\n"
     )
     dataset, _, source = inputs(tmp_path, current)
     dataset["cases"][0]["category"] = "web"
@@ -256,6 +258,9 @@ def certified_run(tmp_path, monkeypatch, invalid_phase=None, current_text=None):
         require_verified_reference_checks(manifest, cases=saved, records=records, source=output)
         receipt = next((output / "sources/body").glob("source-qualification-*.txt"))
         original = receipt.read_bytes()
+        receipt.write_bytes(original.replace(b"\n", b"\r\n"))
+        with pytest.raises(ReferenceLifecycleError, match="qualification hash mismatch"):
+            require_verified_reference_checks(manifest, cases=saved, records=records, source=output)
         receipt.unlink()
         with pytest.raises(ReferenceLifecycleError, match="qualification is missing"):
             require_verified_reference_checks(manifest, cases=saved, records=records, source=output)
@@ -310,7 +315,7 @@ def test_combined_batches_retain_distinct_qualified_sources(tmp_path, monkeypatc
     receipts = list((combined / "sources/body").glob("source-qualification-*.txt"))
     assert len(receipts) == 2
     assert {path.read_text() for path in receipts} == {
-        TEXT.replace("stars", word) for word in ("moon", "clouds")
+        TEXT.replace("stars", word) + "\n" for word in ("moon", "clouds")
     }
     receipt = next((runs[1] / "sources/body").glob("source-qualification-*.txt"))
     receipt.write_text("tampered")

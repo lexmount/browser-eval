@@ -199,12 +199,12 @@ def verify_body_qualification(case, source, verification):
     try:
         source = contained_path(input_tree(Path(source) / "dataset.json", "sources"),
                                 body_qualification_path(identifier, verification.get("qualification_sha256")),
-                                reject_symlinks=True).read_text(encoding="utf-8")
+                                reject_symlinks=True).read_bytes()
     except (OSError, ValueError) as error:
         raise ReferenceLifecycleError(f"{identifier}: current body qualification is missing") from error
     if sha256(source) != verification.get("qualification_sha256"):
         raise ReferenceLifecycleError(f"{identifier}: current body qualification hash mismatch")
-    if not body_source_qualifies(case, source):
+    if not body_source_qualifies(case, source.decode("utf-8")):
         raise ReferenceLifecycleError(f"{identifier}: current source no longer satisfies frozen body", "reference_changed")
 
 

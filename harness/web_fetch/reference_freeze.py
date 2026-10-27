@@ -385,7 +385,7 @@ def main(argv=None):
             (target/'current-capture.json').write_text(
                 json.dumps(capture_record,ensure_ascii=False,indent=2)+'\n')
         if 'qualification_text' in contexts[cid]:
-            (args.output/'sources'/body_qualification_path(cid, case['source_verification']['qualification_sha256'])).write_text(contexts[cid]['qualification_text'], encoding='utf-8')
+            (args.output/'sources'/body_qualification_path(cid, case['source_verification']['qualification_sha256'])).write_bytes(contexts[cid]['qualification_text'].encode('utf-8'))
         (target/'reference.txt').write_text(case['ground_truth_main_content'])
     (args.output/'dataset.json').write_text(json.dumps(dataset,ensure_ascii=False,indent=2)+'\n')
     refresh={'schema_version':1,'changed':changes,
