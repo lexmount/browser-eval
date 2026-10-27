@@ -726,7 +726,7 @@ def finalize_aggregate(run_dir: Path, observations: Path) -> None:
         raise ValueError("Finalized worker metadata changed")
 
     for path, manifest in zip(manifests, updated, strict=True):
-        materialize_reference_checks(run_dir, path.parent, [manifest])
+        materialize_reference_checks(run_dir, path.parent, [manifest], qualification_source=run_dir)
 
     rebuilt = {**execution, "batches": [updated_by_key[_attempt_key(batch)] for batch in original]}
     temporary = None

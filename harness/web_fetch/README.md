@@ -132,7 +132,7 @@ select `source_verification.reference_mode: live_body`. The existing certified
 entry captures current source text before and after calls. Both observations
 must satisfy the original body requirements; neither observation replaces the
 frozen reference, regions or thresholds. The freezer retains a hash-bound
-`source-qualification.txt` beside task sources. Preflight checks its freshness
+`source-qualification-<sha256>.txt` beside task sources. Preflight checks its freshness
 and contents, and certification rechecks retained pre/post evidence. Missing or
 incompatible sources reject the cohort; they are not provider failures. Small
 changes within the declared coverage tolerance remain valid. Unsupported

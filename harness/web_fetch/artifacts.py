@@ -18,7 +18,9 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 from harness.record_io import file_sha256
 from harness.web_fetch import native_routes
 from harness.web_fetch.publication_privacy import original_evidence_size, read_evidence_binding
+from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.reference_lifecycle import (
+    body_qualification_path,
     latency_correction_original_elapsed,
     preserve_legacy_reference_dataset,
 )
@@ -408,7 +410,8 @@ def materialize_bound_artifacts(output: Path, source_root: Path, records: list[d
         verify_record_public_call_logs(output, record)
 
 
-def materialize_reference_checks(output: Path, source: Path, batches: list[dict]) -> None:
+def materialize_reference_checks(output: Path, source: Path, batches: list[dict], *,
+                                 qualification_source: Path | None = None) -> None:
     """Retain hash-bound source observations and native execution contracts."""
     native_routes.materialize_native_route_contracts(output, source, batches)
     for batch in batches:
@@ -421,18 +424,28 @@ def materialize_reference_checks(output: Path, source: Path, batches: list[dict]
                 or any(char not in '0123456789abcdef' for char in digest)
                 or relative != f'reference-checks/observations-{digest}.json'):
             raise ValueError('Reference check has an invalid evidence binding')
-        path = contained_path(source, relative, reject_symlinks=True)
-        if not path.is_file() or file_sha256(path) != digest:
-            raise ValueError('Reference check evidence differs from its certificate')
-        target = contained_path(output, relative, reject_symlinks=True)
-        if target.exists():
-            if not target.is_file() or file_sha256(target) != digest:
-                raise ValueError('Conflicting reference check evidence')
-        else:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(path, target)
-        if file_sha256(target) != digest:
-            raise ValueError('Copied reference check evidence changed')
+        files = [(relative, digest)]
+        for identifier, binding in batch.get('reference_checks', {}).get('cases', {}).items():
+            verification = binding.get('source_verification', {})
+            if verification.get('reference_mode') == 'live_body':
+                digest = verification.get('qualification_sha256')
+                files.append(('sources/' + body_qualification_path(identifier, digest), digest))
+        for relative, digest in files:
+            path = (contained_path(input_tree((qualification_source or source) / 'dataset.json', 'sources'),
+                                   relative.removeprefix('sources/'), reject_symlinks=True)
+                    if relative.startswith('sources/')
+                    else contained_path(source, relative, reject_symlinks=True))
+            if not path.is_file() or file_sha256(path) != digest:
+                raise ValueError('Reference check evidence differs from its certificate')
+            target = contained_path(output, relative, reject_symlinks=True)
+            if target.exists():
+                if not target.is_file() or file_sha256(target) != digest:
+                    raise ValueError('Conflicting reference check evidence')
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target)
+            if file_sha256(target) != digest:
+                raise ValueError('Copied reference check evidence changed')
 
 
 def materialize_task_references(output: Path, trees: dict[str, Path], case_ids: Iterable[str]) -> None:

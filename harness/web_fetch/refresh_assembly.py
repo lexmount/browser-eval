@@ -869,6 +869,7 @@ def _require_canonical_cases(
                 for field in (
                     "reference_sha256",
                     "source_snapshot_sha256",
+                    "qualification_sha256",
                     "extracted_reference_sha256",
                     "browser_observation_sha256",
                 ):
@@ -881,6 +882,7 @@ def _require_canonical_cases(
                 "checked_at",
                 "http_status",
                 "source_snapshot_sha256",
+                "qualification_sha256",
                 "extracted_reference_sha256",
                 "browser_observation_sha256",
             ):

@@ -186,12 +186,19 @@ def body_source_qualifies(case, content):
     return evaluate_body_requirements(content, body)["body_coverage_pass"]
 
 
+def body_qualification_path(identifier, digest):
+    """Retain distinct current captures of the same unchanged reference."""
+    if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ReferenceLifecycleError("Invalid body qualification hash")
+    return f"{safe_identifier(identifier)}/source-qualification-{digest}.txt"
+
+
 def verify_body_qualification(case, source, verification):
     """Recheck retained current-source bytes against the original body contract."""
     identifier = safe_identifier(_get(case, "id"))
     try:
         source = contained_path(input_tree(Path(source) / "dataset.json", "sources"),
-                                f"{identifier}/source-qualification.txt",
+                                body_qualification_path(identifier, verification.get("qualification_sha256")),
                                 reject_symlinks=True).read_text(encoding="utf-8")
     except (OSError, ValueError) as error:
         raise ReferenceLifecycleError(f"{identifier}: current body qualification is missing") from error

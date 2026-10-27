@@ -31,6 +31,7 @@ from harness.web_fetch.reference_inputs import (
 )
 from harness.web_fetch.reference_lifecycle import (
     _completion,
+    body_qualification_path,
     body_source_qualifies,
     check_case_reference_binding,
     completed_case_records,
@@ -384,7 +385,7 @@ def main(argv=None):
             (target/'current-capture.json').write_text(
                 json.dumps(capture_record,ensure_ascii=False,indent=2)+'\n')
         if 'qualification_text' in contexts[cid]:
-            (target/'source-qualification.txt').write_text(contexts[cid]['qualification_text'], encoding='utf-8')
+            (args.output/'sources'/body_qualification_path(cid, case['source_verification']['qualification_sha256'])).write_text(contexts[cid]['qualification_text'], encoding='utf-8')
         (target/'reference.txt').write_text(case['ground_truth_main_content'])
     (args.output/'dataset.json').write_text(json.dumps(dataset,ensure_ascii=False,indent=2)+'\n')
     refresh={'schema_version':1,'changed':changes,

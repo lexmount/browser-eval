@@ -62,6 +62,7 @@ CAPTURE_INSTANCE_FIELDS = {
     "checked_at",
     "http_status",
     "source_snapshot_sha256",
+    "qualification_sha256",
     "extracted_reference_sha256",
     "browser_observation_sha256",
 }

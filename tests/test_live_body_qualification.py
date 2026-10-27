@@ -80,7 +80,7 @@ def test_freezer_keeps_original_body_and_reference_with_a_current_receipt(tmp_pa
     assert case["body_requirements"] == old["cases"][0]["body_requirements"]
     assert dataset == old
     assert set(reference_cases(frozen)) == {"body"}
-    assert (output / "sources/body/source-qualification.txt").read_text() == current
+    assert next((output / "sources/body").glob("source-qualification-*.txt")).read_text() == current
     checks = preflight_reference_checks(frozen["cases"], output / "dataset.json", now=NOW)
     assert set(checks["cases"]) == {"body"}
     assert not json.loads((output / "reference-refresh.json").read_text())["reference_changed"]
@@ -101,7 +101,7 @@ def test_preflight_requires_intact_fresh_qualification(tmp_path, damage):
         ["--dataset", str(source), "--captures", str(captures), "--output", str(output)]
     )
     frozen = json.loads((output / "dataset.json").read_text())
-    receipt = output / "sources/body/source-qualification.txt"
+    receipt = next((output / "sources/body").glob("source-qualification-*.txt"))
     if damage == "missing":
         receipt.unlink()
     if damage == "tampered":
@@ -147,10 +147,7 @@ def test_postcheck_uses_frozen_body_tolerance_not_exact_current_text(tmp_path, p
     assert result["status"] == expected
 
 
-@pytest.mark.parametrize("invalid_phase", [None, "pre", "post"])
-def test_formal_entry_captures_before_calls_and_rejects_invalid_source(
-    tmp_path, monkeypatch, invalid_phase
-):
+def certified_run(tmp_path, monkeypatch, invalid_phase=None, current_text=None):
     from harness.web_fetch import benchmark_runner, certification, evidence
     from harness.web_fetch.reference_lifecycle import (
         require_verified_reference_checks,
@@ -160,7 +157,7 @@ def test_formal_entry_captures_before_calls_and_rejects_invalid_source(
     current = (
         "A completely rewritten document about unrelated subjects. " * 50
         if invalid_phase == "pre"
-        else TEXT.replace("stars", "moon")
+        else current_text or TEXT.replace("stars", "moon")
     )
     dataset, _, source = inputs(tmp_path, current)
     dataset["cases"][0]["category"] = "web"
@@ -257,6 +254,65 @@ def test_formal_entry_captures_before_calls_and_rejects_invalid_source(
         manifest = json.loads((output / "execution.json").read_text())["batches"]
         records = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
         require_verified_reference_checks(manifest, cases=saved, records=records, source=output)
-        (output / "sources/body/source-qualification.txt").unlink()
+        receipt = next((output / "sources/body").glob("source-qualification-*.txt"))
+        original = receipt.read_bytes()
+        receipt.unlink()
         with pytest.raises(ReferenceLifecycleError, match="qualification is missing"):
             require_verified_reference_checks(manifest, cases=saved, records=records, source=output)
+
+        receipt.write_bytes(original)
+        return output
+
+
+@pytest.mark.parametrize("invalid_phase", [None, "pre", "post"])
+def test_formal_entry_captures_before_calls_and_rejects_invalid_source(
+    tmp_path, monkeypatch, invalid_phase
+):
+    certified_run(tmp_path, monkeypatch, invalid_phase)
+
+
+def test_combined_batches_retain_distinct_qualified_sources(tmp_path, monkeypatch):
+    from harness.web_fetch.artifacts import materialize_reference_checks
+    from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
+    from harness.web_fetch.refresh_assembly import _require_canonical_cases
+
+    combined = tmp_path / "combined"
+    combined.mkdir()
+    runs = []
+    for word in ("moon", "clouds"):
+        root = tmp_path / word
+        root.mkdir()
+        runs.append(certified_run(root, monkeypatch, current_text=TEXT.replace("stars", word)))
+    canonical = json.loads((runs[0] / "dataset.json").read_text())
+    (combined / "dataset.json").write_text(json.dumps(canonical))
+    canonical_cases = {case["id"]: case for case in canonical["cases"]}
+    for run in runs:
+        supplied = json.loads((run / "dataset.json").read_text())
+        batches = json.loads((run / "execution.json").read_text())["batches"]
+        rows = [json.loads(line) for line in (run / "results.jsonl").read_text().splitlines()]
+        _require_canonical_cases(
+            supplied, canonical_cases, rows, "batch", equivalent_capture_bindings=True
+        )
+        materialize_reference_checks(combined, run, batches)
+        require_verified_reference_checks(
+            batches,
+            cases=canonical,
+            records=rows,
+            source=combined,
+            equivalent_capture_bindings=True,
+        )
+        changed = deepcopy(supplied)
+        changed["cases"][0]["body_requirements"]["minimum_coverage"] = 0.5
+        with pytest.raises(ValueError, match="differs from canonical"):
+            _require_canonical_cases(
+                changed, canonical_cases, rows, "batch", equivalent_capture_bindings=True
+            )
+    receipts = list((combined / "sources/body").glob("source-qualification-*.txt"))
+    assert len(receipts) == 2
+    assert {path.read_text() for path in receipts} == {
+        TEXT.replace("stars", word) for word in ("moon", "clouds")
+    }
+    receipt = next((runs[1] / "sources/body").glob("source-qualification-*.txt"))
+    receipt.write_text("tampered")
+    with pytest.raises(ValueError, match="differs from its certificate"):
+        materialize_reference_checks(combined, runs[1], batches)
