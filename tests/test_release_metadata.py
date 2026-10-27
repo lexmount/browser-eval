@@ -49,3 +49,44 @@ def test_release_tag_matches_installed_identity():
         pytest.skip("Tag identity is checked on release-tag CI runs")
     tag = os.environ["GITHUB_REF_NAME"]
     assert tag == "v" + importlib.metadata.version("browser-harness-eval")
+
+
+def test_declared_benchmark_pins_match_lock_and_installation():
+    import json
+
+    from harness.lexbench_pin import validate_binding
+
+    project = source_project()
+    locked = tomllib.loads((ROOT / "uv.lock").read_text())
+    for dependency in project["dependencies"]:
+        if not dependency.startswith("lexbench-"):
+            continue
+        name = dependency.split(" @ ")[0]
+        revision = validate_binding(ROOT, name)
+        package = next(p for p in locked["package"] if p["name"] == name)
+        installed = importlib.metadata.distribution(name)
+        assert installed.version == package["version"], name
+        origin = json.loads(installed.read_text("direct_url.json"))
+        assert origin["vcs_info"]["commit_id"] == revision, name
+
+
+def test_installed_benchmarks_match_their_frozen_catalogs():
+    from importlib import import_module
+
+    source_project()
+    for module in ["lexbench_webfetch", "lexbench_websearch"]:
+        import_module(module + ".versions").catalog_release()
+
+
+def test_runtime_version_reads_installation_metadata():
+    import subprocess
+    import sys
+
+    code = """
+from unittest.mock import patch
+with patch('importlib.metadata.version', return_value='9.8.7') as installed:
+    import harness.web_fetch as package
+    assert package.__version__ == '9.8.7'
+    installed.assert_called_once_with('browser-harness-eval')
+"""
+    subprocess.run([sys.executable, "-c", code], check=True)
