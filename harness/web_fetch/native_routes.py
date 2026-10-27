@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from lexbench_webfetch.file_acceptance import evaluate_files
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import canonical_json_sha256, file_sha256
+from harness.record_io import canonical_json_sha256, file_sha256, parse_utf8_json
 from harness.web_fetch.config import DEFAULT_CALL_TIMEOUT_SECONDS
 from harness.web_fetch.native_projection import (
     SCORE_ANSWER_FIELDS,
@@ -23,7 +23,6 @@ from harness.web_fetch.native_projection import (
     require_native_projection_schema,
 )
 from harness.web_fetch.publication_privacy import read_evidence_binding
-from harness.web_fetch.providers.http_client import parse_utf8_json
 from harness.web_fetch.retrieval_hints import native_default_case
 
 INPUT_MEDIA_KINDS = frozenset({
