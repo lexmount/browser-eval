@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import uuid
 
 from lexbench_webfetch.models import EvalCase
@@ -145,7 +146,7 @@ class HostedFetchProvider(Provider):
             metadata["upstream_http_status_available"] = False
         else:
             try:
-                payload = response.json()
+                payload = json.loads(response.body.decode("utf-8"))
             except ValueError:
                 payload = None
             if not isinstance(payload, dict):
