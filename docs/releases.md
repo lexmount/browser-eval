@@ -1,6 +1,6 @@
 # Software releases
 
-Browser Eval versions the execution and reporting software. The current package version is `0.2.0`; a version in source is not a published GitHub release. Software tags use `vMAJOR.MINOR.PATCH` and identify one tested commit.
+Browser Eval versions the execution and reporting software. The current package version is `0.3.0`; a version in source is not a published GitHub release. Software tags use `vMAJOR.MINOR.PATCH` and identify one tested commit.
 
 ## Version rules
 
@@ -20,7 +20,7 @@ While the software remains `0.x`, use a minor release for new functionality or b
 
 | Identity | Owner | When it changes |
 | --- | --- | --- |
-| Browser Eval software, e.g. `v0.2.0` | This repository | Execution, adapters, evidence handling or reporting software is released |
+| Browser Eval software, e.g. `v0.3.0` | This repository | Execution, adapters, evidence handling or reporting software is released |
 | Benchmark edition, e.g. `bench-v2.0.1` | Selected benchmark repository | Tasks, references or scoring change under that benchmark's rules |
 | Published report build | Artifact Site or selected report host | A new report build is published |
 
@@ -37,9 +37,39 @@ Web Fetch, Web Search / SERP, Browser Trajectory Replay and Browser Use have mai
 ## Release procedure
 
 1. Select a clean commit on main and declare supported tracks, benchmark pins and migrations. Check that pending work is not described as included.
-2. Align the software version in `pyproject.toml`, `harness/web_fetch/__init__.py`, `uv.lock`, `CITATION.cff` and README citations. Set the actual release date when publishing. Run `uv lock` when package metadata changes, retaining immutable dependency pins.
+2. Align `pyproject.toml`, `harness/web_fetch/__init__.py` and `uv.lock`. Project citations stay version-neutral. Run `uv lock` when package metadata changes, retaining immutable dependency pins. The metadata tests check the lock, installed package, runtime version and bilingual citations.
 3. Run `make setup-test` and `make ci` on that commit. The package gate checks installation outside the checkout. Follow each track's separate release gate when publishing benchmark reports; a software tag does not certify their measurements.
 4. Prepare release notes with supported tracks and suites, installation commands, compatible interfaces, required external inputs and migrations. Check that the source archive and wheel contain the declared version.
 5. After release approval, publish an annotated `vMAJOR.MINOR.PATCH` tag and GitHub release for that exact commit. Never move a published tag. Upload software distribution files; keep provider outputs and private report evidence outside the software release.
 
-Use a feature branch and PR for release preparation. Merging and publishing are separate maintainer actions. Record the exact commit in bug reports and citations, including for unreleased branches.
+Use a feature branch and PR for release preparation. Merging and publishing are separate maintainer actions. Record the exact commit in bug reports and experiment methods, including for unreleased branches.
+
+## Release history and the next checkpoint
+
+| Version | Scope | Source |
+| --- | --- | --- |
+| `0.1.0` | Original software checkpoint | `03c9a5e94619000480c92b8e517c16165dc2a7f4` |
+| `0.2.0` | Shared report-build identity and reusable Web Fetch reports | `30645af1ba2520b4d089cbef32979e088cffe277` |
+| `0.3.0` | Web Search integration, shared capture fixes and release metadata checks | This release preparation; tag the merged commit after validation |
+
+The first two versions were previously tagged. Restore deleted tags to their
+original Git objects; never reuse their names for newer code. Restoration does
+not rerun an experiment or alter its results. Use `0.3.1` for a compatible fix
+after this release, `0.4.0` for another feature release or a breaking change
+while developing, and `1.0.0` when the documented interfaces are ready for a
+long-term compatibility promise. A stable Web Fetch workflow alone does not
+make every track a stable API.
+
+## Citations and experiment identity
+
+README BibTeX and `CITATION.cff` cite the project, so they omit `version` and
+`date-released`. A paper citing a particular release may add that release's
+version and permanent URL. Reports must retain the software version and commit,
+benchmark edition, selected suites/task hashes and scoring-source hash. Their
+execution version can differ from their report-building version. A presentation
+rebuild preserves the original benchmark and measured outputs.
+
+The software release keeps its actual dependency pins; a newer upstream edition
+is not adopted just by changing a displayed version. Benchmark upgrades require
+the existing integration tests and a separate decision about rescoring saved
+answers or collecting new answers.
