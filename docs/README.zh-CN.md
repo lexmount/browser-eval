@@ -8,15 +8,28 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](../LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](../pyproject.toml)
 
-[快速开始](#快速开始) · [评测流程](#评测流程) · [报告](#报告) · [版本](#版本) · [相关仓库](#相关仓库) · [参与贡献](../CONTRIBUTING.md)
+[特性](#特性) · [快速开始](#快速开始) · [评测流程](#评测流程) · [报告](#报告) · [版本](#版本) · [相关仓库](#相关仓库) · [参与贡献](../CONTRIBUTING.md)
 
 </div>
 
-Browser Eval 是面向浏览器和 Web Agent 的评测脚手架（evaluation harness）。接入评测集和浏览器或服务适配器后，就能运行任务、记录响应和耗时、按评测集的规则评分，并生成带原始证据的对比报告。
+运行 benchmark 对比，生成带逐题证据的报告，后续可重建或分享。
+
+## 特性
+
+| 特性 | 能做什么 |
+| --- | --- |
+| 从评测到报告 | 配置任务和评测对象后，一条命令完成评测并生成 HTML 报告。 |
+| 接入多种 benchmark | 使用已接入的 benchmark，也可提供自己的任务，按所选 benchmark 的规则评分。[接入指南](benchmarks.md) |
+| 扩展评测对象 | 比较本地浏览器、在线 API、内容提取工具和 Web Agent，通过已有[适配接口](provider-contract.md)接入新的参与方。 |
+| 查看逐题证据 | 从汇总指标查看对应的逐题响应、操作轨迹和失败日志。 |
+| 复用已有结果 | 从保存的输出重建报告、重算评分，无需重复调用参与方。 |
+| 比较质量、性能和成本 | 同时查看任务通过情况、延迟、资源使用和已记录的计费数据。 |
+| 追溯实验配置 | 保留任务输入、benchmark 和软件版本、评分代码及执行配置。 |
+| 分享报告并控制权限 | 通过 Artifact Site 发布报告，并设置谁能访问。[创建与分享报告](#报告) |
 
 ## 评测流程
 
-主分支已包含下列四种评测流程。各流程均提供可运行的示例，以及评测输入和环境配置指南。
+按任务选择评测流程，各指南提供任务约定、环境配置和可运行示例。
 
 | 流程 | 测什么 | 对应评测集与任务集 | 使用指南 |
 | --- | --- | --- | --- |
@@ -24,10 +37,6 @@ Browser Eval 是面向浏览器和 Web Agent 的评测脚手架（evaluation har
 | Web Search（预览） | 比较搜索结果、相关性、来源检索、延迟与计费 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
 | 轨迹重放 | 比较不同浏览器能否完成同一组录制动作 | [仓库自建固定动作任务集](../examples/trajectory_replay/README.md)，改编自 [Lexbench-Headless-Browser 场景设计](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | 让 Agent 使用不同浏览器完成任务 | [WebArena-Verified](https://github.com/ServiceNow/webarena-verified)，使用[固定版本的评测器分支](https://github.com/lexmount/webarena-verified/tree/lex-main)和[明确选定的任务](../evaluation/browser-use/webarena-verified-pilot.json) | [CowAgent + WebArena](../examples/browser_use/README.md) |
-
-Web Fetch 支持本地浏览器、在线服务和提取工具。可用方法见[适配器说明](../docs/provider-contract.md)，安装要求见[依赖说明](../docs/dependencies.md)。轨迹重放和 Browser Use 各有自己的运行入口与环境。
-
-题目与评分的维护归属、固定版本和输入要求见[评测集接入指南](../docs/benchmarks.md)。轨迹重放使用固定动作比较浏览器，Browser Use 则评测 Agent 自主决策后的任务完成情况。
 
 ## 快速开始
 

@@ -8,15 +8,28 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
 
-[Quickstart](#quickstart) · [Tracks](#evaluation-tracks) · [Reports](#reports) · [Versions](#versions) · [Related projects](#related-repositories) · [Contributing](CONTRIBUTING.md)
+[Features](#features) · [Quickstart](#quickstart) · [Tracks](#evaluation-tracks) · [Reports](#reports) · [Versions](#versions) · [Related projects](#related-repositories) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
-Browser Eval is an evaluation harness for browsers and web agents. Connect a benchmark and a browser or service adapter to run tasks, record responses and timing, apply the benchmark's scoring rules, and generate comparison reports with the original evidence.
+Run benchmark comparisons and turn the results into reports you can inspect, rebuild and share.
+
+## Features
+
+| Feature | What you get |
+| --- | --- |
+| Run to report | Run a configured comparison and generate an HTML report with one CLI command. |
+| Multiple benchmarks | Use integrated benchmarks or bring your own tasks, with the selected benchmark's scoring rules. [Benchmark integration](docs/benchmarks.md) |
+| Extensible participants | Compare local browsers, hosted APIs, extraction tools and web agents. Add participants through the existing [adapter contracts](docs/provider-contract.md). |
+| Inspectable evidence | Follow aggregate results down to individual responses, action traces and failure logs. |
+| Saved-run workflows | Rebuild reports and rescore saved outputs without repeating provider calls. |
+| Quality, performance and cost | Compare task success alongside latency, resource usage and recorded billing. |
+| Reproducible comparisons | Record task inputs, benchmark and software revisions, scoring code and run settings. |
+| Reports you can share | Publish through Artifact Site and choose who can access the report. [Create and share a report](#reports) |
 
 ## Evaluation tracks
 
-The main branch includes all four tracks below. Each track provides a runnable example and a guide to its benchmark inputs and environment.
+Choose a workflow for its task contract, setup and runnable example.
 
 | Track | What it tests | Benchmarks and task suites | Guide |
 | --- | --- | --- | --- |
@@ -24,10 +37,6 @@ The main branch includes all four tracks below. Each track provides a runnable e
 | Web Search (preview) | Compare search results, relevance, source retrieval, latency and billing | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch): scenario queries and a SimpleQA Verified retrieval adaptation | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
 | Browser Trajectory Replay | Complete the same recorded browser actions across implementations | [Repository-curated fixed-action suite](examples/trajectory_replay/README.md), adapted from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios); [qualified WebArena human recordings](evaluation/browser-use-public/webarena-human-suite.json), checked with the [WebArena-Verified evaluator](https://github.com/lexmount/webarena-verified/tree/lex-main) | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | Let an Agent use different browsers to complete tasks | [WebArena-Verified](https://github.com/ServiceNow/webarena-verified), using the [pinned evaluator fork](https://github.com/lexmount/webarena-verified/tree/lex-main) and [declared task selection](evaluation/browser-use/webarena-verified-pilot.json) | [CowAgent + WebArena](examples/browser_use/README.md) |
-
-Web Fetch supports local browsers, hosted services and extraction tools. See [adapters](docs/provider-contract.md) for available methods and [dependencies](docs/dependencies.md) for installation requirements. Replay and Browser Use have separate runners and environments.
-
-See [benchmark integration](docs/benchmarks.md) for task and scoring ownership, pinned versions and input requirements. The replay suites adapt fixed actions for browser comparison; Browser Use evaluates autonomous Agent decisions.
 
 ## Quickstart
 
