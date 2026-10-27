@@ -1,0 +1,9 @@
+{
+  "rules": [
+    {
+      "path": "**",
+      "rule": ".opencodereview/review-rules.md",
+      "merge_system_rule": true
+    }
+  ]
+}
