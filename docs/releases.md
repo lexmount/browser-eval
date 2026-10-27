@@ -1,6 +1,6 @@
 # Software releases
 
-Browser Eval versions the execution and reporting software. The current package version is `0.3.0`; a version in source is not a published GitHub release. Software tags use `vMAJOR.MINOR.PATCH` and identify one tested commit.
+Browser Eval versions the execution and reporting software. The current package version is `0.3.1`; a version in source is not a published GitHub release. Software tags use `vMAJOR.MINOR.PATCH` and identify one tested commit.
 
 ## Version rules
 
@@ -44,6 +44,16 @@ Web Fetch, Web Search / SERP, Browser Trajectory Replay and Browser Use have mai
 
 Use a feature branch and PR for release preparation. Merging and publishing are separate maintainer actions. Record the exact commit in bug reports and experiment methods, including for unreleased branches.
 
+## Next software release
+
+| Software version | Reason | LexBench dependencies |
+| --- | --- | --- |
+| [0.3.1](https://github.com/lexmount/browser-eval/pull/69) | Prepare the corrected, strictly verifiable Search scorer and synchronized release metadata | Fetch benchmark 2.0.1 / tooling 0.3.0; Search benchmark 1.1.0 / tooling 0.1.1 |
+
+This patch is release preparation. Publish its software tag after the PR merges
+and the release checks pass. Historical 0.3.0 keeps its original dependencies;
+new Search comparisons must rescore both saved cohorts under edition 1.1.0.
+
 ## Released versions
 
 Each GitHub release is the version's changelog: why it was published, the
@@ -68,6 +78,7 @@ a report's population or changes saved results.
 | [Fetch 1.0.0](https://github.com/lexmount/lexbench-webfetch/releases/tag/bench-v1.0.0) | Preserve the historical 430-task report contract and scorer |
 | [Fetch 2.0.1](https://github.com/lexmount/lexbench-webfetch/releases/tag/bench-v2.0.1) | Expanded 550-entry catalog with complete compatibility fingerprints; separate population from 1.x |
 | [Search 1.0.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-1.0.0) | First frozen Search catalog: current 149-case scenario and 831-case factual datasets, with an older scenario snapshot retained |
+| [Search 1.1.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.1.0) | Correct numeric scoring and bind the catalog to its actual scorer; rescore saved cohorts before comparing |
 
 A benchmark release uses **one tag** for its measurement contract and the
 accompanying Python tools. For example, a `bench-v1.1.0` release can contain
