@@ -775,6 +775,8 @@ class MoliWebFetchProvider(Provider):
             )
         self._retain_source(metadata, raw, case)
         native_status, readiness_timed_out = _native_fetch_diagnostics(diagnostic_raw, case.url)
+        metadata['api_http_status'] = None
+        metadata['upstream_status'] = native_status
         http_context = (replay_native_http_error_context(raw, diagnostic_raw, case.url,
                         process.returncode, {'schema_version': 1, 'format': 'fetch_log_http_error'})
                         if process.returncode == 0 and native_status is not None and 400 <= native_status < 600 else None)

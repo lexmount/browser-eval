@@ -169,3 +169,60 @@ def test_configured_cli_selection_reaches_runner(tmp_path):
     assert [p.name for p in run.call_args.kwargs['providers']] == ['fixture']
     assert run.call_args.kwargs['timeout'] == 30
     assert run.call_args.kwargs['max_failure_retries'] == 1
+
+
+@pytest.mark.parametrize('name', SELECTED)
+@pytest.mark.parametrize('origin_status', [200, 404, None])
+def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, name, origin_status):
+    import hashlib
+    import sys
+    from lexbench_webfetch.metrics import task_passed
+    p, c = provider(name), case()
+    exposed = name in {'moli-webfetch', 'firecrawl', 'cloudflare-markdown',
+                       'browser-use-fetch', 'browserbase', 'crawl4ai-cloud'}
+    if name == 'moli-webfetch':
+        binary = tmp_path / 'moli-fixture'
+        event = (f'DEBUG fetch request complete method=GET url={c.url} '
+                 f'final_url={c.url} status={origin_status}') if origin_status is not None else ''
+        binary.write_text(f'#!{sys.executable}\nimport sys\n'
+            'if sys.argv[1:] == ["--version"]:\n print("moli fixture"); sys.exit(0)\n'
+            f'print("Expected")\nprint({event!r}, file=sys.stderr)\n')
+        binary.chmod(0o700)
+        p = build_provider(name, {**p.config, 'binary': str(binary),
+            'expected_reported_version': 'moli fixture',
+            'expected_binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest()})
+    payloads = {
+        'firecrawl': {'success': True, 'data': {'markdown': 'Expected', 'metadata': {'statusCode': origin_status}}},
+        'cloudflare-markdown': {'success': True, 'result': 'Expected', 'meta': {'status': origin_status}},
+        'tavily': {'results': [{'url': c.url, 'raw_content': 'Expected'}]},
+        'exa': {'results': [{'url': c.url, 'text': 'Expected'}]},
+        'browser-use-fetch': {'body': 'Expected', 'status_code': origin_status, 'final_url': c.url},
+        'browserbase': {'content': 'Expected', 'statusCode': origin_status},
+        'deepseek-fetch-api': {'content': 'Expected', 'title': 'Title'},
+        'crawl4ai-cloud': {'markdown': 'Expected', 'origin_status': origin_status},
+    }
+    # The selected Browser Use and Browserbase schemas require status on success;
+    # missing status is malformed rather than an invented origin error.
+    malformed = origin_status is None and name in {'browser-use-fetch', 'browserbase'}
+    raw = b'Expected' if name == 'brightdata' else json.dumps(payloads.get(name, {})).encode()
+    def respond(request, **kwargs):
+        return Mock(status=200, headers={}, read=Mock(return_value=raw),
+                    geturl=Mock(return_value=request.full_url))
+    with patch('harness.web_fetch.network_preflight.socket.getaddrinfo',
+               return_value=[(2, 1, 6, '', ('93.184.216.34', 443))]), \
+            patch('harness.web_fetch.providers.http_client.urllib.request.build_opener') as opener:
+        opener.return_value.open.side_effect = respond
+        rows, _ = run_evaluation(output_dir=tmp_path / 'run',
+            dataset_meta={'id': 'origin-control', 'cases': [asdict(c)]},
+            dataset_path=tmp_path / 'dataset.json', cases=[c], providers=[p],
+            provider_config_path=tmp_path / 'providers.json', runs=1,
+            timeout=30, delay=0, max_failure_retries=1)
+    row = rows[0]
+    expected_pass = not ((exposed and origin_status == 404) or malformed)
+    assert task_passed(row['ok'], row['metrics'], c.task_kind) == expected_pass
+    metadata = row['provider_metadata']
+    assert metadata['upstream_status'] == (origin_status if exposed else None)
+    assert metadata['api_http_status'] == (None if name == 'moli-webfetch' else 200)
+    assert metadata['upstream_http_status_available'] == (exposed and origin_status is not None)
+    assert len(list((tmp_path / 'run' / 'call-logs').rglob('*.json'))) == (1 if expected_pass else 2)
+    assert 'Expected' in (tmp_path / 'run' / row['artifact_path']).read_text()

@@ -14,6 +14,13 @@ fetch(case: EvalCase, timeout: float) -> ProviderResult
 - provider-specific request ID, engine, server elapsed time and billing data;
 - a stable error type and actionable error message.
 
+Disclose service API status as `metadata.api_http_status` and the final target-page
+status as `metadata.upstream_status`; use `None` when unavailable. Do not copy an
+API status into the target status. Before scoring and retry selection, the shared
+answer boundary marks a known non-2xx target response as a failed call, preserving
+its returned content and existing failure details. Content acceptance and call
+success remain separate requirements; historical results are not rewritten.
+
 Credentials are expanded from environment placeholders in the provider config.
 They must never be added to `metadata`, content, manifest or logs.
 

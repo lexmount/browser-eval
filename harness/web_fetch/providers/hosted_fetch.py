@@ -209,6 +209,7 @@ class HostedFetchProvider(Provider):
             metadata["render"] = self.config.get("render")
         if self.type == "browser_use_fetch":
             metadata["proxy_country"] = body["proxy_country"]
+        metadata['upstream_status'] = status
         return ProviderResult(
             ok=error_type is None, content=content, status_code=status,
             final_url=final_url, title=title if isinstance(title, str) else None,

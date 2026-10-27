@@ -11,6 +11,16 @@ from lexbench_webfetch.file_acceptance import evaluate_files
 
 
 def prepare_answer(result, case):
+    # A successful service request is not proof that its target page succeeded.
+    # Adapters disclose origin status separately; never infer it from API status.
+    origin = result.metadata.get('upstream_status')
+    origin = origin if type(origin) is int and 100 <= origin <= 599 else None
+    result.metadata['upstream_status'] = origin
+    result.metadata['upstream_http_status_available'] = origin is not None
+    if result.ok and origin is not None and not 200 <= origin < 300:
+        result.ok = False
+        result.error_type = 'http_error'
+        result.error_message = f'Target page returned HTTP {origin}'
     # Prepare scorer input; fixed-native calls have already stopped their timer.
     result.prepared_answer = answer_input(result.content.encode('utf-8', errors='replace'), result.metadata,
                  ok=result.ok, status_code=result.status_code)
