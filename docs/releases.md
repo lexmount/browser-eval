@@ -67,11 +67,14 @@ a report's population or changes saved results.
 | --- | --- |
 | [Fetch 1.0.0](https://github.com/lexmount/lexbench-webfetch/releases/tag/bench-v1.0.0) | Preserve the historical 430-task report contract and scorer |
 | [Fetch 2.0.1](https://github.com/lexmount/lexbench-webfetch/releases/tag/bench-v2.0.1) | Expanded 550-entry catalog with complete compatibility fingerprints; separate population from 1.x |
-| [Search 1.0.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-1.0.0) | First frozen Search catalog: current 149-case scenario and 831-case factual datasets, with an older scenario snapshot retained |
+| [Search 1.0.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.0.0) | First frozen Search catalog: scenario and factual task suites |
 | [Search 1.1.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.1.0) | Correct numeric scoring and bind the catalog to its actual scorer; rescore saved cohorts before comparing |
 
-A benchmark release uses one tag for its tasks, scoring rules and accompanying
-Python code. Python requires package version metadata for installation; this is
+A benchmark release uses one tag for its tasks, reference answers, scoring rules
+and evaluation code. Task suites use stable names rather than separate dataset
+release numbers. Data unchanged with updated tooling can still warrant a bench
+release: use a patch when measurement is unchanged, a minor for scoring
+corrections, and a major for changed task scope. Python requires package version metadata for installation; this is
 internal packaging information, not a separate public release line.
 
 ## Version source and release cadence
