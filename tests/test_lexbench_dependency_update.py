@@ -36,16 +36,18 @@ def test_search_dependency_binds_project_lock_and_installed_datasets(tmp_path):
     assert len(revision) == 40
 
 
-@pytest.mark.parametrize("name", ["pyproject.toml", "uv.lock", "evaluation/lexbench-webfetch.json"])
-def test_mismatched_revision_rejected(tmp_path, name):
+@pytest.mark.parametrize("benchmark", ["lexbench-webfetch", "lexbench-websearch"])
+@pytest.mark.parametrize("field", ["pyproject.toml", "uv.lock", "binding"])
+def test_mismatched_revision_rejected(tmp_path, benchmark, field):
     (tmp_path / "evaluation").mkdir()
-    for relative in ("pyproject.toml", "uv.lock", "evaluation/lexbench-webfetch.json"):
+    binding = "evaluation/" + benchmark + ".json"
+    for relative in ("pyproject.toml", "uv.lock", binding):
         shutil.copyfile(ROOT / relative, tmp_path / relative)
-    revision = validate_binding(tmp_path)
-    path = tmp_path / name
+    revision = validate_binding(tmp_path, benchmark)
+    path = tmp_path / (binding if field == "binding" else field)
     path.write_text(path.read_text().replace(revision, "a" * 40))
     with pytest.raises(ValueError, match="make bump-lexbench"):
-        validate_binding(tmp_path)
+        validate_binding(tmp_path, benchmark)
 
 
 def test_refresh_captures_changed_tasks_and_hashes_without_mutating_input(tmp_path):

@@ -54,16 +54,16 @@ def test_release_tag_matches_installed_identity():
 def test_declared_benchmark_pins_match_lock_and_installation():
     import json
 
+    from harness.lexbench_pin import validate_binding
+
     project = source_project()
     locked = tomllib.loads((ROOT / "uv.lock").read_text())
     for dependency in project["dependencies"]:
         if not dependency.startswith("lexbench-"):
             continue
-        name, location = dependency.split(" @ ")
-        revision = location.rsplit("@", 1)[1]
-        assert re.fullmatch(r"[a-f0-9]{40}", revision), name
+        name = dependency.split(" @ ")[0]
+        revision = validate_binding(ROOT, name)
         package = next(p for p in locked["package"] if p["name"] == name)
-        assert package["source"]["git"].split("#")[1] == revision, name
         installed = importlib.metadata.distribution(name)
         assert installed.version == package["version"], name
         origin = json.loads(installed.read_text("direct_url.json"))
