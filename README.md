@@ -47,6 +47,8 @@ Next, [try HTTP, Moli or Chromium on a local article](examples/web_fetch/README.
 
 ## Reports
 
+To create and share a report, open Artifact Site ([Mainland China](https://yours.lexmount.cn/artifact-site) · [Global](https://yours.lexmount.com/artifact-site)) and install the skill offered there. Follow the skill to create and publish your report, then choose who can access it.
+
 Reports include comparisons, task results, full responses and failure evidence. Runs are saved under `~/.browser-eval/runs/`; use `--output /absolute/path/new-run` to choose another directory.
 
 Rebuild from saved evidence without repeating calls:
@@ -59,7 +61,7 @@ English is the default; add `--language zh` when running or rebuilding for Chine
 
 Each new report records its Browser Eval build and selected benchmark edition, with exact code and input hashes. See [versioning](docs/benchmarks.md#benchmark-editions) for comparison rules and [reference inputs](docs/reference-inputs.md) for historical data.
 
-To share a report online, publish its `report/` directory through [Artifact Site](https://github.com/lexmount/artifact-site), following the [hosting guide](docs/report-hosting.md). Choose access permissions there. Formal benchmark releases also require the checks in their track guide.
+See the [report guide](docs/report-hosting.md) for local builds and formal benchmark releases.
 
 ## Versions
 
@@ -73,7 +75,7 @@ Published versions, changes and dependency snapshots are listed in [GitHub Relea
 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Versioned search queries, source references and retrieval scoring |
 | [Moli](https://github.com/lexmount/moli) | Browser evaluated through the same task contracts as other participants |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | CLI client for the Lexmount WebFetch service; separate from the evaluation harness |
-| [Artifact Site](https://github.com/lexmount/artifact-site) | Report hosting, immutable versions and access controls |
+| Artifact Site ([Mainland China](https://yours.lexmount.cn/artifact-site) · [Global](https://yours.lexmount.com/artifact-site)) | Report creation and sharing with access controls |
 | [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | Scenario design source for curated replay; separate protocol, driver and web-platform benchmarks |
 | [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [upstream](https://github.com/opendatalab/WebMainBench) | Frozen-HTML extraction tasks and declared scoring corrections |
 | [WebArena-Verified fork](https://github.com/lexmount/webarena-verified/tree/lex-main) · [upstream](https://github.com/ServiceNow/webarena-verified) | Tasks and evaluator for Browser Use and WebArena trajectory replay |
