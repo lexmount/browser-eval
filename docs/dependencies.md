@@ -15,7 +15,7 @@ Use the declared Git source for the evaluator. A registry package with the same 
 | Dependency | Role | Version authority |
 | --- | --- | --- |
 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Task model, catalogs, deterministic acceptance scoring and frozen input validation | Immutable Git revision in `pyproject.toml` and `uv.lock`; [benchmark integration](benchmarks.md) |
-| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Query definitions, provenance, source qualifications and retrieval scoring | Immutable Git revision in `pyproject.toml` and `uv.lock`; [Search guide](../harness/web_search/README.md) |
+| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Query definitions, provenance, source qualifications and retrieval scoring | [Benchmark 1.1.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.1.0), tooling package 0.1.1; commit [`f07a2e2ddf1c1c511cb3944659534301c86ff9c9`](https://github.com/lexmount/lexbench-websearch/commit/f07a2e2ddf1c1c511cb3944659534301c86ff9c9) in `pyproject.toml` and `uv.lock`; [Search guide](../harness/web_search/README.md) |
 | [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) | HTML parsing | `pyproject.toml` and `uv.lock` |
 | [FastCDC](https://github.com/iscc/fastcdc-py) | Content chunking | `pyproject.toml` and `uv.lock` |
 
