@@ -249,6 +249,28 @@ class HostedFetchTest(unittest.TestCase):
                     self.assertEqual(result.metadata['service_error']['message'], 'actual error')
 
     @patch('harness.web_fetch.providers.hosted_fetch.request')
+    def test_document_label_preserves_native_request(self, call):
+        from dataclasses import replace
+        for kind in TYPES:
+            for task_kind in ('body', 'structure'):
+                with self.subTest(kind=kind, task_kind=task_kind):
+                    provider = self.provider(kind, uniform_native_parameters=True)
+                    provider._session_id = 'fixed-offline-session'
+                    case = replace(self.case, url='https://www.rfc-editor.org/rfc/rfc9110.txt',
+                                   task_kind=task_kind)
+                    call.return_value = self.response(kind)
+                    requests = []
+                    with patch.object(provider, 'begin_call'):
+                        for track in ('web', 'document'):
+                            call.reset_mock()
+                            result = provider.fetch(replace(case, track=track), 30)
+                            self.assertTrue(result.ok)
+                            call.assert_called_once()
+                            self.assertEqual(result.content, 'Required article text')
+                            requests.append(call.call_args)
+                    self.assertEqual(requests[0], requests[1])
+
+    @patch('harness.web_fetch.providers.hosted_fetch.request')
     def test_unsupported_delivery_never_calls_service(self, call):
         case = EvalCase('file', 'File', 'https://example.com/file.pdf', 'document', [], track='document', task_kind='file')
         for kind in TYPES:

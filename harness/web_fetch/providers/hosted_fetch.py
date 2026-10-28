@@ -106,9 +106,9 @@ class HostedFetchProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
-        if case.task_kind not in {"body", "structure"} or case.track not in {"web", "dynamic", "challenge", "risk_control", "articles"}:
+        if case.task_kind not in {"body", "structure"}:
             return ProviderResult(False, "", error_type="unsupported_task",
-                                  error_message="This adapter supports webpage text tasks only")
+                                  error_message="This adapter supports body and structure delivery only")
         # Direct diagnostic invocations also get a fresh session.
         if self.type == "browser_use_fetch":
             self.begin_call()

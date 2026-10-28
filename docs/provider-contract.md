@@ -46,9 +46,12 @@ runner and scorer. Their credentials and fixed options are declared in
 | DeepSeek Fetch API | `DEEPSEEK_API_KEY` | `/v1/tools/fetch`, URL-only request; retain content and title |
 | Crawl4AI Cloud | `CRAWL4AI_CLOUD_API_KEY` | `/scrape`, `format=md`, `engine=browser`, `proxy=residential` |
 
-These adapters implement webpage body/structure tasks. Unsupported document,
-media and file tasks fail before transport, without helper downloads or a
-substitute browser/Agent. Rendering and internal retries remain service-owned;
+These adapters send body/structure tasks through the native URL endpoint,
+including document URLs, without filtering by track labels. Actual native
+responses or errors determine the result; admission does not establish document
+conversion capability. Resource-list and original-file delivery remain unsupported.
+No helper downloader, parser or substitute browser/Agent is supplied.
+Rendering and internal retries remain service-owned;
 offline adapter checks do not establish JavaScript capability or task pass rates.
 
 Retain complete native responses separately from score-bearing answer fields.

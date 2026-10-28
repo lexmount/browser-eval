@@ -6376,12 +6376,12 @@
         },
         "document": {
           "status": {
-            "zh": "未声明",
-            "en": "Undeclared"
+            "zh": "原生接口尝试",
+            "en": "Native endpoint attempted"
           },
           "detail": {
-            "zh": "当前接入未实现此类任务，不提供调用端补救。",
-            "en": "This task family is not implemented by the current adapter; no caller fallback is supplied."
+            "zh": "正文和结构任务直接提交文档网址，按原生返回评分；不添加下载器或解析器，不代表已验证文档转换能力。",
+            "en": "Body and structure tasks submit document URLs directly and score native output; no helper downloader or parser, and no verified conversion capability is implied."
           }
         },
         "image": {

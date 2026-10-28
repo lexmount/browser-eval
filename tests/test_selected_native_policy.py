@@ -172,6 +172,7 @@ def test_configured_cli_selection_reaches_runner(tmp_path):
 
 
 @pytest.mark.parametrize('name,route', [(name, 'body') for name in SELECTED] +
+                         [(name, 'document') for name in SELECTED[5:]] +
                          [('cloudflare-markdown', 'image'), ('cloudflare-markdown', 'video'),
                           ('moli-webfetch', 'file')])
 @pytest.mark.parametrize('origin_status', [200, 404, None])
@@ -181,6 +182,8 @@ def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, n
     from lexbench_webfetch.metrics import task_passed
     p, c = provider(name), case()
     file_bytes = b'\x89PNG\r\n\x1a\n' + b'fixture bytes' * 8
+    if route == 'document':
+        c = replace(c, track='document')
     if route in {'image', 'video'}:
         c = replace(c, track=route, task_kind='resource', expected_any=[],
                     expected_resources=[{'urls': ['https://example.test/asset.png' if route == 'image'
@@ -242,5 +245,5 @@ def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, n
     assert len(list((tmp_path / 'run' / 'call-logs').rglob('*.json'))) == (1 if expected_pass else 2)
     from harness.web_fetch.artifacts import verify_record_artifacts
     verify_record_artifacts(tmp_path / 'run', row)
-    if route == 'body':
+    if route in {'body', 'document'}:
         assert 'Expected' in (tmp_path / 'run' / row['artifact_path']).read_text()
