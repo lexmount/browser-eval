@@ -14,7 +14,7 @@
 
 </div>
 
-Evaluate browsers and Web tools for AI agents through Web Fetch, Web Search and Browser Trajectory Replay. Compare task correctness, latency, resource use and recorded cost with inspectable evidence.
+Evaluate browsers and Web tools for AI agents through Web Fetch, Web Search and Browser Trajectory Replay. Compare task correctness, latency, resource use and recorded cost. Turn the results into reports you can inspect, rebuild and share, with drilldown to every individual result and its evidence.
 
 ## Features
 
@@ -59,27 +59,81 @@ Choose a workflow for its task contract, setup and runnable example.
 
 ### Web Fetch
 
-1. Select tasks and freeze their references: saved HTML for extraction tests, or declared URLs and independently captured references for live fetching.
-2. Give each tool or browser the same task through its adapter. Save the complete response, returned files, errors and execution measurements.
-3. Run the selected benchmark's scorer against the references to check content, fields, resources or files, then aggregate task results and performance metrics.
+```mermaid
+flowchart LR
+    A["Frozen HTML or URLs<br/>with references"]:::input --> B["Call tools<br/>or browsers"]:::run
+    B --> C["Save responses, files<br/>and measurements"]:::evidence
+    C --> D["Programmatic<br/>scoring"]:::score
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
 
 ### Web Search
 
-1. Fix the queries, source requirements and scoring rubric before collection.
-2. Send each query directly to the search tools. Save their native result order, titles, snippets, links, errors and recorded latency and cost.
-3. Apply programmatic retrieval and source checks. For graded relevance, collect human or explicitly selected model grades, then compute ranking metrics from those frozen grades. Relevance grading is part of scoring; optional verification is a separate review of the results.
+```mermaid
+flowchart LR
+    A["Fixed queries<br/>Requirements and rubric"]:::input --> B["Call search tools<br/>Save native rankings<br/>and execution evidence"]:::run
+    B --> D["Retrieval and<br/>source checks"]:::score
+    B -. If graded .-> E["Relevance grades<br/>Human or opted-in LLM"]:::score
+    D --> F["Programmatic<br/>metric aggregation"]:::score
+    E --> F
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
+
+Relevance grading is scoring; optional verification reviews the resulting evidence and scores.
 
 ### Browser Trajectory Replay
 
-The public WebArena workflow is:
+#### WebArena
 
-1. Self-host the WebArena-Verified sites needed by the selected tasks and prepare the declared starting state.
-2. Qualify human recordings, freeze the actions, then replay the same trajectory through Playwright on each browser.
-3. Save responses, observations and network traces, and let the pinned WebArena-Verified evaluator check task completion in code, without an LLM judge.
+```mermaid
+flowchart LR
+    A["Self-hosted sites<br/>and starting state"]:::input --> C["Fixed Playwright<br/>replay"]:::run
+    B["Qualified recordings<br/>and task revisions"]:::input --> C
+    C --> D["Save responses,<br/>observations and HAR"]:::evidence
+    D --> E["WebArena-Verified<br/>programmatic checks"]:::score
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
 
-The repository-curated suite follows the same fixed-action approach: select tasks with explicit expected outputs → replay the frozen actions on the required pages → check the outputs with programmatic assertions. It has its own task population and scoring rules.
+Task completion is checked in code, without an LLM judge.
 
-All three tracks build HTML reports from saved evidence and support per-result inspection, optional verification and Artifact Site sharing. Rebuilding a report or recomputing scores does not require new participant calls when the saved evidence remains valid.
+#### Repository-curated tasks
+
+```mermaid
+flowchart LR
+    A["Fixed tasks and actions<br/>Expected outputs"]:::input --> B["Fixed-action<br/>replay"]:::run
+    B --> C["Save outputs<br/>and measurements"]:::evidence
+    C --> D["Programmatic<br/>assertions"]:::score
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
+
+### Inspect, rebuild and share
+
+```mermaid
+flowchart LR
+    A["Saved results<br/>and evidence"]:::evidence -->|Build / rebuild| B["HTML report"]:::run
+    B --> C["Drill down to each result<br/>Responses · actions · logs"]:::evidence
+    B --> D["Share through<br/>Artifact Site"]:::evidence
+    A -. On request .-> V["LLM verifier"]:::score
+    V -. Review findings .-> B
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
+
+Rebuild from valid saved evidence without new participant calls. Verification adds review findings and does not automatically replace scores.
 
 Experimental [Browser Use](examples/browser_use/README.md) gives an Agent a task, lets it choose browser actions, and checks the recorded outcome with the task evaluator. It includes model and planning variation and is evaluated separately.
 

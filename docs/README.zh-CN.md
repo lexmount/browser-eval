@@ -14,7 +14,7 @@
 
 </div>
 
-面向 AI Agent，评测浏览器与 Web 工具，覆盖 Web Fetch、Web Search 和浏览器轨迹重放。通过逐题证据比较任务完成情况、延迟、资源使用和已记录的成本。
+面向 AI Agent，评测浏览器与 Web 工具，覆盖 Web Fetch、Web Search 和浏览器轨迹重放。比较任务完成情况、延迟、资源使用和已记录的成本，把评测结果变成可以下钻检查、重建和分享的报告，并保留逐题证据。
 
 ## 特性
 
@@ -59,27 +59,81 @@ Web Fetch、Web Search 直接调用被测工具；浏览器通过固定轨迹重
 
 ### Web Fetch
 
-1. 选定任务并冻结参考证据：正文提取测试使用保存的 HTML，在线抓取测试使用指定 URL 和独立采集的参考内容。
-2. 通过适配接口，把同一任务交给各个工具或浏览器执行，保存完整响应、返回文件、错误和执行指标。
-3. 用所选 benchmark 的程序对照参考证据，检查正文、字段、资源或文件，再汇总任务结果与性能指标。
+```mermaid
+flowchart LR
+    A["冻结 HTML 或 URL<br/>及参考证据"]:::input --> B["直接调用<br/>工具或浏览器"]:::run
+    B --> C["保存响应、文件<br/>和执行指标"]:::evidence
+    C --> D["程序检查任务要求<br/>计算内容指标"]:::score
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
 
 ### Web Search
 
-1. 在采集前固定问题、来源要求和评分标准。
-2. 将同一问题直接交给各个搜索工具，保存原始结果顺序、标题、摘要、链接、错误及已记录的延迟和成本。
-3. 用程序检查检索结果与来源要求。需要相关性分级时，使用人工标注或明确选用的模型评分，再由程序根据保存的分级结果计算排名指标。这里的相关性评分与事后按需进行的结果复核是两个环节。
+```mermaid
+flowchart LR
+    A["固定问题、来源要求<br/>和评分标准"]:::input --> B["直接调用搜索工具<br/>保存原始排名<br/>响应和执行证据"]:::run
+    B --> D["程序检查检索结果<br/>与来源要求"]:::score
+    B -. 需要分级时 .-> E["相关性分级<br/>人工或明确选用的模型"]:::score
+    D --> F["由程序汇总<br/>评测指标"]:::score
+    E --> F
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
+
+相关性分级属于评分环节；按需复核则检查评分结果及其证据。
 
 ### 浏览器轨迹重放
 
-WebArena 公开轨迹的流程是：
+#### WebArena
 
-1. 自建所选任务需要的 WebArena-Verified 站点，准备约定的初始状态。
-2. 先验证人工录制的轨迹能通过任务验收，再固定动作，用 Playwright 在各个浏览器上重放同一轨迹。
-3. 保存响应、页面观察和网络记录，由固定版本的 WebArena-Verified 评测器用程序检查任务是否完成，不使用 LLM judge。
+```mermaid
+flowchart LR
+    A["自建站点<br/>准备约定的初始状态"]:::input --> C["用 Playwright<br/>重放同一组固定动作"]:::run
+    B["已验证的人工录制轨迹<br/>及冻结的任务版本"]:::input --> C
+    C --> D["保存响应、页面观察<br/>和网络记录"]:::evidence
+    D --> E["WebArena-Verified<br/>固定版本的程序评测器"]:::score
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
 
-仓库自建任务集也采用固定动作：选定有明确预期输出的任务 → 在对应页面上重放固定动作 → 用程序断言检查输出。它有独立的任务范围和评分规则。
+任务完成情况由程序验收，不使用 LLM judge。
 
-三类任务都会从保存的证据生成 HTML 报告，支持逐题查看、按需复核和 Artifact Site 分享。只要原始证据仍然适用，重建报告或重算评分就无需重新调用参与方。
+#### 仓库自建任务
+
+```mermaid
+flowchart LR
+    A["固定任务、轨迹<br/>和预期输出"]:::input --> B["在对应页面上<br/>重放同一组动作"]:::run
+    B --> C["保存输出<br/>和执行指标"]:::evidence
+    C --> D["程序断言检查输出<br/>汇总性能指标"]:::score
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
+
+### 下钻检查、重建与分享
+
+```mermaid
+flowchart LR
+    A["保存的结果<br/>与原始证据"]:::evidence -->|构建或重建| B["HTML 报告"]:::run
+    B --> C["下钻到每一个结果<br/>查看响应、动作和日志"]:::evidence
+    B --> D["通过 Artifact Site<br/>分享报告"]:::evidence
+    A -. 仅按需触发 .-> V["LLM verifier"]:::score
+    V -. 复核发现 .-> B
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
+
+从仍然适用的已存证据重建报告，无需重新调用参与方。复核补充审查发现，不自动改写分数。
 
 实验性的 [Browser Use](../examples/browser_use/README.md) 则把任务交给 Agent，由它自行决定浏览器动作，再由任务评测器检查执行结果。它包含模型和规划带来的波动，因此单独评测。
 
