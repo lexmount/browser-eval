@@ -143,7 +143,17 @@ def _unwrap_links(text, schema):
     return "".join(output)
 
 
-def _visible(text, schema=None, *, normalized_html=False):
+def _product_html_owners(soup):
+    """Keep semantic cards; nested feature lists remain presentation content."""
+    return [node for node in soup.select('article, li, [role="listitem"]')
+            if node.name == 'article' or node.get('role') == 'listitem' or not node.find_parent(
+                lambda parent: parent.name in {'article', 'li'}
+                or parent.get('role') == 'listitem')]
+
+
+def _visible(text, schema=None, *, normalized_html=False, representation=None):
+    if representation == 'plain_text':
+        return clean_reference_text(text).replace('\r\n', '\n')
     from .reference_quality import is_html_document_or_fragment
 
     projected_html = (
@@ -194,6 +204,33 @@ def _visible(text, schema=None, *, normalized_html=False):
             for node in soup.select('h1,h2,h3,h4,h5,h6'):
                 if not inside_record(node):
                     node.insert(0, '#' * int(node.name[1]) + ' ')
+            text = str(soup)
+        elif schema in {'product', 'catalog_product'}:
+            from .dynamic_lists import scoped_html
+            soup = scoped_html(text)
+            owners = _product_html_owners(soup)
+            identities = {id(node) for node in owners}
+            groups = {}
+            for node in owners:
+                ancestors = [parent for parent in node.parents if id(parent) in identities]
+                root = ancestors[-1] if ancestors else node
+                groups.setdefault(id(root), (root, []))[1].append(node)
+            for root, cards in groups.values():
+                chunks = []
+                for card in cards:
+                    copy = scoped_html(str(card))
+                    owner = copy.find()
+                    for nested in _product_html_owners(copy):
+                        if nested is not owner and nested.parent is not None:
+                            nested.decompose()
+                    chunks.append(visible_html_text(str(copy)))
+                # Preformatted projection keeps field lines intact through the
+                # shared HTML reader; each card still uses the existing parser.
+                projected = soup.new_tag('pre')
+                projected.string = ('\n' + _CARD_BOUNDARY + '\n'
+                                    + ('\n' + _CARD_BOUNDARY + '\n').join(chunks)
+                                    + '\n' + _CARD_BOUNDARY + '\n')
+                root.replace_with(projected)
             text = str(soup)
         text = visible_html_text(text)
     if schema == "name_description" and not normalized_html and not projected_html and re.search(r"<(?:div|section|article|span|script|template)\b", text, re.I):
@@ -833,29 +870,33 @@ def _non_record_visible(content, contract, records, base_url):
     return None
 
 
-def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundaries=False):
+def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundaries=False, representation=None):
     """An atomic Latin label is a word, not part of another word.
 
     Native camel boundaries and fully covered chains of registered labels
     preserve adjacent UI text without accepting arbitrary word fragments.
     Longer declared text retains the existing exact-phrase containment rule.
     """
-    from .metrics import WORD_CHARACTERS, fact_in_text, normalize_for_match
+    from .metrics import WORD_CHARACTERS, fact_in_text, normalize_for_match as normalize
     from .reference_quality import visible_markdown_links
-    surface = visible_markdown_links(surface)
+    normalize_for_match = lambda text: normalize(text, representation=representation)
+    if representation != 'plain_text':
+        surface = visible_markdown_links(surface)
     surface = re.sub(r'(?<=[^\W\d_])(?=\d+\s+of\s+\d+\b)', ' ', surface)
-    expected = normalize_for_match(_visible(value))
+    expected_value = _visible(value, representation=representation)
+    expected = normalize_for_match(expected_value)
     # Only an explicit heading with a trailing fragment URL can supply this
     # additional surface; ordinary word suffixes remain significant.
-    surface = re.sub(r'(?m)^(#{1,6}\s+[^\n]+?)https?://[^\s]+#[^\s]*[ \t]*$',
-                     r'\1', surface)
+    if representation != 'plain_text':
+        surface = re.sub(r'(?m)^(#{1,6}\s+[^\n]+?)https?://[^\s]+#[^\s]*[ \t]*$',
+                         r'\1', surface)
     folded = normalize_for_match(surface)
     from .reference_quality import separate_case_labels as camel
     alphabetic_boundaries = (not re.fullmatch(r'[A-Za-z]+', value)
                              and (phrase_boundaries or bool(re.search(r'[^\x00-\x7f]', value))))
     surfaces = [(folded, expected)]
     if alphabetic_boundaries:
-        surfaces.append((normalize_for_match(camel(surface)), normalize_for_match(camel(_visible(value)))))
+        surfaces.append((normalize_for_match(camel(surface)), normalize_for_match(camel(expected_value))))
     # Native serializers can join an all-caps preceding label to a complete
     # notice. Apply the same case boundary used for atomic labels before the
     # Unicode phrase gate, while retaining complete-word matching on both ends.
@@ -904,13 +945,14 @@ def source_record_hash(fields, names, schema):
 
 
 def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
-                    anchor_visible=None, registered_words=()):
-    from .metrics import normalize_for_match
+                    anchor_visible=None, registered_words=(), *, representation=None):
+    from .metrics import normalize_for_match as normalize
+    normalize_for_match = lambda text: normalize(text, representation=representation)
     if anchor.get('match_scope') == 'non_record_lines':
         if non_record_visible is not None:
             folded = normalize_for_match(non_record_visible)
             return [value for value in anchor['alternatives']
-                    if _stable_literal_match(non_record_visible, value, registered_words)]
+                    if _stable_literal_match(non_record_visible, value, registered_words, representation=representation)]
         # A known record label cannot stand in for page context. This is a
         # conservative ownership rule, not a claim of recovered DOM ownership.
         # Flattened page output can put headings and records on one physical
@@ -920,11 +962,11 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
         for title in sorted(set(titles), key=len, reverse=True):
             folded = folded.replace(title, ' ')
         return [value for value in anchor["alternatives"]
-                if _stable_literal_match(folded, value, registered_words)]
+                if _stable_literal_match(folded, value, registered_words, representation=representation)]
     owned = []
     if schema != "named_link":
         for value in anchor["alternatives"]:
-            expected = _parse_records(_visible(value, schema), schema)
+            expected = _parse_records(_visible(value, schema, representation=representation), schema)
             if len(expected) == 1 and expected[0]["valid"]:
                 owned.append((value, expected[0]["fields"]))
     if owned:
@@ -945,7 +987,7 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
     folded = normalize_for_match(anchor_visible if anchor_visible is not None else visible)
     return [value for value in anchor["alternatives"]
             if _stable_literal_match(anchor_visible if anchor_visible is not None else visible,
-                                     value, registered_words)]
+                                     value, registered_words, representation=representation)]
 
 
 def _native_link_label_surface(content, exclusions):
@@ -1283,7 +1325,27 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Invalid stable acceptance regex") from error
 
 
-def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True, allow_closed_title_cards: bool = False) -> dict:
+def _pattern_text_surface(text):
+    """Render code delimiters after visibility parsing, keeping literal payloads."""
+    from .reference_quality import markdown_literal_spans
+
+    for start, end in reversed(markdown_literal_spans(text)):
+        literal = text[start:end]
+        opening = re.match(r'^ {0,3}(`{3,}|~{3,})([^\r\n]*)(?:\r?\n|$)', literal)
+        if opening and not (opening[1][0] == '`' and '`' in opening[2]):
+            payload = literal[opening.end():]
+            payload = re.sub(r'(?m)^ {0,3}' + re.escape(opening[1][0])
+                             + '{' + str(len(opening[1])) + r',}[ \t]*\n?\Z', '', payload)
+        else:
+            width = len(re.match(r'`+', literal)[0])
+            payload = literal[width:-width].replace('\n', ' ')
+            if payload.startswith(' ') and payload.endswith(' ') and payload.strip(' '):
+                payload = payload[1:-1]
+        text = text[:start] + payload + text[end:]
+    return text
+
+
+def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True, allow_closed_title_cards: bool = False, representation=None) -> dict:
     """Validate a version-1 schema/count contract, without fetching or snapshots.
 
     Required keys: version, schema, minimum_records. Optional maximum_records
@@ -1305,11 +1367,11 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     count_policy = contract.get("record_count_policy")
     minimum, maximum = contract["minimum_records"], contract.get("maximum_records")
     patterns = contract.get("page_patterns", [])
-    visible = _visible(content, schema)
+    visible = _visible(content, schema, representation=representation)
     # HTML normalization can also decode entities in Markdown. Preserve its
     # explicit link boundaries before matching atomic page labels.
-    anchor_visible = _visible(anchor_text, schema, normalized_html=True) if anchor_text is not None else None
-    if anchor_visible is None:
+    anchor_visible = _visible(anchor_text, schema, normalized_html=True, representation=representation) if anchor_text is not None else None
+    if anchor_visible is None and representation != 'plain_text':
         from .reference_quality import is_html_document_or_fragment
         html_candidate = content.lstrip()
         first_line, newline, remainder = html_candidate.partition('\n')
@@ -1323,7 +1385,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             from .dynamic_lists import visible_html_text
             anchor_visible = visible_html_text(html_candidate)
     original_markdown_visible = None
-    if anchor_visible is None:
+    if anchor_visible is None and representation != 'plain_text':
         from .reference_quality import markdown_heading_text
         heading_text = markdown_heading_text(content)
         if heading_text != content:
@@ -1337,7 +1399,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     if contract.get('content_scope') == 'target_content':
         exclusions['html_selectors'] = ['nav', 'footer', *exclusions.get('html_selectors', [])]
     if exclusions:
-        if exclusions.get('html_selectors') and re.search(r'<[a-z][^>]*>', content, re.I):
+        if representation != 'plain_text' and exclusions.get('html_selectors') and re.search(r'<[a-z][^>]*>', content, re.I):
             from bs4 import BeautifulSoup
             from .dynamic_lists import visible_html_text
             soup = BeautifulSoup(content, 'html.parser')
@@ -1357,11 +1419,13 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     text_surfaces = [text_surface]
     if original_markdown_visible is not None:
         text_surfaces.append(original_markdown_visible)
+    pattern_surfaces = [(surface if representation == 'plain_text' else _pattern_text_surface(surface))
+                        for surface in text_surfaces] if patterns else []
     page_results = [{"pattern": p, "pass": any(re.search(p, surface, re.I | re.M)
-                                               for surface in text_surfaces)} for p in patterns]
+                                               for surface in pattern_surfaces)} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
     from .reference_quality import blocked_page_hits
-    blocked_page = bool(blocked_page_hits(text_surface))
+    blocked_page = bool(blocked_page_hits(text_surface, representation=representation))
     errors = []
     if schema in {"named_link", "linked_product"}:
         link_diagnostics = []
@@ -1428,7 +1492,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             )
     anchors = []
     control_soup = None
-    if any("visible_control" in a for a in contract.get("stable_text_anchors", [])):
+    if representation != 'plain_text' and any("visible_control" in a for a in contract.get("stable_text_anchors", [])):
         from .reference_quality import is_html_document_or_fragment
         if is_html_document_or_fragment(content):
             from .dynamic_lists import scoped_html
@@ -1453,14 +1517,14 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             if non_record_visible is not None:
                 selected_non_record = non_record_visible + "\n" + control_text
         matched = _anchor_matches(anchor, records, visible, schema,
-                                  selected_non_record, selected_surface, registered_words)
+                                  selected_non_record, selected_surface, registered_words, representation=representation)
         if original_markdown_visible is not None:
             literal_matches = _anchor_matches(
                 anchor, records, visible, schema, non_record_visible,
-                original_markdown_visible, registered_words)
+                original_markdown_visible, registered_words, representation=representation)
             matched = [value for value in anchor["alternatives"]
                        if value in matched or value in literal_matches]
-        if not matched and anchor.get('match_scope') != 'non_record_lines':
+        if representation != 'plain_text' and not matched and anchor.get('match_scope') != 'non_record_lines':
             if native_labels is None:
                 native_labels = _native_link_label_surface(content, exclusions) or ''
             if native_labels:

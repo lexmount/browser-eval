@@ -36,7 +36,7 @@
         },
         "body_coverage.py": {
           "before_sha256": "a349a1db3d5de9d63d33443572c4d8f48afb8a7f88d03090625407fddf7b6137",
-          "after_sha256": "f54bf36cc9b988d707a149fbd8c22f03709183a0783b1383c9ffb53505925480"
+          "after_sha256": "d7d4a23c7ac55391900a2dcb81cf2d3917aad5ef88ac181eed0ddaf5f3374384"
         },
         "cli.py": {
           "before_sha256": "46b7bd246e8b56bc03c7d35309a7ec48419c37f54bb05bc6a144cfd3c527e194",
@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "4b359e9208b085c91caa6c63bdd3042035b283b4ca74541a1a178a0a29af4eac"
+          "after_sha256": "eaa699df226e1b9b900c15ed5775ecb66ad81cbd8046564dc33b5a47c292fc09"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "cff9f50fd81ae3147873396621dc107b72cc64455e22ebbd461e8bf1d4160155"
+          "after_sha256": "bfbfe51df73c8dd35836814cd91e36bbeeb464582b02d5a5cbdea211a8067c91"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -76,7 +76,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "f11c5ba1ce09cc83b7f9bd0428e827ab65a65820f5a22c07bf834f837cb2c90e"
+          "after_sha256": "03754c47e79522e90bb7c32133969e8ccf750a9ffa5befa8abb227aa000b7fee"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -84,7 +84,7 @@
         },
         "response_input.py": {
           "before_sha256": "d45d0bac0d629e7314504a87ae890444f704b7a488af842b4d1e34dd912ec00d",
-          "after_sha256": "1c4290f6d2ab7219292ec42885d1991c47a201225feafb9d13f4a88055b297b7"
+          "after_sha256": "7998f6f1271ec4ce4f6a95ba6d4945e877975298cc9f4ecf7aa59795e61ad159"
         },
         "risk_control_dataset.py": {
           "before_sha256": "59d2a1877f1a8b8ecf464113fbce70bf713d6d44414b83141880e71cccb7c1d6",
@@ -92,19 +92,19 @@
         },
         "scoring.py": {
           "before_sha256": "ea2602b5e2310886dc70c097ce783e2f88be7c88220e9dbf0715a723b3aff567",
-          "after_sha256": "9429fb2161d9ddc5c27afe36515789425c633e82b895d6bb74c510636b467234"
+          "after_sha256": "03e9395a30557356ea922c1dc83e8853eb8e742182cd29665831a06a0a6b9421"
         },
         "scoring_regressions.py": {
           "before_sha256": "a9dc2c0a86628e90bf5a23c9611adb48c9cf72c0f4941c6ed6412a5f95b37df9",
-          "after_sha256": "92fd0977fe7214b33e309d0976f42bb6a36f4ae796ab4a3a5869c0fa036b4b39"
+          "after_sha256": "e30c1a81784a17d79a62f8d8fa022c3fa663b0a53d996ca98c45ae1957811d10"
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "60ac2a2976aa5405b800181bc746d9ff690d234cafffba4094c4d51ea44a73e2"
+          "after_sha256": "a7ece1dceb2a61d1a9cdcce640371cbe09057bfbefa9417d03727977cec5982e"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
-          "after_sha256": "fb9ffb9a776f1603e36709dea17a64e249754f5409cbc56ee74be8141994e7be"
+          "after_sha256": "530ce0a580a52675b3e460b3595dd6b4daaf1624bfabc6a87fcd41045c698757"
         },
         "versions.py": {
           "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
@@ -615,6 +615,138 @@
           "tests": [
             "tests/benchmarks/webfetch/test_review_envelope_literals.py",
             "tests/test_code_preservation.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "product-html-article-cross-card",
+            "product-html-article-complete",
+            "product-html-nested-complete",
+            "catalog_product-html-article-cross-card",
+            "catalog_product-html-article-complete",
+            "catalog_product-html-presentation-wrappers"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_product_html_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "structured_tables.py"
+          ],
+          "regression_ids": [
+            "native-table-descendant-field-borrowed",
+            "native-table-descendant-field-own",
+            "composite-visible-identity-duplicate",
+            "composite-visible-identity-distinct",
+            "converted-table-rowspan-displaced",
+            "converted-table-rowspan-ordinary",
+            "adjacent-table-headers-complete",
+            "adjacent-table-headers-missing"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_table_projection_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "migration7-responsive-image-resource-complete",
+            "migration7-responsive-image-resource-incomplete",
+            "migration7-responsive-source-frame-complete",
+            "migration7-responsive-source-frame-incomplete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_generic_srcset.py"
+          ]
+        },
+        {
+          "modules": [
+            "response_input.py",
+            "scoring.py",
+            "metrics.py",
+            "stable_tasks.py",
+            "body_coverage.py",
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "runtime7-plain-frontmatter",
+            "runtime7-markdown-frontmatter",
+            "runtime7-visible-label",
+            "runtime7-image-alt",
+            "runtime7-link-destination",
+            "runtime7-link-title",
+            "runtime7-literal-code",
+            "runtime7-formatted-label",
+            "runtime7-output-metadata",
+            "runtime7-plain-image",
+            "runtime7-plain-destination",
+            "runtime7-markdown-destination",
+            "runtime7-plain-html",
+            "runtime7-html-hidden",
+            "runtime7-plain-emphasis",
+            "runtime7-plain-frontmatter-pattern",
+            "runtime7-plain-json",
+            "runtime7-native-json",
+            "runtime7-body-1-plain_text",
+            "runtime7-body-2-plain_text",
+            "runtime7-body-3-plain_text",
+            "runtime7-body-4-plain_text",
+            "runtime7-body-5-plain_text",
+            "runtime7-stable-plain_text",
+            "runtime7-body-1-markdown",
+            "runtime7-body-2-markdown",
+            "runtime7-body-3-markdown",
+            "runtime7-body-4-markdown",
+            "runtime7-body-5-markdown",
+            "runtime7-stable-markdown",
+            "runtime7-delivered-length-0",
+            "runtime7-delivered-length-1",
+            "runtime7-delivered-length-2",
+            "runtime7-delivered-length-3",
+            "runtime7-raw-api-length"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_representation_scoring.py",
+            "tests/test_scoring.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "literal-surface-plain",
+            "literal-surface-inline",
+            "literal-surface-double-inline",
+            "literal-surface-triple-inline",
+            "literal-surface-payload-backtick",
+            "literal-surface-inline-space",
+            "literal-surface-multiline-inline",
+            "literal-surface-fenced",
+            "literal-surface-tilde-fenced",
+            "literal-surface-wrong-label",
+            "literal-surface-fence-language",
+            "literal-surface-literal-image",
+            "literal-surface-actual-image"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_literal_pattern_surface.py"
+          ]
+        },
+        {
+          "modules": [
+            "scoring_regressions.py"
+          ],
+          "tests": [
+            "tests/test_scoring_regressions.py",
+            "tests/benchmarks/webfetch/test_standalone_evaluation.py"
           ]
         }
       ]

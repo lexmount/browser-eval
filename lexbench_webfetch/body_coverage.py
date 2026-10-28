@@ -32,9 +32,9 @@ def native_markup_body_text(content, fallback):
     return visible
 
 
-def tokens(text):
+def tokens(text, *, representation=None):
     from .metrics import normalize_for_match
-    return re.findall(r'[\u3400-\u9fff]|[^\W_\u3400-\u9fff]+', normalize_for_match(text))
+    return re.findall(r'[\u3400-\u9fff]|[^\W_\u3400-\u9fff]+', normalize_for_match(text, representation=representation))
 
 
 def _group_contiguous(units, count):
@@ -163,16 +163,16 @@ def compact_trigrams(text):
     return compact_ngrams(text, 3)
 
 
-def compact_ngrams(text, size):
+def compact_ngrams(text, size, *, representation=None):
     from .metrics import normalize_for_match
-    compact = ''.join(character for character in normalize_for_match(text)
+    compact = ''.join(character for character in normalize_for_match(text, representation=representation)
                       if character.isalnum())
     return [compact[index:index+size] for index in range(max(0, len(compact)-size+1))]
 
 
-def _compact_with_positions(text):
+def _compact_with_positions(text, *, representation=None):
     from .metrics import normalize_for_match
-    normalized = normalize_for_match(text)
+    normalized = normalize_for_match(text, representation=representation)
     positions = [index for index, character in enumerate(normalized) if character.isalnum()]
     return normalized, ''.join(normalized[index] for index in positions), positions
 
@@ -194,9 +194,9 @@ def _merge_compact_spans(spans, positions):
     } for start, end in merged]
 
 
-def _physical_match_spans(content, assigned_by_id):
+def _physical_match_spans(content, assigned_by_id, *, representation=None):
     """Bind allocated fragment counts to deterministic physical occurrences."""
-    normalized, compact, positions = _compact_with_positions(content)
+    normalized, compact, positions = _compact_with_positions(content, representation=representation)
     all_units = sorted(set().union(*(set(row) for row in assigned_by_id.values())))
     wanted = set(all_units)
     occurrences = {unit: [] for unit in all_units}
@@ -412,14 +412,14 @@ def _global_region_allocation(predicted, expected, floor_counts, target_counts,
     return allocation, True
 
 
-def _ordered_ending_similarity(content, ending):
+def _ordered_ending_similarity(content, ending, *, representation=None):
     """Find the closest contiguous token passage, allowing small local edits.
 
     Free response prefixes/suffixes do not count as edits. Inside a candidate
     passage, insertions, omissions and substitutions each cost one token. This
     prevents distant fragments from being assembled into a missing ending.
     """
-    expected, actual = tokens(ending), tokens(content)
+    expected, actual = tokens(ending), tokens(content, representation=representation)
     if not expected:
         raise ValueError('Empty ordered body ending')
     if ' ' + ' '.join(expected) + ' ' in ' ' + ' '.join(actual) + ' ':
@@ -439,7 +439,7 @@ def _ordered_ending_similarity(content, ending):
             'expected_tokens': len(expected)}
 
 
-def _evaluate_body_surface(content, contract):
+def _evaluate_body_surface(content, contract, *, representation=None):
     if not contract:
         return {'body_coverage_pass': True, 'body_region_results': []}
     version = contract.get('version')
@@ -470,7 +470,8 @@ def _evaluate_body_surface(content, contract):
                 or required_regions != len(contract['regions'])
                 or floor != contract['minimum_coverage']):
             raise ValueError('Strict body requirements need every region and a nonempty ending')
-    units = tokens(content) if version == 1 else compact_ngrams(content, 6 if version in (3, 4, 5) else 3)
+    units = (tokens(content, representation=representation) if version == 1
+             else compact_ngrams(content, 6 if version in (3, 4, 5) else 3, representation=representation))
     predicted = Counter(units)
     expected_by_id = {}
     regions_by_id = {}
@@ -491,7 +492,7 @@ def _evaluate_body_surface(content, contract):
         assigned_by_id, coverage_pass = _global_region_allocation(
             predicted, expected_by_id, floor_counts, target_counts, required_regions)
         matching_text, output_spans_by_id = _physical_match_spans(
-            content, assigned_by_id)
+            content, assigned_by_id, representation=representation)
     checks = []
     for region in contract['regions']:
         expected_units = (region['text'].split() if version == 1
@@ -545,10 +546,10 @@ def _evaluate_body_surface(content, contract):
             'minimum_coverage': contract['minimum_coverage'],
             'minimum_floor': contract['minimum_coverage'],
             'minimum_region_passes': 1,
-        })
+        }, representation=representation)
         coverage_pass = coverage_pass and ending_result['body_coverage_pass']
         if version == 5:
-            ordered = _ordered_ending_similarity(content, ending['text'])
+            ordered = _ordered_ending_similarity(content, ending['text'], representation=representation)
             ordered['pass'] = ordered['similarity'] >= contract['minimum_coverage']
             ending_result['body_region_results'][0]['ordered_match'] = ordered
             ending_result['body_region_results'][0]['pass'] &= ordered['pass']
@@ -563,10 +564,10 @@ def _evaluate_body_surface(content, contract):
             'body_region_results': checks}
 
 
-def evaluate_body_requirements(content, contract):
+def evaluate_body_requirements(content, contract, *, representation=None):
     """Evaluate prose directly, then one structure-preserving table column at a time."""
-    result = _evaluate_body_surface(content, contract)
-    if not contract or result['body_coverage_pass']:
+    result = _evaluate_body_surface(content, contract, representation=representation)
+    if not contract or result['body_coverage_pass'] or representation == 'plain_text':
         return result
     from .structured_tables import table_header_column_surfaces
     for surface in table_header_column_surfaces(content):

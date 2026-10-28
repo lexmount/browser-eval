@@ -160,12 +160,12 @@ _BLOCKED_PAGE = re.compile(
 )
 
 
-def blocked_page_hits(text: str) -> list[str]:
+def blocked_page_hits(text: str, *, representation=None) -> list[str]:
     """Return exact standalone challenge headings from any answer surface."""
     # Markdown serializers commonly place a decorative challenge-page image at
     # the start of the same source line as the visible gate phrase. The image is
     # not visible prose and must not prevent the phrase from being standalone.
-    visible = visible_markdown_links(text)
+    visible = text if representation == 'plain_text' else visible_markdown_links(text)
     return [match.group(0).strip() for match in _BLOCKED_PAGE.finditer(visible)]
 
 

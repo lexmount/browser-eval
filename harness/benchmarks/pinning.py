@@ -4,7 +4,9 @@ import argparse
 import copy
 import hashlib
 import json
+import os
 import re
+import shutil
 import tempfile
 from pathlib import Path
 from urllib.request import urlopen
@@ -16,12 +18,16 @@ def validate_binding(root: Path, name: str = "lexbench-webfetch") -> str:
     track = name.removeprefix("lexbench-")
     lock = json.loads((root / "harness/benchmarks/data-lock.json").read_bytes())
     selected = lock["datasets"][track]
+    path = root / "evaluation" / (name + ".json")
+    imported = json.loads(path.read_bytes()) if path.exists() else None
+    return validate_selected_binding(selected, imported)
+
+
+def validate_selected_binding(selected: dict, imported: dict | None = None) -> str:
     revision = selected["revision"]
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("Dataset must select a full Hugging Face commit")
-    path = root / "evaluation" / (name + ".json")
-    if path.exists():
-        imported = json.loads(path.read_bytes())
+    if imported is not None:
         if (imported["revision"] != revision
                 or imported["repository"] != "https://huggingface.co/datasets/" + selected["repository"]):
             raise ValueError("Dataset lock and import binding disagree; run make pin-dataset")
@@ -90,10 +96,42 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
     lock["datasets"][track] = selected
     updates[lock_path] = lock
     changes = binding_changes(before, selected)
-    for path, value in updates.items():
-        path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
-    validate_binding(root, "lexbench-" + track)
+    validate_selected_binding(selected, updates.get(import_path))
+    publish_bindings(updates)
     return changes
+
+
+def publish_bindings(updates: dict[Path, dict]) -> None:
+    """Stage replacements and restore the original pair on publication failure."""
+    encoded = {path: (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode()
+               for path, value in updates.items()}
+    staged, published, restored = [], [], set()
+    completed = False
+    try:
+        for path, raw in encoded.items():
+            directory = Path(tempfile.mkdtemp(prefix=".dataset-pin-", dir=path.parent))
+            candidate, backup = directory / "next", directory / "original"
+            staged.append((path, candidate, backup, directory))
+            shutil.copy2(path, backup)
+            candidate.write_bytes(raw)
+            candidate.chmod(path.stat().st_mode & 0o777)
+        try:
+            for path, candidate, backup, _ in staged:
+                os.replace(candidate, path)
+                published.append((path, backup))
+            completed = True
+        except BaseException:
+            for path, backup in reversed(published):
+                try:
+                    os.replace(backup, path)
+                    restored.add(path)
+                except OSError as error:
+                    raise OSError(f"Binding rollback failed; original retained at {backup}") from error
+            raise
+    finally:
+        for path, _, _, directory in staged:
+            if completed or path in restored or not any(item[0] == path for item in published):
+                shutil.rmtree(directory)
 
 
 def validate_selections(selections: dict) -> None:

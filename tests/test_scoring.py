@@ -1101,11 +1101,11 @@ class ScoringPipelineTests(unittest.TestCase):
         row = json.loads((self.run / "results.jsonl").read_text().splitlines()[0])
         for key in original[0]:
             self.assertEqual(row[key], original[0][key], key)
-        self.assertTrue(row["ok"])
-        self.assertFalse(row['raw_request_status']['ok'])
-        self.assertEqual(row['raw_request_status']['error_message'], 'Historical error')
+        self.assertFalse(row["ok"])
+        self.assertNotIn('raw_request_status', row)
+        self.assertEqual(row['error_message'], 'Historical error')
         self.assertEqual(row["scoring"]["request_status_basis"], "shared_normalization_with_original_adapter_status_retained")
-        self.assertIsNone(row['error_type'])
+        self.assertEqual(row['error_type'], 'api_error')
 
     def test_script_rebuilds_diagnosis_from_saved_nested_error_payload(self):
         self.provider.fetch.side_effect = lambda c, timeout: ProviderResult(

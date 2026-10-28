@@ -329,8 +329,13 @@ def _native_json_resource_candidates(
 def _markup_resource_candidates(content: str, source: str) -> list[tuple[str, str]]:
     """Apply one HTML, Markdown and literal URL reader to each answer surface."""
     from .reference_quality import markdown_link_destinations
-    result = [(value, source + '.html_url') for _, attrs in _html_resource_attributes(content)
+    from .resource_urls import srcset_urls
+    attributes = _html_resource_attributes(content)
+    result = [(value, source + '.html_url') for _, attrs in attributes
               for key, value in attrs.items() if key in {'href', 'src'}]
+    result.extend((url, source + '.html_srcset') for tag, attrs in attributes
+                  if tag in {'img', 'source'} and attrs.get('srcset')
+                  for url in srcset_urls(attrs['srcset']))
     result.extend((url, source + '.markdown_link') for url in markdown_link_destinations(content))
     result.extend((url, source + '.bare_url') for url in _bare_resource_urls(content))
     return result
@@ -478,16 +483,17 @@ def evaluate_resources(
     }
 
 
-def word_overlap(predicted: str, reference: str) -> tuple[float, float, float]:
+def word_overlap(predicted: str, reference: str, *, representation=None) -> tuple[float, float, float]:
     # CJK characters are individual tokens, not an entire unsegmented paragraph.
-    # Strip Markdown link destinations/formatting from both sides: punctuation
-    # and link spelling must not masquerade as missing prose.
-    def tokens(value):
+    # The answer's declared representation controls literal syntax; the
+    # independent reference retains its own Markdown interpretation.
+    def tokens(value, literal=False):
         from .reference_quality import clean_reference_text, visible_markdown_links
         value = unicodedata.normalize('NFKC', clean_reference_text(value)).casefold()
-        value = visible_markdown_links(value)
+        if not literal:
+            value = visible_markdown_links(value)
         return Counter(re.findall(r'[\u3400-\u9fff]|[^\W_\u3400-\u9fff]+', value))
-    predicted_words = tokens(predicted)
+    predicted_words = tokens(predicted, representation == 'plain_text')
     reference_words = tokens(reference)
     if not reference_words:
         return (1.0, 1.0, 1.0) if not predicted_words else (0.0, 1.0, 0.0)
@@ -548,12 +554,14 @@ def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
     return kind != 'file' or isinstance(metrics.get('raw_file_pass'), bool)
 
 
-def normalize_for_match(value: str) -> str:
+def normalize_for_match(value: str, *, representation=None) -> str:
     from .reference_quality import clean_reference_text, visible_markdown_links
     normalized = unicodedata.normalize("NFKC", value).casefold()
     # Web editors insert zero-width spaces/BOMs and discretionary hyphens.
     # They are layout artifacts, not required prose; preserve meaningful joiners.
     normalized = clean_reference_text(normalized)
+    if representation == 'plain_text':
+        return re.sub(r'\s+', ' ', normalized).strip()
     # Compare visible inline Markdown text, not formatting or link destinations.
     normalized = visible_markdown_links(normalized)
     literal_pipe = '\ue000'
@@ -782,34 +790,37 @@ def evaluate_content(
     composite_acceptance: dict | None = None,
     allow_reference_block_exemptions: bool = False,
     raw_content: str | None = None,
+    representation: str | None = None,
 ) -> dict[str, Any]:
     title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
     from .reference_quality import is_html_document_or_fragment, markdown_body_content
-    prose_content = markdown_body_content(content)
+    literal = representation == 'plain_text'
+    prose_content = content if literal else markdown_body_content(content)
     visible_content = prose_content
-    is_html = is_html_document_or_fragment(prose_content)
+    is_html = not literal and is_html_document_or_fragment(prose_content)
     if is_html:
         # Keep raw HTML for records and links; score prose from visible text.
         from .dynamic_lists import visible_html_text
         visible_content = visible_html_text(prose_content)
-    else:
+    elif not literal:
         from .reference_quality import visible_mixed_html_text
         visible_content = visible_mixed_html_text(prose_content)
     has_html_prose = is_html or visible_content != prose_content
     answer_text = title_prefix + visible_content
     from .reference_quality import blocked_page_hits, script_payload_shell
-    block_hits = blocked_page_hits(answer_text)
+    block_hits = blocked_page_hits(answer_text, representation=representation)
     script_shell = script_payload_shell(answer_text)
     replacement_count, replacement_ratio, encoding_corruption = text_corruption(answer_text)
     truncation_hits = declared_truncation_hits(answer_text)
-    folded = normalize_for_match(answer_text)
-    content_folded = normalize_for_match(visible_content)
+    folded = normalize_for_match(answer_text, representation=representation)
+    content_folded = normalize_for_match(visible_content, representation=representation)
     from .stable_tasks import _stable_literal_match
     matched = [marker for marker in expected
-               if _stable_literal_match(visible_content, marker, phrase_boundaries=True)]
+               if _stable_literal_match(visible_content, marker, phrase_boundaries=True, representation=representation)]
     facts = required_facts or []
     from .dynamic_entry_matching import matching_entry_facts
-    entry_hits = matching_entry_facts(content_folded, facts, normalize_for_match, fact_in_text)
+    entry_hits = matching_entry_facts(content_folded, facts,
+                                    lambda value: normalize_for_match(value, representation=representation), fact_in_text)
     fact_results = []
     from .stable_tasks import _stable_literal_match
     registered_fact_words = tuple(value for fact in facts
@@ -824,10 +835,11 @@ def evaluate_content(
         targets = [visible_content]
         if scope == "body_or_title":
             from .reference_quality import delivered_page_title
-            targets.append(delivered_page_title(content, title))
+            targets.append((title or '') if literal else delivered_page_title(content, title))
         hits = (entry_hits[identifier] if identifier in entry_hits else
                 [item for item in alternatives
-                 if any(_stable_literal_match(target, item, registered_fact_words, phrase_boundaries=True) for target in targets)])
+                 if any(_stable_literal_match(target, item, registered_fact_words, phrase_boundaries=True,
+                                              representation=representation) for target in targets)])
         fact_results.append({
             "id": identifier,
             "alternatives": alternatives,
@@ -854,7 +866,7 @@ def evaluate_content(
     # Explicit forbidden text is a task requirement, not a challenge-page guess.
     # A reference mentioning it cannot silently remove the declared requirement.
     forbidden = [item for item in (forbidden_any or [])
-                 if (text := normalize_for_match(item)) and forbidden_in_text(folded, text)]
+                 if (text := normalize_for_match(item, representation=representation)) and forbidden_in_text(folded, text)]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
@@ -866,6 +878,9 @@ def evaluate_content(
                     and not script_shell)
     pattern_results = []
     pattern_content = content if raw_content is None else raw_content
+    from .reference_quality import visible_markdown_links
+    from .stable_tasks import _pattern_text_surface
+    pattern_visible = visible_content if literal else _pattern_text_surface(visible_markdown_links(visible_content))
     code_blocks = None
     for rule in required_patterns or []:
         scope = rule.get('match_scope', 'visible_text')
@@ -873,19 +888,20 @@ def evaluate_content(
             raise ValueError('Unknown required-pattern matching scope')
         if scope == 'code_compact' and code_blocks is None:
             code_blocks = code_matching_blocks(pattern_content)
-        targets = code_blocks if scope == 'code_compact' else [pattern_content if scope == 'output' else visible_content]
+        targets = code_blocks if scope == 'code_compact' else [pattern_content if scope == 'output' else pattern_visible]
         flags = 0 if scope == 'code_compact' else re.I
         count = len({match for target in targets for match in re.findall(rule['pattern'], target, flags)})
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements, native_markup_body_text
     body_content = (native_markup_body_text(prose_content, html.unescape(re.sub(r"<(script|style|template)\b[^>]*>.*?</\1\s*>", "", prose_content, flags=re.I | re.S)))
-                    if body_requirements and not is_html else visible_content)
-    body_checks = evaluate_body_requirements(body_content, body_requirements or {})
+                    if body_requirements and not is_html and not literal else visible_content)
+    body_checks = evaluate_body_requirements(body_content, body_requirements or {}, representation=representation)
     content_pass = content_pass and body_checks['body_coverage_pass']
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:
-        word_precision, word_recall, word_f1 = word_overlap(answer_text, ground_truth_main_content)
+        word_precision, word_recall, word_f1 = word_overlap(answer_text, ground_truth_main_content,
+                                                         representation=representation)
     result = {
         **body_checks,
         "content_pass": content_pass,
@@ -906,7 +922,7 @@ def evaluate_content(
         "pattern_pass": all(item["pass"] for item in pattern_results),
         "forbidden_requirement_hits": forbidden,
         "diagnostic_hits": [item for item in (diagnostic_any or [])
-                            if (text := normalize_for_match(item)) and forbidden_in_text(folded, text)],
+                            if (text := normalize_for_match(item, representation=representation)) and forbidden_in_text(folded, text)],
         "forbidden_requirement_pass": not forbidden,
         "blocked_page": bool(block_hits),
         "blocked_page_hits": block_hits,
@@ -914,7 +930,7 @@ def evaluate_content(
         "script_payload_shell": script_shell,
         "minimum_content_chars": min_content_chars,
         "length_pass": length_pass,
-        "content_chars": len(content),
+        "content_chars": len(content if raw_content is None else raw_content),
         "title_chars": len(title or ''),
         "content_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
         "unique_line_ratio": unique_line_ratio,
@@ -958,6 +974,7 @@ def evaluate_content(
                                            base_url, links=named_links,
                                             anchor_text=visible_content if has_html_prose else None,
                                            allow_closed_title_cards=True,
+                                           representation=representation,
                                            anchors_required=anchors_required))
         if encoding_corruption:
             result["stable_task_pass"] = False

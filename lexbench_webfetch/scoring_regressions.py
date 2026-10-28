@@ -11,6 +11,7 @@ from .inputs import definition_path
 
 ROOT = Path(__file__).resolve().parents[2]
 FAILURE_MODES = {"false-positive", "false-negative"}
+SCORING_OPTION_FIELDS = ("metadata", "title", "final_url", "list_reference", "status_code")
 ROOT_CAUSE_CATEGORIES = {
     "acceptance-contract", "answer-surface", "body-scope",
     "format-normalization", "reference-evidence", "structured-extraction",
@@ -76,7 +77,7 @@ def active_scoring_regressions(path: Path | None = None) -> dict[str, dict[str, 
         if old not in rows or new not in rows or old == new or new in mapping:
             raise ValueError("Invalid scoring policy supersession")
         if any(rows[old].get(field) != rows[new].get(field) for field in
-               ("case", "artifact", "ok", "metadata", "title", "final_url")):
+               ("case", "artifact", "ok", *SCORING_OPTION_FIELDS)):
             raise ValueError("Policy supersession must preserve synthetic inputs")
     import hashlib
     archived = json.loads(path.read_text()).get('superseded_controls', {}).get('controls', [])
@@ -192,7 +193,7 @@ def check_scoring_regressions(identifiers):
     if {row['expected_task_pass'] for row in rows} != {False, True}:
         raise ValueError('Annotation controls require accepted and rejected scenarios')
     for row in rows:
-        kwargs = {key: row.get(key) for key in ('metadata', 'title', 'final_url', 'list_reference', 'status_code')}
+        kwargs = {key: row.get(key) for key in SCORING_OPTION_FIELDS}
         try:
             metrics = score_attempt(row['case'], row['artifact'].encode(), ok=row['ok'], **kwargs)
         except ValueError as error:

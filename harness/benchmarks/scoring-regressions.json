@@ -15910,6 +15910,1634 @@
       "artifact": "<a href=\"#include<stdio.h>\">Other text</a>",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "product-html-article-cross-card",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Native product cards lost explicit ownership boundaries and borrowed prices, descriptions or review counts from neighboring cards.",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<main><section><div><article><h2>Alpha</h2></article><article><p>$10</p></article></div></section></main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "product-html-article-complete",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Native product cards lost explicit ownership boundaries and borrowed prices, descriptions or review counts from neighboring cards.",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<main><section><div><article><div><h2>Alpha</h2></div><section><p>$10</p></section></article></div></section></main>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "product-html-nested-complete",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Native product cards lost explicit ownership boundaries and borrowed prices, descriptions or review counts from neighboring cards.",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "<article><h2>Alpha</h2><aside><article><h2>Beta</h2><p>$20</p></article></aside><p>$10</p></article>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "catalog_product-html-article-cross-card",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Native product cards lost explicit ownership boundaries and borrowed prices, descriptions or review counts from neighboring cards.",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<main><section><div><article><h2>Alpha</h2><p>$10</p></article><article><p>Blue machine.</p><p>3 reviews</p></article></div></section></main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "catalog_product-html-article-complete",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Native product cards lost explicit ownership boundaries and borrowed prices, descriptions or review counts from neighboring cards.",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<main><section><div><article><div><h2>Alpha</h2></div><section><p>$10</p><p>Blue machine.</p><p>3 reviews</p></section></article></div></section></main>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "catalog_product-html-presentation-wrappers",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Native product cards lost explicit ownership boundaries and borrowed prices, descriptions or review counts from neighboring cards.",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><h2>Alpha</h2><p>$10</p><ul><li>Blue machine.</li></ul><p>3 reviews</p></article>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "native-table-descendant-field-borrowed",
+      "category": "structured-extraction",
+      "root_cause": "A native table record owns its row or cell text but never fields located only in a descendant table.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><td><a href=\"/item/1\">Widget</a></td><td><table><tr><td>$10</td></tr></table></td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "native-table-descendant-field-own",
+      "category": "structured-extraction",
+      "root_cause": "A native table record owns its row or cell text but never fields located only in a descendant table.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><td><a href=\"/item/1\">Widget</a></td><td>$20<table><tr><td>$10</td></tr></table></td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-visible-identity-duplicate",
+      "category": "structured-extraction",
+      "root_cause": "Composite table identities use the delivered visible scalar, so presentation links and emphasis do not create another entity.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "people",
+              "kind": "table",
+              "minimum_records": 2,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Description|\n|---|---|\n|Alice|First person|\n|[Alice](/profile/a)|Second person|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-visible-identity-distinct",
+      "category": "structured-extraction",
+      "root_cause": "Composite table identities use the delivered visible scalar, so presentation links and emphasis do not create another entity.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "people",
+              "kind": "table",
+              "minimum_records": 2,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Description|\n|---|---|\n|Alice|First person|\n|[Bob](/profile/b)|Second person|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "converted-table-rowspan-displaced",
+      "category": "structured-extraction",
+      "root_cause": "HTML table conversion must reject both spanning rows and rows displaced by an earlier span, using the same row-group ownership policy as direct table parsing.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Name</th><th>Count</th></tr><tr><td rowspan=\"2\">Earlier</td></tr><tr><td>Alpha</td><td>42</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "converted-table-rowspan-ordinary",
+      "category": "structured-extraction",
+      "root_cause": "HTML table conversion must reject both spanning rows and rows displaced by an earlier span, using the same row-group ownership policy as direct table parsing.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Name</th><th>Count</th></tr><tr><td rowspan=\"1\">Earlier</td></tr><tr><td>Alpha</td><td>42</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "adjacent-table-headers-complete",
+      "category": "structured-extraction",
+      "root_cause": "Each adjacent Markdown table starts a new column mapping; its header and divider are not data rows of the preceding table.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 2,
+          "maximum_records": 2,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Records$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          }
+        }
+      },
+      "artifact": "Records\n|Name|Count|\n|---|---|\n|Alpha|12|\n|Count|Name|\n|---|---|\n|34|Beta|\nEnd",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "adjacent-table-headers-missing",
+      "category": "structured-extraction",
+      "root_cause": "Each adjacent Markdown table starts a new column mapping; its header and divider are not data rows of the preceding table.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 2,
+          "maximum_records": 2,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Records$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          }
+        }
+      },
+      "artifact": "Records\n|Name|Count|\n|---|---|\n|Alpha|12|\n|Count|Name|\n|---|---|\n||Beta|\nEnd",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration7-responsive-image-resource-complete",
+      "root_cause": "Generic resource discovery parses responsive image URL candidates with the shared srcset grammar rather than dropping the attribute.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "responsive-resource-control",
+        "name": "Responsive resource",
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "responsive",
+            "urls": [
+              "/required.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<img srcset=\"/required.png 1x\">",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration7-responsive-image-resource-incomplete",
+      "root_cause": "Generic resource discovery parses responsive image URL candidates with the shared srcset grammar rather than dropping the attribute.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "responsive-resource-control",
+        "name": "Responsive resource",
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "responsive",
+            "urls": [
+              "/required.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<img data-srcset=\"/required.png 1x\">",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration7-responsive-source-frame-complete",
+      "root_cause": "Inline-frame resource discovery retains source-element responsive URLs including literal commas and decoded HTML query entities.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "responsive-resource-control",
+        "name": "Responsive resource",
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "responsive",
+            "urls": [
+              "/image?crop=10,20&a=1&b=2"
+            ]
+          }
+        ]
+      },
+      "artifact": "<iframe srcdoc=\"&lt;source srcset=&quot;/image?crop=10,20&amp;amp;a=1&amp;amp;b=2 1x&quot;&gt;\"></iframe>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration7-responsive-source-frame-incomplete",
+      "root_cause": "Inline-frame resource discovery retains source-element responsive URLs including literal commas and decoded HTML query entities.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "responsive-resource-control",
+        "name": "Responsive resource",
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "responsive",
+            "urls": [
+              "/image?crop=10,20&a=1&b=2"
+            ]
+          }
+        ]
+      },
+      "artifact": "<iframe srcdoc=\"&lt;source srcset=&quot;/other.png 1x&quot;&gt;\"></iframe>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-plain-frontmatter",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "forbidden_any": [
+          "prohibited"
+        ]
+      },
+      "artifact": "---\nsecret: prohibited\n---\nGood body",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-markdown-frontmatter",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "forbidden_any": [
+          "prohibited"
+        ]
+      },
+      "artifact": "---\nsecret: prohibited\n---\nGood body",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-visible-label",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "Order ID 123",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "[Order ID 123](https://example.test/)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-image-alt",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "Order ID 123",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "Good body ![Order ID 123](image.png)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-link-destination",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "Order-ID-123",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "Good body [Open](https://example.test/Order-ID-123)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-link-title",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "Order ID 123",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "Good body [Open](https://example.test/ \"Order ID 123\")",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-literal-code",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "Order ID 123",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "`![Order ID 123](image.png)`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-formatted-label",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "^Order ID 123$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "`Order ID 123`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-output-metadata",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "Order ID 123",
+            "match_scope": "output"
+          }
+        ]
+      },
+      "artifact": "Good body ![Order ID 123](image.png)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-plain-image",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "id": "order",
+            "alternatives": [
+              "Order ID 123"
+            ]
+          }
+        ]
+      },
+      "artifact": "![Order ID 123](image.png)",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-plain-destination",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "forbidden_any": [
+          "prohibited"
+        ]
+      },
+      "artifact": "[Open](https://example.test/prohibited)",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-markdown-destination",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "forbidden_any": [
+          "prohibited"
+        ]
+      },
+      "artifact": "[Open](https://example.test/prohibited)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-plain-html",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "Order ID 123",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "<span hidden>Order ID 123</span>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-html-hidden",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "Order ID 123",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "<span hidden>Order ID 123</span>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-plain-emphasis",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "^\\*\\*Required label\\*\\*$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "**Required label**",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-plain-frontmatter-pattern",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "prohibited",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "---\nsecret: prohibited\n---\nGood body",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-plain-json",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "Order ID 123",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "{\"success\":true,\"result\":\"Order ID 123\"}",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-native-json",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared plain text retains literal content; Markdown visible-text requirements use rendered prose while output scopes retain delivered syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "required",
+            "pattern": "Order ID 123",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "{\"success\":true,\"result\":\"Order ID 123\"}",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-body-1-plain_text",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_plain_text_body_coverage",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 1,
+          "unit": "region_token_recall",
+          "minimum_coverage": 1,
+          "regions": [
+            {
+              "id": "literal",
+              "text": "special evidence"
+            }
+          ]
+        }
+      },
+      "artifact": "[Open](https://example.test/special-evidence)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-body-2-plain_text",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_plain_text_body_coverage",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 2,
+          "unit": "region_compact_trigram_recall",
+          "minimum_coverage": 1,
+          "regions": [
+            {
+              "id": "literal",
+              "text": "special evidence"
+            }
+          ]
+        }
+      },
+      "artifact": "[Open](https://example.test/special-evidence)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-body-3-plain_text",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_plain_text_body_coverage",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 1,
+          "regions": [
+            {
+              "id": "literal",
+              "text": "special evidence"
+            }
+          ],
+          "minimum_floor": 1,
+          "minimum_region_passes": 1
+        }
+      },
+      "artifact": "[Open](https://example.test/special-evidence)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-body-4-plain_text",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_plain_text_body_coverage",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 4,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 1,
+          "regions": [
+            {
+              "id": "literal",
+              "text": "special evidence"
+            }
+          ],
+          "minimum_floor": 1,
+          "minimum_region_passes": 1,
+          "ending": {
+            "text": "special evidence"
+          }
+        }
+      },
+      "artifact": "[Open](https://example.test/special-evidence)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-body-5-plain_text",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_plain_text_body_coverage",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 5,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 1,
+          "regions": [
+            {
+              "id": "literal",
+              "text": "special evidence"
+            }
+          ],
+          "minimum_floor": 1,
+          "minimum_region_passes": 1,
+          "ending": {
+            "text": "special evidence"
+          }
+        }
+      },
+      "artifact": "[Open](https://example.test/special-evidence)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-stable-plain_text",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_plain_text_stable_anchors",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "evidence",
+              "alternatives": [
+                "special evidence"
+              ]
+            }
+          ],
+          "stable_text_role": "required"
+        }
+      },
+      "artifact": "[Open](https://example.test/ \"special evidence\")",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime7-body-1-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_plain_text_body_coverage",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 1,
+          "unit": "region_token_recall",
+          "minimum_coverage": 1,
+          "regions": [
+            {
+              "id": "literal",
+              "text": "special evidence"
+            }
+          ]
+        }
+      },
+      "artifact": "[Open](https://example.test/special-evidence)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-body-2-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_plain_text_body_coverage",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 2,
+          "unit": "region_compact_trigram_recall",
+          "minimum_coverage": 1,
+          "regions": [
+            {
+              "id": "literal",
+              "text": "special evidence"
+            }
+          ]
+        }
+      },
+      "artifact": "[Open](https://example.test/special-evidence)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-body-3-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_plain_text_body_coverage",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 1,
+          "regions": [
+            {
+              "id": "literal",
+              "text": "special evidence"
+            }
+          ],
+          "minimum_floor": 1,
+          "minimum_region_passes": 1
+        }
+      },
+      "artifact": "[Open](https://example.test/special-evidence)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-body-4-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_plain_text_body_coverage",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 4,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 1,
+          "regions": [
+            {
+              "id": "literal",
+              "text": "special evidence"
+            }
+          ],
+          "minimum_floor": 1,
+          "minimum_region_passes": 1,
+          "ending": {
+            "text": "special evidence"
+          }
+        }
+      },
+      "artifact": "[Open](https://example.test/special-evidence)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-body-5-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_plain_text_body_coverage",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 5,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 1,
+          "regions": [
+            {
+              "id": "literal",
+              "text": "special evidence"
+            }
+          ],
+          "minimum_floor": 1,
+          "minimum_region_passes": 1,
+          "ending": {
+            "text": "special evidence"
+          }
+        }
+      },
+      "artifact": "[Open](https://example.test/special-evidence)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-stable-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_plain_text_stable_anchors",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "evidence",
+              "alternatives": [
+                "special evidence"
+              ]
+            }
+          ],
+          "stable_text_role": "required"
+        }
+      },
+      "artifact": "[Open](https://example.test/ \"special evidence\")",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime7-delivered-length-0",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "persisted_output_character_count",
+      "case": {
+        "url": "https://example.test/"
+      },
+      "artifact": "a < b",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 5
+      }
+    },
+    {
+      "id": "runtime7-delivered-length-1",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "persisted_output_character_count",
+      "case": {
+        "url": "https://example.test/"
+      },
+      "artifact": "&literal;",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 9
+      }
+    },
+    {
+      "id": "runtime7-delivered-length-2",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "persisted_output_character_count",
+      "case": {
+        "url": "https://example.test/"
+      },
+      "artifact": "你好 <世界>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 7
+      }
+    },
+    {
+      "id": "runtime7-delivered-length-3",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "persisted_output_character_count",
+      "case": {
+        "url": "https://example.test/"
+      },
+      "artifact": "![diagram](image.png)",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 21
+      }
+    },
+    {
+      "id": "runtime7-raw-api-length",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "persisted_output_character_count",
+      "case": {
+        "url": "https://example.test/"
+      },
+      "artifact": "{\"success\":true,\"result\":\"\"}",
+      "ok": true,
+      "status_code": 200,
+      "metadata": {
+        "native_answer_projection": {
+          "schema_version": 2,
+          "content_pointer": [
+            "result"
+          ],
+          "content_format": "text"
+        },
+        "raw_response_sha256": "324c5d249c03a50ab1776d9fe6c5c39b3bc4867f0016760a6b1e20b8dfbbb7a0"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "content_chars": 28,
+        "request_ok": true
+      }
+    },
+    {
+      "id": "literal-surface-plain",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Required label$"
+          ]
+        }
+      },
+      "artifact": "Required label",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-surface-inline",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Required label$"
+          ]
+        }
+      },
+      "artifact": "`Required label`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-surface-double-inline",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Required label$"
+          ]
+        }
+      },
+      "artifact": "``Required label``",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-surface-triple-inline",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Required label$"
+          ]
+        }
+      },
+      "artifact": "```Required label```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-surface-payload-backtick",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Required ` label$"
+          ]
+        }
+      },
+      "artifact": "``Required ` label``",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-surface-inline-space",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Required label$"
+          ]
+        }
+      },
+      "artifact": "` Required label `",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-surface-multiline-inline",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Required label$"
+          ]
+        }
+      },
+      "artifact": "`Required\nlabel`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-surface-fenced",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Required label$"
+          ]
+        }
+      },
+      "artifact": "```markdown\nRequired label\n```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-surface-tilde-fenced",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Required label$"
+          ]
+        }
+      },
+      "artifact": "~~~markdown\nRequired label\n~~~",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-surface-wrong-label",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Required label$"
+          ]
+        }
+      },
+      "artifact": "`Other label`",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal-surface-fence-language",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^markdown$"
+          ]
+        }
+      },
+      "artifact": "```markdown\nRequired label\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal-surface-literal-image",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^!\\[diagram\\]\\(example\\.png\\)$"
+          ]
+        }
+      },
+      "artifact": "`![diagram](example.png)`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-surface-actual-image",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Code syntax remains protected during visibility normalization, then only its rendered payload supplies the final page-pattern surface.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^!\\[diagram\\]\\(example\\.png\\)$"
+          ]
+        }
+      },
+      "artifact": "![diagram](example.png)",
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

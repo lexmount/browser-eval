@@ -9,13 +9,12 @@ import pytest
 from lexbench_webfetch.evaluation import evaluate_response
 from lexbench_webfetch.scoring import score_attempt
 from lexbench_webfetch.metrics import task_passed, task_measured
-from lexbench_webfetch.scoring_regressions import active_scoring_regressions
+from lexbench_webfetch.scoring_regressions import SCORING_OPTION_FIELDS, active_scoring_regressions
 
 
 @pytest.mark.parametrize("identifier,row", active_scoring_regressions().items())
 def test_declared_acceptance_scenarios(identifier, row):
-    arguments = dict(ok=row['ok'], metadata=row.get('metadata'), title=row.get('title'),
-                     final_url=row.get('final_url'), list_reference=row.get('list_reference'), status_code=row.get('status_code'))
+    arguments = dict(ok=row['ok'], **{key: row.get(key) for key in SCORING_OPTION_FIELDS})
     if row.get('expected_validation_error'):
         with pytest.raises(ValueError, match=row['expected_validation_error']):
             score_attempt(row['case'], row['artifact'].encode(), **arguments)

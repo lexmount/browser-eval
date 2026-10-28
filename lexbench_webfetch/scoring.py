@@ -119,7 +119,7 @@ def score_attempt(
     language_match = case.get("document_language_match", "primary")
     if language_match not in {"primary", "exact"}:
         raise ValueError("document_language_match must be primary or exact")
-    from .response_input import answer_input, answer_format, answer_prose_input
+    from .response_input import answer_input, answer_format
     representation = answer_format(metadata)
     # Live callers forward the conversion completed inside the timed boundary.
     # Offline callers reconstruct it from immutable evidence by the same function.
@@ -152,8 +152,8 @@ def score_attempt(
         except ValueError:
             pass
     result.update(evaluate_content(
-        answer_prose_input(content, representation), case.get("expected_any", []), title=title,
-        base_url=base_url, named_links=links, raw_content=content,
+        content, case.get("expected_any", []), title=title,
+        base_url=base_url, named_links=links, raw_content=content, representation=representation,
         allow_reference_block_exemptions=(
             task_kind == "body" and not case.get("acceptance_contract")
         ),
@@ -334,6 +334,7 @@ def score_attempt(
                 raise ValueError("Legacy list scoring requires independent list reference")
             result.update(verify_list(content, benchmark, base_url, list_reference, ok, links))
     result["content_sha256"] = hashlib.sha256(artifact).hexdigest()
+    result["content_chars"] = len(artifact.decode('utf-8', errors='replace'))
     if case.get('ordered_tree_reference') is not None:
         from .ordered_tree import tree_distance
         tree_result = tree_distance(json.loads(artifact), case['ordered_tree_reference'])

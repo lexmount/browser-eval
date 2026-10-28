@@ -169,3 +169,59 @@ def test_pin_checks_composed_sources_in_both_update_directions(tmp_path, monkeyp
         assert {path: path.read_bytes() for path in paths} == before
     else:
         pinning.pin(tmp_path, 'websearch', 'a' * 40)
+
+
+@pytest.mark.parametrize('failure_at', [1, 2])
+@pytest.mark.parametrize('error', [OSError, KeyboardInterrupt])
+def test_publication_failure_restores_both_original_bindings(tmp_path, monkeypatch, failure_at, error):
+    paths = fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in paths}
+    replace = pinning.os.replace
+    calls = []
+    def fail_publish(source, destination):
+        calls.append(destination)
+        if len(calls) == failure_at:
+            raise error('Injected publication failure')
+        return replace(source, destination)
+    monkeypatch.setattr(pinning.os, 'replace', fail_publish)
+    with pytest.raises(error, match='Injected publication failure'):
+        pinning.pin(tmp_path, 'websearch', 'a' * 40)
+    assert {path: path.read_bytes() for path in paths} == before
+    assert not list(tmp_path.rglob('.dataset-pin-*'))
+
+
+def test_staging_failure_never_changes_a_binding(tmp_path, monkeypatch):
+    paths = fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in paths}
+    write = type(paths[0]).write_bytes
+    staged = []
+    def fail_staging(path, raw):
+        if path.name == 'next':
+            staged.append(path)
+            if len(staged) == 2:
+                raise OSError('Injected full disk')
+        return write(path, raw)
+    monkeypatch.setattr(type(paths[0]), 'write_bytes', fail_staging)
+    with pytest.raises(OSError, match='Injected full disk'):
+        pinning.pin(tmp_path, 'websearch', 'a' * 40)
+    assert {path: path.read_bytes() for path in paths} == before
+    assert not list(tmp_path.rglob('.dataset-pin-*'))
+
+
+def test_failed_rollback_retains_the_original_for_recovery(tmp_path, monkeypatch):
+    paths = fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in paths}
+    replace = pinning.os.replace
+    calls = []
+    def fail_publication_and_rollback(source, destination):
+        calls.append(destination)
+        if len(calls) >= 2:
+            raise OSError('Storage unavailable')
+        return replace(source, destination)
+    monkeypatch.setattr(pinning.os, 'replace', fail_publication_and_rollback)
+    with pytest.raises(OSError, match='original retained at'):
+        pinning.pin(tmp_path, 'websearch', 'a' * 40)
+    assert paths[0].read_bytes() == before[paths[0]]
+    backups = list(tmp_path.rglob('.dataset-pin-*/original'))
+    assert len(backups) == 1
+    assert backups[0].read_bytes() == before[paths[1]]

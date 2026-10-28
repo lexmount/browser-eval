@@ -15,7 +15,9 @@ import soupsieve
 import unicodedata
 from urllib.parse import unquote, urljoin as _urljoin, urlsplit
 
-from .structured_tables import _pipe_cells, table_text_surface, validate_group_caption
+from .structured_tables import (
+    _pipe_cells, _table_header_at, _visible_markdown_scalar, table_text_surface, validate_group_caption,
+)
 from .dynamic_lists import canonical_entry_path, _named_candidate, extract_named_entries, named_entry_identity, _without_record_literals
 from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links, without_markdown_images
 
@@ -418,7 +420,11 @@ def _html_table_record_contexts(content: str, group: dict, base_url: str, allowe
         for cell, identity in owners:
             if identity in allowed:
                 owner = row if len(owners) == 1 else cell
-                candidates.append((cell, identity, visible_html_text(str(owner), preserve_links=True)))
+                own_context = scoped_html(str(owner))
+                for nested in list(own_context.select('table')):
+                    if nested.parent is not None:
+                        nested.decompose()
+                candidates.append((cell, identity, visible_html_text(str(own_context), preserve_links=True)))
     # Trace occurrences through the same section/column projection as the
     # named records. An allowed destination elsewhere on the page cannot lend
     # fields to an incomplete occurrence inside the selected section.
@@ -1413,14 +1419,6 @@ def _name_description_group(content: str, group: dict, base_url: str) -> dict:
     }
 
 
-def _table_header_at(lines: list[str], index: int) -> bool:
-    if index + 1 >= len(lines) or '|' not in lines[index]:
-        return False
-    cells, divider = _pipe_cells(lines[index]), _pipe_cells(lines[index + 1])
-    return any(cell.strip() for cell in cells) and len(cells) == len(divider) and all(
-        re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in divider)
-
-
 def _unique_columns(candidates: dict) -> dict | None:
     """Require a unique one-to-one assignment, using bounded augmenting paths."""
     def match(forbidden=None):
@@ -1513,7 +1511,7 @@ def _table_group(content: str, group: dict) -> dict:
                 row_index += 1
             # Every table in the independently declared section contributes;
             # repeated identities are still counted only once below.
-    unique = {_key(row[group["identity_column"]]): row for row in records}
+    unique = {_key(_visible_markdown_scalar(row[group["identity_column"]])): row for row in records}
     return {
         "count": len(unique),
         "records": list(unique.values()),

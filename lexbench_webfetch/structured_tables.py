@@ -151,6 +151,7 @@ def _visible_markdown_scalar(value):
     value = re.sub(r'`([^`\n]+)`', r'\1', value)
     value = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', value)
     value = re.sub(r'__(?=\S)([^_\n]*\S)__', r'\1', value)
+    value = re.sub(r'(?<!\w)([*_])(?=\S)([^\n]*?\S)\1(?!\w)', r'\2', value)
     return value.strip()
 
 
@@ -222,17 +223,16 @@ def table_text_surface(content, *, exclude_selector=None):
     """Preserve owned HTML cells/links and adjacent split Markdown bodies."""
     from bs4 import BeautifulSoup
     content = _without_example_fences(content)
+    blocked = set()
 
     def convert(table):
         lines = []
         for row in table.find_all('tr'):
-            if row.find_parent('table') is not table:
+            if row.find_parent('table') is not table or id(row) in blocked:
                 continue
             cells = row.find_all(['th', 'td'], recursive=False)
             values = []
             for cell in cells:
-                if cell.get('colspan', '1') != '1' or cell.get('rowspan', '1') != '1':
-                    break
                 for link in cell.find_all('a', href=True):
                     if link.find_parent('table') is not table:
                         continue
@@ -255,6 +255,7 @@ def table_text_surface(content, *, exclude_selector=None):
     if _contains_rendered_html_table(content):
         from .dynamic_lists import scoped_html
         soup = scoped_html(content)
+        blocked = _spanning_rows(soup)
         if exclude_selector:
             for node in list(soup.select(exclude_selector)):
                 if node.parent is not None:
@@ -422,10 +423,10 @@ def parse_table_records(content, visible, contract):
                             if not isinstance(part, Comment)
                             and part.find_parent('table') is table and str(part).strip())
 
+        blocked = _spanning_rows(root)
         if scope.get('exclude_selector'):
             for auxiliary in root.select(scope['exclude_selector']):
                 auxiliary.decompose()
-        blocked = _spanning_rows(root)
         for row in root.select(scope['row_selector']):
             table = row.find_parent('table')
             if all('selector' in c for c in columns):
@@ -528,6 +529,8 @@ def parse_table_records(content, visible, contract):
                 continue
             j = first_row
             while j < len(lines) and '|' in lines[j]:
+                if _table_header_at(lines, j):
+                    break
                 values = [v.strip() for v in _pipe_cells(lines[j])]
                 if len(values) == len(labels):
                     candidates.append(dict(zip(
@@ -564,6 +567,15 @@ def _header_label(value, aliases):
     # Sorting icons decorate a declared column; they are not part of its name.
     undecorated = re.sub(r'[\s↑↓↕⇅▲▼▴▾]+$', '', value)
     return undecorated if undecorated.casefold() in aliases else value
+
+def _table_header_at(lines: list[str], index: int) -> bool:
+    if index + 1 >= len(lines) or '|' not in lines[index]:
+        return False
+    cells, divider = _pipe_cells(lines[index]), _pipe_cells(lines[index + 1])
+    return any(cell.strip() for cell in cells) and len(cells) == len(divider) and all(
+        re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in divider)
+
+
 
 def _pipe_cells(line):
     """Split real delimiters, preserving escaped pipes and empty owned cells."""

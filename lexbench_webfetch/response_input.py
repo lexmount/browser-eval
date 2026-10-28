@@ -69,15 +69,3 @@ def answer_format(metadata=None):
     if not isinstance(value, str) or value not in {'plain_text', 'html', 'markdown'}:
         raise ValueError('answer_format must be plain_text, html, or markdown')
     return value
-
-
-def answer_prose_input(content, representation):
-    """Protect declared literal text on the temporary prose-scoring surface.
-
-    Stored response bytes, prepared-answer tuples, links and file evidence are
-    unchanged. HTML and Markdown retain their existing visibility projection.
-    """
-    if representation == 'plain_text':
-        from html import escape
-        return escape(content, quote=False)
-    return content
