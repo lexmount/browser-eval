@@ -2,8 +2,6 @@
 
 <img src="assets/overview.png" alt="Browser Eval — 相同任务，清晰比较。" width="100%">
 
-<h3>Browser Eval：面向 AI Agent 的浏览器与 Web 工具评测</h3>
-
 [English](../README.md) · **简体中文**
 
 [![CI](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml)

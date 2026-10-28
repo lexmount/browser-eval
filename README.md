@@ -2,8 +2,6 @@
 
 <img src="docs/assets/overview.png" alt="Browser Eval — Same tasks. Clear comparisons." width="100%">
 
-<h3>Browser Eval: Benchmarking Browsers and Web Tools for AI Agents</h3>
-
 **English** · [简体中文](docs/README.zh-CN.md)
 
 [![CI](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml)
