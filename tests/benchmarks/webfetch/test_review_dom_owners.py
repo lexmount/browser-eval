@@ -47,6 +47,7 @@ def test_image_metadata_never_promotes_diagnostic_branches(branch):
 
 @pytest.mark.parametrize('answer,passed', [
     ('<p>Visible introduction</p><pre>required_code()</pre>', True),
+    ('<p>Visible introduction</p><pre>required_\n code ( )</pre>', True),
     ('<p>Visible introduction</p><pre hidden>required_code()</pre>', False),
     ('<p>Visible introduction</p><span hidden><pre>required_code()</pre></span>', False),
     ('<p>Visible introduction</p><div style="display:none"><pre>required_code()</pre></div>', False),
@@ -57,5 +58,5 @@ def test_image_metadata_never_promotes_diagnostic_branches(branch):
 ])
 def test_compact_code_uses_visible_native_blocks_and_preserves_literal_examples(answer, passed):
     contract = task(required_patterns=[{'id': 'program', 'pattern': r'required_code\(\)',
-                                       'minimum': 1, 'scope': 'code_compact'}])
+                                       'minimum': 1, 'match_scope': 'code_compact'}])
     assert evaluate_response(contract, answer.encode())['passed'] is passed

@@ -726,7 +726,17 @@ def code_matching_blocks(content: str) -> list[str]:
             if owner is not None and not isinstance(owner, Comment) and owner.find_parent('pre') is None:
                 blocks.extend(code_matching_blocks(literal))
     else:
-        text = re.sub(r'(?m)^[ \t]*(?:>[ \t]?)+', '', visible_mixed_html_text(content))
+        text = re.sub(r'(?m)^[ \t]*(?:>[ \t]?)+', '', content)
+        headers = {}
+        def protect_header(match):
+            token = marker + 'header' + str(len(headers)) + marker
+            headers[token] = match[2]
+            return match[1] + token
+        text = re.sub(r'(?m)^([ \t]*(?:\d+[ \t]+)?#[ \t]*include[ \t]*)(<[^<>\r\n]+>)',
+                      protect_header, text)
+        text = visible_mixed_html_text(text)
+        for token, header in headers.items():
+            text = text.replace(token, header)
         blocks, current, fence = [], [], None
         for line in text.splitlines(keepends=True):
             if fence is not None:

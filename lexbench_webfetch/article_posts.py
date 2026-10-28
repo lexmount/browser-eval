@@ -52,8 +52,21 @@ def post_identity(value, contract, base):
     return named_entry_identity(destination, contract)
 
 
-def _owned_body_text(node, contract):
-    surface = article_html(str(node))
+def _post_html(content, contract, *, field_metadata=False):
+    """Exclude post UI without changing visible prose or comment policy."""
+    surface = article_html(content)
+    selectors = 'time, button, [role="button"]'
+    if field_metadata:
+        selectors += ', ' + contract['html_author_selector'] + ', ' + contract['html_permalink_selector']
+    for field in list(surface.select(selectors)):
+        if field.parent is not None:
+            field.decompose()
+    return surface
+
+
+def _owned_body_text(node, contract, *, exclude_metadata=False):
+    surface = (_post_html(str(node), contract, field_metadata=True) if exclude_metadata
+               else article_html(str(node)))
     # Field-node ownership alone does not exclude a nested card's text.
     for nested in list(surface.select(contract['html_record_selector'])):
         if nested.parent is not None:
@@ -95,17 +108,11 @@ def _html_records(content, contract):
             # before accepting its remaining visible text as prose.
             bodies = [node for node in quote.select(contract['html_body_selector'])
                       if owned(node) and quote_owner(node) is quote]
-            copy = article_html(str(bodies[0] if len(bodies) == 1 else quote))
-            metadata = (contract['html_author_selector'] + ', '
-                        + contract['html_permalink_selector']
-                        + ', time, button, [role="button"]')
-            for field in list(copy.select(metadata)):
-                if field.parent is not None:
-                    field.decompose()
-            quote_bodies.append(_owned_body_text(copy, contract))
+            quote_bodies.append(_owned_body_text(bodies[0] if len(bodies) == 1 else quote,
+                                                  contract, exclude_metadata=True))
             quote.extract()
         rows.append({'url': link.get('href', ''), 'author': author.get_text(' ', strip=True),
-                     'post': _owned_body_text(body, contract) if body is not None else '', 'quote': quote_text,
+                     'post': _owned_body_text(body, contract, exclude_metadata=True) if body is not None else '', 'quote': quote_text,
                      'quote_bodies_after_author': quote_bodies,
                      'quote_authors': quote_authors})
     return rows
@@ -202,7 +209,7 @@ def _markdown_records(content, contract, url):
     while paragraph_marker in content:
         paragraph_marker += '_'
     content = re.sub(r'\n[ \t]*\n', '\n'+paragraph_marker+'\n', content)
-    content = visible_html_text(content, preserve_source_whitespace=True, preserve_links=True)
+    content = visible_html_text(str(_post_html(content, contract)), preserve_source_whitespace=True, preserve_links=True)
     content = content.replace(paragraph_marker, '')
     lines = content.splitlines()
     headers, section_end = _post_headers(lines, contract, url)
@@ -295,7 +302,7 @@ def _verify_fixed_posts(content, contract, url):
     if is_article_html(content):
         native = article_html(content).select(contract['html_record_selector'])
         rows = (_html_records(content, contract) if native
-                else _markdown_records(article_markdown(content), contract, url))
+                else _markdown_records(article_markdown(str(_post_html(content, contract))), contract, url))
     else:
         rows = _markdown_records(content, contract, url)
     seen, checks = set(), []

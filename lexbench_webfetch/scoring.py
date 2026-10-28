@@ -317,7 +317,7 @@ def score_attempt(
             if field not in benchmark:
                 continue
             component_contract = benchmark[field]
-            component_result = component.verify(content, component_contract, case["url"])
+            component_result = component.verify(content, component_contract, base_url)
             result.update(component_result)
             required[component.name] = component_result[component.pass_metric] is True
             result[component.digest_metric] = hashlib.sha256(json.dumps(

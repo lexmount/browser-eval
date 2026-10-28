@@ -210,6 +210,7 @@ def _coverage_text_records(content, contract):
     bare names are deliberately not guessed from arbitrary prose. Colon-style
     authors additionally require a section heading or reviewed body ending: a
     plain navigation label must not turn article captions into authors.
+    Author headings are peers; deeper headings remain in the current comment.
     """
     # Code may be comment text, but cannot introduce fake record boundaries.
     content, fences = mask_markdown_code(content, retain=True)
@@ -230,6 +231,7 @@ def _coverage_text_records(content, contract):
     controls = declared_labels(contract, "ignored_labels")
     rows, current = [], None
     heading_authors = False
+    author_heading_level = None
     for offset, line in enumerate(lines[start:], start):
         previous_blank = offset == start or not lines[offset - 1].strip()
         stripped = line.strip()
@@ -242,6 +244,10 @@ def _coverage_text_records(content, contract):
         heading = re.fullmatch(r'\s*(#{1,6})\s+(.+?)\s*', line)
         if heading and section_level and len(heading[1]) <= section_level:
             break
+        if heading and author_heading_level is not None and len(heading[1]) > author_heading_level:
+            if current is not None:
+                current['text'] += '\n' + visible_markdown_links(line)
+            continue
         if label_key(visible_markdown_links(stripped)) in controls:
             current = None
             continue
@@ -263,6 +269,8 @@ def _coverage_text_records(content, contract):
             stripped, heading, heading_authors, explicit_scope,
             current is None or previous_blank)
         if author is not None:
+            if heading:
+                author_heading_level = len(heading[1])
             current = {'author': visible_markdown_links(author), 'text': visible_markdown_links(body)}
             rows.append(current)
         elif current is not None and not _comment_time_metadata(line):

@@ -1068,7 +1068,7 @@ def _html_product_records(content, contract, base_url, diagnostics):
                     nodes = ([node] if node.name == 'a' else []) + node.find_all('a', href=True)
                     return any(id(item) in boundaries and boundaries[id(item)] != identity for item in nodes)
                 children = list(owner.children)
-                if anchor.parent is owner:
+                if anchor.parent is owner and (foreign_record(owner) or (global_owner and not scope)):
                     children = children[children.index(anchor) + 1:]
                     stop = next((index for index, child in enumerate(children)
                                  if isinstance(child, Tag) and foreign_record(child)), len(children))

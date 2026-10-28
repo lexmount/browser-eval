@@ -67,6 +67,8 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
     for option in ("dataset_sources", "default_dataset", "scorer"):
         if option in before:
             selected[option] = copy.deepcopy(before[option])
+    candidate = {**lock["datasets"], track: selected}
+    validate_selections(candidate)
     previous = [{k: v for k, v in before.items() if k != "history"}, *before.get("history", [])]
     history = {item["revision"]: item for item in previous if item["revision"] != revision}
     selected["history"] = list(history.values())
@@ -92,6 +94,25 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
         path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
     validate_binding(root, "lexbench-" + track)
     return changes
+
+
+def validate_selections(selections: dict) -> None:
+    """Check the composed inputs consumers will load before changing bindings."""
+    for track, selected in selections.items():
+        datasets = selected.get("datasets", {})
+        default = selected.get("default_dataset")
+        if default is not None and default not in datasets:
+            raise ValueError(f"Default dataset is absent from {track}: {default}")
+        for identity, source in selected.get("dataset_sources", {}).items():
+            consumer = datasets.get(identity)
+            provider = selections.get(source, {})
+            supplied = provider.get("datasets", {}).get(identity)
+            if consumer is None or supplied is None or consumer != supplied:
+                raise ValueError(f"Incompatible dataset source: {track}/{identity} -> {source}")
+            file = provider.get("files", {}).get("definitions/" + supplied["path"])
+            if file is None or file["sha256"] != consumer["sha256"]:
+                raise ValueError(f"Dataset source file binding mismatch: {source}/{identity}")
+
 
 def refresh_binding(binding: dict, revision: str, definitions: Path) -> dict:
     updated = copy.deepcopy(binding)

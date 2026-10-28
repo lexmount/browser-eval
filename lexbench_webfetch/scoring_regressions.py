@@ -192,7 +192,7 @@ def check_scoring_regressions(identifiers):
     if {row['expected_task_pass'] for row in rows} != {False, True}:
         raise ValueError('Annotation controls require accepted and rejected scenarios')
     for row in rows:
-        kwargs = {key: row.get(key) for key in ('metadata', 'title', 'final_url', 'list_reference')}
+        kwargs = {key: row.get(key) for key in ('metadata', 'title', 'final_url', 'list_reference', 'status_code')}
         try:
             metrics = score_attempt(row['case'], row['artifact'].encode(), ok=row['ok'], **kwargs)
         except ValueError as error:

@@ -1,5 +1,6 @@
 """Provider-neutral answer envelope. Never infer answers from logs or requests."""
 import json
+import hashlib
 from urllib.parse import urljoin, urlsplit
 
 
@@ -7,15 +8,22 @@ def answer_input(artifact, metadata=None, *, ok=True, status_code=None):
     text = artifact.decode('utf-8', errors='replace')
     metadata = metadata or {}
     basis = 'adapter_status'
-    # Some adapters persist an explicit API envelope when extraction is empty.
-    # Recognize the envelope by its fields, never by a provider's name.
-    try:
-        payload = json.loads(text)
-    except (ValueError, TypeError):
-        payload = None
+    # Only adapter-declared, hash-bound raw API bytes may be interpreted as an
+    # envelope. Identically shaped JSON can be the actual requested document.
+    projection = metadata.get('native_answer_projection')
+    raw_envelope = (isinstance(projection, dict) and projection.get('schema_version') == 2
+                    and projection.get('content_pointer') == ['result']
+                    and projection.get('content_format') == 'text'
+                    and metadata.get('raw_response_sha256') == hashlib.sha256(artifact).hexdigest())
+    payload = None
+    if raw_envelope:
+        try:
+            payload = json.loads(text)
+        except (ValueError, TypeError):
+            pass
     if (status_code == 200 and isinstance(payload, dict)
             and payload.get('success') is True and payload.get('result') == ''):
-        ok, text, basis = True, '', 'http_200_success_envelope_empty_result'
+        text, basis = '', 'http_200_success_envelope_empty_result'
     links = []
     # Only explicit name/destination pairs are answer evidence. Bare URLs,
     # request echoes, arbitrary nested metadata and diagnostic logs are not.
@@ -33,13 +41,10 @@ def answer_input(artifact, metadata=None, *, ok=True, status_code=None):
 
 
 def apply_request_status(record):
-    """Persist one normalized status, retaining the original adapter fields."""
+    """Annotate declared empty API content without changing adapter status."""
     m = record['metrics']
     if m.get('request_status_basis') == 'http_200_success_envelope_empty_result':
-        record.setdefault('raw_request_status', {k: record.get(k) for k in
-                          ('ok', 'error_type', 'error_message')})
-        record.update(ok=True, error_type=None, error_message=None)
-        record['provider_metadata']['empty_content'] = True
+        record.setdefault('provider_metadata', {})['empty_content'] = True
 
 
 def safe_named_links(links, base_url):

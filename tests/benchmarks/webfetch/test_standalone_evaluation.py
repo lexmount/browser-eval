@@ -15,7 +15,7 @@ from lexbench_webfetch.scoring_regressions import active_scoring_regressions
 @pytest.mark.parametrize("identifier,row", active_scoring_regressions().items())
 def test_declared_acceptance_scenarios(identifier, row):
     arguments = dict(ok=row['ok'], metadata=row.get('metadata'), title=row.get('title'),
-                     final_url=row.get('final_url'), list_reference=row.get('list_reference'))
+                     final_url=row.get('final_url'), list_reference=row.get('list_reference'), status_code=row.get('status_code'))
     if row.get('expected_validation_error'):
         with pytest.raises(ValueError, match=row['expected_validation_error']):
             score_attempt(row['case'], row['artifact'].encode(), **arguments)
@@ -83,8 +83,10 @@ def test_file_acceptance_uses_delivered_bytes_and_declared_hash(tmp_path, valid)
 def test_file_verdict_follows_normalized_request_state(envelope, expected):
     task = {'url': 'https://example.test/file', 'task_kind': 'file',
             'expected_any': [], 'content_score_applicable': False}
+    metadata = {'raw_response_sha256': hashlib.sha256(envelope).hexdigest(),
+                'native_answer_projection': {'schema_version': 2, 'content_pointer': ['result'], 'content_format': 'text'}}
     result = evaluate_response(task, envelope, files=[b'\x89PNG\r\n\x1a\n'+b'x'*32],
-                               ok=False, status_code=200)
+                               metadata=metadata, ok=expected, status_code=200)
     assert result['metrics']['request_ok'] is expected
     assert result['passed'] is expected
 

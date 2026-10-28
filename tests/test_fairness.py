@@ -214,14 +214,16 @@ class FairnessTests(unittest.TestCase):
         softbreak = markdown.replace('Product ', 'Product\n')
         self.assertEqual(score_attempt(c, softbreak.encode(), ok=True)['stable_records'], a['stable_records'])
 
-    def test_api_status_normalization_does_not_depend_on_provider_name(self):
+    def test_explicit_raw_api_normalization_does_not_depend_on_provider_name(self):
         for name in ('a', 'b', 'cloudflare-markdown'):
             raw = b'{"success":true,"result":""}'
-            m = score_attempt({'url': 'https://example.com'}, raw, ok=False, status_code=200)
-            r = {'provider': name, 'ok': False, 'error_type': 'api_error', 'provider_metadata': {}, 'metrics': m}
+            metadata = {'raw_response_sha256': hashlib.sha256(raw).hexdigest(),
+                        'native_answer_projection': {'schema_version': 2, 'content_pointer': ['result'], 'content_format': 'text'}}
+            m = score_attempt({'url': 'https://example.com'}, raw, ok=True, metadata=metadata, status_code=200)
+            r = {'provider': name, 'ok': True, 'error_type': None, 'provider_metadata': metadata, 'metrics': m}
             apply_request_status(r)
             self.assertTrue(r['ok'])
-            self.assertFalse(r['raw_request_status']['ok'])
+            self.assertNotIn('raw_request_status', r)
             self.assertFalse(task_passed(r['ok'], m))
             self.assertEqual(m['content_chars'], 0)
             self.assertEqual(m['content_sha256'], hashlib.sha256(raw).hexdigest())

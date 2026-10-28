@@ -148,7 +148,7 @@ def _visible(text, schema=None, *, normalized_html=False):
 
     projected_html = (
         not normalized_html and schema in SCHEMA_FIELDS
-        and schema not in {"named_link", "linked_product", "table_row", "body_text", "page_identity"}
+        and schema not in {"named_link", "linked_product", "table_row"}
         and is_html_document_or_fragment(text)
     )
     if projected_html:
@@ -229,7 +229,7 @@ def _visible(text, schema=None, *, normalized_html=False):
         text = "\n".join(line if line.strip() in boundaries
                          else line.replace(_CARD_BOUNDARY, "").replace(_MEDIA_BOUNDARY, "")
                          for line in text.splitlines())
-    text = re.sub(r"\*\*|__|`", "", text)
+    text = re.sub(r"\*\*|__" if schema in {None, "body_text", "page_identity"} else r"\*\*|__|`", "", text)
     # Link unwrapping may insert boundary spaces inside surrounding emphasis
     # (``*[label](url)*`` becomes ``* label *``). Treat that as the same visible
     # text as ordinary emphasis, without flattening other punctuation.
@@ -311,19 +311,21 @@ def _record(fields, schema):
 
 def _table_records(lines, schema):
     """Explicit Markdown table headers own their columns, including empty cells."""
+    from .structured_tables import _pipe_cells
     records, occupied = [], set()
     required = set(SCHEMA_FIELDS[schema])
     for i in range(len(lines) - 1):
         if i in occupied or "|" not in lines[i]:
             continue
-        headers = [_key(x).replace("review count", "reviews") for x in lines[i].strip().strip("|").split("|")]
-        separator = lines[i + 1].strip().strip("|").split("|")
-        if not required <= set(headers) or not all(re.fullmatch(r"\s*:?-{3,}:?\s*", x) for x in separator):
+        headers = [_key(x).replace("review count", "reviews") for x in _pipe_cells(lines[i])]
+        separator = _pipe_cells(lines[i + 1])
+        if (not required <= set(headers) or len(separator) != len(headers)
+                or not all(re.fullmatch(r"\s*:?-{3,}:?\s*", x) for x in separator)):
             continue
         occupied.update((i, i + 1))
         j = i + 2
         while j < len(lines) and "|" in lines[j] and lines[j].strip():
-            values = [x.strip() for x in lines[j].strip().strip("|").split("|")]
+            values = [x.strip() for x in _pipe_cells(lines[j])]
             fields = dict(zip(headers, values))
             record = _record(fields, schema)
             if len(values) != len(headers) or len(headers) != len(set(headers)):
@@ -1308,17 +1310,16 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     # explicit link boundaries before matching atomic page labels.
     anchor_visible = _visible(anchor_text, schema, normalized_html=True) if anchor_text is not None else None
     if anchor_visible is None:
+        from .reference_quality import is_html_document_or_fragment
         html_candidate = content.lstrip()
         first_line, newline, remainder = html_candidate.partition('\n')
         # Legacy callers combine a metadata title and HTML. Recognize the
         # following document, not a guessed title-length limit. Keep metadata
         # as text rather than interpreting angle brackets in a title as HTML.
-        if (newline and re.match(r'\s*(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
-                                  remainder, re.I)
-                and not re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',first_line,re.I)):
+        if (newline and is_html_document_or_fragment(remainder)
+                and not is_html_document_or_fragment(first_line)):
             html_candidate = remainder.lstrip()
-        if re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
-                    html_candidate, re.I):
+        if is_html_document_or_fragment(html_candidate):
             from .dynamic_lists import visible_html_text
             anchor_visible = visible_html_text(html_candidate)
     original_markdown_visible = None

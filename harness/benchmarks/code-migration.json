@@ -8,7 +8,7 @@
       "changes": {
         "article_comments.py": {
           "before_sha256": "de014a9188d2b587302889cb1a25e1d77eb282bc3e0a69dcacad7a95f0a4431f",
-          "after_sha256": "d767cb968d208ae862c3b3e4065f3349c0399f3cd6dfa56955899554673bc18b"
+          "after_sha256": "eda9cb2390e4b7c3a6eaf08703a7e56882bc788ef2c2b0bb2413e8cc475877af"
         },
         "article_dataset.py": {
           "before_sha256": "8d661b165fc63a6b72352ee6592a99611579e700f1633dab2c0d70824d93447b",
@@ -16,7 +16,7 @@
         },
         "article_posts.py": {
           "before_sha256": "da1323b63c4e213312adb0a5564c6ffbb443edbcb1a643ddcd4e3bde4d42e9c2",
-          "after_sha256": "548895664744a2cf230d51f4fcd88cbe355ef60330aa1f8194ce1e46069e14d7"
+          "after_sha256": "54b2471639773c16a26fa952c328ee9410fe55423e36c0b8e5db8454e38e7e84"
         },
         "article_qualification.py": {
           "before_sha256": "01898c4413933ac4f3028eeb5c5c470293cd2acaabb2ae1547a7095e6e458981",
@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "5e36ce091221294f3eeb8a1c5d0d097ac2f2a8c4f5fbb60b5611d07d9c8da8cf"
+          "after_sha256": "4b359e9208b085c91caa6c63bdd3042035b283b4ca74541a1a178a0a29af4eac"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -52,7 +52,7 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "97d3e37561e1f2667c5e62e2df26cda49b63b2511a919bee97020694afeaeacf"
+          "after_sha256": "d3d30d6495bc2b252a964b5cd92ea6d5aa6518d62426adfd3991f384ec9f6e9b"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "8d9e7a33e3dd3600f1d8e888ac7a963ae717b9eab0313d769b044c60c67cb8e4"
+          "after_sha256": "cff9f50fd81ae3147873396621dc107b72cc64455e22ebbd461e8bf1d4160155"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -76,7 +76,15 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "d87df8332407a013ec24556307bb9837ef367591c446f0d230b886ec34ba6c30"
+          "after_sha256": "f11c5ba1ce09cc83b7f9bd0428e827ab65a65820f5a22c07bf834f837cb2c90e"
+        },
+        "required_components.py": {
+          "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
+          "after_sha256": "e41de43ef73da4ff5a20e1e5e7ef3f708d28ba1df44041823e05ce660fb36331"
+        },
+        "response_input.py": {
+          "before_sha256": "d45d0bac0d629e7314504a87ae890444f704b7a488af842b4d1e34dd912ec00d",
+          "after_sha256": "1c4290f6d2ab7219292ec42885d1991c47a201225feafb9d13f4a88055b297b7"
         },
         "risk_control_dataset.py": {
           "before_sha256": "59d2a1877f1a8b8ecf464113fbce70bf713d6d44414b83141880e71cccb7c1d6",
@@ -84,19 +92,19 @@
         },
         "scoring.py": {
           "before_sha256": "ea2602b5e2310886dc70c097ce783e2f88be7c88220e9dbf0715a723b3aff567",
-          "after_sha256": "96ea481ec6be01e68cfd28849246f1650f592f36c044bcb52078b062d831695a"
+          "after_sha256": "9429fb2161d9ddc5c27afe36515789425c633e82b895d6bb74c510636b467234"
         },
         "scoring_regressions.py": {
           "before_sha256": "a9dc2c0a86628e90bf5a23c9611adb48c9cf72c0f4941c6ed6412a5f95b37df9",
-          "after_sha256": "e47a117a8da13bc29840daf28c2da1d17cfd5460956aa1606535a897ca70f21c"
+          "after_sha256": "92fd0977fe7214b33e309d0976f42bb6a36f4ae796ab4a3a5869c0fa036b4b39"
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "b75bddf30c8ccd1dfa9ee19d34b296441e77d88c22fb8a2d2aad1ad413035e2b"
+          "after_sha256": "60ac2a2976aa5405b800181bc746d9ff690d234cafffba4094c4d51ea44a73e2"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
-          "after_sha256": "490b5f7f73bae886a6cddf9fbbe74a467f7def70e10a9ed78193b151d016fe8a"
+          "after_sha256": "fb9ffb9a776f1603e36709dea17a64e249754f5409cbc56ee74be8141994e7be"
         },
         "versions.py": {
           "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
@@ -509,6 +517,104 @@
           "tests": [
             "tests/benchmarks/webfetch/test_review_reference_literals.py",
             "tests/test_reference_quality.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_comments.py",
+            "article_posts.py"
+          ],
+          "regression_ids": [
+            "article-comment-heading-depth-markdown-3-peer",
+            "article-comment-heading-depth-markdown-3-deeper",
+            "article-comment-heading-depth-html-3-peer",
+            "article-comment-heading-depth-html-3-deeper",
+            "article-post-metadata-native-buttons-only",
+            "article-post-metadata-native-buttons-prose",
+            "article-post-metadata-cleaned-role-buttons-only",
+            "article-post-metadata-cleaned-role-buttons-prose"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_article_structure.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "stable_tasks.py",
+            "structured_tables.py"
+          ],
+          "regression_ids": [
+            "integer-cell-table-malformed",
+            "integer-cell-table-grouped",
+            "integer-cell-linked_table-malformed",
+            "integer-cell-linked_table-grouped",
+            "table-delimiter-width-table",
+            "table-delimiter-width-linked_table",
+            "stable-empty-edge-complete",
+            "stable-empty-edge-missing",
+            "stable-html-root-visible",
+            "stable-html-root-hidden",
+            "optional-currency-empty",
+            "optional-currency-invalid",
+            "table-span-ordinary",
+            "table-span-colspan",
+            "table-span-scoped-displaced",
+            "table-span-scoped-expired"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_numeric_table_surfaces.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py",
+            "scoring.py",
+            "required_components.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "migration6-owner-field-order-complete",
+            "migration6-owner-field-order-incomplete",
+            "migration6-response-base-components-complete",
+            "migration6-response-base-components-incomplete",
+            "migration6-compact-scope-control-complete",
+            "migration6-compact-scope-control-incomplete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_field_order_and_redirects.py",
+            "tests/benchmarks/webfetch/test_review_dom_owners.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py",
+            "response_input.py",
+            "metrics.py",
+            "stable_tasks.py",
+            "scoring_regressions.py"
+          ],
+          "regression_ids": [
+            "runtime6-angle-title-False-False",
+            "runtime6-angle-title-False-True",
+            "runtime6-angle-title-True-False",
+            "runtime6-angle-title-True-True",
+            "runtime6-image",
+            "runtime6-inline-code",
+            "runtime6-fenced-code",
+            "runtime6-envelope-False-False",
+            "runtime6-envelope-False-True",
+            "runtime6-envelope-True-False",
+            "runtime6-envelope-True-True",
+            "runtime6-code-header-21-True",
+            "runtime6-code-header-18-True",
+            "runtime6-code-header-22-False",
+            "runtime6-code-header-41-False",
+            "runtime6-code-header-42-False"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_envelope_literals.py",
+            "tests/test_code_preservation.py"
           ]
         }
       ]

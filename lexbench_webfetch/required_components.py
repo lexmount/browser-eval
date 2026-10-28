@@ -21,7 +21,7 @@ def _comments(content, contract, url):
 
 
 def _posts(content, contract, url):
-    # Relative permalinks require the task URL, unlike title/comment text.
+    # Relative permalinks require the response document URL, unlike title/comment text.
     return verify_article_posts(content, contract, url=url)
 
 

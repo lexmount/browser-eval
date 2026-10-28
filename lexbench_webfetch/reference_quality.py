@@ -279,7 +279,10 @@ def markdown_links(text: str) -> list[MarkdownLink]:
         raw_destination = text[destination_start + 1:destination_end].strip()
         native_title = ""
         if raw_destination.startswith("<") and ">" in raw_destination:
-            destination = raw_destination[1:raw_destination.index(">")]
+            close = raw_destination.index(">")
+            destination = raw_destination[1:close]
+            titled = re.fullmatch(r"\s+(['\"])(.*)\1", raw_destination[close + 1:], re.S)
+            native_title = titled[2] if titled else ""
         else:
             # A quoted Markdown title is metadata, not part of the URL. Layout
             # whitespace inside a destination is otherwise serialization noise.
@@ -291,7 +294,7 @@ def markdown_links(text: str) -> list[MarkdownLink]:
             native_title = titled[3] if titled else ""
         # Character references in a Markdown destination are rendered URL
         # syntax. Decode once here; bare URL answers retain their literal bytes.
-        links.append(MarkdownLink(raw_label, unescape(destination), image, index, destination_end + 1, native_title))
+        links.append(MarkdownLink(raw_label, unescape(destination), image, index, destination_end + 1, unescape(native_title)))
         index = destination_end + 1
     return links
 
@@ -315,9 +318,10 @@ def markdown_link_destinations(text: str) -> list[str]:
 
 def without_markdown_images(content):
     """Remove image metadata, including images nested in ordinary links."""
+    literals = markdown_literal_spans(content)
     pieces, cursor = [], 0
     for link in markdown_links(content):
-        if link.start < cursor:
+        if link.start < cursor or any(left <= link.start < right for left, right in literals):
             continue
         pieces.append(content[cursor:link.start])
         if not link.is_image:

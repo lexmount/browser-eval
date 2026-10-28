@@ -112,7 +112,7 @@ class ScoringRegressionTests(unittest.TestCase):
         for identifier, row in rows.items():
             with self.subTest(regression=identifier):
                 arguments = dict(ok=row['ok'], metadata=row.get('metadata'), title=row.get('title'),
-                                 final_url=row.get('final_url'), list_reference=row.get('list_reference'))
+                                 final_url=row.get('final_url'), list_reference=row.get('list_reference'), status_code=row.get('status_code'))
                 if row.get('expected_validation_error'):
                     with self.assertRaisesRegex(ValueError, row['expected_validation_error']):
                         score_attempt(row['case'], row['artifact'].encode(), **arguments)

@@ -1,4 +1,4 @@
-import json,unittest
+import hashlib,json,unittest
 from copy import deepcopy
 from harness.web_fetch.failure_diagnosis import diagnose
 from lexbench_webfetch.scoring import score_attempt
@@ -23,8 +23,10 @@ class FailureDiagnosisTests(unittest.TestCase):
   d=diagnose(self.record(error_type='CRAWL_HTTP_403'),{},raw)
   self.assertEqual(d['category'],'源站拒绝该次访问')
  def test_empty_api_success_is_extraction_failure(self):
-  r=self.record(provider='cloudflare-markdown',status_code=200);raw='{"success":true,"result":""}'
-  r['metrics']=score_attempt({'url':'https://example.com'},raw.encode(),ok=False,status_code=200)
+  r=self.record(provider='cloudflare-markdown',ok=True,status_code=200);raw='{"success":true,"result":""}'
+  r['provider_metadata']={'raw_response_sha256':hashlib.sha256(raw.encode()).hexdigest(),
+   'native_answer_projection':{'schema_version':2,'content_pointer':['result'],'content_format':'text'}}
+  r['metrics']=score_attempt({'url':'https://example.com'},raw.encode(),ok=True,status_code=200,metadata=r['provider_metadata'])
   apply_request_status(r);self.assertTrue(r['ok']);self.assertEqual(diagnose(r,{},raw)['category'],'正文提取为空')
  def test_unknown_remote_internals_remain_unknown(self):
   d=diagnose(self.record(error_type='CRAWL_UNKNOWN_ERROR'),{},'')

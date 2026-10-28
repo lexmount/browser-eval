@@ -13902,7 +13902,7 @@
             "id": "program",
             "pattern": "required_code\\(\\)",
             "minimum": 1,
-            "scope": "code_compact"
+            "match_scope": "code_compact"
           }
         ]
       },
@@ -13926,11 +13926,1988 @@
             "id": "program",
             "pattern": "required_code\\(\\)",
             "minimum": 1,
-            "scope": "code_compact"
+            "match_scope": "code_compact"
           }
         ]
       },
       "artifact": "<p>Visible introduction</p><span hidden><pre>required_code()</pre></span>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-heading-depth-markdown-3-peer",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Deeper headings belong to the current comment; peer author headings establish separate comments.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n### Alice\nFirst reply.\n### Background\nMore details.",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "article-comment-heading-depth-markdown-3-deeper",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Deeper headings belong to the current comment; peer author headings establish separate comments.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n### Alice\nFirst reply.\n#### Background\nMore details.",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "article-comment-heading-depth-html-3-peer",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Deeper headings belong to the current comment; peer author headings establish separate comments.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><h2>Comments</h2><h3>Alice</h3><p>First reply.</p><h3>Background</h3><p>More details.</p>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "article-comment-heading-depth-html-3-deeper",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Deeper headings belong to the current comment; peer author headings establish separate comments.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><h2>Comments</h2><h3>Alice</h3><p>First reply.</p><h4>Background</h4><p>More details.</p>",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "article-post-metadata-native-buttons-only",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Post UI timestamps and buttons are excluded before inline text can concatenate into fake prose.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\"><time>2026-10-20</time><button>Reply</button><button>Like</button></div></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-metadata-native-buttons-prose",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Post UI timestamps and buttons are excluded before inline text can concatenate into fake prose.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\"><time>2026-10-20</time><button>Reply</button><button>Like</button><p>I like the reply about the 2026-10-20 event.</p></div></article>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-metadata-cleaned-role-buttons-only",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Post UI timestamps and buttons are excluded before inline text can concatenate into fake prose.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><h2>Alice <a href=\"/post/1\">Today</a></h2><div><time>2026-10-20</time><span role=\"button\">Reply</span><span role=\"button\">Like</span></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-metadata-cleaned-role-buttons-prose",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Post UI timestamps and buttons are excluded before inline text can concatenate into fake prose.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><h2>Alice <a href=\"/post/1\">Today</a></h2><div><time>2026-10-20</time><span role=\"button\">Reply</span><span role=\"button\">Like</span><p>I like the reply about the 2026-10-20 event.</p></div>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "integer-cell-table-malformed",
+      "category": "structured-extraction",
+      "root_cause": "Whole integer cells require an explicit integer or consistently grouped thousands grammar rather than arbitrary comma and dot sequences.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|1..2|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "integer-cell-table-grouped",
+      "category": "structured-extraction",
+      "root_cause": "Whole integer cells require an explicit integer or consistently grouped thousands grammar rather than arbitrary comma and dot sequences.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|12,345|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "integer-cell-linked_table-malformed",
+      "category": "structured-extraction",
+      "root_cause": "Whole integer cells require an explicit integer or consistently grouped thousands grammar rather than arbitrary comma and dot sequences.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Alpha](/item/1)|12,|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "integer-cell-linked_table-grouped",
+      "category": "structured-extraction",
+      "root_cause": "Whole integer cells require an explicit integer or consistently grouped thousands grammar rather than arbitrary comma and dot sequences.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Alpha](/item/1)|12.345|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "table-delimiter-width-table",
+      "category": "structured-extraction",
+      "root_cause": "Markdown delimiter rows must have the same physical width as the declared header before assigning any table fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|\n|Alpha|12|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "table-delimiter-width-linked_table",
+      "category": "structured-extraction",
+      "root_cause": "Markdown delimiter rows must have the same physical width as the declared header before assigning any table fields.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Alpha](/item/1)|12|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "stable-empty-edge-complete",
+      "category": "structured-extraction",
+      "root_cause": "Only one optional outer pipe delimiter may be removed so empty edge cells do not shift required field ownership.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "|Notes|Name|Description|\n|---|---|---|\n||Alpha|Useful description|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "stable-empty-edge-missing",
+      "category": "structured-extraction",
+      "root_cause": "Only one optional outer pipe delimiter may be removed so empty edge cells do not shift required field ownership.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "|Notes|Name|Description|\n|---|---|---|\n||Alpha||",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "stable-html-root-visible",
+      "category": "answer-surface",
+      "root_cause": "All supported block HTML roots must use the same rendered visibility projection, including direct stable-evaluator calls without caller-projected text.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Required label"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Required label</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "stable-html-root-hidden",
+      "category": "answer-surface",
+      "root_cause": "All supported block HTML roots must use the same rendered visibility projection, including direct stable-evaluator calls without caller-projected text.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Required label"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p hidden>Required label</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "optional-currency-empty",
+      "category": "structured-extraction",
+      "root_cause": "An allowed empty currency cell has a canonical empty value and must not reach numeric Decimal conversion.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "amount",
+              "label": "Amount",
+              "type": "currency_usd",
+              "allow_empty": true
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<amount>\\d+)",
+            "reference_kind": "fixed_demo",
+            "reference_rows": [
+              {
+                "name": "Alpha",
+                "amount": ""
+              }
+            ]
+          }
+        }
+      },
+      "artifact": "|Name|Amount|\n|---|---|\n|Alpha||\nEnd",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "optional-currency-invalid",
+      "category": "structured-extraction",
+      "root_cause": "An allowed empty currency cell has a canonical empty value and must not reach numeric Decimal conversion.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "amount",
+              "label": "Amount",
+              "type": "currency_usd",
+              "allow_empty": true
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<amount>\\d+)",
+            "reference_kind": "fixed_demo",
+            "reference_rows": [
+              {
+                "name": "Alpha",
+                "amount": ""
+              }
+            ]
+          }
+        }
+      },
+      "artifact": "|Name|Amount|\n|---|---|\n|Alpha|not USD|\nEnd",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "table-span-ordinary",
+      "category": "structured-extraction",
+      "root_cause": "Unsupported spanning cells and rows displaced by an earlier rowspan cannot be assigned as ordinary positional fields.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>42</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "table-span-colspan",
+      "category": "structured-extraction",
+      "root_cause": "Unsupported spanning cells and rows displaced by an earlier rowspan cannot be assigned as ordinary positional fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td colspan=\"2\">Alpha</td><td>42</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "table-span-scoped-displaced",
+      "category": "structured-extraction",
+      "root_cause": "Unsupported spanning cells and rows displaced by an earlier rowspan cannot be assigned as ordinary positional fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)",
+            "root_selector": "#selected",
+            "root_index": 0
+          }
+        }
+      },
+      "artifact": "<table><tbody id=\"selected\"><tr><td rowspan=\"2\">Earlier</td></tr><tr class=\"data\"><td>Alpha</td><td>42</td></tr></tbody></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "table-span-scoped-expired",
+      "category": "structured-extraction",
+      "root_cause": "Unsupported spanning cells and rows displaced by an earlier rowspan cannot be assigned as ordinary positional fields.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)",
+            "root_selector": "#selected",
+            "root_index": 0
+          }
+        }
+      },
+      "artifact": "<table><tbody id=\"selected\"><tr><td rowspan=\"2\">Earlier</td></tr><tr class=\"data\"><td>Alpha</td><td>42</td></tr><tr class=\"data\"><td>Beta</td><td>43</td></tr></tbody></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration6-owner-field-order-complete",
+      "root_cause": "An unambiguous product owner accepts price fields on either side of the title without borrowing from a neighboring record.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "field-order-control",
+        "name": "Owned product fields",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<div><article><span>$10.00</span><a href=\"/item/1\">Widget</a></article><article><a href=\"/item/2\">Other</a><span>$20.00</span></article></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "migration6-owner-field-order-incomplete",
+      "root_cause": "An unambiguous product owner accepts price fields on either side of the title without borrowing from a neighboring record.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "field-order-control",
+        "name": "Owned product fields",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<div><article><span>$10.00</span><a href=\"/item/1\">Widget</a></article><article><a href=\"/item/2\">Other</a></article></div>",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "migration6-response-base-components-complete",
+      "root_cause": "Required post components resolve relative permalinks against the validated observed response document after a redirect.",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "field-order-control",
+        "name": "Owned product fields",
+        "url": "https://old.example/feed",
+        "category": "web",
+        "expected_any": [],
+        "expected_final_url": "https://new.example/feed",
+        "source_benchmark": {
+          "mode": "article_post_collection",
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "hosts": [
+              "new.example"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article",
+            "html_permalink_selector": "a.time",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "minimum_posts": 1
+          }
+        }
+      },
+      "artifact": "<article><a class=\"time\" href=\"/post/1\">Today</a><b class=\"author\">Alice</b><p class=\"body\">Orchard workers inspected every tree and published the harvest schedule.</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "final_url": "https://new.example/feed",
+      "expected_metrics": {
+        "article_posts_pass": true
+      }
+    },
+    {
+      "id": "migration6-response-base-components-incomplete",
+      "root_cause": "Required post components resolve relative permalinks against the validated observed response document after a redirect.",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "field-order-control",
+        "name": "Owned product fields",
+        "url": "https://old.example/feed",
+        "category": "web",
+        "expected_any": [],
+        "expected_final_url": "https://new.example/feed",
+        "source_benchmark": {
+          "mode": "article_post_collection",
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "hosts": [
+              "new.example"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article",
+            "html_permalink_selector": "a.time",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "minimum_posts": 1
+          }
+        }
+      },
+      "artifact": "<article><a class=\"time\" href=\"/post/1\">Today</a><b class=\"author\">Alice</b><p class=\"body\">Orchard workers inspected every tree and published the harvest schedule.</p></article>",
+      "ok": true,
+      "expected_task_pass": false,
+      "final_url": "https://other.example/feed",
+      "expected_metrics": {
+        "article_posts_pass": false
+      }
+    },
+    {
+      "id": "migration6-compact-scope-control-complete",
+      "root_cause": "Compact-code controls must select match_scope explicitly and prove whitespace compaction rather than ordinary prose matching.",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "field-order-control",
+        "name": "Owned product fields",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_patterns": [
+          {
+            "id": "program",
+            "pattern": "required_code\\(\\)",
+            "minimum": 1,
+            "match_scope": "code_compact"
+          }
+        ]
+      },
+      "artifact": "<pre>required_\n code ( )</pre>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration6-compact-scope-control-incomplete",
+      "root_cause": "Compact-code controls must select match_scope explicitly and prove whitespace compaction rather than ordinary prose matching.",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "field-order-control",
+        "name": "Owned product fields",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_patterns": [
+          {
+            "id": "program",
+            "pattern": "required_code\\(\\)",
+            "minimum": 1,
+            "match_scope": "code_compact"
+          }
+        ]
+      },
+      "artifact": "<p>Visible introduction</p><pre hidden>required_\n code ( )</pre>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime6-angle-title-False-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Bracketed and ordinary Markdown destinations retain the same optional title, which binds only a separately visible matching name.",
+      "case": {
+        "url": "https://example.com",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.com"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "table",
+            "markdown_title_identity_pattern": "javascript:show\\((\\d+)\\)",
+            "markdown_detail_identity_pattern": "/item/(\\d+)"
+          }
+        }
+      },
+      "artifact": "| Other title | [Details](https://example.com/item/1 \"Alpha Details\") |",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime6-angle-title-False-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Bracketed and ordinary Markdown destinations retain the same optional title, which binds only a separately visible matching name.",
+      "case": {
+        "url": "https://example.com",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.com"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "table",
+            "markdown_title_identity_pattern": "javascript:show\\((\\d+)\\)",
+            "markdown_detail_identity_pattern": "/item/(\\d+)"
+          }
+        }
+      },
+      "artifact": "| Alpha | [Details](https://example.com/item/1 \"Alpha Details\") |",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime6-angle-title-True-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Bracketed and ordinary Markdown destinations retain the same optional title, which binds only a separately visible matching name.",
+      "case": {
+        "url": "https://example.com",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.com"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "table",
+            "markdown_title_identity_pattern": "javascript:show\\((\\d+)\\)",
+            "markdown_detail_identity_pattern": "/item/(\\d+)"
+          }
+        }
+      },
+      "artifact": "| Other title | [Details](<https://example.com/item/1> \"Alpha Details\") |",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime6-angle-title-True-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Bracketed and ordinary Markdown destinations retain the same optional title, which binds only a separately visible matching name.",
+      "case": {
+        "url": "https://example.com",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.com"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "table",
+            "markdown_title_identity_pattern": "javascript:show\\((\\d+)\\)",
+            "markdown_detail_identity_pattern": "/item/(\\d+)"
+          }
+        }
+      },
+      "artifact": "| Alpha | [Details](<https://example.com/item/1> \"Alpha Details\") |",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime6-image",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Image metadata is excluded, but image syntax displayed in code remains literal visible prose through later normalization.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "example",
+              "alternatives": [
+                "diagram"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "![diagram](example.png)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime6-inline-code",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Image metadata is excluded, but image syntax displayed in code remains literal visible prose through later normalization.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "example",
+              "alternatives": [
+                "diagram"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "`![diagram](example.png)`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime6-fenced-code",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Image metadata is excluded, but image syntax displayed in code remains literal visible prose through later normalization.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "example",
+              "alternatives": [
+                "diagram"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "```markdown\n![diagram](example.png)\n```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime6-envelope-False-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only adapter-declared raw API bytes with matching provenance may be projected; page JSON and adapter failure status stay intact.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"success\":true,\"result\":\"\",\"message\":\"Required fact\"}",
+      "ok": false,
+      "expected_task_pass": false,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "status_code": 200,
+      "expected_metrics": {
+        "request_ok": false
+      }
+    },
+    {
+      "id": "runtime6-envelope-False-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Only adapter-declared raw API bytes with matching provenance may be projected; page JSON and adapter failure status stay intact.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"success\":true,\"result\":\"\",\"message\":\"Required fact\"}",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "status_code": 200,
+      "expected_metrics": {
+        "request_ok": true
+      }
+    },
+    {
+      "id": "runtime6-envelope-True-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only adapter-declared raw API bytes with matching provenance may be projected; page JSON and adapter failure status stay intact.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"success\":true,\"result\":\"\",\"message\":\"Required fact\"}",
+      "ok": false,
+      "expected_task_pass": false,
+      "metadata": {
+        "answer_format": "plain_text",
+        "raw_response_sha256": "badd6c587e91e690f340998725be92885513c0da7c80c21f2adb997ee621163c",
+        "native_answer_projection": {
+          "schema_version": 2,
+          "content_pointer": [
+            "result"
+          ],
+          "content_format": "text",
+          "optional_content": true
+        }
+      },
+      "status_code": 200,
+      "expected_metrics": {
+        "request_ok": false
+      }
+    },
+    {
+      "id": "runtime6-envelope-True-True",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only adapter-declared raw API bytes with matching provenance may be projected; page JSON and adapter failure status stay intact.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"success\":true,\"result\":\"\",\"message\":\"Required fact\"}",
+      "ok": true,
+      "expected_task_pass": false,
+      "metadata": {
+        "answer_format": "plain_text",
+        "raw_response_sha256": "badd6c587e91e690f340998725be92885513c0da7c80c21f2adb997ee621163c",
+        "native_answer_projection": {
+          "schema_version": 2,
+          "content_pointer": [
+            "result"
+          ],
+          "content_format": "text",
+          "optional_content": true
+        }
+      },
+      "status_code": 200,
+      "expected_metrics": {
+        "request_ok": true
+      }
+    },
+    {
+      "id": "runtime6-code-header-21-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "The code-component matcher preserves explicit preprocessor header tokens without exposing hidden HTML or attribute values.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "include",
+            "match_scope": "code_compact",
+            "pattern": "\\#include<stdio\\.h>"
+          }
+        ]
+      },
+      "artifact": "01 #include <stdio.h>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime6-code-header-18-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "The code-component matcher preserves explicit preprocessor header tokens without exposing hidden HTML or attribute values.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "include",
+            "match_scope": "code_compact",
+            "pattern": "\\#include<stdio\\.h>"
+          }
+        ]
+      },
+      "artifact": "#include <stdio.h>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime6-code-header-22-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "The code-component matcher preserves explicit preprocessor header tokens without exposing hidden HTML or attribute values.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "include",
+            "match_scope": "code_compact",
+            "pattern": "\\#include<stdio\\.h>"
+          }
+        ]
+      },
+      "artifact": "01 #include <stdlib.h>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime6-code-header-41-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "The code-component matcher preserves explicit preprocessor header tokens without exposing hidden HTML or attribute values.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "include",
+            "match_scope": "code_compact",
+            "pattern": "\\#include<stdio\\.h>"
+          }
+        ]
+      },
+      "artifact": "<div hidden>\n01 #include <stdio.h>\n</div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime6-code-header-42-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "The code-component matcher preserves explicit preprocessor header tokens without exposing hidden HTML or attribute values.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "include",
+            "match_scope": "code_compact",
+            "pattern": "\\#include<stdio\\.h>"
+          }
+        ]
+      },
+      "artifact": "<a href=\"#include<stdio.h>\">Other text</a>",
       "ok": true,
       "expected_task_pass": false
     }

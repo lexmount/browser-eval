@@ -973,10 +973,9 @@ def _value_matches_spec(value: str, spec: dict, *, whole_cell: bool = False) -> 
     if kind == "token":
         return bool(re.fullmatch(spec["pattern"], visible, re.I))
     if kind == "integer":
-        pattern = r"\d[\d,.]*"
-        return bool(
-            re.fullmatch(pattern, visible) if whole_cell else re.search(rf"\b{pattern}\b", visible)
-        )
+        if whole_cell:
+            return bool(re.fullmatch(r"(?:\d+|\d{1,3}(?:,\d{3})+|\d{1,3}(?:\.\d{3})+)", visible))
+        return bool(re.search(r"\b\d[\d,.]*\b", visible))
     if kind == "date_or_time":
         return bool(_DATE_OR_TIME.search(visible))
     if kind == "price":
@@ -1467,9 +1466,9 @@ def _table_group(content: str, group: dict) -> dict:
             continue
         headers = [_key(visible_markdown_links(value)) for value in (_pipe_cells(lines[index]) if delimiter == "|" else lines[index].split(delimiter))]
         separator = (_pipe_cells(lines[index + 1]) if delimiter == "|" else lines[index + 1].split(delimiter))
-        if delimiter == "|" and not all(
+        if delimiter == "|" and (len(separator) != len(headers) or not all(
             re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator
-        ):
+        )):
             continue
         candidates = {spec['id']: [
             index for index, header in enumerate(headers)
@@ -1533,7 +1532,8 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
             continue
         headers = [_key(visible_markdown_links(value)) for value in _pipe_cells(lines[index])]
         separator = _pipe_cells(lines[index + 1])
-        if not all(re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator):
+        if (len(separator) != len(headers)
+                or not all(re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator)):
             continue
         mapping = _unique_columns({spec['id']: [
             position for position, header in enumerate(headers)

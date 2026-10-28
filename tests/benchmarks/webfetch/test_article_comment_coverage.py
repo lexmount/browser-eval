@@ -23,7 +23,7 @@ def card(author, body, identity=''):
 @pytest.mark.parametrize('content', [
     card('New user', 'New comment', '1') + card('Another user', 'Another comment', '2'),
     '## Comments\n### New user\nNew comment\n### Another user\nAnother comment',
-    '## Comments\n### New user\nNew comment\n#### Another user\nAnother comment',
+    '## Comments\n#### New user\nNew comment\n#### Another user\nAnother comment',
     '## Comments\n\nNew user:\nNew comment\n\nAnother user:\nAnother comment',
     '## Comments\n\nNew user: New comment\n\nAnother user: Another comment',
     'Comments\n\n[New user](https://example.test/u)\nNew comment\n\n**Another user**\nAnother comment',

@@ -61,10 +61,11 @@ def test_prepared_live_saved_offline_and_standalone_are_equal():
 
 def test_envelope_empty_result_is_not_replaced_by_raw_json():
     artifact = b'{"success":true,"result":""}'
-    metadata = {'answer_format': 'plain_text'}
-    prepared = answer_input(artifact, metadata, ok=False, status_code=200)
-    a = score_attempt(CASE, artifact, ok=False, metadata=metadata, status_code=200)
-    b = score_attempt(CASE, artifact, ok=False, metadata=metadata, prepared_answer=prepared)
+    metadata = {'answer_format': 'plain_text', 'raw_response_sha256': hashlib.sha256(artifact).hexdigest(),
+                'native_answer_projection': {'schema_version': 2, 'content_pointer': ['result'], 'content_format': 'text'}}
+    prepared = answer_input(artifact, metadata, ok=True, status_code=200)
+    a = score_attempt(CASE, artifact, ok=True, metadata=metadata, status_code=200)
+    b = score_attempt(CASE, artifact, ok=True, metadata=metadata, prepared_answer=prepared)
     assert a == b
     assert a['request_ok'] is True
     assert a['request_status_basis'] == 'http_200_success_envelope_empty_result'

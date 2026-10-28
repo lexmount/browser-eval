@@ -155,6 +155,8 @@ def _visible_markdown_scalar(value):
 
 
 def _canonical(value, column):
+    if not value.strip():
+        return ''
     if column.get('compact_whitespace'):
         return re.sub(r'\s+', '', value).casefold()
     if column['type'] == 'currency_usd' and _valid(value, column):
@@ -353,6 +355,34 @@ def table_header_column_surfaces(content):
     return surfaces
 
 
+def _spanning_rows(root):
+    """Reject unsupported spans and affected rows without guessing a cell grid."""
+    blocked = set()
+    containing = root if root.name == 'table' else root.find_parent('table')
+    tables = ([containing] if containing is not None else []) + root.find_all('table')
+    for table in tables:
+        rows = [row for row in table.find_all('tr') if row.find_parent('table') is table]
+        active, group = 0, None
+        for row in rows:
+            owner = row.find_parent(['thead', 'tbody', 'tfoot']) or table
+            if owner is not group:
+                active, group = 0, owner
+            if active:
+                blocked.add(id(row))
+                active -= 1
+            for cell in row.find_all(['td', 'th'], recursive=False):
+                for attr in ('colspan', 'rowspan'):
+                    try:
+                        span = int(cell.get(attr, '1'))
+                    except (TypeError, ValueError):
+                        span = 0
+                    if span != 1:
+                        blocked.add(id(row))
+                        if attr == 'rowspan':
+                            active = max(active, span - 1 if span > 0 else len(rows))
+    return blocked
+
+
 def parse_table_records(content, visible, contract):
     columns, scope = contract['table_columns'], contract['table_scope']
     names = [c['name'] for c in columns]
@@ -395,9 +425,13 @@ def parse_table_records(content, visible, contract):
         if scope.get('exclude_selector'):
             for auxiliary in root.select(scope['exclude_selector']):
                 auxiliary.decompose()
+        blocked = _spanning_rows(root)
         for row in root.select(scope['row_selector']):
             table = row.find_parent('table')
             if all('selector' in c for c in columns):
+                if id(row) in blocked:
+                    candidates.append(None)
+                    continue
                 fields = {}
                 for col in columns:
                     nodes = [row] if col['selector'] == ':scope' else [
@@ -414,7 +448,8 @@ def parse_table_records(content, visible, contract):
                 if cell.find_parent('table') is table]
             # Cell boundaries are stronger than guessed text positions.
             if len(cells) == len(columns):
-                candidates.append(dict(zip(names, (owned_text(c, table) for c in cells))))
+                candidates.append(None if id(row) in blocked else
+                                  dict(zip(names, (owned_text(c, table) for c in cells))))
         if not explicit_html and not candidates:
             root = None
     if root is None:
@@ -514,6 +549,9 @@ def parse_table_records(content, visible, contract):
                 for row in scope.get('reference_rows', [])}
     records = []
     for fields in candidates:
+        if fields is None:
+            records.append({'fields': {}, 'valid': False, 'errors': ['unsupported_table_span']})
+            continue
         errors = ['invalid_field:'+c['name'] for c in columns if not _valid(fields.get(c['name']), c)]
         if not errors and expected and tuple(_canonical(fields[c['name']], c) for c in columns) not in expected:
             errors.append('fixed_demo_field_values_mismatch')

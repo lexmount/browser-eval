@@ -3,6 +3,7 @@ import hashlib
 import io
 import json
 import tarfile
+import copy
 
 import pytest
 
@@ -117,3 +118,54 @@ def test_jsonl_release_updates_existing_import_binding(tmp_path, monkeypatch):
 def test_pin_rejects_floating_or_abbreviated_identity(tmp_path, revision):
     with pytest.raises(ValueError, match='full lowercase'):
         pinning.pin(tmp_path, 'websearch', revision)
+
+
+@pytest.mark.parametrize('default', ['sample', 'retired'])
+def test_pin_preserves_only_a_default_present_in_the_new_release(tmp_path, monkeypatch, default):
+    paths = fixture(tmp_path, monkeypatch)
+    lock = json.loads(paths[0].read_bytes())
+    lock['datasets']['websearch']['default_dataset'] = default
+    paths[0].write_text(json.dumps(lock))
+    before = {path: path.read_bytes() for path in paths}
+    if default == 'retired':
+        with pytest.raises(ValueError, match='Default dataset is absent'):
+            pinning.pin(tmp_path, 'websearch', 'a' * 40)
+        assert {path: path.read_bytes() for path in paths} == before
+    else:
+        pinning.pin(tmp_path, 'websearch', 'a' * 40)
+        assert json.loads(paths[0].read_bytes())['datasets']['websearch']['default_dataset'] == default
+
+
+@pytest.mark.parametrize('direction', ['consumer', 'source'])
+@pytest.mark.parametrize('difference', [None, 'path', 'sha256', 'count', 'format', 'id_field', 'missing', 'file'])
+def test_pin_checks_composed_sources_in_both_update_directions(tmp_path, monkeypatch, direction, difference):
+    paths = fixture(tmp_path, monkeypatch)
+    with pinning.urlopen('https://example.com/resolve/' + 'a' * 40 + '/manifest.json', timeout=60) as response:
+        manifest = json.load(response)
+    other = {'repository': 'Lexmount/other', 'revision': 'c' * 40,
+             'datasets': copy.deepcopy(manifest['datasets']), 'files': copy.deepcopy(manifest['files'])}
+    lock = json.loads(paths[0].read_bytes())
+    if direction == 'consumer':
+        lock['datasets']['websearch']['dataset_sources'] = {'sample': 'other'}
+    else:
+        other['dataset_sources'] = {'sample': 'websearch'}
+    lock['datasets']['other'] = other
+    if difference == 'missing':
+        other['datasets'].pop('sample')
+    elif difference == 'file':
+        other['files'].pop('definitions/datasets/sample.json')
+        # Only the selected provider's physical file is read by a consumer.
+        if direction == 'source':
+            difference = None
+    elif difference:
+        replacements = {'path': 'datasets/replacement.json', 'sha256': 'b' * 64,
+                        'count': 2, 'format': 'jsonl', 'id_field': 'task_id'}
+        other['datasets']['sample'][difference] = replacements[difference]
+    paths[0].write_text(json.dumps(lock))
+    before = {path: path.read_bytes() for path in paths}
+    if difference:
+        with pytest.raises(ValueError, match='dataset source|source file'):
+            pinning.pin(tmp_path, 'websearch', 'a' * 40)
+        assert {path: path.read_bytes() for path in paths} == before
+    else:
+        pinning.pin(tmp_path, 'websearch', 'a' * 40)

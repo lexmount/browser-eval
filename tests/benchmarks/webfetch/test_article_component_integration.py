@@ -97,9 +97,10 @@ class StaticCommentCoverageIntegration(unittest.TestCase):
                 self.assertFalse(result["passed"])
                 self.assertFalse(result["metrics"]["article_comments_pass"])
 
-    def test_comment_names_text_and_reply_depth_are_not_frozen(self):
+    def test_comment_names_text_and_peer_heading_level_are_not_frozen(self):
         changed = self.complete.replace("New reader", "Changed author").replace(
             "A new comment today.", "Entirely different current prose.").replace(
+            "## Changed author", "### Changed author").replace(
             "## Another reader", "### Another reader")
         self.assertTrue(evaluate_response(self.case, changed.encode())["passed"])
 
