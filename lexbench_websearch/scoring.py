@@ -184,6 +184,10 @@ def candidate_identity(case_id, url):
     return digest((case_id + "\0" + canonical_url(url)).encode())[:12]
 
 
+def response_failed(row):
+    return bool(row.get("error") or row.get("http_status", 200) != 200)
+
+
 def task_acceptance(
     case,
     row,
@@ -197,6 +201,8 @@ def task_acceptance(
         return None
     if quality_excluded and metric != "availability":
         return None
+    if response_failed(row):
+        return False
     if metric == "primary" and relevance_grades is not None:
         return any(g is not None and g >= 2 for g in relevance_grades[:cutoff])
     if metric == "primary":
@@ -210,11 +216,7 @@ def task_acceptance(
             else "unscored"
         )
     if metric == "availability":
-        return (
-            not row.get("error")
-            and row.get("http_status", 200) == 200
-            and bool(row.get("results"))
-        )
+        return bool(row.get("results"))
     if metric == "site":
         return (
             any(
@@ -255,7 +257,7 @@ def task_acceptance(
 
 def classify(case, row, *, cutoff=5, quality_excluded=False, relevance_grades=None):
     """Primary acceptance and diagnostic labels share the same task predicate."""
-    if row.get("error") or row.get("http_status", 200) != 200:
+    if response_failed(row):
         return "fail", "api_error"
     if not row["results"]:
         return "fail", "empty"

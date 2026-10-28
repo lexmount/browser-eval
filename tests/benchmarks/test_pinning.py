@@ -103,6 +103,16 @@ def test_jsonl_population_is_verified_even_without_an_import_binding(tmp_path, m
     assert not imported.exists()
 
 
+def test_jsonl_release_updates_existing_import_binding(tmp_path, monkeypatch):
+    lock, imported = fixture(tmp_path, monkeypatch, jsonl=True)
+    pinning.pin(tmp_path, 'websearch', 'a' * 40)
+    selected = json.loads(lock.read_text())['datasets']['websearch']
+    actual = json.loads(imported.read_text())
+    assert actual['datasets'] == selected['datasets']
+    assert actual['datasets']['sample']['format'] == 'jsonl'
+    assert pinning.validate_binding(tmp_path, 'lexbench-websearch') == 'a' * 40
+
+
 @pytest.mark.parametrize('revision', ['main', 'latest', 'abcd'])
 def test_pin_rejects_floating_or_abbreviated_identity(tmp_path, revision):
     with pytest.raises(ValueError, match='full lowercase'):

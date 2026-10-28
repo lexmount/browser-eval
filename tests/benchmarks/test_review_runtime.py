@@ -98,3 +98,31 @@ def test_truncation_does_not_reactivate_an_unresolved_contract(unresolved):
     metrics = score_attempt(case, response, ok=True)
     assert task_measured(metrics) is (not unresolved)
     assert task_passed(True, metrics) is False
+
+
+@pytest.mark.parametrize('complete', [False, True])
+def test_rounded_body_coverage_cannot_override_explicit_truncation(complete):
+    case = {'url': 'https://example.org', 'body_requirements': {
+        'version': 1, 'unit': 'region_token_recall', 'minimum_coverage': .9,
+        'regions': [{'id': 'whole', 'text': 'alpha ' * 30000}]}}
+    answer = 'alpha ' * (30000 if complete else 29999)
+    answer += '\n[Content truncated: showing 1 of 10 lines]'
+    metrics = score_attempt(case, answer.encode(), ok=True)
+    region = metrics['body_region_results'][0]
+    assert region['coverage'] == 1.0
+    assert (region['matched_units'] == region['expected_units']) is complete
+    assert task_passed(True, metrics) is complete
+
+
+@pytest.mark.parametrize('metric', ['primary', 'source', 'answer', 'site', 'availability'])
+@pytest.mark.parametrize('failure', [None, {'http_status': 500}, {'error': 'upstream failure'}])
+def test_search_task_acceptance_rejects_failed_responses_with_matching_evidence(metric, failure):
+    from lexbench_websearch.scoring import task_acceptance
+    case = {'family': 'site', 'domains': ['example.org'], 'reference_answer': 'Paris',
+            'reference_urls': ['https://example.org/answer'], 'anchors': ['https://example.org/answer'],
+            'contamination_patterns': {'identity_patterns': []}}
+    row = {'results': [{'url': 'https://example.org/answer', 'title': 'Paris'}], **(failure or {})}
+    assert task_acceptance(case, row, metric, relevance_grades=[3]) is (failure is None)
+    assert task_acceptance(case, None, metric, relevance_grades=[3]) is None
+    if metric != 'availability':
+        assert task_acceptance(case, row, metric, quality_excluded=True, relevance_grades=[3]) is None

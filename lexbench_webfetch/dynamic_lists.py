@@ -220,8 +220,8 @@ def visible_html_text(
     return text
 
 
-def _named_candidate(url, title, contract, base_url, excluded_titles, diagnostics=None):
-    """Normalize one output candidate; malformed output drops only that candidate."""
+def _entry_destination(url, contract, base_url, diagnostics=None):
+    """Validate a record destination independently of its returned name."""
     try:
         destination = urljoin(base_url, unescape(url))
         parts = urlsplit(destination)
@@ -238,6 +238,15 @@ def _named_candidate(url, title, contract, base_url, excluded_titles, diagnostic
                 canonical_entry_path(parts.path).rstrip('/'),
             )):
         return None
+    return destination, parts
+
+
+def _named_candidate(url, title, contract, base_url, excluded_titles, diagnostics=None):
+    """Normalize one output candidate; malformed output drops only that candidate."""
+    target = _entry_destination(url, contract, base_url, diagnostics)
+    if target is None:
+        return None
+    destination, parts = target
     title = re.sub(r'<[^>]+>', ' ', unescape(title))
     title = re.sub(r'\s+', ' ', title).strip(' *#>-')
     # Keep explicitly excluded labels available to the later exclusion audit;
@@ -262,6 +271,8 @@ def _note_malformed_markdown_destinations(content, base_url, diagnostics):
     """Retain syntax diagnostics omitted by the balanced Markdown parser."""
     if diagnostics is None:
         return
+    from .reference_quality import without_markdown_images
+    content = without_markdown_images(content)
     # The balanced Markdown parser intentionally omits syntactically malformed
     # destinations. Preserve that validation signal for the scorer without
     # letting one bad candidate erase independently valid siblings.
@@ -563,9 +574,16 @@ def _owned_model_caption(content, links, index):
     identity = canonical_entry_path(urlsplit(link.destination).path).rstrip('/').rsplit('/', 1)[-1]
     if not identity or re.search(r"`+|~{3,}", block):
         return ''
-    images = [image for image in markdown_links(block) if image.is_image
-              and re.search(rf"(?<![A-Za-z0-9]){re.escape(identity)}(?![A-Za-z0-9])",
-                            canonical_entry_path(urlsplit(image.destination).path))]
+    images = []
+    for image in markdown_links(block):
+        if not image.is_image:
+            continue
+        try:
+            image_path = canonical_entry_path(urlsplit(image.destination).path)
+        except ValueError:
+            continue
+        if re.search(rf"(?<![A-Za-z0-9]){re.escape(identity)}(?![A-Za-z0-9])", image_path):
+            images.append(image)
     if not images:
         return ''
     captions = []
@@ -1004,12 +1022,18 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
     for match in link_pattern.finditer(scannable):
         title = match.group(1) if match.group(1) is not None else match.group(4)
         raw_url = match.group(2) if match.group(2) is not None else match.group(3)
+        target = _entry_destination(raw_url, contract, base_url, diagnostics)
+        if target is None:
+            continue
+        destination, _ = target
         candidate = _named_candidate(
             raw_url, title, contract, base_url, excluded_titles, diagnostics,
         )
-        if candidate is None:
-            continue
-        identity, entry = candidate
+        try:
+            identity = named_entry_identity(destination, contract)
+        except ValueError:
+            identity = None
+        entry = candidate[1] if candidate is not None else {'url': destination, 'title': ''}
         links.append((match.start(), match.end(), identity,
                       entry['url'], entry['title']))
 
@@ -1029,6 +1053,8 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
         _, first_end, identity, url, _ = group[0]
         boundary = groups[index + 1][0][0] if index + 1 < len(groups) else len(scannable)
         title = max((item[4] for item in group), key=lambda value: (len(value), value))
+        if not title:
+            continue
         segment = "\n".join(item[4] for item in group) + "\n" + scannable[
             first_end:min(boundary, first_end + 2400)
         ]

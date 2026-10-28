@@ -125,8 +125,10 @@ def matching_entry_facts(folded: str, facts: list, normalize, fact_match) -> dic
                         # must not satisfy a shorter one such as /pet.
                         if field == 'path':
                             right_joined = end < len(folded) and folded[end] in '/{'
+                            right_label_boundary = not right_joined
                         elif field == 'summary' and index and order[index - 1] == 'path':
                             left_joined = False
+                            left_label_boundary = True
                         if left_joined or right_joined:
                             break
                         if field in {'name', 'title', 'quote', 'text', 'family'} and any(

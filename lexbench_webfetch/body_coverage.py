@@ -20,7 +20,8 @@ def native_markup_body_text(content, fallback):
         return token
     masked = re.sub(r"(`+|~{3,}).*?\1|\\<[^>\n]+>", protect, content, flags=re.S)
     if not re.search(r"<(?:table|thead|tbody|tfoot|tr|th|td|ul|ol|li|h[1-6]|p|div|section|article|details|summary|br|span|strong|em|b|a)\b", masked, re.I):
-        return fallback
+        from .reference_quality import visible_mixed_html_text
+        return visible_mixed_html_text(content)
     from bs4 import ParserRejectedMarkup
     try:
         visible = visible_html_text(masked, preserve_links=True)

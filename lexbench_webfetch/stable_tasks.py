@@ -820,7 +820,7 @@ def _non_record_visible(content, contract, records, base_url):
         # its alt text for page-level anchors after owned record links are
         # removed. Record parsing still uses ``_visible`` above, so image alt
         # text cannot manufacture a named-link record title.
-        return _visible(visible_markdown_links(visible_mixed_html_text(content)))
+        return _visible(visible_markdown_links(visible_mixed_html_text(content), include_image_alt=True))
     # Plain text has no URL ownership; retain the conservative fallback.
     return None
 

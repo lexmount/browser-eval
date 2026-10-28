@@ -10,7 +10,7 @@ import unicodedata
 from collections import Counter, defaultdict
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import quote, urljoin, urlsplit, urlunsplit
+from urllib.parse import quote, unquote, urljoin, urlsplit, urlunsplit
 
 
 METRIC_DEFINITIONS = {
@@ -259,7 +259,7 @@ def _inline_frame_candidates(
             ]
             raw_candidates.extend(
                 (url, "content.frame_bare_url")
-                for url in re.findall(r"https?://[^\s<>'\")\]]+", document)
+                for url in _bare_resource_urls(document)
             )
         for raw_url, source in raw_candidates:
             normalized = normalize_resource_url(raw_url, frame_base)
@@ -295,7 +295,7 @@ def _native_json_resource_candidates(
         )
         candidates.extend(
             (url, "content.native_json_html_bare_url")
-            for url in re.findall(r"https?://[^\s<>'\")\]]+", markup)
+            for url in _bare_resource_urls(markup)
         )
         candidates.extend(_inline_frame_candidates(
             markup, base_url=base_url, images_only=False,
@@ -305,6 +305,25 @@ def _native_json_resource_candidates(
             candidates.extend(_metadata_resource_candidates(
                 payload[key], key="links", path=f"content.native_json.{key}"))
     return candidates
+
+
+def _bare_resource_urls(content: str) -> list[str]:
+    """Scan literal answer text once, excluding parsed link/attribute syntax."""
+    from .reference_quality import markdown_links
+    visible = re.sub(r'''</?[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''',
+                     " ", content, flags=re.S)
+    for link in reversed(markdown_links(visible)):
+        visible = visible[:link.start] + " " + visible[link.end:]
+    return re.findall(r"https?://[^\s<>'\")\]]+", visible)
+
+
+def _resource_pattern_matches(pattern: str, url: str) -> bool:
+    # Exact resource identities retain encoded reserved characters. Published
+    # explicit variant patterns use decoded filename spellings, so preserve
+    # that declared matching contract without creating an implicit URL alias.
+    parts = urlsplit(url)
+    decoded_path = urlunsplit((parts.scheme, parts.netloc, unquote(parts.path), parts.query, ""))
+    return bool(re.search(pattern, url) or re.search(pattern, decoded_path))
 
 
 def _normalized_candidates(
@@ -384,7 +403,7 @@ def evaluate_resources(
             else:
                 from .reference_quality import markdown_link_destinations
                 candidates.extend((url, "content.bare_url") for url in
-                                  re.findall(r"https?://[^\s<>'\")\]]+", content))
+                                  _bare_resource_urls(content))
                 candidates.extend((html.unescape(match[1]), "content.html_url") for match in
                                   re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
                 candidates.extend((url, "content.markdown_link")
@@ -403,9 +422,10 @@ def evaluate_resources(
         matched = sorted(set(alternatives) & set(normalized_candidates))
         patterns = resource.get('url_patterns', [])
         matched += [u for u in normalized_candidates
-                    if any(re.search(p, u) for p in patterns) and u not in matched]
+                    if any(_resource_pattern_matches(p, u) for p in patterns) and u not in matched]
         allowed_urls.update(alternatives)
-        allowed_urls.update(u for u in normalized_candidates if any(re.search(p, u) for p in patterns))
+        allowed_urls.update(u for u in normalized_candidates
+                            if any(_resource_pattern_matches(p, u) for p in patterns))
         results.append({
             "id": str(resource.get("id") or f"resource-{index + 1}"),
             "kind": str(resource.get("kind") or "resource"),

@@ -59,7 +59,10 @@ def _html_records(content, contract):
             contract.get('parent_record_selector', contract['record_selector']), x))
         parent_index = next((i for i, candidate in enumerate(cards) if candidate is parent),
                             -1 if parent is not None else None)
-        row = {'parent': parent_index, 'source_id': card.get(contract.get('id_attribute', 'id'))}
+        source_id = card.get(contract.get('id_attribute', 'id'))
+        if isinstance(source_id, list):
+            source_id = ' '.join(sorted(set(source_id)))
+        row = {'parent': parent_index, 'source_id': source_id}
         if any(len(nodes) != 1 for nodes in fields):
             rows.append(row)
             continue

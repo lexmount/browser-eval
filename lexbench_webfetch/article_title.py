@@ -3,7 +3,7 @@ import re
 
 import soupsieve
 
-from .article_text import article_html, is_article_html, mask_markdown_code
+from .article_text import article_html, article_surface, is_article_html, mask_markdown_code
 from .reference_quality import without_markdown_images
 from .metrics import normalize_for_match
 from .reference_quality import visible_mixed_html_text
@@ -68,8 +68,7 @@ def verify_article_title(content, contract):
         surface = 'reviewed_html_title_selector'
     else:
         content, _ = mask_markdown_code(content)
-        if re.search(r'<details\b', content, re.I):
-            content = str(article_html(content))
+        content = article_surface(content)
         for line in visible_mixed_html_text(content).splitlines():
             text = line.strip()
             text = re.sub(r'^#{1,6}[ \t]+', '', text)

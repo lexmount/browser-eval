@@ -15,7 +15,7 @@ from lexbench_webfetch.scoring_regressions import active_scoring_regressions
 @pytest.mark.parametrize("identifier,row", active_scoring_regressions().items())
 def test_declared_acceptance_scenarios(identifier, row):
     arguments = dict(ok=row['ok'], metadata=row.get('metadata'), title=row.get('title'),
-                     final_url=row.get('final_url'))
+                     final_url=row.get('final_url'), list_reference=row.get('list_reference'))
     if row.get('expected_validation_error'):
         with pytest.raises(ValueError, match=row['expected_validation_error']):
             score_attempt(row['case'], row['artifact'].encode(), **arguments)

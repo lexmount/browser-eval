@@ -253,7 +253,8 @@ def score_attempt(
     exact_body_proven = bool(
         declared_regions
         and len(measured_regions) == len(declared_regions)
-        and all(region.get("coverage") == 1.0 for region in measured_regions)
+        and all(region.get("matched_units") == region.get("expected_units")
+                for region in measured_regions)
         and result.get("body_coverage_pass")
     )
     if ((result["task_kind"] == "body" or declared_regions)

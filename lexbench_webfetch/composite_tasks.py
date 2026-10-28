@@ -13,7 +13,7 @@ import re
 
 import soupsieve
 import unicodedata
-from urllib.parse import parse_qsl, unquote, urljoin as _urljoin, urlsplit
+from urllib.parse import parse_qsl, unquote, urlencode, urljoin as _urljoin, urlsplit
 
 from .structured_tables import _pipe_cells, table_text_surface, validate_group_caption
 from .dynamic_lists import canonical_entry_path, _named_candidate, extract_named_entries
@@ -399,7 +399,7 @@ def _link_identity(url: str, group: dict) -> str | None:
                 values[key].append(value)
         if any(len(values[key]) != 1 or not values[key][0].strip() for key in keys):
             return None
-        identity += "?" + "&".join(f"{key}={values[key][0]}" for key in sorted(keys))
+        identity += "?" + urlencode([(key, values[key][0]) for key in sorted(keys)])
     return identity
 
 
@@ -672,8 +672,12 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             destination = _link_url(group.get("link_base_url", base_url), link.destination)
             if _link_identity(destination, group) is not None and not link.is_image:
                 label = visible_markdown_links(without_markdown_images(link.label)).strip()
-                if label:
-                    entries.append({"url": destination, "title": label})
+                candidate = _named_candidate(
+                    destination, label,
+                    {**standard, "hosts": [urlsplit(destination).hostname]}, base_url, [],
+                )
+                if candidate is not None:
+                    entries.append(candidate[1])
     else:
         entries = extract_named_entries(content, standard, base_url, links)
     exclusions = {_key(value) for value in group.get("record_name_exclusions", [])}
@@ -1125,9 +1129,10 @@ def _text_role_value(value: str, spec: dict) -> str | None:
     match = re.fullmatch(r"([A-Za-z][A-Za-z ]*)[ \t]*[:：][ \t]*(.*)", value)
     role = _key(match[1]) if match else None
     payload = match[2].strip() if match else value
-    if re.fullmatch(r"[^\n]+?\s*/\s*by\s+[^\n]+", value, re.I):
+    author = re.fullmatch(r"[^\n]+?\s*/\s*by(?:\s+(?P<payload>[^\n]*))?", value, re.I)
+    if author:
         role = "author"
-        payload = re.split(r"\s*/\s*by\s+", value, maxsplit=1, flags=re.I)[1]
+        payload = (author['payload'] or '').strip()
     if role in roles:
         accepted = {_key(spec["id"].replace("_", " ")),
                     *(_key(alias) for alias in spec.get("aliases", []))}
@@ -1217,9 +1222,14 @@ def _field_value(
         candidates.append((index, line, 0, len(line)))
     for index, value, start, end in candidates:
         if spec["kind"] == "text" and not aliases:
-            value = _text_role_value(value, spec)
-            if value is None:
+            payload = _text_role_value(value, spec)
+            if payload is None:
                 continue
+            # Role filtering retains a stripped suffix of the original value.
+            # Consume that occurrence, including when it repeats in the label.
+            start += value.rfind(payload)
+            value = payload
+            end = start + len(value)
         if token_pattern := _field_token_pattern(spec):
             for match in token_pattern.finditer(value):
                 if spec["kind"] == "text" and (

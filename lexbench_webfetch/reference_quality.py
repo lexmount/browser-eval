@@ -337,7 +337,7 @@ def without_markdown_images(content):
     return ''.join(pieces)
 
 
-def visible_markdown_links(text: str) -> str:
+def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str:
     """Keep labels and adjacent link boundaries, consuming balanced destinations.
 
     Browser Markdown serializers sometimes wrap a generated destination or its
@@ -345,11 +345,18 @@ def visible_markdown_links(text: str) -> str:
     newlines inside a bounded, balanced destination must not turn it into a
     false negative.
     """
+    literals = [match.span() for match in re.finditer(
+        r"(?ms)^ {0,3}(`{3,}|~{3,})[^\n]*\n.*?^ {0,3}\1[ \t]*$"
+        r"|`+[^`\n]+`+", text)]
     result=[];start=0;previous_label=''
     for match in markdown_links(text):
         if match.start < start:
             continue
-        label = re.sub(r"\s+", " ", visible_markdown_links(match.label)).strip()
+        if any(left <= match.start < right for left, right in literals):
+            continue
+        label = ('' if match.is_image and not include_image_alt else
+                 re.sub(r"\s+", " ", visible_markdown_links(
+                     match.label, include_image_alt=include_image_alt)).strip())
         # A native carousel can append its accessibility position directly
         # to the label. Keep both values but restore their observable boundary.
         label = re.sub(r'(?<=[^\W\d_])(?=\d+\s+of\s+\d+$)', ' ', label)
@@ -415,6 +422,7 @@ def visible_mixed_html_text(text: str) -> str:
         r"|(?:\\</?[A-Za-z][^<>\n]*>|</?[A-Za-z][^<>\n]*\\>)|\\[\\<>]",
         protect, text,
     )
+    protected = re.sub(r'<!--.*?(?:-->|\Z)', '', protected, flags=re.S)
     # Extracted documentation can name a raw-text element in ordinary prose
     # without escaping its angle brackets. Recognize that explicit grammatical
     # mention only when it has no matching closing tag; real raw-text blocks

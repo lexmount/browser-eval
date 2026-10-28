@@ -6,7 +6,7 @@ from urllib.parse import urljoin, urlsplit
 import soupsieve
 
 from .dynamic_lists import named_entry_identity, visible_html_text
-from .article_text import (article_html, is_article_html, article_markdown, TIMESTAMP_LINE,
+from .article_text import (article_html, article_surface, is_article_html, article_markdown, TIMESTAMP_LINE,
                            mask_markdown_code, author_key, label_key, validate_labels, declared_labels)
 from .reference_quality import markdown_links, visible_markdown_links, without_markdown_images
 
@@ -147,7 +147,7 @@ def _post_headers(lines, contract, url):
                         destination = last.destination
                 except ValueError:
                     pass
-            headers.append((index, destination, visible_markdown_links(line), author))
+            headers.append((index, index, destination, visible_markdown_links(line), author))
             continue
         link = links[0]
         prefix, suffix = line[:link.start].strip(), line[link.end:].strip()
@@ -165,10 +165,12 @@ def _post_headers(lines, contract, url):
         author = re.sub(r'^(?:#{1,6}|[-*+]|\d+[.)])(?:\s+|$)', '', prefix).strip()
         if not author:
             author = visible_markdown_links(link.label)
+        owner_start = index
         if not prefix and index and lines[index-1].strip() and not lines[index-1].startswith('>'):
+            owner_start = index - 1
             author = visible_markdown_links(lines[index-1])
             header = author+'\n'+header
-        headers.append((index, link.destination, header, author))
+        headers.append((index, owner_start, link.destination, header, author))
     return headers
 
 
@@ -190,8 +192,8 @@ def _markdown_records(content, contract, url):
     headers = _post_headers(lines, contract, url)
     rows = []
     markers = {x.casefold().rstrip(':：') for x in contract.get('quote_markers', [])}
-    for n, (start, destination, header, author) in enumerate(headers):
-        end = headers[n+1][0] if n+1 < len(headers) else len(lines)
+    for n, (start, _owner_start, destination, header, author) in enumerate(headers):
+        end = headers[n+1][1] if n+1 < len(headers) else len(lines)
         post, quotes, current = [], [], None
         quote_mode, paragraph_break = None, False
         header_heading = re.match(r'^\s*(#{1,6})\s+', lines[start])
@@ -237,11 +239,6 @@ def _markdown_records(content, contract, url):
     return rows
 
 
-def _initial_surface(content):
-    """Apply shared closed-disclosure visibility to mixed representations."""
-    return str(article_html(content)) if re.search(r'<details\b', content, re.I) else content
-
-
 def _has_post_prose(text, contract):
     """Reject metadata-only serialized fields, without filtering prose mentions.
 
@@ -277,7 +274,7 @@ def valid_post_author(value, contract):
 
 
 def _verify_fixed_posts(content, contract, url):
-    content = _initial_surface(content)
+    content = article_surface(content)
     if is_article_html(content):
         native = article_html(content).select(contract['html_record_selector'])
         rows = (_html_records(content, contract) if native

@@ -28,6 +28,11 @@ def article_html(content):
             fallback.decompose()
     return soup
 
+
+def article_surface(content):
+    """Apply article visibility to mixed markup before Markdown extraction."""
+    return str(article_html(content)) if re.search(r'<(?:details|noscript)\b', content, re.I) else content
+
 def is_article_html(content):
     """Classify HTML after complete leading non-content blocks only."""
     remaining = content.lstrip()
