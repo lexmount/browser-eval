@@ -53,6 +53,7 @@ browser-use-eval = [
 ]
 test = [
   "pytest>=8,<10",
+  "pytest-xdist>=3.8,<4",
   "ruff>=0.9,<1",
 ]
 oss-eval = [

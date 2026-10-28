@@ -11,9 +11,13 @@ on:
       - "v*"
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  test:
-    name: Python 3.11
+  checks:
+    name: Tests and static checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,6 +32,27 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - run: make setup-test
+      - run: make ci-tests PYTEST_ARGS='-n 2 --dist loadfile --durations=20'
+
+  package:
+    name: Installation and packaging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.7.8"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: make setup
+      - run: npm ci
       - name: Verify base installation and fixture CLI
         run: |
           uv sync --frozen
@@ -35,8 +60,20 @@ jobs:
           output="$(mktemp -d)/run"
           BROWSER_EVAL_REPORT_LANGUAGE=zh uv run --frozen --no-sync python -m harness.web_fetch run --providers fixture --delay 0 --output "$output"
           uv run --frozen --no-sync python -c 'import json, sys; from pathlib import Path; root = Path(sys.argv[1]); contract = json.loads((root / "report-languages.json").read_text()); assert contract["primary_language"] == "zh"; assert contract["languages"] == ["zh"]; assert (root / "en/index.html").is_file()' "$output/report"
-      - run: make setup-test
-      - run: make ci
+      - run: make package-check
+
+  browser:
+    name: Rendered reference and report checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.7.8"
+          enable-cache: true
       - name: Exercise rendered reference capture
         timeout-minutes: 5
         run: |
@@ -44,3 +81,14 @@ jobs:
           uv run --frozen --no-sync playwright install chromium
           export BROWSER_EVAL_TEST_BROWSER_BINARY="$(uv run --frozen --no-sync python -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
           uv run --frozen --no-sync python -m pytest tests/test_browser_observation_contracts.py tests/test_report_browser_interactions.py tests/web_search/test_visual.py -q
+
+  test:
+    name: Python 3.11
+    if: ${{ always() }}
+    needs: [checks, package, browser]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every check to succeed
+        env:
+          CHECK_RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: test "$CHECK_RESULTS" = 'success success success'
