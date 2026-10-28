@@ -25203,6 +25203,2411 @@
           "FreeTV"
         ]
       }
+    },
+    {
+      "id": "title-paragraph-quote-lazy",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Lazy continuation of a quoted or list paragraph cannot establish a standalone article title.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Why We Read"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "> An excerpt:\nWhy We Read",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "title-paragraph-quote-blank",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Lazy continuation of a quoted or list paragraph cannot establish a standalone article title.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Why We Read"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "> An excerpt:\n\nWhy We Read",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-paragraph-quote-outside-heading",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Lazy continuation of a quoted or list paragraph cannot establish a standalone article title.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Why We Read"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "> An excerpt:\n# Why We Read",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-paragraph-quote-heading-block",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Lazy continuation of a quoted or list paragraph cannot establish a standalone article title.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Why We Read"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "> ## A heading\nWhy We Read",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-paragraph-quote-code-block",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Lazy continuation of a quoted or list paragraph cannot establish a standalone article title.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Why We Read"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "> ```\n> Literal code\n> ```\nWhy We Read",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-paragraph-list-lazy",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Lazy continuation of a quoted or list paragraph cannot establish a standalone article title.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Why We Read"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "- A bullet\nWhy We Read",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "title-paragraph-list-blank",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Lazy continuation of a quoted or list paragraph cannot establish a standalone article title.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Why We Read"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "- A bullet\n\nWhy We Read",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-paragraph-list-outside-heading",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Lazy continuation of a quoted or list paragraph cannot establish a standalone article title.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Why We Read"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "- A bullet\n# Why We Read",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round11-field_report-12",
+      "root_cause": "Integer fields must validate a complete supported integer token inside the owned value span; decimal or malformed numeric substrings cannot satisfy the type, and canonical fixed values use the same integer grammar.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 12",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round11-field_report-1,234",
+      "root_cause": "Integer fields must validate a complete supported integer token inside the owned value span; decimal or malformed numeric substrings cannot satisfy the type, and canonical fixed values use the same integer grammar.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 1,234",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round11-field_report-1.5",
+      "root_cause": "Integer fields must validate a complete supported integer token inside the owned value span; decimal or malformed numeric substrings cannot satisfy the type, and canonical fixed values use the same integer grammar.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 1.5",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round11-field_report-1,234.567",
+      "root_cause": "Integer fields must validate a complete supported integer token inside the owned value span; decimal or malformed numeric substrings cannot satisfy the type, and canonical fixed values use the same integer grammar.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 1,234.567",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round11-named_link-1.234",
+      "root_cause": "Integer fields must validate a complete supported integer token inside the owned value span; decimal or malformed numeric substrings cannot satisfy the type, and canonical fixed values use the same integer grammar.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\nCount: 1.234",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round11-named_link-1.5",
+      "root_cause": "Integer fields must validate a complete supported integer token inside the owned value span; decimal or malformed numeric substrings cannot satisfy the type, and canonical fixed values use the same integer grammar.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\nCount: 1.5",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round11-patterned_card-12.",
+      "root_cause": "Integer fields must validate a complete supported integer token inside the owned value span; decimal or malformed numeric substrings cannot satisfy the type, and canonical fixed values use the same integer grammar.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "pattern": "comments"
+                }
+              ],
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n12 comments.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round11-patterned_card-1.5",
+      "root_cause": "Integer fields must validate a complete supported integer token inside the owned value span; decimal or malformed numeric substrings cannot satisfy the type, and canonical fixed values use the same integer grammar.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "pattern": "comments"
+                }
+              ],
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n1.5 comments",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round11-linear-first-complete",
+      "root_cause": "Pipe and linearized table blocks inside one scope must each contribute independently while table boundaries prevent header or field borrowing; merge complete records by canonical identity.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "identity_column": "name",
+              "link_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\nDescription\nOwner\n[Alpha](/item/1)\n[Useful description](/desc/a)\n[Alice](/profile/a)\n\n|Name|Description|Owner|\n|---|---|---|\n|[Beta](/item/2)|Other description|Bob|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round11-linear-first-missing-owner",
+      "root_cause": "Pipe and linearized table blocks inside one scope must each contribute independently while table boundaries prevent header or field borrowing; merge complete records by canonical identity.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "identity_column": "name",
+              "link_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\nDescription\nOwner\n[Alpha](/item/1)\n[Useful description](/desc/a)\n\n|Name|Description|Owner|\n|---|---|---|\n|[Beta](/item/2)|Other description|Bob|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round11-linear-first-duplicate",
+      "root_cause": "Pipe and linearized table blocks inside one scope must each contribute independently while table boundaries prevent header or field borrowing; merge complete records by canonical identity.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "identity_column": "name",
+              "link_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\nDescription\nOwner\n[Alpha](/item/1)\n[Useful description](/desc/a)\n[Alice](/profile/a)\n\n|Name|Description|Owner|\n|---|---|---|\n|[Beta](/item/1)|Other description|Bob|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round11-pipe-first-complete",
+      "root_cause": "Pipe and linearized table blocks inside one scope must each contribute independently while table boundaries prevent header or field borrowing; merge complete records by canonical identity.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "identity_column": "name",
+              "link_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Description|Owner|\n|---|---|---|\n|[Beta](/item/2)|Other description|Bob|\n\nName\nDescription\nOwner\n[Alpha](/item/1)\n[Useful description](/desc/a)\n[Alice](/profile/a)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round11-pipe-first-missing-owner",
+      "root_cause": "Pipe and linearized table blocks inside one scope must each contribute independently while table boundaries prevent header or field borrowing; merge complete records by canonical identity.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "identity_column": "name",
+              "link_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Description|Owner|\n|---|---|---|\n|[Beta](/item/2)|Other description|Bob|\n\nName\nDescription\nOwner\n[Alpha](/item/1)\n[Useful description](/desc/a)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round11-pipe-first-duplicate",
+      "root_cause": "Pipe and linearized table blocks inside one scope must each contribute independently while table boundaries prevent header or field borrowing; merge complete records by canonical identity.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "identity_column": "name",
+              "link_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Description|Owner|\n|---|---|---|\n|[Beta](/item/1)|Other description|Bob|\n\nName\nDescription\nOwner\n[Alpha](/item/1)\n[Useful description](/desc/a)\n[Alice](/profile/a)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round11-linear-pipe-linear",
+      "root_cause": "Pipe and linearized table blocks inside one scope must each contribute independently while table boundaries prevent header or field borrowing; merge complete records by canonical identity.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 3,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "identity_column": "name",
+              "link_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\nDescription\nOwner\n[Alpha](/item/1)\n[Useful description](/desc/a)\n[Alice](/profile/a)\n\n|Name|Description|Owner|\n|---|---|---|\n|[Beta](/item/2)|Other description|Bob|\n\nName\nDescription\nOwner\n[Gamma](/item/3)\n[Useful description](/desc/a)\n[Alice](/profile/a)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round11-no-header-borrow-across-pipe",
+      "root_cause": "Pipe and linearized table blocks inside one scope must each contribute independently while table boundaries prevent header or field borrowing; merge complete records by canonical identity.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "identity_column": "name",
+              "link_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\nDescription\nOwner\n\n|Name|Description|Owner|\n|---|---|---|\n|[Beta](/item/2)|Other description|Bob|\n\n[Alpha](/item/1)\n[Useful description](/desc/a)\n[Alice](/profile/a)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round11-fixed-integer-1.234",
+      "root_cause": "Integer fields must validate a complete supported integer token inside the owned value span; decimal or malformed numeric substrings cannot satisfy the type, and canonical fixed values use the same integer grammar.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "fixed_values": {
+                "count": "1234"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 1.234",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round11-fixed-integer-1.235",
+      "root_cause": "Integer fields must validate a complete supported integer token inside the owned value span; decimal or malformed numeric substrings cannot satisfy the type, and canonical fixed values use the same integer grammar.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "fixed_values": {
+                "count": "1234"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 1.235",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review11-dynamic-bold-layout",
+      "root_cause": "4405240986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\s*\\d+(?:\\.\\d{2})?"
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n**$10.00**<br>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review11-dynamic-code-layout",
+      "root_cause": "4405240986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\s*\\d+(?:\\.\\d{2})?"
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n`$10.00`<br>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review11-dynamic-native-price",
+      "root_cause": "4405240986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\s*\\d+(?:\\.\\d{2})?"
+          ]
+        }
+      },
+      "artifact": "<article><a href=\"/item/1\">Alpha</a><strong>$10.00</strong></article>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review11-dynamic-invalid-price",
+      "root_cause": "4405240986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\s*\\d+(?:\\.\\d{2})?"
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n**$unknown**<br>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review11-dynamic-foreign-heading",
+      "root_cause": "4405240986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\s*\\d+(?:\\.\\d{2})?"
+          ]
+        }
+      },
+      "artifact": "<article><a href=\"/item/1\">Alpha</a><h2>Other charges</h2><span>**$10.00**</span></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review11-dynamic-attribute-only",
+      "root_cause": "4405240986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\s*\\d+(?:\\.\\d{2})?"
+          ]
+        }
+      },
+      "artifact": "<article><a href=\"/item/1\">Alpha</a><span title=\"**$10.00**\">Details</span></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review11-dynamic-scope-formatted-price",
+      "root_cause": "4405240986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\s*\\d+(?:\\.\\d{2})?"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<div class=\"product\"><a href=\"/item/1\">Alpha</a><span class=\"price\">**$10.00**</span></div>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review11-dynamic-scope-missing-price",
+      "root_cause": "4405240986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\s*\\d+(?:\\.\\d{2})?"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<div class=\"product\"><a href=\"/item/1\">Alpha</a><span class=\"other\">**$10.00**</span></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-table-matching",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "table_anchor_comparison_uses_declared_owned_columns",
+      "case": {
+        "url": "https://example.test/table",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "|Name|Count|\n|---|---|\n|Alpha|12|"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|12|\nEnd",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime11-table-unrelated",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "table_anchor_comparison_uses_declared_owned_columns",
+      "case": {
+        "url": "https://example.test/table",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "|Name|Count|\n|---|---|\n|Alpha|12|"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Beta|34|\nEnd",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-table-split-fields",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "table_anchor_comparison_uses_declared_owned_columns",
+      "case": {
+        "url": "https://example.test/table",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "|Name|Count|\n|---|---|\n|Alpha|12|"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|34|\n|Beta|12|\nEnd",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-table-wrong-value",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "table_anchor_comparison_uses_declared_owned_columns",
+      "case": {
+        "url": "https://example.test/table",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "|Name|Count|\n|---|---|\n|Alpha|12|"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|34|\nEnd",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-html-matching",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "table_anchor_comparison_uses_declared_owned_columns",
+      "case": {
+        "url": "https://example.test/table",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "|Name|Count|\n|---|---|\n|Alpha|12|"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime11-html-unrelated",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "table_anchor_comparison_uses_declared_owned_columns",
+      "case": {
+        "url": "https://example.test/table",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "|Name|Count|\n|---|---|\n|Alpha|12|"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Beta</td><td>34</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-html-split-fields",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "table_anchor_comparison_uses_declared_owned_columns",
+      "case": {
+        "url": "https://example.test/table",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "|Name|Count|\n|---|---|\n|Alpha|12|"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>34</td></tr><tr class=\"data\"><td>Beta</td><td>12</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-html-alternative-Alpha",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "table_anchor_comparison_uses_declared_owned_columns",
+      "case": {
+        "url": "https://example.test/table",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|12|\nEnd",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime11-html-alternative-Beta",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "table_anchor_comparison_uses_declared_owned_columns",
+      "case": {
+        "url": "https://example.test/table",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Beta|12|\nEnd",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-base-host-markdown-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "non_record_anchor_masks_share_the_effective_link_base",
+      "case": {
+        "url": "https://redirect.example/start",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "www.example.com"
+          ],
+          "entry_path": "/news/item/\\d+",
+          "link_base_url": "https://www.example.com/news/",
+          "stable_text_anchors": [
+            {
+              "id": "page-heading",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "[Story](item/1)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-base-host-markdown-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "non_record_anchor_masks_share_the_effective_link_base",
+      "case": {
+        "url": "https://redirect.example/start",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "www.example.com"
+          ],
+          "entry_path": "/news/item/\\d+",
+          "link_base_url": "https://www.example.com/news/",
+          "stable_text_anchors": [
+            {
+              "id": "page-heading",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "# Story\n[Story](item/1)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime11-base-host-html-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "non_record_anchor_masks_share_the_effective_link_base",
+      "case": {
+        "url": "https://redirect.example/start",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "www.example.com"
+          ],
+          "entry_path": "/news/item/\\d+",
+          "link_base_url": "https://www.example.com/news/",
+          "stable_text_anchors": [
+            {
+              "id": "page-heading",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "<main><a href=\"item/1\">Story</a></main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-base-host-html-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "non_record_anchor_masks_share_the_effective_link_base",
+      "case": {
+        "url": "https://redirect.example/start",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "www.example.com"
+          ],
+          "entry_path": "/news/item/\\d+",
+          "link_base_url": "https://www.example.com/news/",
+          "stable_text_anchors": [
+            {
+              "id": "page-heading",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "<h1>Story</h1>\n<main><a href=\"item/1\">Story</a></main>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime11-base-directory-markdown-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "non_record_anchor_masks_share_the_effective_link_base",
+      "case": {
+        "url": "https://www.example.com/redirect/start",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "www.example.com"
+          ],
+          "entry_path": "/news/item/\\d+",
+          "link_base_url": "https://www.example.com/news/",
+          "stable_text_anchors": [
+            {
+              "id": "page-heading",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "[Story](item/1)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-base-directory-markdown-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "non_record_anchor_masks_share_the_effective_link_base",
+      "case": {
+        "url": "https://www.example.com/redirect/start",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "www.example.com"
+          ],
+          "entry_path": "/news/item/\\d+",
+          "link_base_url": "https://www.example.com/news/",
+          "stable_text_anchors": [
+            {
+              "id": "page-heading",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "# Story\n[Story](item/1)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime11-base-directory-html-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "non_record_anchor_masks_share_the_effective_link_base",
+      "case": {
+        "url": "https://www.example.com/redirect/start",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "www.example.com"
+          ],
+          "entry_path": "/news/item/\\d+",
+          "link_base_url": "https://www.example.com/news/",
+          "stable_text_anchors": [
+            {
+              "id": "page-heading",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "<main><a href=\"item/1\">Story</a></main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime11-base-directory-html-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "non_record_anchor_masks_share_the_effective_link_base",
+      "case": {
+        "url": "https://www.example.com/redirect/start",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "www.example.com"
+          ],
+          "entry_path": "/news/item/\\d+",
+          "link_base_url": "https://www.example.com/news/",
+          "stable_text_anchors": [
+            {
+              "id": "page-heading",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "<h1>Story</h1>\n<main><a href=\"item/1\">Story</a></main>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "integer-nonzero-group-field_report-dot-0",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 0.234",
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-nonzero-group-field_report-dot-1",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 1.234",
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-nonzero-group-field_report-comma-0",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 0,234",
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-nonzero-group-field_report-comma-1",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 1,234",
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-nonzero-group-field_report-space-0",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 0 234",
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-nonzero-group-field_report-space-1",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 1 234",
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-nonzero-group-table-dot-0",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|0.234|",
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-nonzero-group-table-dot-1",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|1.234|",
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-nonzero-group-patterned_card-comma-0",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "pattern": "comments"
+                }
+              ],
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n0,234 comments",
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-nonzero-group-patterned_card-comma-1",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "pattern": "comments"
+                }
+              ],
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n1,234 comments",
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-plain-padding-0",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 0",
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-plain-padding-00012",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 00012",
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-unicode-group-fullwidth-0",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: ０,２３４",
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-unicode-group-fullwidth-1",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: １,２３４",
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-unicode-group-arabic-0",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: ٠,٢٣٤",
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "integer-unicode-group-arabic-1",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: ١,٢٣٤",
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
     }
   ]
 }

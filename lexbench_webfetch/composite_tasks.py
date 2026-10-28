@@ -969,6 +969,27 @@ _VERSION = re.compile(
 )
 
 
+# Grouped integers have a nonzero first digit; plain zero/padded integers remain valid.
+_INTEGER_VALUE = (
+    r"(?:\d+|[1-9]\d{0,2}(?:,\d{3})+|[1-9]\d{0,2}(?:\.\d{3})+"
+    r"|[1-9]\d{0,2}(?:[^\S\r\n]\d{3})+)"
+)
+_INTEGER_CANDIDATE = re.compile(r"(?<![\w.,+/-])\d(?:[\d,.]|[^\S\r\n]+(?=\d))*(?![\w.,+/-]|[^\S\r\n]+\d)")
+
+
+def _decimal_digits(value):
+    """Normalize decimal digits one character at a time, preserving offsets."""
+    return ''.join(str(unicodedata.decimal(char)) if char.isdecimal() else char for char in value)
+
+
+def _integer_scalars(value):
+    """Yield whole integer tokens; punctuation cannot expose decimal suffixes."""
+    for match in _INTEGER_CANDIDATE.finditer(value):
+        scalar = re.sub(r"[,.]$", "", match[0])
+        if re.fullmatch(_INTEGER_VALUE, _decimal_digits(scalar)):
+            yield scalar, match.start(), match.start() + len(scalar)
+
+
 def _value_matches_spec(value: str, spec: dict, *, whole_cell: bool = False) -> bool:
     """Apply the same declared field type rules to card and table values."""
     visible = re.sub(r"\s+", " ", _visible_markdown_scalar(value) if whole_cell else visible_markdown_links(value)).strip()
@@ -982,8 +1003,8 @@ def _value_matches_spec(value: str, spec: dict, *, whole_cell: bool = False) -> 
         return bool(re.fullmatch(spec["pattern"], visible, re.I))
     if kind == "integer":
         if whole_cell:
-            return bool(re.fullmatch(r"(?:\d+|\d{1,3}(?:,\d{3})+|\d{1,3}(?:\.\d{3})+)", visible))
-        return bool(re.search(r"\b\d[\d,.]*\b", visible))
+            return bool(re.fullmatch(_INTEGER_VALUE, _decimal_digits(visible)))
+        return next(_integer_scalars(visible), None) is not None
     if kind == "date_or_time":
         return bool(_DATE_OR_TIME.search(visible))
     if kind == "price":
@@ -1264,6 +1285,11 @@ def _field_values(
             for match in token_pattern.finditer(value):
                 if overlaps(index, start + match.start(), start + match.end()):
                     continue
+                if spec["kind"] == "integer" and not any(
+                    match.start() <= left and right <= match.end()
+                    for _, left, right in _integer_scalars(value)
+                ):
+                    continue
                 if spec["kind"] == "text" and (
                     match.start() and value[match.start() - 1].isalnum() and match[0][:1].isalnum()
                     or match.end() < len(value) and value[match.end()].isalnum() and match[0][-1:].isalnum()
@@ -1308,8 +1334,8 @@ def _canonical_field_report_value(value: str, spec: dict) -> str:
     """Keep the typed scalar from an owned field cell for diagnostics/fixed values."""
     visible = visible_markdown_links(value).strip().strip("| ")
     if spec["kind"] == "integer":
-        match = re.search(_AMOUNT, visible)
-        return match[0] if match else visible
+        scalar = next(_integer_scalars(visible), None)
+        return scalar[0] if scalar else visible
     if pattern := spec.get("pattern"):
         match = re.search(pattern, visible, re.I)
         return match[0] if match else visible
@@ -1321,7 +1347,7 @@ def _canonical_field_report_value(value: str, spec: dict) -> str:
 
 def _fixed_field_value_key(value: str, spec: dict) -> str:
     if spec["kind"] == "integer":
-        value = re.sub(r"(?<=\d)[,\s](?=\d{3}\b)", "", value)
+        value = re.sub(r"(?<=\d)[,.\s](?=\d{3}\b)", "", value)
     return _key(value)
 
 
@@ -1524,7 +1550,15 @@ def _table_group(content: str, group: dict) -> dict:
 
 def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
     """Read named links and required fields from the same owned table row."""
-    lines = [line.strip() for line in clean_reference_text(table_text_surface(content)).splitlines() if line.strip()]
+    surface = clean_reference_text(table_text_surface(content))
+    lines, positions = [], []
+    offset = 0
+    for line in surface.splitlines(keepends=True):
+        if line.strip():
+            lines.append(line.strip())
+            positions.append((offset, offset + len(line)))
+        offset += len(line)
+    pipe_spans = []
     required = group["required_columns"]
     records = {}
     exclusions = {_key(_visible_markdown_scalar(value)) for value in group.get('record_name_exclusions', [])}
@@ -1546,6 +1580,12 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
         if (len(separator) != len(headers)
                 or not all(re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator)):
             continue
+        finish = index + 2
+        while finish < len(lines) and "|" in lines[finish]:
+            if _table_header_at(lines, finish):
+                break
+            finish += 1
+        pipe_spans.append((positions[index][0], positions[finish - 1][1]))
         mapping = _unique_columns({spec['id']: [
             position for position, header in enumerate(headers)
             if header in {_key(value) for value in spec['aliases']}
@@ -1573,7 +1613,15 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                             identity, entry = candidate
                             records[identity] = {**entry, "fields": row}
                 row_index += 1
-    if not records:
+    # Each pipe table is a hard ownership boundary. Independently converted
+    # tables on either side retain their own headers and cannot borrow cells.
+    chunks, cursor = [], 0
+    for left, right in sorted(pipe_spans):
+        if left > cursor:
+            chunks.append(surface[cursor:left])
+        cursor = max(cursor, right)
+    chunks.append(surface[cursor:])
+    for content in chunks:
         links = [link for link in markdown_links(content) if not link.is_image]
         entry_links = []
         for link in links:

@@ -28,7 +28,7 @@
         },
         "article_title.py": {
           "before_sha256": "eb59008ffceffce093a32592e1e2e0d244feed8fed1ed9c0d6306b6353573c54",
-          "after_sha256": "33c29f2ef8a849ca3b8ec9270ffee93cb7f5601d20df33d0b35fcfc39e77769f"
+          "after_sha256": "33c377cd161f69a01b7589c6db6d39ad1f2ad4f01496ce191289434d4db4d988"
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "59a41975bcf3aa0a251103f954ac27e98e2bbc94661c62a100c732463a479f08"
+          "after_sha256": "b3a552f4d61bc0db953a7e89ec5f50869658abc3771b00a21481587aa4b2335d"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -52,7 +52,7 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "a58da9f7d82a0b7229c233510026f24e1317e3dd3a4f0513842da8f0f64dfed9"
+          "after_sha256": "83e832602a8cd080c7750014ba935ae0d96602bb5f33b7ec04a13b0aeb00047f"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "388aa3b1398c2897a759cd689aaa5d74da04895727d26d3cb645f0ea9989d898"
+          "after_sha256": "2960e9f0f43557ba395bf4b6aa65466b2a745655a96b6653557953f15943f8f9"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -1256,6 +1256,123 @@
           "tests": [
             "tests/benchmarks/webfetch/test_review_auxiliary_names_and_sections.py",
             "tests/benchmarks/webfetch/test_review_exclusion_admission.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_title.py"
+          ],
+          "regression_ids": [
+            "title-paragraph-quote-lazy",
+            "title-paragraph-quote-blank",
+            "title-paragraph-quote-outside-heading",
+            "title-paragraph-quote-heading-block",
+            "title-paragraph-quote-code-block",
+            "title-paragraph-list-lazy",
+            "title-paragraph-list-blank",
+            "title-paragraph-list-outside-heading"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_title_paragraph_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round11-field_report-12",
+            "round11-field_report-1,234",
+            "round11-field_report-1.5",
+            "round11-field_report-1,234.567",
+            "round11-named_link-1.234",
+            "round11-named_link-1.5",
+            "round11-patterned_card-12.",
+            "round11-patterned_card-1.5",
+            "round11-linear-first-complete",
+            "round11-linear-first-missing-owner",
+            "round11-linear-first-duplicate",
+            "round11-pipe-first-complete",
+            "round11-pipe-first-missing-owner",
+            "round11-pipe-first-duplicate",
+            "round11-linear-pipe-linear",
+            "round11-no-header-borrow-across-pipe",
+            "round11-fixed-integer-1.234",
+            "round11-fixed-integer-1.235"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_owned_integer_mixed_tables.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review11-dynamic-bold-layout",
+            "review11-dynamic-code-layout",
+            "review11-dynamic-native-price",
+            "review11-dynamic-invalid-price",
+            "review11-dynamic-foreign-heading",
+            "review11-dynamic-attribute-only",
+            "review11-dynamic-scope-formatted-price",
+            "review11-dynamic-scope-missing-price"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_mixed_product_fields.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "runtime11-table-matching",
+            "runtime11-table-unrelated",
+            "runtime11-table-split-fields",
+            "runtime11-table-wrong-value",
+            "runtime11-html-matching",
+            "runtime11-html-unrelated",
+            "runtime11-html-split-fields",
+            "runtime11-html-alternative-Alpha",
+            "runtime11-html-alternative-Beta",
+            "runtime11-base-host-markdown-False",
+            "runtime11-base-host-markdown-True",
+            "runtime11-base-host-html-False",
+            "runtime11-base-host-html-True",
+            "runtime11-base-directory-markdown-False",
+            "runtime11-base-directory-markdown-True",
+            "runtime11-base-directory-html-False",
+            "runtime11-base-directory-html-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_stable_anchor_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "integer-nonzero-group-field_report-dot-0",
+            "integer-nonzero-group-field_report-dot-1",
+            "integer-nonzero-group-field_report-comma-0",
+            "integer-nonzero-group-field_report-comma-1",
+            "integer-nonzero-group-field_report-space-0",
+            "integer-nonzero-group-field_report-space-1",
+            "integer-nonzero-group-table-dot-0",
+            "integer-nonzero-group-table-dot-1",
+            "integer-nonzero-group-patterned_card-comma-0",
+            "integer-nonzero-group-patterned_card-comma-1",
+            "integer-plain-padding-0",
+            "integer-plain-padding-00012",
+            "integer-unicode-group-fullwidth-0",
+            "integer-unicode-group-fullwidth-1",
+            "integer-unicode-group-arabic-0",
+            "integer-unicode-group-arabic-1"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_owned_integer_mixed_tables.py"
           ]
         }
       ]

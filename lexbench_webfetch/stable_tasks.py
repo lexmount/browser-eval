@@ -950,7 +950,7 @@ def source_record_hash(fields, names, schema):
 
 
 def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
-                    anchor_visible=None, registered_words=(), *, representation=None):
+                    anchor_visible=None, registered_words=(), *, representation=None, contract=None):
     from .metrics import normalize_for_match as normalize
     normalize_for_match = lambda text: normalize(text, representation=representation)
     if anchor.get('match_scope') == 'non_record_lines':
@@ -969,7 +969,23 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
         return [value for value in anchor["alternatives"]
                 if _stable_literal_match(folded, value, registered_words, representation=representation)]
     owned = []
-    if schema != "named_link":
+    if schema == 'table_row' and contract:
+        from .structured_tables import _canonical, parse_table_records
+        matched = []
+        for value in anchor['alternatives']:
+            expected = parse_table_records(value, _visible(value, schema, representation=representation), contract)
+            if len(expected) == 1 and expected[0]['valid']:
+                passed = any(record['valid'] and all(
+                    _canonical(record['fields'][column['name']], column)
+                    == _canonical(expected[0]['fields'][column['name']], column)
+                    for column in contract['table_columns']) for record in records)
+            else:
+                passed = _stable_literal_match(anchor_visible if anchor_visible is not None else visible,
+                                               value, registered_words, representation=representation)
+            if passed:
+                matched.append(value)
+        return matched
+    if schema != "named_link" and SCHEMA_FIELDS[schema]:
         for value in anchor["alternatives"]:
             expected = _parse_records(_visible(value, schema, representation=representation), schema)
             if len(expected) == 1 and expected[0]["valid"]:
@@ -1505,7 +1521,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     non_record_visible = None
     if schema == 'named_link' and any(a.get('match_scope') == 'non_record_lines'
                                       for a in contract.get('stable_text_anchors', [])):
-        non_record_visible = _non_record_visible(non_record_content, contract, records, base_url)
+        non_record_visible = _non_record_visible(
+            non_record_content, contract, records, contract.get('link_base_url', base_url))
         if non_record_visible is not None:
             for pattern in exclusions.get('text_patterns', []):
                 non_record_visible = re.sub(pattern, ' ', non_record_visible, flags=re.I | re.M)
@@ -1524,11 +1541,12 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             if non_record_visible is not None:
                 selected_non_record = non_record_visible + "\n" + control_text
         matched = _anchor_matches(anchor, records, visible, schema,
-                                  selected_non_record, selected_surface, registered_words, representation=representation)
+                                  selected_non_record, selected_surface, registered_words,
+                                  representation=representation, contract=contract)
         if original_markdown_visible is not None:
             literal_matches = _anchor_matches(
                 anchor, records, visible, schema, non_record_visible,
-                original_markdown_visible, registered_words, representation=representation)
+                original_markdown_visible, registered_words, representation=representation, contract=contract)
             matched = [value for value in anchor["alternatives"]
                        if value in matched or value in literal_matches]
         if representation != 'plain_text' and not matched and anchor.get('match_scope') != 'non_record_lines':
@@ -1536,7 +1554,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                 native_labels = _native_link_label_surface(content, exclusions) or ''
             if native_labels:
                 matched = _anchor_matches(anchor, records, visible, schema,
-                                          anchor_visible=native_labels)
+                                          anchor_visible=native_labels, representation=representation, contract=contract)
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     anchor_errors = ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     if anchors_required:

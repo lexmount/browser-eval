@@ -1159,6 +1159,7 @@ def _html_product_records(content, contract, base_url, diagnostics):
     """Join HTML fields inside one DOM owner, including presentation wrappers."""
     from bs4 import Comment, Tag
     from .reference_quality import markdown_links
+    from .structured_tables import _visible_markdown_scalar
     if not re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content):
         return None
     soup = scoped_html(content)
@@ -1242,7 +1243,8 @@ def _html_product_records(content, contract, base_url, diagnostics):
                 forward_fence = next((index for index in fences if index > branch_index), None)
                 start = max((index + 1 for index in fences if index < branch_index), default=0)
                 children = children[start:forward_fence]
-                fields = [child.get_text(' ', strip=True) if isinstance(child, Tag) else str(child).strip()
+                fields = [_visible_markdown_scalar(
+                              child.get_text(' ', strip=True) if isinstance(child, Tag) else str(child))
                           for child in children if id(child) not in ancestry and not isinstance(child, Comment)]
                 if owner is anchor:
                     label = anchor.get_text(' ', strip=True)
@@ -1266,6 +1268,7 @@ def _html_product_records(content, contract, base_url, diagnostics):
 def extract_linked_products(content, contract, base_url, diagnostics=None):
     """Extract title/link/price triples from one owned product segment."""
     from .reference_quality import markdown_links, without_markdown_images
+    from .structured_tables import _visible_markdown_scalar
     content = _visible_candidate_content(_without_record_literals(content))
     base_url = contract.get('link_base_url', base_url)
     scope = contract.get('entry_scope')
@@ -1288,7 +1291,8 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
             if len(candidates) != 1:
                 continue
             identity, entry = next(iter(candidates.items()))
-            prices = [node.get_text(' ', strip=True) for node in owner.select(scope['price_selector'])]
+            prices = [_visible_markdown_scalar(node.get_text(' ', strip=True))
+                      for node in owner.select(scope['price_selector'])]
             prices = [p for p in prices if any(r.fullmatch(p) for r in allowed)
                       and not any(r.fullmatch(p) for r in excluded)]
             if prices:

@@ -9,6 +9,83 @@ from .metrics import normalize_for_match
 from .reference_quality import visible_mixed_html_text
 
 
+def _outside_container_paragraphs(content):
+    """Keep title candidates outside quoted/list paragraphs and lazy continuations."""
+    from .reference_quality import markdown_literal_spans, is_html_document_or_fragment
+    prefix = '\ue000title-literal'
+    while prefix in content:
+        prefix += '_'
+    literals, block_tokens = {}, set()
+    for start, end in reversed(markdown_literal_spans(content)):
+        literal = content[start:end]
+        token = prefix + str(len(literals)) + '\ue001'
+        before = content[content.rfind('\n', 0, start)+1:start]
+        if (re.fullmatch(r' {0,3}(?:(?:>[ \t]?)*|(?:[-+*]|\d+[.)])[ \t]+)', before)
+                and re.match(r'(?:`{3,}|~{3,})[^\n]*\n', literal)):
+            block_tokens.add(token)
+        literals[token] = literal
+        content = content[:start] + token + ('\n' if literal.endswith('\n') else '') + content[end:]
+
+    def block_start(line):
+        return (line.strip() in block_tokens
+                or re.match(r'^ {0,3}(?:#{1,6}(?:[ \t]|$)|`{3,}|~{3,})', line)
+                or re.fullmatch(r' {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})', line)
+                or (not line.startswith(('    ', '\t')) and is_html_document_or_fragment(line)))
+
+    output, paragraph, list_indent, quote_fence, quote_html = [], False, None, None, False
+    for line in content.splitlines():
+        indent = len(line)-len(line.lstrip(' '))
+        quote = re.match(r'^ {0,3}(?:>[ \t]?)+(.*)$', line)
+        if quote:
+            inner = quote[1]
+            if list_indent is not None and indent < list_indent:
+                list_indent = None
+            if not inner.strip():
+                paragraph, quote_html = False, False
+            elif quote_fence:
+                if re.fullmatch(r' {0,3}' + re.escape(quote_fence[0]) + '{' + str(quote_fence[1]) + r',}[ \t]*', inner):
+                    quote_fence = None
+                paragraph = False
+            elif fence := re.match(r'^ {0,3}(`{3,}|~{3,})', inner):
+                quote_fence, paragraph = (fence[1][0], len(fence[1])), False
+            elif quote_html or is_html_document_or_fragment(inner):
+                quote_html, paragraph = True, False
+            else:
+                empty_item = re.fullmatch(r' {0,3}(?:[-+*]|\d+[.)])[ \t]*', inner)
+                setext = paragraph and re.fullmatch(r' {0,3}=+[ \t]*', inner)
+                paragraph = not (block_start(inner) or empty_item or setext
+                                 or (not paragraph and inner.startswith(('    ', '\t'))))
+            output.append('')
+            continue
+        if quote_fence or quote_html:
+            quote_fence, quote_html, paragraph = None, False, False
+        if not line.strip():
+            paragraph = False
+        elif block_start(line):
+            paragraph = False
+            if list_indent is not None and indent >= list_indent:
+                output.append('')
+                continue
+            list_indent = None
+        elif item := re.match(r'^( {0,3})(?:[-+*]|\d+[.)])(?:[ \t]+|$)(.*)$', line):
+            if list_indent is None or len(item[1]) < list_indent:
+                list_indent = len(line) - len(item[2])
+            paragraph = bool(item[2].strip()) and not block_start(item[2])
+            output.append('')
+            continue
+        elif paragraph or (list_indent is not None and indent >= list_indent):
+            paragraph = True
+            output.append('')
+            continue
+        else:
+            list_indent = None
+        output.append(line)
+    content = '\n'.join(output)
+    for token, literal in literals.items():
+        content = content.replace(token, literal)
+    return content
+
+
 def _title_key(text, *, representation=None):
     normalized = normalize_for_match(text, representation=representation).strip()
     # DOM line breaks around punctuation are layout, not different wording.
@@ -71,6 +148,7 @@ def verify_article_title(content, contract, *, representation=None):
                       for node in soup.select(contract['html_selector'])]
         surface = 'reviewed_html_title_selector'
     else:
+        content = _outside_container_paragraphs(content)
         content, blocks = mask_markdown_code(content)
         content, restore_inline_code = mask_markdown_inline_code(content, blocks.values())
         content = article_surface(content)
