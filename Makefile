@@ -1,6 +1,7 @@
 UV ?= uv
 PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
+PYTEST_ARGS ?=
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
 WEBMAINBENCH_PROFILE ?= $(PROFILE)
 REPORT_LANGUAGE ?=
@@ -40,7 +41,7 @@ lint-check: runtime-check
 	$(TEST_PY) -m ruff check
 
 test-python: runtime-check
-	$(TEST_PY) -m pytest tests -q
+	$(TEST_PY) -m pytest tests -q $(PYTEST_ARGS)
 
 .PHONY: test-reference-inputs
 test-reference-inputs: runtime-check
@@ -57,7 +58,10 @@ fixture-smoke: runtime-check
 
 test: test-python test-ui test-native-adapters
 
-ci: naming-check lint-check test fixture-smoke package-check
+.PHONY: ci-tests
+ci-tests: naming-check lint-check test fixture-smoke
+
+ci: ci-tests package-check
 
 .PHONY: package-check
 package-check: runtime-check
