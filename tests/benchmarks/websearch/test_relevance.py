@@ -32,6 +32,23 @@ def test_pooled_preview_relevance_rewards_useful_first_result_and_penalizes_dupl
         )
 
 
+@pytest.mark.parametrize('reverse', [False, True])
+@pytest.mark.parametrize('streaming', [False, True])
+def test_relevance_rejects_conflicting_rankings_for_one_method_case(reverse, streaming):
+    from lexbench_websearch.scoring import candidate_identity
+    profile = {'protocol': {'top_k': 2}, 'cases': [{'id': 'q', 'family': 'web'}],
+               'methods': [{'id': 'a'}]}
+    urls = ['https://example.org/relevant', 'https://example.org/off-topic']
+    first = {'case_id': 'q', 'method': 'a', 'results': [{'url': url} for url in urls]}
+    second = {**first, 'results': list(reversed(first['results']))}
+    labels = {'q': {candidate_identity('q', url): grade for url, grade in zip(urls, [3, 0])}}
+    plan = {'cutoff': 2, 'case_ids': ['q']}
+    assert len(score(profile, iter([first]) if streaming else [first], plan, labels)) == 1
+    rows = [second, first] if reverse else [first, second]
+    with pytest.raises(ValueError, match='one final result'):
+        score(profile, iter(rows) if streaming else rows, plan, labels)
+
+
 def all_case_fixture():
     profile = {
         "protocol": {"top_k": 5},

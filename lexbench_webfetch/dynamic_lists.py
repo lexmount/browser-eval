@@ -8,20 +8,36 @@ import re
 import unicodedata
 from html import unescape
 from html.parser import HTMLParser
+from typing import NamedTuple
 from urllib.parse import parse_qsl, quote, unquote, urlencode, urljoin, urlsplit, urlunsplit
 
 
+class LocatedItem(NamedTuple):
+    url: str
+    title: str
+    offset: int
+    metadata: bool = False
+
+
+def _line_starts(content):
+    return [0] + [match.end() for match in re.finditer('\n', content)]
+
+
 class Links(HTMLParser):
-    def __init__(self):super().__init__();self.current=None;self.items=[]
+    def __init__(self, content):
+        super().__init__();self.current=None;self.items=[]
+        self.line_starts = _line_starts(content)
     def handle_starttag(self,tag,attrs):
         attrs=dict(attrs)
-        if tag=='a':self.current=[attrs.get('href',''),[]]
+        if tag=='a':
+            line, column = self.getpos()
+            self.current=[attrs.get('href',''),[],self.line_starts[line-1] + column]
         # Image metadata is not a visible text name.
     def handle_data(self,data):
         if self.current:self.current[1].append(data)
     def handle_endtag(self,tag):
         if tag=='a' and self.current:
-            self.items.append((self.current[0],''.join(self.current[1])));self.current=None
+            self.items.append(LocatedItem(self.current[0],''.join(self.current[1]),self.current[2]));self.current=None
 
 
 _PURE_CTA = re.compile(
@@ -95,7 +111,7 @@ def named_entry_identity(url, contract):
     identity = canonical_entry_path(parts.path).rstrip('/')
     if pattern := contract.get('entry_identity_pattern'):
         match = re.search(pattern, identity)
-        if not match or not match.groups():
+        if not match or not match.groups() or not match[1]:
             raise ValueError('entry_identity_pattern must match and capture an identity')
         identity = match[1]
     elif ((identity_keys := contract.get('identity_query_keys', []))
@@ -122,20 +138,22 @@ def named_entry_source_pair_hash(title, url, contract):
     return hashlib.sha256((_label_key(title) + '\0' + identity).encode()).hexdigest()
 
 
-def scoped_html(content):
-    """Exclude explicitly hidden nodes and image metadata from visible names.
-
-    This is not a CSS renderer: external stylesheet visibility still needs
-    independently captured browser evidence when qualifying source counts.
-    """
-    from bs4 import BeautifulSoup
+def _without_unsupported_declarations(content):
     # Native document serialization can retain opaque XML marked declarations
     # rejected by html.parser. Preserve supported sections and remove only the
     # unsupported declarations before this non-executing visibility projection.
-    content = re.sub(
+    return re.sub(
         r'<!\[(?!(?:temp|cdata|ignore|include|rcdata|if|else|endif)(?![-_.a-z0-9]))'
         r'.*?(?:\]>|\Z)', '', content, flags=re.I | re.S)
-    soup = BeautifulSoup(content, 'html.parser')
+
+
+def scoped_html(content):
+    """Exclude hidden nodes and image metadata without rendering external CSS."""
+    from bs4 import BeautifulSoup
+    return _visible_html_soup(BeautifulSoup(_without_unsupported_declarations(content), 'html.parser'))
+
+
+def _visible_html_soup(soup):
     # HTML permits an omitted head end tag before an explicit body. Python's
     # html.parser leaves that body nested in head; preserve the existing body
     # before excluding metadata. No rendering or script execution is involved.
@@ -472,8 +490,9 @@ def _scope_named_content(content, scope, *, contract=None, base_url=''):
                     and not markdown_links(visible_html_text(content)))):
             if not scope.get('title_selector'):
                 return '\n'.join(str(node) for node in owners), owned_items, True
-            for owner in owners:
-                owned_items.extend(_owned_html_name_links(owner, scope))
+            for index, owner in enumerate(owners):
+                owned_items.extend(LocatedItem(url, title, index)
+                                   for url, title in _owned_html_name_links(owner, scope))
             return '', owned_items, True
     if scope.get('start_pattern'):
         start = _text_scope_boundary(content, scope['start_pattern'], prefer_heading=True)
@@ -522,11 +541,15 @@ def _paired_markdown_items(content, scope):
     title_pattern = re.compile(scope['markdown_title_identity_pattern'])
     detail_pattern = re.compile(scope['markdown_detail_identity_pattern'])
     items = []
-    for line in content.splitlines():
+    offset = 0
+    for original in content.splitlines(keepends=True):
+        line_offset, offset = offset, offset + len(original)
+        line = original.rstrip('\r\n')
         if '|' not in line:
             continue
         titles, details = {}, {}
-        for link in markdown_links(line):
+        line_links = markdown_links(line)
+        for link in line_links:
             if link.is_image:
                 continue
             destination = unquote(link.destination).replace(r'\(', '(').replace(r'\)', ')')
@@ -562,10 +585,15 @@ def _paired_markdown_items(content, scope):
                             if _label_key(visible) == _label_key(name):
                                 names.add(visible)
                 if len(names) == 1:
-                    items.append((destination, next(iter(names))))
+                    items.append(LocatedItem(destination, next(iter(names)), line_offset))
         for identity in titles.keys() & details.keys():
             if len(titles[identity]) == len(details[identity]) == 1:
-                items.append((next(iter(details[identity])), next(iter(titles[identity]))))
+                destination = next(iter(details[identity]))
+                position = min(link.start for link in line_links
+                               if link.destination == destination
+                               or ((matched := title_pattern.fullmatch(unquote(link.destination)))
+                                   and matched[1] == identity))
+                items.append(LocatedItem(destination, next(iter(titles[identity])), line_offset + position))
     visible_links = [link for link in markdown_links(content) if not link.is_image]
     for first, second in zip(visible_links, visible_links[1:]):
         if content[first.end:second.start].strip():
@@ -576,7 +604,7 @@ def _paired_markdown_items(content, scope):
             detail_match = detail_pattern.search(unquote(detail.destination))
             if (title_match and detail_match and title_match[1] == detail_match[1]
                     and title.label.strip()):
-                items.append((detail.destination, title.label.strip()))
+                items.append(LocatedItem(detail.destination, title.label.strip(), min(first.start, second.start)))
                 break
     return items
 
@@ -654,6 +682,7 @@ def _named_table_items(content, scope):
                       if scope.get('markdown_title_identity_pattern') else None)
     detail_identity = (re.compile(scope['markdown_detail_identity_pattern'])
                        if scope.get('markdown_detail_identity_pattern') else None)
+    offsets = _line_starts(content)
     for index in range(len(lines) - 1):
         if '|' not in lines[index]:
             continue
@@ -666,7 +695,7 @@ def _named_table_items(content, scope):
             continue
         title_column = headers.index(scope['markdown_title_column'])
         link_column = headers.index(scope['markdown_link_column'])
-        for line in lines[index + 2:]:
+        for row_index, line in enumerate(lines[index + 2:], index + 2):
             if not line.strip() or '|' not in line:
                 break
             row = cells(line)
@@ -688,7 +717,7 @@ def _named_table_items(content, scope):
                 detail_id = detail_identity.search(unquote(destination))
                 if stated_ids and (not detail_id or stated_ids != {detail_id[1]}):
                     continue
-            items.append((destination, title))
+            items.append(LocatedItem(destination, title, offsets[row_index]))
     return items
 
 
@@ -731,7 +760,7 @@ def _markdown_heading_card_items(content, contract, scope, base_url):
                 candidate for candidate in heading_candidates
                 if candidate[0] == identity
             )
-            items.append((candidate[1]['url'], candidate[1]['title']))
+            items.append(LocatedItem(candidate[1]['url'], candidate[1]['title'], heading.start()))
             continue
         if heading_candidates:
             continue
@@ -777,7 +806,7 @@ def _markdown_heading_card_items(content, contract, scope, base_url):
             for link, owned_candidate in candidates
             if owned_candidate[0] == candidate[0]
         )
-        items.append((candidate[1]['url'], candidate[1]['title']))
+        items.append(LocatedItem(candidate[1]['url'], candidate[1]['title'], heading.start()))
     return items, owned_link_spans
 
 
@@ -894,7 +923,7 @@ def _markdown_named_items(content, contract, scope, excluded_spans=frozenset()):
             else:
                 non_image_label = match['label']
         title=re.sub(r'\s+',' ',visible_markdown_links(non_image_label)).strip()
-        items.append((destination,title))
+        items.append(LocatedItem(destination, title, link.start))
     return items
 
 
@@ -905,6 +934,7 @@ def _image_heading_items(content, scope):
     from .reference_quality import markdown_links, visible_markdown_links
     items = []
     markdown_lines = content.splitlines()
+    offsets = _line_starts(content)
     for line_index, line in enumerate(markdown_lines):
         outer_links = markdown_links(line)
         if len(outer_links) != 1:
@@ -924,7 +954,7 @@ def _image_heading_items(content, scope):
             if heading:
                 heading_title=re.sub(r'\s+',' ',visible_markdown_links(heading[1])).strip()
                 if heading_title==image_title:
-                    items.append((outer.destination, heading_title))
+                    items.append(LocatedItem(outer.destination, heading_title, offsets[line_index] + outer.start))
                 break
             # Only an adjacent heading belongs to this image card. Another
             # record or prose paragraph ends ownership even without a heading.
@@ -936,21 +966,125 @@ def _deduplicated_named_candidates(items, contract, base_url, diagnostics):
     """Apply one candidate validator and retain its canonical identity."""
     excluded_titles = [re.compile(pattern, re.I)
                        for pattern in contract.get('title_exclusion_patterns', [])]
-    candidates={}
-    for url,title in items:
+    candidates, positions, metadata_positions = {}, {}, {}
+    for index, item in enumerate(items):
+        url, title = item[:2]
         candidate = _named_candidate(
             url, title, contract, base_url, excluded_titles, diagnostics,
         )
         if candidate is not None:
             identity, entry = candidate
+            position = item.offset if isinstance(item, LocatedItem) else index
+            if isinstance(item, LocatedItem) and item.metadata:
+                if identity in positions:
+                    continue
+                metadata_positions[identity] = min(metadata_positions.get(identity, position), position)
+            else:
+                positions[identity] = min(positions.get(identity, position), position)
             candidates[identity] = entry
-    return candidates
+    return dict(sorted(candidates.items(), key=lambda item:
+                       positions.get(item[0], metadata_positions.get(item[0], len(items)))))
+
+
+class _HTMLRanges(HTMLParser):
+    """Locate original element ranges without serializing surviving markup."""
+
+    def __init__(self, content, empty_elements):
+        super().__init__()
+        self.content, self.lines = content, _line_starts(content)
+        self.empty_elements = empty_elements
+        self.open, self.ranges = [], {}
+        self.starts, self.closes, self.comments = {}, {}, []
+
+    def source_offset(self):
+        line, column = self.getpos()
+        return self.lines[line - 1] + column
+
+    def handle_starttag(self, tag, attrs):
+        start = self.source_offset()
+        self.starts[start] = start + len(self.get_starttag_text())
+        if tag == 'body':
+            # Match the shared DOM owner's omitted-head-end handling.
+            head = next((index for index, (name, _) in enumerate(self.open) if name == 'head'), None)
+            if head is not None:
+                for _, origin in self.open[head:]:
+                    self.ranges[origin] = start
+                    self.closes[origin] = start
+                del self.open[head:]
+        if tag in self.empty_elements:
+            self.ranges[start] = start + len(self.get_starttag_text())
+        else:
+            self.open.append((tag, start))
+
+    def handle_startendtag(self, tag, attrs):
+        start = self.source_offset()
+        self.ranges[start] = start + len(self.get_starttag_text())
+        self.starts[start] = self.ranges[start]
+
+    def handle_endtag(self, tag):
+        index = next((index for index in range(len(self.open) - 1, -1, -1)
+                      if self.open[index][0] == tag), None)
+        if index is not None:
+            end = self.content.find('>', self.source_offset()) + 1
+            for _, origin in self.open[index:]:
+                self.ranges[origin] = end
+                self.closes[origin] = self.source_offset()
+            del self.open[index:]
+
+    def handle_comment(self, data):
+        start = self.source_offset()
+        closing = re.search(r'--!?>', self.content[start:])
+        self.comments.append((start, start + closing.end() if closing else len(self.content)))
+
+    def close(self):
+        super().close()
+        for _, origin in self.open:
+            self.ranges[origin] = len(self.content)
+            self.closes[origin] = len(self.content)
 
 
 def _visible_candidate_content(content):
-    if re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content):
-        return str(scoped_html(content))
-    return content
+    if ('<!--' not in content
+            and not re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content)):
+        return content
+    from bs4 import BeautifulSoup
+    content = _without_unsupported_declarations(content)
+    soup = BeautifulSoup(content, 'html.parser')
+    lines = _line_starts(content)
+    origins = {id(node): lines[node.sourceline - 1] + node.sourcepos
+               for node in soup.find_all(True) if node.sourceline is not None}
+    disclosures = [(origins[id(node)], origins.get(id(node.find('summary', recursive=False))))
+                   for node in soup.select('details:not([open])') if id(node) in origins]
+    _visible_html_soup(soup)
+    survivors = {id(node) for node in soup.find_all(True)}
+    removed = sorted(origin for key, origin in origins.items() if key not in survivors)
+    if not removed and not disclosures and '<!--' not in content:
+        return content
+    parser = _HTMLRanges(content, soup.builder.empty_element_tags)
+    parser.feed(content)
+    parser.close()
+    intervals = list(parser.comments)
+    for start in removed:
+        end = parser.ranges.get(start)
+        if end is not None:
+            intervals.append((start, end))
+    for start, summary in disclosures:
+        inner_start = parser.starts.get(start)
+        inner_end = parser.closes.get(start)
+        if inner_start is None or inner_end is None:
+            continue
+        if summary is not None and summary in parser.ranges:
+            intervals.extend([(inner_start, summary), (parser.ranges[summary], inner_end)])
+        else:
+            intervals.append((inner_start, inner_end))
+    pieces, cursor = [], 0
+    for start, end in sorted(intervals):
+        if end <= cursor:
+            continue
+        pieces.append(content[cursor:max(cursor, start)])
+        cursor = end
+    pieces.append(content[cursor:])
+    return ''.join(pieces)
 
 
 def _without_record_literals(content):
@@ -959,7 +1093,7 @@ def _without_record_literals(content):
         literal = content[start:end]
         # Inline price formatting stays visible; literal link syntax and
         # fenced examples cannot introduce records or own their prices.
-        if '\n' in literal or markdown_links(literal):
+        if '\n' in literal or markdown_links(literal) or re.search(r'</?[A-Za-z]', literal):
             content = content[:start] + re.sub(r'[^\n]', ' ', literal) + content[end:]
     return content
 
@@ -967,7 +1101,7 @@ def _without_record_literals(content):
 def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=None):
     """Orchestrate source parsers into one identity-keyed candidate mapping."""
     from .response_input import safe_named_links
-    content = _without_record_literals(content)
+    content = _visible_candidate_content(_without_record_literals(content))
     base_url = contract.get('link_base_url', base_url)
     scope = contract.get('entry_scope')
     owned_items = []
@@ -981,15 +1115,16 @@ def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=N
         links = (_owned_metadata_links(full_content, content, links, base_url)
                  if scope.get('start_pattern') and not _document_html(full_content)
                  else None)
-    else:
-        content = _visible_candidate_content(content)
     _note_malformed_markdown_destinations(content, base_url, diagnostics)
-    parser=Links();parser.feed(content)
+    parser=Links(content);parser.feed(content)
     heading_items, heading_link_spans = _markdown_heading_card_items(
         content, contract, scope, base_url,
     )
     items = owned_items + _paired_markdown_items(content, scope) + _named_table_items(content, scope)
-    items += list(parser.items) + safe_named_links(links, base_url)
+    metadata_items = []
+    for index, (url, title) in enumerate(safe_named_links(links, base_url)):
+        metadata_items.append(LocatedItem(url, title, len(content) + index, True))
+    items += list(parser.items) + metadata_items
     items += _markdown_named_items(content, contract, scope, heading_link_spans)
     items += _image_heading_items(content, scope)
     # Explicit card ownership is stronger than a generic link label for the
@@ -1098,16 +1233,18 @@ def _html_product_records(content, contract, base_url, diagnostics):
 def extract_linked_products(content, contract, base_url, diagnostics=None):
     """Extract title/link/price triples from one owned product segment."""
     from .reference_quality import markdown_links, without_markdown_images
-    content = _without_record_literals(content)
+    content = _visible_candidate_content(_without_record_literals(content))
     base_url = contract.get('link_base_url', base_url)
     scope = contract.get('entry_scope')
-    if scope and scope.get('price_selector') and _has_scoped_html(content):
-        soup = scoped_html(content)
+    html_scope = scope and scope.get('price_selector') and _has_scoped_html(content)
+    soup = scoped_html(content) if html_scope else None
+    owners = soup.select(scope['html_selector']) if soup is not None else []
+    if soup is not None and (owners or _document_html(content)):
         allowed = [re.compile(p, re.I) for p in contract['price_patterns']]
         excluded = [re.compile(p, re.I) for p in contract.get('price_exclusion_patterns', [])]
         unavailable = [re.compile(p, re.I) for p in contract.get('price_unavailable_patterns', [])]
         records = {}
-        for owner in soup.select(scope['html_selector']):
+        for owner in owners:
             if scope.get('title_selector'):
                 candidates = _deduplicated_named_candidates(
                     _owned_html_name_links(owner, scope), contract, base_url, diagnostics)

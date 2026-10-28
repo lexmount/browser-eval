@@ -252,10 +252,25 @@ def markdown_delimiter_pairs(text, *, maximum_span=None):
 
 def markdown_links(text: str) -> list[MarkdownLink]:
     """Return explicit balanced Markdown links without guessing from bare URLs."""
-    pairs = markdown_delimiter_pairs(text, maximum_span=_MAX_MARKDOWN_LINK_SPAN)
     links: list[MarkdownLink] = []
+    # Attribute values are HTML metadata, even when they contain balanced
+    # Markdown syntax. Keep tag bytes intact for the HTML-specific readers.
+    tags = [match.span() for match in re.finditer(
+        r'''</?[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', text)]
+    pieces, cursor = [], 0
+    for left, right in tags:
+        pieces.extend([text[cursor:left], ' ' * (right - left)])
+        cursor = right
+    pieces.append(text[cursor:])
+    pairs = markdown_delimiter_pairs(''.join(pieces), maximum_span=_MAX_MARKDOWN_LINK_SPAN)
+    tag_index = 0
     index = 0
     while index < len(text):
+        while tag_index < len(tags) and tags[tag_index][1] <= index:
+            tag_index += 1
+        if tag_index < len(tags) and tags[tag_index][0] <= index < tags[tag_index][1]:
+            index = tags[tag_index][1]
+            continue
         image = is_markdown_image_start(text, index)
         start = index + 1 if image else index
         if text[start:start + 1] != "[":

@@ -3,14 +3,14 @@ import re
 
 import soupsieve
 
-from .article_text import article_html, article_surface, is_article_html, mask_markdown_code, mask_markdown_inline_code
+from .article_text import article_html, article_surface, is_article_html, mask_markdown_code, mask_markdown_inline_code, article_field_text
 from .reference_quality import without_markdown_images
 from .metrics import normalize_for_match
 from .reference_quality import visible_mixed_html_text
 
 
-def _title_key(text):
-    normalized = normalize_for_match(text).strip()
+def _title_key(text, *, representation=None):
+    normalized = normalize_for_match(text, representation=representation).strip()
     # DOM line breaks around punctuation are layout, not different wording.
     return re.sub(r'\s*([，。！？、；：,.!?;:])\s*', r'\1', normalized)
 
@@ -27,7 +27,7 @@ def validate_title_contract(contract):
         alternatives = contract['alternatives']
         if (not isinstance(alternatives, list) or not alternatives
                 or any(not isinstance(text, str) or not text.strip()
-                       or '\n' in text or '\r' in text or not _title_key(text)
+                       or '\n' in text or '\r' in text or not _title_key(text, representation='plain_text')
                        for text in alternatives)):
             raise ValueError('nonempty observed single-line titles required')
         if not isinstance(contract['html_selector'], str) or not contract['html_selector'].strip():
@@ -44,7 +44,7 @@ def validate_title_contract(contract):
         raise ValueError('invalid article title contract') from error
 
 
-def verify_article_title(content, contract):
+def verify_article_title(content, contract, *, representation=None):
     """Require a visible selected HTML title or an exact standalone text line.
 
     Explicit visibility follows the shared HTML projection. External stylesheet
@@ -55,9 +55,12 @@ def verify_article_title(content, contract):
     validate_title_contract(contract)
     if not isinstance(content, str):
         raise ValueError('article title content must be text')
-    expected = {_title_key(text) for text in contract['alternatives']}
+    expected = {_title_key(text, representation='plain_text') for text in contract['alternatives']}
     candidates = []
-    if is_article_html(content):
+    if representation == 'plain_text':
+        candidates = [line.strip() for line in content.splitlines()]
+        surface = 'standalone_text_line'
+    elif representation == 'html' or is_article_html(content):
         soup = article_html(content)
         for selector in contract.get('excluded_html_selectors', []):
             for node in list(soup.select(selector)):
@@ -78,9 +81,9 @@ def verify_article_title(content, contract):
             # Inline markup can format a title but cannot supply hidden text.
             text = without_markdown_images(text)
             if heading or restore_inline_code(text, remove=True).strip():
-                candidates.append(restore_inline_code(text))
+                candidates.append(article_field_text(text, restore_inline_code))
         surface = 'standalone_text_line'
-    matched = next((text for text in candidates if _title_key(text) in expected), None)
+    matched = next((text for text in candidates if _title_key(text, representation='plain_text') in expected), None)
     return {'article_title_pass': matched is not None,
             'article_title_surface': surface,
             'article_title_matched': matched}

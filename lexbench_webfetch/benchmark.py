@@ -52,6 +52,8 @@ def reference_bindings(value):
 
 def public_task(case: dict) -> dict:
     task = {key: case[key] for key in PUBLIC_TASK_FIELDS if key in case}
+    if task.get('ordered_tree_min_similarity') is None:
+        task.pop('ordered_tree_min_similarity', None)
     if "body_requirements" in task:
         task["body_requirements"] = reference_bindings(task["body_requirements"])
     if case.get("ordered_tree_reference") is not None:

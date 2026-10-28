@@ -7,7 +7,7 @@ import soupsieve
 
 from .dynamic_lists import named_entry_identity, visible_html_text
 from .article_text import (article_html, article_surface, is_article_html, article_markdown, TIMESTAMP_LINE,
-                           mask_markdown_code, mask_markdown_inline_code, author_key, label_key, validate_labels, declared_labels)
+                           mask_markdown_code, mask_markdown_inline_code, author_key, label_key, validate_labels, declared_labels, article_field_text)
 from .reference_quality import markdown_links, visible_markdown_links, without_markdown_images
 
 
@@ -118,9 +118,19 @@ def _html_records(content, contract):
     return rows
 
 
-def _post_headers(lines, contract, url):
+def _post_headers(lines, contract, url, *, representation=None):
     """Identify owned permalink headings before parsing their body ranges."""
     headers = []
+    if representation == 'plain_text':
+        for index, line in enumerate(lines):
+            destination = line.strip()
+            if not re.fullmatch(r'https?://\S+', destination) or not index:
+                continue
+            author = lines[index - 1].strip()
+            if not author or re.fullmatch(r'https?://\S+', author):
+                continue
+            headers.append((index, index - 1, destination, author + '\n' + destination, author))
+        return headers, len(lines)
     header_level = None
     for index, line in enumerate(lines):
         heading = re.match(r'^\s*(#{1,6})\s+', line)
@@ -196,12 +206,17 @@ def _post_headers(lines, contract, url):
     return headers, len(lines)
 
 
-def _markdown_records(content, contract, url):
+def _text_records(content, contract, url, *, representation=None):
     # Fenced source snippets cannot introduce post identities or supply post prose.
     # Comments keep code as owned text; posts deliberately require unfenced prose.
-    content, blocks = mask_markdown_code(content)
-    content, restore_inline_code = mask_markdown_inline_code(content, blocks.values())
-    content = without_markdown_images(content)
+    literal = representation == 'plain_text'
+    visible = (lambda value: value) if literal else visible_markdown_links
+    if literal:
+        restore_inline_code = lambda value: value
+    else:
+        content, blocks = mask_markdown_code(content)
+        content, restore_inline_code = mask_markdown_inline_code(content, blocks.values())
+        content = without_markdown_images(content)
     # HTML visibility projection drops empty lines. Preserve Markdown paragraph
     # boundaries across that projection so a blockquote cannot absorb a later
     # unquoted paragraph. Choose a marker absent from the answer itself.
@@ -209,10 +224,12 @@ def _markdown_records(content, contract, url):
     while paragraph_marker in content:
         paragraph_marker += '_'
     content = re.sub(r'\n[ \t]*\n', '\n'+paragraph_marker+'\n', content)
-    content = visible_html_text(str(_post_html(content, contract)), preserve_source_whitespace=True, preserve_links=True)
+    if not literal:
+        content = visible_html_text(str(_post_html(content, contract)), preserve_source_whitespace=True, preserve_links=True)
     content = content.replace(paragraph_marker, '')
     lines = content.splitlines()
-    headers, section_end = _post_headers(lines, contract, url)
+    render = lambda value: article_field_text(value, restore_inline_code, representation=representation)
+    headers, section_end = _post_headers(lines, contract, url, representation=representation)
     rows = []
     markers = {x.casefold().rstrip(':：') for x in contract.get('quote_markers', [])}
     for n, (start, _owner_start, destination, header, author) in enumerate(headers):
@@ -221,15 +238,15 @@ def _markdown_records(content, contract, url):
         quote_mode, paragraph_break = None, False
         header_heading = re.match(r'^\s*(#{1,6})\s+', lines[start])
         for line in lines[start+1:end]:
-            heading = re.match(r'^\s*(#{1,6})\s+', line)
+            heading = None if literal else re.match(r'^\s*(#{1,6})\s+', line)
             if heading and header_heading and len(heading[1]) <= len(header_heading[1]):
                 break
-            if line.strip().strip('*_').rstrip(':：').casefold() in markers:
+            if not literal and line.strip().strip('*_').rstrip(':：').casefold() in markers:
                 if current is not None:
                     quotes.append('\n'.join(current))
                 current = []
                 quote_mode, paragraph_break = 'marker', False
-            elif line.lstrip().startswith('>'):
+            elif not literal and line.lstrip().startswith('>'):
                 if current is None:
                     current = []
                     quote_mode = 'blockquote'
@@ -250,20 +267,20 @@ def _markdown_records(content, contract, url):
                 post.append(line)
         if current is not None:
             quotes.append('\n'.join(current))
-        rows.append({'url': destination, 'author_header': restore_inline_code(header),
-                     'author': restore_inline_code(author),
-                     'whole_post': restore_inline_code(visible_markdown_links('\n'.join(lines[start+1:end]))),
-                     'post': restore_inline_code(visible_markdown_links('\n'.join(post))),
-                     'quote': [restore_inline_code(visible_markdown_links(x)) for x in quotes],
-                     'quote_authors': [[restore_inline_code(visible_markdown_links(next(
+        rows.append({'url': destination, 'author_header': render(header),
+                     'author': render(author),
+                     'whole_post': render(visible('\n'.join(lines[start+1:end]))),
+                     'post': render(visible('\n'.join(post))),
+                     'quote': [render(visible(x)) for x in quotes],
+                     'quote_authors': [[render(visible(next(
                          (line.strip() for line in x.splitlines() if line.strip()), '')))]
                                        for x in quotes],
-                     'quote_bodies_after_author': [restore_inline_code(visible_markdown_links('\n'.join(
+                     'quote_bodies_after_author': [render(visible('\n'.join(
                          x.lstrip().splitlines()[1:]))) for x in quotes]})
     return rows
 
 
-def _has_post_prose(text, contract):
+def _has_post_prose(text, contract, *, representation=None):
     """Reject metadata-only serialized fields, without filtering prose mentions.
 
     This narrow whole-line filter cannot distinguish date-only prose from a
@@ -272,48 +289,49 @@ def _has_post_prose(text, contract):
     controls = declared_labels(contract, "ignored_labels")
     unavailable = declared_labels(contract, "unavailable_notices")
     for line in text.splitlines():
-        line = unicodedata.normalize('NFKC', visible_markdown_links(line)).strip()
-        if author_key(line) is None or label_key(line) in unavailable:
+        line = unicodedata.normalize('NFKC', line if representation in {'plain_text', 'html'} else visible_markdown_links(line)).strip()
+        if author_key(line, representation=representation) is None or label_key(line, representation=representation) in unavailable:
             continue
         if TIMESTAMP_LINE.fullmatch(line):
             continue
-        labels = [label_key(part)
+        labels = [label_key(part, representation=representation)
                   for part in re.split(r'\s*[|·•]\s*', line)]
-        if all(label_key(re.sub(r'(?:^\d+\s*|\s*\d+$)', '', label)) in controls
+        if all(label_key(re.sub(r'(?:^\d+\s*|\s*\d+$)', '', label), representation=representation) in controls
                for label in labels):
             continue
         return True
     return False
 
 
-def valid_post_author(value, contract):
+def valid_post_author(value, contract, *, representation=None):
     """Apply the same visible-author policy to collection and scoring."""
-    if author_key(value) is None:
+    if author_key(value, representation=representation) is None:
         return False
-    label = label_key(value)
+    label = label_key(value, representation=representation)
     return (label not in declared_labels(contract, 'non_author_labels')
             and label not in declared_labels(contract, 'ignored_labels')
             and label not in declared_labels(contract, 'unavailable_notices')
             and not TIMESTAMP_LINE.fullmatch(label))
 
 
-def _verify_fixed_posts(content, contract, url):
-    content = article_surface(content)
-    if is_article_html(content):
+def _verify_fixed_posts(content, contract, url, *, representation=None):
+    content = article_surface(content, representation=representation)
+    if is_article_html(content, representation=representation):
         native = article_html(content).select(contract['html_record_selector'])
         rows = (_html_records(content, contract) if native
-                else _markdown_records(article_markdown(str(_post_html(content, contract))), contract, url))
+                else _text_records(article_markdown(str(_post_html(content, contract))), contract, url))
     else:
-        rows = _markdown_records(content, contract, url)
+        rows = _text_records(content, contract, url, representation=representation)
     seen, checks = set(), []
     for row in rows:
         check = {'url': row.get('url'), 'pass': False}
         try:
             key = post_identity(row['url'], contract, url)
-            author_pass = valid_post_author(row.get('author', ''), contract)
-            body_pass = _has_post_prose(row.get('post', ''), contract)
+            author_pass = valid_post_author(row.get('author', ''), contract, representation='plain_text')
+            body_pass = _has_post_prose(row.get('post', ''), contract, representation='plain_text')
             attributed_quote = any(
-                _has_post_prose(text, contract) and len(authors) == 1 and valid_post_author(authors[0], contract)
+                _has_post_prose(text, contract, representation='plain_text') and len(authors) == 1
+                and valid_post_author(authors[0], contract, representation='plain_text')
                 for text, authors in zip(row.get('quote_bodies_after_author', []),
                                          row.get('quote_authors', [])))
             check.update(author_pass=author_pass, body_pass=body_pass,
@@ -339,7 +357,7 @@ def _verify_fixed_posts(content, contract, url):
             'article_post_minimum_count': contract['minimum_posts']}
 
 
-def verify_article_posts(content, contract, *, url):
+def verify_article_posts(content, contract, *, url, representation=None):
     """Check fixed visible-post coverage without a runtime reference."""
     validate_post_contract(contract)
-    return _verify_fixed_posts(content, contract, url)
+    return _verify_fixed_posts(content, contract, url, representation=representation)

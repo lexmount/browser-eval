@@ -17538,6 +17538,2956 @@
       "artifact": "![diagram](example.png)",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "mixed-descriptions-ordinary-first-incomplete",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Record and anchor extraction must preserve mixed card ownership, declared text representation and scope exclusions.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "- [Alpha](/a)\n\n\n- [![Picture](/img)](/b)\n[Beta](/b) Second complete description.",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-descriptions-ordinary-first-complete",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Record and anchor extraction must preserve mixed card ownership, declared text representation and scope exclusions.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "- [Alpha](/a)\nFirst complete description.\n\n- [![Picture](/img)](/b)\n[Beta](/b) Second complete description.",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "mixed-descriptions-image-first-incomplete",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Record and anchor extraction must preserve mixed card ownership, declared text representation and scope exclusions.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "- [![Picture](/img)](/b)\n[Beta](/b) Second complete description.\n\n- [Alpha](/a)\n",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-descriptions-image-first-complete",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Record and anchor extraction must preserve mixed card ownership, declared text representation and scope exclusions.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "- [![Picture](/img)](/b)\n[Beta](/b) Second complete description.\n\n- [Alpha](/a)\nFirst complete description.",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "description-representation-plain_text",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Record and anchor extraction must preserve mixed card ownership, declared text representation and scope exclusions.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<ul>\n<li>Alpha</li>\n<li>First complete description.</li>\n</ul>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "description-representation-html",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Record and anchor extraction must preserve mixed card ownership, declared text representation and scope exclusions.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<ul>\n<li>Alpha</li>\n<li>First complete description.</li>\n</ul>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "control-scope-target-footer-included",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Record and anchor extraction must preserve mixed card ownership, declared text representation and scope exclusions.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "search",
+              "alternatives": [
+                "Search articles"
+              ],
+              "visible_control": {
+                "selector": "#search",
+                "attribute": "placeholder"
+              }
+            }
+          ],
+          "content_scope": "target_content"
+        }
+      },
+      "artifact": "<main><p>Independent body text.</p><section><input id=\"search\" placeholder=\"Search articles\"></section></main>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "control-scope-target-footer-excluded",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Record and anchor extraction must preserve mixed card ownership, declared text representation and scope exclusions.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "search",
+              "alternatives": [
+                "Search articles"
+              ],
+              "visible_control": {
+                "selector": "#search",
+                "attribute": "placeholder"
+              }
+            }
+          ],
+          "content_scope": "target_content"
+        }
+      },
+      "artifact": "<main><p>Independent body text.</p><footer><input id=\"search\" placeholder=\"Search articles\"></footer></main>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "control-scope-text-pattern-included",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Record and anchor extraction must preserve mixed card ownership, declared text representation and scope exclusions.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "search",
+              "alternatives": [
+                "Search articles"
+              ],
+              "visible_control": {
+                "selector": "#search",
+                "attribute": "placeholder"
+              }
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "^Other text$"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><p>Independent body text.</p><input id=\"search\" placeholder=\"Search articles\"></main>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "control-scope-text-pattern-excluded",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Record and anchor extraction must preserve mixed card ownership, declared text representation and scope exclusions.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "search",
+              "alternatives": [
+                "Search articles"
+              ],
+              "visible_control": {
+                "selector": "#search",
+                "attribute": "placeholder"
+              }
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "^Search articles$"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><p>Independent body text.</p><input id=\"search\" placeholder=\"Search articles\"></main>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "combined-optional-capture-missing",
+      "category": "structured-extraction",
+      "root_cause": "A successful combined-column regex match may omit optional captures; an unmatched required field is empty and invalid, never a parser input of None.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ],
+              "combined_columns": [
+                {
+                  "aliases": [
+                    "Person"
+                  ],
+                  "pattern": "(?P<name>[^;]+)(?:;(?P<owner>.+))?"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Person|\n|---|\n|Widget|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "combined-optional-capture-complete",
+      "category": "structured-extraction",
+      "root_cause": "A successful combined-column regex match may omit optional captures; an unmatched required field is empty and invalid, never a parser input of None.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ],
+              "combined_columns": [
+                {
+                  "aliases": [
+                    "Person"
+                  ],
+                  "pattern": "(?P<name>[^;]+)(?:;(?P<owner>.+))?"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Person|\n|---|\n|Widget;Alice|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "caption-record-span-displaced",
+      "category": "structured-extraction",
+      "root_cause": "Caption expansion must retain the common unsupported-span policy before converting or excluding rows, while allowing explicitly selected caption colspans.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "people",
+              "kind": "table",
+              "minimum_records": 2,
+              "identity_column": "id",
+              "required_columns": [
+                {
+                  "id": "id",
+                  "kind": "integer",
+                  "aliases": [
+                    "ID"
+                  ]
+                },
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                }
+              ],
+              "group_caption": {
+                "table_selector": "table.people",
+                "row_selector": "tr.person",
+                "cell_selector": "td",
+                "caption_selector": "tr.caption",
+                "pattern": "Country: (?P<value>[A-Za-z]+)",
+                "field": {
+                  "id": "country",
+                  "kind": "text",
+                  "aliases": [
+                    "Country"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "<table class=\"people\"><tr class=\"caption\"><td colspan=\"2\">Country: Argentina</td></tr><tr class=\"person\"><td rowspan=\"2\">1</td><td>Alpha</td></tr><tr class=\"person\"><td>2</td><td>Beta</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "caption-record-span-ordinary",
+      "category": "structured-extraction",
+      "root_cause": "Caption expansion must retain the common unsupported-span policy before converting or excluding rows, while allowing explicitly selected caption colspans.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "people",
+              "kind": "table",
+              "minimum_records": 2,
+              "identity_column": "id",
+              "required_columns": [
+                {
+                  "id": "id",
+                  "kind": "integer",
+                  "aliases": [
+                    "ID"
+                  ]
+                },
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                }
+              ],
+              "group_caption": {
+                "table_selector": "table.people",
+                "row_selector": "tr.person",
+                "cell_selector": "td",
+                "caption_selector": "tr.caption",
+                "pattern": "Country: (?P<value>[A-Za-z]+)",
+                "field": {
+                  "id": "country",
+                  "kind": "text",
+                  "aliases": [
+                    "Country"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "<table class=\"people\"><tr class=\"caption\"><td colspan=\"2\">Country: Argentina</td></tr><tr class=\"person\"><td >1</td><td>Alpha</td></tr><tr class=\"person\"><td>2</td><td>Beta</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "caption-excluded-span-displaced",
+      "category": "structured-extraction",
+      "root_cause": "Caption expansion must retain the common unsupported-span policy before converting or excluding rows, while allowing explicitly selected caption colspans.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "people",
+              "kind": "table",
+              "minimum_records": 2,
+              "identity_column": "id",
+              "required_columns": [
+                {
+                  "id": "id",
+                  "kind": "integer",
+                  "aliases": [
+                    "ID"
+                  ]
+                },
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                }
+              ],
+              "group_caption": {
+                "table_selector": "table.people",
+                "row_selector": "tr.person",
+                "cell_selector": "td",
+                "caption_selector": "tr.caption",
+                "pattern": "Country: (?P<value>[A-Za-z]+)",
+                "field": {
+                  "id": "country",
+                  "kind": "text",
+                  "aliases": [
+                    "Country"
+                  ]
+                }
+              },
+              "table_scope": {
+                "exclude_selector": ".ignored"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "<table class=\"people\"><tr class=\"caption\"><td colspan=\"2\">Country: Argentina</td></tr><tr class=\"ignored\"><td rowspan=\"2\">Earlier</td></tr><tr class=\"person\"><td >1</td><td>Alpha</td></tr><tr class=\"person\"><td>2</td><td>Beta</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "caption-excluded-span-ordinary",
+      "category": "structured-extraction",
+      "root_cause": "Caption expansion must retain the common unsupported-span policy before converting or excluding rows, while allowing explicitly selected caption colspans.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "people",
+              "kind": "table",
+              "minimum_records": 2,
+              "identity_column": "id",
+              "required_columns": [
+                {
+                  "id": "id",
+                  "kind": "integer",
+                  "aliases": [
+                    "ID"
+                  ]
+                },
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                }
+              ],
+              "group_caption": {
+                "table_selector": "table.people",
+                "row_selector": "tr.person",
+                "cell_selector": "td",
+                "caption_selector": "tr.caption",
+                "pattern": "Country: (?P<value>[A-Za-z]+)",
+                "field": {
+                  "id": "country",
+                  "kind": "text",
+                  "aliases": [
+                    "Country"
+                  ]
+                }
+              },
+              "table_scope": {
+                "exclude_selector": ".ignored"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "<table class=\"people\"><tr class=\"caption\"><td colspan=\"2\">Country: Argentina</td></tr><tr class=\"ignored\"><td rowspan=\"1\">Earlier</td></tr><tr class=\"person\"><td >1</td><td>Alpha</td></tr><tr class=\"person\"><td>2</td><td>Beta</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "caption-adjacent-unowned",
+      "category": "structured-extraction",
+      "root_cause": "Adjacent table headers reset caption ownership and remain available to the outer parser instead of inheriting a previous table caption.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "people",
+              "kind": "table",
+              "minimum_records": 2,
+              "identity_column": "id",
+              "required_columns": [
+                {
+                  "id": "id",
+                  "kind": "integer",
+                  "aliases": [
+                    "ID"
+                  ]
+                },
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                }
+              ],
+              "group_caption": {
+                "table_selector": "table.people",
+                "row_selector": "tr.person",
+                "cell_selector": "td",
+                "caption_selector": "tr.caption",
+                "pattern": "Country: (?P<value>[A-Za-z]+)",
+                "field": {
+                  "id": "country",
+                  "kind": "text",
+                  "aliases": [
+                    "Country"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "|ID|Name|\n|---|---|\n|Country: Argentina|\n|ID|Name|\n|---|---|\n|1|Alpha|\n|2|Beta|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "caption-adjacent-owned",
+      "category": "structured-extraction",
+      "root_cause": "Adjacent table headers reset caption ownership and remain available to the outer parser instead of inheriting a previous table caption.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "people",
+              "kind": "table",
+              "minimum_records": 2,
+              "identity_column": "id",
+              "required_columns": [
+                {
+                  "id": "id",
+                  "kind": "integer",
+                  "aliases": [
+                    "ID"
+                  ]
+                },
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                }
+              ],
+              "group_caption": {
+                "table_selector": "table.people",
+                "row_selector": "tr.person",
+                "cell_selector": "td",
+                "caption_selector": "tr.caption",
+                "pattern": "Country: (?P<value>[A-Za-z]+)",
+                "field": {
+                  "id": "country",
+                  "kind": "text",
+                  "aliases": [
+                    "Country"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "|ID|Name|Country|\n|---|---|---|\n|1|Alpha|Argentina|\n|ID|Name|\n|---|---|\n|Country: Brazil|\n|2|Beta|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "column-surface-boundary-cross-table",
+      "category": "structured-extraction",
+      "root_cause": "A header-column body projection must keep each table isolated so a new header cannot become a record or join separate table columns.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/tables",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 1.0,
+          "minimum_floor": 1.0,
+          "minimum_region_passes": 1,
+          "regions": [
+            {
+              "id": "names",
+              "text": "Name Amount Alpha Name Beta"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Amount|\n|---|---|\n|Alpha|X|\n|Name|Amount|\n|---|---|\n|Beta|Y|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "column-surface-boundary-same-table",
+      "category": "structured-extraction",
+      "root_cause": "A header-column body projection must keep each table isolated so a new header cannot become a record or join separate table columns.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/tables",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 1.0,
+          "minimum_floor": 1.0,
+          "minimum_region_passes": 1,
+          "regions": [
+            {
+              "id": "names",
+              "text": "Name Amount Alpha Name Beta"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Amount|\n|---|---|\n|Alpha|X|\n|Name|X|\n|Beta|Y|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration8-scoped-visible-fallback-complete",
+      "root_cause": "Mixed text-scope fallback prunes hidden HTML without changing surviving native Markdown or markup syntax.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".items",
+            "start_pattern": "(?m)^# Items$",
+            "end_pattern": "(?m)^# End$"
+          }
+        }
+      },
+      "artifact": "# Items\n[Widget](/item/1)\n# End",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration8-scoped-visible-fallback-incomplete",
+      "root_cause": "Mixed text-scope fallback prunes hidden HTML without changing surviving native Markdown or markup syntax.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".items",
+            "start_pattern": "(?m)^# Items$",
+            "end_pattern": "(?m)^# End$"
+          }
+        }
+      },
+      "artifact": "# Items\n<div hidden><a href=\"/item/1\">Widget</a></div>\n# End",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration8-mixed-source-cutoff-complete",
+      "root_cause": "First-three verification selects the first distinct records in document order rather than preferring one parser format.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 3
+        }
+      },
+      "artifact": "[Confirmed 1](/item/1)\n[Confirmed 2](/item/2)\n[Confirmed 3](/item/3)\n<a href=\"/item/4\">Wrong</a>",
+      "ok": true,
+      "expected_task_pass": true,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://shop.example/item/1",
+            "title": "Confirmed 1"
+          },
+          {
+            "url": "https://shop.example/item/2",
+            "title": "Confirmed 2"
+          },
+          {
+            "url": "https://shop.example/item/3",
+            "title": "Confirmed 3"
+          },
+          {
+            "url": "https://shop.example/item/4",
+            "title": "Confirmed 4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "migration8-mixed-source-cutoff-incomplete",
+      "root_cause": "First-three verification selects the first distinct records in document order rather than preferring one parser format.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 3
+        }
+      },
+      "artifact": "[Wrong](/item/1)\n<a href=\"/item/2\">Confirmed 2</a>\n<a href=\"/item/3\">Confirmed 3</a>\n<a href=\"/item/4\">Confirmed 4</a>",
+      "ok": true,
+      "expected_task_pass": false,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://shop.example/item/1",
+            "title": "Confirmed 1"
+          },
+          {
+            "url": "https://shop.example/item/2",
+            "title": "Confirmed 2"
+          },
+          {
+            "url": "https://shop.example/item/3",
+            "title": "Confirmed 3"
+          },
+          {
+            "url": "https://shop.example/item/4",
+            "title": "Confirmed 4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "migration8-incidental-product-markup-complete",
+      "root_cause": "Incidental HTML without a matching owner must retain the declared text-scope Markdown product route.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".product",
+            "start_pattern": "(?m)^# Items$",
+            "end_pattern": "(?m)^# End$",
+            "price_selector": ".price"
+          },
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "# Items\n[Widget](/item/1) $10.00\n<p>Note</p>\n# End",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration8-incidental-product-markup-incomplete",
+      "root_cause": "Incidental HTML without a matching owner must retain the declared text-scope Markdown product route.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".product",
+            "start_pattern": "(?m)^# Items$",
+            "end_pattern": "(?m)^# End$",
+            "price_selector": ".price"
+          },
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "# Items\n[Widget](/item/1) No price\n<p>Note</p>\n# End",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration8-optional-record-capture-complete",
+      "root_cause": "A nonparticipating optional identity capture is an invalid output record rather than an exception.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/(?:foo)?bar",
+          "stable_text_anchors": [],
+          "entry_identity_pattern": "/item/(foo)?bar"
+        }
+      },
+      "artifact": "[Widget](/item/foobar)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration8-optional-record-capture-incomplete",
+      "root_cause": "A nonparticipating optional identity capture is an invalid output record rather than an exception.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/(?:foo)?bar",
+          "stable_text_anchors": [],
+          "entry_identity_pattern": "/item/(foo)?bar"
+        }
+      },
+      "artifact": "[Widget](/item/bar)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration8-bounded-resource-json-complete",
+      "root_cause": "Unsupported JSON nesting is rejected on the JSON answer path instead of rescanning diagnostic strings as bare resource answers.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bounded-resource-json",
+        "name": "Bounded JSON resource",
+        "url": "https://shop.example/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://shop.example/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"resources\":[\"https://shop.example/target.png\"]}",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration8-bounded-resource-json-incomplete",
+      "root_cause": "Unsupported JSON nesting is rejected on the JSON answer path instead of rescanning diagnostic strings as bare resource answers.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "bounded-resource-json",
+        "name": "Bounded JSON resource",
+        "url": "https://shop.example/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://shop.example/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"diagnostics\":{\"url\":\"https://shop.example/target.png\"}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-operand",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "coherent_code_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^total=\\(10\\+20\\)$"
+          }
+        ]
+      },
+      "artifact": "```python\ntotal = (\n    10 + 20\n)\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-lost-operand",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "coherent_code_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^total=\\(\\+20\\)$"
+          }
+        ]
+      },
+      "artifact": "```python\ntotal = (\n    10 + 20\n)\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-listing",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "coherent_code_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^total=\\(10\\+20\\)$"
+          }
+        ]
+      },
+      "artifact": "```python\n01 total = (\n02     10 + 20\n03 )\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-altered-listing",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "coherent_code_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^total=\\(\\+20\\)$"
+          }
+        ]
+      },
+      "artifact": "```python\n01 total = (\n02     10 + 20\n03 )\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-partial-listing",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "coherent_code_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^total=\\(10\\+20\\)print\\(total\\)$"
+          }
+        ]
+      },
+      "artifact": "05 total = (10 + 20)\n06 print(total)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-broken-sequence",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "coherent_code_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^01alpha03beta$"
+          }
+        ]
+      },
+      "artifact": "01 alpha\n03 beta",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-invented-listing",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "coherent_code_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^alphabeta$"
+          }
+        ]
+      },
+      "artifact": "01 alpha\n03 beta",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-plain-title",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "Guide",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-plain-link-title",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "[Guide](https://example.test/)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-markdown-link-title",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "[Guide](https://example.test/)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-plain-html-title",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<h1>Guide</h1>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-html-title",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<h1>Guide</h1>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-wrong-code-title",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "`Guide`",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-plain-comment",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "Comments\n\nAlice: Real comment",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-unowned-comment",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "Comments\n\nReal comment",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-plain-linked-author",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "Comments\n\n[Alice](https://example.test/u)\nReal comment",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-markdown-linked-author",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "Comments\n\n[Alice](https://example.test/u)\nReal comment",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-plain-post",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\nReal post",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-plain-post-no-author",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "https://example.test/p/1\nReal post",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-plain-markdown-post",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "## [Alice](https://example.test/p/1)\nReal post",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-markdown-post",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "## [Alice](https://example.test/p/1)\nReal post",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-comment-literal-0-plain_text",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "## Comments\n\nAlice: <span hidden>Literal HTML</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-post-literal-0-plain_text",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\n<span hidden>Literal HTML</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-comment-literal-0-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "## Comments\n\nAlice: <span hidden>Literal HTML</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-post-literal-0-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "## [Alice](https://example.test/p/1)\n<span hidden>Literal HTML</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-html-comment-literal-0",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<div class=\"comment\"><span class=\"author\">Alice</span><div class=\"text\">&lt;span hidden&gt;Literal HTML&lt;/span&gt;</div></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-html-post-literal-0",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "declared_representation_at_required_component_boundary",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<div class=\"post\"><a class=\"permalink\" href=\"/p/1\">Post</a><span class=\"author\">Alice</span><div class=\"body\">&lt;span hidden&gt;Literal HTML&lt;/span&gt;</div></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-octal-operands",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "numeric_operator_lines_are_not_independent_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^01\\+20;02\\+30;$"
+          }
+        ]
+      },
+      "artifact": "```c\n01 + 20;\n02 + 30;\n```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-lost-octal-operands",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "numeric_operator_lines_are_not_independent_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^\\+20;\\+30;$"
+          }
+        ]
+      },
+      "artifact": "```c\n01 + 20;\n02 + 30;\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-numbered-octal-statement",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "numeric_operator_lines_are_not_independent_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^total=\\(010\\+020\\);$"
+          }
+        ]
+      },
+      "artifact": "```c\n01 total = (\n02     010 + 020\n03 );\n```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-altered-numbered-octal-statement",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "numeric_operator_lines_are_not_independent_line_number_evidence",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^total=\\(\\+020\\);$"
+          }
+        ]
+      },
+      "artifact": "```c\n01 total = (\n02     010 + 020\n03 );\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-boundary-0-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "explicit_invalid_plain_post_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\n\n\nBob\nhttps://other.test/p/2\nUnowned body",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-boundary-0-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "explicit_invalid_plain_post_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\nOwned first body\n\nBob\nhttps://other.test/p/2\nUnowned body",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-boundary-2-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "explicit_invalid_plain_post_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\n\n\nBob\nhttps://example.test:invalid/p/2\nUnowned body",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-boundary-2-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "explicit_invalid_plain_post_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\nOwned first body\n\nBob\nhttps://example.test:invalid/p/2\nUnowned body",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-label-comment-0",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "**Reply**"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "## Comments\n\nAlice: **Reply**",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-label-comment-1",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "## Comments\n\nAlice: **Reply**",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-label-comment-2",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "**Reply**"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "## Comments\n\nAlice: **Reply**",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-label-comment-3",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "## Comments\n\nAlice: **Reply**",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-label-post-0",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "**Reply**"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\n**Reply**",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-label-post-1",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\n**Reply**",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-label-post-8",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "**Reply**"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<div class=\"post\"><a class=\"permalink\" href=\"/p/1\">Post</a><span class=\"author\">Alice</span><div class=\"body\">**Reply**</div></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-label-post-9",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<div class=\"post\"><a class=\"permalink\" href=\"/p/1\">Post</a><span class=\"author\">Alice</span><div class=\"body\">**Reply**</div></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-plain-non-author-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "**Bot**"
+            ]
+          }
+        }
+      },
+      "artifact": "**Bot**\nhttps://example.test/p/1\nReal body",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-plain-non-author-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "Bot"
+            ]
+          }
+        }
+      },
+      "artifact": "**Bot**\nhttps://example.test/p/1\nReal body",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-literal-title-format",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "**Guide**"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "# **Guide**",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-literal-title-code",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "**Guide**"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "# `**Guide**`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-literal-title-code-wrong",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "# `**Guide**`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-literal-title-escape",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "observed_component_contract_labels_are_literal",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "**Guide**"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "# \\*\\*Guide\\*\\*",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-html-h1",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "explicit_html_title_requires_selected_dom_node",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<h1>Guide</h1>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-html-span",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "explicit_html_title_requires_selected_dom_node",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<span>Guide</span>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-html-wrapper",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "explicit_html_title_requires_selected_dom_node",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<article><span>Guide</span></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-html-markdown-text",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "explicit_html_title_requires_selected_dom_node",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "# Guide",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime8-html-nested-title",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "explicit_html_title_requires_selected_dom_node",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<article><h1>Guide</h1></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-html-literal-heading",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "explicit_html_title_requires_selected_dom_node",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "# Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<h1># Guide</h1>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime8-html-wrong-heading",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "explicit_html_title_requires_selected_dom_node",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Guide"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<h1># Guide</h1>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "source-surface-html-attributes-complete",
+      "category": "answer-surface",
+      "root_cause": "HTML attribute values are unrendered metadata and cannot contribute Markdown record syntax, while actual link labels and hrefs remain usable.",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 1
+        }
+      },
+      "artifact": "<a href=\"/item/1\" title=\"\n[Wrong](/item/2)\n\">Confirmed 1</a>",
+      "ok": true,
+      "expected_task_pass": true,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://shop.example/item/1",
+            "title": "Confirmed 1"
+          },
+          {
+            "url": "https://shop.example/item/2",
+            "title": "Confirmed 2"
+          },
+          {
+            "url": "https://shop.example/item/3",
+            "title": "Confirmed 3"
+          },
+          {
+            "url": "https://shop.example/item/4",
+            "title": "Confirmed 4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "source-surface-html-attributes-incomplete",
+      "category": "answer-surface",
+      "root_cause": "HTML attribute values are unrendered metadata and cannot contribute Markdown record syntax, while actual link labels and hrefs remain usable.",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 1
+        }
+      },
+      "artifact": "<img src=\"widget.png\" alt=\"\n[Confirmed 1](/item/1)\n\">\nOrdinary visible content",
+      "ok": true,
+      "expected_task_pass": false,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://shop.example/item/1",
+            "title": "Confirmed 1"
+          },
+          {
+            "url": "https://shop.example/item/2",
+            "title": "Confirmed 2"
+          },
+          {
+            "url": "https://shop.example/item/3",
+            "title": "Confirmed 3"
+          },
+          {
+            "url": "https://shop.example/item/4",
+            "title": "Confirmed 4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "source-surface-metadata-order-complete",
+      "category": "answer-surface",
+      "root_cause": "Explicit document record identities retain their source order and labels; flat metadata cannot promote incidental prose or override native records.",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 3
+        }
+      },
+      "artifact": "Wrong appears in this introduction.\n<a href=\"/item/1\">Confirmed 1</a>\n<a href=\"/item/2\">Confirmed 2</a>\n<a href=\"/item/3\">Confirmed 3</a>\n<a href=\"/item/4\">Wrong</a>",
+      "ok": true,
+      "expected_task_pass": true,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://shop.example/item/1",
+            "title": "Confirmed 1"
+          },
+          {
+            "url": "https://shop.example/item/2",
+            "title": "Confirmed 2"
+          },
+          {
+            "url": "https://shop.example/item/3",
+            "title": "Confirmed 3"
+          },
+          {
+            "url": "https://shop.example/item/4",
+            "title": "Confirmed 4"
+          }
+        ]
+      },
+      "metadata": {
+        "links": [
+          {
+            "url": "/item/4",
+            "title": "Wrong"
+          }
+        ]
+      }
+    },
+    {
+      "id": "source-surface-metadata-order-incomplete",
+      "category": "answer-surface",
+      "root_cause": "Explicit document record identities retain their source order and labels; flat metadata cannot promote incidental prose or override native records.",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 3
+        }
+      },
+      "artifact": "<a href=\"/item/1\">Wrong</a>\n<a href=\"/item/2\">Confirmed 2</a>\n<a href=\"/item/3\">Confirmed 3</a>\n<a href=\"/item/4\">Confirmed 4</a>",
+      "ok": true,
+      "expected_task_pass": false,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://shop.example/item/1",
+            "title": "Confirmed 1"
+          },
+          {
+            "url": "https://shop.example/item/2",
+            "title": "Confirmed 2"
+          },
+          {
+            "url": "https://shop.example/item/3",
+            "title": "Confirmed 3"
+          },
+          {
+            "url": "https://shop.example/item/4",
+            "title": "Confirmed 4"
+          }
+        ]
+      },
+      "metadata": {
+        "links": [
+          {
+            "url": "/item/1",
+            "title": "Confirmed 1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "tree8-exact",
+      "category": "task-predicate",
+      "failure_mode": "false-negative",
+      "root_cause": "Ordered-tree requirements must survive acquisition and preserve failed-request, malformed-answer and optional-threshold semantics.",
+      "case": {
+        "id": "tree",
+        "name": "Tree",
+        "url": "https://example.test/",
+        "category": "table",
+        "expected_any": [],
+        "ordered_tree_reference": {
+          "tag": "table",
+          "children": [
+            {
+              "tag": "td",
+              "text": "Alpha"
+            }
+          ]
+        },
+        "ordered_tree_min_similarity": 1
+      },
+      "artifact": "{\"tag\": \"table\", \"children\": [{\"tag\": \"td\", \"text\": \"Alpha\"}]}",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "tree8-mismatch",
+      "category": "task-predicate",
+      "failure_mode": "false-positive",
+      "root_cause": "Ordered-tree requirements must survive acquisition and preserve failed-request, malformed-answer and optional-threshold semantics.",
+      "case": {
+        "id": "tree",
+        "name": "Tree",
+        "url": "https://example.test/",
+        "category": "table",
+        "expected_any": [],
+        "ordered_tree_reference": {
+          "tag": "table",
+          "children": [
+            {
+              "tag": "td",
+              "text": "Alpha"
+            }
+          ]
+        },
+        "ordered_tree_min_similarity": 1
+      },
+      "artifact": "{\"tag\":\"p\"}",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "tree8-failed",
+      "category": "task-predicate",
+      "failure_mode": "false-positive",
+      "root_cause": "Ordered-tree requirements must survive acquisition and preserve failed-request, malformed-answer and optional-threshold semantics.",
+      "case": {
+        "id": "tree",
+        "name": "Tree",
+        "url": "https://example.test/",
+        "category": "table",
+        "expected_any": [],
+        "ordered_tree_reference": {
+          "tag": "table",
+          "children": [
+            {
+              "tag": "td",
+              "text": "Alpha"
+            }
+          ]
+        },
+        "ordered_tree_min_similarity": 1
+      },
+      "artifact": "",
+      "ok": false,
+      "expected_task_pass": false
+    },
+    {
+      "id": "tree8-malformed",
+      "category": "task-predicate",
+      "failure_mode": "false-positive",
+      "root_cause": "Ordered-tree requirements must survive acquisition and preserve failed-request, malformed-answer and optional-threshold semantics.",
+      "case": {
+        "id": "tree",
+        "name": "Tree",
+        "url": "https://example.test/",
+        "category": "table",
+        "expected_any": [],
+        "ordered_tree_reference": {
+          "tag": "table",
+          "children": [
+            {
+              "tag": "td",
+              "text": "Alpha"
+            }
+          ]
+        },
+        "ordered_tree_min_similarity": 1
+      },
+      "artifact": "not JSON",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "tree8-diagnostic",
+      "category": "task-predicate",
+      "failure_mode": "false-negative",
+      "root_cause": "Ordered-tree requirements must survive acquisition and preserve failed-request, malformed-answer and optional-threshold semantics.",
+      "case": {
+        "id": "tree",
+        "name": "Tree",
+        "url": "https://example.test/",
+        "category": "table",
+        "expected_any": [],
+        "ordered_tree_reference": {
+          "tag": "table",
+          "children": [
+            {
+              "tag": "td",
+              "text": "Alpha"
+            }
+          ]
+        }
+      },
+      "artifact": "{\"tag\":\"p\"}",
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

@@ -110,7 +110,7 @@ def require_scoring_regressions(identifiers: list[str] | tuple[str, ...], *,
 
 def verdict_correction_counts(decisions: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> dict[str, int]:
     decisions = list(decisions)
-    if any(type(row.get("before")) is not bool
+    if any(not isinstance(row, dict) or type(row.get("before")) is not bool
            or type(row.get("after")) is not bool
            or row.get("before") == row.get("after") for row in decisions):
         raise ValueError("Scoring revision decision changes must be boolean verdict flips")
@@ -152,16 +152,20 @@ def build_correction_provenance(category: str, root_cause: str,
 
 def valid_correction_provenance(receipt: dict[str, Any]) -> bool:
     """Validate schema-2 cause/regression bindings; legacy receipts stay readable."""
+    if not isinstance(receipt, dict):
+        return False
     schema = receipt.get("schema_version")
-    if schema in {None, 1}:
+    if schema is None or type(schema) is int and schema == 1:
         return True
-    if schema != 2:
+    if type(schema) is not int or schema != 2:
         return False
     provenance = receipt.get("correction_provenance")
     if not isinstance(provenance, dict):
         return False
     try:
         category = provenance.get("category")
+        if not isinstance(category, str):
+            return False
         regression_ids = require_scoring_regressions(
             provenance.get("regression_ids", []),
             category=None if category == "multi-root" else category,
@@ -173,6 +177,7 @@ def valid_correction_provenance(receipt: dict[str, Any]) -> bool:
         expected = verdict_correction_counts(receipt.get("task_decision_changes", []))
     except (OSError, TypeError, ValueError):
         return False
+    counts = provenance.get("verdict_corrections")
     return (
         provenance.get("category") in ROOT_CAUSE_CATEGORIES
         and isinstance(provenance.get("root_cause"), str)
@@ -180,7 +185,9 @@ def valid_correction_provenance(receipt: dict[str, Any]) -> bool:
         and provenance.get("regression_ids") == regression_ids
         and (category != "multi-root"
              or provenance.get("root_cause_categories") == source_categories)
-        and provenance.get("verdict_corrections") == expected
+        and isinstance(counts, dict)
+        and all(type(value) is int and value >= 0 for value in counts.values())
+        and counts == expected
     )
 
 

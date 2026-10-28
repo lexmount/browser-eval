@@ -335,6 +335,8 @@ def table_header_column_surfaces(content):
         rows = []
         cursor = index + 2
         while cursor < len(lines) and "|" in lines[cursor]:
+            if _table_header_at(lines, cursor):
+                break
             cells = _pipe_cells(lines[cursor])
             if len(cells) != len(headers):
                 break
@@ -356,7 +358,7 @@ def table_header_column_surfaces(content):
     return surfaces
 
 
-def _spanning_rows(root):
+def _spanning_rows(root, *, allowed_colspan_rows=()):
     """Reject unsupported spans and affected rows without guessing a cell grid."""
     blocked = set()
     containing = root if root.name == 'table' else root.find_parent('table')
@@ -377,7 +379,9 @@ def _spanning_rows(root):
                         span = int(cell.get(attr, '1'))
                     except (TypeError, ValueError):
                         span = 0
-                    if span != 1:
+                    permitted_caption = (attr == 'colspan' and span > 0
+                                         and id(row) in allowed_colspan_rows)
+                    if span != 1 and not permitted_caption:
                         blocked.add(id(row))
                         if attr == 'rowspan':
                             active = max(active, span - 1 if span > 0 else len(rows))
@@ -656,6 +660,10 @@ def grouped_table_surface(content, group):
             expanded[token] = text
             return token
 
+        captions = {id(row) for table in soup.select(option['table_selector'])
+                    if table.name == 'table' for row in table.select(option['caption_selector'])
+                    if row.find_parent('table') is table}
+        blocked = _spanning_rows(soup, allowed_colspan_rows=captions)
         if exclude := group.get('table_scope', {}).get('exclude_selector'):
             for node in list(soup.select(exclude)):
                 if node.parent is not None:
@@ -687,8 +695,9 @@ def grouped_table_surface(content, group):
                 if section is not owner:
                     context, owner = '', section
                 if id(row) in captions:
-                    context = value(' '.join(owned_text(row, table).split()))
-                elif id(row) in records:
+                    context = (value(' '.join(owned_text(row, table).split()))
+                               if id(row) not in blocked else '')
+                elif id(row) in records and id(row) not in blocked:
                     cells = [owned_text(c, table) for c in row.select(option['cell_selector'])
                              if c.find_parent('tr') is row]
                     if len(cells) == len(columns):
@@ -722,12 +731,16 @@ def grouped_table_surface(content, group):
             out.extend([lines[index], lines[index + 1]])
             index += 2
             while index < len(lines) and '|' in lines[index] and lines[index].strip():
+                if _table_header_at(lines, index):
+                    break
                 out.append(lines[index]); index += 1
             continue
         out.extend([line(cells + [label]), line(separator + ['---'])])
         index += 2
         context = ''
         while index < len(lines) and '|' in lines[index] and lines[index].strip():
+            if _table_header_at(lines, index):
+                break
             cells = _pipe_cells(lines[index])
             nonempty = [c for c in cells if c.strip()]
             if len(nonempty) == 1:

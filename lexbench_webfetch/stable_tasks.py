@@ -563,13 +563,18 @@ def _descriptions(text):
         # A marker comes from an image-only bullet immediately before the
         # visible linked title. It is a stronger ownership boundary than blank
         # lines, which may legitimately occur inside a card description.
-        for block in text.split(_CARD_BOUNDARY)[1:]:
-            lines = [_line(line) for line in block.splitlines() if line.strip()]
-            if len(lines) < 2:
-                continue
-            records.append(_record({"name": _field(lines[0], "name"),
-                "description": " ".join(_field(line, "description") for line in lines[1:])},
-                "name_description"))
+        prefix, *marked = text.split(_CARD_BOUNDARY)
+        records.extend(_descriptions(prefix))
+        for block in marked:
+            following = re.search(r"(?m)^\s*(?:[-*+]|\d+[.)])[ \t]+\S.*$", block)
+            end = following.start() if following else len(block)
+            lines = [_line(line) for line in block[:end].splitlines() if line.strip()]
+            if len(lines) >= 2:
+                records.append(_record({"name": _field(lines[0], "name"),
+                    "description": " ".join(_field(line, "description") for line in lines[1:])},
+                    "name_description"))
+            if following:
+                records.extend(_descriptions(block[end:]))
         return records
     bullets = list(re.finditer(r"(?m)^\s*(?:[-*+]|\d+[.)])[ \t]+\S.*$", text))
     if bullets:
@@ -1477,7 +1482,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         if schema == 'table_row':
             from .structured_tables import parse_table_records
             records = parse_table_records(content, visible, contract)
-        elif schema == 'name_description' and (html_records := _html_list_descriptions(
+        elif representation != 'plain_text' and schema == 'name_description' and (html_records := _html_list_descriptions(
                 content, allow_closed_title_cards=allow_closed_title_cards)) is not None:
             records = html_records
         else:
@@ -1494,9 +1499,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     control_soup = None
     if representation != 'plain_text' and any("visible_control" in a for a in contract.get("stable_text_anchors", [])):
         from .reference_quality import is_html_document_or_fragment
-        if is_html_document_or_fragment(content):
+        if is_html_document_or_fragment(non_record_content):
             from .dynamic_lists import scoped_html
-            control_soup = scoped_html(content)
+            control_soup = scoped_html(non_record_content)
     non_record_visible = None
     if schema == 'named_link' and any(a.get('match_scope') == 'non_record_lines'
                                       for a in contract.get('stable_text_anchors', [])):
@@ -1513,6 +1518,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         selected_non_record = non_record_visible
         if control_soup is not None and "visible_control" in anchor:
             control_text = _ordinary_control_text(control_soup, anchor["visible_control"])
+            for pattern in exclusions.get('text_patterns', []):
+                control_text = re.sub(pattern, ' ', control_text, flags=re.I | re.M)
             selected_surface = (anchor_visible if anchor_visible is not None else visible) + "\n" + control_text
             if non_record_visible is not None:
                 selected_non_record = non_record_visible + "\n" + control_text

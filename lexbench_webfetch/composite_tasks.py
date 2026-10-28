@@ -1502,7 +1502,7 @@ def _table_group(content: str, group: dict) -> dict:
                     row = {}
                     for field, (column, pattern) in mapping.items():
                         match = pattern.fullmatch(visible_markdown_links(values[column]).replace("**", "").strip()) if pattern else None
-                        row[field] = (match[field] if match else '') if pattern else values[column]
+                        row[field] = ((match[field] or '') if match else '') if pattern else values[column]
                     if all(
                         _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
                         for spec in required

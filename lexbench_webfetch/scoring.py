@@ -102,6 +102,8 @@ def score_attempt(
     evidence is preserved; the caller must have validated its artifact binding.
     """
     case = _case_dict(case)
+    from .ordered_tree import validate_tree_contract
+    validate_tree_contract(case)
     if delivered_files is not None:
         from .file_acceptance import evaluate_files
         metadata = dict(metadata or {})
@@ -317,7 +319,7 @@ def score_attempt(
             if field not in benchmark:
                 continue
             component_contract = benchmark[field]
-            component_result = component.verify(content, component_contract, base_url)
+            component_result = component.verify(content, component_contract, base_url, representation=representation)
             result.update(component_result)
             required[component.name] = component_result[component.pass_metric] is True
             result[component.digest_metric] = hashlib.sha256(json.dumps(
@@ -336,15 +338,26 @@ def score_attempt(
     result["content_sha256"] = hashlib.sha256(artifact).hexdigest()
     result["content_chars"] = len(artifact.decode('utf-8', errors='replace'))
     if case.get('ordered_tree_reference') is not None:
-        from .ordered_tree import tree_distance
-        tree_result = tree_distance(json.loads(artifact), case['ordered_tree_reference'])
-        result['ordered_tree'] = tree_result
-        result['ordered_tree_similarity'] = tree_result['score']
+        from .ordered_tree import node_count, tree_distance
+        tree_result = None
+        if ok:
+            try:
+                predicted = json.loads(artifact)
+                node_count(predicted)
+            except (ValueError, TypeError, RecursionError) as error:
+                result['ordered_tree_error'] = 'Invalid answer tree: ' + str(error)
+            else:
+                tree_result = tree_distance(predicted, case['ordered_tree_reference'])
+        else:
+            result['ordered_tree_error'] = 'Request failed'
+        if tree_result is not None:
+            result['ordered_tree'] = tree_result
+            result['ordered_tree_similarity'] = tree_result['score']
         # A threshold is only an explicit task requirement, not a benchmark-wide
         # interpretation of continuous similarity as a pass rate.
-        if 'ordered_tree_min_similarity' in case:
+        if case.get('ordered_tree_min_similarity') is not None:
             result['ordered_tree_pass'] = bool(
-                tree_result['score'] >= case['ordered_tree_min_similarity'])
+                tree_result is not None and tree_result['score'] >= case['ordered_tree_min_similarity'])
             result['content_pass'] = bool(
                 result['content_pass'] and ok and result['ordered_tree_pass']
                 and not result['forbidden_requirement_hits'])
@@ -386,7 +399,7 @@ def acceptance_checks(case: dict, metrics: dict) -> dict[str, bool | None]:
         checks['resources'] = metrics.get('resource_pass')
     if kind == 'file':
         checks['file'] = metrics.get('raw_file_pass')
-    if 'ordered_tree_min_similarity' in case:
+    if case.get('ordered_tree_min_similarity') is not None:
         checks['tree'] = metrics.get('ordered_tree_pass')
     checks.update(metrics.get('required_components', {}))
     return checks

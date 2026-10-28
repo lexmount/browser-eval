@@ -18,7 +18,12 @@ def score(profile, rows, plan, labels):
         raise ValueError("Relevance cutoff differs from the measured result count")
     cases = {case["id"]: case for case in profile["cases"]}
     methods = [method["id"] for method in profile["methods"]]
-    indexed = {(row["case_id"], row["method"]): row for row in rows}
+    indexed = {}
+    for row in rows:
+        key = row["case_id"], row["method"]
+        if key in indexed:
+            raise ValueError("Expected one final result per method and case")
+        indexed[key] = row
     if len(set(plan["case_ids"])) != len(plan["case_ids"]) or set(labels) != set(
         plan["case_ids"]
     ):

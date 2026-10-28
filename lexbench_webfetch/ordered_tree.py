@@ -10,10 +10,27 @@ from __future__ import annotations
 def node_count(node: dict) -> int:
     if not isinstance(node, dict) or not isinstance(node.get('tag'), str):
         raise ValueError('An ordered tree requires explicit tagged nodes')
+    if not isinstance(node.get('text', ''), str):
+        raise ValueError('Tree node text must be a string')
     children = node.get('children', [])
     if not isinstance(children, list):
         raise ValueError('Tree children must be a list')
     return 1 + sum(node_count(child) for child in children)
+
+
+def validate_tree_contract(case: dict) -> None:
+    reference = case.get('ordered_tree_reference')
+    threshold = case.get('ordered_tree_min_similarity')
+    if threshold is not None and (type(threshold) not in {int, float}
+            or not 0 <= threshold <= 1):
+        raise ValueError('Tree similarity threshold must be a finite number from 0 to 1')
+    if threshold is not None and reference is None:
+        raise ValueError('Tree similarity threshold requires an ordered tree reference')
+    if reference is not None:
+        try:
+            node_count(reference)
+        except RecursionError as error:
+            raise ValueError('Tree reference exceeds supported nesting depth') from error
 
 
 def tree_distance(predicted: dict, reference: dict) -> dict:

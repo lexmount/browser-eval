@@ -304,7 +304,7 @@ def _native_json_resource_candidates(
     """Read declared answer fields, keeping request and network logs diagnostic."""
     try:
         payload = json.loads(content)
-    except (json.JSONDecodeError, TypeError):
+    except (json.JSONDecodeError, TypeError, RecursionError):
         return []
     if isinstance(payload, list):
         # A URL list is itself an answer; a list of request/log objects is not.
@@ -430,6 +430,10 @@ def evaluate_resources(
         if not typed_json_answer:
             try:
                 structured = json.loads(content)
+            except RecursionError:
+                # Unsupported JSON depth stays on the JSON-answer path, which
+                # rejects it; do not reinterpret diagnostic strings as prose.
+                structured = {}
             except (ValueError, TypeError):
                 structured = None
             if isinstance(structured, (dict, list)):
@@ -766,8 +770,23 @@ def code_matching_blocks(content: str) -> list[str]:
             blocks = [text]
         else:
             blocks = [html.unescape(block) for block in blocks]
-    return [re.sub(r'\s+', '', re.sub(r'(?m)^[ \t]*[0-9]{2,4}[ \t]+', '', block))
-            for block in blocks]
+    compact = []
+    for block in blocks:
+        lines = [line for line in block.splitlines() if line.strip()]
+        numbered = [re.fullmatch(r'([ \t]*)([0-9]{2,4})[ \t]+(\S.*)', line) for line in lines]
+        # Consecutive numbering needs an independent directive or assignment
+        # before it establishes a gutter. Numeric expressions remain literal.
+        if (len(numbered) >= 2 and all(numbered)
+                and (int(numbered[0][2]) == 1 or numbered[0][2].startswith('0'))
+                and len({len(match[1]) for match in numbered}) == 1
+                and len({len(match[2]) for match in numbered}) == 1
+                and any(re.match(r'(?:#[ \t]*[A-Za-z_]|[A-Za-z_$][\w$]*[ \t]*=(?!=))', match[3])
+                        for match in numbered)
+                and [int(match[2]) for match in numbered] == list(range(
+                    int(numbered[0][2]), int(numbered[0][2]) + len(numbered)))):
+            block = '\n'.join(match[3] for match in numbered)
+        compact.append(re.sub(r'\s+', '', block))
+    return compact
 
 
 def evaluate_content(

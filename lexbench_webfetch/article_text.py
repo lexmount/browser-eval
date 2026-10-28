@@ -16,7 +16,7 @@ def _visible_character(char):
             and not 0xE0100 <= code <= 0xE01EF)
 
 
-def author_key(value):
+def author_key(value, *, representation=None):
     """Keep literal symbol-only identities instead of comparing empty tokens."""
     if not isinstance(value, str):
         return None
@@ -28,7 +28,7 @@ def author_key(value):
     value = ' '.join(value.split())
     if not any(_visible_character(char) for char in value):
         return None
-    words = tokens(value)
+    words = tokens(value, representation='plain_text' if representation in {'plain_text', 'html'} else None)
     return ('tokens', value.startswith('@'), tuple(words)) if words else ('literal', value)
 
 def article_html(content):
@@ -40,12 +40,14 @@ def article_html(content):
     return soup
 
 
-def article_surface(content):
+def article_surface(content, *, representation=None):
     """Apply article visibility to mixed markup before Markdown extraction."""
-    return str(article_html(content)) if re.search(r'<(?:details|noscript)\b', content, re.I) else content
+    return str(article_html(content)) if representation != 'plain_text' and re.search(r'<(?:details|noscript)\b', content, re.I) else content
 
-def is_article_html(content):
+def is_article_html(content, *, representation=None):
     """Classify HTML after complete leading non-content blocks only."""
+    if representation == 'plain_text':
+        return False
     remaining = content.lstrip()
     # Attributes may contain a greater-than sign inside quoted values.
     attributes = r"(?:[^>\"']|\"[^\"]*\"|'[^']*')*"
@@ -207,9 +209,32 @@ def article_markdown(content):
     return render(soup)
 
 
-def label_key(text):
+def label_key(text, *, representation=None):
     """Normalize whole-label formatting identically for rules and observations."""
-    return ' '.join(unicodedata.normalize('NFKC', text).split()).casefold().strip(':：*_').strip()
+    return ' '.join(unicodedata.normalize('NFKC', text).split()).casefold().strip(
+        ':：' if representation in {'plain_text', 'html'} else ':：*_').strip()
+
+
+def article_field_text(content, restore_inline_code, *, representation=None, literal_blocks=None):
+    """Render field formatting before restoring protected literal contents."""
+    if representation != 'plain_text':
+        from .stable_tasks import _visible
+        escaped = {}
+        prefix = '\ue000article-field-escape'
+        while prefix in content:
+            prefix += '_'
+        def protect(match):
+            marker = prefix + str(len(escaped)) + '\ue001'
+            escaped[marker] = match[1]
+            return marker
+        content = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', protect, content)
+        content = _visible(content, normalized_html=True)
+        for marker, literal in escaped.items():
+            content = content.replace(marker, literal)
+    content = restore_inline_code(content)
+    for marker, literal in (literal_blocks or {}).items():
+        content = content.replace(marker, literal)
+    return content
 
 
 def validate_labels(contract, fields=('ignored_labels', 'unavailable_notices')):
@@ -217,12 +242,12 @@ def validate_labels(contract, fields=('ignored_labels', 'unavailable_notices')):
     for field in fields:
         labels = contract.get(field)
         if (not isinstance(labels, list) or any(not isinstance(label, str)
-                or not label_key(label) for label in labels)):
+                or not label_key(label, representation='plain_text') for label in labels)):
             raise ValueError('Invalid or missing task-declared ' + field)
-        if len({label_key(label) for label in labels}) != len(labels):
+        if len({label_key(label, representation='plain_text') for label in labels}) != len(labels):
             raise ValueError('Duplicate task-declared ' + field)
 
 
 def declared_labels(contract, field):
     """Read the validated, explicit task list without runtime defaults."""
-    return frozenset(label_key(label) for label in contract[field])
+    return frozenset(label_key(label, representation='plain_text') for label in contract[field])

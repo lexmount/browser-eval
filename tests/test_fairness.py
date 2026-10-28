@@ -225,7 +225,7 @@ class FairnessTests(unittest.TestCase):
             self.assertTrue(r['ok'])
             self.assertNotIn('raw_request_status', r)
             self.assertFalse(task_passed(r['ok'], m))
-            self.assertEqual(m['content_chars'], 0)
+            self.assertEqual(m['content_chars'], len(raw.decode()))
             self.assertEqual(m['content_sha256'], hashlib.sha256(raw).hexdigest())
 
     def test_real_full_reference_passes_and_small_prefix_is_rejected(self):

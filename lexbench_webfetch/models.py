@@ -55,6 +55,14 @@ class EvalCase:
     target_language: str = ""
     target_region: str = ""
     rule_review: dict[str, Any] = field(default_factory=dict)
+    ordered_tree_reference: dict[str, Any] | None = None
+    ordered_tree_min_similarity: float | None = None
+
+    def __post_init__(self):
+        # Persisted task dictionaries must omit undeclared optional tree inputs.
+        for name in ('ordered_tree_reference', 'ordered_tree_min_similarity'):
+            if getattr(self, name) is None:
+                object.__delattr__(self, name)
 
 
 def validate_case(case: EvalCase) -> None:
@@ -75,4 +83,6 @@ def validate_case(case: EvalCase) -> None:
         raise ValueError(f"Unknown task kind for {case.id}: {case.task_kind}")
     if not isinstance(case.track, str) or case.track not in TRACKS:
         raise ValueError(f"Unknown task track for {case.id}: {case.track}")
+    from .ordered_tree import validate_tree_contract
+    validate_tree_contract(vars(case))
 

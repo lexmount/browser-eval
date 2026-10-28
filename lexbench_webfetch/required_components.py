@@ -12,17 +12,17 @@ class Component(NamedTuple):
     digest_metric: str
 
 
-def _title(content, contract, url):
-    return verify_article_title(content, contract)
+def _title(content, contract, url, *, representation=None):
+    return verify_article_title(content, contract, representation=representation)
 
 
-def _comments(content, contract, url):
-    return verify_article_comments(content, contract)
+def _comments(content, contract, url, *, representation=None):
+    return verify_article_comments(content, contract, representation=representation)
 
 
-def _posts(content, contract, url):
+def _posts(content, contract, url, *, representation=None):
     # Relative permalinks require the response document URL, unlike title/comment text.
-    return verify_article_posts(content, contract, url=url)
+    return verify_article_posts(content, contract, url=url, representation=representation)
 
 
 COMPONENTS = {
