@@ -449,6 +449,8 @@ def _html_table_record_contexts(content: str, group: dict, base_url: str, allowe
         cell.append(tag)
     projected, _ = _html_field_surface(str(soup), group, base_url, literal_text=literal_text, html_source=True)
     selected = _scope(projected, group, literal_decode=literal_text.get('decode') if literal_text else None)
+    if literal_text:
+        selected = selected.translate(literal_text['decode'])
     contexts, table_ids = {}, set()
     for index, (_, identity, context) in enumerate(candidates):
         if marker + str(index) + '-end' in selected:
@@ -530,7 +532,7 @@ def _protect_native_text(soup, literal_text, *, html_source=False):
         used = set(str(soup))
         available = (chr(code) for lo, hi in ((0xF0000, 0xFFFFE), (0x100000, 0x10FFFE))
                      for code in range(lo, hi) if chr(code) not in used)
-        encode = {ord(char): next(available) for char in r"\`*_[]()#!<>|&"}
+        encode = {ord(char): next(available) for char in r"\`*_[]()#!<>|&%-"}
         literal_text.update(encode=encode, decode={ord(value): chr(key) for key, value in encode.items()})
     for node in list(soup.find_all(string=True)):
         if not isinstance(node, Comment) and (html_source or node.parent is not soup):
@@ -680,7 +682,7 @@ def _unlabeled_text_table_context(context: str, identity: str, group: dict,
     return cell
 
 
-def _named_link_group(content: str, group: dict, base_url: str, links: list | None, *, ownership_marker: str | None = None, native_html: str | None = None, representation=None, native_name_content=None, literal_text=None) -> dict:
+def _named_link_group(content: str, group: dict, base_url: str, links: list | None, *, ownership_marker: str | None = None, native_html: str | None = None, representation=None, native_name_content=None, literal_text=None, native_only=True) -> dict:
     def native_text(value):
         return value.translate(literal_text['decode']) if literal_text else value
 
@@ -701,6 +703,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
     ):
         if key in group:
             standard[key] = group[key]
+    exclusions = {_key(value) for value in group.get("record_name_exclusions", [])}
     if native_name_content is not None:
         parser = Links(native_name_content)
         parser.feed(native_name_content)
@@ -722,34 +725,57 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         for link in markdown_links(content):
             identity = _link_identity(_link_url(base_url, link.destination), group)
             key = (identity, _label_key(native_text(link.label), representation='html'))
-            if not link.is_image and key in native_pairs:
+            if (not link.is_image and key in native_pairs
+                    and (native_only or native_text(link.label) != link.label)):
                 scoped_entries[identity] = native_pairs[key]
         entries = list(scoped_entries.values())
-    elif representation in {'plain_text', 'html'}:
-        if '*' in group['hosts']:
-            from .response_input import safe_named_links
-            urls = [item.url for item, _ in _plain_record_fields(content)] if representation == 'plain_text' else []
-            urls.extend(url for url, _ in safe_named_links(links, base_url))
-            standard['hosts'] = sorted({host for url in urls
-                                       if (host := urlsplit(_link_url(base_url, url)).hostname)})
-        entries = extract_named_entries(content, standard, base_url, links,
-                                        representation=representation)
-    elif "*" in group["hosts"]:
-        entries = []
-        for link, _ in _markdown_contexts(content):
-            destination = _link_url(group.get("link_base_url", base_url), link.destination)
-            if _link_identity(destination, group) is not None and not link.is_image:
-                label = visible_markdown_links(without_markdown_images(link.label)).strip()
-                candidate = _named_candidate(
-                    destination, label,
-                    {**standard, "hosts": [urlsplit(destination).hostname]}, base_url, [],
-                )
-                if candidate is not None:
-                    entries.append(candidate[1])
-    else:
-        entries = extract_named_entries(content, standard, base_url, links,
-                                        representation=representation)
-    exclusions = {_key(value) for value in group.get("record_name_exclusions", [])}
+    # Incidental anchors require projection, but do not change a Markdown
+    # answer into an HTML-only record population.
+    if native_name_content is None or not native_only:
+        mixed_native_entries = entries if native_name_content is not None else []
+        if representation in {'plain_text', 'html'}:
+            if '*' in group['hosts']:
+                from .response_input import safe_named_links
+                urls = [item.url for item, _ in _plain_record_fields(content)] if representation == 'plain_text' else []
+                urls.extend(url for url, _ in safe_named_links(links, base_url))
+                standard['hosts'] = sorted({host for url in urls
+                                           if (host := urlsplit(_link_url(base_url, url)).hostname)})
+            entries = extract_named_entries(content, standard, base_url, links,
+                                            representation=representation)
+        elif "*" in group["hosts"]:
+            entries = []
+            for link, _ in _markdown_contexts(content):
+                destination = _link_url(group.get("link_base_url", base_url), link.destination)
+                if _link_identity(destination, group) is not None and not link.is_image:
+                    label = visible_markdown_links(without_markdown_images(link.label)).strip()
+                    candidate = _named_candidate(
+                        destination, label,
+                        {**standard, "hosts": [urlsplit(destination).hostname]}, base_url, [],
+                    )
+                    if candidate is not None:
+                        entries.append(candidate[1])
+        else:
+            entries = extract_named_entries(content, standard, base_url, links,
+                                            representation=representation)
+        if native_name_content is not None:
+            restored = {}
+            for entry in entries:
+                title = native_text(entry['title'])
+                if title == entry['title'] and _key(title) in exclusions:
+                    continue
+                if title != entry['title']:
+                    candidate = _named_candidate(
+                        entry['url'], title,
+                        {**standard, 'hosts': [urlsplit(entry['url']).hostname]} if '*' in group['hosts'] else standard,
+                        base_url, [], representation='html',
+                    )
+                    if candidate is None or _label_key(title, representation='html') in excluded:
+                        continue
+                    entry = candidate[1]
+                restored.setdefault(_link_identity(entry['url'], group), entry)
+            for entry in mixed_native_entries:
+                restored.setdefault(_link_identity(entry['url'], group), entry)
+            entries = list(restored.values())
     if representation not in {'plain_text', 'html'} and native_name_content is None:
         entries = [entry for entry in entries if _key(entry["title"]) not in exclusions]
     fields = group.get("required_fields", [])
@@ -871,18 +897,20 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         for link in markdown_links(content):
             destination = _link_url(base_url, link.destination)
             identity = _link_identity(destination, group)
-            if native_name_content is not None and (identity, _label_key(native_text(link.label), representation='html')) not in native_url_labels:
+            if native_name_content is not None and native_only and (identity, _label_key(native_text(link.label), representation='html')) not in native_url_labels:
                 continue
             if identity is None or link.is_image or not is_record_start(link):
                 continue
             label = visible_label(link)
             candidate_contract = (standard if "*" not in group["hosts"] else
                                   {**standard, "hosts": [urlsplit(destination).hostname]})
+            native_label = native_name_content is not None and (native_only or native_text(link.label) != link.label
+                or (identity, _label_key(native_text(link.label), representation='html')) in native_url_labels)
             candidate = _named_candidate(destination, label, candidate_contract, base_url, [],
-                                         representation='html' if native_name_content is not None else None)
+                                         representation='html' if native_label else None)
             excluded_name = (candidate is not None and
                              (_label_key(candidate[1]['title'], representation='html') in excluded
-                              if native_name_content is not None else _key(candidate[1]['title']) in exclusions))
+                              if native_label else _key(candidate[1]['title']) in exclusions))
             if candidate and name_only(candidate[1]["title"], link) and not excluded_name:
                 allowed_rows.setdefault(identity, candidate[1])
         def owner_for(position):
@@ -1918,12 +1946,14 @@ def evaluate_composite_acceptance(
             source = table_text_surface(source, exclude_selector=group.get("table_scope", {}).get("exclude_selector"), representation=source_representation)
         ownership_marker = None
         native_name_content = None
+        native_only = False
         literal_text = None
         if group["kind"] == "named_link" and source_representation != 'plain_text':
             from .dynamic_lists import _document_html
             if ((group.get('required_fields') and _document_html(source))
                     or re.search(r'<a\b[^>]*\bhref\s*=', source, re.I)):
                 native_name_content = source
+                native_only = source_representation == 'html' or _document_html(source)
                 literal_text = {}
                 source, ownership_marker = _html_field_surface(
                     source, group, group_base_url, literal_text=literal_text,
@@ -1950,7 +1980,7 @@ def evaluate_composite_acceptance(
                 scoped, group, group_base_url, links if scoped == content else None,
                 native_html=native_name_content if native_name_content is not None else (_without_record_literals(native_html) if native_html else None),
                 ownership_marker=ownership_marker, representation=source_representation,
-                native_name_content=native_name_content, literal_text=literal_text,
+                native_name_content=native_name_content, literal_text=literal_text, native_only=native_only,
             )
         elif group["kind"] == "linked_table":
             result = (_linked_table_group(scoped, group, group_base_url) if representation != 'plain_text' else

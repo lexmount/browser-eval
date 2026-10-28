@@ -37,9 +37,11 @@ def validate_table(contract):
                 raise ValueError('Invalid table field pattern')
         for bound in ('minimum', 'maximum'):
             if bound in col and (col['type'] not in {'integer', 'number'}
-                                  or type(col[bound]) not in {int, float}):
+                                  or type(col[bound]) not in {int, float}
+                                  or not Decimal(str(col[bound])).is_finite()):
                 raise ValueError('Invalid table column bound')
-        if col.get('minimum', float('-inf')) > col.get('maximum', float('inf')):
+        if ('minimum' in col and 'maximum' in col
+                and Decimal(str(col['minimum'])) > Decimal(str(col['maximum']))):
             raise ValueError('Inverted table bounds')
         names.append(col['name'])
     if len(names) != len(set(names)) or not isinstance(identity, list) or not identity or not set(identity) <= set(names):
@@ -138,8 +140,9 @@ def _valid(value, col):
             return False
     if not re.fullmatch(r'-?\d+' if kind == 'integer' else r'-?\d+(?:\.\d+)?', value):
         return False
-    number = float(value)
-    return col.get('minimum', float('-inf')) <= number <= col.get('maximum', float('inf'))
+    number = Decimal(value)
+    return (('minimum' not in col or number >= Decimal(str(col['minimum'])))
+            and ('maximum' not in col or number <= Decimal(str(col['maximum']))))
 
 
 def _visible_markdown_scalar(value):

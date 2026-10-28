@@ -40522,6 +40522,785 @@
         "answer_format": "html"
       },
       "expected_task_pass": false
+    },
+    {
+      "id": "numeric18-integer-large-max-at",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared numeric table bounds compare exact integer/decimal values without binary floating-point rounding.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer",
+              "maximum": 9007199254740992
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>[^\\t\\r\\n]+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nWidget\t9007199254740992\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "numeric18-integer-large-max-outside",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared numeric table bounds compare exact integer/decimal values without binary floating-point rounding.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer",
+              "maximum": 9007199254740992
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>[^\\t\\r\\n]+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nWidget\t9007199254740993\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "numeric18-integer-negative-min-at",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared numeric table bounds compare exact integer/decimal values without binary floating-point rounding.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer",
+              "minimum": -9007199254740992
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>[^\\t\\r\\n]+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nWidget\t-9007199254740992\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "numeric18-integer-negative-min-outside",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared numeric table bounds compare exact integer/decimal values without binary floating-point rounding.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer",
+              "minimum": -9007199254740992
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>[^\\t\\r\\n]+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nWidget\t-9007199254740993\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "numeric18-decimal-max-at",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared numeric table bounds compare exact integer/decimal values without binary floating-point rounding.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "number",
+              "maximum": 100
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>[^\\t\\r\\n]+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nWidget\t100\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "numeric18-decimal-max-outside",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared numeric table bounds compare exact integer/decimal values without binary floating-point rounding.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "number",
+              "maximum": 100
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>[^\\t\\r\\n]+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nWidget\t100.000000000000001\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "numeric18-decimal-negative-min-at",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared numeric table bounds compare exact integer/decimal values without binary floating-point rounding.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "number",
+              "minimum": -100
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>[^\\t\\r\\n]+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nWidget\t-100\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "numeric18-decimal-negative-min-outside",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared numeric table bounds compare exact integer/decimal values without binary floating-point rounding.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "number",
+              "minimum": -100
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>[^\\t\\r\\n]+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nWidget\t-100.000000000000001\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "numeric18-float-bound-min-at",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Declared numeric table bounds compare exact integer/decimal values without binary floating-point rounding.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "number",
+              "minimum": 0.1
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>[^\\t\\r\\n]+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nWidget\t0.1\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "numeric18-float-bound-min-outside",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Declared numeric table bounds compare exact integer/decimal values without binary floating-point rounding.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "number",
+              "minimum": 0.1
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>[^\\t\\r\\n]+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nWidget\t0.099999999999999999\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round18-markdown-record-without-incidental-html",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "- [First House](/item/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "An incidental HTML anchor must not switch a mixed Markdown answer to HTML-only record admission. Reuse ordinary Markdown admission alongside scoped native candidates, preserving literal DOM names and occurrence ownership; explicit native HTML still requires actual anchors."
+    },
+    {
+      "id": "round18-markdown-record-with-incidental-html",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "- [First House](/item/1)\n<a href=\"/help\">Help</a>",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "An incidental HTML anchor must not switch a mixed Markdown answer to HTML-only record admission. Reuse ordinary Markdown admission alongside scoped native candidates, preserving literal DOM names and occurrence ownership; explicit native HTML still requires actual anchors."
+    },
+    {
+      "id": "round18-declared-markdown-retains-record",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price",
+                  "aliases": [
+                    "Price"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "- [First House](/item/1)\nPrice: $12\n<a href=\"/help\">Help</a>",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "An incidental HTML anchor must not switch a mixed Markdown answer to HTML-only record admission. Reuse ordinary Markdown admission alongside scoped native candidates, preserving literal DOM names and occurrence ownership; explicit native HTML still requires actual anchors.",
+      "metadata": {
+        "answer_format": "markdown"
+      }
+    },
+    {
+      "id": "round18-incidental-html-attribute-is-not-field",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price",
+                  "aliases": [
+                    "Price"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "- [First House](/item/1)\n<a href=\"/help\" data-price=\"$12\">Help</a>",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "An incidental HTML anchor must not switch a mixed Markdown answer to HTML-only record admission. Reuse ordinary Markdown admission alongside scoped native candidates, preserving literal DOM names and occurrence ownership; explicit native HTML still requires actual anchors.",
+      "metadata": {
+        "answer_format": "markdown"
+      }
+    },
+    {
+      "id": "round18-declared-html-requires-native-anchor",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "- [First House](/item/1)\n<a href=\"/help\">Help</a>",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "An incidental HTML anchor must not switch a mixed Markdown answer to HTML-only record admission. Reuse ordinary Markdown admission alongside scoped native candidates, preserving literal DOM names and occurrence ownership; explicit native HTML still requires actual anchors.",
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "round18-mixed-native-and-markdown-records",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price",
+                  "aliases": [
+                    "Price"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "- [First House](/item/1)\nPrice: $12\n<article><a href=\"/item/2\">**Second House**</a><p>Price: $24</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "An incidental HTML anchor must not switch a mixed Markdown answer to HTML-only record admission. Reuse ordinary Markdown admission alongside scoped native candidates, preserving literal DOM names and occurrence ownership; explicit native HTML still requires actual anchors."
+    },
+    {
+      "id": "round18-outside-native-label-cannot-repair-excluded-markdown",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price",
+                  "aliases": [
+                    "Price"
+                  ]
+                }
+              ],
+              "record_name_exclusions": [
+                "Alpha"
+              ],
+              "start_pattern": "^# Catalog$",
+              "end_pattern": "^# End$"
+            }
+          ]
+        }
+      },
+      "artifact": "Intro\n<a href=\"/item/1\">**Alpha**</a>\n# Catalog\n- [**Alpha**](/item/1)\nPrice: $12\n# End",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "An incidental HTML anchor must not switch a mixed Markdown answer to HTML-only record admission. Reuse ordinary Markdown admission alongside scoped native candidates, preserving literal DOM names and occurrence ownership; explicit native HTML still requires actual anchors.",
+      "metadata": {
+        "answer_format": "markdown"
+      }
+    },
+    {
+      "id": "round18-mixed-native-literal-name",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "- [First House](/item/1)\n<a href=\"/item/2\">-Alpha%20Beta-</a>",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "An incidental HTML anchor must not switch a mixed Markdown answer to HTML-only record admission. Reuse ordinary Markdown admission alongside scoped native candidates, preserving literal DOM names and occurrence ownership; explicit native HTML still requires actual anchors."
+    },
+    {
+      "id": "native-row-membership-headers-only",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Internal table-membership sentinels are compared after native literal decoding so only owning data cells supply fields.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "required_fields": [
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "minimum_chars": 5
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<html><body><table><tr><td><a href=\"/item/1\">Device-1 20%</a></td></tr><tr><th>Threads</th><th>Posts</th><th>Last Post</th></tr><tr><td><a href=\"/item/2\">Device-2 20%</a></td></tr><tr><th>Threads</th><th>Posts</th><th>Last Post</th></tr></table></body></html>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "native-row-membership-owned-description",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Internal table-membership sentinels are compared after native literal decoding so only owning data cells supply fields.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "required_fields": [
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "minimum_chars": 5
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<html><body><table><tr><td><a href=\"/item/1\">Device-1 20%</a></td><td>A detailed device description.</td></tr><tr><th>Threads</th><th>Posts</th><th>Last Post</th></tr><tr><td><a href=\"/item/2\">Device-2 20%</a></td><td>A detailed device description.</td></tr><tr><th>Threads</th><th>Posts</th><th>Last Post</th></tr></table></body></html>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
     }
   ]
 }
