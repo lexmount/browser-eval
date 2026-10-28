@@ -10,7 +10,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
 
-[Features](#features) · [Quickstart](#quickstart) · [Tracks](#evaluation-tracks) · [Reports](#reports) · [Versions](#versions) · [Related projects](#related-repositories) · [Contributing](CONTRIBUTING.md)
+[Features](#features) · [Approach](#evaluation-approach) · [Tracks](#evaluation-tracks) · [Quickstart](#quickstart) · [Reports](#reports) · [Versions](#versions) · [Related projects](#related-repositories) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -29,15 +29,35 @@ Evaluate browsers and Web tools for AI agents through Web Fetch, Web Search and 
 | Reproducible comparisons | Record task inputs, benchmark and software revisions, scoring code and run settings. |
 | Reports you can share | Publish through Artifact Site and choose who can access the report. [Create and share a report](#reports) |
 
+## Evaluation approach
+
+Repeatable results, controlled execution and evidence that readers can check.
+
+- **Fix the execution.** Send declared tool requests or replay the same qualified browser actions, without an LLM or Agent choosing steps during the comparison. Freeze inputs, versions and run settings; control site state and retain timing evidence.
+- **Score in code where possible.** Check explicit task requirements against saved outputs and references. Search relevance can use human grades or an explicitly selected LLM judge; compute ranking metrics from the frozen grades.
+- **Use an LLM as a verifier on request.** Review saved evidence to find scoring mistakes and explain failures. Verification is separate from scoring and does not automatically overwrite verdicts. HTML reports support per-result drilldown and human sampling; publish through Artifact Site when ready to share.
+
+```mermaid
+flowchart LR
+    A[Freeze tasks and controls] --> B[Run tools or replay fixed actions]
+    B --> C[Score saved outputs]
+    C --> D[HTML report and per-result evidence]
+    C -. Requested verification .-> V[LLM verifier or human review]
+    V -. Review findings .-> D
+    D --> P[Share through Artifact Site]
+```
+
+Fixed actions remove model and planning variability from execution. Live content, network conditions and browser timing still need their own controls. See [task flows and verification rules](docs/benchmarks.md#evaluation-design).
+
 ## Evaluation tracks
 
 Choose a workflow for its task contract, setup and runnable example.
 
-| Track | What it tests | Benchmarks and task suites | Guide |
+| Track | Execution and scoring | Benchmarks and task suites | Guide |
 | --- | --- | --- | --- |
-| Web Fetch | Retrieve the requested page content, records, resources or files | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), [WebMainBench](https://github.com/opendatalab/WebMainBench), [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
-| Web Search | Compare search results, relevance, source retrieval, latency and billing | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch): scenario queries and a SimpleQA Verified retrieval adaptation | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
-| Browser Trajectory Replay | Complete the same recorded browser actions across implementations | [Repository-curated fixed-action suite](examples/trajectory_replay/README.md), adapted from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios); [qualified WebArena human recordings](evaluation/browser-use-public/webarena-human-suite.json), checked with the [WebArena-Verified evaluator](https://github.com/lexmount/webarena-verified/tree/lex-main) | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
+| Web Fetch | Declared request → saved response and files → benchmark checks and content metrics | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), [WebMainBench](https://github.com/opendatalab/WebMainBench), [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
+| Web Search | Fixed query → ordered results → source checks, relevance grades and ranking metrics | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch): scenario queries and a SimpleQA Verified retrieval adaptation | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
+| Browser Trajectory Replay | Fixed Playwright actions → programmatic checks; WebArena uses self-hosted sites and its task evaluator | [Repository-curated fixed-action suite](examples/trajectory_replay/README.md), adapted from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios); [qualified WebArena human recordings](evaluation/browser-use-public/webarena-human-suite.json), checked with the [WebArena-Verified evaluator](https://github.com/lexmount/webarena-verified/tree/lex-main) | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
 
 Experimental [Browser Use](examples/browser_use/README.md) is available for Agent integration testing.
 

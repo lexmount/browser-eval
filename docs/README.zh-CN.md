@@ -10,7 +10,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](../LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](../pyproject.toml)
 
-[特性](#特性) · [快速开始](#快速开始) · [评测流程](#评测流程) · [报告](#报告) · [版本](#版本) · [相关仓库](#相关仓库) · [参与贡献](../CONTRIBUTING.md)
+[特性](#特性) · [设计原则](#设计原则) · [评测流程](#评测流程) · [快速开始](#快速开始) · [报告](#报告) · [版本](#版本) · [相关仓库](#相关仓库) · [参与贡献](../CONTRIBUTING.md)
 
 </div>
 
@@ -29,15 +29,35 @@
 | 追溯实验配置 | 保留任务输入、benchmark 和软件版本、评分代码及执行配置。 |
 | 分享报告并控制权限 | 通过 Artifact Site 发布报告，并设置谁能访问。[创建与分享报告](#报告) |
 
+## 设计原则
+
+结果稳定可复现，过程可控，结论有证据可查。
+
+- **固定执行过程。** 按预先声明的请求调用工具，或在不同浏览器上重放同一组经过验证的动作，比较过程中不让 LLM 或 Agent 临时决定下一步。冻结输入、版本和运行配置，控制站点状态，保留计时证据。
+- **能用程序评分，就用程序评分。** 对照保存的输出和参考答案检查明确的任务要求。搜索相关性适合分级判断，可由人工标注，或明确选用 LLM judge；排名指标由程序根据冻结的分级结果计算。
+- **按需使用 LLM as a verifier。** 复核已有证据，查找评分错误、解释失败原因。复核与评分分开，不凭模型意见自动改写判定。HTML 报告支持下钻到每个结果，方便人工抽查；需要分享时，通过 Artifact Site 发布。
+
+```mermaid
+flowchart LR
+    A[冻结任务与实验配置] --> B[调用工具或重放固定动作]
+    B --> C[对保存的输出评分]
+    C --> D[HTML 报告与逐题证据]
+    C -. 按需复核 .-> V[LLM verifier 或人工审查]
+    V -. 复核发现 .-> D
+    D --> P[通过 Artifact Site 分享]
+```
+
+固定动作消除了执行过程中模型输出和规划选择带来的波动；在线内容、网络和浏览器时序仍需分别控制。各任务的具体流程与复核规则见[评测设计](benchmarks.md#evaluation-design)。
+
 ## 评测流程
 
 按任务选择评测流程，各指南提供任务约定、环境配置和可运行示例。
 
-| 流程 | 测什么 | 对应评测集与任务集 | 使用指南 |
+| 流程 | 如何执行与评分 | 对应评测集与任务集 | 使用指南 |
 | --- | --- | --- | --- |
-| Web Fetch | 获取任务要求的网页正文、记录、资源或文件 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
-| Web Search | 比较搜索结果、相关性、来源检索、延迟与计费 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
-| 轨迹重放 | 比较不同浏览器能否完成同一组录制动作 | [仓库自建固定动作任务集](../examples/trajectory_replay/README.md)，改编自 [Lexbench-Headless-Browser 场景设计](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
+| Web Fetch | 声明请求 → 保存响应与文件 → 按 benchmark 检查任务要求并计算内容指标 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
+| Web Search | 固定问题 → 保留结果顺序 → 来源检查、相关性分级与排名指标 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
+| 轨迹重放 | 用 Playwright 重放固定动作 → 程序验收；WebArena 使用自建站点及其任务评测器 | [仓库自建固定动作任务集](../examples/trajectory_replay/README.md)，改编自 [Lexbench-Headless-Browser 场景设计](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 
 [Browser Use](../examples/browser_use/README.md) 保留为实验性的 Agent 集成测试入口。
 
