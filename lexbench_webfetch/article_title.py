@@ -61,12 +61,13 @@ def verify_article_title(content, contract, *, representation=None):
         candidates = [line.strip() for line in content.splitlines()]
         surface = 'standalone_text_line'
     elif representation == 'html' or is_article_html(content):
+        from .dynamic_lists import visible_html_text
         soup = article_html(content)
         for selector in contract.get('excluded_html_selectors', []):
             for node in list(soup.select(selector)):
                 if node.parent is not None:
                     node.decompose()
-        candidates = [node.get_text(' ', strip=True)
+        candidates = [visible_html_text(str(node))
                       for node in soup.select(contract['html_selector'])]
         surface = 'reviewed_html_title_selector'
     else:

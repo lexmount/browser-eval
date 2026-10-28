@@ -8,7 +8,7 @@ from .test_review_component_representation import COMMENT, POST, _component, _ti
 
 
 BOUNDARIES = []
-for index, target in enumerate(['https://other.test/p/2', 'https://example.test/other/2',
+for index, target in enumerate(['https://other.test/p/2', 'https://user@example.test/p/2',
                                 'https://example.test:invalid/p/2', 'https://[invalid/p/2']):
     for first_body, passed in [('', False), ('Owned first body', True)]:
         BOUNDARIES.append((f'boundary-{index}-{passed}',

@@ -969,7 +969,7 @@ _VERSION = re.compile(
 
 def _value_matches_spec(value: str, spec: dict, *, whole_cell: bool = False) -> bool:
     """Apply the same declared field type rules to card and table values."""
-    visible = re.sub(r"\s+", " ", visible_markdown_links(value)).strip()
+    visible = re.sub(r"\s+", " ", _visible_markdown_scalar(value) if whole_cell else visible_markdown_links(value)).strip()
     if not visible or visible in {"-", "—"}:
         return False
     if pattern := spec.get("pattern"):
@@ -1501,7 +1501,7 @@ def _table_group(content: str, group: dict) -> dict:
                 if len(values) == len(headers):
                     row = {}
                     for field, (column, pattern) in mapping.items():
-                        match = pattern.fullmatch(visible_markdown_links(values[column]).replace("**", "").strip()) if pattern else None
+                        match = pattern.fullmatch(_visible_markdown_scalar(values[column])) if pattern else None
                         row[field] = ((match[field] or '') if match else '') if pattern else values[column]
                     if all(
                         _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
@@ -1525,6 +1525,17 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
     lines = [line.strip() for line in clean_reference_text(table_text_surface(content)).splitlines() if line.strip()]
     required = group["required_columns"]
     records = {}
+    exclusions = {_key(_visible_markdown_scalar(value)) for value in group.get('record_name_exclusions', [])}
+
+    def named_record(destination, label):
+        label = _visible_markdown_scalar(label)
+        if _key(label) in exclusions:
+            return None
+        contract = group
+        if '*' in group['hosts']:
+            contract = {**group, 'hosts': [urlsplit(destination).hostname]}
+        return _named_candidate(destination, label, contract, base_url, [])
+
     for index in range(len(lines) - 1):
         if "|" not in lines[index]:
             continue
@@ -1555,10 +1566,10 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                         destination = _link_url(
                             group.get("link_base_url", base_url), link.destination
                         )
-                        identity = _link_identity(destination, group)
-                        label = visible_markdown_links(link.label).strip()
-                        if identity is not None and label:
-                            records[identity] = {"url": destination, "title": label, "fields": row}
+                        candidate = named_record(destination, link.label)
+                        if candidate is not None:
+                            identity, entry = candidate
+                            records[identity] = {**entry, "fields": row}
                 row_index += 1
     if not records:
         links = [link for link in markdown_links(content) if not link.is_image]
@@ -1618,6 +1629,7 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                     link_label = visible_markdown_links(link.label).strip()
                     if (
                         row.get(group["link_column"]) == link_label
+                        and named_record(destination, link_label) is not None
                         and all(
                             _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
                             for spec in required

@@ -124,7 +124,7 @@ def _metadata_image_candidates(
         for child in value:
             candidates.extend(_metadata_image_candidates(
                 child, path=path, image_branch=image_branch,
-                accept_string=image_branch,
+                accept_string=accept_string,
             ))
     elif isinstance(value, str) and image_branch and accept_string:
         candidates.append((value, path))
@@ -150,6 +150,20 @@ def _looks_like_image_url(value: str) -> bool:
     except ValueError:
         return False
     return bool(re.search(rf"\.(?:{'|'.join(IMAGE_FILE_SUFFIXES)})$", path, re.I))
+
+
+def _image_answer_candidates(content: str, *, base_url: str) -> list[tuple[str, str]]:
+    try:
+        structured = json.loads(content)
+    except RecursionError:
+        structured = {}
+    except (ValueError, TypeError):
+        structured = None
+    if isinstance(structured, (dict, list)):
+        return _native_json_image_candidates(structured, base_url=base_url)
+    candidates = _image_content_candidates(content)
+    candidates.extend(_inline_frame_candidates(content, base_url=base_url, images_only=True))
+    return candidates
 
 
 def _image_content_candidates(content: str) -> list[tuple[str, str]]:
@@ -284,8 +298,8 @@ def _inline_frame_candidates(
             else base_url
         )
         if images_only:
-            raw_candidates = _image_content_candidates(
-                document,
+            raw_candidates = _image_answer_candidates(
+                document, base_url=frame_base,
             )
         else:
             raw_candidates = _markup_resource_candidates(document, 'content.frame')
@@ -293,6 +307,18 @@ def _inline_frame_candidates(
             normalized = normalize_resource_url(raw_url, frame_base)
             if normalized:
                 candidates.append((normalized, source.replace("content.", "content.frame_", 1)))
+    return candidates
+
+
+def _native_json_image_candidates(payload: Any, *, base_url: str) -> list[tuple[str, str]]:
+    """Read typed image answers without promoting diagnostic JSON to prose."""
+    if isinstance(payload, list):
+        return [(value, "content.native_json_image_list") for value in payload
+                if isinstance(value, str)] if all(isinstance(value, str) for value in payload) else []
+    candidates = _metadata_image_candidates(payload, path="content.native_json")
+    markup = payload.get("html") or payload.get("content")
+    if isinstance(markup, str):
+        candidates.extend(_image_answer_candidates(markup, base_url=base_url))
     return candidates
 
 
@@ -422,8 +448,7 @@ def evaluate_resources(
             if key in metadata:
                 candidates.extend(_metadata_image_candidates(metadata[key], path=f"metadata.{key}"))
         if not typed_json_answer:
-            candidates.extend(_image_content_candidates(content))
-            candidates.extend(_inline_frame_candidates(content, base_url=base_url, images_only=True))
+            candidates.extend(_image_answer_candidates(content, base_url=base_url))
     elif eligible:
         answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
         candidates.extend(_metadata_resource_candidates(answer_fields))
@@ -711,32 +736,40 @@ def declared_truncation_hits(value: str) -> list[str]:
             if (match := pattern.search(value))]
 
 
-def code_matching_blocks(content: str) -> list[str]:
+def code_matching_blocks(content: str, *, representation=None) -> list[str]:
     """Keep literal code and independent block boundaries while ignoring layout."""
-    from .reference_quality import markdown_literal_spans, visible_mixed_html_text
+    if representation == 'plain_text':
+        return [re.sub(r'\s+', '', content)]
+    from .reference_quality import is_html_document_or_fragment, markdown_literal_spans, visible_mixed_html_text
     literals = {}
     marker = '\ue012code'
     while marker in content:
         marker += '_'
     masked = content
-    for start, end in reversed(markdown_literal_spans(content)):
+    native_html = representation == 'html' or is_html_document_or_fragment(content)
+    for start, end in reversed([] if native_html else markdown_literal_spans(content)):
         token = marker + str(len(literals)) + marker
         literals[token] = content[start:end]
         masked = masked[:start] + token + masked[end:]
-    if re.search(r'<(?:!doctype|html|body|pre)\b', masked, re.I):
+    if native_html or re.search(r'<(?:!doctype|html|body|pre)\b', masked, re.I):
         from bs4 import Comment
         from .dynamic_lists import scoped_html
         soup = scoped_html(masked)
         blocks = []
-        for node in soup.find_all('pre'):
+        for node in soup.find_all(['pre', 'code']):
+            if node.find_parent(['pre', 'code']) is not None:
+                continue
             block = node.get_text('', strip=False)
             for token, literal in literals.items():
                 block = block.replace(token, literal)
             blocks.append(block)
+        if not blocks and not literals and soup.find(['html', 'body']) is None:
+            from .dynamic_lists import visible_html_text
+            blocks = [visible_html_text(str(soup), preserve_source_whitespace=True)]
         for token, literal in literals.items():
             owner = soup.find(string=lambda value: token in value)
             if owner is not None and not isinstance(owner, Comment) and owner.find_parent('pre') is None:
-                blocks.extend(code_matching_blocks(literal))
+                blocks.extend(code_matching_blocks(literal, representation=representation))
     else:
         text = re.sub(r'(?m)^[ \t]*(?:>[ \t]?)+', '', content)
         headers = {}
@@ -763,13 +796,7 @@ def code_matching_blocks(content: str) -> list[str]:
         if fence is not None:
             blocks.append(''.join(current))
         if not blocks:
-            text = html.unescape(text)
-            from .body_coverage import native_markup_body_text
-            if re.search(r'<(?:b|a|span)\b', text, re.I):
-                text = native_markup_body_text(text, text)
             blocks = [text]
-        else:
-            blocks = [html.unescape(block) for block in blocks]
     compact = []
     for block in blocks:
         lines = [line for line in block.splitlines() if line.strip()]
@@ -906,7 +933,7 @@ def evaluate_content(
         if scope not in {'visible_text', 'text', 'output', 'code_compact'}:
             raise ValueError('Unknown required-pattern matching scope')
         if scope == 'code_compact' and code_blocks is None:
-            code_blocks = code_matching_blocks(pattern_content)
+            code_blocks = code_matching_blocks(pattern_content, representation=representation)
         targets = code_blocks if scope == 'code_compact' else [pattern_content if scope == 'output' else pattern_visible]
         flags = 0 if scope == 'code_compact' else re.I
         count = len({match for target in targets for match in re.findall(rule['pattern'], target, flags)})

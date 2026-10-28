@@ -113,7 +113,7 @@ def mask_markdown_code(content, *, retain=False):
             output.append(line)
             i += 1
             continue
-        key = prefix + str(len(blocks))
+        key = prefix + str(len(blocks)) + '\ue001'
         blocks[key] = body
         output.append('\n' + (key if retain else '') + '\n')
     return ''.join(output), blocks

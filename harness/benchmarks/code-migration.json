@@ -16,7 +16,7 @@
         },
         "article_posts.py": {
           "before_sha256": "da1323b63c4e213312adb0a5564c6ffbb443edbcb1a643ddcd4e3bde4d42e9c2",
-          "after_sha256": "57f87db6c035944e834b8a939235e562f19dda3dd70a614559daf8338e5d8b01"
+          "after_sha256": "3708ce23617f5488fb907d1e680e36690bb67c06cde305b4833a2d654a323f0f"
         },
         "article_qualification.py": {
           "before_sha256": "01898c4413933ac4f3028eeb5c5c470293cd2acaabb2ae1547a7095e6e458981",
@@ -24,11 +24,11 @@
         },
         "article_text.py": {
           "before_sha256": "d9984b8dfcdad0113ed69cec3723a85d23096890327cd845d3052d937817ae21",
-          "after_sha256": "dabfd5f05460fbd64a37066f824c36c13ad4a3536c07081eaa7e4ab571d714f6"
+          "after_sha256": "db370595aaac00645a3ca8d98df4d26236984412707b8d39b349c4e0a6a7a61f"
         },
         "article_title.py": {
           "before_sha256": "eb59008ffceffce093a32592e1e2e0d244feed8fed1ed9c0d6306b6353573c54",
-          "after_sha256": "a56f78fbb591ae29dbc871fbd7d530b5952261b019066ced6d04f471e6defa0c"
+          "after_sha256": "dfc14266c56ac0826e5d64a751c68bcde91f2cab573101893b1fc688874e9361"
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "279bf6e9a7ede53658e6c2fd85d774c3a0e667d7a22478dc81d62e8e5352313f"
+          "after_sha256": "b194cdabec0519145cff69c27185b36cc7e9a68b91062130204d37817d72d770"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -52,7 +52,7 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "784c09ad20e290388faf367ed138561bdade835c59b0bc1884c49443ab9ecadf"
+          "after_sha256": "16da03e4fdfb71efc4780ec7fb4d78a202c0b71f60dac8e9a9b90713a0cb15f6"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "f1d90f4cb5fcd8840cab9a8da3cb64c97f7d5fc0c4af8179559166ef597e25c1"
+          "after_sha256": "d1a725f87c7847e063eb4dcb41bcb1d50963863bec7416afc5ec96ed08532c7e"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -80,7 +80,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "438cdde35aacaaeb0091b140f38e0c53ce754f48a6f4e3eae5ab532f681c00fe"
+          "after_sha256": "80ba701aa42c79d22f8816196ac1acb147687afdf5009a2b70b612500ce38354"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -104,11 +104,11 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "7752c540c3e13845290800a0cbed57cd3ac95906ebcb1d86d6b97da8c4c3db3d"
+          "after_sha256": "ae0cdd4f77261cc1b23e3fd6760dc6ab5a7f7cf4e3b89571e0f300101bda02fe"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
-          "after_sha256": "11fcabfc609240da7e27931f942860dd00cb803a18aaad694017ce2ec476c910"
+          "after_sha256": "0ca6cdd16ffcfd59c3e011dcc5b3e8a1bb00347dab2b05b85080941ff6be465a"
         },
         "versions.py": {
           "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
@@ -970,6 +970,151 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_receipt_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_posts.py",
+            "article_text.py",
+            "article_title.py"
+          ],
+          "regression_ids": [
+            "plain-post-reference-doc-inline-empty",
+            "plain-post-reference-p-2-paragraph-empty",
+            "plain-post-reference-p-2-paragraph-original",
+            "retained-code-11-empty",
+            "retained-code-11-unique",
+            "html-title-adjacency-split-word-wrong",
+            "html-title-adjacency-split-word-match",
+            "html-title-adjacency-cjk-match"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_article_boundaries_round9.py",
+            "tests/benchmarks/webfetch/test_article_labels.py",
+            "tests/benchmarks/webfetch/test_review_component_followups.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "structured_tables.py"
+          ],
+          "regression_ids": [
+            "round9-table-integer-formatted",
+            "round9-table-integer-invalid",
+            "round9-table-token-formatted",
+            "round9-table-token-invalid",
+            "round9-linked_table-integer-formatted",
+            "round9-linked_table-integer-invalid",
+            "round9-linked_table-token-formatted",
+            "round9-linked_table-token-invalid",
+            "round9-table-alpha",
+            "round9-table-excluded",
+            "round9-table-details",
+            "round9-linearized-alpha",
+            "round9-linearized-excluded",
+            "round9-linearized-details",
+            "round9-native-destination-gamma",
+            "round9-native-destination-beta",
+            "round9-html-width-0",
+            "round9-html-width-2",
+            "round9-html-width-4",
+            "round9-markdown-width-0",
+            "round9-markdown-width-2",
+            "round9-markdown-width-4"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_table_scalar_admission.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "review9-dynamic-block-title",
+            "review9-dynamic-adjacent-title",
+            "review9-dynamic-wrong-title-boundary",
+            "review9-dynamic-image-tags",
+            "review9-dynamic-image-noise",
+            "review9-dynamic-image-json-answer",
+            "review9-dynamic-image-json-debug",
+            "review9-dynamic-image-json-requests",
+            "review9-dynamic-generic-json-answer",
+            "review9-dynamic-generic-json-debug",
+            "review9-dynamic-generic-json-requests",
+            "review9-dynamic-json-diagnostic-frame"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_image_json_and_titles.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "runtime9-markdown-entity",
+            "runtime9-markdown-decoded",
+            "runtime9-markdown-nested-entity",
+            "runtime9-markdown-nested-decoded",
+            "runtime9-plain-tags",
+            "runtime9-plain-stripped-tags",
+            "runtime9-plain-entity",
+            "runtime9-plain-decoded",
+            "runtime9-html-decoded",
+            "runtime9-html-raw-entity",
+            "runtime9-html-once",
+            "runtime9-html-twice",
+            "runtime9-html-literal-fence",
+            "runtime9-html-fence-raw-entity",
+            "runtime9-markdown-literal-tags",
+            "runtime9-markdown-stripped-tags",
+            "runtime9-plain-fence",
+            "runtime9-plain-interpreted-fence",
+            "runtime9-plain-listing",
+            "runtime9-plain-stripped-listing",
+            "runtime9-markdown-listing",
+            "runtime9-markdown-raw-listing",
+            "runtime9-markdown-rendered-entity",
+            "runtime9-markdown-once",
+            "runtime9-markdown-twice",
+            "runtime9-markdown-escaped-tags",
+            "runtime9-markdown-reparsed-tags",
+            "runtime9-html-rendered-tags",
+            "runtime9-html-unrendered-tags",
+            "runtime9-plain-code-container",
+            "runtime9-plain-interpreted-container",
+            "runtime9-html-inline-code",
+            "runtime9-html-inline-double-decode",
+            "runtime9-html-unfenced-code",
+            "runtime9-html-unfenced-double-decode",
+            "runtime9-html-code-one-owner",
+            "runtime9-html-code-separate-owners",
+            "runtime9-html-document-prose"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_representation.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py",
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "linktitle9-False-label",
+            "linktitle9-False-metadata",
+            "linktitle9-True-label",
+            "linktitle9-True-metadata",
+            "identity9-named_link-False",
+            "identity9-named_link-True",
+            "identity9-linked_product-False",
+            "identity9-linked_product-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_quoted_link_titles.py"
           ]
         }
       ]

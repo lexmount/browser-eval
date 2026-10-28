@@ -11,6 +11,8 @@ from html.parser import HTMLParser
 from typing import NamedTuple
 from urllib.parse import parse_qsl, quote, unquote, urlencode, urljoin, urlsplit, urlunsplit
 
+from .reference_quality import HTML_BLOCK_ELEMENTS
+
 
 class LocatedItem(NamedTuple):
     url: str
@@ -32,12 +34,16 @@ class Links(HTMLParser):
         if tag=='a':
             line, column = self.getpos()
             self.current=[attrs.get('href',''),[],self.line_starts[line-1] + column]
+        elif self.current and (tag == 'br' or tag in HTML_BLOCK_ELEMENTS):
+            self.current[1].append(' ')
         # Image metadata is not a visible text name.
     def handle_data(self,data):
         if self.current:self.current[1].append(data)
     def handle_endtag(self,tag):
         if tag=='a' and self.current:
             self.items.append(LocatedItem(self.current[0],''.join(self.current[1]),self.current[2]));self.current=None
+        elif self.current and tag in HTML_BLOCK_ELEMENTS:
+            self.current[1].append(' ')
 
 
 _PURE_CTA = re.compile(

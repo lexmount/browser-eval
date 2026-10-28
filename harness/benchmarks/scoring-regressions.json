@@ -20488,6 +20488,2612 @@
       "artifact": "{\"tag\":\"p\"}",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "plain-post-reference-doc-inline-empty",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Article parsing must retain ordinary reference prose, exact code-block markers and rendered inline title adjacency.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\nUseful reference\nhttps://external.test/doc",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "plain-post-reference-p-2-paragraph-empty",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Article parsing must retain ordinary reference prose, exact code-block markers and rendered inline title adjacency.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\n\nUseful reference\nhttps://external.test/p/2",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "plain-post-reference-p-2-paragraph-original",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Article parsing must retain ordinary reference prose, exact code-block markers and rendered inline title adjacency.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\nActual first body.\n\nUseful reference\nhttps://external.test/p/2",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "retained-code-11-empty",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Article parsing must retain ordinary reference prose, exact code-block markers and rendered inline title adjacency.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 11,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "## Comments\n### Alice\n\n```text\nLiteral body 0.\n```\n\n### Alice\n\n```text\nLiteral body 1.\n```\n\n### Alice\n\n```text\nLiteral body 2.\n```\n\n### Alice\n\n```text\nLiteral body 3.\n```\n\n### Alice\n\n```text\nLiteral body 4.\n```\n\n### Alice\n\n```text\nLiteral body 5.\n```\n\n### Alice\n\n```text\nLiteral body 6.\n```\n\n### Alice\n\n```text\nLiteral body 7.\n```\n\n### Alice\n\n```text\nLiteral body 8.\n```\n\n### Alice\n\n```text\nLiteral body 9.\n```\n\n### Alice\n\n```text\n\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "retained-code-11-unique",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Article parsing must retain ordinary reference prose, exact code-block markers and rendered inline title adjacency.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 11,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "## Comments\n### Alice\n\n```text\nLiteral body 0.\n```\n\n### Alice\n\n```text\nLiteral body 1.\n```\n\n### Alice\n\n```text\nLiteral body 2.\n```\n\n### Alice\n\n```text\nLiteral body 3.\n```\n\n### Alice\n\n```text\nLiteral body 4.\n```\n\n### Alice\n\n```text\nLiteral body 5.\n```\n\n### Alice\n\n```text\nLiteral body 6.\n```\n\n### Alice\n\n```text\nLiteral body 7.\n```\n\n### Alice\n\n```text\nLiteral body 8.\n```\n\n### Alice\n\n```text\nLiteral body 9.\n```\n\n### Alice\n\n```text\nDistinct last body.\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "html-title-adjacency-split-word-wrong",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Article parsing must retain ordinary reference prose, exact code-block markers and rendered inline title adjacency.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Reading extra"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<h1>Read<em>ing</em></h1>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "html-title-adjacency-split-word-match",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Article parsing must retain ordinary reference prose, exact code-block markers and rendered inline title adjacency.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Reading"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<h1>Read<em>ing</em></h1>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "html-title-adjacency-cjk-match",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Article parsing must retain ordinary reference prose, exact code-block markers and rendered inline title adjacency.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "浏览器评测"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<h1><span>浏览器</span><span>评测</span></h1>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round9-table-integer-formatted",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Table field types must validate visible inline scalar values while retaining whole-cell numeric and token boundaries.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|**12**|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round9-table-integer-invalid",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Table field types must validate visible inline scalar values while retaining whole-cell numeric and token boundaries.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|**12,**|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-table-token-formatted",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Table field types must validate visible inline scalar values while retaining whole-cell numeric and token boundaries.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "token",
+                  "aliases": [
+                    "Count"
+                  ],
+                  "pattern": "READY"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|`READY`|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round9-table-token-invalid",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Table field types must validate visible inline scalar values while retaining whole-cell numeric and token boundaries.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "token",
+                  "aliases": [
+                    "Count"
+                  ],
+                  "pattern": "READY"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|`BROKEN`|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-linked_table-integer-formatted",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Table field types must validate visible inline scalar values while retaining whole-cell numeric and token boundaries.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Alpha](/item/1)|**12**|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round9-linked_table-integer-invalid",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Table field types must validate visible inline scalar values while retaining whole-cell numeric and token boundaries.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Alpha](/item/1)|**12,**|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-linked_table-token-formatted",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Table field types must validate visible inline scalar values while retaining whole-cell numeric and token boundaries.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "token",
+                  "aliases": [
+                    "Count"
+                  ],
+                  "pattern": "READY"
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Alpha](/item/1)|`READY`|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round9-linked_table-token-invalid",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Table field types must validate visible inline scalar values while retaining whole-cell numeric and token boundaries.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "token",
+                  "aliases": [
+                    "Count"
+                  ],
+                  "pattern": "READY"
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Alpha](/item/1)|`BROKEN`|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-table-alpha",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Delimited and linearized linked tables must apply the shared entity-name validation and declared name exclusions before counting records.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "text",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "record_name_exclusions": [
+                "excluded"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Alpha](/item/1)|Owner|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round9-table-excluded",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Delimited and linearized linked tables must apply the shared entity-name validation and declared name exclusions before counting records.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "text",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "record_name_exclusions": [
+                "excluded"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Excluded](/item/1)|Owner|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-table-details",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Delimited and linearized linked tables must apply the shared entity-name validation and declared name exclusions before counting records.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "text",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "record_name_exclusions": [
+                "excluded"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Details](/item/1)|Owner|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-linearized-alpha",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Delimited and linearized linked tables must apply the shared entity-name validation and declared name exclusions before counting records.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "text",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "record_name_exclusions": [
+                "excluded"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\nCount\n[Alpha](/item/1)\n[Owner](/profile/1)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round9-linearized-excluded",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Delimited and linearized linked tables must apply the shared entity-name validation and declared name exclusions before counting records.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "text",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "record_name_exclusions": [
+                "excluded"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\nCount\n[Excluded](/item/1)\n[Owner](/profile/1)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-linearized-details",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Delimited and linearized linked tables must apply the shared entity-name validation and declared name exclusions before counting records.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "text",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "record_name_exclusions": [
+                "excluded"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\nCount\n[Details](/item/1)\n[Owner](/profile/1)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-native-destination-gamma",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "HTML table projection must preserve complete destinations when serializing links into Markdown.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/alpha\\)(?:beta|gamma)",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Name</th><th>Count</th></tr><tr><td><a href=\"/item/alpha)beta\">Alpha</a></td><td>12</td></tr><tr><td><a href=\"/item/alpha)gamma\">Bravo</a></td><td>12</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round9-native-destination-beta",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "HTML table projection must preserve complete destinations when serializing links into Markdown.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/alpha\\)(?:beta|gamma)",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Name</th><th>Count</th></tr><tr><td><a href=\"/item/alpha)beta\">Alpha</a></td><td>12</td></tr><tr><td><a href=\"/item/alpha)beta\">Bravo</a></td><td>12</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-html-width-0",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Every selected table row contributes an acceptance candidate, including malformed cell widths, so extra incomplete rows cannot disappear.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<table><tr><th>Name</th><th>Count</th></tr><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round9-html-width-2",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Every selected table row contributes an acceptance candidate, including malformed cell widths, so extra incomplete rows cannot disappear.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<table><tr><th>Name</th><th>Count</th></tr><tr class=\"data\"><td>Alpha</td><td>12</td></tr><tr class=\"data\"><td>Bravo</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-html-width-4",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Every selected table row contributes an acceptance candidate, including malformed cell widths, so extra incomplete rows cannot disappear.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<table><tr><th>Name</th><th>Count</th></tr><tr class=\"data\"><td>Alpha</td><td>12</td></tr><tr class=\"data\"><td>Bravo</td><td>12</td><td>extra</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-markdown-width-0",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Every selected table row contributes an acceptance candidate, including malformed cell widths, so extra incomplete rows cannot disappear.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "maximum_records": 1
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|12|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "round9-markdown-width-2",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Every selected table row contributes an acceptance candidate, including malformed cell widths, so extra incomplete rows cannot disappear.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "maximum_records": 1
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|12|\n|Bravo|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round9-markdown-width-4",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Every selected table row contributes an acceptance candidate, including malformed cell widths, so extra incomplete rows cannot disappear.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "(?m)^(?=\\|\\s*Name\\s*\\|)",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)"
+          },
+          "maximum_records": 1
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|12|\n|Bravo|12|extra|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review9-dynamic-block-title",
+      "root_cause": "4404714838",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "af964e10ed7bb4e4351ff6761a63572f8ea8f53a04b90425e8c0dcec5a90abce"
+          ],
+          "source_record_pairs_sha256": "97a894792c830dcb98db33e42048bc354176f1907a087268ca57bd34e9e8fcf1"
+        }
+      },
+      "artifact": "<a href=\"/item/1\">Alpha<br>Beta</a>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review9-dynamic-adjacent-title",
+      "root_cause": "4404714838",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "356737beb1fbf4cd1f9f843d49debdcad274c13aae87187b3d197fa2ad8229b8"
+          ],
+          "source_record_pairs_sha256": "99d8a4d599dee84da5a06c9bf2c2c36585ba4905773a5c57fc7eec0d774a13b1"
+        }
+      },
+      "artifact": "<a href=\"/item/1\">Al<span>pha</span><b>Beta</b></a>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review9-dynamic-wrong-title-boundary",
+      "root_cause": "4404714838",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "af964e10ed7bb4e4351ff6761a63572f8ea8f53a04b90425e8c0dcec5a90abce"
+          ],
+          "source_record_pairs_sha256": "97a894792c830dcb98db33e42048bc354176f1907a087268ca57bd34e9e8fcf1"
+        }
+      },
+      "artifact": "<a href=\"/item/1\">AlphaBeta</a>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review9-dynamic-image-tags",
+      "root_cause": "4404714847",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "images": [
+          {
+            "url": "/target.png",
+            "tags": [
+              [
+                "portrait"
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "review9-dynamic-image-noise",
+      "root_cause": "4404714847",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "",
+      "ok": true,
+      "expected_task_pass": false,
+      "metadata": {
+        "images": [
+          {
+            "url": "/target.png",
+            "tags": [
+              "portrait"
+            ]
+          },
+          {
+            "url": "/other.png"
+          }
+        ]
+      }
+    },
+    {
+      "id": "review9-dynamic-image-json-answer",
+      "root_cause": "4404714862",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "{\"images\": [\"https://shop.example/target.png\"]}",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review9-dynamic-image-json-debug",
+      "root_cause": "4404714862",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "{\"debug\": {\"url\": \"https://shop.example/target.png\"}}",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review9-dynamic-image-json-requests",
+      "root_cause": "4404714862",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "{\"requests\": {\"url\": \"https://shop.example/target.png\"}}",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review9-dynamic-generic-json-answer",
+      "root_cause": "4404714862",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"images\": [\"https://shop.example/target.png\"]}",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review9-dynamic-generic-json-debug",
+      "root_cause": "4404714862",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"debug\": {\"url\": \"https://shop.example/target.png\"}}",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review9-dynamic-generic-json-requests",
+      "root_cause": "4404714862",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"requests\": {\"url\": \"https://shop.example/target.png\"}}",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review9-dynamic-json-diagnostic-frame",
+      "root_cause": "4404714862",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "{\"debug\": {\"html\": \"<iframe srcdoc='<img src=/target.png>'></iframe>\"}}",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-markdown-entity",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"\\&lt;\"$"
+          }
+        ]
+      },
+      "artifact": "```python\nx = \"&lt;\"\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-markdown-decoded",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<\"$"
+          }
+        ]
+      },
+      "artifact": "```python\nx = \"&lt;\"\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-markdown-nested-entity",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"\\&amp;lt;\"$"
+          }
+        ]
+      },
+      "artifact": "~~~python\nx = \"&amp;lt;\"\n~~~",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-markdown-nested-decoded",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"\\&lt;\"$"
+          }
+        ]
+      },
+      "artifact": "~~~python\nx = \"&amp;lt;\"\n~~~",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-plain-tags",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<b>value</b>\"$"
+          }
+        ]
+      },
+      "artifact": "x = \"<b>value</b>\"",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-plain-stripped-tags",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"value\"$"
+          }
+        ]
+      },
+      "artifact": "x = \"<b>value</b>\"",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-plain-entity",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"\\&lt;\"$"
+          }
+        ]
+      },
+      "artifact": "x = \"&lt;\"",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-plain-decoded",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<\"$"
+          }
+        ]
+      },
+      "artifact": "x = \"&lt;\"",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-html-decoded",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<\"$"
+          }
+        ]
+      },
+      "artifact": "<pre>x = \"&lt;\"</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-html-raw-entity",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"\\&lt;\"$"
+          }
+        ]
+      },
+      "artifact": "<pre>x = \"&lt;\"</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-html-once",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"\\&lt;\"$"
+          }
+        ]
+      },
+      "artifact": "<pre>x = \"&amp;lt;\"</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-html-twice",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<\"$"
+          }
+        ]
+      },
+      "artifact": "<pre>x = \"&amp;lt;\"</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-html-literal-fence",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^```x=\"<\"```$"
+          }
+        ]
+      },
+      "artifact": "<pre>```\nx = \"&lt;\"\n```</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-html-fence-raw-entity",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^```x=\"\\&lt;\"```$"
+          }
+        ]
+      },
+      "artifact": "<pre>```\nx = \"&lt;\"\n```</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-markdown-literal-tags",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<b>value</b>\"$"
+          }
+        ]
+      },
+      "artifact": "```python\nx = \"<b>value</b>\"\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-markdown-stripped-tags",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"value\"$"
+          }
+        ]
+      },
+      "artifact": "```python\nx = \"<b>value</b>\"\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-plain-fence",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^```x=1```$"
+          }
+        ]
+      },
+      "artifact": "```\nx = 1\n```",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-plain-interpreted-fence",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=1$"
+          }
+        ]
+      },
+      "artifact": "```\nx = 1\n```",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-plain-listing",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^01x=102y=2$"
+          }
+        ]
+      },
+      "artifact": "01 x = 1\n02 y = 2",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-plain-stripped-listing",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=1y=2$"
+          }
+        ]
+      },
+      "artifact": "01 x = 1\n02 y = 2",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-markdown-listing",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=1y=2$"
+          }
+        ]
+      },
+      "artifact": "01 x = 1\n02 y = 2",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-markdown-raw-listing",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^01x=102y=2$"
+          }
+        ]
+      },
+      "artifact": "01 x = 1\n02 y = 2",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-markdown-rendered-entity",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<\"$"
+          }
+        ]
+      },
+      "artifact": "x = \"&lt;\"",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-markdown-once",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"\\&lt;\"$"
+          }
+        ]
+      },
+      "artifact": "x = \"&amp;lt;\"",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-markdown-twice",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<\"$"
+          }
+        ]
+      },
+      "artifact": "x = \"&amp;lt;\"",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-markdown-escaped-tags",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<b>value</b>\"$"
+          }
+        ]
+      },
+      "artifact": "x = \"&lt;b&gt;value&lt;/b&gt;\"",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-markdown-reparsed-tags",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"value\"$"
+          }
+        ]
+      },
+      "artifact": "x = \"&lt;b&gt;value&lt;/b&gt;\"",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-html-rendered-tags",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"value\"$"
+          }
+        ]
+      },
+      "artifact": "<pre>x = \"<b>value</b>\"</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-html-unrendered-tags",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<b>value</b>\"$"
+          }
+        ]
+      },
+      "artifact": "<pre>x = \"<b>value</b>\"</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-plain-code-container",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^<pre>x=1</pre>$"
+          }
+        ]
+      },
+      "artifact": "<pre>x = 1</pre>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-plain-interpreted-container",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=1$"
+          }
+        ]
+      },
+      "artifact": "<pre>x = 1</pre>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-html-inline-code",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"\\&lt;\"$"
+          }
+        ]
+      },
+      "artifact": "<code>x = \"&amp;lt;\"</code>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-html-inline-double-decode",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<\"$"
+          }
+        ]
+      },
+      "artifact": "<code>x = \"&amp;lt;\"</code>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-html-unfenced-code",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"\\&lt;\"$"
+          }
+        ]
+      },
+      "artifact": "<span>x = \"&amp;lt;\"</span>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-html-unfenced-double-decode",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=\"<\"$"
+          }
+        ]
+      },
+      "artifact": "<span>x = \"&amp;lt;\"</span>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-html-code-one-owner",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=1$"
+          }
+        ]
+      },
+      "artifact": "<code>x = 1</code>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime9-html-code-separate-owners",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=1$"
+          }
+        ]
+      },
+      "artifact": "<code>x =</code><p>Explanation</p><code>1</code>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime9-html-document-prose",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "code_representation_preserves_literal_spelling_and_single_html_decode",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^x=1$"
+          }
+        ]
+      },
+      "artifact": "<html><body><p>x =</p><p>1</p></body></html>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "linktitle9-False-label",
+      "category": "answer-surface",
+      "root_cause": "Quoted link-title delimiters must not change URL pairing or turn metadata into visible evidence.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "pattern",
+            "match_scope": "visible_text",
+            "pattern": "Open"
+          }
+        ]
+      },
+      "artifact": "[Open](https://example.test/item/1 \"special evidence (\")",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "linktitle9-False-metadata",
+      "category": "answer-surface",
+      "root_cause": "Quoted link-title delimiters must not change URL pairing or turn metadata into visible evidence.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "pattern",
+            "match_scope": "visible_text",
+            "pattern": "special evidence"
+          }
+        ]
+      },
+      "artifact": "[Open](https://example.test/item/1 \"special evidence (\")",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "linktitle9-True-label",
+      "category": "answer-surface",
+      "root_cause": "Quoted link-title delimiters must not change URL pairing or turn metadata into visible evidence.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "pattern",
+            "match_scope": "visible_text",
+            "pattern": "Open"
+          }
+        ]
+      },
+      "artifact": "[Open](<https://example.test/item/1> \"special evidence (\")",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "linktitle9-True-metadata",
+      "category": "answer-surface",
+      "root_cause": "Quoted link-title delimiters must not change URL pairing or turn metadata into visible evidence.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "pattern",
+            "match_scope": "visible_text",
+            "pattern": "special evidence"
+          }
+        ]
+      },
+      "artifact": "[Open](<https://example.test/item/1> \"special evidence (\")",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "identity9-named_link-False",
+      "category": "acceptance-contract",
+      "root_cause": "Every linked schema must validate canonical-identity patterns before returned records are parsed.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_identity_pattern": "/item/(\\d+)"
+        }
+      },
+      "artifact": "[Alpha](/item/1) $10",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "identity9-named_link-True",
+      "category": "acceptance-contract",
+      "root_cause": "Every linked schema must validate canonical-identity patterns before returned records are parsed.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_identity_pattern": "["
+        }
+      },
+      "artifact": "[Alpha](/item/1) $10",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "Invalid stable acceptance regex"
+    },
+    {
+      "id": "identity9-linked_product-False",
+      "category": "acceptance-contract",
+      "root_cause": "Every linked schema must validate canonical-identity patterns before returned records are parsed.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_identity_pattern": "/item/(\\d+)",
+          "price_patterns": [
+            "\\$\\d+"
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1) $10",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "identity9-linked_product-True",
+      "category": "acceptance-contract",
+      "root_cause": "Every linked schema must validate canonical-identity patterns before returned records are parsed.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_identity_pattern": "[",
+          "price_patterns": [
+            "\\$\\d+"
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1) $10",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "Invalid stable acceptance regex"
     }
   ]
 }

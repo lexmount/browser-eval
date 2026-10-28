@@ -1250,17 +1250,17 @@ def validate_acceptance_contract(contract: dict) -> None:
         if contract.get('entry_context', 'list_or_card') != 'list_or_card':
             raise ValueError('Named-link entry context must be list_or_card')
         patterns = [*patterns, contract["entry_path"]]
+        identity_pattern = contract.get('entry_identity_pattern')
+        if identity_pattern is not None:
+            if not isinstance(identity_pattern, str) or not identity_pattern:
+                raise ValueError('Invalid linked-record identity pattern')
+            patterns.append(identity_pattern)
     if contract["schema"] == "named_link":
         exclusions = contract.get('record_name_exclusions', [])
         if (not isinstance(exclusions, list)
                 or any(not isinstance(value, str) or not _key(value) for value in exclusions)
                 or len({_key(value) for value in exclusions}) != len(exclusions)):
             raise ValueError('Invalid or duplicate record-name exclusions')
-        identity_pattern = contract.get('entry_identity_pattern')
-        if identity_pattern is not None:
-            if not isinstance(identity_pattern, str) or not identity_pattern:
-                raise ValueError('Invalid named-link identity pattern')
-            patterns.append(identity_pattern)
         title_exclusions = contract.get('title_exclusion_patterns', [])
         if (not isinstance(title_exclusions, list)
                 or any(not isinstance(pattern, str) or not pattern

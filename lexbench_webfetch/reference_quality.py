@@ -232,13 +232,32 @@ def markdown_delimiter_pairs(text, *, maximum_span=None):
     pairs = {}
     stacks = {'[': [], '(': []}
     openings = {']': '[', ')': '('}
+    label_ends, destinations = set(), set()
+    titles = {'"': re.compile(r'"(?:\\.|[^"\\])*"\s*\)'),
+              "'": re.compile(r"'(?:\\.|[^'\\])*'\s*\)")}
     i = 0
     while i < len(text):
         char = text[i]
         if char == "\\":
             i += 2
             continue
+        if (char in titles and stacks['('] and stacks['('][-1] in destinations
+                and i > 0 and text[i - 1].isspace()):
+            start = stacks['('][-1]
+            title = titles[char].match(text, i, len(text) if maximum_span is None
+                                       else min(len(text), start + maximum_span))
+            if title is not None:
+                stacks['('].pop()
+                pairs[start] = title.end() - 1
+                i = title.end()
+                continue
         if char in stacks:
+            if char == '(':
+                previous = i - 1
+                while previous >= 0 and text[previous].isspace():
+                    previous -= 1
+                if previous in label_ends:
+                    destinations.add(i)
             stacks[char].append(i)
         elif char in openings:
             opening = openings[char]
@@ -246,6 +265,8 @@ def markdown_delimiter_pairs(text, *, maximum_span=None):
                 start = stacks[opening].pop()
                 if maximum_span is None or i - start < maximum_span:
                     pairs[start] = i
+                    if char == ']':
+                        label_ends.add(i)
         i += 1
     return pairs
 
@@ -309,6 +330,7 @@ def markdown_links(text: str) -> list[MarkdownLink]:
             native_title = titled[3] if titled else ""
         # Character references in a Markdown destination are rendered URL
         # syntax. Decode once here; bare URL answers retain their literal bytes.
+        native_title = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', r'\1', native_title)
         links.append(MarkdownLink(raw_label, unescape(destination), image, index, destination_end + 1, unescape(native_title)))
         index = destination_end + 1
     return links

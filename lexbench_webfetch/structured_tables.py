@@ -222,6 +222,7 @@ def _contains_rendered_html_table(content):
 def table_text_surface(content, *, exclude_selector=None):
     """Preserve owned HTML cells/links and adjacent split Markdown bodies."""
     from bs4 import BeautifulSoup
+    from .dynamic_lists import _markdown_safe_destination
     content = _without_example_fences(content)
     blocked = set()
 
@@ -240,7 +241,7 @@ def table_text_surface(content, *, exclude_selector=None):
                                      if part.find_parent('table') is table and str(part).strip())
                     nested = [child.extract() for child in link.find_all('table')
                               if child.find_parent('table') is table]
-                    link.replace_with('[' + label + '](' + link['href'] + ')' if label or not nested else '',
+                    link.replace_with('[' + label + '](' + _markdown_safe_destination(link['href']) + ')' if label or not nested else '',
                                       *nested)
                 text = ' '.join(str(part).strip() for part in cell.strings
                                 if part.find_parent('table') is table and str(part).strip())
@@ -452,9 +453,12 @@ def parse_table_records(content, visible, contract):
                 cell for cell in row.select(scope['cell_selector'])
                 if cell.find_parent('table') is table]
             # Cell boundaries are stronger than guessed text positions.
-            if len(cells) == len(columns):
-                candidates.append(None if id(row) in blocked else
-                                  dict(zip(names, (owned_text(c, table) for c in cells))))
+            if id(row) in blocked:
+                candidates.append(None)
+            elif len(cells) == len(columns):
+                candidates.append(dict(zip(names, (owned_text(c, table) for c in cells))))
+            else:
+                candidates.append({})
         if not explicit_html and not candidates:
             root = None
     if root is None:
@@ -541,6 +545,8 @@ def parse_table_records(content, visible, contract):
                         headings,
                         (_visible_markdown_scalar(values[j]) for j in selected),
                     )))
+                else:
+                    candidates.append({})
                 occupied.add(j); j += 1
             table_count += 1
             if table_count == scope.get('markdown_table_limit'):

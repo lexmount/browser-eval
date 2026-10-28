@@ -52,14 +52,22 @@ def test_missing_comment_labels_are_rejected(field):
 
 def test_normalized_duplicate_labels_are_rejected():
     with pytest.raises(ValueError, match='Duplicate'):
-        validate_comment_contract({**C, 'ignored_labels': ['Log In', ' **ＬＯＧ　ＩＮ** ']})
+        validate_comment_contract({**C, 'ignored_labels': ['Log In', ' ＬＯＧ　　ＩＮ ']})
+    validate_comment_contract({**C, 'ignored_labels': ['Log In', ' **ＬＯＧ　ＩＮ** ']})
 
 
-def test_whitespace_emphasis_and_width_use_the_same_label_key():
+def test_whitespace_width_and_literal_emphasis_have_distinct_roles():
     contract = {**C, 'ignored_labels': ['  ＬＯＧ　　ＩＮ  '], 'unavailable_notices': [' Not   Available ']}
-    for text in ['**log in**', '_LOG    IN_', ':not available:']:
+    for text in ['log in', 'LOG    IN', '<strong>log in</strong>', ':not available:']:
         html = '<div class="comment"><span class="author">Reader</span><p class="body">'+text+'</p></div>'
         assert not verify_article_comments(html, contract)['article_comments_pass']
+    for text in ['**log in**', '_LOG    IN_']:
+        html = '<div class="comment"><span class="author">Reader</span><p class="body">'+text+'</p></div>'
+        assert verify_article_comments(html, contract)['article_comments_pass']
+    literal_contract = {**contract, 'ignored_labels': ['**ＬＯＧ　ＩＮ**']}
+    for text, expected in [('**log in**', False), ('<strong>log in</strong>', True)]:
+        html = '<div class="comment"><span class="author">Reader</span><p class="body">'+text+'</p></div>'
+        assert verify_article_comments(html, literal_contract)['article_comments_pass'] is expected
 
 
 def test_only_relevant_current_contracts_declare_labels():
