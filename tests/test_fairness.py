@@ -176,7 +176,7 @@ class FairnessTests(unittest.TestCase):
         from harness.web_fetch.providers.http_client import HttpResponse
         from harness.web_fetch.runner import run_evaluation
         raw=b'\x89PNG\r\n\x1a\n'+b'payload'*10
-        c=EvalCase('file','file','https://example.com/file','image',[],task_kind='file',
+        c=EvalCase('file','file','https://example.com/file','image',[],task_kind='file',content_score_applicable=False,
                    source_verification={'file_sha256':hashlib.sha256(raw).hexdigest()})
         with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
             relative=Path(directory).relative_to(Path.cwd())/'output'
@@ -351,7 +351,7 @@ class FairnessTests(unittest.TestCase):
 
     def test_file_bytes_are_typed_hashed_and_target_bound(self):
         raw = b'\x89PNG\r\n\x1a\n' + b'payload'*10
-        c = EvalCase('x','x','https://example.com/image','image',[],task_kind='file',
+        c = EvalCase('x','x','https://example.com/image','image',[],task_kind='file',content_score_applicable=False,
                      source_verification={'file_sha256':hashlib.sha256(raw).hexdigest()})
         good = prepare_answer(ProviderResult(True,'',files=[{'data':raw}]),c)
         self.assertTrue(good.metadata['file_evaluation']['pass'])

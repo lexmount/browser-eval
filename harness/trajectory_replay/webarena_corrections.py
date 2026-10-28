@@ -22,14 +22,13 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from lexbench_webfetch.paths import contained_path
-
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.trajectory_replay.webarena_runtime_source import (
     WEBARENA_VERIFIED_FORK_URL,
     verify_webarena_runtime_source,
 )
 from harness.web_fetch.safety import unlinked_path, write_new_file
+from lexbench_webfetch.paths import contained_path
 
 if TYPE_CHECKING:
     from webarena_verified.types.eval import TaskEvalResult

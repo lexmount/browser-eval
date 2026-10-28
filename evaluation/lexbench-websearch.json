@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "kind": "external_benchmark_binding",
-  "repository": "https://github.com/lexmount/lexbench-websearch",
-  "revision": "f07a2e2ddf1c1c511cb3944659534301c86ff9c9",
+  "kind": "huggingface_benchmark_binding",
+  "repository": "https://huggingface.co/datasets/Lexmount/lexbench-websearch",
+  "revision": "ceef891eaa01adf91636a44b153b416489ce3161",
   "datasets": {
     "scenarios-v1": {
       "path": "datasets/scenarios-v1.json",
@@ -23,5 +23,6 @@
   "definition_files": {
     "registry.json": "4b1a17f5a5b19c423aa450c9ce8dac97fb1cf32ce6df56c20e68058126debd8d",
     "benchmark-release.json": "0d9d84ef66d1eab3c4907c639ba2174b769f430fbf8efd8b2cf924671081cf63"
-  }
+  },
+  "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9"
 }

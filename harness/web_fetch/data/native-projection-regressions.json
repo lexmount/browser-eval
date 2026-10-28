@@ -20,7 +20,8 @@
         "resource_output_contract": {
           "candidate_scope": "image_answer_fields",
           "unexpected": "reject"
-        }
+        },
+        "content_score_applicable": false
       },
       "artifact": "",
       "ok": true,
@@ -69,7 +70,8 @@
         "resource_output_contract": {
           "candidate_scope": "image_answer_fields",
           "unexpected": "reject"
-        }
+        },
+        "content_score_applicable": false
       },
       "artifact": "",
       "ok": true,
@@ -110,7 +112,8 @@
         "resource_output_contract": {
           "candidate_scope": "image_answer_fields",
           "unexpected": "reject"
-        }
+        },
+        "content_score_applicable": false
       },
       "artifact": "",
       "ok": true,
@@ -254,7 +257,8 @@
               "https://good.example.test/asset.png"
             ]
           }
-        ]
+        ],
+        "content_score_applicable": false
       },
       "artifact": "![asset](/asset.png)",
       "native_response": "{\"content\": \"![asset](/asset.png)\"}",
@@ -303,7 +307,8 @@
               "https://good.example.test/asset.png"
             ]
           }
-        ]
+        ],
+        "content_score_applicable": false
       },
       "artifact": "![asset](/asset.png)",
       "native_response": "{\"content\": \"![asset](/asset.png)\", \"final_url\": \"https://good.example.test/page\"}",

@@ -17,6 +17,7 @@ from lexbench_webfetch.paths import contained_path
 
 from harness.record_io import load_jsonl
 from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
+from harness.web_fetch.webmainbench_runner import selected_input
 
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
@@ -26,6 +27,38 @@ CORE_METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_e
 
 def sha256_path(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def prepare_scorer() -> Path:
+    """Install the exact declared scorer into a reusable, clean Git checkout."""
+    import tempfile
+    from harness.benchmarks.data import binding, cache_home
+    source = binding("webmainbench")["scorer"]
+    revision = source["revision"]
+    if len(revision) != 40 or any(character not in "0123456789abcdef" for character in revision):
+        raise ValueError("WebMainBench scorer requires a full Git commit")
+    target = cache_home().parent / "benchmark-code/webmainbench" / revision
+    if target.exists():
+        verify_scorer_checkout(target, revision)
+        return target
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=target.parent, prefix=".scorer-") as temporary:
+        checkout = Path(temporary) / "checkout"
+        commands = [
+            ["git", "clone", "--filter=blob:none", "--no-checkout", "--depth=1", source["repository"], str(checkout)],
+            ["git", "-C", str(checkout), "fetch", "--depth=1", "origin", revision],
+            ["git", "-C", str(checkout), "sparse-checkout", "set", "webmainbench", "scripts", "data/corrections"],
+            ["git", "-C", str(checkout), "checkout", "--detach", revision],
+        ]
+        for command in commands:
+            subprocess.run(command, check=True, capture_output=True, timeout=120)
+        try:
+            checkout.rename(target)
+        except OSError:
+            if not target.is_dir():
+                raise
+    verify_scorer_checkout(target, revision)
+    return target
 
 
 def load_records(path: Path, expected_sha256: str = DATASET_SHA256) -> dict[str, dict]:
@@ -45,19 +78,20 @@ def load_records(path: Path, expected_sha256: str = DATASET_SHA256) -> dict[str,
 _SCORER_IMPORT_LOCK = RLock()
 
 
+def verify_scorer_checkout(repo: Path, expected_commit: str) -> None:
+    commit = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+    if commit != expected_commit:
+        raise ValueError(f"Official scorer commit mismatch: {commit}")
+    status = subprocess.check_output(
+        ["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=no"], text=True)
+    if status:
+        raise ValueError("Official scorer requires a clean tracked checkout")
+
+
 def official_calculator(repo: Path, cache_dir: Path, expected_commit: str = SCORER_COMMIT):
     """Load the declared clean checkout without reusing another scorer's modules."""
     with _SCORER_IMPORT_LOCK:
-        commit = subprocess.check_output(
-            ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True,
-        ).strip()
-        if commit != expected_commit:
-            raise ValueError(f"Official scorer commit mismatch: {commit}")
-        status = subprocess.check_output(
-            ["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=no"], text=True,
-        )
-        if status:
-            raise ValueError("Official scorer requires a clean tracked checkout")
+        verify_scorer_checkout(repo, expected_commit)
         previous = {name: value for name, value in sys.modules.items()
                     if name == "webmainbench" or name.startswith("webmainbench.")}
         for name in previous:
@@ -188,12 +222,19 @@ def revised_metrics(old: dict, scorer, predicted: str, reference: str,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--evidence", type=Path, required=True)
-    parser.add_argument("--dataset", type=Path, required=True)
-    parser.add_argument("--scorer-repo", type=Path, required=True)
+    parser.add_argument("--dataset", type=Path, help="Defaults to the pinned corrected corpus")
+    parser.add_argument("--scorer-repo", type=Path, help="Defaults to an automatically prepared pinned scorer")
     parser.add_argument("--revision", default="", help="Suffix for an explicit scoring correction")
-    parser.add_argument("--expected-dataset-sha256", default=DATASET_SHA256)
-    parser.add_argument("--expected-scorer-commit", default=SCORER_COMMIT)
+    parser.add_argument("--expected-dataset-sha256")
+    parser.add_argument("--expected-scorer-commit")
     args = parser.parse_args()
+    args.dataset, args.expected_dataset_sha256, args.expected_scorer_commit = selected_input(
+        args.dataset, args.expected_dataset_sha256, args.expected_scorer_commit)
+    if args.scorer_repo is None:
+        from harness.benchmarks.data import binding
+        if args.expected_scorer_commit != binding("webmainbench")["scorer"]["revision"]:
+            parser.error("Historical/custom scorer commits require --scorer-repo")
+        args.scorer_repo = prepare_scorer()
     suffix = f"-{args.revision}" if args.revision else ""
     output = args.evidence / f"scored-results{suffix}.jsonl"
     summary_path = args.evidence / f"score-summary{suffix}.json"

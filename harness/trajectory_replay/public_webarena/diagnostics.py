@@ -28,8 +28,6 @@ from types import SimpleNamespace
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
-from lexbench_webfetch.paths import contained_path, safe_identifier
-
 from harness.environments import browser as browser_runtime
 from harness.environments.webarena import har as browser_har
 from harness.environments.webarena.config import SITE_TOKENS
@@ -46,6 +44,7 @@ from harness.trajectory_replay.public_webarena.qualification import (
 )
 from harness.trajectory_replay.public_webarena.suite import SUPPORTED_ACTIONS, load_suite
 from harness.web_fetch.safety import unlinked_path
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 
 def classify_failure(error: str, trace: list[dict[str, Any]]) -> dict[str, Any]:

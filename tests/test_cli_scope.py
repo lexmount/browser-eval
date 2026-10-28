@@ -33,6 +33,7 @@ def experiment(tmp_path):
     url = f'http://127.0.0.1:{server.server_port}'
     cases = [{'id': key, 'name': key, 'category': 'synthetic', 'expected_any': [],
               'url': url + '/' + key, 'task_kind': kind, 'track': 'web',
+              'content_score_applicable': kind == 'body',
               'source_verification': {'mime': 'image/png', 'file_sha256': digest}}
              for key, kind, digest in [
                  ('good', 'file', hashlib.sha256(png).hexdigest()),

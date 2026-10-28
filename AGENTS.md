@@ -8,11 +8,11 @@ guide and are edited here.
 
 # Benchmark ownership
 
-`lexmount/lexbench-websearch` owns Web Search datasets, provenance, reference qualifications and provider-independent scoring. Import its pinned package and resolve definitions through `lexbench_websearch.inputs`; keep execution adapters and report tooling in Browser Eval. Store report instances outside Git and retain only reusable benchmark hash bindings in `evaluation/`.
+Browser Eval owns benchmark scoring and input tooling as well as execution, evidence and reports. Keep the independent scorer APIs in `lexbench_webfetch/` and `lexbench_websearch/`; they must work without browsers or provider credentials. Shared dataset distribution and pinning belong in `harness/benchmarks/`.
 
-Browser Eval owns execution adapters, evidence handling and report tooling. `lexmount/lexbench-webfetch` owns Web Fetch task populations, task models, deterministic acceptance scoring, compilation and frozen definition files. Import its pinned package directly; do not duplicate or re-export retired evaluator modules here. Resolve frozen historical catalogs/manifests through `lexbench_webfetch.inputs.definition_path`; keep experiment profiles and compact hash bindings in `evaluation/`. WebMainBench, WCXB and WebArena retain their own upstream task authorities.
+Hugging Face owns versioned public definitions under `Lexmount/lexbench-webfetch`, `lexbench-websearch`, `lexbench-webmainbench` and `lexbench-simpleqa-verified`. `harness/benchmarks/data-lock.json` selects full dataset commits and file hashes. Change a selection through `make pin-dataset DATASET=<track> REV=<full-HF-commit>`; keep import bindings aligned and historical snapshots intact. Do not copy datasets into Git or reintroduce separate scorer Git dependencies. Full third-party references without redistribution rights remain external approved inputs.
 
-Every benchmark track must record full commits for Git sources and exact task/reference/scorer hashes in its existing dependency or run bindings. Release tags are labels that resolve to recorded commits. Current-use documentation links to those bindings rather than duplicating selected version numbers; preserve immutable historical experiment and source citations. See `docs/benchmarks.md#benchmark-editions`.
+Every track records full source commits and exact task/reference/scorer hashes. Release tags are labels for commits; documentation links to selection owners instead of repeating current versions. WebArena and WCXB retain their upstream authorities. See `docs/benchmarks.md#benchmark-editions`.
 
 # Report maintenance
 

@@ -5,7 +5,6 @@ import argparse
 import gzip
 import hashlib
 import json
-import os
 import platform
 import select
 import shutil
@@ -46,6 +45,18 @@ PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromiu
 WCXB_PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium", "moli-pr643")
 EXPECTED_VERSIONS = {"obscura": "0.2.2", "moli": "1.1.5", "moli-1.1.7": "1.1.7"}
 CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"
+
+
+def selected_input(dataset: Path | None = None, expected_sha256: str | None = None,
+                   scorer_commit: str | None = None) -> tuple[Path, str, str]:
+    """Use the pinned corrected edition by default; explicit files retain historical controls."""
+    if dataset is not None:
+        return dataset, expected_sha256 or DATASET_SHA256, scorer_commit or SCORER_COMMIT
+    from harness.benchmarks.data import binding, definition_path
+    selected = binding("webmainbench")
+    task = selected["datasets"][selected["default_dataset"]]
+    return (definition_path("webmainbench", task["path"]),
+            expected_sha256 or task["sha256"], scorer_commit or selected["scorer"]["revision"])
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -460,6 +471,11 @@ def run(args: argparse.Namespace) -> None:
             "csp_response_header": CSP,
         },
     }
+    if args.benchmark == "webmainbench":
+        from harness.benchmarks.data import binding, dependencies
+        selected = binding("webmainbench")
+        if source_digest == selected["datasets"][selected["default_dataset"]]["sha256"]:
+            source_manifest["benchmark_datasets"] = dependencies("webmainbench")
     write_json(args.output / "dataset.json", source_manifest)
 
     started_at = iso_now()
@@ -568,12 +584,11 @@ def run(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    data_home = Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval"))
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--provider", choices=sorted(set(PROVIDERS + WCXB_PROVIDERS)), required=True)
     parser.add_argument("--benchmark", choices=("webmainbench", "wcxb"), default="webmainbench")
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--dataset", type=Path, default=data_home / "public-benchmarks/webmainbench-545/WebMainBench_545.jsonl")
+    parser.add_argument("--dataset", type=Path, help="Defaults to the pinned Hugging Face WebMainBench edition")
     parser.add_argument("--config", type=Path, default=ROOT / "configs/providers.headless.json")
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--case-ids-file", type=Path)
@@ -584,12 +599,10 @@ def main() -> None:
     parser.add_argument("--expected-version", help="Exact release version required for this provider")
     parser.add_argument(
         "--expected-dataset-sha256",
-        default=DATASET_SHA256,
-        help="Frozen WebMainBench JSONL SHA-256 (defaults to the original public corpus)",
+        help="Frozen JSONL SHA-256; explicit dataset files retain the original-corpus default",
     )
     parser.add_argument(
         "--official-scorer-commit",
-        default=SCORER_COMMIT,
         help="Scorer commit recorded with the run; scoring is performed separately",
     )
     parser.add_argument(
@@ -597,6 +610,11 @@ def main() -> None:
         help="Serve frozen bytes through a loopback proxy while retaining each source URL",
     )
     args = parser.parse_args()
+    if args.benchmark == "webmainbench":
+        args.dataset, args.expected_dataset_sha256, args.official_scorer_commit = selected_input(
+            args.dataset, args.expected_dataset_sha256, args.official_scorer_commit)
+    elif args.dataset is None:
+        parser.error("--dataset is required for WCXB")
     if args.benchmark == 'wcxb' and args.provider not in WCXB_PROVIDERS:
         parser.error(f'--provider {args.provider} is not in the WCXB method matrix')
     if args.benchmark == 'webmainbench' and args.provider not in PROVIDERS:

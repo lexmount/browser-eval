@@ -7,21 +7,24 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY.md"]
 requires-python = ">=3.11"
 dependencies = [
-  "lexbench-webfetch @ git+https://github.com/lexmount/lexbench-webfetch.git@d0e78e71cf5145217cb1f2b71420a7c4194d80dd",
-  "lexbench-websearch @ git+https://github.com/lexmount/lexbench-websearch.git@f07a2e2ddf1c1c511cb3944659534301c86ff9c9",
-  "beautifulsoup4>=4.12,<5",
+  "beautifulsoup4==4.14.2",
+  "soupsieve==2.9.2",
   "fastcdc==1.7.0",
   "python-dotenv==1.1.1",
 ]
 
 [project.scripts]
 browser-harness-eval = "harness.web_fetch.cli:main"
+lexbench-webfetch = "lexbench_webfetch.cli:main"
+lexbench-websearch = "lexbench_websearch.cli:main"
 
 [project.urls]
 Repository = "https://github.com/lexmount/browser-eval"
 Issues = "https://github.com/lexmount/browser-eval/issues"
 
 [project.optional-dependencies]
+dataset-publish = ["huggingface-hub==1.31.0"]
+tree = ["apted==1.0.3", "rapidfuzz==3.14.1"]
 headless-eval = [
   "docker>=7,<8",
   "playwright==1.58.0",
@@ -29,7 +32,8 @@ headless-eval = [
 ]
 reference-audit = [
   "requests>=2.32,<3",
-  "beautifulsoup4>=4.12,<5",
+  "beautifulsoup4==4.14.2",
+  "soupsieve==2.9.2",
   "pypdf>=5,<7",
 ]
 webmainbench-eval = [
@@ -90,6 +94,11 @@ select = ["B", "E", "F", "I", "TID252", "UP"]
 ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
+# Retain scorer import spelling so published source hashes remain verifiable.
+"lexbench_webfetch/*.py" = ["TID252"]
+"lexbench_webfetch/article_posts.py" = ["TID252", "F401"]
+"lexbench_websearch/*.py" = ["TID252"]
+"tests/benchmarks/webfetch/*.py" = ["TID252"]
 "harness/trajectory_replay/report.py" = ["E501"]
 "harness/trajectory_replay/webarena_report.py" = ["E501"]
 "harness/browser_use/report.py" = ["E501"]
@@ -102,9 +111,10 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["harness*"]
+include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 
 [tool.setuptools.package-data]
+"harness.benchmarks" = ["data-lock.json", "code-migration.json"]
 "harness.web_search" = ["messages.json", "data/*.json"]
 "harness" = ["licenses/*.txt"]
 "harness.trajectory_replay" = ["messages.json"]

@@ -311,14 +311,18 @@ def collection_implementation():
         "harness/web_search/runner.py", "harness/web_search/core.py",
         "harness/web_search/adapters.py", "harness/web_search/profiles.py",
         "harness/web_fetch/config.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
+        "harness/benchmarks/data.py",
     )
     sources = {name: ROOT / name for name in names}
-    sources.update({"dependencies/lexbench_websearch/" + name: path for name, path in benchmark_inputs.implementation_sources().items()})
+    sources.update({"lexbench_websearch/" + name: path for name, path in benchmark_inputs.implementation_sources().items()})
     return {name: digest(source.read_bytes()) for name, source in sources.items()}
 
 
 def implementation_source(relative):
-    return benchmark_inputs.implementation_sources()[relative.removeprefix("dependencies/lexbench_websearch/")] if relative.startswith("dependencies/") else ROOT / relative
+    for prefix in ("lexbench_websearch/", "dependencies/lexbench_websearch/"):
+        if relative.startswith(prefix):
+            return benchmark_inputs.implementation_sources()[relative.removeprefix(prefix)]
+    return ROOT / relative
 
 
 def validate_resume_implementation(output, contract):
@@ -459,11 +463,13 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
         output.mkdir(parents=True, exist_ok=False)
         (output / "profile.json").write_bytes(profile_bytes)
         sources = freeze_implementation(output)
+        from harness.benchmarks.data import dependencies
         write_json(
             output / "run-contract.json",
             dict(
                 profile_sha256=digest(profile_bytes),
                 implementation=sources,
+                installed_benchmark_datasets=dependencies("websearch"),
                 physical_call_accounting="write-ahead-reservations/1",
                 started_at=datetime.now(UTC).isoformat(),
                 diagnostic=diagnostic,

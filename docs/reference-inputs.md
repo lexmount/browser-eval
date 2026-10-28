@@ -1,6 +1,6 @@
 # Frozen reference inputs
 
-Self-authored Web Fetch task definitions are maintained in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch). For a new integration, use its independent verifier and materialized export as described in [benchmark integration](benchmarks.md). The manifests below retain historical experiment bindings; changing them would change those experiments.
+Self-authored Web Fetch task definitions are versioned in [LexBench Web Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-webfetch). For a new integration, use the independent verifier and materialized export shipped with Browser Eval as described in [benchmark integration](benchmarks.md). The manifests below retain historical experiment bindings; changing them would change those experiments.
 
 To reproduce a historical run, you need its original input files as well as this checkout. Full datasets, pages, documents and rendered references are stored outside Git.
 
@@ -14,7 +14,7 @@ Each `source-inputs.json` lists the required files and hashes. Import verifies t
 
 The catalog cannot substitute for the executable dataset.
 
-The paths below are historical logical paths. Their manifests and catalogs are packaged in LexBench, not duplicated in this checkout; the import tool resolves them through the hash-bound benchmark binding.
+The paths below are historical logical paths. Their manifests and catalogs are distributed on Hugging Face, not duplicated in this checkout; the import tool resolves them through the hash-bound benchmark binding.
 
 | Dataset | Manifest |
 | --- | --- |

@@ -1,0 +1,1005 @@
+{
+  "schema": "browser-eval-dataset-lock/1",
+  "datasets": {
+    "webfetch": {
+      "repository": "Lexmount/lexbench-webfetch",
+      "revision": "168e11fb58eecf54b00d234c4812496416dcf380",
+      "source_revision": "5a5b9367118dcc25f126ee16ef4de2d7c666f190",
+      "archive": {
+        "path": "definitions.tar.gz",
+        "sha256": "a3f20f3bb5192fc741f3e06026f7293bd1078d9a885bd3c725cfeb0be3df6a5a",
+        "size": 1326069
+      },
+      "datasets": {
+        "access-restrictions": {
+          "count": 100,
+          "path": "evaluation/risk-control/current/tasks.json",
+          "sha256": "c67b60ccf5ee0b14e4e23b3efc282e625005f8e096f0bfc978772d312e8f50c2"
+        },
+        "articles": {
+          "count": 100,
+          "path": "evaluation/articles/tasks.json",
+          "sha256": "171241ea0bf3cb3f9482de14a7201885733fa717af56d7ea2b28d86a4516a3bb"
+        },
+        "dynamic-content": {
+          "count": 100,
+          "path": "evaluation/dynamic-content-100-moli-webfetch/tasks.json",
+          "sha256": "139c62a141183d305d8fa9c3658c546927731461d86aeba5ad3091649bd4ecd7"
+        },
+        "popular-sites": {
+          "count": 100,
+          "path": "evaluation/popular-sites/tasks.json",
+          "sha256": "82859ffb301740bcf38fee4fe87a675e8fb21af8dd660f92f74e4cbaede35b33"
+        },
+        "webfetch": {
+          "count": 150,
+          "path": "evaluation/tasks.json",
+          "sha256": "ae3aec6eab8d2d470cdeb18c4f80d238e5dd79e1108a729589b77a80fe869405"
+        }
+      },
+      "files": {
+        "LICENSE": {
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "size": 11358
+        },
+        "NOTICE": {
+          "sha256": "ff16e49f1c35e60e6120b190391d1a36a5623ec9cf83f26d5bc0ae8dfd6809ea",
+          "size": 43
+        },
+        "THIRD_PARTY.md": {
+          "sha256": "a905e57e823bdc23899ca60cf8b76f6cea3345f97fb05c681380fd62d10c5543",
+          "size": 1483
+        },
+        "definitions/annotation-revisions/review-550-20261023.json": {
+          "sha256": "1e9752b3797cbdf8f3e07faab38f0dcba9007447732b1dfb37510e6db23ce22f",
+          "size": 707785
+        },
+        "definitions/annotation-revisions/reviews.json": {
+          "sha256": "80b9b08c339c767a7dc06a3fadca92a1b8df01ddcc6ecc458cd80b657a527527",
+          "size": 1194548
+        },
+        "definitions/annotation-revisions/serialization-20261021.json": {
+          "sha256": "e0fe42179e584abb73782cbc459f521cab9cb09d3442de1ec4a6ff54d1b1235a",
+          "size": 14891
+        },
+        "definitions/benchmark-release.json": {
+          "sha256": "c80a1e8cedc371b15c247957ebb99f4b523cf91a598c40b8d2b75086ed0492b1",
+          "size": 3189
+        },
+        "definitions/evaluation/articles/README.md": {
+          "sha256": "9ee91afaaf75612c82deb6ec9165e7529b051ec0528db1298b07efbce662fc63",
+          "size": 19737
+        },
+        "definitions/evaluation/articles/cohort.json": {
+          "sha256": "802910d39ad3dd1f78955b1d4f381118680270df4197bb7dd5e425ef475ff3f2",
+          "size": 145479
+        },
+        "definitions/evaluation/articles/dataset-catalog.json": {
+          "sha256": "8e413e683c309674abf3d297df3f378e76d65ead1e2aa343828e4b0e1d90764a",
+          "size": 82393
+        },
+        "definitions/evaluation/articles/rules.json": {
+          "sha256": "cc88eaab011397691df7203cd88fb3c656561921c980fc0c4a5812a2e1605772",
+          "size": 2211902
+        },
+        "definitions/evaluation/articles/source-inputs.json": {
+          "sha256": "0d9c729f14dae8abb3323a2cf4734736c4733957c9d74d5484033d204642b91b",
+          "size": 462
+        },
+        "definitions/evaluation/articles/tasks.json": {
+          "sha256": "171241ea0bf3cb3f9482de14a7201885733fa717af56d7ea2b28d86a4516a3bb",
+          "size": 1079224
+        },
+        "definitions/evaluation/dataset-catalog.json": {
+          "sha256": "994fa53f7fc7c3170692a7bb493ebc5af9ad8ffb5b576c022fa123e6e6fb3838",
+          "size": 100357
+        },
+        "definitions/evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json": {
+          "sha256": "ca1572aa80fc2324b2f00800a79b053cfd584d1831ffb16e6906ae0981522c6c",
+          "size": 59209
+        },
+        "definitions/evaluation/dynamic-content-100-moli-webfetch/source-inputs.json": {
+          "sha256": "710f9c91705b29bb9e4aa15af97dcc856e64e406baa4b9966446408d7e3d26a8",
+          "size": 648
+        },
+        "definitions/evaluation/dynamic-content-100-moli-webfetch/tasks.json": {
+          "sha256": "139c62a141183d305d8fa9c3658c546927731461d86aeba5ad3091649bd4ecd7",
+          "size": 1328826
+        },
+        "definitions/evaluation/native-retrieval-contracts.json": {
+          "sha256": "210281ea49c61aa9c1ae4976be0f8b97adf1ef0eed6e08a74d77f54bab80b71b",
+          "size": 2617
+        },
+        "definitions/evaluation/popular-sites/dataset-catalog.json": {
+          "sha256": "f2b9dfb550230cdf8dbbba544d58158ac957620c1d064173790ead70754c178d",
+          "size": 97579
+        },
+        "definitions/evaluation/popular-sites/source-inputs.json": {
+          "sha256": "32c31cfd5458a1dfe06d370fc2411a1eea5d1a05da8ef88e0dcd4fd3b0f3c810",
+          "size": 26525
+        },
+        "definitions/evaluation/popular-sites/tasks.json": {
+          "sha256": "82859ffb301740bcf38fee4fe87a675e8fb21af8dd660f92f74e4cbaede35b33",
+          "size": 490830
+        },
+        "definitions/evaluation/risk-control/body-contracts.json": {
+          "sha256": "de5a1ff1b4333e980dd824848e79f2e7717175b53ffade512491afeb4f6c13f9",
+          "size": 32902
+        },
+        "definitions/evaluation/risk-control/current/dataset-catalog.json": {
+          "sha256": "52ec968b2ada26e5e061ccb25cbe4a73747539e556fa88f31bece6d7fb79b3cb",
+          "size": 52307
+        },
+        "definitions/evaluation/risk-control/current/source-inputs.json": {
+          "sha256": "c61d6825abbff2a92098592f83055347cd0b0101374794023046c0fd0323dd5f",
+          "size": 465
+        },
+        "definitions/evaluation/risk-control/current/tasks.json": {
+          "sha256": "c67b60ccf5ee0b14e4e23b3efc282e625005f8e096f0bfc978772d312e8f50c2",
+          "size": 423814
+        },
+        "definitions/evaluation/risk-control/dataset-catalog.json": {
+          "sha256": "02e30a5c408de3b5113e28f27359cf5e454814de612f860e6b7d7536c892efb0",
+          "size": 52307
+        },
+        "definitions/evaluation/risk-control/first-30-rule-review.md": {
+          "sha256": "6945a6aa7b0d8d5990d8abf5d24fc41b5a42a22c70940a7c996d8698c6e9bf81",
+          "size": 51125
+        },
+        "definitions/evaluation/risk-control/history/v5/dataset-catalog.json": {
+          "sha256": "73b1a3cd945c535d5043f0ba01316b98a26af25ed5156d900cdff79f2cbad4ef",
+          "size": 52307
+        },
+        "definitions/evaluation/risk-control/list-contracts.json": {
+          "sha256": "a566fb13328bd1a88b189b5a49fb7b3565a8d037c22aaa19c2b86087cbbe0881",
+          "size": 19916
+        },
+        "definitions/evaluation/risk-control/qualification/cohort-policy.json": {
+          "sha256": "4835abe67852adf1609cb3033b19cbef839650d14879c0e24dd76116af2acd2e",
+          "size": 1213
+        },
+        "definitions/evaluation/risk-control/qualification/cohort/cohort-manifest.json": {
+          "sha256": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26",
+          "size": 55934
+        },
+        "definitions/evaluation/risk-control/qualification/cohort/cohort-receipt.json": {
+          "sha256": "a5929b62ffb8b64da1ac902c5c5be61a75fa01ed171a497f115de14442a9a872",
+          "size": 3922
+        },
+        "definitions/evaluation/risk-control/qualification/cohort/input-manifest.json": {
+          "sha256": "8a61be8ffdf09a4f5ba84ebd2a621243a6b59d726825b1884f9c71295ecffd27",
+          "size": 1338
+        },
+        "definitions/evaluation/risk-control/remaining-70-rule-review.md": {
+          "sha256": "301574dddcfddf6d30ed4d882cdd40b1ae859fdc95a0a02cf9868f55e3fd1079",
+          "size": 85314
+        },
+        "definitions/evaluation/risk-control/rule-authoring-guide.md": {
+          "sha256": "d5efff4861a3f1e5e403d29bd38f4df6354aaf4e4b2d62aa85e7b20d74839c15",
+          "size": 23048
+        },
+        "definitions/evaluation/risk-control/source-inputs.json": {
+          "sha256": "77c5a4b62c07d59ed57154a833e85f9e7a97bc739730f51cd4ca3a698edb9258",
+          "size": 465
+        },
+        "definitions/evaluation/scoring-regressions.json": {
+          "sha256": "8154a1806df1447d5ae0c2aa99aa0d2bd99ae99cbb2300a6526c0f2c8df5c2a3",
+          "size": 2161979
+        },
+        "definitions/evaluation/source-inputs.json": {
+          "sha256": "c202abc4624811b938a837402bbaf0ecbe716e375fbca70567346d2edb3b1708",
+          "size": 94395
+        },
+        "definitions/evaluation/tasks.json": {
+          "sha256": "ae3aec6eab8d2d470cdeb18c4f80d238e5dd79e1108a729589b77a80fe869405",
+          "size": 430406
+        },
+        "definitions/registry.json": {
+          "sha256": "f3d1d2a38308b269cd06c4e2f408e8fcd211baae848581ce8532930cf3089a8b",
+          "size": 2411
+        }
+      },
+      "history": [
+        {
+          "repository": "Lexmount/lexbench-webfetch",
+          "revision": "0eb2b589e39901db00f7c920b36122c6a6166e16",
+          "source_revision": "5a5b9367118dcc25f126ee16ef4de2d7c666f190",
+          "archive": {
+            "path": "definitions.tar.gz",
+            "sha256": "a3f20f3bb5192fc741f3e06026f7293bd1078d9a885bd3c725cfeb0be3df6a5a",
+            "size": 1326069
+          },
+          "files": {
+            "LICENSE": {
+              "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+              "size": 11358
+            },
+            "NOTICE": {
+              "sha256": "ff16e49f1c35e60e6120b190391d1a36a5623ec9cf83f26d5bc0ae8dfd6809ea",
+              "size": 43
+            },
+            "THIRD_PARTY.md": {
+              "sha256": "a905e57e823bdc23899ca60cf8b76f6cea3345f97fb05c681380fd62d10c5543",
+              "size": 1483
+            },
+            "definitions/annotation-revisions/review-550-20261023.json": {
+              "sha256": "1e9752b3797cbdf8f3e07faab38f0dcba9007447732b1dfb37510e6db23ce22f",
+              "size": 707785
+            },
+            "definitions/annotation-revisions/reviews.json": {
+              "sha256": "80b9b08c339c767a7dc06a3fadca92a1b8df01ddcc6ecc458cd80b657a527527",
+              "size": 1194548
+            },
+            "definitions/annotation-revisions/serialization-20261021.json": {
+              "sha256": "e0fe42179e584abb73782cbc459f521cab9cb09d3442de1ec4a6ff54d1b1235a",
+              "size": 14891
+            },
+            "definitions/benchmark-release.json": {
+              "sha256": "c80a1e8cedc371b15c247957ebb99f4b523cf91a598c40b8d2b75086ed0492b1",
+              "size": 3189
+            },
+            "definitions/evaluation/articles/README.md": {
+              "sha256": "9ee91afaaf75612c82deb6ec9165e7529b051ec0528db1298b07efbce662fc63",
+              "size": 19737
+            },
+            "definitions/evaluation/articles/cohort.json": {
+              "sha256": "802910d39ad3dd1f78955b1d4f381118680270df4197bb7dd5e425ef475ff3f2",
+              "size": 145479
+            },
+            "definitions/evaluation/articles/dataset-catalog.json": {
+              "sha256": "8e413e683c309674abf3d297df3f378e76d65ead1e2aa343828e4b0e1d90764a",
+              "size": 82393
+            },
+            "definitions/evaluation/articles/rules.json": {
+              "sha256": "cc88eaab011397691df7203cd88fb3c656561921c980fc0c4a5812a2e1605772",
+              "size": 2211902
+            },
+            "definitions/evaluation/articles/source-inputs.json": {
+              "sha256": "0d9c729f14dae8abb3323a2cf4734736c4733957c9d74d5484033d204642b91b",
+              "size": 462
+            },
+            "definitions/evaluation/articles/tasks.json": {
+              "sha256": "171241ea0bf3cb3f9482de14a7201885733fa717af56d7ea2b28d86a4516a3bb",
+              "size": 1079224
+            },
+            "definitions/evaluation/dataset-catalog.json": {
+              "sha256": "994fa53f7fc7c3170692a7bb493ebc5af9ad8ffb5b576c022fa123e6e6fb3838",
+              "size": 100357
+            },
+            "definitions/evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json": {
+              "sha256": "ca1572aa80fc2324b2f00800a79b053cfd584d1831ffb16e6906ae0981522c6c",
+              "size": 59209
+            },
+            "definitions/evaluation/dynamic-content-100-moli-webfetch/source-inputs.json": {
+              "sha256": "710f9c91705b29bb9e4aa15af97dcc856e64e406baa4b9966446408d7e3d26a8",
+              "size": 648
+            },
+            "definitions/evaluation/dynamic-content-100-moli-webfetch/tasks.json": {
+              "sha256": "139c62a141183d305d8fa9c3658c546927731461d86aeba5ad3091649bd4ecd7",
+              "size": 1328826
+            },
+            "definitions/evaluation/native-retrieval-contracts.json": {
+              "sha256": "210281ea49c61aa9c1ae4976be0f8b97adf1ef0eed6e08a74d77f54bab80b71b",
+              "size": 2617
+            },
+            "definitions/evaluation/popular-sites/dataset-catalog.json": {
+              "sha256": "f2b9dfb550230cdf8dbbba544d58158ac957620c1d064173790ead70754c178d",
+              "size": 97579
+            },
+            "definitions/evaluation/popular-sites/source-inputs.json": {
+              "sha256": "32c31cfd5458a1dfe06d370fc2411a1eea5d1a05da8ef88e0dcd4fd3b0f3c810",
+              "size": 26525
+            },
+            "definitions/evaluation/popular-sites/tasks.json": {
+              "sha256": "82859ffb301740bcf38fee4fe87a675e8fb21af8dd660f92f74e4cbaede35b33",
+              "size": 490830
+            },
+            "definitions/evaluation/risk-control/body-contracts.json": {
+              "sha256": "de5a1ff1b4333e980dd824848e79f2e7717175b53ffade512491afeb4f6c13f9",
+              "size": 32902
+            },
+            "definitions/evaluation/risk-control/current/dataset-catalog.json": {
+              "sha256": "52ec968b2ada26e5e061ccb25cbe4a73747539e556fa88f31bece6d7fb79b3cb",
+              "size": 52307
+            },
+            "definitions/evaluation/risk-control/current/source-inputs.json": {
+              "sha256": "c61d6825abbff2a92098592f83055347cd0b0101374794023046c0fd0323dd5f",
+              "size": 465
+            },
+            "definitions/evaluation/risk-control/current/tasks.json": {
+              "sha256": "c67b60ccf5ee0b14e4e23b3efc282e625005f8e096f0bfc978772d312e8f50c2",
+              "size": 423814
+            },
+            "definitions/evaluation/risk-control/dataset-catalog.json": {
+              "sha256": "02e30a5c408de3b5113e28f27359cf5e454814de612f860e6b7d7536c892efb0",
+              "size": 52307
+            },
+            "definitions/evaluation/risk-control/first-30-rule-review.md": {
+              "sha256": "6945a6aa7b0d8d5990d8abf5d24fc41b5a42a22c70940a7c996d8698c6e9bf81",
+              "size": 51125
+            },
+            "definitions/evaluation/risk-control/history/v5/dataset-catalog.json": {
+              "sha256": "73b1a3cd945c535d5043f0ba01316b98a26af25ed5156d900cdff79f2cbad4ef",
+              "size": 52307
+            },
+            "definitions/evaluation/risk-control/list-contracts.json": {
+              "sha256": "a566fb13328bd1a88b189b5a49fb7b3565a8d037c22aaa19c2b86087cbbe0881",
+              "size": 19916
+            },
+            "definitions/evaluation/risk-control/qualification/cohort-policy.json": {
+              "sha256": "4835abe67852adf1609cb3033b19cbef839650d14879c0e24dd76116af2acd2e",
+              "size": 1213
+            },
+            "definitions/evaluation/risk-control/qualification/cohort/cohort-manifest.json": {
+              "sha256": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26",
+              "size": 55934
+            },
+            "definitions/evaluation/risk-control/qualification/cohort/cohort-receipt.json": {
+              "sha256": "a5929b62ffb8b64da1ac902c5c5be61a75fa01ed171a497f115de14442a9a872",
+              "size": 3922
+            },
+            "definitions/evaluation/risk-control/qualification/cohort/input-manifest.json": {
+              "sha256": "8a61be8ffdf09a4f5ba84ebd2a621243a6b59d726825b1884f9c71295ecffd27",
+              "size": 1338
+            },
+            "definitions/evaluation/risk-control/remaining-70-rule-review.md": {
+              "sha256": "301574dddcfddf6d30ed4d882cdd40b1ae859fdc95a0a02cf9868f55e3fd1079",
+              "size": 85314
+            },
+            "definitions/evaluation/risk-control/rule-authoring-guide.md": {
+              "sha256": "d5efff4861a3f1e5e403d29bd38f4df6354aaf4e4b2d62aa85e7b20d74839c15",
+              "size": 23048
+            },
+            "definitions/evaluation/risk-control/source-inputs.json": {
+              "sha256": "77c5a4b62c07d59ed57154a833e85f9e7a97bc739730f51cd4ca3a698edb9258",
+              "size": 465
+            },
+            "definitions/evaluation/scoring-regressions.json": {
+              "sha256": "8154a1806df1447d5ae0c2aa99aa0d2bd99ae99cbb2300a6526c0f2c8df5c2a3",
+              "size": 2161979
+            },
+            "definitions/evaluation/source-inputs.json": {
+              "sha256": "c202abc4624811b938a837402bbaf0ecbe716e375fbca70567346d2edb3b1708",
+              "size": 94395
+            },
+            "definitions/evaluation/tasks.json": {
+              "sha256": "ae3aec6eab8d2d470cdeb18c4f80d238e5dd79e1108a729589b77a80fe869405",
+              "size": 430406
+            },
+            "definitions/registry.json": {
+              "sha256": "f3d1d2a38308b269cd06c4e2f408e8fcd211baae848581ce8532930cf3089a8b",
+              "size": 2411
+            }
+          }
+        },
+        {
+          "repository": "Lexmount/lexbench-webfetch",
+          "revision": "2f7dd9a06850e24d2b87aa3cd849f2bdaa616ef9",
+          "source_revision": "d0e78e71cf5145217cb1f2b71420a7c4194d80dd",
+          "archive": {
+            "path": "definitions.tar.gz",
+            "sha256": "a9b909b6a0186adcfd5d5254a14f30516947073c31f16b98c46dd21fc4b0594f",
+            "size": 1068179
+          },
+          "files": {
+            "LICENSE": {
+              "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+              "size": 11358
+            },
+            "NOTICE": {
+              "sha256": "ff16e49f1c35e60e6120b190391d1a36a5623ec9cf83f26d5bc0ae8dfd6809ea",
+              "size": 43
+            },
+            "THIRD_PARTY.md": {
+              "sha256": "ff75e00f9ed9f544a37943eae4fde9c7d75000f8b21c2d8e80f7547e51a04123",
+              "size": 876
+            },
+            "definitions/annotation-revisions/reviews.json": {
+              "sha256": "7a87a24421c7a40dc3dbc0b3bb6c3d79610e387ad3705d34b5f0b1e7a0946b71",
+              "size": 12347
+            },
+            "definitions/annotation-revisions/serialization-20261021.json": {
+              "sha256": "e0fe42179e584abb73782cbc459f521cab9cb09d3442de1ec4a6ff54d1b1235a",
+              "size": 14891
+            },
+            "definitions/benchmark-release.json": {
+              "sha256": "456be14df670cb9d973415ed87d4de6f45d7b5021e3284180c8a0c8b5daee773",
+              "size": 3189
+            },
+            "definitions/evaluation/articles/README.md": {
+              "sha256": "9ee91afaaf75612c82deb6ec9165e7529b051ec0528db1298b07efbce662fc63",
+              "size": 19737
+            },
+            "definitions/evaluation/articles/cohort.json": {
+              "sha256": "802910d39ad3dd1f78955b1d4f381118680270df4197bb7dd5e425ef475ff3f2",
+              "size": 145479
+            },
+            "definitions/evaluation/articles/dataset-catalog.json": {
+              "sha256": "8e413e683c309674abf3d297df3f378e76d65ead1e2aa343828e4b0e1d90764a",
+              "size": 82393
+            },
+            "definitions/evaluation/articles/rules.json": {
+              "sha256": "cc88eaab011397691df7203cd88fb3c656561921c980fc0c4a5812a2e1605772",
+              "size": 2211902
+            },
+            "definitions/evaluation/articles/source-inputs.json": {
+              "sha256": "0d9c729f14dae8abb3323a2cf4734736c4733957c9d74d5484033d204642b91b",
+              "size": 462
+            },
+            "definitions/evaluation/articles/tasks.json": {
+              "sha256": "171241ea0bf3cb3f9482de14a7201885733fa717af56d7ea2b28d86a4516a3bb",
+              "size": 1079224
+            },
+            "definitions/evaluation/dataset-catalog.json": {
+              "sha256": "994fa53f7fc7c3170692a7bb493ebc5af9ad8ffb5b576c022fa123e6e6fb3838",
+              "size": 100357
+            },
+            "definitions/evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json": {
+              "sha256": "ca1572aa80fc2324b2f00800a79b053cfd584d1831ffb16e6906ae0981522c6c",
+              "size": 59209
+            },
+            "definitions/evaluation/dynamic-content-100-moli-webfetch/source-inputs.json": {
+              "sha256": "710f9c91705b29bb9e4aa15af97dcc856e64e406baa4b9966446408d7e3d26a8",
+              "size": 648
+            },
+            "definitions/evaluation/dynamic-content-100-moli-webfetch/tasks.json": {
+              "sha256": "139c62a141183d305d8fa9c3658c546927731461d86aeba5ad3091649bd4ecd7",
+              "size": 1328826
+            },
+            "definitions/evaluation/native-retrieval-contracts.json": {
+              "sha256": "210281ea49c61aa9c1ae4976be0f8b97adf1ef0eed6e08a74d77f54bab80b71b",
+              "size": 2617
+            },
+            "definitions/evaluation/popular-sites/dataset-catalog.json": {
+              "sha256": "f2b9dfb550230cdf8dbbba544d58158ac957620c1d064173790ead70754c178d",
+              "size": 97579
+            },
+            "definitions/evaluation/popular-sites/source-inputs.json": {
+              "sha256": "32c31cfd5458a1dfe06d370fc2411a1eea5d1a05da8ef88e0dcd4fd3b0f3c810",
+              "size": 26525
+            },
+            "definitions/evaluation/popular-sites/tasks.json": {
+              "sha256": "82859ffb301740bcf38fee4fe87a675e8fb21af8dd660f92f74e4cbaede35b33",
+              "size": 490830
+            },
+            "definitions/evaluation/risk-control/body-contracts.json": {
+              "sha256": "de5a1ff1b4333e980dd824848e79f2e7717175b53ffade512491afeb4f6c13f9",
+              "size": 32902
+            },
+            "definitions/evaluation/risk-control/current/dataset-catalog.json": {
+              "sha256": "52ec968b2ada26e5e061ccb25cbe4a73747539e556fa88f31bece6d7fb79b3cb",
+              "size": 52307
+            },
+            "definitions/evaluation/risk-control/current/source-inputs.json": {
+              "sha256": "c61d6825abbff2a92098592f83055347cd0b0101374794023046c0fd0323dd5f",
+              "size": 465
+            },
+            "definitions/evaluation/risk-control/current/tasks.json": {
+              "sha256": "c67b60ccf5ee0b14e4e23b3efc282e625005f8e096f0bfc978772d312e8f50c2",
+              "size": 423814
+            },
+            "definitions/evaluation/risk-control/dataset-catalog.json": {
+              "sha256": "02e30a5c408de3b5113e28f27359cf5e454814de612f860e6b7d7536c892efb0",
+              "size": 52307
+            },
+            "definitions/evaluation/risk-control/first-30-rule-review.md": {
+              "sha256": "6945a6aa7b0d8d5990d8abf5d24fc41b5a42a22c70940a7c996d8698c6e9bf81",
+              "size": 51125
+            },
+            "definitions/evaluation/risk-control/history/v5/dataset-catalog.json": {
+              "sha256": "73b1a3cd945c535d5043f0ba01316b98a26af25ed5156d900cdff79f2cbad4ef",
+              "size": 52307
+            },
+            "definitions/evaluation/risk-control/list-contracts.json": {
+              "sha256": "a566fb13328bd1a88b189b5a49fb7b3565a8d037c22aaa19c2b86087cbbe0881",
+              "size": 19916
+            },
+            "definitions/evaluation/risk-control/qualification/cohort-policy.json": {
+              "sha256": "4835abe67852adf1609cb3033b19cbef839650d14879c0e24dd76116af2acd2e",
+              "size": 1213
+            },
+            "definitions/evaluation/risk-control/qualification/cohort/cohort-manifest.json": {
+              "sha256": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26",
+              "size": 55934
+            },
+            "definitions/evaluation/risk-control/qualification/cohort/cohort-receipt.json": {
+              "sha256": "a5929b62ffb8b64da1ac902c5c5be61a75fa01ed171a497f115de14442a9a872",
+              "size": 3922
+            },
+            "definitions/evaluation/risk-control/qualification/cohort/input-manifest.json": {
+              "sha256": "8a61be8ffdf09a4f5ba84ebd2a621243a6b59d726825b1884f9c71295ecffd27",
+              "size": 1338
+            },
+            "definitions/evaluation/risk-control/remaining-70-rule-review.md": {
+              "sha256": "301574dddcfddf6d30ed4d882cdd40b1ae859fdc95a0a02cf9868f55e3fd1079",
+              "size": 85314
+            },
+            "definitions/evaluation/risk-control/rule-authoring-guide.md": {
+              "sha256": "74363ab502978179e5438a0b992bac7563090e41c91784e492636832dc1cd088",
+              "size": 22254
+            },
+            "definitions/evaluation/risk-control/source-inputs.json": {
+              "sha256": "77c5a4b62c07d59ed57154a833e85f9e7a97bc739730f51cd4ca3a698edb9258",
+              "size": 465
+            },
+            "definitions/evaluation/scoring-regressions.json": {
+              "sha256": "432ddabe23d045d0ce4c23aef69ca3337ba4d240fe3c2061932cee26b7dc00dc",
+              "size": 2030163
+            },
+            "definitions/evaluation/source-inputs.json": {
+              "sha256": "c202abc4624811b938a837402bbaf0ecbe716e375fbca70567346d2edb3b1708",
+              "size": 94395
+            },
+            "definitions/evaluation/tasks.json": {
+              "sha256": "ae3aec6eab8d2d470cdeb18c4f80d238e5dd79e1108a729589b77a80fe869405",
+              "size": 430406
+            },
+            "definitions/registry.json": {
+              "sha256": "f3d1d2a38308b269cd06c4e2f408e8fcd211baae848581ce8532930cf3089a8b",
+              "size": 2411
+            }
+          }
+        }
+      ]
+    },
+    "websearch": {
+      "repository": "Lexmount/lexbench-websearch",
+      "revision": "ceef891eaa01adf91636a44b153b416489ce3161",
+      "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
+      "archive": {
+        "path": "definitions.tar.gz",
+        "sha256": "23bff9c7b3d85fe705ef3f7ed89782c21ee46b35fc79db9d3b3752c7a54507ba",
+        "size": 178757
+      },
+      "datasets": {
+        "factual-v1": {
+          "count": 831,
+          "path": "datasets/factual-v1.json",
+          "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253"
+        },
+        "scenarios-v1": {
+          "count": 149,
+          "path": "datasets/scenarios-v1.json",
+          "sha256": "808d305f4ac1b9ccfdff46f89dbf7e5885a302347e31e8fe474dff741cc60c6c"
+        },
+        "scenarios-v2": {
+          "count": 149,
+          "path": "datasets/scenarios-v2.json",
+          "sha256": "754028737be6ee593525acfff5eec2510f9bf9c43e37a43c9162581fe4e32d68"
+        }
+      },
+      "files": {
+        "LICENSE": {
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "size": 11358
+        },
+        "NOTICE": {
+          "sha256": "b39a80c9593188f8f4a7f6f8588adf92904ec88426effd7698ed5caa405b5d1c",
+          "size": 272
+        },
+        "THIRD_PARTY.md": {
+          "sha256": "73b1f44bf3419db695b792bd13b59572aaa8ff4966c2168d8cd124c77272cfd9",
+          "size": 1817
+        },
+        "definitions/NOTICE.txt": {
+          "sha256": "4787042ef9f5d9e353edd7c747ac15c0fe4a2a572f0dd3ce1f52cf8c6549215c",
+          "size": 3634
+        },
+        "definitions/benchmark-release.json": {
+          "sha256": "0d9d84ef66d1eab3c4907c639ba2174b769f430fbf8efd8b2cf924671081cf63",
+          "size": 2895
+        },
+        "definitions/contamination-patterns.json": {
+          "sha256": "e7fedfe9cc6f0f03c424cb8da76107240caeed1fd9fc069a3753defd6afdd2b8",
+          "size": 116
+        },
+        "definitions/datasets/factual-v1.json": {
+          "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253",
+          "size": 735667
+        },
+        "definitions/datasets/scenarios-v1.json": {
+          "sha256": "808d305f4ac1b9ccfdff46f89dbf7e5885a302347e31e8fe474dff741cc60c6c",
+          "size": 93161
+        },
+        "definitions/datasets/scenarios-v2.json": {
+          "sha256": "754028737be6ee593525acfff5eec2510f9bf9c43e37a43c9162581fe4e32d68",
+          "size": 147320
+        },
+        "definitions/factual-source.json": {
+          "sha256": "b2f0f48cece8fa8c6449acd387a2936c23cf678801138d48b70952d24a2210db",
+          "size": 1032
+        },
+        "definitions/preview-rubric-v1.txt": {
+          "sha256": "db8e7e7cf040a4acd9d9ea919cf283a42169e864be2ea7b47167c04e26449e15",
+          "size": 1777
+        },
+        "definitions/preview-rubric-v2.txt": {
+          "sha256": "bb7eccc04890593f7080b22fcb46c1f3a75ed933c07425b769d086e18e5db843",
+          "size": 1766
+        },
+        "definitions/registry.json": {
+          "sha256": "4b1a17f5a5b19c423aa450c9ce8dac97fb1cf32ce6df56c20e68058126debd8d",
+          "size": 673
+        },
+        "definitions/scoring-regressions.json": {
+          "sha256": "f5079fb9b19fbe41602e486c3e6de56b75696f15dfdfec5ae2f19895fb119231",
+          "size": 49365
+        },
+        "definitions/scoring-revisions.json": {
+          "sha256": "f6ad8803a9d2b3bbdcccb9d7f9517314a0ee53de158059c2d6a3a34f92e31e5a",
+          "size": 17494
+        },
+        "definitions/sources.json": {
+          "sha256": "28de8222142da6f92ce772a4543f214541aab31ea19845831a1545286eb6239d",
+          "size": 132984
+        }
+      },
+      "history": [
+        {
+          "repository": "Lexmount/lexbench-websearch",
+          "revision": "e59f3ba45ae2f85a377a40cad683018875ae13ad",
+          "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
+          "archive": {
+            "path": "definitions.tar.gz",
+            "sha256": "23bff9c7b3d85fe705ef3f7ed89782c21ee46b35fc79db9d3b3752c7a54507ba",
+            "size": 178757
+          },
+          "files": {
+            "LICENSE": {
+              "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+              "size": 11358
+            },
+            "NOTICE": {
+              "sha256": "b39a80c9593188f8f4a7f6f8588adf92904ec88426effd7698ed5caa405b5d1c",
+              "size": 272
+            },
+            "THIRD_PARTY.md": {
+              "sha256": "73b1f44bf3419db695b792bd13b59572aaa8ff4966c2168d8cd124c77272cfd9",
+              "size": 1817
+            },
+            "definitions/NOTICE.txt": {
+              "sha256": "4787042ef9f5d9e353edd7c747ac15c0fe4a2a572f0dd3ce1f52cf8c6549215c",
+              "size": 3634
+            },
+            "definitions/benchmark-release.json": {
+              "sha256": "0d9d84ef66d1eab3c4907c639ba2174b769f430fbf8efd8b2cf924671081cf63",
+              "size": 2895
+            },
+            "definitions/contamination-patterns.json": {
+              "sha256": "e7fedfe9cc6f0f03c424cb8da76107240caeed1fd9fc069a3753defd6afdd2b8",
+              "size": 116
+            },
+            "definitions/datasets/factual-v1.json": {
+              "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253",
+              "size": 735667
+            },
+            "definitions/datasets/scenarios-v1.json": {
+              "sha256": "808d305f4ac1b9ccfdff46f89dbf7e5885a302347e31e8fe474dff741cc60c6c",
+              "size": 93161
+            },
+            "definitions/datasets/scenarios-v2.json": {
+              "sha256": "754028737be6ee593525acfff5eec2510f9bf9c43e37a43c9162581fe4e32d68",
+              "size": 147320
+            },
+            "definitions/factual-source.json": {
+              "sha256": "b2f0f48cece8fa8c6449acd387a2936c23cf678801138d48b70952d24a2210db",
+              "size": 1032
+            },
+            "definitions/preview-rubric-v1.txt": {
+              "sha256": "db8e7e7cf040a4acd9d9ea919cf283a42169e864be2ea7b47167c04e26449e15",
+              "size": 1777
+            },
+            "definitions/preview-rubric-v2.txt": {
+              "sha256": "bb7eccc04890593f7080b22fcb46c1f3a75ed933c07425b769d086e18e5db843",
+              "size": 1766
+            },
+            "definitions/registry.json": {
+              "sha256": "4b1a17f5a5b19c423aa450c9ce8dac97fb1cf32ce6df56c20e68058126debd8d",
+              "size": 673
+            },
+            "definitions/scoring-regressions.json": {
+              "sha256": "f5079fb9b19fbe41602e486c3e6de56b75696f15dfdfec5ae2f19895fb119231",
+              "size": 49365
+            },
+            "definitions/scoring-revisions.json": {
+              "sha256": "f6ad8803a9d2b3bbdcccb9d7f9517314a0ee53de158059c2d6a3a34f92e31e5a",
+              "size": 17494
+            },
+            "definitions/sources.json": {
+              "sha256": "28de8222142da6f92ce772a4543f214541aab31ea19845831a1545286eb6239d",
+              "size": 132984
+            }
+          }
+        },
+        {
+          "repository": "Lexmount/lexbench-websearch",
+          "revision": "063ef2504dde261604ef3a9fee634cee0df90488",
+          "source_revision": "f07a2e2ddf1c1c511cb3944659534301c86ff9c9",
+          "archive": {
+            "path": "definitions.tar.gz",
+            "sha256": "bb47cf0cef85559fb40cdcd3ddde00607622927ace7d03d19420c18f64c3161a",
+            "size": 178425
+          },
+          "files": {
+            "LICENSE": {
+              "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+              "size": 11358
+            },
+            "NOTICE": {
+              "sha256": "b39a80c9593188f8f4a7f6f8588adf92904ec88426effd7698ed5caa405b5d1c",
+              "size": 272
+            },
+            "THIRD_PARTY.md": {
+              "sha256": "73b1f44bf3419db695b792bd13b59572aaa8ff4966c2168d8cd124c77272cfd9",
+              "size": 1817
+            },
+            "definitions/NOTICE.txt": {
+              "sha256": "4787042ef9f5d9e353edd7c747ac15c0fe4a2a572f0dd3ce1f52cf8c6549215c",
+              "size": 3634
+            },
+            "definitions/benchmark-release.json": {
+              "sha256": "0d9d84ef66d1eab3c4907c639ba2174b769f430fbf8efd8b2cf924671081cf63",
+              "size": 2895
+            },
+            "definitions/contamination-patterns.json": {
+              "sha256": "e7fedfe9cc6f0f03c424cb8da76107240caeed1fd9fc069a3753defd6afdd2b8",
+              "size": 116
+            },
+            "definitions/datasets/factual-v1.json": {
+              "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253",
+              "size": 735667
+            },
+            "definitions/datasets/scenarios-v1.json": {
+              "sha256": "808d305f4ac1b9ccfdff46f89dbf7e5885a302347e31e8fe474dff741cc60c6c",
+              "size": 93161
+            },
+            "definitions/datasets/scenarios-v2.json": {
+              "sha256": "754028737be6ee593525acfff5eec2510f9bf9c43e37a43c9162581fe4e32d68",
+              "size": 147320
+            },
+            "definitions/factual-source.json": {
+              "sha256": "b2f0f48cece8fa8c6449acd387a2936c23cf678801138d48b70952d24a2210db",
+              "size": 1032
+            },
+            "definitions/preview-rubric-v1.txt": {
+              "sha256": "db8e7e7cf040a4acd9d9ea919cf283a42169e864be2ea7b47167c04e26449e15",
+              "size": 1777
+            },
+            "definitions/preview-rubric-v2.txt": {
+              "sha256": "bb7eccc04890593f7080b22fcb46c1f3a75ed933c07425b769d086e18e5db843",
+              "size": 1766
+            },
+            "definitions/registry.json": {
+              "sha256": "4b1a17f5a5b19c423aa450c9ce8dac97fb1cf32ce6df56c20e68058126debd8d",
+              "size": 673
+            },
+            "definitions/scoring-regressions.json": {
+              "sha256": "f5079fb9b19fbe41602e486c3e6de56b75696f15dfdfec5ae2f19895fb119231",
+              "size": 49365
+            },
+            "definitions/scoring-revisions.json": {
+              "sha256": "a5692726c7a0f4842418e9b81ece9024926ceb3867a299f175a231256bb95d1a",
+              "size": 15301
+            },
+            "definitions/sources.json": {
+              "sha256": "28de8222142da6f92ce772a4543f214541aab31ea19845831a1545286eb6239d",
+              "size": 132984
+            }
+          }
+        }
+      ],
+      "dataset_sources": {
+        "factual-v1": "simpleqa-verified"
+      }
+    },
+    "simpleqa-verified": {
+      "repository": "Lexmount/lexbench-simpleqa-verified",
+      "revision": "901bb37be4539403d02dcd22e06364a2929edbca",
+      "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
+      "archive": {
+        "path": "definitions.tar.gz",
+        "sha256": "689e2ed0c8f077553e3b48cac96df9a4e79b3087ae35c1c37946cf424810cd19",
+        "size": 127098
+      },
+      "datasets": {
+        "factual-v1": {
+          "count": 831,
+          "path": "datasets/factual-v1.json",
+          "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253"
+        }
+      },
+      "files": {
+        "LICENSE": {
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "size": 11358
+        },
+        "NOTICE": {
+          "sha256": "b39a80c9593188f8f4a7f6f8588adf92904ec88426effd7698ed5caa405b5d1c",
+          "size": 272
+        },
+        "THIRD_PARTY.md": {
+          "sha256": "73b1f44bf3419db695b792bd13b59572aaa8ff4966c2168d8cd124c77272cfd9",
+          "size": 1817
+        },
+        "definitions/NOTICE.txt": {
+          "sha256": "4787042ef9f5d9e353edd7c747ac15c0fe4a2a572f0dd3ce1f52cf8c6549215c",
+          "size": 3634
+        },
+        "definitions/datasets/factual-v1.json": {
+          "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253",
+          "size": 735667
+        },
+        "definitions/factual-source.json": {
+          "sha256": "b2f0f48cece8fa8c6449acd387a2936c23cf678801138d48b70952d24a2210db",
+          "size": 1032
+        },
+        "definitions/registry.json": {
+          "sha256": "0dd3c899949eeeee70e2d32c8362c2e2d339609589a1c9b1d2fc6a0587f045c6",
+          "size": 195
+        }
+      },
+      "history": [
+        {
+          "repository": "Lexmount/lexbench-simpleqa-verified",
+          "revision": "85576796ca419c45fe1b58e9b1925128d76204cd",
+          "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
+          "archive": {
+            "path": "definitions.tar.gz",
+            "sha256": "689e2ed0c8f077553e3b48cac96df9a4e79b3087ae35c1c37946cf424810cd19",
+            "size": 127098
+          },
+          "files": {
+            "LICENSE": {
+              "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+              "size": 11358
+            },
+            "NOTICE": {
+              "sha256": "b39a80c9593188f8f4a7f6f8588adf92904ec88426effd7698ed5caa405b5d1c",
+              "size": 272
+            },
+            "THIRD_PARTY.md": {
+              "sha256": "73b1f44bf3419db695b792bd13b59572aaa8ff4966c2168d8cd124c77272cfd9",
+              "size": 1817
+            },
+            "definitions/NOTICE.txt": {
+              "sha256": "4787042ef9f5d9e353edd7c747ac15c0fe4a2a572f0dd3ce1f52cf8c6549215c",
+              "size": 3634
+            },
+            "definitions/datasets/factual-v1.json": {
+              "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253",
+              "size": 735667
+            },
+            "definitions/factual-source.json": {
+              "sha256": "b2f0f48cece8fa8c6449acd387a2936c23cf678801138d48b70952d24a2210db",
+              "size": 1032
+            },
+            "definitions/registry.json": {
+              "sha256": "0dd3c899949eeeee70e2d32c8362c2e2d339609589a1c9b1d2fc6a0587f045c6",
+              "size": 195
+            }
+          }
+        }
+      ]
+    },
+    "webmainbench": {
+      "repository": "Lexmount/lexbench-webmainbench",
+      "revision": "e83527ad49f02ffc3ddc66f473f6e3e030e0a9c9",
+      "source_revision": "65b49124b923e59f3cfcd839ee1af4628c36f340",
+      "archive": {
+        "path": "definitions.tar.gz",
+        "sha256": "21f09d4c75be593b8ddfaafb5ec12369f479cfa707b730ad668ada46b252b1c8",
+        "size": 23220429
+      },
+      "datasets": {
+        "corrected-545": {
+          "count": 545,
+          "format": "jsonl",
+          "id_field": "track_id",
+          "path": "WebMainBench_545.jsonl",
+          "sha256": "03bc6370a2b37427eba94f95268cf3c935ac89b15b184dfc47f84b78b97fe18e"
+        }
+      },
+      "files": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "size": 11357
+        },
+        "NOTICE": {
+          "sha256": "c885f4bdcda5985564db4e83f22e81dd582e37001a4051793ad23e4c8b3d6796",
+          "size": 85
+        },
+        "THIRD_PARTY.md": {
+          "sha256": "f6d44a8a964c42aac3bacde315a3ad716bd18d36d59fc3defcd3386023a3e773",
+          "size": 236
+        },
+        "definitions/WebMainBench_545.jsonl": {
+          "sha256": "03bc6370a2b37427eba94f95268cf3c935ac89b15b184dfc47f84b78b97fe18e",
+          "size": 109088066
+        },
+        "definitions/corrections/55ba9228-70a1-409f-a4e1-f2acac076b0d.md": {
+          "sha256": "70af80fd7eeabd1155d3dcb5b942d6e91b6658d8163419532db0c73c1c5b4ebc",
+          "size": 2068
+        },
+        "definitions/corrections/WebMainBench_545.json": {
+          "sha256": "a70d03d146533ad8ac84f62e38820977766f5c4f4d09c44dfe90e7973f8a0b73",
+          "size": 16515
+        },
+        "definitions/corrections/d0917f81-3044-4bdb-abb1-6cff6b7db15a.md": {
+          "sha256": "79e34b1316aca38603d9e65a7728f6a2f1962daf7e300e485f68f5bd32ee11d6",
+          "size": 1801
+        },
+        "definitions/corrections/f080fbec-9ec6-43c6-9bc6-0846c70cbe8d.md": {
+          "sha256": "2e04b21e7a80cb4333d9549620119ff833bed048d03af47461c534216d82e48c",
+          "size": 6661
+        },
+        "definitions/registry.json": {
+          "sha256": "03645e099fcdc44fc6d284b24a23417ac5929301ab84834b21178ebbe0f0ef15",
+          "size": 251
+        },
+        "definitions/upstream.json": {
+          "sha256": "7abb5092758f52ea2a7eb731a6cd5037573e413d0f3700262df2f698153acf0e",
+          "size": 602
+        }
+      },
+      "history": [
+        {
+          "repository": "Lexmount/lexbench-webmainbench",
+          "revision": "bffabf6a90718d7f6a34a4c2dfed71d61268748f",
+          "source_revision": "65b49124b923e59f3cfcd839ee1af4628c36f340",
+          "archive": {
+            "path": "definitions.tar.gz",
+            "sha256": "21f09d4c75be593b8ddfaafb5ec12369f479cfa707b730ad668ada46b252b1c8",
+            "size": 23220429
+          },
+          "files": {
+            "LICENSE": {
+              "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+              "size": 11357
+            },
+            "NOTICE": {
+              "sha256": "c885f4bdcda5985564db4e83f22e81dd582e37001a4051793ad23e4c8b3d6796",
+              "size": 85
+            },
+            "THIRD_PARTY.md": {
+              "sha256": "f6d44a8a964c42aac3bacde315a3ad716bd18d36d59fc3defcd3386023a3e773",
+              "size": 236
+            },
+            "definitions/WebMainBench_545.jsonl": {
+              "sha256": "03bc6370a2b37427eba94f95268cf3c935ac89b15b184dfc47f84b78b97fe18e",
+              "size": 109088066
+            },
+            "definitions/corrections/55ba9228-70a1-409f-a4e1-f2acac076b0d.md": {
+              "sha256": "70af80fd7eeabd1155d3dcb5b942d6e91b6658d8163419532db0c73c1c5b4ebc",
+              "size": 2068
+            },
+            "definitions/corrections/WebMainBench_545.json": {
+              "sha256": "a70d03d146533ad8ac84f62e38820977766f5c4f4d09c44dfe90e7973f8a0b73",
+              "size": 16515
+            },
+            "definitions/corrections/d0917f81-3044-4bdb-abb1-6cff6b7db15a.md": {
+              "sha256": "79e34b1316aca38603d9e65a7728f6a2f1962daf7e300e485f68f5bd32ee11d6",
+              "size": 1801
+            },
+            "definitions/corrections/f080fbec-9ec6-43c6-9bc6-0846c70cbe8d.md": {
+              "sha256": "2e04b21e7a80cb4333d9549620119ff833bed048d03af47461c534216d82e48c",
+              "size": 6661
+            },
+            "definitions/registry.json": {
+              "sha256": "03645e099fcdc44fc6d284b24a23417ac5929301ab84834b21178ebbe0f0ef15",
+              "size": 251
+            },
+            "definitions/upstream.json": {
+              "sha256": "7abb5092758f52ea2a7eb731a6cd5037573e413d0f3700262df2f698153acf0e",
+              "size": 602
+            }
+          }
+        }
+      ],
+      "default_dataset": "corrected-545",
+      "scorer": {
+        "repository": "https://github.com/lexmount/WebMainBench.git",
+        "revision": "65b49124b923e59f3cfcd839ee1af4628c36f340"
+      }
+    }
+  }
+}

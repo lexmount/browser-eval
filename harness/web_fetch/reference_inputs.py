@@ -13,7 +13,6 @@ from urllib.parse import quote, urlsplit, urlunsplit
 from urllib.request import urlopen
 
 from lexbench_webfetch.inputs import (
-    definition_path,
     digest,
     verify_catalog,
     verify_tree,
@@ -49,8 +48,19 @@ def benchmark_input_path(path: Path) -> Path:
             if authority.is_symlink():
                 raise ValueError("Benchmark checkout binding must not be symlinked")
             binding = json.loads(authority.read_text(encoding="utf-8"))
-            if (binding.get("kind") != "external_benchmark_binding"
-                    or binding.get("repository") != "https://github.com/lexmount/lexbench-webfetch"):
+            from harness.benchmarks import data as datasets
+            locked = datasets.binding("webfetch")
+            if (binding.get("kind") == "huggingface_benchmark_binding"
+                    and binding.get("repository") == "https://huggingface.co/datasets/" + locked["repository"]):
+                revision = binding["revision"]
+            elif (binding.get("kind") == "external_benchmark_binding"
+                    and binding.get("repository") == "https://github.com/lexmount/lexbench-webfetch"):
+                matches = [item for item in [locked, *locked.get("history", [])]
+                           if item.get("source_revision") == binding.get("revision")]
+                if not matches:
+                    raise ValueError("Historical benchmark source is not recorded in the dataset lock")
+                revision = matches[0]["revision"]
+            else:
                 raise ValueError("Invalid benchmark checkout binding")
             relative = absolute.relative_to(checkout)
             selected = (relative.parent / MANIFEST_NAME
@@ -60,7 +70,7 @@ def benchmark_input_path(path: Path) -> Path:
                 continue
             if path.is_symlink():
                 raise ValueError("Benchmark inputs must not be symlinked")
-            target = definition_path(selected.as_posix())
+            target = datasets.definition_path("webfetch", selected.as_posix(), revision)
             if digest(target) != expected:
                 raise ValueError("Installed benchmark definition differs from checkout binding")
             return target.parent / relative.name if relative.name == 'dataset.json' else target

@@ -1,0 +1,50 @@
+{
+  "schema": "browser-eval-code-migration/1",
+  "purpose": "Consolidate scorer packaging and resolve unchanged definitions through hash-verified Hugging Face snapshots.",
+  "sources": {
+    "webfetch": {
+      "repository": "https://github.com/lexmount/lexbench-webfetch",
+      "revision": "5a5b9367118dcc25f126ee16ef4de2d7c666f190",
+      "changes": {
+        "benchmark.py": {
+          "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
+          "after_sha256": "173966c46ebc2a96e3657bf0c70882b46bb4b4b00a8f4104fb33b475b0aeb20e"
+        },
+        "article_dataset.py": {
+          "before_sha256": "8d661b165fc63a6b72352ee6592a99611579e700f1633dab2c0d70824d93447b",
+          "after_sha256": "d4e1b855697aaef557dd90041623d5f6f61db638eee0817d73d968a95126d2f6"
+        },
+        "inputs.py": {
+          "before_sha256": "d0cccd0be9ead93d40a56dcfa15ece74e96965beefb5032e0b6bbe23b5da9d44",
+          "after_sha256": "9064564b91921346ebf5bf7e5b9305ecc0e02db06b91f1fba55d71477a7435b5"
+        },
+        "cli.py": {
+          "before_sha256": "46b7bd246e8b56bc03c7d35309a7ec48419c37f54bb05bc6a144cfd3c527e194",
+          "after_sha256": "c4adc686d4ff7e934fa3b49ef24d4536957bbf28a7a9cc6dc5dcd5eca81f7fdc"
+        }
+      }
+    },
+    "websearch": {
+      "repository": "https://github.com/lexmount/lexbench-websearch",
+      "revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
+      "changes": {
+        "simpleqa.py": {
+          "before_sha256": "39cd02fa1b65b10a0bc38cdf9ab245878b8ef7d07705203d10f9f4c2fa5eef0d",
+          "after_sha256": "fb8c17cb78abdc0d2e13a7b5523367bf0b7e1fc9d2bda48941e62499d582a6e0"
+        },
+        "__init__.py": {
+          "before_sha256": "59ae744164e0235b61506730b36632405944503be2dc472c56d923dcaef3183f",
+          "after_sha256": "ac4d94c16e7f3fb3b280f542e2c2645a1d0b35b9e01cdb13b140d5bbf9057a97"
+        },
+        "inputs.py": {
+          "before_sha256": "5883ac279964963ddcd662f47d555e22d1a9af8f4eb6e3b6a7af1988fd6b6ba7",
+          "after_sha256": "9f66f7cafb0464786f2ed310d4817665b564245d0d169213bcb74d01578465d1"
+        },
+        "versions.py": {
+          "before_sha256": "27c10a5f86b4a8ac7841cc9dfbe77c2f724ea675a938bda3719ae05084c058e0",
+          "after_sha256": "4c15aebd889c81c8c775234f40d7919fb5fa690e95912b751fda940504570db0"
+        }
+      }
+    }
+  }
+}

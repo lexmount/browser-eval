@@ -10,7 +10,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
 
-[Features](#features) · [Approach](#evaluation-approach) · [Tracks](#evaluation-tracks) · [Quickstart](#quickstart) · [Reports](#reports) · [Versions](#versions) · [Related projects](#related-repositories) · [Contributing](CONTRIBUTING.md)
+[Features](#features) · [Approach](#evaluation-approach) · [Tracks](#evaluation-tracks) · [Quickstart](#quickstart) · [Reports](#reports) · [Versions](#versions) · [Related projects](#datasets-and-related-projects) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -53,8 +53,8 @@ Choose a workflow for its task contract, setup and runnable example.
 
 | Track | Benchmarks and task suites | Guide |
 | --- | --- | --- |
-| Web Fetch | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), [WebMainBench](https://github.com/opendatalab/WebMainBench), [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
-| Web Search | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch): scenario queries and a SimpleQA Verified retrieval adaptation | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
+| Web Fetch | [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch), [LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench), [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
+| Web Search | [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch): scenario queries and [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) retrieval tasks | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
 | Browser Trajectory Replay | [Repository-curated fixed-action suite](examples/trajectory_replay/README.md), adapted from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios); [qualified WebArena human recordings](evaluation/browser-use-public/webarena-human-suite.json), checked with the [WebArena-Verified evaluator](https://github.com/lexmount/webarena-verified/tree/lex-main) | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
 
 ### Web Fetch
@@ -169,6 +169,8 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 
 English is the default; add `--language zh` when running or rebuilding for Chinese. A rebuild without that option keeps the saved language.
 
+Scoring code ships with Browser Eval; dataset commits and file hashes are selected in [the data lock](harness/benchmarks/data-lock.json).
+
 Each new report records its Browser Eval build and selected benchmark edition, with exact code and input hashes. See [versioning](docs/benchmarks.md#benchmark-editions) for comparison rules and [reference inputs](docs/reference-inputs.md) for historical data.
 
 See the [report guide](docs/report-hosting.md) for local builds and formal benchmark releases.
@@ -177,12 +179,14 @@ See the [report guide](docs/report-hosting.md) for local builds and formal bench
 
 Published versions, changes and dependency snapshots are listed in [GitHub Releases](https://github.com/lexmount/browser-eval/releases). See [version rules](docs/releases.md) for release policy and report provenance.
 
-## Related repositories
+## Datasets and related projects
 
-| Repository | Role |
+| Resource | Role |
 | --- | --- |
-| [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Versioned Web Fetch tasks, acceptance scoring and frozen input bindings |
-| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Versioned search queries, source references and retrieval scoring |
+| [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch) | Versioned Web Fetch tasks, acceptance contracts and reference bindings |
+| [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) | Versioned search queries and source references |
+| [LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench) | Reference-corrected WebMainBench tasks and correction provenance |
+| [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) | Length-qualified SimpleQA Verified retrieval tasks, with original answers |
 | [Moli](https://github.com/lexmount/moli) | Browser evaluated through the same task contracts as other participants |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | CLI client for the Lexmount WebFetch service; separate from the evaluation harness |
 | Artifact Site ([Global .com](https://yours.lexmount.com/artifact-site) · [China .cn](https://yours.lexmount.cn/artifact-site)) | Report creation and sharing with access controls |

@@ -1,21 +1,17 @@
 # Benchmarks and the execution harness
 
-Browser Eval executes tasks, adapts browsers and providers, calls the selected benchmark scorer, records evidence and builds reports. Benchmarks define which tasks to run and what counts as an acceptable result.
+Browser Eval owns scoring, execution adapters, saved evidence and reports. Public task definitions, source attribution and reference bindings are versioned on Hugging Face.
 
 | Responsibility | Owner |
 | --- | --- |
-| Self-authored Web Fetch task populations, prompts and acceptance requirements | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) |
-| LexBench task catalogs and frozen source-input bindings | LexBench Web Fetch |
-| Web Search tasks, provenance, source qualifications and deterministic retrieval scoring | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) |
-| Browser/provider adapters, execution policy and credential loading | Browser Eval |
-| Task model, deterministic acceptance scorer, file-byte checks, compiler and scenario registry | LexBench Web Fetch |
-| Rescoring orchestration and evidence revision machinery | Browser Eval |
-| Experiment profiles, method versions, certificates and publication targets | Browser Eval |
-| Report builders, evidence viewers, packaging and publication | Browser Eval |
-| Full source captures, provider responses and measured runs | External input/evidence storage, outside both Git repositories |
-| WebMainBench, WCXB and WebArena task definitions | Their upstream benchmark owners |
+| Web Fetch task model, deterministic acceptance and offline scoring | `lexbench_webfetch/` in this repository |
+| Search acceptance, relevance metrics and offline scoring | `lexbench_websearch/` in this repository |
+| Public task definitions and source/reference bindings | The four [LexMount datasets on Hugging Face](https://huggingface.co/Lexmount) |
+| Download verification and dataset selection | `harness/benchmarks/` and its [data lock](../harness/benchmarks/data-lock.json) |
+| Provider calls, browser execution, evidence and reports | Existing track modules under `harness/` |
+| WCXB and WebArena benchmark definitions | Their upstream owners |
 
-LexBench Web Fetch can be inspected, validated and exported without installing Browser Eval. Its public task requirements are data, so another runner can consume them. Browser Eval imports the pinned `lexbench_webfetch` task model and scoring implementation directly. LexBench can score saved responses and files without Browser Eval. Browser Eval owns the execution, evidence and report lifecycle around those calls.
+The two scorer APIs and console commands ship in the Browser Eval distribution. They require no browser installation or provider credentials. Existing releases of the former scorer repositories remain historical code authorities.
 
 ## Evaluation design
 
@@ -33,40 +29,49 @@ When verification finds a defect, correct the shared cause in the reference, sco
 
 ## Use LexBench inputs
 
-In a LexBench Web Fetch checkout:
+Install Browser Eval, then prepare its pinned public definitions:
 
 ```sh
 uv sync --frozen
+uv run --frozen python -m harness.benchmarks.data
 uv run --frozen lexbench-webfetch list
 uv run --frozen lexbench-webfetch validate
+uv run --frozen lexbench-websearch list
+```
+
+When upgrading an existing checkout, `uv sync --frozen` removes the retired standalone scorer distributions before installing the shared distribution.
+
+Downloads use full Hugging Face commits and verify the archive and every file. Public downloads need no access key. Cached definitions work with `HF_HUB_OFFLINE=1`; `BROWSER_EVAL_DATASET_CACHE` overrides the default `~/.browser-eval/datasets/`. Changing the evidence directory does not change the selected dataset cache.
+
+The public Fetch definitions contain compact task contracts and reference hashes. Full third-party captures still require an approved matching input copy:
+
+```sh
 uv run --frozen lexbench-webfetch export \
   --suite webfetch --source /absolute/path/approved-inputs \
   --output /absolute/path/new-input-directory
-```
-
-The public definitions are included. Full third-party references require an approved matching input copy; the benchmark currently provides no public full-input download bundle. The export checks the original dataset and every declared reference file by hash, then materializes only those inputs. Select `popular-sites`, `dynamic-content` or `access-restrictions` for another suite.
-
-In Browser Eval:
-
-```sh
 uv run --frozen browser-harness-eval validate \
   --dataset /absolute/path/new-input-directory/dataset.json
-uv run --frozen browser-harness-eval run \
-  --dataset /absolute/path/new-input-directory/dataset.json \
-  --provider-config configs/providers.quickstart.json --providers http
 ```
 
-This uses the existing dataset interface. `uv sync --frozen` installs LexBench from the exact Git commit pinned in `pyproject.toml` and `uv.lock`. uv retrieves the Git source, builds a wheel and installs the Python package; Git must be available, but no sibling checkout is required. The input checker verifies frozen bytes; a formal live-site comparison still requires the [certified runner](../harness/web_fetch/README.md), independent reference validation before and after calls, and the selected track's release gates. Ordinary CLI runs are diagnostic.
+The export verifies the full dataset and declared reference files before materializing them. A formal live-site comparison uses the [certified runner](../harness/web_fetch/README.md) and the selected track's release gates. Ordinary CLI runs are diagnostic. For offline scoring of an existing answer, use `lexbench-webfetch score` or `lexbench-websearch score`; their help lists the task, response and evidence inputs.
 
 ## Historical bindings and new revisions
 
-The four initial LexBench suites preserve the original catalogs and source-input manifests. [The import binding](../evaluation/lexbench-webfetch.json) records the benchmark revision and exact hashes. The original catalogs, manifests and task-authoring contracts live only in LexBench, with their frozen bytes and relative paths preserved. Browser Eval resolves historical logical input paths through the installed package. Its experiment profiles and certificates retain their original bindings.
+[The data lock](../harness/benchmarks/data-lock.json) selects dataset commits, records archive/file hashes and retains earlier snapshots. [Fetch](../evaluation/lexbench-webfetch.json) and [Search](../evaluation/lexbench-websearch.json) import bindings preserve logical historical paths and exact definition hashes. Existing experiment profiles and certificates retain their original identities.
 
-Change task requirements in LexBench, release the updated benchmark there, and select that version in a new experiment profile. Fix execution defects in Browser Eval and scoring defects in LexBench; keep accepted/rejected scenario controls with their owner. Preserve prior measurements and apply corrections across the declared affected scope.
+Select a new published edition through one command:
 
-The retained `harness/lexbench/` module concerns historical headless-browser comparisons. It is unrelated to the `lexbench-webfetch` input package and remains an execution/report adapter.
+```sh
+make pin-dataset DATASET=webfetch REV=<full-Hugging-Face-commit>
+```
 
-The curated [Browser Trajectory Replay suite](../examples/trajectory_replay/README.md) records [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios) in each applicable task's `source.design_basis`. It adapts those capabilities to public-page actions with its own exact expected outputs. This suite does not execute the complete upstream task population. The [public WebArena replay](../examples/trajectory_replay/public_webarena/README.md) instead uses qualified human recordings and the WebArena-Verified evaluator.
+Use `websearch`, `simpleqa-verified` or `webmainbench` for the other datasets. The command verifies the release before updating the lock and applicable import bindings. Keep current-version selections in these files, not in README prose.
+
+Author dataset changes in a checkout of the corresponding Hugging Face dataset. Commit the definitions and materialize any Git LFS files, then use `python -m harness.benchmarks.publication --help` to build and publish the inspected commit. Install the optional `dataset-publish` extra and authenticate with `HF_TOKEN` for uploads; readers need no token. Preserve upstream attribution and redistribution terms. Scores, provider responses, model grades and private run directories do not belong in a dataset release.
+
+For resource-only or raw-file tasks, declare `content_score_applicable: false` when no text answer is required; file/resource checks remain active. Fix scoring rules here and keep positive/negative controls with their scorer. Preserve prior measurements; a scoring or reference correction applies to the declared affected scope through the existing revision receipts. `harness/lexbench/` remains the historical headless-browser execution/report adapter, separate from the two scorer packages.
+
+The curated [Browser Trajectory Replay suite](../examples/trajectory_replay/README.md) adapts the [Lexbench-Headless-Browser scenarios](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios). The [public WebArena replay](../examples/trajectory_replay/public_webarena/README.md) uses qualified human recordings and the WebArena-Verified evaluator.
 
 ## Benchmark editions
 
@@ -79,8 +84,8 @@ Use the existing owner for each selection:
 
 | Benchmark | Version authority |
 | --- | --- |
-| LexBench Web Fetch / Web Search | Git dependencies in `pyproject.toml`, resolved commits in `uv.lock`, and `evaluation/lexbench-*.json` |
-| WebMainBench | Selected run profile's scorer commit and frozen dataset/scorer hashes |
+| LexBench datasets | `harness/benchmarks/data-lock.json`, corresponding import bindings and the Browser Eval scorer source commit |
+| WebMainBench | The data lock's corrected corpus, its upstream/correction provenance and the selected run profile's scorer commit |
 | WCXB | Selected source manifest's `source_commit` and input hashes |
 | WebArena for Browser Use and replay | Pinned evaluator dependency, runtime source verification and the selected task/trajectory bindings |
 | Repository-curated replay | Browser Eval source commit and selected task/trajectory hashes |
@@ -97,7 +102,7 @@ citations; those records must not follow a newer dependency selection.
 Updating the installed benchmark does not select a new dataset for an existing
 report.
 
-Create `bench-vMAJOR.MINOR.PATCH` tags only in the benchmark repository.
+Hugging Face release tags are optional labels for immutable dataset commits; a moving tag never replaces the recorded commit.
 Browser Eval publishes software versions as `vMAJOR.MINOR.PATCH` and records the
 full Git commit for execution and report-building code.
 Reports reference their benchmark edition and the hosting platform's immutable
@@ -115,8 +120,7 @@ edition retain their hashes rather than inheriting the installed catalog version
 | Reviewed scoring/reference correction with the same task inputs | Minor | Re-score both saved cohorts under one edition |
 | Added/removed cases, changed requests, output scope or routes | Major | Separate full-population results |
 
-The task package owns `lexbench-webfetch release` and `compare-releases`.
-See its [version contract](https://github.com/lexmount/lexbench-webfetch/blob/bench-v2.0.1/docs/versions.md).
+The `lexbench_webfetch` module owns `lexbench-webfetch release` and `compare-releases`. Historical benchmark version contracts remain available with their original source revisions.
 Freeze `benchmark-release.json` beside the compiled inputs before calls.
 The certified Web Fetch runner accepts `--benchmark-release`; it also discovers
 the sidecar beside the selected dataset. Release creation records the full scorer
@@ -303,12 +307,12 @@ part of each saved call; a participant name is not a version receipt.
 Shared adapter documentation describes interfaces by engine. Adding a version
 or renaming a participant requires data changes, without another renderer entry.
 
+## WebMainBench runtime
+
+The WebMainBench runner defaults to the corrected corpus selected by the data lock. Its scoring command prepares the exact declared scorer checkout when `--scorer-repo` is omitted, and rejects a changed commit or dirty tracked files. Install the `webmainbench-eval` extra for its metric dependencies. Explicit dataset files retain the original-corpus hash and scorer defaults; provide the matching hash and scorer commit when selecting another historical edition. Existing profiles and saved evidence remain unchanged.
+
 ## Web Search integration
 
-LexBench Web Search is installed from the commit pinned in [pyproject.toml](../pyproject.toml), [uv.lock](../uv.lock) and the [definition binding](../evaluation/lexbench-websearch.json). Its task files and scoring code have one owner in that repository. Browser Eval provides providers, model/human annotation collection, latency/billing collection, audits and report publication. Report-specific execution profiles and receipts live with external evidence, selected explicitly by the caller. No sibling checkout is required.
+The local `lexbench_websearch` module loads its pinned public definitions through the shared dataset loader. The registry's `current` mapping selects named task suites; explicit dataset, field and hash references are resolved before collection. Historical standalone profiles preserve their original bytes and hashes.
 
-The pinned benchmark's `version` command checks its catalog and scoring state. Select task suites through the installed registry's `current` mapping; the bench edition fixes their snapshots. The harness resolves explicit dataset/field/hash references before freezing a run. Resolving the split historical profiles reproduces the original profile bytes and hashes, so saved calls keep their original identity. Model judgment evidence and measured results stay outside both repositories.
-
-Change search queries, references or scoring in LexBench Web Search and pin the resulting commit here. Change provider behavior or report generation in Browser Eval. See the upstream [data provenance](https://github.com/lexmount/lexbench-websearch/blob/main/docs/data.md) and [evaluation protocol](https://github.com/lexmount/lexbench-websearch/blob/main/docs/evaluation.md).
-
-Update a merged Search benchmark revision with `make bump-lexbench BENCHMARK=lexbench-websearch REV=<full-commit>`. The shared updater checks upstream main ancestry and updates the package, lock and dataset-hash binding together.
+Search providers, annotation collection, latency/billing evidence, audits and reports remain in `harness/web_search/`. Report profiles and measured results stay beside external evidence. Change task data on Hugging Face and scorer code here; keep the existing source qualifications and paired scoring controls. The [Search dataset](https://huggingface.co/datasets/Lexmount/lexbench-websearch) and [SimpleQA retrieval edition](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) retain source attribution and derivation details.

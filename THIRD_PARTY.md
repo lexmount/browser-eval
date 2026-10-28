@@ -4,6 +4,8 @@ The root Apache-2.0 license covers project-owned code and documentation. It does
 
 | Content | Source and binding | Distribution boundary |
 | --- | --- | --- |
+| LexBench Web Fetch / Web Search code | Original source commits and packaging/input changes recorded in `harness/benchmarks/code-migration.json` | Project-owned Apache-2.0 code; retained names and copyright in NOTICE |
+| LexBench datasets | Hugging Face commits and hashes in `harness/benchmarks/data-lock.json` | Downloaded separately; preserve each snapshot's upstream notices. SimpleQA Verified data retains MIT attribution |
 | WebArena-Verified | Source repository and commit pinned in `pyproject.toml` and `uv.lock` | Installed as a dependency; retain upstream license and attribution |
 | Humanizer / Humanizer Chinese | [blader/humanizer](https://github.com/blader/humanizer), [jiji262/humanizer-chinese](https://github.com/jiji262/humanizer-chinese); commits and file hashes in each skill's `SOURCE.json` | MIT; upstream skill and license files are copied unchanged. See [skill sources and updates](.agents/skills/README.md) |
 | WebMainBench / WCXB | Parent populations, scorers and hashes bound by the relevant `evaluation/` profiles | Obtain separately under upstream terms; the code license grants no rights to source pages |

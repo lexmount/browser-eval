@@ -15,13 +15,12 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
-from lexbench_webfetch.paths import contained_path
-
 from harness.reporting.publication import archive_inventory
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 from harness.web_fetch.publication_target import publication_document, require_publication_version
 from harness.web_fetch.report_publish import PublishConfig, publish
 from harness.web_fetch.safety import unlinked_path
+from lexbench_webfetch.paths import contained_path
 
 REPORT_STEM = "webarena-trajectory-replay-latest"
 

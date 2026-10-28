@@ -10,7 +10,6 @@ from collections import Counter
 from pathlib import Path
 
 from bs4 import BeautifulSoup
-from lexbench_webfetch.paths import contained_path
 
 from harness.browser_use.failure_cause_review import (
     load_failure_cause_review,
@@ -42,6 +41,7 @@ from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import check_build_version
 from harness.web_fetch.safety import reject_evidence_symlinks
+from lexbench_webfetch.paths import contained_path
 
 FORBIDDEN_READER_TERMS = (
     "模型内完整配对",

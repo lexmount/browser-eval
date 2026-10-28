@@ -1,6 +1,6 @@
 # Web Fetch
 
-Browser Eval provides this track’s execution, evidence and report pipeline. The self-authored task suites and acceptance requirements are maintained in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch). See [benchmark integration](../../docs/benchmarks.md) for verified input export and repository boundaries.
+Browser Eval owns this track's execution, evidence and report pipeline, and the independent scorer in `lexbench_webfetch/`. Public task definitions and reference bindings are versioned in [LexBench Web Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-webfetch). See [benchmark integration](../../docs/benchmarks.md) for input export and dataset selection.
 
 Fetch a page or file, score the returned content against declared requirements, and inspect the saved result. Start with the [local article example](../../examples/web_fetch/README.md) for a runnable HTTP/Moli/Chromium comparison.
 

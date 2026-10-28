@@ -20,8 +20,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from lexbench_webfetch.paths import contained_path, safe_identifier
-
 from harness.record_io import load_jsonl, same_json_record
 from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from harness.trajectory_replay.public_webarena.suite import (
@@ -32,6 +30,7 @@ from harness.trajectory_replay.public_webarena.suite import (
 )
 from harness.trajectory_replay.public_webarena.targets import validate_target
 from harness.web_fetch.safety import unlinked_path, write_new_file
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 QUALIFICATION_SCHEMA = "lex_browser_use_qualification/2"

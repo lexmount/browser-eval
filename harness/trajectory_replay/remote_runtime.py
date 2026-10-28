@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-from lexbench_webfetch.paths import contained_path
 from webarena_verified import WebArenaVerified
 from webarena_verified.types.config import EnvironmentConfig, WebArenaVerifiedConfig
 from webarena_verified.types.task import WebArenaSite
@@ -29,6 +28,7 @@ from harness.environments.webarena.runtime import (
 from harness.trajectory_replay.retrieval_acceptance import digest as retrieval_digest
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.web_fetch.safety import unlinked_path, write_new_file
+from lexbench_webfetch.paths import contained_path
 
 COHORT_RESET_SCOPE = "once_before_method_cohort"
 METHOD_ID = re.compile(r"[a-z0-9][a-z0-9._-]{1,79}\Z")
