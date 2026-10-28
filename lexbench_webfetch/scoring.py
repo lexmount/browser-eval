@@ -330,11 +330,11 @@ def score_attempt(
             result["content_pass"] = bool(result["content_pass"] and all(required.values()))
     if (rule_review.get("status") != "unresolved" and not contract
             and benchmark.get("mode") == "dynamic_list_structure"):
-        result.update(evaluate_dynamic_list(content, benchmark, base_url, ok, links))
+        result.update(evaluate_dynamic_list(content, benchmark, base_url, ok, links, representation=representation))
         if benchmark.get("verification_scope") == "first_three_name_detail_pairs":
             if list_reference is None:
                 raise ValueError("Legacy list scoring requires independent list reference")
-            result.update(verify_list(content, benchmark, base_url, list_reference, ok, links))
+            result.update(verify_list(content, benchmark, base_url, list_reference, ok, links, representation=representation))
     result["content_sha256"] = hashlib.sha256(artifact).hexdigest()
     result["content_chars"] = len(artifact.decode('utf-8', errors='replace'))
     if case.get('ordered_tree_reference') is not None:

@@ -54,14 +54,16 @@ _PURE_CTA = re.compile(
     r'立即查看|立即购买|加入购物车|前往登录|登录|去看看|\d+)', re.I)
 
 
-def _label_key(value):
+def _label_key(value, *, representation=None):
+    if representation in {'plain_text', 'html'}:
+        return re.sub(r'\s+', ' ', unicodedata.normalize('NFKC', value).casefold()).strip()
     value=unicodedata.normalize('NFKC',unquote(unescape(value))).casefold()
     return re.sub(r'\s+',' ',value).strip(' *#>`')
 
 
-def _is_named_label(title,url,parts,nonempty=False):
+def _is_named_label(title,url,parts,nonempty=False, *, representation=None):
     """A record name must identify the entity, not repeat its route or UI action."""
-    label=_label_key(title)
+    label=_label_key(title, representation=representation)
     if nonempty:
         if not label:
             return False
@@ -79,7 +81,7 @@ def _is_named_label(title,url,parts,nonempty=False):
                   path_query_fragment}
     if parts.query:
         route_labels.update((parts.query,'?'+parts.query))
-    return label not in {_label_key(value) for value in route_labels}
+    return label not in {_label_key(value, representation=representation) for value in route_labels}
 
 
 def canonical_entry_path(path):
@@ -139,10 +141,10 @@ def named_entry_identity(url, contract):
     return parts.hostname + '::' + identity
 
 
-def named_entry_source_pair_hash(title, url, contract):
+def named_entry_source_pair_hash(title, url, contract, *, representation=None):
     """Hash a normalized visible name with its canonical detail identity."""
     identity = named_entry_identity(url, contract)
-    return hashlib.sha256((_label_key(title) + '\0' + identity).encode()).hexdigest()
+    return hashlib.sha256((_label_key(title, representation=representation) + '\0' + identity).encode()).hexdigest()
 
 
 def _without_unsupported_declarations(content):
@@ -194,44 +196,34 @@ def _valid_inline_visibility_value(property_name, value):
     return True
 
 
-def _visible_html_soup(soup):
-    # HTML permits an omitted head end tag before an explicit body. Python's
-    # html.parser leaves that body nested in head; preserve the existing body
-    # before excluding metadata. No rendering or script execution is involved.
+def _inline_visibility_declarations(style):
+    declarations, priorities = {}, {}
+    style = re.sub(r'/\*.*?\*/', ' ', style, flags=re.S)
+    for declaration in style.split(';'):
+        key, separator, value = declaration.partition(':')
+        if not separator:
+            continue
+        key, value = key.strip().lower(), value.strip().lower()
+        important = re.search(r'!\s*important\s*$', value)
+        if important:
+            value = value[:important.start()].strip()
+        if not _valid_inline_visibility_value(key, value):
+            continue
+        # Important declarations beat normal ones; equal priorities keep
+        # the last declared value, independently for each property.
+        if key not in declarations or important or not priorities[key]:
+            declarations[key], priorities[key] = value, bool(important)
+    return declarations
+
+
+def _visible_html_soup(soup, *, hidden_text_owners=None):
+    from bs4 import NavigableString, Tag
+
     if soup.head is not None and soup.body is not None and soup.body.parent is soup.head:
         soup.head.insert_after(soup.body.extract())
-    # aria-hidden does not hide rendered labels. Explicit display/visibility
-    # styles below, rather than accessibility metadata, determine exclusion.
     for node in list(soup.select('head,title,script,style,template,[hidden]')):
         if node.parent is not None:
             node.decompose()
-    for node in list(soup.select('[style]')):
-        if node.parent is None:
-            continue
-        declarations, priorities = {}, {}
-        style = re.sub(r'/\*.*?\*/', ' ', node.get('style', ''), flags=re.S)
-        for declaration in style.split(';'):
-            key, separator, value = declaration.partition(':')
-            if not separator:
-                continue
-            key, value = key.strip().lower(), value.strip().lower()
-            important = re.search(r'!\s*important\s*$', value)
-            if important:
-                value = value[:important.start()].strip()
-            if not _valid_inline_visibility_value(key, value):
-                continue
-            # Important declarations beat normal ones; equal priorities keep
-            # the last declared value, independently for each property.
-            if key not in declarations or important or not priorities[key]:
-                declarations[key], priorities[key] = value, bool(important)
-        opacity = declarations.get('opacity', '')
-        zero_opacity = bool(_CSS_NUMBER.fullmatch(opacity) and float(opacity.rstrip('%')) <= 0)
-        if (declarations.get('display') == 'none'
-                or declarations.get('visibility') in {'hidden', 'collapse'}
-                or zero_opacity):
-            node.decompose()
-    # Native closed disclosures render only the first direct summary. Apply
-    # this before extracting any body, anchor or record text.
     for details in list(soup.select('details:not([open])')):
         if details.parent is None:
             continue
@@ -239,8 +231,44 @@ def _visible_html_soup(soup):
         for child in list(details.contents):
             if child is not summary:
                 child.extract()
-    # An image description is not a visible news/product title. Explicit
-    # title_selector extraction below already uses actual text nodes only.
+    states = hidden_text_owners if hidden_text_owners is not None else {}
+    visible_subtrees = set()
+    stack = [(soup, 'visible', False)]
+    while stack:
+        node, inherited, closing = stack.pop()
+        if node is not soup and node.parent is None:
+            continue
+        if closing:
+            visible_child = any(id(child) in visible_subtrees for child in node.children
+                                if isinstance(child, Tag))
+            if states[id(node)] and not visible_child:
+                node.decompose()
+            else:
+                visible_subtrees.add(id(node))
+            continue
+        declarations = _inline_visibility_declarations(node.get('style', ''))
+        opacity = declarations.get('opacity', '')
+        zero_opacity = bool(_CSS_NUMBER.fullmatch(opacity) and float(opacity.rstrip('%')) <= 0)
+        visibility = declarations.get('visibility', inherited)
+        if visibility == 'initial':
+            visibility = 'visible'
+        elif visibility not in {'visible', 'hidden', 'collapse'}:
+            visibility = inherited
+        if (declarations.get('display') == 'none' or zero_opacity
+                or (visibility == 'collapse' and node.name in {'tr', 'thead', 'tbody', 'tfoot', 'col', 'colgroup'})):
+            node.decompose()
+            continue
+        hidden = visibility in {'hidden', 'collapse'}
+        states[id(node)] = hidden
+        if hidden:
+            # Visibility is inherited, so remove only this element's own text.
+            # A child's explicit visible value can restore its rendered content.
+            for child in list(node.children):
+                if isinstance(child, NavigableString):
+                    child.extract()
+        stack.append((node, visibility, True))
+        stack.extend((child, visibility, False) for child in reversed(list(node.children))
+                     if isinstance(child, Tag))
     for node in soup.select('img'):
         node.attrs.pop('alt', None)
     return soup
@@ -319,21 +347,24 @@ def _entry_destination(url, contract, base_url, diagnostics=None):
     return destination, parts
 
 
-def _named_candidate(url, title, contract, base_url, excluded_titles, diagnostics=None):
+def _named_candidate(url, title, contract, base_url, excluded_titles, diagnostics=None, *, representation=None):
     """Normalize one output candidate; malformed output drops only that candidate."""
     target = _entry_destination(url, contract, base_url, diagnostics)
     if target is None:
         return None
     destination, parts = target
-    title = re.sub(r'<[^>]+>', ' ', unescape(title))
-    title = re.sub(r'\s+', ' ', title).strip(' *#>-')
+    if representation not in {'plain_text', 'html'}:
+        title = re.sub(r'<[^>]+>', ' ', unescape(title))
+        title = re.sub(r'\s+', ' ', title).strip(' *#>-')
+    else:
+        title = re.sub(r'\s+', ' ', title).strip()
     # Keep explicitly excluded labels available to the later exclusion audit;
     # they are removed before any record count or acceptance decision.
-    excluded_name = _label_key(title) in {
-        _label_key(value) for value in contract.get('record_name_exclusions', [])}
+    excluded_name = _label_key(title, representation=representation) in {
+        _label_key(value, representation=representation) for value in contract.get('record_name_exclusions', [])}
     if (not excluded_name and not _is_named_label(
             title, destination, parts,
-            contract.get('name_validation') == 'nonempty')
+            contract.get('name_validation') == 'nonempty', representation=representation)
             or any(pattern.fullmatch(title) for pattern in excluded_titles)):
         return None
     try:
@@ -413,7 +444,7 @@ def _document_html(content):
     return is_html_document_or_fragment(content)
 
 
-def _owned_metadata_links(full_content, scoped_content, links, base_url):
+def _owned_metadata_links(full_content, scoped_content, links, base_url, *, representation=None):
     """Use flat link metadata only when its visible name proves scope ownership."""
     from collections import defaultdict
 
@@ -421,6 +452,8 @@ def _owned_metadata_links(full_content, scoped_content, links, base_url):
     from .response_input import safe_named_links
 
     def visible_text(text):
+        if representation == 'plain_text':
+            return _label_key(text, representation=representation)
         return _label_key(re.sub(r'<[^>]+>', ' ', visible_markdown_links(text)))
 
     def occurrence_count(text, label):
@@ -444,7 +477,7 @@ def _owned_metadata_links(full_content, scoped_content, links, base_url):
     # Explicit Markdown links already pass through the card/context parser.
     # Flat metadata cannot resurrect a link rejected there as prose or a badge.
     explicit_destinations = set()
-    for link in markdown_links(scoped_content):
+    for link in ([] if representation == 'plain_text' else markdown_links(scoped_content)):
         if link.is_image:
             continue
         try:
@@ -454,14 +487,14 @@ def _owned_metadata_links(full_content, scoped_content, links, base_url):
     candidates = safe_named_links(links, base_url)
     destinations = defaultdict(set)
     for url, label in candidates:
-        destinations[_label_key(label)].add(url)
+        destinations[_label_key(label, representation=representation)].add(url)
     return [
         {'url': url, 'title': label}
         for url, label in candidates
         if url not in explicit_destinations
-        and occurrence_count(full_text, _label_key(label)) == 1
-        and occurrence_count(scoped_text, _label_key(label)) == 1
-        and len(destinations[_label_key(label)]) == 1
+        and occurrence_count(full_text, _label_key(label, representation=representation)) == 1
+        and occurrence_count(scoped_text, _label_key(label, representation=representation)) == 1
+        and len(destinations[_label_key(label, representation=representation)]) == 1
     ]
 
 
@@ -526,11 +559,25 @@ def _owned_html_name_links(owner, scope):
     return []
 
 
-def _scope_named_content(content, scope, *, contract=None, base_url=''):
-
+def _scope_named_content(content, scope, *, contract=None, base_url='', representation=None):
     """Apply one declared HTML or text scope and return owned name/link pairs."""
+    if representation == 'plain_text':
+        if not scope.get('start_pattern'):
+            return '', [], False
+        start = re.search(scope['start_pattern'], content, re.I | re.M)
+        if not start:
+            return '', [], False
+        content = content[start.end():]
+        if scope.get('end_pattern'):
+            end = re.search(scope['end_pattern'], content, re.I | re.M)
+            if end:
+                content = content[:end.start()]
+            elif scope.get('required_end', False):
+                return '', [], False
+        return content, [], True
+
     owned_items = []
-    if _has_scoped_html(content):
+    if representation == 'html' or _has_scoped_html(content):
         soup = scoped_html(content)
         owners = soup.select(scope['html_selector'])
         # Inline HTML labels in Markdown do not make a document HTML.
@@ -539,7 +586,7 @@ def _scope_named_content(content, scope, *, contract=None, base_url=''):
         # Inline HTML does not turn a native Markdown answer into a document.
         # Require real visible Markdown links before taking the existing
         # Markdown route; script-only links cannot bypass a DOM scope.
-        if (owners or _document_html(content)
+        if (representation == 'html' or owners or _document_html(content)
                 or (not scope.get("start_pattern")
                     and not markdown_links(visible_html_text(content)))):
             if not scope.get('title_selector'):
@@ -1016,32 +1063,32 @@ def _image_heading_items(content, scope):
     return items
 
 
-def _record_audit_key(identity, title, excluded_names):
-    label = _label_key(title)
+def _record_audit_key(identity, title, excluded_names, *, representation=None):
+    label = _label_key(title, representation=representation)
     return ('excluded', identity, label) if label in excluded_names else identity
 
 
-def _admitted_named_entries(entries, contract, include_excluded):
+def _admitted_named_entries(entries, contract, include_excluded, *, representation=None):
     if include_excluded:
         return entries
-    excluded_names = {_label_key(value) for value in contract.get('record_name_exclusions', [])}
-    return [entry for entry in entries if _label_key(entry['title']) not in excluded_names]
+    excluded_names = {_label_key(value, representation=representation) for value in contract.get('record_name_exclusions', [])}
+    return [entry for entry in entries if _label_key(entry['title'], representation=representation) not in excluded_names]
 
 
-def _deduplicated_named_candidates(items, contract, base_url, diagnostics):
+def _deduplicated_named_candidates(items, contract, base_url, diagnostics, *, representation=None):
     """Apply one candidate validator and retain its canonical identity."""
     excluded_titles = [re.compile(pattern, re.I)
                        for pattern in contract.get('title_exclusion_patterns', [])]
-    excluded_names = {_label_key(value) for value in contract.get('record_name_exclusions', [])}
+    excluded_names = {_label_key(value, representation=representation) for value in contract.get('record_name_exclusions', [])}
     candidates, positions, metadata_positions = {}, {}, {}
     for index, item in enumerate(items):
         url, title = item[:2]
         candidate = _named_candidate(
-            url, title, contract, base_url, excluded_titles, diagnostics,
+            url, title, contract, base_url, excluded_titles, diagnostics, representation=representation,
         )
         if candidate is not None:
             identity, entry = candidate
-            identity = _record_audit_key(identity, entry['title'], excluded_names)
+            identity = _record_audit_key(identity, entry['title'], excluded_names, representation=representation)
             position = item.offset if isinstance(item, LocatedItem) else index
             if isinstance(item, LocatedItem) and item.metadata:
                 if identity in positions:
@@ -1063,12 +1110,25 @@ class _HTMLRanges(HTMLParser):
         self.empty_elements = empty_elements
         self.open, self.ranges = [], {}
         self.starts, self.closes, self.comments = {}, {}, []
+        self.text_ranges, self.pending_text = [], None
 
     def source_offset(self):
         line, column = self.getpos()
         return self.lines[line - 1] + column
 
+    def _finish_text(self, end):
+        if self.pending_text is not None:
+            start, owner = self.pending_text
+            self.text_ranges.append((start, end, owner))
+            self.pending_text = None
+
+    def handle_data(self, data):
+        start = self.source_offset()
+        self._finish_text(start)
+        self.pending_text = (start, self.open[-1][1] if self.open else None)
+
     def handle_starttag(self, tag, attrs):
+        self._finish_text(self.source_offset())
         start = self.source_offset()
         self.starts[start] = start + len(self.get_starttag_text())
         if tag == 'body':
@@ -1085,11 +1145,13 @@ class _HTMLRanges(HTMLParser):
             self.open.append((tag, start))
 
     def handle_startendtag(self, tag, attrs):
+        self._finish_text(self.source_offset())
         start = self.source_offset()
         self.ranges[start] = start + len(self.get_starttag_text())
         self.starts[start] = self.ranges[start]
 
     def handle_endtag(self, tag):
+        self._finish_text(self.source_offset())
         index = next((index for index in range(len(self.open) - 1, -1, -1)
                       if self.open[index][0] == tag), None)
         if index is not None:
@@ -1100,12 +1162,14 @@ class _HTMLRanges(HTMLParser):
             del self.open[index:]
 
     def handle_comment(self, data):
+        self._finish_text(self.source_offset())
         start = self.source_offset()
         closing = re.search(r'--!?>', self.content[start:])
         self.comments.append((start, start + closing.end() if closing else len(self.content)))
 
     def close(self):
         super().close()
+        self._finish_text(len(self.content))
         for _, origin in self.open:
             self.ranges[origin] = len(self.content)
             self.closes[origin] = len(self.content)
@@ -1123,15 +1187,20 @@ def _visible_candidate_content(content):
                for node in soup.find_all(True) if node.sourceline is not None}
     disclosures = [(origins[id(node)], origins.get(id(node.find('summary', recursive=False))))
                    for node in soup.select('details:not([open])') if id(node) in origins]
-    _visible_html_soup(soup)
+    hidden_text_owners = {}
+    _visible_html_soup(soup, hidden_text_owners=hidden_text_owners)
+    hidden_origins = {origins[key] for key, hidden in hidden_text_owners.items()
+                      if hidden and key in origins}
     survivors = {id(node) for node in soup.find_all(True)}
     removed = sorted(origin for key, origin in origins.items() if key not in survivors)
-    if not removed and not disclosures and '<!--' not in content:
+    if not removed and not disclosures and not hidden_origins and '<!--' not in content:
         return content
     parser = _HTMLRanges(content, soup.builder.empty_element_tags)
     parser.feed(content)
     parser.close()
     intervals = list(parser.comments)
+    intervals.extend((start, end) for start, end, owner in parser.text_ranges
+                     if owner in hidden_origins)
     for start in removed:
         end = parser.ranges.get(start)
         if end is not None:
@@ -1166,23 +1235,55 @@ def _without_record_literals(content):
     return content
 
 
-def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=None):
+def _plain_record_fields(content):
+    lines, offsets = content.splitlines(), _line_starts(content)
+    result = []
+    for index, line in enumerate(lines):
+        if not re.fullmatch(r'https?://[^\s<>"\[\]]+', line.strip(), re.I) or index == 0:
+            continue
+        label = lines[index - 1].strip()
+        if not label or re.fullmatch(r'https?://\S+', label, re.I):
+            continue
+        field = lines[index + 1].strip() if index + 1 < len(lines) else ''
+        result.append((LocatedItem(line.strip(), label, offsets[index - 1]), field))
+    return result
+
+
+def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=None, *, representation=None):
     """Orchestrate source parsers into one identity-keyed candidate mapping."""
     from .response_input import safe_named_links
-    content = _visible_candidate_content(_without_record_literals(content))
+    if representation is None:
+        from .reference_quality import normalize_native_markdown_layout
+        content = normalize_native_markdown_layout(content)
+    if representation != 'plain_text':
+        content = _visible_candidate_content(content if representation == 'html' else _without_record_literals(content))
     base_url = contract.get('link_base_url', base_url)
     scope = contract.get('entry_scope')
     owned_items = []
     if scope:
         full_content = content
-        content, owned_items, matched = _scope_named_content(content, scope, contract=contract, base_url=base_url)
+        content, owned_items, matched = _scope_named_content(content, scope, contract=contract, base_url=base_url, representation=representation)
         if not matched:
             return {}
         # Flat links cannot supply missing section text. A unique exact label
         # already delivered inside a declared text scope establishes ownership.
-        links = (_owned_metadata_links(full_content, content, links, base_url)
-                 if scope.get('start_pattern') and not _document_html(full_content)
+        links = (_owned_metadata_links(full_content, content, links, base_url, representation=representation)
+                 if scope.get('start_pattern') and (representation == 'plain_text' or not _document_html(full_content))
                  else None)
+    if representation == 'plain_text':
+        items = [item for item, _ in _plain_record_fields(content)]
+        items.extend(LocatedItem(url, title, len(content) + index, True)
+                     for index, (url, title) in enumerate(safe_named_links(links, base_url)))
+        return _deduplicated_named_candidates(items, contract, base_url, diagnostics,
+                                              representation=representation)
+    if representation == 'html':
+        parser = Links(content)
+        parser.feed(content)
+        items = owned_items + list(parser.items)
+        items.extend(LocatedItem(url, title, len(content) + index, True)
+                     for index, (url, title) in enumerate(safe_named_links(links, base_url)))
+        return _deduplicated_named_candidates(items, contract, base_url, diagnostics,
+                                              representation=representation)
     _note_malformed_markdown_destinations(content, base_url, diagnostics)
     parser=Links(content);parser.feed(content)
     heading_items, heading_link_spans = _markdown_heading_card_items(
@@ -1201,24 +1302,30 @@ def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=N
     return _deduplicated_named_candidates(items, contract, base_url, diagnostics)
 
 
-def extract_named_entries(content,contract,base_url,links=None,diagnostics=None, *, include_excluded=False):
+def extract_named_entries(content,contract,base_url,links=None,diagnostics=None, *, include_excluded=False, representation=None):
     """Return admitted entries; explicit audits may also request excluded names."""
     entries = list(_extract_named_candidates(
-        content, contract, base_url, links=links, diagnostics=diagnostics,
+        content, contract, base_url, links=links, diagnostics=diagnostics, representation=representation,
     ).values())
-    return _admitted_named_entries(entries, contract, include_excluded)
+    return _admitted_named_entries(entries, contract, include_excluded, representation=representation)
 
 
-def _html_product_records(content, contract, base_url, diagnostics):
+def _visible_product_field(value, representation):
+    if representation == 'html':
+        return value.strip()
+    from .structured_tables import _visible_markdown_scalar
+    return _visible_markdown_scalar(value)
+
+
+def _html_product_records(content, contract, base_url, diagnostics, *, representation=None):
     """Join HTML fields inside one DOM owner, including presentation wrappers."""
     from bs4 import Comment, Tag
     from .reference_quality import markdown_links
-    from .structured_tables import _visible_markdown_scalar
     if not re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content):
-        return None
+        return [] if representation == 'html' else None
     soup = scoped_html(content)
     # Native Markdown may retain HTML card containers around actual link text.
-    for node in list(soup.find_all(string=True)):
+    for node in ([] if representation == 'html' else list(soup.find_all(string=True))):
         if isinstance(node, Comment) or node.find_parent(['a', 'pre', 'code']):
             continue
         parsed = [link for link in markdown_links(str(node)) if not link.is_image]
@@ -1236,12 +1343,12 @@ def _html_product_records(content, contract, base_url, diagnostics):
     scope = contract.get('entry_scope') or {}
     roots = soup.select(scope['html_selector']) if scope else [soup]
     if not roots:
-        return [] if _document_html(content) else None
+        return [] if representation == 'html' or _document_html(content) else None
     allowed = [re.compile(value, re.I) for value in contract['price_patterns']]
     excluded = [re.compile(value, re.I) for value in contract.get('price_exclusion_patterns', [])]
     unavailable = [re.compile(value, re.I) for value in contract.get('price_unavailable_patterns', [])]
     excluded_titles = [re.compile(value, re.I) for value in contract.get('title_exclusion_patterns', [])]
-    excluded_names = {_label_key(value) for value in contract.get('record_name_exclusions', [])}
+    excluded_names = {_label_key(value, representation=representation) for value in contract.get('record_name_exclusions', [])}
     records = {}
     for root in roots:
         anchors = root.find_all('a', href=True)
@@ -1250,7 +1357,7 @@ def _html_product_records(content, contract, base_url, diagnostics):
         names = dict(_owned_html_name_links(root, scope)) if scope.get('title_selector') else {}
         candidates = {id(anchor): _named_candidate(anchor['href'],
             names.get(anchor['href'], anchor.get_text(' ', strip=True)),
-            contract, base_url, excluded_titles, diagnostics) for anchor in anchors}
+            contract, base_url, excluded_titles, diagnostics, representation=representation) for anchor in anchors}
         boundaries = {}
         for anchor in anchors:
             target = _entry_destination(anchor['href'], contract, base_url, diagnostics)
@@ -1298,8 +1405,8 @@ def _html_product_records(content, contract, base_url, diagnostics):
                 forward_fence = next((index for index in fences if index > branch_index), None)
                 start = max((index + 1 for index in fences if index < branch_index), default=0)
                 children = children[start:forward_fence]
-                fields = [_visible_markdown_scalar(
-                              child.get_text(' ', strip=True) if isinstance(child, Tag) else str(child))
+                fields = [_visible_product_field(
+                              child.get_text(' ', strip=True) if isinstance(child, Tag) else str(child), representation)
                           for child in children if id(child) not in ancestry and not isinstance(child, Comment)]
                 if owner is anchor:
                     label = anchor.get_text(' ', strip=True)
@@ -1309,7 +1416,7 @@ def _html_product_records(content, contract, base_url, diagnostics):
                               and not any(p.fullmatch(value) for p in excluded)), None)
                 hint = next((value for value in fields if any(p.fullmatch(value) for p in unavailable)), None)
                 if price is not None or hint is not None:
-                    records.setdefault(_record_audit_key(identity, entry['title'], excluded_names), {**entry, 'price': price,
+                    records.setdefault(_record_audit_key(identity, entry['title'], excluded_names, representation=representation), {**entry, 'price': price,
                         **({'price_status': 'not_shown_on_page', 'price_unavailable_text': hint}
                            if price is None else {})})
                     break
@@ -1320,11 +1427,45 @@ def _html_product_records(content, contract, base_url, diagnostics):
     return list(records.values())
 
 
-def extract_linked_products(content, contract, base_url, diagnostics=None, *, include_excluded=False):
+def _plain_linked_products(content, contract, base_url, diagnostics, include_excluded):
+    representation = 'plain_text'
+    if scope := contract.get('entry_scope'):
+        content, _, matched = _scope_named_content(content, scope, representation=representation)
+        if not matched:
+            return []
+    allowed = [re.compile(pattern, re.I) for pattern in contract['price_patterns']]
+    excluded = [re.compile(pattern, re.I) for pattern in contract.get('price_exclusion_patterns', [])]
+    unavailable = [re.compile(pattern, re.I) for pattern in contract.get('price_unavailable_patterns', [])]
+    excluded_names = {_label_key(value, representation=representation)
+                      for value in contract.get('record_name_exclusions', [])}
+    excluded_titles = [re.compile(pattern, re.I) for pattern in contract.get('title_exclusion_patterns', [])]
+    records = {}
+    for item, field in _plain_record_fields(content):
+        candidate = _named_candidate(item.url, item.title, contract, base_url, excluded_titles,
+                                     diagnostics, representation=representation)
+        if candidate is None:
+            continue
+        identity, entry = candidate
+        key = _record_audit_key(identity, entry['title'], excluded_names, representation=representation)
+        if any(pattern.fullmatch(field) for pattern in allowed) and not any(pattern.fullmatch(field) for pattern in excluded):
+            records.setdefault(key, {**entry, 'price': field})
+        elif any(pattern.fullmatch(field) for pattern in unavailable):
+            records.setdefault(key, {**entry, 'price': None, 'price_status': 'not_shown_on_page',
+                                     'price_unavailable_text': field})
+    return _admitted_named_entries(list(records.values()), contract, include_excluded,
+                                   representation=representation)
+
+
+def extract_linked_products(content, contract, base_url, diagnostics=None, *, include_excluded=False, representation=None):
     """Extract title/link/price triples from one owned product segment."""
     from .reference_quality import markdown_links, without_markdown_images
-    from .structured_tables import _visible_markdown_scalar
-    content = _visible_candidate_content(_without_record_literals(content))
+    if representation is None:
+        from .reference_quality import normalize_native_markdown_layout
+        content = normalize_native_markdown_layout(content)
+    if representation == 'plain_text':
+        return _plain_linked_products(content, contract, contract.get('link_base_url', base_url),
+                                      diagnostics, include_excluded)
+    content = _visible_candidate_content(content if representation == 'html' else _without_record_literals(content))
     base_url = contract.get('link_base_url', base_url)
     scope = contract.get('entry_scope')
     html_scope = scope and scope.get('price_selector') and _has_scoped_html(content)
@@ -1338,15 +1479,15 @@ def extract_linked_products(content, contract, base_url, diagnostics=None, *, in
         for owner in owners:
             if scope.get('title_selector'):
                 candidates = _deduplicated_named_candidates(
-                    _owned_html_name_links(owner, scope), contract, base_url, diagnostics)
+                    _owned_html_name_links(owner, scope), contract, base_url, diagnostics, representation=representation)
             else:
                 candidates = _extract_named_candidates(
                     str(owner), {key: value for key, value in contract.items() if key != 'entry_scope'},
-                    base_url, diagnostics=diagnostics)
+                    base_url, diagnostics=diagnostics, representation=representation)
             if len({named_entry_identity(entry['url'], contract)
                     for entry in candidates.values()}) != 1:
                 continue
-            prices = [_visible_markdown_scalar(node.get_text(' ', strip=True))
+            prices = [_visible_product_field(node.get_text(' ', strip=True), representation)
                       for node in owner.select(scope['price_selector'])]
             prices = [p for p in prices if any(r.fullmatch(p) for r in allowed)
                       and not any(r.fullmatch(p) for r in excluded)]
@@ -1360,10 +1501,13 @@ def extract_linked_products(content, contract, base_url, diagnostics=None, *, in
                     records[identity] = {
                         **entry, 'price': None, 'price_status': 'not_shown_on_page',
                         'price_unavailable_text': hint}
-        return _admitted_named_entries(list(records.values()), contract, include_excluded)
-    html_records = _html_product_records(without_markdown_images(content), contract, base_url, diagnostics)
+        return _admitted_named_entries(list(records.values()), contract, include_excluded, representation=representation)
+    html_records = _html_product_records(content if representation == 'html' else without_markdown_images(content),
+                                         contract, base_url, diagnostics, representation=representation)
     if html_records is not None:
-        return _admitted_named_entries(html_records, contract, include_excluded)
+        return _admitted_named_entries(html_records, contract, include_excluded, representation=representation)
+    if representation == 'html':
+        return []
     if scope:
         content, _, matched = _scope_named_content(content, scope)
         if not matched:
@@ -1450,8 +1594,8 @@ def extract_linked_products(content, contract, base_url, diagnostics=None, *, in
     return _admitted_named_entries(list(candidates.values()), contract, include_excluded)
 
 
-def evaluate_dynamic_list(content,contract,base_url,eligible=True,links=None):
-    candidates=extract_named_entries(content,contract,base_url,links)
+def evaluate_dynamic_list(content,contract,base_url,eligible=True,links=None, *, representation=None):
+    candidates=extract_named_entries(content,contract,base_url,links, representation=representation)
     enough=len(candidates)>=contract.get('minimum_entries',3)
     return {'structure_pass':bool(eligible and enough),'named_entry_count':len(candidates),
             'minimum_entries':contract.get('minimum_entries',3),'factual_correctness':None,

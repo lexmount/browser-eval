@@ -20,7 +20,7 @@ from .structured_tables import (
 )
 from .dynamic_lists import (
     canonical_entry_path, _named_candidate, extract_named_entries, named_entry_identity,
-    _without_record_literals, _visible_candidate_content,
+    _without_record_literals, _visible_candidate_content, _plain_record_fields, Links, _label_key,
 )
 from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links, without_markdown_images
 from .response_input import join_answer_url
@@ -658,7 +658,7 @@ def _unlabeled_text_table_context(context: str, identity: str, group: dict,
     return cell
 
 
-def _named_link_group(content: str, group: dict, base_url: str, links: list | None, *, ownership_marker: str | None = None, native_html: str | None = None) -> dict:
+def _named_link_group(content: str, group: dict, base_url: str, links: list | None, *, ownership_marker: str | None = None, native_html: str | None = None, representation=None, native_name_content=None) -> dict:
     content, owner_ranges, table_ranges = _record_owner_ranges(content, ownership_marker)
     standard = {
         "version": 1,
@@ -675,7 +675,36 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
     ):
         if key in group:
             standard[key] = group[key]
-    if "*" in group["hosts"]:
+    if native_name_content is not None:
+        parser = Links(native_name_content)
+        parser.feed(native_name_content)
+        native_pairs = {}
+        excluded = {_label_key(value, representation='html')
+                    for value in group.get('record_name_exclusions', [])}
+        for item in parser.items:
+            destination = _link_url(base_url, item.url)
+            hosts = ([urlsplit(destination).hostname] if '*' in group['hosts'] else group['hosts'])
+            candidate = _named_candidate(destination, item.title, {**standard, 'hosts': hosts},
+                                         base_url, [], representation='html')
+            if candidate is not None and _label_key(candidate[1]['title'], representation='html') not in excluded:
+                native_pairs[(candidate[0], _label_key(candidate[1]['title'], representation='html'))] = candidate[1]
+        scoped_entries = {}
+        for link in markdown_links(content):
+            identity = _link_identity(_link_url(base_url, link.destination), group)
+            key = (identity, _label_key(link.label, representation='html'))
+            if not link.is_image and key in native_pairs:
+                scoped_entries[identity] = native_pairs[key]
+        entries = list(scoped_entries.values())
+    elif representation in {'plain_text', 'html'}:
+        if '*' in group['hosts']:
+            from .response_input import safe_named_links
+            urls = [item.url for item, _ in _plain_record_fields(content)] if representation == 'plain_text' else []
+            urls.extend(url for url, _ in safe_named_links(links, base_url))
+            standard['hosts'] = sorted({host for url in urls
+                                       if (host := urlsplit(_link_url(base_url, url)).hostname)})
+        entries = extract_named_entries(content, standard, base_url, links,
+                                        representation=representation)
+    elif "*" in group["hosts"]:
         entries = []
         for link, _ in _markdown_contexts(content):
             destination = _link_url(group.get("link_base_url", base_url), link.destination)
@@ -688,11 +717,26 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                 if candidate is not None:
                     entries.append(candidate[1])
     else:
-        entries = extract_named_entries(content, standard, base_url, links)
+        entries = extract_named_entries(content, standard, base_url, links,
+                                        representation=representation)
     exclusions = {_key(value) for value in group.get("record_name_exclusions", [])}
-    entries = [entry for entry in entries if _key(entry["title"]) not in exclusions]
+    if representation not in {'plain_text', 'html'} and native_name_content is None:
+        entries = [entry for entry in entries if _key(entry["title"]) not in exclusions]
     fields = group.get("required_fields", [])
-    if fields:
+    if fields and representation in {'plain_text', 'html'}:
+        admitted = {_link_identity(entry['url'], group): entry for entry in entries}
+        plain_rows = _plain_record_fields(content) if representation == 'plain_text' else []
+        owned = {}
+        for index, (item, _) in enumerate(plain_rows):
+            identity = _link_identity(_link_url(base_url, item.url), group)
+            if identity not in admitted:
+                continue
+            finish = plain_rows[index + 1][0].offset if index + 1 < len(plain_rows) else len(content)
+            context = content[item.offset:finish]
+            if _required_fields(context, item.title, field_specs=fields):
+                owned[identity] = {**admitted[identity], 'context': context}
+        records = list(owned.values())
+    elif fields:
 
         def is_record_start(link) -> bool:
             pattern = group.get("record_line_pattern")
@@ -790,11 +834,11 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                         or re.fullmatch(r"(?i)(?:today|tomorrow|\d[\d,.]*|more|details?)", label))
 
         allowed_rows = {_link_identity(entry["url"], group): entry for entry in entries
-                        if name_only(entry["title"])} if "*" not in group["hosts"] else {}
+                        if name_only(entry["title"])} if "*" not in group["hosts"] or native_name_content is not None else {}
         # Field cards prove their own ownership through the target identity and
         # typed fields. Adjacent status text need not satisfy ordinary list
         # prefix rules, but the title must still be real visible link text.
-        for link in markdown_links(content):
+        for link in (() if native_name_content is not None else markdown_links(content)):
             destination = _link_url(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
             if identity is None or link.is_image or not is_record_start(link):
@@ -815,6 +859,9 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             destination = _link_url(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
             if identity not in allowed_rows or link.is_image or not is_record_start(link):
+                continue
+            if native_name_content is not None:
+                preferred_titles.setdefault((identity, owner_for(link.start)), allowed_rows[identity]['title'])
                 continue
             label = visible_label(link)
             field_like = bool(
@@ -1740,14 +1787,18 @@ def _field_report_group(content: str, group: dict) -> dict:
 
 
 def evaluate_composite_acceptance(
-    content: str, contract: dict, *, base_url: str, links: list | None = None, eligible: bool = True, table_content: str | None = None, native_html: str | None = None
+    content: str, contract: dict, *, base_url: str, links: list | None = None, eligible: bool = True, table_content: str | None = None, native_html: str | None = None, representation=None
 ) -> dict:
     validate_composite_acceptance(contract)
     results = []
     for group in contract["groups"]:
+        source_representation = representation
         source = table_content if table_content is not None and group["kind"] in {"table", "linked_table"} else content
-        if group['kind'] == 'named_link':
-            source = _visible_candidate_content(_without_record_literals(source))
+        if group['kind'] == 'named_link' and representation != 'plain_text':
+            if representation is None:
+                from .reference_quality import normalize_native_markdown_layout
+                source = normalize_native_markdown_layout(source)
+            source = _visible_candidate_content(source if representation == 'html' else _without_record_literals(source))
         if "group_caption" in group:
             from .structured_tables import grouped_table_surface
             source = grouped_table_surface(source, group)
@@ -1755,20 +1806,28 @@ def evaluate_composite_acceptance(
         if group["kind"] in {"table", "linked_table"}:
             source = table_text_surface(source, exclude_selector=group.get("table_scope", {}).get("exclude_selector"))
         ownership_marker = None
-        if group["kind"] == "named_link" and group.get("required_fields") and table_content:
+        native_name_content = None
+        if group["kind"] == "named_link" and representation != 'plain_text':
             from .dynamic_lists import _document_html
-            if _document_html(table_content):
-                source, ownership_marker = _html_field_surface(
-                    _without_record_literals(table_content), group, base_url)
+            if ((group.get('required_fields') and _document_html(source))
+                    or re.search(r'<a\b[^>]*\bhref\s*=', source, re.I)):
+                native_name_content = source
+                source, ownership_marker = _html_field_surface(source, group, base_url)
+                source_representation = 'markdown'
+        elif group['kind'] in {'field_report', 'literals', 'name_description'} and representation != 'plain_text':
+            from .reference_quality import visible_mixed_html_text
+            source = visible_mixed_html_text(source)
         scoped = _scope(source, group)
         if group["kind"] == "named_link":
             result = _named_link_group(
                 scoped, group, base_url, links if scoped == content else None,
                 native_html=_without_record_literals(native_html) if native_html else None,
-                ownership_marker=ownership_marker,
+                ownership_marker=ownership_marker, representation=source_representation,
+                native_name_content=native_name_content,
             )
         elif group["kind"] == "linked_table":
-            result = _linked_table_group(scoped, group, base_url)
+            result = (_linked_table_group(scoped, group, base_url) if representation != 'plain_text' else
+                      {'count': 0, 'records': [], 'minimum': group['minimum_records'], 'pass': False})
         elif group["kind"] == "name_description":
             result = _name_description_group(scoped, group, base_url)
         elif group["kind"] == "table":

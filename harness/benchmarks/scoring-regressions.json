@@ -32026,6 +32026,2762 @@
       },
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "native-card-layout-date-auto",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native serializer card indentation is inferred only for undeclared answers; explicit Markdown and complete code examples retain literal ownership.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "record_line_pattern": "^##\\s+",
+              "required_fields": [
+                {
+                  "id": "time",
+                  "kind": "date_or_time"
+                },
+                {
+                  "id": "label",
+                  "kind": "text",
+                  "pattern": "Neutral"
+                },
+                {
+                  "id": "source",
+                  "kind": "text",
+                  "minimum_chars": 2
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "\t4 hours ago ## [First item](/item/1)\nNeutral\nFirst source\n",
+      "ok": true,
+      "metadata": null,
+      "expected_task_pass": true
+    },
+    {
+      "id": "native-card-layout-date-declared-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native serializer card indentation is inferred only for undeclared answers; explicit Markdown and complete code examples retain literal ownership.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "record_line_pattern": "^##\\s+",
+              "required_fields": [
+                {
+                  "id": "time",
+                  "kind": "date_or_time"
+                },
+                {
+                  "id": "label",
+                  "kind": "text",
+                  "pattern": "Neutral"
+                },
+                {
+                  "id": "source",
+                  "kind": "text",
+                  "minimum_chars": 2
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "\t4 hours ago ## [First item](/item/1)\nNeutral\nFirst source\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "native-card-layout-date-fully-indented",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native serializer card indentation is inferred only for undeclared answers; explicit Markdown and complete code examples retain literal ownership.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "record_line_pattern": "^##\\s+",
+              "required_fields": [
+                {
+                  "id": "time",
+                  "kind": "date_or_time"
+                },
+                {
+                  "id": "label",
+                  "kind": "text",
+                  "pattern": "Neutral"
+                },
+                {
+                  "id": "source",
+                  "kind": "text",
+                  "minimum_chars": 2
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "    4 hours ago ## [First item](/item/1)\n    Neutral\n    First source\n",
+      "ok": true,
+      "metadata": null,
+      "expected_task_pass": false
+    },
+    {
+      "id": "native-card-layout-date-fenced",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native serializer card indentation is inferred only for undeclared answers; explicit Markdown and complete code examples retain literal ownership.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/[0-9]+",
+              "record_line_pattern": "^##\\s+",
+              "required_fields": [
+                {
+                  "id": "time",
+                  "kind": "date_or_time"
+                },
+                {
+                  "id": "label",
+                  "kind": "text",
+                  "pattern": "Neutral"
+                },
+                {
+                  "id": "source",
+                  "kind": "text",
+                  "minimum_chars": 2
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "```markdown\n\t4 hours ago ## [First item](/item/1)\nNeutral\nFirst source\n\n```",
+      "ok": true,
+      "metadata": null,
+      "expected_task_pass": false
+    },
+    {
+      "id": "native-card-layout-image-auto",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native serializer card indentation is inferred only for undeclared answers; explicit Markdown and complete code examples retain literal ownership.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "id": "entry-1-name",
+            "alternatives": [
+              "Generic device"
+            ]
+          },
+          {
+            "id": "entry-1-description",
+            "alternatives": [
+              "A clear device description."
+            ]
+          }
+        ]
+      },
+      "artifact": "        - [![Generic device](device.png)](/item/1)\n          [Generic device](/item/1)\n\nA clear device description.",
+      "ok": true,
+      "metadata": null,
+      "expected_task_pass": true
+    },
+    {
+      "id": "native-card-layout-image-declared-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native serializer card indentation is inferred only for undeclared answers; explicit Markdown and complete code examples retain literal ownership.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "id": "entry-1-name",
+            "alternatives": [
+              "Generic device"
+            ]
+          },
+          {
+            "id": "entry-1-description",
+            "alternatives": [
+              "A clear device description."
+            ]
+          }
+        ]
+      },
+      "artifact": "        - [![Generic device](device.png)](/item/1)\n          [Generic device](/item/1)\n\nA clear device description.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "native-card-layout-image-fully-indented",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native serializer card indentation is inferred only for undeclared answers; explicit Markdown and complete code examples retain literal ownership.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "id": "entry-1-name",
+            "alternatives": [
+              "Generic device"
+            ]
+          },
+          {
+            "id": "entry-1-description",
+            "alternatives": [
+              "A clear device description."
+            ]
+          }
+        ]
+      },
+      "artifact": "        - [![Generic device](device.png)](/item/1)\n          [Generic device](/item/1)\n\n    A clear device description.",
+      "ok": true,
+      "metadata": null,
+      "expected_task_pass": false
+    },
+    {
+      "id": "native-card-layout-image-fenced",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native serializer card indentation is inferred only for undeclared answers; explicit Markdown and complete code examples retain literal ownership.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "id": "entry-1-name",
+            "alternatives": [
+              "Generic device"
+            ]
+          },
+          {
+            "id": "entry-1-description",
+            "alternatives": [
+              "A clear device description."
+            ]
+          }
+        ]
+      },
+      "artifact": "```markdown\n        - [![Generic device](device.png)](/item/1)\n          [Generic device](/item/1)\n\nA clear device description.\n```",
+      "ok": true,
+      "metadata": null,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-dynamic-visibility-restored",
+      "root_cause": "4406063219",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div style=\"visibility:hidden\">Hidden own text<span><a style=\"visibility:visible\" href=\"/item/1\">Alpha Widget</a>Hidden tail</span></div><p>Introduction</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review14-dynamic-visibility-still-hidden",
+      "root_cause": "4406063219",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div style=\"visibility:hidden\">Hidden own text<span><a style=\"\" href=\"/item/1\">Alpha Widget</a>Hidden tail</span></div><p>Introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-dynamic-visibility-important-restored",
+      "root_cause": "4406063219",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div style=\"visibility:hidden!important\">Hidden own text<span><a style=\"visibility:visible\" href=\"/item/1\">Alpha Widget</a>Hidden tail</span></div><p>Introduction</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review14-dynamic-visibility-important-still-hidden",
+      "root_cause": "4406063219",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div style=\"visibility:hidden!important\">Hidden own text<span><a style=\"visibility:hidden\" href=\"/item/1\">Alpha Widget</a>Hidden tail</span></div><p>Introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-dynamic-visibility-display-hard-hidden",
+      "root_cause": "4406063219",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div style=\"display:none\">Hidden own text<span><a style=\"visibility:visible\" href=\"/item/1\">Alpha Widget</a>Hidden tail</span></div><p>Introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-dynamic-visibility-opacity-hard-hidden",
+      "root_cause": "4406063219",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div style=\"opacity:0\">Hidden own text<span><a style=\"visibility:visible\" href=\"/item/1\">Alpha Widget</a>Hidden tail</span></div><p>Introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-plain-literal-fields",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "657fc78f11babfbde64d3c98d8f0b3ab06536c831850896cd610bd0de05a9865"
+          ],
+          "source_record_pairs_sha256": "4c4b99205ac2a919df34eef6fe65bce282a1943012d2e1490325a4cafdd3f503"
+        }
+      },
+      "artifact": "Alpha\nhttps://shop.example/item/1",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review14-plain-literal-name-markers",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "657fc78f11babfbde64d3c98d8f0b3ab06536c831850896cd610bd0de05a9865"
+          ],
+          "source_record_pairs_sha256": "4c4b99205ac2a919df34eef6fe65bce282a1943012d2e1490325a4cafdd3f503"
+        }
+      },
+      "artifact": "**Alpha**\nhttps://shop.example/item/1",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-plain-product-fields",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ]
+        }
+      },
+      "artifact": "Alpha\nhttps://shop.example/item/1\n$10",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review14-plain-literal-product-price",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ]
+        }
+      },
+      "artifact": "Alpha\nhttps://shop.example/item/1\n<span>$10</span>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-plain-metadata-fields",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Introduction",
+      "metadata": {
+        "answer_format": "plain_text",
+        "links": [
+          {
+            "text": "Alpha",
+            "href": "https://shop.example/item/1"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review14-plain-metadata-wrong-route",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Introduction",
+      "metadata": {
+        "answer_format": "plain_text",
+        "links": [
+          {
+            "text": "Alpha",
+            "href": "https://shop.example/other/1"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-html-markdown-not-anchor",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Alpha](https://shop.example/item/1)",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-html-actual-anchor",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<a href=\"/item/1\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review14-html-literal-markers-source-name",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "657fc78f11babfbde64d3c98d8f0b3ab06536c831850896cd610bd0de05a9865"
+          ],
+          "source_record_pairs_sha256": "4c4b99205ac2a919df34eef6fe65bce282a1943012d2e1490325a4cafdd3f503"
+        }
+      },
+      "artifact": "<a href=\"/item/1\">**Alpha**</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-html-actual-bold-source-name",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "657fc78f11babfbde64d3c98d8f0b3ab06536c831850896cd610bd0de05a9865"
+          ],
+          "source_record_pairs_sha256": "4c4b99205ac2a919df34eef6fe65bce282a1943012d2e1490325a4cafdd3f503"
+        }
+      },
+      "artifact": "<a href=\"/item/1\"><b>Alpha</b></a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review14-html-markdown-not-product",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ]
+        }
+      },
+      "artifact": "<article>[Alpha](https://shop.example/item/1) $10</article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-html-actual-product",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ]
+        }
+      },
+      "artifact": "<article><a href=\"/item/1\">Alpha</a><span>$10</span></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review14-html-literal-markers-price",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Alpha</a><span class=\"price\">**$10**</span></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review14-html-actual-bold-price",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Alpha</a><span class=\"price\"><b>$10</b></span></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review14-html-literal-markers-exclusion",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "record_name_exclusions": [
+            "Alpha"
+          ]
+        }
+      },
+      "artifact": "<a href=\"/item/1\">**Alpha**</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review14-html-actual-bold-exclusion",
+      "root_cause": "4406063242",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "record_name_exclusions": [
+            "Alpha"
+          ]
+        }
+      },
+      "artifact": "<a href=\"/item/1\"><b>Alpha</b></a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round14-image-literal-True-4-markdown",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "`![Image](/target.png)`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "round14-image-literal-False-17-markdown",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "```example\n<img src=\"/target.png\">\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "round14-image-noise-True-17",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "![Target](/target.png)\n\n```example\n![Noise](/noise.png)\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "round14-image-noise-False-17",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "![Target](/target.png)\n\n```example\n<img src=\"/noise.png\">\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "round14-image-real-extra-image",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "![Target](/target.png)\n![Noise](/noise.png)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "round14-image-real-image",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "![Target](/target.png)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "round14-image-auto-native-image-card",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "    - [![Image](/target.png)](/item/1)\n    [Image](/item/1)\nA complete description.",
+      "metadata": {},
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "round14-image-declared-indented-image-example",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "    - [![Image](/target.png)](/item/1)\n    [Image](/item/1)\nA complete description.",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "round14-image-html-real-backticks",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "`<img src=\"/target.png\">`",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "round14-image-html-markdown-literal",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<pre>![Image](/target.png)</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "round14-image-plain-markdown-literal",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "![Image](/target.png)",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "round14-image-plain-url-answer",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "https://example.test/target.png",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "root_cause": "Typed image answer extraction must obey the selected representation, exclude Markdown code literals before image/HTML parsing, and retain inferred native serializer layouts without weakening declared Markdown.",
+      "ok": true,
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "round14-literal-html-name",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "record_name_exclusions": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<a href=\"/item/1\">**Alpha**</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "root_cause": "Composite linked record admission must retain original native HTML label semantics and the selected occurrence scope while using the existing shared field owner; literal plain/Markdown examples cannot manufacture rendered links.",
+      "ok": true,
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "round14-actual-html-format",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "record_name_exclusions": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<a href=\"/item/1\"><b>Alpha</b></a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "root_cause": "Composite linked record admission must retain original native HTML label semantics and the selected occurrence scope while using the existing shared field owner; literal plain/Markdown examples cannot manufacture rendered links.",
+      "ok": true,
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "round14-scope-native-name-True",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ],
+              "record_name_exclusions": [
+                "Alpha"
+              ],
+              "start_pattern": "^# Catalog$",
+              "end_pattern": "^# End$"
+            }
+          ]
+        }
+      },
+      "artifact": "<h1>Catalog</h1><article><a href=\"/item/1\">**Alpha**</a><p>Price: $12</p></article><h1>End</h1><article><a href=\"/item/1\">Alpha</a><p>Price: $12</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "root_cause": "Composite linked record admission must retain original native HTML label semantics and the selected occurrence scope while using the existing shared field owner; literal plain/Markdown examples cannot manufacture rendered links.",
+      "ok": true,
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "round14-scope-native-name-False",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ],
+              "record_name_exclusions": [
+                "Alpha"
+              ],
+              "start_pattern": "^# Catalog$",
+              "end_pattern": "^# End$"
+            }
+          ]
+        }
+      },
+      "artifact": "<h1>Catalog</h1><article><a href=\"/item/1\">Alpha</a><p>Price: $12</p></article><h1>End</h1><article><a href=\"/item/1\">**Alpha**</a><p>Price: $12</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "root_cause": "Composite linked record admission must retain original native HTML label semantics and the selected occurrence scope while using the existing shared field owner; literal plain/Markdown examples cannot manufacture rendered links.",
+      "ok": true,
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "round14-plain-literal-link",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\nPrice: $12",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "root_cause": "Composite linked record admission must retain original native HTML label semantics and the selected occurrence scope while using the existing shared field owner; literal plain/Markdown examples cannot manufacture rendered links.",
+      "ok": true,
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "round14-plain-owned-fields",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Alpha\nhttps://example.test/item/1\nPrice: $12",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "root_cause": "Composite linked record admission must retain original native HTML label semantics and the selected occurrence scope while using the existing shared field owner; literal plain/Markdown examples cannot manufacture rendered links.",
+      "ok": true,
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "round14-default-inline-anchor",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "<a href=\"/item/1\">Alpha</a>",
+      "metadata": {},
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "root_cause": "Composite linked record admission must retain original native HTML label semantics and the selected occurrence scope while using the existing shared field owner; literal plain/Markdown examples cannot manufacture rendered links.",
+      "ok": true,
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "round14-literal-inline-anchor",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "```html\n<a href=\"/item/1\">Alpha</a>\nPrice: $12\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "root_cause": "Composite linked record admission must retain original native HTML label semantics and the selected occurrence scope while using the existing shared field owner; literal plain/Markdown examples cannot manufacture rendered links.",
+      "ok": true,
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "runtime14-peer-heading",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "catalog_description_and_reviews_cannot_cross_peer_or_enclosing_sections",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "## Alpha\n$10\n\n## Store reviews\nHelpful service\n3 reviews",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-enclosing-heading",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "catalog_description_and_reviews_cannot_cross_peer_or_enclosing_sections",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "### Alpha\n$10\n\n## Store reviews\nHelpful service\n3 reviews",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-owned-subheading",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "catalog_description_and_reviews_cannot_cross_peer_or_enclosing_sections",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "## Alpha\n$10\n\n### Details\nUseful device description\n3 reviews",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-complete-before-peer",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "catalog_description_and_reviews_cannot_cross_peer_or_enclosing_sections",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "## Alpha\n$10\nUseful device description\n3 reviews\n\n## Store reviews\nHelpful service\n9 reviews",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-price-first-peer",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "catalog_description_and_reviews_cannot_cross_peer_or_enclosing_sections",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "$10\n## Alpha\n\n## Store reviews\nHelpful service\n3 reviews",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-price-first-owned",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "catalog_description_and_reviews_cannot_cross_peer_or_enclosing_sections",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "$10\n## Alpha\n\n### Details\nUseful device description\n3 reviews",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-html-peer",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "catalog_description_and_reviews_cannot_cross_peer_or_enclosing_sections",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<main><h2>Alpha</h2><p>$10</p><h2>Store reviews</h2><p>Helpful service</p><p>3 reviews</p></main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-html-owned",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "catalog_description_and_reviews_cannot_cross_peer_or_enclosing_sections",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<main><h2>Alpha</h2><p>$10</p><h3>Details</h3><p>Useful device description</p><p>3 reviews</p></main>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-html-card-peer",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "catalog_description_and_reviews_cannot_cross_peer_or_enclosing_sections",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><h2>Alpha</h2><p>$10</p><h2>Store reviews</h2><p>Helpful service</p><p>3 reviews</p></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-html-card-owned",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "catalog_description_and_reviews_cannot_cross_peer_or_enclosing_sections",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><h2>Alpha</h2><p>$10</p><h3>Details</h3><p>Useful device description</p><p>3 reviews</p></article>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-named_link-relative-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "[Alpha](/item/1)",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-named_link-absolute-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "[Alpha](https://example.test/item/1)",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-named_link-relative-html",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "<a href=\"/item/1\">Alpha</a>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-named_link-absolute-html",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "<a href=\"https://example.test/item/1\">Alpha</a>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-named_link-literal-label",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "**Alpha**\nhttps://example.test/item/1",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-named_link-plain-row",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "Alpha\nhttps://example.test/item/1",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-named_link-markdown-rendered",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "[Alpha](/item/1)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-linked_product-relative-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n$10",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-linked_product-absolute-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "[Alpha](https://example.test/item/1)\n$10",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-linked_product-relative-html",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "<a href=\"/item/1\">Alpha</a>\n$10",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-linked_product-absolute-html",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "<a href=\"https://example.test/item/1\">Alpha</a>\n$10",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-linked_product-literal-label",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "**Alpha**\nhttps://example.test/item/1\n$10",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-linked_product-plain-row",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "Alpha\nhttps://example.test/item/1\n$10",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-linked_product-markdown-rendered",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n$10",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-named-metadata",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_record_representation_and_source_identity_use_literal_answer_fields",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "4ae10c56abea4454f15113ac62c881520e4bcb146e979f241c84986d4884b7e1"
+          ],
+          "source_record_pairs_sha256": "fdd94dfcfade554bfd5daf0184979df01b25482061410fb64a86919f061e5904"
+        }
+      },
+      "artifact": "Useful introduction",
+      "metadata": {
+        "answer_format": "plain_text",
+        "links": [
+          {
+            "text": "Alpha",
+            "href": "https://example.test/item/1"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-native-auto",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "stable_native_serializer_layout_inference_is_not_explicit_markdown_parsing",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "(?m)^[ \\t]*Generic device[ \\t]*$"
+          ]
+        }
+      },
+      "artifact": "        - [![Generic device](device.png)](/item/1)\n          [Generic device](/item/1)\n\nA clear device description.",
+      "metadata": null,
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime14-native-markdown",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "stable_native_serializer_layout_inference_is_not_explicit_markdown_parsing",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "(?m)^[ \\t]*Generic device[ \\t]*$"
+          ]
+        }
+      },
+      "artifact": "        - [![Generic device](device.png)](/item/1)\n          [Generic device](/item/1)\n\nA clear device description.",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-native-plain",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "stable_native_serializer_layout_inference_is_not_explicit_markdown_parsing",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "(?m)^[ \\t]*Generic device[ \\t]*$"
+          ]
+        }
+      },
+      "artifact": "        - [![Generic device](device.png)](/item/1)\n          [Generic device](/item/1)\n\nA clear device description.",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-native-code",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "stable_native_serializer_layout_inference_is_not_explicit_markdown_parsing",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "(?m)^[ \\t]*Generic device[ \\t]*$"
+          ]
+        }
+      },
+      "artifact": "        - [![Generic device](device.png)](/item/1)\n          [Generic device](/item/1)\n\n    A clear device description.",
+      "metadata": null,
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime14-native-fenced",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "stable_native_serializer_layout_inference_is_not_explicit_markdown_parsing",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "(?m)^[ \\t]*Generic device[ \\t]*$"
+          ]
+        }
+      },
+      "artifact": "```markdown\n        - [![Generic device](device.png)](/item/1)\n          [Generic device](/item/1)\n\nA clear device description.\n```",
+      "metadata": null,
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "legacy-answer-format-literal-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Legacy structure and independent-list verification must forward the validated representation rather than infer markup from literal text.",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 1,
+          "verification_scope": "first_three_name_detail_pairs"
+        }
+      },
+      "artifact": "[Example](/item/1)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "list_reference": {
+        "case_id": "format-pairs",
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Example"
+          }
+        ]
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "legacy-answer-format-rendered-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Legacy structure and independent-list verification must forward the validated representation rather than infer markup from literal text.",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 1,
+          "verification_scope": "first_three_name_detail_pairs"
+        }
+      },
+      "artifact": "[Example](/item/1)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "list_reference": {
+        "case_id": "format-pairs",
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Example"
+          }
+        ]
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "legacy-answer-format-literal-html",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Legacy structure and independent-list verification must forward the validated representation rather than infer markup from literal text.",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 1,
+          "verification_scope": "first_three_name_detail_pairs"
+        }
+      },
+      "artifact": "<a href=\"/item/1\">Example</a>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "list_reference": {
+        "case_id": "format-pairs",
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Example"
+          }
+        ]
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "legacy-answer-format-rendered-html",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Legacy structure and independent-list verification must forward the validated representation rather than infer markup from literal text.",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 1,
+          "verification_scope": "first_three_name_detail_pairs"
+        }
+      },
+      "artifact": "<a href=\"/item/1\">Example</a>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "list_reference": {
+        "case_id": "format-pairs",
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Example"
+          }
+        ]
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "legacy-answer-format-plain-field-lines",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Legacy structure and independent-list verification must forward the validated representation rather than infer markup from literal text.",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 1,
+          "verification_scope": "first_three_name_detail_pairs"
+        }
+      },
+      "artifact": "Example\nhttps://example.test/item/1",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "list_reference": {
+        "case_id": "format-pairs",
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Example"
+          }
+        ]
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "legacy-answer-format-plain-explicit-metadata",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Legacy structure and independent-list verification must forward the validated representation rather than infer markup from literal text.",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 1,
+          "verification_scope": "first_three_name_detail_pairs"
+        }
+      },
+      "artifact": "Example",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text",
+        "links": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Example"
+          }
+        ]
+      },
+      "list_reference": {
+        "case_id": "format-pairs",
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Example"
+          }
+        ]
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "answer-url-dot-params-named-relative-current",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Python URL joining must not treat a semicolon-bearing terminal path segment as a complete dot segment or collapse it onto a different declared resource; literal and encoded reserved delimiters stay distinct.",
+      "case": {
+        "url": "https://example.test/dir/base",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/dir/\\.;v"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](.;v)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "answer-url-dot-params-named-shortened-reject",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Python URL joining must not treat a semicolon-bearing terminal path segment as a complete dot segment or collapse it onto a different declared resource; literal and encoded reserved delimiters stay distinct.",
+      "case": {
+        "url": "https://example.test/dir/base",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/dir/;v"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](.;v)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "answer-url-dot-params-resource-relative-parent",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Python URL joining must not treat a semicolon-bearing terminal path segment as a complete dot segment or collapse it onto a different declared resource; literal and encoded reserved delimiters stay distinct.",
+      "case": {
+        "url": "https://example.test/dir/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/dir/..;v"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](..;v)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "answer-url-dot-params-resource-shortened-reject",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Python URL joining must not treat a semicolon-bearing terminal path segment as a complete dot segment or collapse it onto a different declared resource; literal and encoded reserved delimiters stay distinct.",
+      "case": {
+        "url": "https://example.test/dir/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/;v"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](..;v)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "answer-url-dot-params-named-absolute-equivalent",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Python URL joining must not treat a semicolon-bearing terminal path segment as a complete dot segment or collapse it onto a different declared resource; literal and encoded reserved delimiters stay distinct.",
+      "case": {
+        "url": "https://example.test/dir/base",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/dir/\\.;v"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](https://example.test/dir/.;v)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "answer-url-dot-params-resource-encoded-distinct",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Python URL joining must not treat a semicolon-bearing terminal path segment as a complete dot segment or collapse it onto a different declared resource; literal and encoded reserved delimiters stay distinct.",
+      "case": {
+        "url": "https://example.test/dir/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/dir/..;v"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](..%3Bv)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "answer-url-dot-params-resource-ordinary-parent",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Python URL joining must not treat a semicolon-bearing terminal path segment as a complete dot segment or collapse it onto a different declared resource; literal and encoded reserved delimiters stay distinct.",
+      "case": {
+        "url": "https://example.test/dir/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](../file)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "answer-url-dot-params-named-terminal-semicolon",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Python URL joining must not treat a semicolon-bearing terminal path segment as a complete dot segment or collapse it onto a different declared resource; literal and encoded reserved delimiters stay distinct.",
+      "case": {
+        "url": "https://example.test/dir/base",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/dir/\\.;v;"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](.;v;)",
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

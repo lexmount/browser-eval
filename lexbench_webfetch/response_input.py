@@ -1,30 +1,27 @@
 """Provider-neutral answer envelope. Never infer answers from logs or requests."""
 import json
 import hashlib
+import re
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 
 def join_answer_url(base_url: str, reference: str) -> str:
-    """Resolve answer URLs without dropping an empty terminal semicolon."""
+    """Resolve answer URLs while retaining literal semicolon path data."""
     joined = urljoin(base_url, reference)
-    if not base_url or not reference or urlsplit(joined).path.endswith(';'):
+    if not base_url or not reference:
         return joined
     base, target = urlsplit(base_url), urlsplit(reference)
-    if target.path.endswith(';'):
-        # Protect just this literal delimiter from urlparse's params split.
-        protected = urlunsplit(target._replace(path=target.path[:-1] + '%3B'))
-        joined = urljoin(base_url, protected)
-    elif (not target.path and not target.netloc
-          and (not target.scheme or target.scheme == base.scheme)
-          and base.path.endswith(';')):
-        protected = urlunsplit(base._replace(path=base.path[:-1] + '%3B'))
-        joined = urljoin(protected, reference)
-    else:
+    if ';' not in base.path and ';' not in target.path:
         return joined
-    resolved = urlsplit(joined)
-    # Restore only the terminal escape introduced above, never an original
-    # percent-encoded reserved character elsewhere in either input.
-    return urlunsplit(resolved._replace(path=resolved.path[:-3] + ';'))
+    # urlparse splits path params before urljoin removes dot segments. Protect
+    # literal delimiters so '.;v' stays a filename rather than becoming '.'.
+    def protected(parts):
+        return urlunsplit(parts._replace(path=parts.path.replace('%', '%25').replace(';', '%3B')))
+    resolved = urlsplit(urljoin(protected(base), protected(target)))
+    # One pass restores only introduced layers; an original '%3B' was protected
+    # as '%253B' and therefore stays encoded rather than turning into ';'.
+    path = re.sub(r'%(?:25|3B)', lambda match: '%' if match[0] == '%25' else ';', resolved.path)
+    return urlunsplit(resolved._replace(path=path))
 
 
 def answer_input(artifact, metadata=None, *, ok=True, status_code=None):

@@ -154,31 +154,42 @@ def _looks_like_image_url(value: str) -> bool:
     return bool(re.search(rf"\.(?:{'|'.join(IMAGE_FILE_SUFFIXES)})$", path, re.I))
 
 
-def _image_answer_candidates(content: str, *, base_url: str) -> list[tuple[str, str]]:
-    try:
-        structured = json.loads(content)
-    except RecursionError:
-        structured = {}
-    except (ValueError, TypeError):
-        structured = None
-    if isinstance(structured, (dict, list)):
-        return _native_json_image_candidates(structured, base_url=base_url)
-    candidates = _image_content_candidates(content)
-    candidates.extend(_inline_frame_candidates(content, base_url=base_url, images_only=True))
+def _image_answer_candidates(content: str, *, base_url: str, representation=None) -> list[tuple[str, str]]:
+    if representation is None:
+        from .reference_quality import is_html_document_or_fragment, normalize_native_markdown_layout
+        content = normalize_native_markdown_layout(content)
+        if is_html_document_or_fragment(content):
+            representation = 'html'
+    if representation not in {'plain_text', 'html'}:
+        try:
+            structured = json.loads(content)
+        except RecursionError:
+            structured = {}
+        except (ValueError, TypeError):
+            structured = None
+        if isinstance(structured, (dict, list)):
+            return _native_json_image_candidates(structured, base_url=base_url)
+        from .reference_quality import markdown_literal_spans
+        for start, end in reversed(markdown_literal_spans(content)):
+            content = content[:start] + re.sub(r'[^\n]', ' ', content[start:end]) + content[end:]
+    candidates = _image_content_candidates(content, representation=representation)
+    if representation != 'plain_text':
+        candidates.extend(_inline_frame_candidates(content, base_url=base_url, images_only=True))
     return candidates
 
 
-def _image_content_candidates(content: str) -> list[tuple[str, str]]:
-    has_html = bool(re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content))
+def _image_content_candidates(content: str, *, representation=None) -> list[tuple[str, str]]:
+    has_html = representation != 'plain_text' and bool(re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content))
     if has_html:
         from .dynamic_lists import scoped_html
         # Image-answer contracts own visible output, unlike generic discovery
         # of URLs returned in a document. Use the same policy inside srcdoc.
         visible_html = scoped_html(content)
         content = str(visible_html)
+    markdown = representation not in {'plain_text', 'html'}
     candidates = [(url, "content.markdown_image")
-                  for url in _markdown_image_destinations(content)]
-    attributes = _html_resource_attributes(content)
+                  for url in _markdown_image_destinations(content)] if markdown else []
+    attributes = _html_resource_attributes(content) if representation != 'plain_text' else []
     candidates.extend((attrs['src'], "content.html_img")
                       for tag, attrs in attributes if tag == 'img' and attrs.get('src'))
     candidates.extend((value, 'content.html_image_file')
@@ -205,10 +216,11 @@ def _image_content_candidates(content: str) -> list[tuple[str, str]]:
         bare_content = content
     markup_links = markdown_links(bare_content)
     for link in markup_links:
-        if not link.is_image and _looks_like_image_url(link.destination):
+        if markdown and not link.is_image and _looks_like_image_url(link.destination):
             candidates.append((link.destination, "content.markdown_image_file"))
-    for link in reversed(markup_links):
-        bare_content = bare_content[:link.start] + " " + bare_content[link.end:]
+    if representation != 'plain_text':
+        for link in reversed(markup_links):
+            bare_content = bare_content[:link.start] + " " + bare_content[link.end:]
     # Explicit image markup is typed evidence. A standalone HTTP URL may also
     # be the entire answer, including an extensionless CDN address. Every URL
     # with that syntax is admitted alike, without consulting target resources.
@@ -217,7 +229,7 @@ def _image_content_candidates(content: str) -> list[tuple[str, str]]:
                   if re.fullmatch(r"\s*<?" + url_pattern + r">?\s*", line)}
     candidates.extend((url, "content.bare_image_url") for url in
                       re.findall(url_pattern, bare_content)
-                      if _looks_like_image_url(url) or url in bare_lines)
+                      if (representation != 'plain_text' and _looks_like_image_url(url)) or url in bare_lines)
     return candidates
 
 
@@ -306,7 +318,7 @@ def _inline_frame_candidates(
         )
         if images_only:
             raw_candidates = _image_answer_candidates(
-                document, base_url=frame_base,
+                document, base_url=frame_base, representation='html',
             )
         else:
             raw_candidates = _markup_resource_candidates(document, 'content.frame')
@@ -325,7 +337,10 @@ def _native_json_image_candidates(payload: Any, *, base_url: str) -> list[tuple[
     candidates = _metadata_image_candidates(payload, path="content.native_json")
     markup = payload.get("html") or payload.get("content")
     if isinstance(markup, str):
-        candidates.extend(_image_answer_candidates(markup, base_url=base_url))
+        candidates.extend(_image_answer_candidates(
+            markup, base_url=base_url,
+            representation='html' if payload.get('html') else None,
+        ))
     return candidates
 
 
@@ -433,6 +448,8 @@ def evaluate_resources(
     Only URLs explicitly returned in content or structured metadata are eligible.
     The request URL and provider final_url are deliberately excluded.
     """
+    from .response_input import answer_format
+    representation = answer_format(metadata)
     contract = output_contract or {}
     candidate_scope = contract.get("candidate_scope")
     reject_unexpected = contract.get("unexpected") == "reject"
@@ -455,7 +472,7 @@ def evaluate_resources(
             if key in metadata:
                 candidates.extend(_metadata_image_candidates(metadata[key], path=f"metadata.{key}"))
         if not typed_json_answer:
-            candidates.extend(_image_answer_candidates(content, base_url=base_url))
+            candidates.extend(_image_answer_candidates(content, base_url=base_url, representation=representation))
     elif eligible:
         answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
         candidates.extend(_metadata_resource_candidates(answer_fields))
@@ -591,7 +608,9 @@ def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
 
 
 def normalize_for_match(value: str, *, representation=None) -> str:
-    from .reference_quality import clean_reference_text, visible_markdown_links
+    from .reference_quality import clean_reference_text, visible_markdown_links, normalize_native_markdown_layout
+    if representation is None:
+        value = normalize_native_markdown_layout(value)
     normalized = unicodedata.normalize("NFKC", value).casefold()
     # Web editors insert zero-width spaces/BOMs and discretionary hyphens.
     # They are layout artifacts, not required prose; preserve meaningful joiners.
@@ -848,9 +867,13 @@ def evaluate_content(
     title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
     from .reference_quality import is_html_document_or_fragment, markdown_body_content
     literal = representation == 'plain_text'
-    prose_content = content if literal else markdown_body_content(content)
+    prose_source = content
+    if representation is None:
+        from .reference_quality import normalize_native_markdown_layout
+        prose_source = normalize_native_markdown_layout(content)
+    prose_content = prose_source if literal else markdown_body_content(prose_source)
     visible_content = prose_content
-    is_html = not literal and is_html_document_or_fragment(prose_content)
+    is_html = not literal and (representation == 'html' or is_html_document_or_fragment(prose_content))
     if is_html:
         # Keep raw HTML for records and links; score prose from visible text.
         from .dynamic_lists import visible_html_text
@@ -1073,12 +1096,11 @@ def evaluate_content(
             if not anchors_required else "stable_contract_and_declared_content_requirements")
     if composite_acceptance:
         from .composite_tasks import evaluate_composite_acceptance
-        from .dynamic_lists import visible_html_text
         composite = evaluate_composite_acceptance(
-            visible_html_text(prose_content, preserve_links=True) if is_html else visible_content,
+            prose_content,
             composite_acceptance, base_url=base_url, links=named_links,
             native_html=prose_content if is_html else None,
-            table_content=prose_content,
+            table_content=prose_content, representation='html' if is_html else representation,
         )
         result.update(composite)
         result["content_pass"] = bool(result["content_pass"] and composite["composite_acceptance_pass"])

@@ -538,6 +538,63 @@ def markdown_indented_code_contents(text):
     return {(start, end): content for start, end, content in _markdown_indented_code_blocks(text)}
 
 
+def normalize_native_markdown_layout(text):
+    """Restore supported serializer card indentation in an inferred answer view.
+
+    Explicit Markdown must retain literal-block semantics. Callers select this
+    view only for undeclared/native serialization, never for declared Markdown.
+    A card needs unindented body fields; fully indented examples stay literal.
+    """
+    if (not re.search(r'(?m)^[ \t]+(?:[^\n]*#{1,6}[ \t]+|[-+*][ \t]+\[!\[)', text)
+            or is_html_document_or_fragment(text)):
+        return text
+    from .composite_tasks import _DATE_OR_TIME
+    lines = text.splitlines(keepends=True)
+    fences = _markdown_fenced_code_spans(text)
+    offsets, offset = [], 0
+    for line in lines:
+        offsets.append(offset)
+        offset += len(line)
+    def following(index):
+        return next((i for i in range(index + 1, len(lines)) if lines[i].strip()), None)
+    def outside_body(index):
+        if index is None:
+            return False
+        line = lines[index].expandtabs(4)
+        body = line.lstrip(' ')
+        return (len(line) - len(body) < 4 and bool(body.strip())
+                and not re.match(r'(?:#{1,6}(?:\s|$)|>|[-+*](?:\s|$)|\d+[.)]\s|`{3,}|~{3,}|!?\[)', body))
+    for index, raw in enumerate(lines):
+        if (len(raw.expandtabs(4)) - len(raw.expandtabs(4).lstrip(' ')) < 4
+                or any(start <= offsets[index] < end for start, end in fences)):
+            continue
+        line = raw.strip()
+        links = markdown_links(line)
+        if len(links) != 1 or links[0].is_image or line[links[0].end:].strip():
+            continue
+        link = links[0]
+        prefix = line[:link.start].strip()
+        heading = re.fullmatch(r'(.+?)\s+#{1,6}', prefix)
+        if heading and _DATE_OR_TIME.fullmatch(heading[1]) and outside_body(following(index)):
+            lines[index] = raw.lstrip(' \t')
+            continue
+        images = markdown_links(link.label)
+        if (prefix not in {'-', '+', '*'} or len(images) != 1 or not images[0].is_image
+                or images[0].start != 0 or images[0].end != len(link.label)):
+            continue
+        title_index = following(index)
+        if title_index is None:
+            continue
+        title = lines[title_index].strip()
+        titles = markdown_links(title)
+        if (len(titles) == 1 and not titles[0].is_image and titles[0].start == 0
+                and titles[0].end == len(title) and titles[0].destination == link.destination
+                and outside_body(following(title_index))):
+            lines[index] = raw.lstrip(' \t')
+            lines[title_index] = '  ' + lines[title_index].lstrip(' \t')
+    return ''.join(lines)
+
+
 def markdown_literal_spans(text: str) -> list[tuple[int, int]]:
     """Locate block and inline literals before interpreting Markdown syntax."""
     spans = _markdown_fenced_code_spans(text)

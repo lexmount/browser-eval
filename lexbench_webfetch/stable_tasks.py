@@ -208,6 +208,9 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
         elif schema in {'product', 'catalog_product'}:
             from .dynamic_lists import scoped_html
             soup = scoped_html(text)
+            if schema == 'catalog_product':
+                for heading in soup.select('h1,h2,h3,h4,h5,h6'):
+                    heading.insert(0, '#' * int(heading.name[1]) + ' ')
             owners = _product_html_owners(soup)
             identities = {id(node) for node in owners}
             groups = {}
@@ -403,6 +406,9 @@ def _product_start(lines, index, schema):
 
 
 def _products(lines, schema):
+    raw_lines = [line for line in lines if line.strip()]
+    headings = [re.match(r'^ {0,3}(#{1,6})[ \t]+', line) for line in raw_lines]
+    lines = [_line(line) for line in raw_lines]
     records = []
     claimed_shipping = set()
     i = 0
@@ -413,8 +419,11 @@ def _products(lines, schema):
             continue
         fields, end = start
         if schema == "catalog_product":
+            level = next((len(heading[1]) for heading in headings[i:end] if heading), 6)
             description = []
             while end < len(lines):
+                if headings[end] and len(headings[end][1]) <= level:
+                    break
                 line = lines[end]
                 count = re.fullmatch(r"(?:reviews\s*:\s*)?(\d+)\s*reviews?", line, re.I)
                 if count:
@@ -463,7 +472,7 @@ def _product_records(text, schema):
                 blocks.pop(0)
             marked_block = "\n\n".join(blocks)
         parsed = [
-            _products([_line(line) for line in block.splitlines() if line.strip()], schema)
+            _products(block.splitlines(), schema)
             for block in blocks
         ]
         if (len(parsed) > 1
@@ -473,7 +482,7 @@ def _product_records(text, schema):
                 records.extend(block_records)
         else:
             records.extend(_products(
-                [_line(line) for line in marked_block.splitlines() if line.strip()], schema
+                marked_block.splitlines(), schema
             ))
     return records
 
@@ -803,8 +812,10 @@ def _parse_records(visible, schema, *, allow_closed_title_cards=False):
     return records
 
 
-def _non_record_visible(content, contract, records, base_url):
+def _non_record_visible(content, contract, records, base_url, *, representation=None):
     """Remove owned record links, without erasing identical navigation text."""
+    if representation == 'plain_text':
+        return None
     from .response_input import join_answer_url
 
     from .dynamic_lists import scoped_html, named_entry_identity, canonical_entry_path, visible_html_text
@@ -1393,6 +1404,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     This surface belongs only to that anchor, not page identity or body coverage.
     """
     validate_acceptance_contract(contract)
+    if representation is None:
+        from .reference_quality import normalize_native_markdown_layout
+        content = normalize_native_markdown_layout(content)
     schema = contract["schema"]
     count_policy = contract.get("record_count_policy")
     minimum, maximum = contract["minimum_records"], contract.get("maximum_records")
@@ -1467,10 +1481,12 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                 from .dynamic_lists import extract_linked_products
                 entries = extract_linked_products(
                     content, contract, base_url, diagnostics=link_diagnostics, include_excluded=True,
+                    representation=representation,
                 )
             else:
                 entries = extract_named_entries(
                     content, contract, base_url, links, link_diagnostics, include_excluded=True,
+                    representation=representation,
                 )
         except ValueError:
             # Malformed returned URLs are output validation failures, not
@@ -1478,16 +1494,19 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             entries = []
             errors.append("invalid_link_output")
         errors.extend(error for error in link_diagnostics if error not in errors)
-        excluded_names = {_label_key(value) for value in contract.get("record_name_exclusions", [])}
-        excluded_entries = [entry for entry in entries if _label_key(entry["title"]) in excluded_names]
-        entries = [entry for entry in entries if _label_key(entry["title"]) not in excluded_names]
+        excluded_names = {_label_key(value, representation=representation)
+                          for value in contract.get("record_name_exclusions", [])}
+        excluded_entries = [entry for entry in entries
+                            if _label_key(entry["title"], representation=representation) in excluded_names]
+        entries = [entry for entry in entries
+                   if _label_key(entry["title"], representation=representation) not in excluded_names]
         source_pair_hashes = set(contract.get("source_record_pair_hashes", []))
         source_mismatches = []
         if source_pair_hashes:
             matched_entries = []
             for entry in entries:
                 pair_hash = named_entry_source_pair_hash(
-                    entry["title"], entry["url"], contract)
+                    entry["title"], entry["url"], contract, representation=representation)
                 if pair_hash in source_pair_hashes:
                     matched_entries.append(entry)
                 else:
@@ -1533,7 +1552,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     if schema == 'named_link' and any(a.get('match_scope') == 'non_record_lines'
                                       for a in contract.get('stable_text_anchors', [])):
         non_record_visible = _non_record_visible(
-            non_record_content, contract, records, contract.get('link_base_url', base_url))
+            non_record_content, contract, records, contract.get('link_base_url', base_url),
+            representation=representation)
         if non_record_visible is not None:
             for pattern in exclusions.get('text_patterns', []):
                 non_record_visible = re.sub(pattern, ' ', non_record_visible, flags=re.I | re.M)

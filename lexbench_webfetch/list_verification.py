@@ -44,9 +44,12 @@ def name_matches(title,reference):
         r'(?:(?:19|20)\d{2}(?: \d+(?: \d+)? stars?)?|\d+(?: \d+)? stars?|tv)', suffix))
 
 
-def verify_list(content,contract,url,reference,eligible=True,links=None):
+def verify_list(content,contract,url,reference,eligible=True,links=None, *, representation=None, metadata=None):
+    if representation is None:
+        from .response_input import answer_format
+        representation = answer_format(metadata)
     entries=[];seen=set()
-    for item in extract_named_entries(content,contract,url,links):
+    for item in extract_named_entries(content,contract,url,links,representation=representation):
         key=identity(item['url'], contract)
         if key not in seen:entries.append(item);seen.add(key)
     required=contract['minimum_entries'];selected=entries[:required]

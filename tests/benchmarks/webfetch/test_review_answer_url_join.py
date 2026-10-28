@@ -20,6 +20,12 @@ from lexbench_webfetch.response_input import join_answer_url, safe_named_links
     ('https://example.test/dir/base%3B;', '?new=1', 'https://example.test/dir/base%3B;?new=1'),
     ('https://example.test/dir/base;', '/item%3B;', 'https://example.test/item%3B;'),
     ('https://example.test/', '/item&amp;', 'https://example.test/item&amp;'),
+    ('https://example.test/dir/base', '.;v', 'https://example.test/dir/.;v'),
+    ('https://example.test/dir/base', '..;v', 'https://example.test/dir/..;v'),
+    ('https://example.test/dir/base', '.;v;', 'https://example.test/dir/.;v;'),
+    ('https://example.test/dir/base', '%3B;v', 'https://example.test/dir/%3B;v'),
+    ('https://example.test/dir/base', '%253B;v', 'https://example.test/dir/%253B;v'),
+    ('https://example.test/dir/base', '%2f;v', 'https://example.test/dir/%2f;v'),
 ])
 def test_only_literal_terminal_semicolon_is_restored(base, reference, expected):
     assert join_answer_url(base, reference) == expected
