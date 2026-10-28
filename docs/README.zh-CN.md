@@ -31,35 +31,49 @@
 
 ## 设计原则
 
-结果稳定可复现，过程可控，结论有证据可查。
+我们希望评测结果稳定可复现，过程可控，结论可信赖。设计上主要考虑三件事：
 
-- **固定执行过程。** 按预先声明的请求调用工具，或在不同浏览器上重放同一组经过验证的动作，比较过程中不让 LLM 或 Agent 临时决定下一步。冻结输入、版本和运行配置，控制站点状态，保留计时证据。
-- **能用程序评分，就用程序评分。** 对照保存的输出和参考答案检查明确的任务要求。搜索相关性适合分级判断，可由人工标注，或明确选用 LLM judge；排名指标由程序根据冻结的分级结果计算。
-- **按需使用 LLM as a verifier。** 复核已有证据，查找评分错误、解释失败原因。复核与评分分开，不凭模型意见自动改写判定。HTML 报告支持下钻到每个结果，方便人工抽查；需要分享时，通过 Artifact Site 发布。
+1. **尽量选择有明确答案的任务，并用程序评分。** 有明确验收条件的任务，优先用程序检查，减少对 LLM as a judge 的依赖。但这不意味着完全不用模型：搜索结果的相关性就适合分级判断，可以使用人工标注，或明确选用的 LLM judge，并固定评分标准、保存分级结果。
+2. **执行评测时，尽量不再引入模型和 Agent 的决策。** Web 工具直接调用，浏览器通过固定轨迹重放来测试，让不同参与方执行同样的任务，减少模型输出和 Agent 规划带来的波动。同时固定任务、版本和运行配置，控制站点状态与计时条件。Browser Use 单独保留为实验性的 Agent 集成测试。
+3. **结果要方便审查，也能回到证据上校验。** 保留每个结果的原始证据，生成 HTML 报告，通过 Artifact Site 分享，让读者能从汇总分数一路查到响应、动作和日志。需要时才用 LLM as a verifier 多做一层复核，检查程序判定是否合理、证据是否充分；发现问题后查明原因、记录修正，不凭模型意见直接改分。完整复核成本高，因此也要方便人工按需抽查。
 
-```mermaid
-flowchart LR
-    A[冻结任务与实验配置] --> B[调用工具或重放固定动作]
-    B --> C[对保存的输出评分]
-    C --> D[HTML 报告与逐题证据]
-    C -. 按需复核 .-> V[LLM verifier 或人工审查]
-    V -. 复核发现 .-> D
-    D --> P[通过 Artifact Site 分享]
-```
-
-固定动作消除了执行过程中模型输出和规划选择带来的波动；在线内容、网络和浏览器时序仍需分别控制。各任务的具体流程与复核规则见[评测设计](benchmarks.md#evaluation-design)。
+评分、证据保留和复核要求见[评测设计](benchmarks.md#evaluation-design)。
 
 ## 评测流程
 
 按任务选择评测流程，各指南提供任务约定、环境配置和可运行示例。
 
-| 流程 | 如何执行与评分 | 对应评测集与任务集 | 使用指南 |
-| --- | --- | --- | --- |
-| Web Fetch | 声明请求 → 保存响应与文件 → 按 benchmark 检查任务要求并计算内容指标 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
-| Web Search | 固定问题 → 保留结果顺序 → 来源检查、相关性分级与排名指标 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
-| 轨迹重放 | 用 Playwright 重放固定动作 → 程序验收；WebArena 使用自建站点及其任务评测器 | [仓库自建固定动作任务集](../examples/trajectory_replay/README.md)，改编自 [Lexbench-Headless-Browser 场景设计](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
+| 流程 | 对应评测集与任务集 | 使用指南 |
+| --- | --- | --- |
+| Web Fetch | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
+| Web Search | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
+| 轨迹重放 | [仓库自建固定动作任务集](../examples/trajectory_replay/README.md)，改编自 [Lexbench-Headless-Browser 场景设计](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 
-[Browser Use](../examples/browser_use/README.md) 保留为实验性的 Agent 集成测试入口。
+### Web Fetch
+
+1. 选定任务并冻结参考证据：正文提取测试使用保存的 HTML，在线抓取测试使用指定 URL 和独立采集的参考内容。
+2. 通过适配接口，把同一任务交给各个工具或浏览器执行，保存完整响应、返回文件、错误和执行指标。
+3. 用所选 benchmark 的程序对照参考证据，检查正文、字段、资源或文件，再汇总任务结果与性能指标。
+
+### Web Search
+
+1. 在采集前固定问题、来源要求和评分标准。
+2. 将同一问题直接交给各个搜索工具，保存原始结果顺序、标题、摘要、链接、错误及已记录的延迟和成本。
+3. 用程序检查检索结果与来源要求。需要相关性分级时，使用人工标注或明确选用的模型评分，再由程序根据保存的分级结果计算排名指标。这里的相关性评分与事后按需进行的结果复核是两个环节。
+
+### 浏览器轨迹重放
+
+WebArena 公开轨迹的流程是：
+
+1. 自建所选任务需要的 WebArena-Verified 站点，准备约定的初始状态。
+2. 先验证人工录制的轨迹能通过任务验收，再固定动作，用 Playwright 在各个浏览器上重放同一轨迹。
+3. 保存响应、页面观察和网络记录，由固定版本的 WebArena-Verified 评测器用程序检查任务是否完成，不使用 LLM judge。
+
+仓库自建任务集也采用固定动作：选定有明确预期输出的任务 → 在对应页面上重放固定动作 → 用程序断言检查输出。它有独立的任务范围和评分规则。
+
+三类任务都会从保存的证据生成 HTML 报告，支持逐题查看、按需复核和 Artifact Site 分享。只要原始证据仍然适用，重建报告或重算评分就无需重新调用参与方。
+
+实验性的 [Browser Use](../examples/browser_use/README.md) 则把任务交给 Agent，由它自行决定浏览器动作，再由任务评测器检查执行结果。它包含模型和规划带来的波动，因此单独评测。
 
 ## 快速开始
 

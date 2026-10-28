@@ -23,11 +23,19 @@ The goal is repeatable results, controlled execution and evidence that readers c
 
 ### Web Fetch
 
-Freeze task inputs and reference evidence, call each participant through its declared interface, and retain the complete response and returned files. The selected benchmark's code checks task requirements and computes its content, field, resource or file metrics. Browser Eval aggregates those results with latency, resource use and recorded cost. Formal live-site comparisons verify reference validity before and after collection; saved evidence allows rescoring without fresh provider calls. See the [execution guide](../harness/web_fetch/README.md).
+1. Select tasks and freeze their inputs and reference evidence. Extraction benchmarks supply saved HTML; live fetching uses declared URLs and independently captured references. Formal live-site comparisons verify reference validity before and after collection.
+2. Call each participant through its declared interface and retain the complete response, returned files, errors and execution measurements.
+3. Run the selected benchmark's code to check task requirements and compute content, field, resource or file metrics. Aggregate those results with latency, resource use and recorded cost.
+
+Saved evidence allows rescoring without fresh provider calls. See the [execution guide](../harness/web_fetch/README.md).
 
 ### Web Search
 
-Freeze queries, source requirements and the scoring rubric, then collect each participant's native ordered results. Programmatic checks evaluate declared retrieval and source requirements. Graded relevance uses named human annotations by default; an explicitly selected LLM judge may assign grades where semantic relevance needs judgment. Preserve its model, prompt, candidate evidence and raw responses, and label model-judged results accordingly. Ranking metrics are computed in code from frozen grades, so metrics can be reproduced without asking the model again. See the [Search guide](../harness/web_search/README.md).
+1. Freeze queries, source requirements and the scoring rubric before collection.
+2. Query each participant directly and preserve its native result order, titles, snippets, URLs, errors and recorded latency and cost.
+3. Apply programmatic retrieval and source checks. Graded relevance uses named human annotations by default; an explicitly selected LLM judge may assign grades where semantic relevance needs judgment. Preserve its model, prompt, candidate evidence and raw responses, and label model-judged results accordingly. Compute ranking metrics in code from the frozen grades.
+
+These metrics can be reproduced without asking the model again. Relevance grading supplies scoring inputs; optional independent verification reviews the resulting evidence and scores. See the [Search guide](../harness/web_search/README.md).
 
 ### Browser Trajectory Replay
 
@@ -38,7 +46,13 @@ For the public WebArena replay:
 3. Run the pinned WebArena-Verified evaluator against the recorded answer and network trace, with any fork corrections identified by the selected source binding. These are programmatic task checks, with no LLM judge. A successful action return alone does not prove that the site changed as required.
 4. Build the HTML report from saved results and evidence. Optional verification investigates those results without changing the official verdicts.
 
-The repository-curated replay suite shares fixed-action execution but uses its own exact-output assertions rather than WebArena's evaluator. Its population and report remain separate. See the [replay protocol](trajectory-replay-protocol.md) and [WebArena environment and replay guide](../examples/trajectory_replay/public_webarena/README.md).
+The repository-curated replay suite has its own flow:
+
+1. Select tasks with explicit expected outputs and freeze their action trajectories and page requirements.
+2. Prepare isolated browser instances and replay the same actions on the declared pages, retaining responses and execution evidence.
+3. Compare the observed outputs with the suite's programmatic assertions and aggregate correctness and performance results.
+
+This suite uses its own assertions rather than WebArena's evaluator; its task population and report remain separate. See the [replay protocol](trajectory-replay-protocol.md) and [WebArena environment and replay guide](../examples/trajectory_replay/public_webarena/README.md).
 
 ### LLM as a verifier
 

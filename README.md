@@ -31,35 +31,49 @@ Evaluate browsers and Web tools for AI agents through Web Fetch, Web Search and 
 
 ## Evaluation approach
 
-Repeatable results, controlled execution and evidence that readers can check.
+We want results to be stable and reproducible, with a process we can control and conclusions we can trust. Three choices guide the evaluation:
 
-- **Fix the execution.** Send declared tool requests or replay the same qualified browser actions, without an LLM or Agent choosing steps during the comparison. Freeze inputs, versions and run settings; control site state and retain timing evidence.
-- **Score in code where possible.** Check explicit task requirements against saved outputs and references. Search relevance can use human grades or an explicitly selected LLM judge; compute ranking metrics from the frozen grades.
-- **Use an LLM as a verifier on request.** Review saved evidence to find scoring mistakes and explain failures. Verification is separate from scoring and does not automatically overwrite verdicts. HTML reports support per-result drilldown and human sampling; publish through Artifact Site when ready to share.
+1. **Prefer tasks with clear answers and programmatic scoring.** When a task has explicit acceptance criteria, check them in code rather than ask an LLM to judge them. This does not rule out model judgment: graded search relevance is a suitable use, with human annotations or an explicitly selected LLM judge and a frozen rubric and grades.
+2. **Keep extra model and Agent decisions out of execution.** Call Web tools directly and use fixed trajectories to test browsers, so differences in model output or Agent planning do not change the work each participant receives. Freeze tasks, versions and run settings, and control site state and timing. Experimental Browser Use is a separate Agent integration workflow.
+3. **Make results easy to review and verify.** Keep the evidence behind each result, generate HTML reports and share them through Artifact Site. Readers can follow a score down to the response, actions and logs, and inspect a sample rather than bear the cost of reviewing every result. On request, an LLM can act as a verifier to check whether the program's verdict matches the task requirements and recorded evidence. Review findings lead to investigation and documented corrections, rather than automatically replacing scores.
 
-```mermaid
-flowchart LR
-    A[Freeze tasks and controls] --> B[Run tools or replay fixed actions]
-    B --> C[Score saved outputs]
-    C --> D[HTML report and per-result evidence]
-    C -. Requested verification .-> V[LLM verifier or human review]
-    V -. Review findings .-> D
-    D --> P[Share through Artifact Site]
-```
-
-Fixed actions remove model and planning variability from execution. Live content, network conditions and browser timing still need their own controls. See [task flows and verification rules](docs/benchmarks.md#evaluation-design).
+See [evaluation design](docs/benchmarks.md#evaluation-design) for evidence, scoring and review requirements.
 
 ## Evaluation tracks
 
 Choose a workflow for its task contract, setup and runnable example.
 
-| Track | Execution and scoring | Benchmarks and task suites | Guide |
-| --- | --- | --- | --- |
-| Web Fetch | Declared request → saved response and files → benchmark checks and content metrics | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), [WebMainBench](https://github.com/opendatalab/WebMainBench), [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
-| Web Search | Fixed query → ordered results → source checks, relevance grades and ranking metrics | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch): scenario queries and a SimpleQA Verified retrieval adaptation | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
-| Browser Trajectory Replay | Fixed Playwright actions → programmatic checks; WebArena uses self-hosted sites and its task evaluator | [Repository-curated fixed-action suite](examples/trajectory_replay/README.md), adapted from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios); [qualified WebArena human recordings](evaluation/browser-use-public/webarena-human-suite.json), checked with the [WebArena-Verified evaluator](https://github.com/lexmount/webarena-verified/tree/lex-main) | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
+| Track | Benchmarks and task suites | Guide |
+| --- | --- | --- |
+| Web Fetch | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), [WebMainBench](https://github.com/opendatalab/WebMainBench), [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
+| Web Search | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch): scenario queries and a SimpleQA Verified retrieval adaptation | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
+| Browser Trajectory Replay | [Repository-curated fixed-action suite](examples/trajectory_replay/README.md), adapted from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios); [qualified WebArena human recordings](evaluation/browser-use-public/webarena-human-suite.json), checked with the [WebArena-Verified evaluator](https://github.com/lexmount/webarena-verified/tree/lex-main) | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
 
-Experimental [Browser Use](examples/browser_use/README.md) is available for Agent integration testing.
+### Web Fetch
+
+1. Select tasks and freeze their references: saved HTML for extraction tests, or declared URLs and independently captured references for live fetching.
+2. Give each tool or browser the same task through its adapter. Save the complete response, returned files, errors and execution measurements.
+3. Run the selected benchmark's scorer against the references to check content, fields, resources or files, then aggregate task results and performance metrics.
+
+### Web Search
+
+1. Fix the queries, source requirements and scoring rubric before collection.
+2. Send each query directly to the search tools. Save their native result order, titles, snippets, links, errors and recorded latency and cost.
+3. Apply programmatic retrieval and source checks. For graded relevance, collect human or explicitly selected model grades, then compute ranking metrics from those frozen grades. Relevance grading is part of scoring; optional verification is a separate review of the results.
+
+### Browser Trajectory Replay
+
+The public WebArena workflow is:
+
+1. Self-host the WebArena-Verified sites needed by the selected tasks and prepare the declared starting state.
+2. Qualify human recordings, freeze the actions, then replay the same trajectory through Playwright on each browser.
+3. Save responses, observations and network traces, and let the pinned WebArena-Verified evaluator check task completion in code, without an LLM judge.
+
+The repository-curated suite follows the same fixed-action approach: select tasks with explicit expected outputs → replay the frozen actions on the required pages → check the outputs with programmatic assertions. It has its own task population and scoring rules.
+
+All three tracks build HTML reports from saved evidence and support per-result inspection, optional verification and Artifact Site sharing. Rebuilding a report or recomputing scores does not require new participant calls when the saved evidence remains valid.
+
+Experimental [Browser Use](examples/browser_use/README.md) gives an Agent a task, lets it choose browser actions, and checks the recorded outcome with the task evaluator. It includes model and planning variation and is evaluated separately.
 
 ## Quickstart
 
