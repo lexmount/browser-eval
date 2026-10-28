@@ -337,6 +337,42 @@ def without_markdown_images(content):
     return ''.join(pieces)
 
 
+def markdown_literal_spans(text: str) -> list[tuple[int, int]]:
+    """Locate fenced and inline code before interpreting Markdown link syntax."""
+    spans = []
+    fence = None
+    offset = 0
+    for line in text.splitlines(keepends=True):
+        if fence is None:
+            opening = re.match(r'^ {0,3}(`{3,}|~{3,})([^\r\n]*)', line)
+            if opening and not (opening[1][0] == '`' and '`' in opening[2]):
+                fence = (offset, opening[1])
+        elif re.fullmatch(r' {0,3}' + re.escape(fence[1][0])
+                          + '{' + str(len(fence[1])) + r',}[ \t]*(?:\r?\n)?', line):
+            spans.append((fence[0], offset + len(line)))
+            fence = None
+        offset += len(line)
+    if fence is not None:
+        spans.append((fence[0], len(text)))
+    runs = list(re.finditer(r'`+', text))
+    consumed = 0
+    for index, run in enumerate(runs):
+        if run.start() < consumed or any(left <= run.start() < right for left, right in spans):
+            continue
+        escape = run.start()
+        while escape and text[escape - 1] == '\\':
+            escape -= 1
+        if (run.start() - escape) % 2:
+            continue
+        closing = next((other for other in runs[index + 1:]
+                        if len(other[0]) == len(run[0])
+                        and not any(run.end() <= left < other.start() for left, _ in spans)), None)
+        if closing is not None:
+            spans.append((run.start(), closing.end()))
+            consumed = closing.end()
+    return sorted(spans)
+
+
 def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str:
     """Keep labels and adjacent link boundaries, consuming balanced destinations.
 
@@ -345,18 +381,15 @@ def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str
     newlines inside a bounded, balanced destination must not turn it into a
     false negative.
     """
-    literals = [match.span() for match in re.finditer(
-        r"(?ms)^ {0,3}(`{3,}|~{3,})[^\n]*\n.*?^ {0,3}\1[ \t]*$"
-        r"|`+[^`\n]+`+", text)]
+    literals = markdown_literal_spans(text)
     result=[];start=0;previous_label=''
     for match in markdown_links(text):
         if match.start < start:
             continue
-        if any(left <= match.start < right for left, right in literals):
-            continue
-        label = ('' if match.is_image and not include_image_alt else
+        literal = any(left <= match.start < right for left, right in literals)
+        label = ('' if match.is_image and not (include_image_alt or literal) else
                  re.sub(r"\s+", " ", visible_markdown_links(
-                     match.label, include_image_alt=include_image_alt)).strip())
+                     match.label, include_image_alt=include_image_alt or literal)).strip())
         # A native carousel can append its accessibility position directly
         # to the label. Keep both values but restore their observable boundary.
         label = re.sub(r'(?<=[^\W\d_])(?=\d+\s+of\s+\d+$)', ' ', label)

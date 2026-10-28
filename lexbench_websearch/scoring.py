@@ -243,10 +243,6 @@ def task_acceptance(
         )
     if metric == "answer" or not case.get("anchors"):
         return None
-    key = "anchor_hit_5" if cutoff == 5 else "anchor_hit_10" if cutoff == 10 else None
-    value = row.get("metrics", {}).get(key) if key else None
-    if value is not None:
-        return bool(value)
     safe = [
         r
         for r in row.get("results", [])[:cutoff]

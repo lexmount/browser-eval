@@ -152,13 +152,15 @@ def _looks_like_image_url(value: str) -> bool:
 def _image_content_candidates(content: str) -> list[tuple[str, str]]:
     candidates = [(url, "content.markdown_image")
                   for url in _markdown_image_destinations(content)]
-    candidates.extend((html.unescape(match[1]), "content.html_img") for match in re.findall(
-        r"<img\b[^>]*?\bsrc\s*=\s*([\"'])(.*?)\1", content, re.I | re.S
-    ))
+    attributes = _html_resource_attributes(content)
+    candidates.extend((attrs['src'], "content.html_img")
+                      for tag, attrs in attributes if tag == 'img' and attrs.get('src'))
     from .resource_urls import srcset_urls
-    for match in re.findall(r"<img\b[^>]*?\bsrcset\s*=\s*([\"'])(.*?)\1", content, re.I | re.S):
+    for tag, attrs in attributes:
+        if tag != 'img' or not attrs.get('srcset'):
+            continue
         candidates.extend((url, "content.html_img_srcset")
-                          for url in srcset_urls(html.unescape(match[1])))
+                          for url in srcset_urls(attrs['srcset']))
     # HTML attributes are decoded above. Do not also admit their raw entity
     # spelling as a second bare candidate; plain URL answers remain literal.
     from .reference_quality import markdown_links
@@ -181,12 +183,12 @@ def _image_content_candidates(content: str) -> list[tuple[str, str]]:
     return candidates
 
 
-class _VisibleInlineFrames(HTMLParser):
-    """Collect browser-serialized inline frame documents that are visibly embedded."""
+class _ResourceHTMLParser(HTMLParser):
+    """Read native HTML attributes with HTML quoting and entity semantics."""
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.documents: list[tuple[str, str | None]] = []
+        self.tags: list[tuple[str, dict[str, str]]] = []
 
     def parse_marked_section(self, i: int, report: int = 1) -> int:
         # HTMLParser rejects XML conditional sections that are valid opaque
@@ -199,16 +201,33 @@ class _VisibleInlineFrames(HTMLParser):
             return end + 2 if end >= 0 else -1
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        selected = {key.casefold(): value for key, value in attrs
+                    if key.casefold() in {'src', 'href', 'srcset'} and value}
+        if selected:
+            self.tags.append((tag.casefold(), selected))
+
+
+def _html_resource_attributes(content: str) -> list[tuple[str, dict[str, str]]]:
+    if not re.search(r'<[A-Za-z]', content):
+        return []
+    parser = _ResourceHTMLParser()
+    parser.feed(content)
+    parser.close()
+    return parser.tags
+
+
+class _VisibleInlineFrames(_ResourceHTMLParser):
+    """Collect browser-serialized inline frame documents that are visibly embedded."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.documents: list[tuple[str, str | None]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag.casefold() != "iframe":
             return
         values = {key.casefold(): value for key, value in attrs}
-        style = re.sub(r"\s+", "", values.get("style") or "").casefold()
-        if (
-            "hidden" in values
-            or "display:none" in style
-            or "visibility:hidden" in style
-            or (values.get("width") == "0" and values.get("height") == "0")
-        ):
+        if values.get("width") == "0" and values.get("height") == "0":
             return
         source = values.get("srcdoc")
         if source:
@@ -230,7 +249,11 @@ def _inline_frame_candidates(
     if not re.search(r'<iframe\b', content, re.I):
         return []
     parser = _VisibleInlineFrames()
-    parser.feed(content)
+    from .dynamic_lists import scoped_html
+    # Keep the existing opaque XML-declaration tolerance before the DOM
+    # visibility pass; html.parser otherwise rejects unknown marked sections.
+    visible_markup = re.sub(r'<!\[.*?(?:\]>|\Z)', '', content, flags=re.S)
+    parser.feed(str(scoped_html(visible_markup)))
     parser.close()
     candidates: list[tuple[str, str]] = []
     for document, declared_base in parser.documents[:100]:
@@ -251,16 +274,7 @@ def _inline_frame_candidates(
                 document,
             )
         else:
-            raw_candidates = [
-                (html.unescape(url), "content.frame_html_url")
-                for _, url in re.findall(
-                    r"(?:src|href)\s*=\s*([\"'])(.*?)\1", document, re.I
-                )
-            ]
-            raw_candidates.extend(
-                (url, "content.frame_bare_url")
-                for url in _bare_resource_urls(document)
-            )
+            raw_candidates = _markup_resource_candidates(document, 'content.frame')
         for raw_url, source in raw_candidates:
             normalized = normalize_resource_url(raw_url, frame_base)
             if normalized:
@@ -287,16 +301,7 @@ def _native_json_resource_candidates(
     candidates: list[tuple[str, str]] = []
     markup = payload.get("html") or payload.get("content")
     if isinstance(markup, str):
-        candidates.extend(
-            (html.unescape(match[1]), "content.native_json_html_url")
-            for match in re.findall(
-                r"(?:src|href)\s*=\s*([\"'])(.*?)\1", markup, re.I
-            )
-        )
-        candidates.extend(
-            (url, "content.native_json_html_bare_url")
-            for url in _bare_resource_urls(markup)
-        )
+        candidates.extend(_markup_resource_candidates(markup, 'content.native_json'))
         candidates.extend(_inline_frame_candidates(
             markup, base_url=base_url, images_only=False,
         ))
@@ -305,6 +310,16 @@ def _native_json_resource_candidates(
             candidates.extend(_metadata_resource_candidates(
                 payload[key], key="links", path=f"content.native_json.{key}"))
     return candidates
+
+
+def _markup_resource_candidates(content: str, source: str) -> list[tuple[str, str]]:
+    """Apply one HTML, Markdown and literal URL reader to each answer surface."""
+    from .reference_quality import markdown_link_destinations
+    result = [(value, source + '.html_url') for _, attrs in _html_resource_attributes(content)
+              for key, value in attrs.items() if key in {'href', 'src'}]
+    result.extend((url, source + '.markdown_link') for url in markdown_link_destinations(content))
+    result.extend((url, source + '.bare_url') for url in _bare_resource_urls(content))
+    return result
 
 
 def _bare_resource_urls(content: str) -> list[str]:
@@ -401,13 +416,7 @@ def evaluate_resources(
             if isinstance(structured, (dict, list)):
                 candidates.extend(_native_json_resource_candidates(content, base_url=base_url))
             else:
-                from .reference_quality import markdown_link_destinations
-                candidates.extend((url, "content.bare_url") for url in
-                                  _bare_resource_urls(content))
-                candidates.extend((html.unescape(match[1]), "content.html_url") for match in
-                                  re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
-                candidates.extend((url, "content.markdown_link")
-                                  for url in markdown_link_destinations(content))
+                candidates.extend(_markup_resource_candidates(content, 'content'))
                 candidates.extend((url, "content.visible_file")
                                   for url in _visible_relative_resource_urls(content))
                 candidates.extend(_inline_frame_candidates(content, base_url=base_url, images_only=False))

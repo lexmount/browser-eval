@@ -35,7 +35,13 @@ def name_matches(title,reference):
     # No edit-distance guessing; unknown aliases require independent evidence.
     a=' '.join(normalize(title).split());b=' '.join(normalize(reference).split())
     if not a or not b:return False
-    return a==b or (len(b)>=5 and a.startswith(b+' '))
+    if a == b:
+        return True
+    if len(b) < 5 or not a.startswith(b + ' '):
+        return False
+    suffix = a[len(b) + 1:]
+    return bool(re.fullmatch(
+        r'(?:(?:19|20)\d{2}(?: \d+(?: \d+)? stars?)?|\d+(?: \d+)? stars?|tv)', suffix))
 
 
 def verify_list(content,contract,url,reference,eligible=True,links=None):

@@ -531,7 +531,7 @@ def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, 
         return identity_cache[id(node)]
 
     owners = {id(node): node for node in soup.select(
-        'article,li,aside,nav,[role="article"],[role="listitem"]')}
+        'article,li,aside,nav,table,[role="article"],[role="listitem"]')}
     # Generic div cards have no semantic tag. Repeated sibling containers with
     # their own content and distinct target links supply the same DOM boundary.
     for parent in soup.find_all(True):
@@ -584,8 +584,9 @@ def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, 
     while marker in content:
         marker += '_'
     for index, node in enumerate(owners.values()):
-        node.insert_before(NavigableString('\n'+marker+'S'+str(index)+'\n'))
-        node.insert_after(NavigableString('\n'+marker+'E'+str(index)+'\n'))
+        key = ('T' if node.name == 'table' else '') + str(index)
+        node.insert_before(NavigableString('\n'+marker+'S'+key+'\n'))
+        node.insert_after(NavigableString('\n'+marker+'E'+key+'\n'))
     for node in soup.find_all(['img','br']):
         # HTML void elements cannot own following text. Some retained native
         # HTML includes closing img/br tags; preserve text the parser nested
@@ -600,19 +601,26 @@ def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, 
 
 def _record_owner_ranges(content: str, marker: str | None):
     if marker is None:
-        return content, []
-    parts, starts, ranges, offset, cursor = [], {}, [], 0, 0
-    for match in re.finditer(re.escape(marker)+r'([SE])(\d+)', content):
+        return content, [], []
+    parts, starts, ranges, tables, offset, cursor = [], {}, [], [], 0, 0
+    for match in re.finditer(re.escape(marker)+r'([SE])(T?\d+)', content):
         segment = content[cursor:match.start()]
         parts.append(segment); offset += len(segment); cursor = match.end()
         if match[1] == 'S':
             starts[match[2]] = offset
         else:
-            ranges.append((starts.pop(match[2], 0), offset))
+            owned = (starts.pop(match[2], 0), offset)
+            ranges.append(owned)
+            if match[2].startswith('T'):
+                tables.append(owned)
     parts.append(content[cursor:])
     clean = ''.join(parts)
-    ranges.extend((start, len(clean)) for start in starts.values())
-    return clean, ranges
+    for key, start in starts.items():
+        owned = (start, len(clean))
+        ranges.append(owned)
+        if key.startswith('T'):
+            tables.append(owned)
+    return clean, ranges, tables
 
 
 def _unlabeled_text_table_context(context: str, identity: str, group: dict,
@@ -650,7 +658,7 @@ def _unlabeled_text_table_context(context: str, identity: str, group: dict,
 
 
 def _named_link_group(content: str, group: dict, base_url: str, links: list | None, *, ownership_marker: str | None = None, native_html: str | None = None) -> dict:
-    content, owner_ranges = _record_owner_ranges(content, ownership_marker)
+    content, owner_ranges, table_ranges = _record_owner_ranges(content, ownership_marker)
     standard = {
         "version": 1,
         "schema": "named_link",
@@ -849,7 +857,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                         for prior in markdown_links(prior_line)):
                     start = prior_start
             candidates.append((identity, destination, title, start, link.start, owner, link.end))
-        owned = {}
+        owned, independent = {}, {}
         # Consecutive links to the same identity belong to one card (for
         # example, a title link followed by a linked date).  A later duplicate
         # after another identity starts a new card and must not enlarge the
@@ -901,7 +909,10 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             context = _card_section_context(context, 0, len(context), max(0, link_start-line_start), identity, group, base_url)
             context = _unlabeled_text_table_context(context, identity, group, base_url, fields)
             if label and _required_fields(context, label, field_specs=fields):
-                owned[identity] = {"url": destination, "title": label, "context": context}
+                record = {"url": destination, "title": label, "context": context}
+                owned[identity] = record
+                if not any(begin <= link_start < end for begin, end in table_ranges):
+                    independent[identity] = record
         if native_html:
             table_ids, table_contexts = _html_table_record_contexts(
                 native_html, group, base_url, set(allowed_rows),
@@ -912,7 +923,10 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                 context = next((value for value in table_contexts.get(identity, [])
                                 if _required_fields(value, label, field_specs=fields)), None)
                 if context is None:
-                    owned.pop(identity, None)
+                    if identity in independent:
+                        owned[identity] = independent[identity]
+                    else:
+                        owned.pop(identity, None)
                 else:
                     owned[identity] = {"url": entry["url"], "title": label,
                                        "context": context, "context_basis": "native_table_owner"}
@@ -1187,19 +1201,21 @@ def _owned_labeled_values(
 
 
 def _line_starts_declared_label(line: str, aliases: list[str]) -> bool:
-    return _key(line) in {_key(alias) for alias in aliases} or bool(
-        _owned_labeled_values(line, aliases)
-    )
+    names = "|".join(re.escape(alias) for alias in aliases)
+    empty_label = bool(aliases) and bool(re.fullmatch(
+        rf"\s*(?:{names})(?:\s*\([^)]*\))?\s*[:：|–—-]?\s*", line, re.I))
+    return empty_label or bool(_owned_labeled_values(line, aliases))
 
 
-def _field_value(
+def _field_values(
     lines: list[str],
     spec: dict,
     used: set[int] | None = None,
     *,
     declared_aliases: list[str] | None = None,
-) -> tuple[int, str, int, int] | None:
-    """Return one value owned by its declared label or typed line."""
+    claimed: dict[int, list[tuple[int, int]]] | None = None,
+):
+    """Yield eligible value spans without erasing pattern lookaround context."""
     aliases = spec.get("aliases", [])
     candidates: list[tuple[int, str, int, int]] = []
     declared = declared_aliases or list(aliases)
@@ -1219,8 +1235,19 @@ def _field_value(
                     if next_line and not _line_starts_declared_label(next_line, declared):
                         candidates.append((index + 1, next_line, 0, len(next_line)))
             continue
+        if _line_starts_declared_label(line, declared):
+            continue
         candidates.append((index, line, 0, len(line)))
+    token_pattern = _field_token_pattern(spec)
+    def overlaps(index, start, end):
+        return any(left < end and right > start for left, right in (claimed or {}).get(index, []))
+
     for index, value, start, end in candidates:
+        if token_pattern is None:
+            for left, right in (claimed or {}).get(index, []):
+                left, right = max(left, start) - start, min(right, end) - start
+                if right > left:
+                    value = value[:left] + ' ' * (right - left) + value[right:]
         if spec["kind"] == "text" and not aliases:
             payload = _text_role_value(value, spec)
             if payload is None:
@@ -1230,8 +1257,10 @@ def _field_value(
             start += value.rfind(payload)
             value = payload
             end = start + len(value)
-        if token_pattern := _field_token_pattern(spec):
+        if token_pattern is not None:
             for match in token_pattern.finditer(value):
+                if overlaps(index, start + match.start(), start + match.end()):
+                    continue
                 if spec["kind"] == "text" and (
                     match.start() and value[match.start() - 1].isalnum() and match[0][:1].isalnum()
                     or match.end() < len(value) and value[match.end()].isalnum() and match[0][-1:].isalnum()
@@ -1240,12 +1269,17 @@ def _field_value(
                 checked = {key: value for key, value in spec.items()
                            if key != "pattern"} if spec["kind"] == "text" else spec
                 if _value_matches_spec(match[0], checked):
-                    return index, match[0], start + match.start(), start + match.end()
+                    yield index, match[0], start + match.start(), start + match.end()
             continue
         checked_spec = {**spec, "minimum_chars": 1} if aliases and spec["kind"] == "text" and "minimum_chars" not in spec else spec
-        if _value_matches_spec(value, checked_spec):
-            return index, value, start, end
-    return None
+        if not overlaps(index, start, end) and _value_matches_spec(value, checked_spec):
+            yield index, value, start, end
+
+
+
+def _field_value(*args, **kwargs):
+    """Select the first eligible value when inspecting one field in isolation."""
+    return next(_field_values(*args, **kwargs), None)
 
 
 def _labeled_field_lines(lines, field_specs):
@@ -1288,32 +1322,77 @@ def _fixed_field_value_key(value: str, spec: dict) -> str:
     return _key(value)
 
 
+def _field_priority(field: dict) -> tuple:
+    """Reserve explicitly owned and constrained values before free text."""
+    constrained = bool(field.get('pattern') or _field_token_pattern(field) is not None)
+    return not bool(field.get('aliases')), not constrained, field['kind'] == 'text', field['id']
+
+
+def _assigned_field_values(lines: list[str], field_specs: list[dict]) -> dict:
+    """Find disjoint values with original context; prefer the tightest domains."""
+    ordered = sorted(field_specs, key=_field_priority)
+    declared = _declared_aliases(field_specs)
+    best, failed = {}, set()
+
+    def choices(spec, used, typed_lines, claimed):
+        typed = _field_token_pattern(spec) is not None
+        return list(_field_values(lines, spec, used if typed else used | typed_lines,
+                                  declared_aliases=declared, claimed=claimed))
+
+    def reserve(spec, result, used, typed_lines, claimed, values):
+        index, value, start, end = result
+        typed = _field_token_pattern(spec) is not None
+        return (used | {index} if not typed and not spec.get('aliases') else used,
+                typed_lines | {index} if typed and spec['kind'] != 'text' else typed_lines,
+                {**claimed, index: [*claimed.get(index, []), (start, end)]},
+                {**values, spec['id']: value})
+
+    def assign(remaining, used, typed_lines, claimed, values):
+        nonlocal best
+        if len(values) > len(best):
+            best = values
+        if not remaining:
+            return True
+        state = (tuple(spec['id'] for spec in remaining), tuple(sorted(used)),
+                 tuple(sorted(typed_lines)),
+                 tuple((index, tuple(sorted(spans))) for index, spans in sorted(claimed.items())))
+        if state in failed:
+            return False
+        domains = [(spec, choices(spec, used, typed_lines, claimed)) for spec in remaining]
+        # These fields each consume a whole physical line. A missing line
+        # cannot be repaired by enumerating every ordering of the other lines.
+        whole = [items for spec, items in domains
+                 if not spec.get('aliases') and _field_token_pattern(spec) is None]
+        if (any(not items for _, items in domains)
+                or len(whole) > len({item[0] for items in whole for item in items})):
+            failed.add(state)
+            return False
+        spec, candidates = min(domains, key=lambda pair: (len(pair[1]), _field_priority(pair[0])))
+        rest = [field for field in remaining if field['id'] != spec['id']]
+        for result in candidates:
+            if assign(rest, *reserve(spec, result, used, typed_lines, claimed, values)):
+                return True
+        failed.add(state)
+        return False
+
+    if not assign(ordered, set(), set(), {}, {}):
+        # Partial diagnostics need one useful assignment, not an exhaustive
+        # search for the largest failed assignment.
+        used, typed_lines, claimed, values = set(), set(), {}, {}
+        for spec in ordered:
+            available = choices(spec, used, typed_lines, claimed)
+            if available:
+                used, typed_lines, claimed, values = reserve(
+                    spec, available[0], used, typed_lines, claimed, values)
+        if len(values) > len(best):
+            best = values
+    return best
+
+
 def _required_fields(context: str, title: str, *, field_specs: list[dict]) -> bool:
     """Require every declared field inside the record block which owns the link."""
     lines = _labeled_field_lines(_context_lines(context, title), field_specs)
-    used: set[int] = set()
-    typed_lines: set[int] = set()
-    declared = _declared_aliases(field_specs)
-    for spec in sorted(field_specs, key=lambda field: not (field.get("aliases") or field["kind"] == "text" and field.get("pattern"))):
-        typed = _field_token_pattern(spec) is not None
-        result = _field_value(
-            lines,
-            spec,
-            used if typed else used | typed_lines,
-            declared_aliases=declared,
-        )
-        if result is None:
-            return False
-        index, value, start, end = result
-        # Consume the exact owned value. Multiple declared labels may share a
-        # physical line, but one value cannot satisfy two required fields.
-        lines[index] = lines[index][:start] + " " * (end - start) + lines[index][end:]
-        if typed:
-            if spec["kind"] != "text":
-                typed_lines.add(index)
-        elif not spec.get("aliases"):
-            used.add(index)
-    return True
+    return len(_assigned_field_values(lines, field_specs)) == len(field_specs)
 
 
 def _name_description_group(content: str, group: dict, base_url: str) -> dict:
@@ -1337,6 +1416,14 @@ def _name_description_group(content: str, group: dict, base_url: str) -> dict:
         "minimum": group["minimum_records"],
         "pass": result["stable_structure_pass"],
     }
+
+
+def _table_header_at(lines: list[str], index: int) -> bool:
+    if index + 1 >= len(lines) or '|' not in lines[index]:
+        return False
+    cells, divider = _pipe_cells(lines[index]), _pipe_cells(lines[index + 1])
+    return any(cell.strip() for cell in cells) and len(cells) == len(divider) and all(
+        re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in divider)
 
 
 def _table_group(content: str, group: dict) -> dict:
@@ -1376,7 +1463,11 @@ def _table_group(content: str, group: dict) -> dict:
                 continue
             row_index = index + 2 if delimiter == "|" else index + 1
             while row_index < len(lines) and delimiter in lines[row_index]:
+                if delimiter == "|" and _table_header_at(lines, row_index):
+                    break
                 values = [value.strip() for value in (_pipe_cells(lines[row_index]) if delimiter == "|" else lines[row_index].split(delimiter))]
+                if delimiter == "\t" and [_key(value) for value in values] == headers:
+                    break
                 if len(values) == len(headers):
                     row = {}
                     for field, (column, pattern) in mapping.items():
@@ -1424,6 +1515,8 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
         else:
             row_index = index + 2
             while row_index < len(lines) and "|" in lines[row_index]:
+                if _table_header_at(lines, row_index):
+                    break
                 values = [value.strip() for value in _pipe_cells(lines[row_index])]
                 if len(values) == len(headers):
                     row = {field: values[column] for field, column in mapping.items()}
@@ -1522,17 +1615,9 @@ def _field_report_group(content: str, group: dict) -> dict:
     lines = [re.sub(r"\s*\|\s*", " ", line).strip()
              for line in _context_lines(content, "")]
     lines = _labeled_field_lines(lines, group["required_fields"])
-    fields = {}
-    used = set()
-    declared = _declared_aliases(group["required_fields"])
-    for spec in group["required_fields"]:
-        value = _field_value(lines, spec, used, declared_aliases=declared)
-        if value is not None:
-            index, raw, start, end = value
-            fields[spec["id"]] = _canonical_field_report_value(raw, spec)
-            lines[index] = lines[index][:start] + " " * (end - start) + lines[index][end:]
-            if not spec.get("aliases"):
-                used.add(index)
+    values = _assigned_field_values(lines, group['required_fields'])
+    fields = {spec['id']: _canonical_field_report_value(values[spec['id']], spec)
+              for spec in group['required_fields'] if spec['id'] in values}
     specs = {spec["id"]: spec for spec in group["required_fields"]}
     fixed = {
         key: {

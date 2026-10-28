@@ -145,7 +145,10 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
     contract = json.loads(contract_bytes)
     if contract["profile_sha256"] != digest(old_bytes):
         raise ValueError("Original execution contract changed")
-    verify_bundle(output / "implementation", [{"path": p, "sha256": sha} for p, sha in contract["implementation"].items()])
+    verify_bundle(output / "implementation", [
+        {"path": name, "sha256": sha} for name, sha in contract["implementation"].items()
+    ])
+    validate_resume_datasets(contract)
     raw = (output / "results.jsonl").read_bytes()
     rows = read_completed_records(output / "results.jsonl")
     if len({r["id"] for r in rows}) != len(rows):
@@ -327,12 +330,20 @@ def implementation_source(relative):
 
 def validate_resume_implementation(output, contract):
     """Reject code drift before reference requests, file mutations or provider calls."""
-    for name, sha in contract["implementation"].items():
-        if digest((output / "implementation" / name).read_bytes()) != sha:
-            raise ValueError("Original collection implementation changed")
+    verify_bundle(output / "implementation", [
+        {"path": name, "sha256": sha} for name, sha in contract["implementation"].items()
+    ])
     current = collection_implementation()
     if current != contract["implementation"]:
         raise ValueError("Resume requires the same live collection implementation; start a new cohort")
+    validate_resume_datasets(contract)
+
+
+def validate_resume_datasets(contract):
+    """Execution repairs retain the original benchmark inputs and scoring resources."""
+    from harness.benchmarks.data import dependencies
+    if contract.get("installed_benchmark_datasets") != dependencies("websearch"):
+        raise ValueError("Resume requires the same installed benchmark datasets; start a new cohort")
 
 
 def prepare_resume(profile_path, output, *, retain_results=False, cohort="primary", validate_only=False):

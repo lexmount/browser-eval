@@ -2,6 +2,9 @@
 
 import hashlib
 import json
+import os
+import subprocess
+import sys
 
 import pytest
 
@@ -166,6 +169,49 @@ def test_complete_independent_definitions_compile_to_an_executable_dataset(defin
     ]
     assert dataset["cases"][20]["acceptance_contract"]["stable_text_role"] == "diagnostic"
     assert "composite_acceptance" not in dataset["cases"][20]
+
+
+def test_local_compilation_works_offline_in_a_fresh_process(definitions, tmp_path):
+    root, proofs = definitions
+    guards = tmp_path / 'guards.json'
+    guards.write_text(json.dumps({'rules': compiler.EXPECTED_RULE_HASHES,
+                                 'cohort': compiler.EXPECTED_COHORT_HASH,
+                                 'literals': compiler.EXPECTED_STABLE_LITERAL_COUNT}))
+    cache = tmp_path / 'empty-cache'
+    output = tmp_path / 'offline-dataset.json'
+    program = '''
+import json, sys
+from pathlib import Path
+from lexbench_webfetch import risk_control_dataset as compiler
+guards = json.loads(Path(sys.argv[1]).read_text())
+compiler.EXPECTED_RULE_HASHES = guards['rules']
+compiler.EXPECTED_COHORT_HASH = guards['cohort']
+compiler.EXPECTED_STABLE_LITERAL_COUNT = guards['literals']
+compiler.main(sys.argv[2:])
+'''
+    result = subprocess.run([sys.executable, '-c', program, str(guards),
+                             '--definition-dir', str(root), '--evidence-home', str(proofs.parent),
+                             '--output', str(output)], cwd=tmp_path, capture_output=True, text=True,
+                            env={**os.environ, 'BROWSER_EVAL_DATASET_CACHE': str(cache), 'HF_HUB_OFFLINE': '1'})
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)['cases'] == 100
+    assert json.loads(output.read_bytes())['case_count'] == 100
+    assert not cache.exists()
+
+
+def test_pure_acceptance_policy_import_needs_no_installed_definitions(tmp_path):
+    cache = tmp_path / 'empty-cache'
+    program = '''
+from lexbench_webfetch.risk_control_dataset import assign_content_acceptance_roles
+assign_content_acceptance_roles([{'acceptance_contract': {
+    'version': 1, 'schema': 'named_link', 'minimum_records': 1,
+    'hosts': ['example.test'], 'entry_path': '/item/[0-9]+', 'stable_text_anchors': []}}])
+'''
+    result = subprocess.run([sys.executable, '-c', program], cwd=tmp_path, capture_output=True,
+                            text=True, env={**os.environ, 'BROWSER_EVAL_DATASET_CACHE': str(cache),
+                                            'HF_HUB_OFFLINE': '1'})
+    assert result.returncode == 0, result.stderr
+    assert not cache.exists()
 
 
 def test_current_scope_owners_declare_only_proven_complete_contracts():

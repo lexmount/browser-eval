@@ -126,3 +126,14 @@ def test_search_task_acceptance_rejects_failed_responses_with_matching_evidence(
     assert task_acceptance(case, None, metric, relevance_grades=[3]) is None
     if metric != 'availability':
         assert task_acceptance(case, row, metric, quality_excluded=True, relevance_grades=[3]) is None
+
+
+@pytest.mark.parametrize('evaluated_cutoff', [2, 5, 10])
+@pytest.mark.parametrize('requested_cutoff', [5, 10])
+def test_search_source_acceptance_uses_requested_scope_not_cached_metrics(evaluated_cutoff, requested_cutoff):
+    from lexbench_websearch.scoring import task_acceptance
+    case = {'anchors': ['https://example.org/anchor']}
+    results = [{'url': f'https://example.org/{i}'} for i in range(10)]
+    results[5] = {'url': 'https://example.org/anchor'}
+    row = {'results': results, 'metrics': evaluate(case, results, cutoff=evaluated_cutoff)}
+    assert task_acceptance(case, row, 'source', cutoff=requested_cutoff) is (requested_cutoff == 10)

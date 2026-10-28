@@ -97,6 +97,42 @@ def mask_markdown_code(content, *, retain=False):
     return ''.join(output), blocks
 
 
+def mask_markdown_inline_code(content, protected_literals=()):
+    """Shield inline-code boundaries while retaining rendered text for owned fields."""
+    prefix = '\ue000article-inline-code'
+    while prefix in content or any(prefix in literal for literal in protected_literals):
+        prefix += '_'
+    runs = list(re.finditer(r'`+', content))
+    following, matching = {}, {}
+    for index in range(len(runs)-1, -1, -1):
+        size = len(runs[index][0])
+        matching[index] = following.get(size)
+        following[size] = index
+    pieces, literals, cursor, index = [], {}, 0, 0
+    while index < len(runs):
+        run = runs[index]
+        previous = run.start()-1
+        while previous >= 0 and content[previous] == '\\':
+            previous -= 1
+        end = matching[index]
+        if (run.start()-previous-1) % 2 or end is None:
+            index += 1
+            continue
+        key = prefix + str(len(literals)) + '\ue001'
+        pieces.extend((content[cursor:run.start()], key))
+        cursor = runs[end].end()
+        literal = content[run.end():runs[end].start()].replace('\n', ' ')
+        if literal.startswith(' ') and literal.endswith(' ') and literal.strip():
+            literal = literal[1:-1]
+        literals[key] = literal
+        index = end+1
+    pieces.append(content[cursor:])
+    pattern = re.compile(re.escape(prefix) + r'\d+\ue001')
+    def restore(value, *, remove=False):
+        return pattern.sub(lambda match: '' if remove else literals[match[0]], value)
+    return ''.join(pieces), restore
+
+
 def article_markdown(content):
     """Project cleaned HTML while retaining headings, links and ownership stops.
 
@@ -124,7 +160,9 @@ def article_markdown(content):
         if node.name == 'code':
             # Inline literal syntax must not create a record or section boundary.
             literal = node.get_text().replace('\n', ' ')
-            return '`' + literal.replace('`', '\\`') + '`'
+            longest = max((len(run) for run in re.findall(r'`+', literal)), default=0)
+            fence = '`' * (longest + 1)
+            return fence + ' ' + literal + ' ' + fence
         if node.name == 'tr':
             cells = [render(child).replace('\n', ' ').strip()
                      for child in node.children if isinstance(child, Tag)

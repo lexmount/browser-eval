@@ -6,7 +6,7 @@ import re
 import soupsieve
 
 from .article_text import (author_key, article_html, is_article_html,
-                           article_markdown, TIMESTAMP_LINE, mask_markdown_code, label_key,
+                           article_markdown, TIMESTAMP_LINE, mask_markdown_code, mask_markdown_inline_code, label_key,
                            validate_labels, declared_labels)
 from .body_coverage import tokens
 from .dynamic_lists import visible_html_text
@@ -213,6 +213,7 @@ def _coverage_text_records(content, contract):
     """
     # Code may be comment text, but cannot introduce fake record boundaries.
     content, fences = mask_markdown_code(content, retain=True)
+    content, restore_inline_code = mask_markdown_inline_code(content, fences.values())
     prefix = '\ue000coverage-paragraph'
     while prefix in content:
         prefix += '_'
@@ -266,6 +267,9 @@ def _coverage_text_records(content, contract):
             rows.append(current)
         elif current is not None and not _comment_time_metadata(line):
             current['text'] += '\n' + visible_markdown_links(line)
+    for row in rows:
+        row['author'] = restore_inline_code(row['author'])
+        row['text'] = restore_inline_code(row['text'])
     return rows
 
 

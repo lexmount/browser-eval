@@ -4457,6 +4457,5084 @@
       "artifact": "Intro\n<!-- Secret required phrase -->",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-colon",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Inline code cannot create section headings or author boundaries for comment records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\n`Alice: example`",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-double-tick",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Inline code cannot create section headings or author boundaries for comment records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\n``Alice: `example` ``",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-multiline",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Inline code cannot create section headings or author boundaries for comment records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\n`Alice:\nexample`",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-multiline-heading",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Inline code cannot create section headings or author boundaries for comment records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\n`\n### Alice\nExample reply.\n`",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-bold-author",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Inline code cannot create section headings or author boundaries for comment records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\n`**Alice**`\nExample reply.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-linked-author",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Inline code cannot create section headings or author boundaries for comment records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\n`[Alice](https://example.test/reader)`\nExample reply.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-pingback",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Inline code cannot create section headings or author boundaries for comment records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\n`Pingback: example`",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-false-section",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A comment section marker inside inline code must not establish comment ownership.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n`## Comments`\n\nAlice: Example reply.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-html",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Cleaned HTML code must retain literal ownership when converted to Markdown.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><div><h2>Comments</h2><code>Alice: example</code></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-html-nested-backticks-0",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "HTML code serialization must use a delimiter longer than every literal backtick run.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><div><h2>Comments</h2><code>prefix`Alice: example`</code></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-html-nested-backticks-1",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "HTML code serialization must use a delimiter longer than every literal backtick run.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><div><h2>Comments</h2><code>`Alice: example`</code></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-html-nested-backticks-2",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "HTML code serialization must use a delimiter longer than every literal backtick run.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><div><h2>Comments</h2><code>prefix``Alice: example``</code></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-genuine-html-code-backticks",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Native inline code with literal backticks remains the existing comment's visible body.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><div><h2>Comments</h2><h3>Alice</h3><code>prefix`Bob: example`</code></div>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-comment-genuine-colon",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Inline code remains visible body text inside a genuinely established comment.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: Example reply.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-comment-genuine-body-code",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Inline code remains visible body text inside a genuinely established comment.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: `Bob: example`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-comment-genuine-body-only-code",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Inline code remains visible body text inside a genuinely established comment.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\n**Alice**\n\n`Bob: example`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-comment-genuine-multiline-body-code",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Inline code remains visible body text inside a genuinely established comment.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\n### Alice\n\n`\n### Bob\nLiteral example.\n`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-comment-code-does-not-inflate-count",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "An inline code example in a real comment must not count as another author record.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: Genuine reply.\n\n`Bob: example`",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-empty-inline-code-body",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Code delimiters without visible text cannot supply an owned comment body.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: ` `",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-leading-navigation-about",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Only an owning post permalink may establish the post section level.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [About](/about)\n\n## Feed\n\n### Alice [Today](/post/1)\n\nReal post text.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-leading-navigation-wrong-host",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Only an owning post permalink may establish the post section level.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [About](https://other.test/post/0)\n\n## Feed\n\n### Alice [Today](/post/1)\n\nReal post text.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-leading-navigation-invalid-port",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Only an owning post permalink may establish the post section level.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [About](https://example.test:bad/about)\n\n## Feed\n\n### Alice [Today](/post/1)\n\nReal post text.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-leading-navigation-multiple-links",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Only an owning post permalink may establish the post section level.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [About](/about) [Contact](/contact)\n\n## Feed\n\n### Alice [Today](/post/1)\n\nReal post text.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-leading-navigation-malformed-profile-post",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Only an owning post permalink may establish the post section level.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [About](/about) [More](/contact)\n\n## Feed\n\n### Alice [Today](/post/1)\n\nReal post text.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-leading-navigation-html",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Cleaned HTML introductory navigation must not establish a post section boundary.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><h2><a href=\"/about\">About</a></h2><h2>Feed</h2><h3>Alice <a href=\"/post/1\">Today</a></h3><p>Real post text.</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-preserve-section-stop-author-prefix",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A higher-level section heading still ends an established post section.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n### Alice [Today](/post/1)\n\nReal first post.\n\n## Related articles\n\n### Bob [Today](/post/2)\n\nNot in the feed.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-preserve-section-stop-linked-profile",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A higher-level section heading still ends an established post section.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n### [Alice](/profile/alice) [Today](/post/1)\n\nReal first post.\n\n## Related articles\n\n### Bob [Today](/post/2)\n\nNot in the feed.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-unheaded-boundary-empty",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "An invalid explicit record still ends the body of an earlier unheaded owning post.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nAlice\n[Today](/post/1)\n\n\n\n## Bob [Today](https://other.test/post/2)\n\nUnowned body.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-unheaded-boundary-complete",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "An invalid explicit record still ends the body of an earlier unheaded owning post.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nAlice\n[Today](/post/1)\n\nReal first body.\n\n## Bob [Today](https://other.test/post/2)\n\nUnowned body.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-inline-code-fake-author-prefix",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Multiline inline code cannot create an owning post permalink or author boundary.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n`\n## Alice [Today](/post/1)\n\nFake post text.\n`",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-inline-code-fake-linked-profile",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Multiline inline code cannot create an owning post permalink or author boundary.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n`\n## [Alice](/profile/alice) [Today](/post/1)\n\nFake post text.\n`",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-inline-code-genuine-body",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Inline code retains visible text inside genuinely owned post author and body fields.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Alice [Today](/post/1)\n\n`Actual visible post text.`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-inline-code-genuine-author",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Inline code retains visible text inside genuinely owned post author and body fields.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## `Alice` [Today](/post/1)\n\nActual visible post text.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-inline-code-genuine-native-author",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Inline code retains visible text inside genuinely owned post author and body fields.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><article class=\"post\"><span class=\"author\"><code>Alice</code></span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\">Actual post text.</div></article>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-title-inline-code-multiline",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A literal code span cannot manufacture a standalone title, while real title markup may format code.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n`\nObserved title\n`",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-title-inline-code-multiline-heading",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A literal code span cannot manufacture a standalone title, while real title markup may format code.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n`\n# Observed title\n`",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-title-inline-code-double-tick-multiline",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A literal code span cannot manufacture a standalone title, while real title markup may format code.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n``\nObserved title\n``",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-title-inline-code-real-heading",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "A literal code span cannot manufacture a standalone title, while real title markup may format code.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n# `Observed title`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-title-inline-code-mixed-text",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "A literal code span cannot manufacture a standalone title, while real title markup may format code.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nObserved `title`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-title-inline-code-native-heading",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "A literal code span cannot manufacture a standalone title, while real title markup may format code.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><h1><code>Observed title</code></h1>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration3-image-heading-owner-complete",
+      "root_cause": "An image card can use its adjacent matching heading but cannot borrow one beyond another record.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[![First title](https://images.example/1.jpg)](/item/1)\n\n## First title\n\n[Other record](/item/2)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration3-image-heading-owner-incomplete",
+      "root_cause": "An image card can use its adjacent matching heading but cannot borrow one beyond another record.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[![First title](https://images.example/1.jpg)](/item/1)\n\n[Other record](/item/2)\n\n## First title",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration3-generic-hidden-wrapper-complete",
+      "root_cause": "Explicitly hidden HTML must be excluded independently of the tag names used by CSS scope heuristics.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<span>\n[Widget](/item/1)\n</span>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration3-generic-hidden-wrapper-incomplete",
+      "root_cause": "Explicitly hidden HTML must be excluded independently of the tag names used by CSS scope heuristics.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<span hidden>\n[Widget](/item/1)\n</span>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration3-balanced-product-link-complete",
+      "root_cause": "Product links share balanced Markdown destination and optional-title parsing with other record readers.",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/[^/]+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/model(one) \"Details\") $10.00",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration3-balanced-product-link-incomplete",
+      "root_cause": "Product links share balanced Markdown destination and optional-title parsing with other record readers.",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/[^/]+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/model(one) \"Details\") No price shown",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration3-product-section-owner-complete",
+      "root_cause": "A product amount must remain inside its record and cannot come from a following shipping section.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/1) $9.00\n\n## Shipping\nDelivery costs $10.00",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration3-product-section-owner-incomplete",
+      "root_cause": "A product amount must remain inside its record and cannot come from a following shipping section.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/1)\n\n## Shipping\nDelivery costs $10.00",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration3-exact-reference-name-complete",
+      "root_cause": "Only recognized appended metadata can be removed when comparing names; arbitrary model suffixes are distinct.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 1
+        }
+      },
+      "artifact": "[Example Phone 2025 5 stars](/item/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://shop.example/item/1",
+            "title": "Example Phone"
+          }
+        ]
+      }
+    },
+    {
+      "id": "migration3-exact-reference-name-incomplete",
+      "root_cause": "Only recognized appended metadata can be removed when comparing names; arbitrary model suffixes are distinct.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_entries": 1
+        }
+      },
+      "artifact": "[Example Phone Pro](/item/1)",
+      "ok": true,
+      "expected_task_pass": false,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://shop.example/item/1",
+            "title": "Example Phone"
+          }
+        ]
+      }
+    },
+    {
+      "id": "migration3-unquoted-html-resource-complete",
+      "root_cause": "HTML resource attributes accept valid quoted and unquoted forms with identical URL identity.",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=/manual.pdf>Download</a>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration3-unquoted-html-resource-incomplete",
+      "root_cause": "HTML resource attributes accept valid quoted and unquoted forms with identical URL identity.",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=/other.pdf>Download</a>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration3-visible-frame-ancestor-complete",
+      "root_cause": "Inline frame expansion obeys visibility of ancestors as well as the frame itself.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<iframe srcdoc=\"&lt;img src=/target.png&gt;\"></iframe>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration3-visible-frame-ancestor-incomplete",
+      "root_cause": "Inline frame expansion obeys visibility of ancestors as well as the frame itself.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<span hidden><iframe srcdoc=\"&lt;img src=/target.png&gt;\"></iframe></span>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration3-json-markdown-resource-complete",
+      "root_cause": "Selected JSON markup fields retain balanced Markdown link and image destinations as returned resources.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"content\": \"[Download](/manual.pdf \\\"File\\\")\"}",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration3-json-markdown-resource-incomplete",
+      "root_cause": "Selected JSON markup fields retain balanced Markdown link and image destinations as returned resources.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"content\": \"[Download](/other.pdf \\\"File\\\")\"}",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration3-literal-named-record-complete",
+      "root_cause": "Literal Markdown code examples cannot introduce structural records; ordinary inline price formatting stays visible.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Widget](/item/1 \"Details\") `$10.00`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration3-literal-named-record-incomplete",
+      "root_cause": "Literal Markdown code examples cannot introduce structural records; ordinary inline price formatting stays visible.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "```md\n[Widget](/item/1 \"Details\") $10.00\n````",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration3-literal-product-record-complete",
+      "root_cause": "Literal Markdown code examples cannot introduce structural records; ordinary inline price formatting stays visible.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/1 \"Details\") `$10.00`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration3-literal-product-record-incomplete",
+      "root_cause": "Literal Markdown code examples cannot introduce structural records; ordinary inline price formatting stays visible.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format-review",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "```md\n[Widget](/item/1 \"Details\") $10.00\n````",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "native-independent-card-before-complete",
+      "category": "body-scope",
+      "root_cause": "An incomplete duplicate table occurrence must not erase a complete independently owned card with the same destination.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main><article><a href=\"/item\">Item</a><p>$12</p></article><table><tr><td><a href=\"/item\">Item</a></td><td></td></tr></table></main>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "native-independent-card-before-missing",
+      "category": "body-scope",
+      "root_cause": "An incomplete duplicate table occurrence must not erase a complete independently owned card with the same destination.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main><article><a href=\"/item\">Item</a><p></p></article><table><tr><td><a href=\"/item\">Item</a></td><td></td></tr></table></main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "native-independent-card-after-complete",
+      "category": "body-scope",
+      "root_cause": "An incomplete duplicate table occurrence must not erase a complete independently owned card with the same destination.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main><table><tr><td><a href=\"/item\">Item</a></td><td></td></tr></table><article><a href=\"/item\">Item</a><p>$12</p></article></main>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "native-independent-card-after-missing",
+      "category": "body-scope",
+      "root_cause": "An incomplete duplicate table occurrence must not erase a complete independently owned card with the same destination.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main><table><tr><td><a href=\"/item\">Item</a></td><td></td></tr></table><article><a href=\"/item\">Item</a><p></p></article></main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "field-assignment-named_link-0-complete",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "description",
+                  "kind": "text"
+                },
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item)\nMay 12, 2026\nA useful description",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "field-assignment-named_link-0-missing",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "description",
+                  "kind": "text"
+                },
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item)\nMay 12, 2026",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "field-assignment-named_link-1-complete",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                },
+                {
+                  "id": "description",
+                  "kind": "text"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item)\nMay 12, 2026\nA useful description",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "field-assignment-named_link-1-missing",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                },
+                {
+                  "id": "description",
+                  "kind": "text"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item)\nMay 12, 2026",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "field-assignment-field_report-0-complete",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "report",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "description",
+                  "kind": "text"
+                },
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "May 12, 2026\nA useful description",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "field-assignment-field_report-0-missing",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "report",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "description",
+                  "kind": "text"
+                },
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "May 12, 2026",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "field-assignment-field_report-1-complete",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "report",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                },
+                {
+                  "id": "description",
+                  "kind": "text"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "May 12, 2026\nA useful description",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "field-assignment-field_report-1-missing",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "report",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                },
+                {
+                  "id": "description",
+                  "kind": "text"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "May 12, 2026",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "field-owned-label-named_link-complete",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "value",
+                  "kind": "date_or_time",
+                  "aliases": [
+                    "Published"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item)\nPublished: May 12, 2026\nA useful description",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "field-owned-label-named_link-missing",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "value",
+                  "kind": "date_or_time",
+                  "aliases": [
+                    "Published"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item)\nPublished: May 12, 2026",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "field-owned-label-field_report-complete",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "report",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "value",
+                  "kind": "date_or_time",
+                  "aliases": [
+                    "Published"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Published: May 12, 2026\nA useful description",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "field-owned-label-field_report-missing",
+      "category": "structured-extraction",
+      "root_cause": "Constrained field values must be reserved before unconstrained text, independently of declaration order, without reusing one payload.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "report",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "value",
+                  "kind": "date_or_time",
+                  "aliases": [
+                    "Published"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Published: May 12, 2026",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "field-disjoint-pattern-lookahead-complete",
+      "category": "structured-extraction",
+      "root_cause": "Distinct field spans may share a line, but pattern lookaround needs original context and overlapping values cannot satisfy two fields.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "venue",
+                  "kind": "text",
+                  "pattern": "^Hall A(?=\\s+Town, TX$)"
+                },
+                {
+                  "id": "city",
+                  "kind": "text",
+                  "pattern": "Town, TX$"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Item](/item)\nHall A Town, TX",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "field-disjoint-pattern-lookahead-missing",
+      "category": "structured-extraction",
+      "root_cause": "Distinct field spans may share a line, but pattern lookaround needs original context and overlapping values cannot satisfy two fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "venue",
+                  "kind": "text",
+                  "pattern": "^Hall A(?=\\s+Town, TX$)"
+                },
+                {
+                  "id": "city",
+                  "kind": "text",
+                  "pattern": "Town, TX$"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Item](/item)\nHall A",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "field-disjoint-pattern-alternative-complete",
+      "category": "structured-extraction",
+      "root_cause": "Distinct field spans may share a line, but pattern lookaround needs original context and overlapping values cannot satisfy two fields.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "flexible",
+                  "kind": "text",
+                  "pattern": "Alpha|Beta"
+                },
+                {
+                  "id": "specific",
+                  "kind": "text",
+                  "pattern": "Alpha"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Item](/item)\nAlpha Beta",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "field-disjoint-pattern-alternative-missing",
+      "category": "structured-extraction",
+      "root_cause": "Distinct field spans may share a line, but pattern lookaround needs original context and overlapping values cannot satisfy two fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "flexible",
+                  "kind": "text",
+                  "pattern": "Alpha|Beta"
+                },
+                {
+                  "id": "specific",
+                  "kind": "text",
+                  "pattern": "Alpha"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Item](/item)\nAlpha",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "field-wide-card-line-capacity-complete",
+      "category": "structured-extraction",
+      "root_cause": "Incomplete cards must reject missing required fields without enumerating permutations of all partial text assignments.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "description_0",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_1",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_2",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_3",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_4",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_5",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_6",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_7",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_8",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_9",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_10",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_11",
+                  "kind": "text"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Item](/item)\nIndependent paragraph 0\nIndependent paragraph 1\nIndependent paragraph 2\nIndependent paragraph 3\nIndependent paragraph 4\nIndependent paragraph 5\nIndependent paragraph 6\nIndependent paragraph 7\nIndependent paragraph 8\nIndependent paragraph 9\nIndependent paragraph 10\nThe final independent paragraph",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "field-wide-card-line-capacity-missing",
+      "category": "structured-extraction",
+      "root_cause": "Incomplete cards must reject missing required fields without enumerating permutations of all partial text assignments.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "description_0",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_1",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_2",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_3",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_4",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_5",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_6",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_7",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_8",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_9",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_10",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_11",
+                  "kind": "text"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Item](/item)\nIndependent paragraph 0\nIndependent paragraph 1\nIndependent paragraph 2\nIndependent paragraph 3\nIndependent paragraph 4\nIndependent paragraph 5\nIndependent paragraph 6\nIndependent paragraph 7\nIndependent paragraph 8\nIndependent paragraph 9\nIndependent paragraph 10",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "field-wide-card-constraint-complete",
+      "category": "structured-extraction",
+      "root_cause": "Incomplete cards must reject missing required fields without enumerating permutations of all partial text assignments.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "description_0",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_1",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_2",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_3",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_4",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_5",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_6",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_7",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_8",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_9",
+                  "kind": "text"
+                },
+                {
+                  "id": "summary",
+                  "kind": "text",
+                  "pattern": "Required summary"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Item](/item)\nIndependent paragraph 0\nIndependent paragraph 1\nIndependent paragraph 2\nIndependent paragraph 3\nIndependent paragraph 4\nIndependent paragraph 5\nIndependent paragraph 6\nIndependent paragraph 7\nIndependent paragraph 8\nIndependent paragraph 9\nRequired summary",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "field-wide-card-constraint-missing",
+      "category": "structured-extraction",
+      "root_cause": "Incomplete cards must reject missing required fields without enumerating permutations of all partial text assignments.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "required_fields": [
+                {
+                  "id": "description_0",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_1",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_2",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_3",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_4",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_5",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_6",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_7",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_8",
+                  "kind": "text"
+                },
+                {
+                  "id": "description_9",
+                  "kind": "text"
+                },
+                {
+                  "id": "summary",
+                  "kind": "text",
+                  "pattern": "Required summary"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Item](/item)\nIndependent paragraph 0\nIndependent paragraph 1\nIndependent paragraph 2\nIndependent paragraph 3\nIndependent paragraph 4\nIndependent paragraph 5\nIndependent paragraph 6\nIndependent paragraph 7\nIndependent paragraph 8\nIndependent paragraph 9",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "table-header-boundary-markdown-complete",
+      "category": "structured-extraction",
+      "root_cause": "A new table header starts another table and never contributes a record; empty native continuation headers retain their declared mapping.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 3,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Description|\n|---|---|\n|Alpha|Useful item|\n\n|Name|Description|\n|---|---|\n|Beta|Useful item|\n\n|Name|Description|\n|---|---|\n|Gamma|Useful item|",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "composite_group_results": [
+          {
+            "id": "items",
+            "kind": "table",
+            "count": 3,
+            "records": [
+              {
+                "name": "Alpha",
+                "description": "Useful item"
+              },
+              {
+                "name": "Beta",
+                "description": "Useful item"
+              },
+              {
+                "name": "Gamma",
+                "description": "Useful item"
+              }
+            ],
+            "minimum": 3,
+            "pass": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "table-header-boundary-markdown-missing",
+      "category": "structured-extraction",
+      "root_cause": "A new table header starts another table and never contributes a record; empty native continuation headers retain their declared mapping.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 3,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Description|\n|---|---|\n|Alpha|Useful item|\n\n|Name|Description|\n|---|---|\n|Beta|Useful item|",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "composite_group_results": [
+          {
+            "id": "items",
+            "kind": "table",
+            "count": 2,
+            "records": [
+              {
+                "name": "Alpha",
+                "description": "Useful item"
+              },
+              {
+                "name": "Beta",
+                "description": "Useful item"
+              }
+            ],
+            "minimum": 3,
+            "pass": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "table-header-boundary-tab-complete",
+      "category": "structured-extraction",
+      "root_cause": "A new table header starts another table and never contributes a record; empty native continuation headers retain their declared mapping.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 3,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\tDescription\nAlpha\tUseful item\n\nName\tDescription\nBeta\tUseful item\n\nName\tDescription\nGamma\tUseful item",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "composite_group_results": [
+          {
+            "id": "items",
+            "kind": "table",
+            "count": 3,
+            "records": [
+              {
+                "name": "Alpha",
+                "description": "Useful item"
+              },
+              {
+                "name": "Beta",
+                "description": "Useful item"
+              },
+              {
+                "name": "Gamma",
+                "description": "Useful item"
+              }
+            ],
+            "minimum": 3,
+            "pass": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "table-header-boundary-tab-missing",
+      "category": "structured-extraction",
+      "root_cause": "A new table header starts another table and never contributes a record; empty native continuation headers retain their declared mapping.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 3,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "description",
+                  "kind": "text",
+                  "aliases": [
+                    "Description"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\tDescription\nAlpha\tUseful item\n\nName\tDescription\nBeta\tUseful item",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "composite_group_results": [
+          {
+            "id": "items",
+            "kind": "table",
+            "count": 2,
+            "records": [
+              {
+                "name": "Alpha",
+                "description": "Useful item"
+              },
+              {
+                "name": "Beta",
+                "description": "Useful item"
+              }
+            ],
+            "minimum": 3,
+            "pass": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "stable-inline-word-suffix-whole",
+      "category": "format-normalization",
+      "root_cause": "Ordinary text adjacent to an inline link remains part of the same rendered word, rather than a fabricated standalone anchor.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "word",
+              "alternatives": [
+                "readable"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[read](https://example.test/)able",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "stable-inline-word-suffix-fragment",
+      "category": "format-normalization",
+      "root_cause": "Ordinary text adjacent to an inline link remains part of the same rendered word, rather than a fabricated standalone anchor.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "word",
+              "alternatives": [
+                "read"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[read](https://example.test/)able",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "stable-inline-word-prefix-whole",
+      "category": "format-normalization",
+      "root_cause": "Ordinary text adjacent to an inline link remains part of the same rendered word, rather than a fabricated standalone anchor.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "word",
+              "alternatives": [
+                "prefix"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "pre[fix](https://example.test/)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "stable-inline-word-prefix-fragment",
+      "category": "format-normalization",
+      "root_cause": "Ordinary text adjacent to an inline link remains part of the same rendered word, rather than a fabricated standalone anchor.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "word",
+              "alternatives": [
+                "fix"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "pre[fix](https://example.test/)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "catalog-inline-boundary-complete",
+      "category": "structured-extraction",
+      "root_cause": "Every supported title and price layout must start a new catalog card; incomplete neighboring cards cannot supply one another's fields.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Alpha $10\nBlue machine\n2 reviews\nBeta $20\n3 reviews",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "catalog-inline-boundary-borrowed",
+      "category": "structured-extraction",
+      "root_cause": "Every supported title and price layout must start a new catalog card; incomplete neighboring cards cannot supply one another's fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Alpha $10\nBlue machine\nBeta $20\n3 reviews",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "catalog-declared-description-complete",
+      "category": "structured-extraction",
+      "root_cause": "Every supported title and price layout must start a new catalog card; incomplete neighboring cards cannot supply one another's fields.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Alpha $10\nDescription: Includes accessories worth $12\n3 reviews",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "catalog-declared-description-missing",
+      "category": "structured-extraction",
+      "root_cause": "Every supported title and price layout must start a new catalog card; incomplete neighboring cards cannot supply one another's fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Alpha $10\n3 reviews",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "catalog-orphan-price-complete",
+      "category": "structured-extraction",
+      "root_cause": "Every supported title and price layout must start a new catalog card; incomplete neighboring cards cannot supply one another's fields.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "$10\nBeta $20\nRed machine\n3 reviews",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "catalog-orphan-price-missing",
+      "category": "structured-extraction",
+      "root_cause": "Every supported title and price layout must start a new catalog card; incomplete neighboring cards cannot supply one another's fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "$10\nBeta $20\n3 reviews",
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

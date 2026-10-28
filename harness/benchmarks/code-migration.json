@@ -8,7 +8,7 @@
       "changes": {
         "article_comments.py": {
           "before_sha256": "de014a9188d2b587302889cb1a25e1d77eb282bc3e0a69dcacad7a95f0a4431f",
-          "after_sha256": "1ec2d09fc7ae4147c69aeab797c3c49a9db199d1bf7d72135e9df45606dad5d4"
+          "after_sha256": "d767cb968d208ae862c3b3e4065f3349c0399f3cd6dfa56955899554673bc18b"
         },
         "article_dataset.py": {
           "before_sha256": "8d661b165fc63a6b72352ee6592a99611579e700f1633dab2c0d70824d93447b",
@@ -16,7 +16,7 @@
         },
         "article_posts.py": {
           "before_sha256": "da1323b63c4e213312adb0a5564c6ffbb443edbcb1a643ddcd4e3bde4d42e9c2",
-          "after_sha256": "c1c4e2b1d0113fa9fd251e3dec5c36dadc74a4d090009960f40b8b06fb10ba5f"
+          "after_sha256": "02f0db31f06598c8fc26fb417b3447f2f2cfaee34858add231a3b39b96742744"
         },
         "article_qualification.py": {
           "before_sha256": "01898c4413933ac4f3028eeb5c5c470293cd2acaabb2ae1547a7095e6e458981",
@@ -24,11 +24,11 @@
         },
         "article_text.py": {
           "before_sha256": "d9984b8dfcdad0113ed69cec3723a85d23096890327cd845d3052d937817ae21",
-          "after_sha256": "d17bb3b24915750d7bf32c924328958f49b1ca9667295c6efadd59a1a1c42196"
+          "after_sha256": "2ea84cbbf142843aabd02e52bf7fbda2e894b348e56fef6632d2adb7e565c2bc"
         },
         "article_title.py": {
           "before_sha256": "eb59008ffceffce093a32592e1e2e0d244feed8fed1ed9c0d6306b6353573c54",
-          "after_sha256": "875fba7a70355120b4f031c2249e9cd086389818d7c6f0680f385c6e9eab516b"
+          "after_sha256": "321873f0fd186438a110defdffc434598e604fa78af55e69255b58eb12f3d70c"
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "8d74b621f5cca96cf87a943cc3cf130cdbf5f5c9ebff7a09ea46a4a255cf13f5"
+          "after_sha256": "c1e7a90fd442ee45e31a3982b178d908c7a9793e8a9d368a4ee8b53fa0ae3f51"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -52,7 +52,11 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "ec4bb9c4508dbc67d98d6fce227f6aa0ff7f6513cc670ba080b2a86177cad98d"
+          "after_sha256": "2c3b4525415500179974763bbbd2db713ece327d19981d6440d5c464ff901e1a"
+        },
+        "file_acceptance.py": {
+          "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
+          "after_sha256": "c73e4c8ccab23d2767f9cbd8167fd4226acf6f3bcb0a14580c81d5092e3fadb3"
         },
         "inputs.py": {
           "before_sha256": "d0cccd0be9ead93d40a56dcfa15ece74e96965beefb5032e0b6bbe23b5da9d44",
@@ -60,11 +64,11 @@
         },
         "list_verification.py": {
           "before_sha256": "c311bb3ef9d46f21319b7eef35e34120580ec6cad720958b6336fe59e5a24bf7",
-          "after_sha256": "39205d49202fcce8a45aa314d3633e87223b956dbf155f864bbae1d4e8939617"
+          "after_sha256": "98b2bb643a5d4f34debba3dd70d9f6966103b6e401e3d177685d21f2debae58a"
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "031079d91659e248ffdf145016e5f951d7593971f9a6253f55f206ad144ea298"
+          "after_sha256": "75c7e98db9a7a88bc008f9944f42cdb2f0a3cf2a9f215a9644a530619e0d88e7"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -72,7 +76,11 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "fe1e193a899beb405db1c0b4be8583a42816ff3adfa9243ccbea93350ca1b286"
+          "after_sha256": "7956b1e9428aa8bdb39e3762608b69144d89d881a5aa05d42ef8ceeed43aae4c"
+        },
+        "risk_control_dataset.py": {
+          "before_sha256": "59d2a1877f1a8b8ecf464113fbce70bf713d6d44414b83141880e71cccb7c1d6",
+          "after_sha256": "b706a8f355e2c1399a837cb54ddb669155e4d63ba3e79aef0ad5ed463d871e0d"
         },
         "scoring.py": {
           "before_sha256": "ea2602b5e2310886dc70c097ce783e2f88be7c88220e9dbf0715a723b3aff567",
@@ -84,7 +92,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "81b1459ad5d2ab6e285a444fa810977652e01c4440ea89833e3aaf2dc633301f"
+          "after_sha256": "3866e888b7ab6a59a88807f71a62fcc87fb1059b77ae58e61ed44ef98554539a"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -98,9 +106,9 @@
       "corrections": [
         {
           "modules": [
+            "article_comments.py",
             "article_posts.py",
             "article_text.py",
-            "article_comments.py",
             "article_title.py",
             "article_qualification.py",
             "reference_quality.py"
@@ -125,11 +133,52 @@
             "article-post_contract-visible",
             "article-post_contract-noscript",
             "article-title_contract-visible",
-            "article-title_contract-noscript"
+            "article-title_contract-noscript",
+            "article-comment-code-colon",
+            "article-comment-code-double-tick",
+            "article-comment-code-multiline",
+            "article-comment-code-multiline-heading",
+            "article-comment-code-bold-author",
+            "article-comment-code-linked-author",
+            "article-comment-code-pingback",
+            "article-comment-code-false-section",
+            "article-comment-code-html",
+            "article-comment-code-html-nested-backticks-0",
+            "article-comment-code-html-nested-backticks-1",
+            "article-comment-code-html-nested-backticks-2",
+            "article-comment-genuine-html-code-backticks",
+            "article-comment-genuine-colon",
+            "article-comment-genuine-body-code",
+            "article-comment-genuine-body-only-code",
+            "article-comment-genuine-multiline-body-code",
+            "article-comment-code-does-not-inflate-count",
+            "article-comment-empty-inline-code-body",
+            "article-post-leading-navigation-about",
+            "article-post-leading-navigation-wrong-host",
+            "article-post-leading-navigation-invalid-port",
+            "article-post-leading-navigation-multiple-links",
+            "article-post-leading-navigation-malformed-profile-post",
+            "article-post-leading-navigation-html",
+            "article-post-preserve-section-stop-author-prefix",
+            "article-post-preserve-section-stop-linked-profile",
+            "article-post-unheaded-boundary-empty",
+            "article-post-unheaded-boundary-complete",
+            "article-post-inline-code-fake-author-prefix",
+            "article-post-inline-code-fake-linked-profile",
+            "article-post-inline-code-genuine-body",
+            "article-post-inline-code-genuine-author",
+            "article-post-inline-code-genuine-native-author",
+            "article-title-inline-code-multiline",
+            "article-title-inline-code-multiline-heading",
+            "article-title-inline-code-double-tick-multiline",
+            "article-title-inline-code-real-heading",
+            "article-title-inline-code-mixed-text",
+            "article-title-inline-code-native-heading"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_migration_articles.py",
-            "tests/benchmarks/webfetch/test_review_article_boundaries.py"
+            "tests/benchmarks/webfetch/test_review_article_boundaries.py",
+            "tests/benchmarks/webfetch/test_review_article_inline_code.py"
           ]
         },
         {
@@ -172,17 +221,39 @@
             "migration2-image-alt-body-complete",
             "migration2-image-alt-body-incomplete",
             "migration2-hidden-comment-body-complete",
-            "migration2-hidden-comment-body-incomplete"
+            "migration2-hidden-comment-body-incomplete",
+            "migration3-image-heading-owner-complete",
+            "migration3-image-heading-owner-incomplete",
+            "migration3-generic-hidden-wrapper-complete",
+            "migration3-generic-hidden-wrapper-incomplete",
+            "migration3-balanced-product-link-complete",
+            "migration3-balanced-product-link-incomplete",
+            "migration3-product-section-owner-complete",
+            "migration3-product-section-owner-incomplete",
+            "migration3-exact-reference-name-complete",
+            "migration3-exact-reference-name-incomplete",
+            "migration3-unquoted-html-resource-complete",
+            "migration3-unquoted-html-resource-incomplete",
+            "migration3-visible-frame-ancestor-complete",
+            "migration3-visible-frame-ancestor-incomplete",
+            "migration3-json-markdown-resource-complete",
+            "migration3-json-markdown-resource-incomplete",
+            "migration3-literal-named-record-complete",
+            "migration3-literal-named-record-incomplete",
+            "migration3-literal-product-record-complete",
+            "migration3-literal-product-record-incomplete"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_migration_entries.py",
-            "tests/benchmarks/webfetch/test_review_entry_surfaces.py"
+            "tests/benchmarks/webfetch/test_review_entry_surfaces.py",
+            "tests/benchmarks/webfetch/test_review_record_formats.py"
           ]
         },
         {
           "modules": [
             "composite_tasks.py",
-            "structured_tables.py"
+            "structured_tables.py",
+            "stable_tasks.py"
           ],
           "regression_ids": [
             "composite-field-report-omitted",
@@ -235,11 +306,50 @@
             "composite-role-span-author-single",
             "composite-role-span-author-separate",
             "composite-role-span-byline-single",
-            "composite-role-span-byline-separate"
+            "composite-role-span-byline-separate",
+            "table-header-boundary-markdown-complete",
+            "table-header-boundary-markdown-missing",
+            "table-header-boundary-tab-complete",
+            "table-header-boundary-tab-missing",
+            "native-independent-card-before-complete",
+            "native-independent-card-before-missing",
+            "native-independent-card-after-complete",
+            "native-independent-card-after-missing",
+            "field-assignment-named_link-0-complete",
+            "field-assignment-named_link-0-missing",
+            "field-assignment-named_link-1-complete",
+            "field-assignment-named_link-1-missing",
+            "field-assignment-field_report-0-complete",
+            "field-assignment-field_report-0-missing",
+            "field-assignment-field_report-1-complete",
+            "field-assignment-field_report-1-missing",
+            "field-owned-label-named_link-complete",
+            "field-owned-label-named_link-missing",
+            "field-owned-label-field_report-complete",
+            "field-owned-label-field_report-missing",
+            "field-disjoint-pattern-lookahead-complete",
+            "field-disjoint-pattern-lookahead-missing",
+            "field-disjoint-pattern-alternative-complete",
+            "field-disjoint-pattern-alternative-missing",
+            "field-wide-card-line-capacity-complete",
+            "field-wide-card-line-capacity-missing",
+            "field-wide-card-constraint-complete",
+            "field-wide-card-constraint-missing",
+            "stable-inline-word-suffix-whole",
+            "stable-inline-word-suffix-fragment",
+            "stable-inline-word-prefix-whole",
+            "stable-inline-word-prefix-fragment",
+            "catalog-inline-boundary-complete",
+            "catalog-inline-boundary-borrowed",
+            "catalog-declared-description-complete",
+            "catalog-declared-description-missing",
+            "catalog-orphan-price-complete",
+            "catalog-orphan-price-missing"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_migration_composites.py",
-            "tests/benchmarks/webfetch/test_review_composite_identity_fields.py"
+            "tests/benchmarks/webfetch/test_review_composite_identity_fields.py",
+            "tests/benchmarks/webfetch/test_review_record_boundaries.py"
           ]
         },
         {
@@ -256,6 +366,22 @@
           ],
           "tests": [
             "tests/benchmarks/test_review_runtime.py"
+          ]
+        },
+        {
+          "modules": [
+            "file_acceptance.py"
+          ],
+          "tests": [
+            "tests/benchmarks/test_media_acceptance.py"
+          ]
+        },
+        {
+          "modules": [
+            "risk_control_dataset.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_risk_control_compiler.py"
           ]
         }
       ]
@@ -282,7 +408,7 @@
         },
         "scoring.py": {
           "before_sha256": "e2d7ef42b8d56bbf6a72596e2d60e40bf339b305f936302d5a23ea430efce47a",
-          "after_sha256": "5cb3b29d45862de586c998590d3a6457a01c1d392ec15e528077a30dbedf79cf"
+          "after_sha256": "1af0e37c859727a4ee003a852f0970ba5e0170edccf04994ea1ac715289b6192"
         },
         "simpleqa.py": {
           "before_sha256": "39cd02fa1b65b10a0bc38cdf9ab245878b8ef7d07705203d10f9f4c2fa5eef0d",

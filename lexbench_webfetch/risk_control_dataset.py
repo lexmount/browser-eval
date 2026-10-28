@@ -19,8 +19,9 @@ from lexbench_webfetch.composite_tasks import validate_composite_acceptance
 from .inputs import require_mutable_inputs, data_home, definition_path
 from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.stable_tasks import validate_acceptance_contract
+from harness.benchmarks.data import binding, cache_home
 
-RISK = definition_path("evaluation/risk-control")
+RISK = cache_home() / "webfetch" / binding("webfetch")["revision"] / "definitions/evaluation/risk-control"
 COHORT = RISK / "qualification/cohort/cohort-manifest.json"
 MANIFEST = RISK / "qualification/cohort/input-manifest.json"
 RULE_FILES = (RISK / "first-30-rule-review.md", RISK / "remaining-70-rule-review.md")
@@ -105,7 +106,9 @@ def visible_text_key(value: str) -> str:
     ).strip()
 
 
-def parse_sections(rule_files=RULE_FILES) -> list[dict]:
+def parse_sections(rule_files=None) -> list[dict]:
+    if rule_files is None:
+        rule_files = tuple(definition_path("evaluation/risk-control/" + path.name) for path in RULE_FILES)
     sections = []
     for path in rule_files:
         text = path.read_text()
@@ -159,7 +162,9 @@ def parse_sections(rule_files=RULE_FILES) -> list[dict]:
     return sections
 
 
-def evidence_roots(manifest_path=MANIFEST, *, evidence_home: Path | None = None) -> dict[str, Path]:
+def evidence_roots(manifest_path=None, *, evidence_home: Path | None = None) -> dict[str, Path]:
+    if manifest_path is None:
+        manifest_path = definition_path("evaluation/risk-control/qualification/cohort/input-manifest.json")
     manifest = json.loads(manifest_path.read_text())
     return {
         key: contained_path(evidence_home or data_home(), value, reject_symlinks=True)
@@ -167,7 +172,9 @@ def evidence_roots(manifest_path=MANIFEST, *, evidence_home: Path | None = None)
     }
 
 
-def load_cohort(cohort_path=COHORT) -> tuple[dict, list[dict]]:
+def load_cohort(cohort_path=None) -> tuple[dict, list[dict]]:
+    if cohort_path is None:
+        cohort_path = definition_path("evaluation/risk-control/qualification/cohort/cohort-manifest.json")
     cohort = json.loads(cohort_path.read_text())
     cases = cohort.get("cases")
     if (
@@ -295,10 +302,12 @@ def body_reference(section: dict, source: str, contract: dict | None) -> dict | 
     }
 
 
-def build(output: Path, definition_dir: Path = RISK, *, evidence_home: Path | None = None) -> dict:
+def build(output: Path, definition_dir: Path | None = None, *, evidence_home: Path | None = None) -> dict:
     require_mutable_inputs(output)
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
+    if definition_dir is None or definition_dir == RISK:
+        definition_dir = definition_path("evaluation/risk-control")
     rule_files = tuple(
         contained_path(definition_dir, path.name, reject_symlinks=True) for path in RULE_FILES
     )
@@ -484,7 +493,7 @@ def build(output: Path, definition_dir: Path = RISK, *, evidence_home: Path | No
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--definition-dir", type=Path, default=RISK)
+    parser.add_argument("--definition-dir", type=Path)
     parser.add_argument("--evidence-home", type=Path)
     args = parser.parse_args(argv)
     dataset = build(args.output, args.definition_dir, evidence_home=args.evidence_home)

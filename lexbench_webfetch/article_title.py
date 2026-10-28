@@ -3,7 +3,7 @@ import re
 
 import soupsieve
 
-from .article_text import article_html, article_surface, is_article_html, mask_markdown_code
+from .article_text import article_html, article_surface, is_article_html, mask_markdown_code, mask_markdown_inline_code
 from .reference_quality import without_markdown_images
 from .metrics import normalize_for_match
 from .reference_quality import visible_mixed_html_text
@@ -67,14 +67,18 @@ def verify_article_title(content, contract):
                       for node in soup.select(contract['html_selector'])]
         surface = 'reviewed_html_title_selector'
     else:
-        content, _ = mask_markdown_code(content)
+        content, blocks = mask_markdown_code(content)
+        content, restore_inline_code = mask_markdown_inline_code(content, blocks.values())
         content = article_surface(content)
         for line in visible_mixed_html_text(content).splitlines():
             text = line.strip()
+            heading = re.match(r'^#{1,6}[ \t]+', text)
             text = re.sub(r'^#{1,6}[ \t]+', '', text)
             text = re.sub(r'[ \t]+#+[ \t]*$', '', text)
             # Inline markup can format a title but cannot supply hidden text.
-            candidates.append(without_markdown_images(text))
+            text = without_markdown_images(text)
+            if heading or restore_inline_code(text, remove=True).strip():
+                candidates.append(restore_inline_code(text))
         surface = 'standalone_text_line'
     matched = next((text for text in candidates if _title_key(text) in expected), None)
     return {'article_title_pass': matched is not None,

@@ -7,7 +7,7 @@ import soupsieve
 
 from .dynamic_lists import named_entry_identity, visible_html_text
 from .article_text import (article_html, article_surface, is_article_html, article_markdown, TIMESTAMP_LINE,
-                           mask_markdown_code, author_key, label_key, validate_labels, declared_labels)
+                           mask_markdown_code, mask_markdown_inline_code, author_key, label_key, validate_labels, declared_labels)
 from .reference_quality import markdown_links, visible_markdown_links, without_markdown_images
 
 
@@ -121,8 +121,6 @@ def _post_headers(lines, contract, url):
             if heading and header_level is not None and len(heading[1]) <= header_level:
                 break
             continue
-        if header_level is None and heading:
-            header_level = len(heading[1])
         if len(links) > 1:
             first, last = links[0], links[-1]
             prefix, suffix = line[:first.start].strip(), line[last.end:].strip()
@@ -147,6 +145,10 @@ def _post_headers(lines, contract, url):
                         destination = last.destination
                 except ValueError:
                     pass
+            if header_level is None and destination != 'about:invalid-post-heading' and heading:
+                header_level = len(heading[1])
+            if not headers and destination == 'about:invalid-post-heading':
+                continue
             headers.append((index, index, destination, visible_markdown_links(line), author))
             continue
         link = links[0]
@@ -159,8 +161,11 @@ def _post_headers(lines, contract, url):
         except ValueError:
             # An explicit linked post heading still ends the previous post,
             # even when its own URL is invalid. Ordinary inline links do not.
-            if not explicit_header:
+            if not explicit_header or not headers:
                 continue
+        else:
+            if header_level is None and heading:
+                header_level = len(heading[1])
         header = visible_markdown_links(line)
         author = re.sub(r'^(?:#{1,6}|[-*+]|\d+[.)])(?:\s+|$)', '', prefix).strip()
         if not author:
@@ -177,7 +182,8 @@ def _post_headers(lines, contract, url):
 def _markdown_records(content, contract, url):
     # Fenced source snippets cannot introduce post identities or supply post prose.
     # Comments keep code as owned text; posts deliberately require unfenced prose.
-    content, _ = mask_markdown_code(content)
+    content, blocks = mask_markdown_code(content)
+    content, restore_inline_code = mask_markdown_inline_code(content, blocks.values())
     content = without_markdown_images(content)
     # HTML visibility projection drops empty lines. Preserve Markdown paragraph
     # boundaries across that projection so a blockquote cannot absorb a later
@@ -227,15 +233,16 @@ def _markdown_records(content, contract, url):
                 post.append(line)
         if current is not None:
             quotes.append('\n'.join(current))
-        rows.append({'url': destination, 'author_header': header, 'author': author,
-                     'whole_post': visible_markdown_links('\n'.join(lines[start+1:end])),
-                     'post': visible_markdown_links('\n'.join(post)),
-                     'quote': [visible_markdown_links(x) for x in quotes],
-                     'quote_authors': [[visible_markdown_links(next(
-                         (line.strip() for line in x.splitlines() if line.strip()), ''))]
+        rows.append({'url': destination, 'author_header': restore_inline_code(header),
+                     'author': restore_inline_code(author),
+                     'whole_post': restore_inline_code(visible_markdown_links('\n'.join(lines[start+1:end]))),
+                     'post': restore_inline_code(visible_markdown_links('\n'.join(post))),
+                     'quote': [restore_inline_code(visible_markdown_links(x)) for x in quotes],
+                     'quote_authors': [[restore_inline_code(visible_markdown_links(next(
+                         (line.strip() for line in x.splitlines() if line.strip()), '')))]
                                        for x in quotes],
-                     'quote_bodies_after_author': [visible_markdown_links('\n'.join(
-                         x.lstrip().splitlines()[1:])) for x in quotes]})
+                     'quote_bodies_after_author': [restore_inline_code(visible_markdown_links('\n'.join(
+                         x.lstrip().splitlines()[1:]))) for x in quotes]})
     return rows
 
 

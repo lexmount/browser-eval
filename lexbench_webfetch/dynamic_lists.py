@@ -885,28 +885,33 @@ def _image_heading_items(content, scope):
     """Pair an image-only card link with one matching following heading."""
     if scope and scope.get('markdown_label_pattern'):
         return []
-    from .reference_quality import visible_markdown_links
+    from .reference_quality import markdown_links, visible_markdown_links
     items = []
     markdown_lines = content.splitlines()
     for line_index, line in enumerate(markdown_lines):
-        image_only = re.fullmatch(
-            r'\s*\[!\[([^]]*)\]\([^)]*\)\]\((https?://[^\s)]+|/[^\s)]+)\)\s*',
-            line,
-        )
-        if not image_only:
+        outer_links = markdown_links(line)
+        if len(outer_links) != 1:
             continue
-        image_title=re.sub(r'\s+',' ',visible_markdown_links(image_only[1])).strip()
+        outer = outer_links[0]
+        if outer.is_image or line.strip() != line[outer.start:outer.end].strip():
+            continue
+        nested = markdown_links(outer.label)
+        if (len(nested) != 1 or not nested[0].is_image
+                or outer.label.strip() != outer.label[nested[0].start:nested[0].end].strip()):
+            continue
+        image_title=re.sub(r'\s+',' ',visible_markdown_links(nested[0].label)).strip()
         for following in markdown_lines[line_index + 1:]:
-            if re.fullmatch(r'\s*\[!\[[^]]*\]\([^)]*\)\]\([^\s)]+\)\s*',following):
-                break
             if not following.strip():
                 continue
             heading = re.fullmatch(r'\s*#{1,6}\s+(.+?)\s*', following)
             if heading:
                 heading_title=re.sub(r'\s+',' ',visible_markdown_links(heading[1])).strip()
                 if heading_title==image_title:
-                    items.append((image_only[2], heading_title))
+                    items.append((outer.destination, heading_title))
                 break
+            # Only an adjacent heading belongs to this image card. Another
+            # record or prose paragraph ends ownership even without a heading.
+            break
     return items
 
 
@@ -926,17 +931,27 @@ def _deduplicated_named_candidates(items, contract, base_url, diagnostics):
 
 
 def _visible_candidate_content(content):
-    if (_has_scoped_html(content)
-            or re.search(r'<(?:template|details|script|style|head|title)\b', content, re.I)):
+    if re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content):
         return str(scoped_html(content))
+    return content
+
+
+def _without_record_literals(content):
+    from .reference_quality import markdown_links, markdown_literal_spans
+    for start, end in reversed(markdown_literal_spans(content)):
+        literal = content[start:end]
+        # Inline price formatting stays visible; literal link syntax and
+        # fenced examples cannot introduce records or own their prices.
+        if '\n' in literal or markdown_links(literal):
+            content = content[:start] + re.sub(r'[^\n]', ' ', literal) + content[end:]
     return content
 
 
 def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=None):
     """Orchestrate source parsers into one identity-keyed candidate mapping."""
     from .response_input import safe_named_links
+    content = _without_record_literals(content)
     base_url = contract.get('link_base_url', base_url)
-    _note_malformed_markdown_destinations(content, base_url, diagnostics)
     scope = contract.get('entry_scope')
     owned_items = []
     if scope:
@@ -951,6 +966,7 @@ def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=N
                  else None)
     else:
         content = _visible_candidate_content(content)
+    _note_malformed_markdown_destinations(content, base_url, diagnostics)
     parser=Links();parser.feed(content)
     heading_items, heading_link_spans = _markdown_heading_card_items(
         content, contract, scope, base_url,
@@ -974,7 +990,8 @@ def extract_named_entries(content,contract,base_url,links=None,diagnostics=None)
 
 def extract_linked_products(content, contract, base_url, diagnostics=None):
     """Extract title/link/price triples from one owned product segment."""
-    from .reference_quality import without_markdown_images
+    from .reference_quality import markdown_links, without_markdown_images
+    content = _without_record_literals(content)
     base_url = contract.get('link_base_url', base_url)
     scope = contract.get('entry_scope')
     if scope and scope.get('price_selector') and _has_scoped_html(content):
@@ -1011,17 +1028,19 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
     else:
         content = _visible_candidate_content(content)
     scannable = without_markdown_images(content)
-    link_pattern = re.compile(
-        r"\[([^\]\n]+)\]\(([^\s)]+)\)"
-        r"|<a\b[^>]*\bhref=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>",
-        re.I | re.S,
-    )
+    html_tags = [match.span() for match in re.finditer(
+        r'''</?[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', scannable)]
+    parsed_links = [(link.start, link.end, link.destination, link.label)
+                    for link in markdown_links(scannable)
+                    if not link.is_image and not any(left <= link.start < right
+                                                    for left, right in html_tags)]
+    parsed_links += [(match.start(), match.end(), match[2], match[3]) for match in re.finditer(
+        r'''<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1[^>]*>(.*?)</a>''', scannable, re.I | re.S)]
+    parsed_links.sort()
     links = []
     excluded_titles = [re.compile(pattern, re.I)
                        for pattern in contract.get('title_exclusion_patterns', [])]
-    for match in link_pattern.finditer(scannable):
-        title = match.group(1) if match.group(1) is not None else match.group(4)
-        raw_url = match.group(2) if match.group(2) is not None else match.group(3)
+    for start, end, raw_url, title in parsed_links:
         target = _entry_destination(raw_url, contract, base_url, diagnostics)
         if target is None:
             continue
@@ -1034,7 +1053,7 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
         except ValueError:
             identity = None
         entry = candidate[1] if candidate is not None else {'url': destination, 'title': ''}
-        links.append((match.start(), match.end(), identity,
+        links.append((start, end, identity,
                       entry['url'], entry['title']))
 
     allowed = [re.compile(pattern, re.I) for pattern in contract["price_patterns"]]
@@ -1055,9 +1074,13 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
         title = max((item[4] for item in group), key=lambda value: (len(value), value))
         if not title:
             continue
-        segment = "\n".join(item[4] for item in group) + "\n" + scannable[
-            first_end:min(boundary, first_end + 2400)
-        ]
+        tail = scannable[first_end:min(boundary, first_end + 2400)]
+        boundary_match = re.search(
+            r'(?m)^ {0,3}(?:#{1,6}\s|(?:[-*_][ \t]*){3,}$|[-*+]\s|\d+[.)]\s)'
+            r'|<h[1-6]\b|</(?:li|tr|article|section)\s*>', tail, re.I)
+        if boundary_match:
+            tail = tail[:boundary_match.start()]
+        segment = "\n".join(item[4] for item in group) + "\n" + tail
         prices = []
         for pattern in allowed:
             for price_match in pattern.finditer(segment):

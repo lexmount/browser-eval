@@ -19,6 +19,7 @@ from urllib.parse import urlsplit
 from .dynamic_lists import extract_named_entries, named_entry_source_pair_hash
 from .reference_quality import (
     clean_reference_text, is_markdown_image_start, markdown_delimiter_pairs,
+    visible_markdown_links, without_markdown_images,
 )
 
 ACCEPTANCE_CONTRACT_FIELDS = {
@@ -212,7 +213,8 @@ def _visible(text, schema=None, *, normalized_html=False):
         text = unescape(text)
     # Extractors represent Markdown hard breaks using one or two backslashes.
     text = re.sub(r"\\{1,2}[ \t]*(?=\n)", "", text)
-    text = _unwrap_links(text, schema)
+    text = (visible_markdown_links(without_markdown_images(text))
+            if schema in {None, "body_text", "page_identity"} else _unwrap_links(text, schema))
     # CommonMark punctuation escapes preserve the same visible characters.
     # Remove them before date/field parsing (for example ``2023\-05\-18``).
     text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', lambda m: m[0] if schema == 'table_row' and m[1] in {'|', '\\'} else m[1], text)
@@ -333,37 +335,42 @@ def _table_records(lines, schema):
     return records, occupied
 
 
+def _product_start(lines, index, schema):
+    """Recognize the same supported title/price layouts at every card boundary."""
+    if re.match(r"description\s*:", lines[index], re.I):
+        return None
+    current = _field(lines[index], "price")
+    price_first = bool(re.fullmatch(_MONEY, current, re.I))
+    inline = None if price_first else re.fullmatch(rf"(.+?)\s*\|?\s+({_MONEY})", lines[index], re.I)
+    next_price = index + 1 < len(lines) and re.fullmatch(_MONEY, _field(lines[index + 1], "price"), re.I)
+    if not price_first and not inline and not next_price:
+        return None
+    title_field = "title" if schema == "catalog_product" else "name"
+    if inline:
+        return {title_field: _field(inline[1].rstrip(" |"), title_field), "price": inline[2]}, index + 1
+    if price_first:
+        fields = {"price": current}
+        if schema == "catalog_product" and index + 1 < len(lines):
+            following = lines[index + 1]
+            if (not re.fullmatch(_MONEY, _field(following, 'price'), re.I)
+                    and not re.fullmatch(rf"(.+?)\s*\|?\s+({_MONEY})", following, re.I)):
+                fields[title_field] = _field(following, title_field)
+                return fields, index + 2
+        return fields, index + 1
+    return {title_field: _field(lines[index], title_field),
+            "price": _field(lines[index + 1], "price")}, index + 2
+
+
 def _products(lines, schema):
     records = []
     claimed_shipping = set()
     i = 0
     while i < len(lines):
-        current = _field(lines[i], "price")
-        price_first = bool(re.fullmatch(_MONEY, current, re.I))
-        inline = re.fullmatch(rf"(.+?)\s*\|?\s+({_MONEY})", lines[i], re.I)
-        if price_first:
-            inline = None
-        next_price = i + 1 < len(lines) and re.fullmatch(_MONEY, _field(lines[i + 1], "price"), re.I)
-        if not price_first and not inline and not next_price:
+        start = _product_start(lines, i, schema)
+        if start is None:
             i += 1
             continue
-        title_field = "title" if schema == "catalog_product" else "name"
-        fields = {}
-        if inline:
-            fields.update({title_field: _field(inline[1].rstrip(" |"), title_field), "price": inline[2]})
-            end = i + 1
-        elif price_first:
-            fields["price"] = current
-            # Plain product lists are title/price; price-first is supported for
-            # catalog cards only. An orphan price cannot borrow the next title.
-            if schema == "catalog_product" and i + 1 < len(lines):
-                fields[title_field] = _field(lines[i + 1], title_field)
-                end = i + 2
-            else:
-                end = i + 1
-        else:
-            fields.update({title_field: _field(lines[i], title_field), "price": _field(lines[i + 1], "price")})
-            end = i + 2
+        fields, end = start
         if schema == "catalog_product":
             description = []
             while end < len(lines):
@@ -375,8 +382,7 @@ def _products(lines, schema):
                     break
                 # Stop before any subsequent card, rather than borrowing its
                 # description or review count to repair this card.
-                if (re.fullmatch(_MONEY, _field(line, "price"), re.I)
-                        or end + 1 < len(lines) and re.fullmatch(_MONEY, _field(lines[end + 1], "price"), re.I)):
+                if _product_start(lines, end, schema) is not None:
                     break
                 description.append(_field(line, "description"))
                 end += 1

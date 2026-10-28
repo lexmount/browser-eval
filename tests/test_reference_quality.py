@@ -82,11 +82,12 @@ for brackets in ('[' * 20000, '[x](' * 5000):
             normalize_for_match('the official resource for the *[Team Fortress](/wiki/tf)* series.'),
             normalize_for_match('the official resource for the Team Fortress series.'),
         )
-    def test_balanced_multiline_nested_markdown_keeps_labels_not_destinations(self):
+    def test_balanced_multiline_nested_markdown_separates_image_metadata(self):
         value=('Badge [\n![\ncode style: prettier\n]\n(\nhttps://img.example/badge.svg\n)\n]\n'
                '(\nhttps://example.com/project\n) Contributing')
         visible=visible_markdown_links(value)
-        self.assertIn('code style: prettier',visible)
+        self.assertNotIn('code style: prettier',visible)
+        self.assertIn('code style: prettier',visible_markdown_links(value, include_image_alt=True))
         self.assertIn('Contributing',visible)
         self.assertNotIn('img.example',visible)
         self.assertNotIn('example.com/project',visible)
