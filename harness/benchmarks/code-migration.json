@@ -1254,7 +1254,8 @@
             "review10-admission-stable-metadata-aux-last"
           ],
           "tests": [
-            "tests/benchmarks/webfetch/test_review_auxiliary_names_and_sections.py"
+            "tests/benchmarks/webfetch/test_review_auxiliary_names_and_sections.py",
+            "tests/benchmarks/webfetch/test_review_exclusion_admission.py"
           ]
         }
       ]
