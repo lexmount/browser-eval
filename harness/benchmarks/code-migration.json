@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "ba7d84b2f99fea1f50e88626fb3938383779d41ed7e485f179e3524f712cfc1a"
+          "after_sha256": "feefa9d26ae3587afd7b4ee41d3a521c151aca26003f464724d1917ea33e3e06"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "dcbfecd2d00fed8814b695dc6941adb15f3b6659e73a6c2fb90ac7b99e81ef9f"
+          "after_sha256": "ed576022743fcaff22e9f222fb517c96eacc4466992b242a19524a4a0fbd276d"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "71a8fff0516202052093f4a19f3ad8ab73ad387194fca0a44b728003167dcd34"
+          "after_sha256": "2824ef34d59fc6e99b8c860da1e8910cc88dfd7acb03f341b349cc4303e96cbc"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -1813,6 +1813,107 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_answer_url_join.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "composite-visible-field-named_link-bold-exact",
+            "composite-visible-field-named_link-bold-distinct",
+            "composite-visible-field-field_report-pipe-exact",
+            "composite-visible-field-field_report-pipe-distinct",
+            "composite-visible-literal-destination-only",
+            "composite-visible-literal-visible-label",
+            "composite-visible-literal-encoded-url",
+            "composite-visible-literal-plain-literal-markup",
+            "composite-visible-literal-html-attribute",
+            "composite-visible-literal-inline-code",
+            "composite-visible-field-html-literal-None",
+            "composite-visible-field-html-distinct-None"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_composite_literal_fields.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round15-native-base-anchor-False",
+            "round15-native-base-anchor-True",
+            "round15-native-base-table-False",
+            "round15-native-base-table-True",
+            "round15-native-adjacent-name-visible",
+            "round15-native-adjacent-name-attribute",
+            "round15-native-adjacent-name-hidden",
+            "round15-native-adjacent-name-two-records-False",
+            "round15-native-adjacent-name-two-records-True",
+            "round15-mixed-fields-visible-date-False",
+            "round15-mixed-fields-visible-date-True",
+            "round15-native-base-is-per-group"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_field_regressions.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "review15-dynamic-plain-html-literal",
+            "review15-dynamic-html-native-resource",
+            "review15-dynamic-plain-markdown-literal",
+            "review15-dynamic-markdown-native-resource",
+            "review15-dynamic-plain-json-literal",
+            "review15-dynamic-native-json-resource",
+            "review15-dynamic-plain-literal-uri",
+            "review15-dynamic-plain-typed-metadata",
+            "review15-dynamic-html-markdown-literal",
+            "review15-dynamic-html-label-not-collapsed",
+            "review15-dynamic-html-literal-label-pattern",
+            "review15-dynamic-html-literal-image-pattern",
+            "review15-dynamic-html-native-label-pattern",
+            "review15-dynamic-html-escaped-tag-one-pass",
+            "review15-dynamic-html-escaped-entity-one-pass",
+            "review15-dynamic-html-literal-destination-words"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_generic_resource_formats.py",
+            "tests/benchmarks/webfetch/test_review_rendered_html_patterns.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "runtime15-literal-stars-price",
+            "runtime15-literal-italic-price",
+            "runtime15-literal-underscore-price",
+            "runtime15-literal-tag-price",
+            "runtime15-literal-link-price",
+            "runtime15-bold-price",
+            "runtime15-linked-price",
+            "runtime15-literal-title-stars",
+            "runtime15-literal-title-heading",
+            "runtime15-literal-title-list",
+            "runtime15-literal-title-number",
+            "runtime15-literal-title-link",
+            "runtime15-literal-title-tag",
+            "runtime15-formatted-title",
+            "runtime15-literal-catalog",
+            "runtime15-formatted-catalog",
+            "runtime15-literal-catalog-heading",
+            "runtime15-literal-description",
+            "runtime15-literal-list-description",
+            "runtime15-literal-review"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_html_record_text.py"
           ]
         }
       ]

@@ -178,6 +178,18 @@ def _image_answer_candidates(content: str, *, base_url: str, representation=None
     return candidates
 
 
+def _literal_resource_urls(content: str) -> list[str]:
+    """Read standalone absolute URI answers without interpreting text syntax."""
+    result = []
+    for line in content.splitlines():
+        value = line.strip()
+        value = value[1:] if value.startswith('<') else value
+        value = value[:-1] if value.endswith('>') else value
+        if re.fullmatch(r'https?://[^\s<>"\']+', value, re.I):
+            result.append(value)
+    return result
+
+
 def _image_content_candidates(content: str, *, representation=None) -> list[tuple[str, str]]:
     has_html = representation != 'plain_text' and bool(re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content))
     if has_html:
@@ -225,11 +237,13 @@ def _image_content_candidates(content: str, *, representation=None) -> list[tupl
     # be the entire answer, including an extensionless CDN address. Every URL
     # with that syntax is admitted alike, without consulting target resources.
     url_pattern = r"https?://[^\s<>'\")\]]+"
-    bare_lines = {line.strip().strip('<>') for line in bare_content.splitlines()
-                  if re.fullmatch(r"\s*<?" + url_pattern + r">?\s*", line)}
-    candidates.extend((url, "content.bare_image_url") for url in
-                      re.findall(url_pattern, bare_content)
-                      if (representation != 'plain_text' and _looks_like_image_url(url)) or url in bare_lines)
+    for line in bare_content.splitlines():
+        literal_urls = _literal_resource_urls(line)
+        if literal_urls:
+            candidates.extend((url, "content.bare_image_url") for url in literal_urls)
+        elif representation != 'plain_text':
+            candidates.extend((url, "content.bare_image_url") for url in
+                              re.findall(url_pattern, line) if _looks_like_image_url(url))
     return candidates
 
 
@@ -321,7 +335,7 @@ def _inline_frame_candidates(
                 document, base_url=frame_base, representation='html',
             )
         else:
-            raw_candidates = _markup_resource_candidates(document, 'content.frame')
+            raw_candidates = _markup_resource_candidates(document, 'content.frame', representation='html')
         for raw_url, source in raw_candidates:
             normalized = normalize_resource_url(raw_url, frame_base)
             if normalized:
@@ -363,9 +377,9 @@ def _native_json_resource_candidates(
     candidates: list[tuple[str, str]] = []
     markup = payload.get("html") or payload.get("content")
     if isinstance(markup, str):
-        candidates.extend(_markup_resource_candidates(markup, 'content.native_json'))
-        candidates.extend(_inline_frame_candidates(
-            markup, base_url=base_url, images_only=False,
+        candidates.extend(_resource_answer_candidates(
+            markup, base_url=base_url, source='content.native_json',
+            representation='html' if payload.get('html') else None,
         ))
     for key in ("resources", "links", "images", "videos", "media", "extras"):
         if key in payload:
@@ -374,7 +388,7 @@ def _native_json_resource_candidates(
     return candidates
 
 
-def _markup_resource_candidates(content: str, source: str) -> list[tuple[str, str]]:
+def _markup_resource_candidates(content: str, source: str, *, representation=None) -> list[tuple[str, str]]:
     """Apply one HTML, Markdown and literal URL reader to each answer surface."""
     from .reference_quality import markdown_link_destinations
     from .resource_urls import srcset_urls
@@ -384,9 +398,37 @@ def _markup_resource_candidates(content: str, source: str) -> list[tuple[str, st
     result.extend((url, source + '.html_srcset') for tag, attrs in attributes
                   if tag in {'img', 'source'} and attrs.get('srcset')
                   for url in srcset_urls(attrs['srcset']))
-    result.extend((url, source + '.markdown_link') for url in markdown_link_destinations(content))
-    result.extend((url, source + '.bare_url') for url in _bare_resource_urls(content))
+    if representation == 'html':
+        from .dynamic_lists import visible_html_text
+        result.extend((url, source + '.bare_url') for url in
+                      _literal_resource_urls(visible_html_text(content)))
+    else:
+        result.extend((url, source + '.markdown_link') for url in markdown_link_destinations(content))
+        result.extend((url, source + '.bare_url') for url in _bare_resource_urls(content))
     return result
+
+
+def _resource_answer_candidates(content: str, *, base_url: str, source='content', representation=None) -> list[tuple[str, str]]:
+    if representation == 'plain_text':
+        return [(url, source + '.bare_url') for url in _literal_resource_urls(content)]
+    if representation is None:
+        try:
+            structured = json.loads(content)
+        except RecursionError:
+            structured = {}
+        except (ValueError, TypeError):
+            structured = None
+        if isinstance(structured, (dict, list)):
+            return _native_json_resource_candidates(content, base_url=base_url)
+    if representation == 'markdown':
+        from .reference_quality import markdown_literal_spans
+        for start, end in reversed(markdown_literal_spans(content)):
+            content = content[:start] + re.sub(r'[^\n]', ' ', content[start:end]) + content[end:]
+    candidates = _markup_resource_candidates(content, source, representation=representation)
+    if representation != 'html':
+        candidates.extend((url, source + '.visible_file') for url in _visible_relative_resource_urls(content))
+    candidates.extend(_inline_frame_candidates(content, base_url=base_url, images_only=False))
+    return candidates
 
 
 def _bare_resource_urls(content: str) -> list[str]:
@@ -477,21 +519,8 @@ def evaluate_resources(
         answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
         candidates.extend(_metadata_resource_candidates(answer_fields))
         if not typed_json_answer:
-            try:
-                structured = json.loads(content)
-            except RecursionError:
-                # Unsupported JSON depth stays on the JSON-answer path, which
-                # rejects it; do not reinterpret diagnostic strings as prose.
-                structured = {}
-            except (ValueError, TypeError):
-                structured = None
-            if isinstance(structured, (dict, list)):
-                candidates.extend(_native_json_resource_candidates(content, base_url=base_url))
-            else:
-                candidates.extend(_markup_resource_candidates(content, 'content'))
-                candidates.extend((url, "content.visible_file")
-                                  for url in _visible_relative_resource_urls(content))
-                candidates.extend(_inline_frame_candidates(content, base_url=base_url, images_only=False))
+            candidates.extend(_resource_answer_candidates(content, base_url=base_url,
+                                                           representation=representation))
     normalized_candidates, candidate_evidence = _normalized_candidates(candidates, base_url=base_url)
     results = []
     allowed_urls: set[str] = set()
@@ -871,7 +900,7 @@ def evaluate_content(
     if representation is None:
         from .reference_quality import normalize_native_markdown_layout
         prose_source = normalize_native_markdown_layout(content)
-    prose_content = prose_source if literal else markdown_body_content(prose_source)
+    prose_content = prose_source if literal or representation == 'html' else markdown_body_content(prose_source)
     visible_content = prose_content
     is_html = not literal and (representation == 'html' or is_html_document_or_fragment(prose_content))
     if is_html:
@@ -882,21 +911,22 @@ def evaluate_content(
         from .reference_quality import visible_mixed_html_text
         visible_content = visible_mixed_html_text(prose_content)
     has_html_prose = is_html or visible_content != prose_content
+    visible_representation = 'plain_text' if is_html else representation
     answer_text = title_prefix + visible_content
     from .reference_quality import blocked_page_hits, script_payload_shell
-    block_hits = blocked_page_hits(answer_text, representation=representation)
+    block_hits = blocked_page_hits(answer_text, representation=visible_representation)
     script_shell = script_payload_shell(answer_text)
     replacement_count, replacement_ratio, encoding_corruption = text_corruption(answer_text)
     truncation_hits = declared_truncation_hits(answer_text)
-    folded = normalize_for_match(answer_text, representation=representation)
-    content_folded = normalize_for_match(visible_content, representation=representation)
+    folded = normalize_for_match(answer_text, representation=visible_representation)
+    content_folded = normalize_for_match(visible_content, representation=visible_representation)
     from .stable_tasks import _stable_literal_match
     matched = [marker for marker in expected
-               if _stable_literal_match(visible_content, marker, phrase_boundaries=True, representation=representation)]
+               if _stable_literal_match(visible_content, marker, phrase_boundaries=True, representation=visible_representation)]
     facts = required_facts or []
     from .dynamic_entry_matching import matching_entry_facts
     entry_hits = matching_entry_facts(content_folded, facts,
-                                    lambda value: normalize_for_match(value, representation=representation), fact_in_text)
+                                    lambda value: normalize_for_match(value, representation=visible_representation), fact_in_text)
     fact_results = []
     from .stable_tasks import _stable_literal_match
     registered_fact_words = tuple(value for fact in facts
@@ -915,7 +945,7 @@ def evaluate_content(
         hits = (entry_hits[identifier] if identifier in entry_hits else
                 [item for item in alternatives
                  if any(_stable_literal_match(target, item, registered_fact_words, phrase_boundaries=True,
-                                              representation=representation) for target in targets)])
+                                              representation=visible_representation) for target in targets)])
         fact_results.append({
             "id": identifier,
             "alternatives": alternatives,
@@ -942,7 +972,7 @@ def evaluate_content(
     # Explicit forbidden text is a task requirement, not a challenge-page guess.
     # A reference mentioning it cannot silently remove the declared requirement.
     forbidden = [item for item in (forbidden_any or [])
-                 if (text := normalize_for_match(item, representation=representation)) and forbidden_in_text(folded, text)]
+                 if (text := normalize_for_match(item, representation=visible_representation)) and forbidden_in_text(folded, text)]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
@@ -956,9 +986,8 @@ def evaluate_content(
     pattern_content = content if raw_content is None else raw_content
     from .reference_quality import visible_markdown_links
     from .stable_tasks import _pattern_text_surface
-    pattern_visible = visible_content if literal else _pattern_text_surface(
-        visible_markdown_links(visible_content),
-        representation='plain_text' if is_html else representation,
+    pattern_visible = visible_content if literal or is_html else _pattern_text_surface(
+        visible_markdown_links(visible_content), representation=representation,
     )
     code_blocks = None
     for rule in required_patterns or []:
@@ -975,12 +1004,12 @@ def evaluate_content(
     from .body_coverage import evaluate_body_requirements, native_markup_body_text
     body_content = (native_markup_body_text(prose_content, html.unescape(re.sub(r"<(script|style|template)\b[^>]*>.*?</\1\s*>", "", prose_content, flags=re.I | re.S)))
                     if body_requirements and not is_html and not literal else visible_content)
-    body_checks = evaluate_body_requirements(body_content, body_requirements or {}, representation=representation)
+    body_checks = evaluate_body_requirements(body_content, body_requirements or {}, representation=visible_representation)
     content_pass = content_pass and body_checks['body_coverage_pass']
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:
         word_precision, word_recall, word_f1 = word_overlap(answer_text, ground_truth_main_content,
-                                                         representation=representation)
+                                                         representation=visible_representation)
     result = {
         **body_checks,
         "content_pass": content_pass,
@@ -1001,7 +1030,7 @@ def evaluate_content(
         "pattern_pass": all(item["pass"] for item in pattern_results),
         "forbidden_requirement_hits": forbidden,
         "diagnostic_hits": [item for item in (diagnostic_any or [])
-                            if (text := normalize_for_match(item, representation=representation)) and forbidden_in_text(folded, text)],
+                            if (text := normalize_for_match(item, representation=visible_representation)) and forbidden_in_text(folded, text)],
         "forbidden_requirement_pass": not forbidden,
         "blocked_page": bool(block_hits),
         "blocked_page_hits": block_hits,

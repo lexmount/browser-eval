@@ -79,6 +79,7 @@ def _key(text):
 
 _CARD_BOUNDARY = "\ue000"
 _MEDIA_BOUNDARY = "\ue001"
+_HTML_HEADING = "\ue002"
 
 
 def _unwrap_links(text, schema):
@@ -159,7 +160,7 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
     projected_html = (
         not normalized_html and schema in SCHEMA_FIELDS
         and schema not in {"named_link", "linked_product", "table_row"}
-        and is_html_document_or_fragment(text)
+        and (representation == 'html' or is_html_document_or_fragment(text))
     )
     if projected_html:
         from .dynamic_lists import visible_html_text
@@ -203,14 +204,14 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
                 node.insert_after("\n" + _CARD_BOUNDARY + "\n")
             for node in soup.select('h1,h2,h3,h4,h5,h6'):
                 if not inside_record(node):
-                    node.insert(0, '#' * int(node.name[1]) + ' ')
+                    node.insert(0, _HTML_HEADING + node.name[1] + _HTML_HEADING + ' ')
             text = str(soup)
         elif schema in {'product', 'catalog_product'}:
             from .dynamic_lists import scoped_html
             soup = scoped_html(text)
             if schema == 'catalog_product':
                 for heading in soup.select('h1,h2,h3,h4,h5,h6'):
-                    heading.insert(0, '#' * int(heading.name[1]) + ' ')
+                    heading.insert(0, _HTML_HEADING + heading.name[1] + _HTML_HEADING + ' ')
             owners = _product_html_owners(soup)
             identities = {id(node) for node in owners}
             groups = {}
@@ -241,6 +242,8 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
         text = scoped_html(text).get_text(separator="\n")
         projected_html = True
     text = clean_reference_text(text)
+    if projected_html or representation == 'html':
+        return text.replace('\r\n', '\n')
     # An actual inline HTML break in Markdown is layout. Preserve escaped
     # markup and code spans, and decode character references only afterward.
     text = re.sub(r'(`+|~{3,}).*?\1|(?<!\\)<br\s*/?>' if schema != "table_row" and not normalized_html else r'(`+|~{3,}).*?\1',
@@ -278,16 +281,18 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
     return text.replace("\r\n", "\n")
 
 
-def _line(text):
+def _line(text, *, literal=False):
+    if literal:
+        return re.sub(r'^' + _HTML_HEADING + r'[1-6]' + _HTML_HEADING + r'\s*', '', text).strip()
     return re.sub(r"^(?:\s*[#>]+\s*|\s*[-*+]\s+|\s*\d+[.)]\s+)", "", text).strip()
 
 
-def _field(text, name):
+def _field(text, name, *, literal=False):
     # Formatting tags sometimes survive a Markdown dump inside a visible
     # scalar value (for example, ``or 9 x<strong>$1.21</strong>``). They do
     # not change the field's displayed text. Strip only simple inline emphasis
     # tags; keep every other tag/field boundary available for validation.
-    visible = re.sub(r"</?(?:strong|b|em|i)>", "", text, flags=re.I)
+    visible = text if literal else re.sub(r"</?(?:strong|b|em|i)>", "", text, flags=re.I)
     return re.sub(rf"^(?:{_LABELS.get(name, name)})\s*:\s*", "", visible, flags=re.I).strip()
 
 
@@ -379,50 +384,54 @@ def _table_records(lines, schema):
     return records, occupied
 
 
-def _product_start(lines, index, schema):
+def _product_start(lines, index, schema, *, literal=False):
     """Recognize the same supported title/price layouts at every card boundary."""
     if re.match(r"description\s*:", lines[index], re.I):
         return None
-    current = _field(lines[index], "price")
+    current = _field(lines[index], "price", literal=literal)
     price_first = bool(re.fullmatch(_MONEY, current, re.I))
     inline = None if price_first else re.fullmatch(rf"(.+?)\s*\|?\s+({_MONEY})", lines[index], re.I)
-    next_price = index + 1 < len(lines) and re.fullmatch(_MONEY, _field(lines[index + 1], "price"), re.I)
+    next_price = index + 1 < len(lines) and re.fullmatch(_MONEY, _field(lines[index + 1], "price", literal=literal), re.I)
     if not price_first and not inline and not next_price:
         return None
     title_field = "title" if schema == "catalog_product" else "name"
     if inline:
-        return {title_field: _field(inline[1].rstrip(" |"), title_field), "price": inline[2]}, index + 1
+        return {title_field: _field(inline[1].rstrip(" |"), title_field, literal=literal), "price": inline[2]}, index + 1
     if price_first:
         fields = {"price": current}
         if schema == "catalog_product" and index + 1 < len(lines):
             following = lines[index + 1]
-            if (not re.fullmatch(_MONEY, _field(following, 'price'), re.I)
+            if (not re.fullmatch(_MONEY, _field(following, 'price', literal=literal), re.I)
                     and not re.fullmatch(rf"(.+?)\s*\|?\s+({_MONEY})", following, re.I)):
-                fields[title_field] = _field(following, title_field)
+                fields[title_field] = _field(following, title_field, literal=literal)
                 return fields, index + 2
         return fields, index + 1
-    return {title_field: _field(lines[index], title_field),
-            "price": _field(lines[index + 1], "price")}, index + 2
+    return {title_field: _field(lines[index], title_field, literal=literal),
+            "price": _field(lines[index + 1], "price", literal=literal)}, index + 2
 
 
-def _products(lines, schema):
+def _products(lines, schema, *, literal=False):
     raw_lines = [line for line in lines if line.strip()]
-    headings = [re.match(r'^ {0,3}(#{1,6})[ \t]+', line) for line in raw_lines]
-    lines = [_line(line) for line in raw_lines]
+    heading_pattern = (r'^' + _HTML_HEADING + r'([1-6])' + _HTML_HEADING + r'\s+'
+                       if literal else r'^ {0,3}(#{1,6})[ \t]+')
+    headings = [re.match(heading_pattern, line) for line in raw_lines]
+    levels = [None if heading is None else int(heading[1]) if literal else len(heading[1])
+              for heading in headings]
+    lines = [_line(line, literal=literal) for line in raw_lines]
     records = []
     claimed_shipping = set()
     i = 0
     while i < len(lines):
-        start = _product_start(lines, i, schema)
+        start = _product_start(lines, i, schema, literal=literal)
         if start is None:
             i += 1
             continue
         fields, end = start
         if schema == "catalog_product":
-            level = next((len(heading[1]) for heading in headings[i:end] if heading), 6)
+            level = next((value for value in levels[i:end] if value is not None), 6)
             description = []
             while end < len(lines):
-                if headings[end] and len(headings[end][1]) <= level:
+                if levels[end] is not None and levels[end] <= level:
                     break
                 line = lines[end]
                 count = re.fullmatch(r"(?:reviews\s*:\s*)?(\d+)\s*reviews?", line, re.I)
@@ -432,9 +441,9 @@ def _products(lines, schema):
                     break
                 # Stop before any subsequent card, rather than borrowing its
                 # description or review count to repair this card.
-                if _product_start(lines, end, schema) is not None:
+                if _product_start(lines, end, schema, literal=literal) is not None:
                     break
-                description.append(_field(line, "description"))
+                description.append(_field(line, "description", literal=literal))
                 end += 1
             fields["description"] = " ".join(description)
         else:
@@ -443,7 +452,7 @@ def _products(lines, schema):
                 claimed_shipping.add(i-1)
             while end < len(lines) and re.match(r"(?:or(?=\s|\d)|financing\s*:|free shipping|shipping\s*:)", lines[end], re.I):
                 field = "shipping" if "shipping" in lines[end].casefold() else "financing"
-                fields[field] = re.sub(r'^or(?=\d)', 'or ', _field(lines[end], field)) if field == "financing" else lines[end]
+                fields[field] = re.sub(r'^or(?=\d)', 'or ', _field(lines[end], field, literal=literal)) if field == "financing" else lines[end]
                 if field == 'shipping':
                     claimed_shipping.add(end)
                 end += 1
@@ -452,7 +461,7 @@ def _products(lines, schema):
     return records
 
 
-def _product_records(text, schema):
+def _product_records(text, schema, *, literal=False):
     """Parse product cards without erasing explicit record ownership.
 
     A blank-line block is a record boundary only when every nonempty block is
@@ -467,12 +476,12 @@ def _product_records(text, schema):
         # A separate prose preface cannot own a price-first catalog card.
         # Require price and title in the same following block before trimming.
         if schema == "catalog_product":
-            while (len(blocks) > 1 and not _products(blocks[0].splitlines(), schema)
+            while (len(blocks) > 1 and not _products(blocks[0].splitlines(), schema, literal=literal)
                    and re.match(rf"^{_MONEY}\n[^\n]+", blocks[1], re.I)):
                 blocks.pop(0)
             marked_block = "\n\n".join(blocks)
         parsed = [
-            _products(block.splitlines(), schema)
+            _products(block.splitlines(), schema, literal=literal)
             for block in blocks
         ]
         if (len(parsed) > 1
@@ -482,7 +491,7 @@ def _product_records(text, schema):
                 records.extend(block_records)
         else:
             records.extend(_products(
-                marked_block.splitlines(), schema
+                marked_block.splitlines(), schema, literal=literal
             ))
     return records
 
@@ -514,14 +523,16 @@ def _quotes(lines):
     return records
 
 
-def _reviews(lines):
+def _reviews(lines, *, literal=False):
     lines = [line.strip() for line in lines if line.strip()]
     records, i, context_level = [], 0, 6
     while i < len(lines):
-        heading = re.match(r"#{1,6}\s+", lines[i])
+        pattern = (_HTML_HEADING + r'([1-6])' + _HTML_HEADING + r'\s+'
+                   if literal else r'(#{1,6})\s+')
+        heading = re.match(pattern, lines[i])
         if heading:
-            context_level = len(heading[0].strip())
-        match = re.match(r"(?:date\s*:\s*)?(\d{4}-\d{2}-\d{2})(?:\s+(.+))?$", _line(lines[i]), re.I)
+            context_level = int(heading[1]) if literal else len(heading[1])
+        match = re.match(r"(?:date\s*:\s*)?(\d{4}-\d{2}-\d{2})(?:\s+(.+))?$", _line(lines[i], literal=literal), re.I)
         if not match:
             i += 1
             continue
@@ -529,12 +540,12 @@ def _reviews(lines):
         text = [match[2]] if match[2] else []
         j = i + 1
         while j < len(lines):
-            following = _line(lines[j])
-            heading = re.match(r"#{1,6}\s+", lines[j])
+            following = _line(lines[j], literal=literal)
+            heading = re.match(pattern, lines[j])
             if (re.match(r"(?:date\s*:\s*)?\d{4}-\d{2}-\d{2}", following, re.I)
-                    or (heading and len(heading[0].strip()) <= context_level)):
+                    or (heading and (int(heading[1]) if literal else len(heading[1])) <= context_level)):
                 break
-            text.append(_field(following, "text"))
+            text.append(_field(following, "text", literal=literal))
             j += 1
         fields["text"] = " ".join(text)
         records.append(_record(fields, "review"))
@@ -542,7 +553,7 @@ def _reviews(lines):
     return records
 
 
-def _operations(lines):
+def _operations(lines, *, literal=False):
     records, i = [], 0
     while i < len(lines):
         # Some native Markdown serializers emit METHOD[/path](target)Summary;
@@ -562,61 +573,63 @@ def _operations(lines):
             if path:
                 fields["path"] = path[1]
                 summary = ([path[2]] if path[2] else []) + rest[1:]
-                fields["summary"] = " ".join(_field(s, "summary") for s in summary)
+                fields["summary"] = " ".join(_field(s, "summary", literal=literal) for s in summary)
         records.append(_record(fields, "api_operation"))
         i = j
     return records
 
 
-def _descriptions(text):
+def _descriptions(text, *, literal=False):
     records = []
     if _CARD_BOUNDARY in text:
         # A marker comes from an image-only bullet immediately before the
         # visible linked title. It is a stronger ownership boundary than blank
         # lines, which may legitimately occur inside a card description.
         prefix, *marked = text.split(_CARD_BOUNDARY)
-        records.extend(_descriptions(prefix))
+        records.extend(_descriptions(prefix, literal=literal))
         for block in marked:
-            following = re.search(r"(?m)^\s*(?:[-*+]|\d+[.)])[ \t]+\S.*$", block)
+            following = None if literal else re.search(r"(?m)^\s*(?:[-*+]|\d+[.)])[ \t]+\S.*$", block)
             end = following.start() if following else len(block)
-            lines = [_line(line) for line in block[:end].splitlines() if line.strip()]
+            lines = [_line(line, literal=literal) for line in block[:end].splitlines() if line.strip()]
             if len(lines) >= 2:
-                records.append(_record({"name": _field(lines[0], "name"),
-                    "description": " ".join(_field(line, "description") for line in lines[1:])},
+                records.append(_record({"name": _field(lines[0], "name", literal=literal),
+                    "description": " ".join(_field(line, "description", literal=literal) for line in lines[1:])},
                     "name_description"))
             if following:
-                records.extend(_descriptions(block[end:]))
+                records.extend(_descriptions(block[end:], literal=literal))
         return records
-    bullets = list(re.finditer(r"(?m)^\s*(?:[-*+]|\d+[.)])[ \t]+\S.*$", text))
+    bullets = [] if literal else list(re.finditer(r"(?m)^\s*(?:[-*+]|\d+[.)])[ \t]+\S.*$", text))
     if bullets:
         for index, bullet in enumerate(bullets):
             end = bullets[index + 1].start() if index + 1 < len(bullets) else len(text)
-            lines = [_line(line) for line in text[bullet.start():end].splitlines() if line.strip()]
-            records.append(_record({"name": _field(lines[0], "name"),
-                "description": " ".join(_field(line, "description") for line in lines[1:])}, "name_description"))
+            lines = [_line(line, literal=literal) for line in text[bullet.start():end].splitlines() if line.strip()]
+            records.append(_record({"name": _field(lines[0], "name", literal=literal),
+                "description": " ".join(_field(line, "description", literal=literal) for line in lines[1:])}, "name_description"))
         return records
     # Both Markdown headings and blank-delimited plain cards express ownership.
-    headings = list(re.finditer(r"(?m)^(#{1,6})\s+(.+)$", text))
+    pattern = (r'(?m)^' + _HTML_HEADING + r'([1-6])' + _HTML_HEADING + r'\s+(.+)$'
+               if literal else r'(?m)^(#{1,6})\s+(.+)$')
+    headings = list(re.finditer(pattern, text))
     if headings:
         # Repeated deepest-level headings are cards; enclosing page/section
         # headings are not records. Blank lines within a card do not erase its
         # ownership boundary.
-        depth = max(len(h[1]) for h in headings)
+        depth = max(int(h[1]) if literal else len(h[1]) for h in headings)
         for index, heading in enumerate(headings):
-            if len(heading[1]) != depth:
+            if (int(heading[1]) if literal else len(heading[1])) != depth:
                 continue
             end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
-            body = [_line(line) for line in text[heading.end():end].splitlines() if line.strip()]
-            records.append(_record({"name": _field(heading[2], "name"),
-                "description": " ".join(_field(line, "description") for line in body)}, "name_description"))
+            body = [_line(line, literal=literal) for line in text[heading.end():end].splitlines() if line.strip()]
+            records.append(_record({"name": _field(heading[2], "name", literal=literal),
+                "description": " ".join(_field(line, "description", literal=literal) for line in body)}, "name_description"))
         return records
     blocks = re.split(r"\n\s*\n", text)
     for block in blocks:
-        lines = [_line(line) for line in block.splitlines() if line.strip()]
+        lines = [_line(line, literal=literal) for line in block.splitlines() if line.strip()]
         if len(lines) < 2:
             continue
-        fields = {"name": _field(lines[0], "name"),
-                  "description": " ".join(_field(line, "description") for line in lines[1:])}
+        fields = {"name": _field(lines[0], "name", literal=literal),
+                  "description": " ".join(_field(line, "description", literal=literal) for line in lines[1:])}
         records.append(_record(fields, "name_description"))
     return records
 
@@ -639,8 +652,8 @@ def _html_list_descriptions(content, *, allow_closed_title_cards=False):
     for item in items:
         lines = visible_html_text(str(item)).splitlines()
         if len(lines) >= 2:
-            records.append(_record({'name': _field(lines[0], 'name'),
-                                    'description': ' '.join(_field(line, 'description') for line in lines[1:])},
+            records.append(_record({'name': _field(lines[0], 'name', literal=True),
+                                    'description': ' '.join(_field(line, 'description', literal=True) for line in lines[1:])},
                                    'name_description'))
     # List ownership includes incomplete items and enclosing list labels.
     # Remove those subtrees before parsing independently owned non-list cards.
@@ -662,7 +675,7 @@ def _html_list_descriptions(content, *, allow_closed_title_cards=False):
             if not own_text or len(children) > 1 or len(child_records) > 1:
                 return child_records
         return _parse_records(visible_html_text(original), 'name_description',
-                              allow_closed_title_cards=allow_closed_title_cards)
+                              allow_closed_title_cards=allow_closed_title_cards, literal=True)
     # Consume nested articles first; retain presentation sections with their title.
     for article in reversed(list(root.select('article'))):
         if article.parent is not None:
@@ -673,10 +686,10 @@ def _html_list_descriptions(content, *, allow_closed_title_cards=False):
             records.extend(bounded_records(section))
             section.decompose()
     return records + _parse_records(visible_html_text(str(root)), 'name_description',
-                                    allow_closed_title_cards=allow_closed_title_cards)
+                                    allow_closed_title_cards=allow_closed_title_cards, literal=True)
 
 
-def _closed_title_descriptions(text, *, line_delimited=False):
+def _closed_title_descriptions(text, *, line_delimited=False, literal=False):
     """Treat title-description-title triples as explicitly closed cards."""
     blocks = text.splitlines() if line_delimited else re.split(r"\n\s*\n", text)
     paragraphs = [block.strip() for block in blocks if block.strip()]
@@ -686,11 +699,11 @@ def _closed_title_descriptions(text, *, line_delimited=False):
     ):
         if any("\n" in value for value in (first, description, repeated)):
             continue
-        name = _line(first)
-        if _key(name) != _key(_line(repeated)):
+        name = _line(first, literal=literal)
+        if _key(name) != _key(_line(repeated, literal=literal)):
             continue
         record = _record(
-            {"name": name, "description": _line(description)},
+            {"name": name, "description": _line(description, literal=literal)},
             "name_description",
         )
         if record["valid"]:
@@ -698,18 +711,18 @@ def _closed_title_descriptions(text, *, line_delimited=False):
     return records
 
 
-def _media_closed_title_descriptions(text):
+def _media_closed_title_descriptions(text, *, literal=False):
     """Read title-description-title closures only inside image-owned blocks."""
     if _MEDIA_BOUNDARY not in text:
         return []
     return [
         record
         for block in text.split(_MEDIA_BOUNDARY)[1:]
-        for record in _closed_title_descriptions(block, line_delimited=True)
+        for record in _closed_title_descriptions(block, line_delimited=True, literal=literal)
     ]
 
 
-def _earthquakes(text):
+def _earthquakes(text, *, literal=False):
     """Read contiguous magnitude/location/time/depth cards, never bag-of-fields.
 
     Four-line ordering is independently observed on the source list. Explicit
@@ -718,7 +731,7 @@ def _earthquakes(text):
     """
     records = []
     for block in text.split(_CARD_BOUNDARY):
-        lines = [_line(line) for line in block.splitlines() if line.strip()]
+        lines = [_line(line, literal=literal) for line in block.splitlines() if line.strip()]
         # Inline custom elements can serialize location and timestamp on one
         # line. Split only a complete trailing timestamp, within this card.
         separated = []
@@ -744,39 +757,41 @@ def _earthquakes(text):
                 separated.append(line)
         lines = separated
         for i, line in enumerate(lines):
-            magnitude = _field(line, "magnitude")
+            magnitude = _field(line, "magnitude", literal=literal)
             if not _valid_field("magnitude", magnitude):
                 continue
             fields = {"magnitude": magnitude}
             for offset, name in enumerate(("location", "time", "depth"), 1):
                 if i + offset < len(lines):
-                    fields[name] = _field(lines[i + offset], name)
+                    fields[name] = _field(lines[i + offset], name, literal=literal)
             records.append(_record(fields, "earthquake"))
     return records
 
 
-def _parse_records(visible, schema, *, allow_closed_title_cards=False):
+def _parse_records(visible, schema, *, allow_closed_title_cards=False, literal=False):
     raw_lines = visible.splitlines()
-    records, occupied = _table_records(raw_lines, schema)
+    records, occupied = ([], set()) if literal else _table_records(raw_lines, schema)
     remainder = "\n".join(line if i not in occupied else "" for i, line in enumerate(raw_lines))
-    lines = [_line(line) for line in remainder.splitlines() if line.strip()]
+    lines = [_line(line, literal=literal) for line in remainder.splitlines() if line.strip()]
     if schema == "earthquake":
-        records.extend(_earthquakes(remainder))
+        records.extend(_earthquakes(remainder, literal=literal))
     elif schema in {"product", "catalog_product"}:
-        records.extend(_product_records(remainder, schema))
+        records.extend(_product_records(remainder, schema, literal=literal))
     elif schema == "quote":
         records.extend(_quotes(lines))
     elif schema == "review":
         for block in remainder.split(_CARD_BOUNDARY):
-            records.extend(_reviews(block.splitlines()))
+            records.extend(_reviews(block.splitlines(), literal=literal))
     elif schema == "api_operation":
         # Keep section boundaries until after parsing ownership. Otherwise the
         # last operation in each group absorbs the next heading, its overview,
         # or the models/footer section into its summary. A heading may itself
         # contain METHOD /path, so retain its text within the new section.
-        sections = re.split(r"(?m)(?=^[ \t]{0,3}#{1,6}[ \t]+)", remainder)
+        boundary = (r'(?m)(?=^' + _HTML_HEADING + r'[1-6]' + _HTML_HEADING + r'\s+)'
+                    if literal else r'(?m)(?=^[ \t]{0,3}#{1,6}[ \t]+)')
+        sections = re.split(boundary, remainder)
         for section in sections:
-            records.extend(_operations([_line(line) for line in section.splitlines() if line.strip()]))
+            records.extend(_operations([_line(line, literal=literal) for line in section.splitlines() if line.strip()], literal=literal))
     elif schema == "name_description":
         # Scoped title-description-title cards and image-owned cards are two
         # ways to establish the same ownership boundary.  When the caller has
@@ -784,13 +799,13 @@ def _parse_records(visible, schema, *, allow_closed_title_cards=False):
         # every image-backed card twice and reject an otherwise valid answer as
         # a duplicate-name list.
         if _MEDIA_BOUNDARY in remainder:
-            closed = _media_closed_title_descriptions(remainder)
+            closed = _media_closed_title_descriptions(remainder, literal=literal)
             if allow_closed_title_cards:
-                closed += _closed_title_descriptions(remainder.split(_MEDIA_BOUNDARY, 1)[0])
+                closed += _closed_title_descriptions(remainder.split(_MEDIA_BOUNDARY, 1)[0], literal=literal)
         else:
-            closed = _closed_title_descriptions(remainder) if allow_closed_title_cards else []
+            closed = _closed_title_descriptions(remainder, literal=literal) if allow_closed_title_cards else []
         # A page heading cannot own descriptions across separate media cards.
-        weak = [record for record in _descriptions(remainder)
+        weak = [record for record in _descriptions(remainder, literal=literal)
                 if not any(_MEDIA_BOUNDARY in value
                            for value in record['fields'].values())]
         for record in weak:
@@ -807,7 +822,7 @@ def _parse_records(visible, schema, *, allow_closed_title_cards=False):
         records.extend(weak)
         records.extend(closed)
     elif schema == "taxonomy_family":
-        records.extend(_record({"family": _field(line, "family")}, schema) for line in lines
+        records.extend(_record({"family": _field(line, "family", literal=literal)}, schema) for line in lines
                        if re.fullmatch(r"(?:family\s*:\s*)?[A-Za-z]+idae", line, re.I))
     return records
 
@@ -898,14 +913,14 @@ def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundar
     from .metrics import WORD_CHARACTERS, fact_in_text, normalize_for_match as normalize
     from .reference_quality import visible_markdown_links
     normalize_for_match = lambda text: normalize(text, representation=representation)
-    if representation != 'plain_text':
+    if representation not in {'plain_text', 'html'}:
         surface = visible_markdown_links(surface)
     surface = re.sub(r'(?<=[^\W\d_])(?=\d+\s+of\s+\d+\b)', ' ', surface)
-    expected_value = _visible(value, representation=representation)
+    expected_value = _visible(value, representation='plain_text' if representation == 'html' else representation)
     expected = normalize_for_match(expected_value)
     # Only an explicit heading with a trailing fragment URL can supply this
     # additional surface; ordinary word suffixes remain significant.
-    if representation != 'plain_text':
+    if representation not in {'plain_text', 'html'}:
         surface = re.sub(r'(?m)^(#{1,6}\s+[^\n]+?)https?://[^\s]+#[^\s]*[ \t]*$',
                          r'\1', surface)
     folded = normalize_for_match(surface)
@@ -1407,6 +1422,10 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     if representation is None:
         from .reference_quality import normalize_native_markdown_layout
         content = normalize_native_markdown_layout(content)
+    from .reference_quality import is_html_document_or_fragment as native_html_surface
+    native_html = representation == 'html' or (representation != 'plain_text' and native_html_surface(content))
+    literal_records = native_html or representation == 'plain_text'
+    match_representation = 'html' if native_html else representation
     schema = contract["schema"]
     count_policy = contract.get("record_count_policy")
     minimum, maximum = contract["minimum_records"], contract.get("maximum_records")
@@ -1463,7 +1482,6 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     text_surfaces = [text_surface]
     if original_markdown_visible is not None:
         text_surfaces.append(original_markdown_visible)
-    from .reference_quality import is_html_document_or_fragment as native_html_surface
     pattern_representation = ('plain_text' if representation == 'html' or native_html_surface(content)
                               else representation)
     pattern_surfaces = [_pattern_text_surface(surface, representation=pattern_representation)
@@ -1539,6 +1557,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                     visible,
                     schema,
                     allow_closed_title_cards=allow_closed_title_cards,
+                    literal=literal_records,
                 )
             )
     anchors = []
@@ -1573,11 +1592,11 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                 selected_non_record = non_record_visible + "\n" + control_text
         matched = _anchor_matches(anchor, records, visible, schema,
                                   selected_non_record, selected_surface, registered_words,
-                                  representation=representation, contract=contract)
+                                  representation=match_representation, contract=contract)
         if original_markdown_visible is not None:
             literal_matches = _anchor_matches(
                 anchor, records, visible, schema, non_record_visible,
-                original_markdown_visible, registered_words, representation=representation, contract=contract)
+                original_markdown_visible, registered_words, representation=match_representation, contract=contract)
             matched = [value for value in anchor["alternatives"]
                        if value in matched or value in literal_matches]
         if representation != 'plain_text' and not matched and anchor.get('match_scope') != 'non_record_lines':
@@ -1585,7 +1604,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                 native_labels = _native_link_label_surface(content, exclusions) or ''
             if native_labels:
                 matched = _anchor_matches(anchor, records, visible, schema,
-                                          anchor_visible=native_labels, representation=representation, contract=contract)
+                                          anchor_visible=native_labels, representation=match_representation, contract=contract)
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     anchor_errors = ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     if anchors_required:

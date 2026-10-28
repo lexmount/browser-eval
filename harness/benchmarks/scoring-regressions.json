@@ -34782,6 +34782,1814 @@
       "artifact": "[Alpha](.;v;)",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "composite-visible-field-named_link-bold-exact",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "values",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "status",
+                  "kind": "token",
+                  "aliases": [
+                    "Status"
+                  ],
+                  "pattern": "\\*\\*Ready\\*\\*"
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/1",
+              "minimum_records": 1
+            }
+          ]
+        }
+      },
+      "artifact": "Example\nhttps://example.test/item/1\nStatus:**Ready**",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-visible-field-named_link-bold-distinct",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "values",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "status",
+                  "kind": "token",
+                  "aliases": [
+                    "Status"
+                  ],
+                  "pattern": "Ready"
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/1",
+              "minimum_records": 1
+            }
+          ]
+        }
+      },
+      "artifact": "Example\nhttps://example.test/item/1\nStatus:**Ready**",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-visible-field-field_report-pipe-exact",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "values",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "status",
+                  "kind": "token",
+                  "aliases": [
+                    "Status"
+                  ],
+                  "pattern": "\\|Ready\\|"
+                }
+              ],
+              "fixed_values": {
+                "status": "|Ready|"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "Status:|Ready|",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-visible-field-field_report-pipe-distinct",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "values",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "status",
+                  "kind": "token",
+                  "aliases": [
+                    "Status"
+                  ],
+                  "pattern": "Ready"
+                }
+              ],
+              "fixed_values": {
+                "status": "Ready"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "Status:|Ready|",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-visible-literal-destination-only",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[unrelated](https://example.test/Alpha)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-visible-literal-visible-label",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](https://example.test/unrelated)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-visible-literal-encoded-url",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "https://example.test/%41lpha",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-visible-literal-plain-literal-markup",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[unrelated](https://example.test/Alpha)",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-visible-literal-html-attribute",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<a href=\"https://example.test/Alpha\">unrelated</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-visible-literal-inline-code",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "`[unrelated](https://example.test/Alpha)`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-visible-field-html-literal-None",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "values",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "status",
+                  "kind": "token",
+                  "aliases": [
+                    "Status"
+                  ],
+                  "pattern": "\\*\\*Ready\\*\\*"
+                }
+              ],
+              "fixed_values": {
+                "status": "**Ready**"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Status:**Ready**</p>",
+      "metadata": null,
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-visible-field-html-distinct-None",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Composite fields preserve declared literal values; required literals match displayed text rather than link destinations or decoded URI bytes.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "values",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "status",
+                  "kind": "token",
+                  "aliases": [
+                    "Status"
+                  ],
+                  "pattern": "Ready"
+                }
+              ],
+              "fixed_values": {
+                "status": "Ready"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Status:**Ready**</p>",
+      "metadata": null,
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "round15-native-base-anchor-False",
+      "case": {
+        "url": "https://example.test/old/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/catalog/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "<a href=\"item/1\">Alpha</a>\nPrice: $12",
+      "ok": true,
+      "expected_task_pass": false,
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A declared link_base_url selects one effective resolution base for native candidates, scoped identities and native table contexts; one group override cannot change another group request base.",
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "round15-native-base-anchor-True",
+      "case": {
+        "url": "https://example.test/old/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/catalog/item/\\d+",
+              "link_base_url": "https://example.test/catalog/"
+            }
+          ]
+        }
+      },
+      "artifact": "<a href=\"item/1\">Alpha</a>\nPrice: $12",
+      "ok": true,
+      "expected_task_pass": true,
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "A declared link_base_url selects one effective resolution base for native candidates, scoped identities and native table contexts; one group override cannot change another group request base.",
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "round15-native-base-table-False",
+      "case": {
+        "url": "https://example.test/old/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/catalog/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><td><a href=\"item/1\">Alpha</a></td><td>Price: $12</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false,
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A declared link_base_url selects one effective resolution base for native candidates, scoped identities and native table contexts; one group override cannot change another group request base.",
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "round15-native-base-table-True",
+      "case": {
+        "url": "https://example.test/old/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/catalog/item/\\d+",
+              "link_base_url": "https://example.test/catalog/",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><td><a href=\"item/1\">Alpha</a></td><td>Price: $12</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true,
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "A declared link_base_url selects one effective resolution base for native candidates, scoped identities and native table contexts; one group override cannot change another group request base.",
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "round15-native-adjacent-name-visible",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "area",
+                  "kind": "area"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><div>$100,000</div><a href=\"https://example.test/item/1\">https://example.test/item/1</a><div>900 sqft</div><div>10 Cedar Road</div><a href=\"https://example.test/item/1\">https://example.test/item/1</a></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Native anchors that visibly repeat their URL may use an adjacent visible scalar name inside the same existing record owner; HTML attributes, hidden names or a sibling record cannot supply the missing name or fields."
+    },
+    {
+      "id": "round15-native-adjacent-name-attribute",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "area",
+                  "kind": "area"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><div>$100,000</div><a href=\"https://example.test/item/1\">https://example.test/item/1</a><div>900 sqft</div><div data-name=\"10 Cedar Road\"></div><a href=\"https://example.test/item/1\">https://example.test/item/1</a></article>",
+      "ok": true,
+      "expected_task_pass": false,
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Native anchors that visibly repeat their URL may use an adjacent visible scalar name inside the same existing record owner; HTML attributes, hidden names or a sibling record cannot supply the missing name or fields."
+    },
+    {
+      "id": "round15-native-adjacent-name-hidden",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "area",
+                  "kind": "area"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><div>$100,000</div><a href=\"https://example.test/item/1\">https://example.test/item/1</a><div>900 sqft</div><div hidden>10 Cedar Road</div><a href=\"https://example.test/item/1\">https://example.test/item/1</a></article>",
+      "ok": true,
+      "expected_task_pass": false,
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Native anchors that visibly repeat their URL may use an adjacent visible scalar name inside the same existing record owner; HTML attributes, hidden names or a sibling record cannot supply the missing name or fields."
+    },
+    {
+      "id": "round15-native-adjacent-name-two-records-False",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "area",
+                  "kind": "area"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><div>$100,000</div><a href=\"https://example.test/item/1\">https://example.test/item/1</a><div>900 sqft</div><div>10 Cedar Road</div><a href=\"https://example.test/item/1\">https://example.test/item/1</a></article><article><a href=\"https://example.test/item/2\">https://example.test/item/2</a><div>900 sqft</div><div>20 Maple Street</div><a href=\"https://example.test/item/2\">https://example.test/item/2</a></article>",
+      "ok": true,
+      "expected_task_pass": false,
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Native anchors that visibly repeat their URL may use an adjacent visible scalar name inside the same existing record owner; HTML attributes, hidden names or a sibling record cannot supply the missing name or fields."
+    },
+    {
+      "id": "round15-native-adjacent-name-two-records-True",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "area",
+                  "kind": "area"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><div>$100,000</div><a href=\"https://example.test/item/1\">https://example.test/item/1</a><div>900 sqft</div><div>10 Cedar Road</div><a href=\"https://example.test/item/1\">https://example.test/item/1</a></article><article><div>$100,000</div><a href=\"https://example.test/item/2\">https://example.test/item/2</a><div>900 sqft</div><div>20 Maple Street</div><a href=\"https://example.test/item/2\">https://example.test/item/2</a></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Native anchors that visibly repeat their URL may use an adjacent visible scalar name inside the same existing record owner; HTML attributes, hidden names or a sibling record cannot supply the missing name or fields."
+    },
+    {
+      "id": "round15-mixed-fields-visible-date-False",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "events",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/events/\\d+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<a id=\"events\"></a>\n\n[First concert](/events/1)\n\nOctober 12, 2026\n\n[Second concert](/events/2)\n\n<span data-date=\"October 13, 2026\">Date unavailable</span>",
+      "ok": true,
+      "expected_task_pass": false,
+      "failure_mode": "false-positive",
+      "category": "body-scope",
+      "root_cause": "Required field discovery must inspect visible mixed HTML/Markdown content rather than matching scalar values in HTML attributes."
+    },
+    {
+      "id": "round15-mixed-fields-visible-date-True",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "events",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/events/\\d+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<a id=\"events\"></a>\n\n[First concert](/events/1)\n\nOctober 12, 2026\n\n[Second concert](/events/2)\n\n<span data-date=\"October 13, 2026\">October 13, 2026</span>",
+      "ok": true,
+      "expected_task_pass": true,
+      "failure_mode": "false-negative",
+      "category": "body-scope",
+      "root_cause": "Required field discovery must inspect visible mixed HTML/Markdown content rather than matching scalar values in HTML attributes."
+    },
+    {
+      "id": "round15-native-base-is-per-group",
+      "case": {
+        "url": "https://example.test/old/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "override",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/catalog/item/\\d+",
+              "link_base_url": "https://example.test/catalog/"
+            },
+            {
+              "id": "request",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/old/other/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "<a href=\"item/1\">Alpha</a>\n<a href=\"other/2\">Beta</a>",
+      "ok": true,
+      "expected_task_pass": true,
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "A declared link_base_url selects one effective resolution base for native candidates, scoped identities and native table contexts; one group override cannot change another group request base.",
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review15-dynamic-plain-html-literal",
+      "root_cause": "4406400401",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<img src=\"/target.png\">",
+      "ok": true,
+      "expected_task_pass": false,
+      "metadata": {
+        "answer_format": "plain_text"
+      }
+    },
+    {
+      "id": "review15-dynamic-html-native-resource",
+      "root_cause": "4406400401",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<img src=\"/target.png\">",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review15-dynamic-plain-markdown-literal",
+      "root_cause": "4406400401",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Image](/target.png)",
+      "ok": true,
+      "expected_task_pass": false,
+      "metadata": {
+        "answer_format": "plain_text"
+      }
+    },
+    {
+      "id": "review15-dynamic-markdown-native-resource",
+      "root_cause": "4406400401",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Image](/target.png)",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "markdown"
+      }
+    },
+    {
+      "id": "review15-dynamic-plain-json-literal",
+      "root_cause": "4406400401",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"images\":[\"/target.png\"]}",
+      "ok": true,
+      "expected_task_pass": false,
+      "metadata": {
+        "answer_format": "plain_text"
+      }
+    },
+    {
+      "id": "review15-dynamic-native-json-resource",
+      "root_cause": "4406400401",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"images\":[\"/target.png\"]}",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review15-dynamic-plain-literal-uri",
+      "root_cause": "4406400401",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://shop.example/target.png",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      }
+    },
+    {
+      "id": "review15-dynamic-plain-typed-metadata",
+      "root_cause": "4406400401",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "Introduction",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "plain_text",
+        "links": [
+          {
+            "url": "/target.png"
+          }
+        ]
+      }
+    },
+    {
+      "id": "review15-dynamic-html-markdown-literal",
+      "root_cause": "4406400401",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<p>[Image](/target.png)</p>",
+      "ok": true,
+      "expected_task_pass": false,
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review15-dynamic-html-label-not-collapsed",
+      "root_cause": "4406400409",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_patterns": [
+          {
+            "id": "visible",
+            "pattern": "^Required label$",
+            "minimum": 1
+          }
+        ]
+      },
+      "artifact": "<p>[Required label](/example)</p>",
+      "ok": true,
+      "expected_task_pass": false,
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review15-dynamic-html-literal-label-pattern",
+      "root_cause": "4406400409",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_patterns": [
+          {
+            "id": "visible",
+            "pattern": "^\\[Required label\\]\\(/example\\)$",
+            "minimum": 1
+          }
+        ]
+      },
+      "artifact": "<p>[Required label](/example)</p>",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review15-dynamic-html-literal-image-pattern",
+      "root_cause": "4406400409",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_patterns": [
+          {
+            "id": "visible",
+            "pattern": "^!\\[Required\\ label\\]\\(/example\\)$",
+            "minimum": 1
+          }
+        ]
+      },
+      "artifact": "<p>![Required label](/example)</p>",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review15-dynamic-html-native-label-pattern",
+      "root_cause": "4406400409",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_patterns": [
+          {
+            "id": "visible",
+            "pattern": "^Required label$",
+            "minimum": 1
+          }
+        ]
+      },
+      "artifact": "<p><a href=\"/example\">Required label</a></p>",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review15-dynamic-html-escaped-tag-one-pass",
+      "root_cause": "4406400409",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_patterns": [
+          {
+            "id": "visible",
+            "pattern": "^<b>Alpha</b>$",
+            "minimum": 1
+          }
+        ],
+        "ground_truth_main_content": "<b>Alpha</b>"
+      },
+      "artifact": "<p>&lt;b&gt;Alpha&lt;/b&gt;</p>",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_metrics": {
+        "word_f1": 1
+      }
+    },
+    {
+      "id": "review15-dynamic-html-escaped-entity-one-pass",
+      "root_cause": "4406400409",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_patterns": [
+          {
+            "id": "visible",
+            "pattern": "^\\&amp;$",
+            "minimum": 1
+          }
+        ],
+        "ground_truth_main_content": "&amp;"
+      },
+      "artifact": "<p>&amp;amp;</p>",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_metrics": {
+        "word_f1": 1
+      }
+    },
+    {
+      "id": "review15-dynamic-html-literal-destination-words",
+      "root_cause": "4406400409",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "ground_truth_main_content": "Required label example"
+      },
+      "artifact": "<p>[Required label](/example)</p>",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_metrics": {
+        "word_f1": 1
+      }
+    },
+    {
+      "id": "runtime15-literal-stars-price",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>Widget</p><p>**$10.00**</p></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime15-literal-italic-price",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>Widget</p><p>*$10.00*</p></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime15-literal-underscore-price",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>Widget</p><p>__$10.00__</p></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime15-literal-tag-price",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>Widget</p><p>&lt;b&gt;$10.00&lt;/b&gt;</p></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime15-literal-link-price",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>Widget</p><p>[$10.00](/cost)</p></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime15-bold-price",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>Widget</p><p><b>$10.00</b></p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Widget",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-linked-price",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>Widget</p><p><a href=\"/cost\">$10.00</a></p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Widget",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-title-stars",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>**Widget**</p><p>$10.00</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "**Widget**",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-title-heading",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p># Widget</p><p>$10.00</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "# Widget",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-title-list",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>- Widget</p><p>$10.00</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "- Widget",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-title-number",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>1. Widget</p><p>$10.00</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "1. Widget",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-title-link",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>[Widget](/item/1)</p><p>$10.00</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "[Widget](/item/1)",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-title-tag",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>&lt;b&gt;Widget&lt;/b&gt;</p><p>$10.00</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "<b>Widget</b>",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-formatted-title",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p><b>Widget</b></p><p>$10.00</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Widget",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-catalog",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><h2># Widget</h2><p>$10.00</p><p>**Durable** [manual](/docs) `code`</p><p>3 reviews</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "# Widget",
+              "price": "$10.00",
+              "description": "**Durable** [manual](/docs) `code`",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-formatted-catalog",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><h2>Widget</h2><p>$10.00</p><p><b>Durable</b> <a href=\"/docs\">manual</a> <code>code</code></p><p>3 reviews</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Widget",
+              "price": "$10.00",
+              "description": "Durable manual code",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-catalog-heading",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><h2>Widget</h2><p>$10.00</p><p># Details</p><p>Durable device</p><p>3 reviews</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Widget",
+              "price": "$10.00",
+              "description": "# Details Durable device",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-description",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<section><p># Widget</p><p>**Durable** [manual](/docs)</p></section>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "# Widget",
+              "description": "**Durable** [manual](/docs)"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-list-description",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<ul><li><p>[Widget](/item/1)</p><p>**Durable** device</p></li></ul>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "[Widget](/item/1)",
+              "description": "**Durable** device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime15-literal-review",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "native_html_record_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>2026-01-01</p><p>**Great** service</p><p># Still this review</p></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "**Great** service # Still this review"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
     }
   ]
 }
