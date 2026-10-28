@@ -1546,6 +1546,40 @@ def _required_fields(context: str, title: str, *, field_specs: list[dict], repre
     return len(_assigned_field_values(lines, field_specs, representation=representation)) == len(field_specs)
 
 
+def _native_description_scope(content: str, group: dict, *, representation=None):
+    """Keep fully scoped native record containers for the stable DOM owner."""
+    from bs4 import NavigableString
+    from .dynamic_lists import scoped_html, visible_html_text
+
+    source = content if representation == 'html' else _without_record_literals(content)
+    if not re.search(r'<(?:article|section|li)\b', source, re.I):
+        return None
+    soup = scoped_html(source)
+    owners = list(soup.select('article,section,li'))
+    if not owners:
+        return None
+    if not (group.get('start_pattern') or group.get('end_pattern')):
+        return str(soup)
+    marker = '\ufdd1description-scope-'
+    while marker in str(soup):
+        marker += '_'
+    boundaries = []
+    for index, owner in enumerate(owners):
+        before = NavigableString('\n'+marker+'S'+str(index)+'-end\n')
+        after = NavigableString('\n'+marker+'E'+str(index)+'-end\n')
+        owner.insert_before(before)
+        owner.insert_after(after)
+        boundaries.extend([before, after])
+    selected = _scope(visible_html_text(str(soup), preserve_links=True), group)
+    chosen = {id(owner) for index, owner in enumerate(owners)
+              if marker+'S'+str(index)+'-end' in selected and marker+'E'+str(index)+'-end' in selected}
+    roots = [owner for owner in owners if id(owner) in chosen
+             and not any(id(parent) in chosen for parent in owner.parents)]
+    for boundary in boundaries:
+        boundary.extract()
+    return '\n'.join(str(owner) for owner in roots)
+
+
 def _name_description_group(content: str, group: dict, base_url: str, *, representation=None) -> dict:
     from .stable_tasks import evaluate_stable_task
 
@@ -1560,7 +1594,7 @@ def _name_description_group(content: str, group: dict, base_url: str, *, represe
         allow_closed_title_cards=bool(
             group.get("start_pattern") and group.get("end_pattern")
         ),
-        representation='plain_text' if representation == 'html' else representation,
+        representation=representation,
     )
     return {
         "count": result["stable_unique_record_count"],
@@ -1611,7 +1645,7 @@ def _table_group(content: str, group: dict, *, representation=None) -> dict:
     def scalar(value):
         return value if plain else _visible_markdown_scalar(value)
     def key(value):
-        return _field_key(value, representation='plain_text') if plain else _key(visible_markdown_links(value))
+        return _field_key(scalar(value), representation='plain_text')
     required = group["required_columns"]
     records = []
     for index in range(len(lines) - 1):
@@ -1626,14 +1660,14 @@ def _table_group(content: str, group: dict, *, representation=None) -> dict:
             continue
         candidates = {spec['id']: [
             index for index, header in enumerate(headers)
-            if header in {key(alias) for alias in spec['aliases']}
+            if header in {_field_key(alias, representation='plain_text') for alias in spec['aliases']}
         ] for spec in required}
         mapping = {}
         for combined in group.get('combined_columns', []):
             pattern = re.compile(combined['pattern'])
             fields = set(pattern.groupindex)
             hits = [index for index, header in enumerate(headers)
-                    if header in {key(alias) for alias in combined['aliases']}]
+                    if header in {_field_key(alias, representation='plain_text') for alias in combined['aliases']}]
             if (len(hits) == 1 and not fields & mapping.keys()
                     and all(not candidates[field] or set(candidates[field]) <= {hits[0]}
                             for field in fields)):
@@ -1658,16 +1692,16 @@ def _table_group(content: str, group: dict, *, representation=None) -> dict:
                     row = {}
                     for field, (column, pattern) in mapping.items():
                         match = pattern.fullmatch(scalar(values[column])) if pattern else None
-                        row[field] = ((match[field] or '') if match else '') if pattern else values[column]
+                        row[field] = ((match[field] or '') if match else '') if pattern else scalar(values[column])
                     if all(
-                        _value_matches_spec(row[spec["id"]], spec, whole_cell=True, representation='plain_text' if plain else None)
+                        _value_matches_spec(row[spec["id"]], spec, whole_cell=True, representation='plain_text')
                         for spec in required
                     ):
                         records.append(row)
                 row_index += 1
             # Every table in the independently declared section contributes;
             # repeated identities are still counted only once below.
-    unique = {key(scalar(row[group["identity_column"]])): row for row in records}
+    unique = {_field_key(row[group["identity_column"]], representation='plain_text'): row for row in records}
     return {
         "count": len(unique),
         "records": list(unique.values()),
@@ -1689,16 +1723,16 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
     pipe_spans = []
     required = group["required_columns"]
     records = {}
-    exclusions = {_key(_visible_markdown_scalar(value)) for value in group.get('record_name_exclusions', [])}
+    exclusions = {_field_key(value, representation='plain_text') for value in group.get('record_name_exclusions', [])}
 
     def named_record(destination, label):
         label = _visible_markdown_scalar(label)
-        if _key(label) in exclusions:
+        if _field_key(label, representation='plain_text') in exclusions:
             return None
         contract = group
         if '*' in group['hosts']:
             contract = {**group, 'hosts': [urlsplit(destination).hostname]}
-        return _named_candidate(destination, label, contract, base_url, [])
+        return _named_candidate(destination, label, contract, base_url, [], representation='plain_text')
 
     for index in range(len(lines) - 1):
         if "|" not in lines[index]:
@@ -1739,7 +1773,8 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                         candidate = named_record(destination, link.label)
                         if candidate is not None:
                             identity, entry = candidate
-                            records[identity] = {**entry, "fields": row}
+                            records[identity] = {**entry, "fields": {
+                                field: _visible_markdown_scalar(value) for field, value in row.items()}}
                 row_index += 1
     # Each pipe table is a hard ownership boundary. Independently converted
     # tables on either side retain their own headers and cannot borrow cells.
@@ -1815,8 +1850,8 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                     ):
                         records[identity] = {
                             "url": destination,
-                            "title": link_label,
-                            "fields": row,
+                            "title": _visible_markdown_scalar(link_label),
+                            "fields": {field: _visible_markdown_scalar(value) for field, value in row.items()},
                         }
     values = list(records.values())
     return {
@@ -1894,10 +1929,22 @@ def evaluate_composite_acceptance(
                     source, group, group_base_url, literal_text=literal_text,
                     html_source=source_representation == 'html')
                 source_representation = 'markdown'
-        elif group['kind'] in {'field_report', 'literals', 'name_description'} and source_representation != 'plain_text':
+        elif group['kind'] in {'field_report', 'literals'} and source_representation != 'plain_text':
             from .reference_quality import visible_mixed_html_text
             source = visible_mixed_html_text(source)
-        scoped = _scope(source, group, literal_decode=literal_text.get('decode') if literal_text else None)
+        native_description = None
+        if group['kind'] == 'name_description' and source_representation != 'plain_text':
+            native_description = _native_description_scope(source, group, representation=source_representation)
+            if native_description is None:
+                from .reference_quality import visible_mixed_html_text
+                source = visible_mixed_html_text(source)
+                if source_representation == 'html':
+                    source_representation = 'plain_text'
+        if native_description is not None:
+            scoped = native_description
+            source_representation = 'html'
+        else:
+            scoped = _scope(source, group, literal_decode=literal_text.get('decode') if literal_text else None)
         if group["kind"] == "named_link":
             result = _named_link_group(
                 scoped, group, group_base_url, links if scoped == content else None,

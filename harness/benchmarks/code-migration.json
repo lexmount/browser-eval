@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "b23757554cac906b18cb6e9cb65d57bd60e4943bda4168b4e1c7c3fc9e84dbfd"
+          "after_sha256": "de2cace46563d7b2f2427df434dbf28487088bb8a7c9b843c8492bca72044536"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -104,11 +104,11 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "19ce899fd4615901e1fbf7a4df2ece106182dce8402b21ff434d6a06ac1f7163"
+          "after_sha256": "c9e2df3d58879ddeeba370f1a6424e39f09dd48154767e60b65f070c8340e26d"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
-          "after_sha256": "d8a3f5bd6687a93992acec3080036b12c2879b404cb5005f6cc2db4b16b0fcc5"
+          "after_sha256": "0a739c27a3ecbbef1196fb7172cfc353b85727d5496d3b766309dacf8e9210a1"
         },
         "versions.py": {
           "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
@@ -2039,6 +2039,83 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_native_field_literals.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round17-native-description-incomplete-siblings",
+            "round17-native-description-two-complete-siblings",
+            "round17-native-description-one-complete-sibling",
+            "round17-native-description-scoped-two-complete",
+            "round17-native-description-outside-cannot-repair",
+            "round17-native-description-literal-native-fields",
+            "round17-native-description-scoped-nested-container",
+            "round17-native-description-plain-html-literal"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_description_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "runtime17-body-0",
+            "runtime17-body-1",
+            "runtime17-body-2",
+            "runtime17-body-3",
+            "runtime17-body-4",
+            "runtime17-body-5",
+            "runtime17-body-6",
+            "runtime17-body-7",
+            "runtime17-body-8",
+            "runtime17-body-9",
+            "runtime17-body-10",
+            "runtime17-body-11",
+            "runtime17-body-12",
+            "runtime17-body-13",
+            "runtime17-body-14",
+            "runtime17-body-15",
+            "runtime17-actual-format-16",
+            "runtime17-table-17",
+            "runtime17-table-18",
+            "runtime17-table-19",
+            "runtime17-table-20",
+            "runtime17-table-anchor-21",
+            "runtime17-table-anchor-22",
+            "runtime17-table-anchor-23",
+            "runtime17-table-anchor-24",
+            "runtime17-table-anchor-25",
+            "runtime17-table-anchor-26",
+            "runtime17-table-anchor-27",
+            "runtime17-table-anchor-28",
+            "runtime17-table-anchor-29"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_rendered_anchor_tables.py"
+          ]
+        },
+        {
+          "modules": [
+            "structured_tables.py",
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "table17-native-bold-literal",
+            "table17-native-bold-not-format",
+            "table17-native-link-literal",
+            "table17-native-link-not-label",
+            "table17-distinct-native-rows",
+            "table17-duplicate-native-rows",
+            "table17-linked-visible-exact",
+            "table17-linked-visible-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_table_literal_serialization.py"
           ]
         }
       ]

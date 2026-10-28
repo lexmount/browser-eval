@@ -912,7 +912,8 @@ def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundar
     """
     from .metrics import WORD_CHARACTERS, fact_in_text, normalize_for_match as normalize
     from .reference_quality import visible_markdown_links
-    normalize_for_match = lambda text: normalize(text, representation=representation)
+    normalize_for_match = lambda text: normalize(
+        text, representation='plain_text' if representation == 'html' else representation)
     if representation not in {'plain_text', 'html'}:
         surface = visible_markdown_links(surface)
     surface = re.sub(r'(?<=[^\W\d_])(?=\d+\s+of\s+\d+\b)', ' ', surface)
@@ -992,7 +993,8 @@ def source_record_hash(fields, names, schema):
 def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
                     anchor_visible=None, registered_words=(), *, representation=None, contract=None):
     from .metrics import normalize_for_match as normalize
-    normalize_for_match = lambda text: normalize(text, representation=representation)
+    normalize_for_match = lambda text: normalize(
+        text, representation='plain_text' if representation == 'html' else representation)
     if anchor.get('match_scope') == 'non_record_lines':
         if non_record_visible is not None:
             folded = normalize_for_match(non_record_visible)
@@ -1010,10 +1012,20 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
                 if _stable_literal_match(folded, value, registered_words, representation=representation)]
     owned = []
     if schema == 'table_row' and contract:
-        from .structured_tables import _canonical, parse_table_records
+        from .structured_tables import _canonical, _table_header_at, parse_table_records
         matched = []
         for value in anchor['alternatives']:
-            expected = parse_table_records(value, _visible(value, schema, representation=representation), contract)
+            from .reference_quality import is_html_document_or_fragment
+            reference_representation = representation
+            if is_html_document_or_fragment(value):
+                reference_representation = 'html'
+            elif representation == 'html':
+                lines = value.splitlines()
+                reference_representation = ('markdown' if any(
+                    _table_header_at(lines, index) for index in range(len(lines))) else 'plain_text')
+            expected = parse_table_records(
+                value, _visible(value, schema, representation=reference_representation), contract,
+                representation=reference_representation)
             if len(expected) == 1 and expected[0]['valid']:
                 passed = any(record['valid'] and all(
                     _canonical(record['fields'][column['name']], column)
@@ -1455,7 +1467,10 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     visible = _visible(content, schema, representation=representation)
     # HTML normalization can also decode entities in Markdown. Preserve its
     # explicit link boundaries before matching atomic page labels.
-    anchor_visible = _visible(anchor_text, schema, normalized_html=True, representation=representation) if anchor_text is not None else None
+    anchor_visible = _visible(
+        anchor_text, schema, normalized_html=True,
+        representation='plain_text' if native_html else representation,
+    ) if anchor_text is not None else None
     if anchor_visible is None and representation != 'plain_text':
         from .reference_quality import is_html_document_or_fragment
         html_candidate = content.lstrip()
@@ -1567,7 +1582,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         source_mismatches = []
         if schema == 'table_row':
             from .structured_tables import parse_table_records
-            records = parse_table_records(content, visible, contract)
+            records = parse_table_records(content, visible, contract, representation=representation)
         elif representation != 'plain_text' and schema == 'name_description' and (html_records := _html_list_descriptions(
                 content, allow_closed_title_cards=allow_closed_title_cards)) is not None:
             records = html_records

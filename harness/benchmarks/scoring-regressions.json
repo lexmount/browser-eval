@@ -38912,6 +38912,1616 @@
       "category": "structured-extraction",
       "failure_mode": "false-negative",
       "root_cause": "Native DOM field text must remain literal across the existing link/ownership serialization: protect it before synthetic Markdown rendering and restore only before plain field validation, preserving entities, escaped tags, private characters and mixed-format context."
+    },
+    {
+      "id": "round17-native-description-incomplete-siblings",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 1
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>Alpha</p></article><article><p>Beta</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Native description containers must reach the existing stable DOM record owner intact; preserve separately owned incomplete/complete siblings and select original containers within the declared scope before delegation, without reinterpreting explicit plain HTML text."
+    },
+    {
+      "id": "round17-native-description-two-complete-siblings",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 2
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>Alpha</p><p>First description</p></article><article><p>Beta</p><p>Second description</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Native description containers must reach the existing stable DOM record owner intact; preserve separately owned incomplete/complete siblings and select original containers within the declared scope before delegation, without reinterpreting explicit plain HTML text."
+    },
+    {
+      "id": "round17-native-description-one-complete-sibling",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 2
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>Alpha</p><p>First description</p></article><article><p>Beta</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Native description containers must reach the existing stable DOM record owner intact; preserve separately owned incomplete/complete siblings and select original containers within the declared scope before delegation, without reinterpreting explicit plain HTML text."
+    },
+    {
+      "id": "round17-native-description-scoped-two-complete",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 2,
+              "start_pattern": "^# Catalog$",
+              "end_pattern": "^# End$"
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>Outside</p></article><h1>Catalog</h1><article><p>Alpha</p><p>First description</p></article><article><p>Beta</p><p>Second description</p></article><h1>End</h1><article><p>Other</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Native description containers must reach the existing stable DOM record owner intact; preserve separately owned incomplete/complete siblings and select original containers within the declared scope before delegation, without reinterpreting explicit plain HTML text."
+    },
+    {
+      "id": "round17-native-description-outside-cannot-repair",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 1,
+              "start_pattern": "^# Catalog$",
+              "end_pattern": "^# End$"
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>Outside</p><p>Full description</p></article><h1>Catalog</h1><article><p>Alpha</p></article><h1>End</h1><article><p>Other</p><p>Other description</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Native description containers must reach the existing stable DOM record owner intact; preserve separately owned incomplete/complete siblings and select original containers within the declared scope before delegation, without reinterpreting explicit plain HTML text."
+    },
+    {
+      "id": "round17-native-description-literal-native-fields",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 1
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>**Alpha**</p><p>&lt;b&gt;Body&lt;/b&gt;</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Native description containers must reach the existing stable DOM record owner intact; preserve separately owned incomplete/complete siblings and select original containers within the declared scope before delegation, without reinterpreting explicit plain HTML text."
+    },
+    {
+      "id": "round17-native-description-scoped-nested-container",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 2,
+              "start_pattern": "^# Catalog$",
+              "end_pattern": "^# End$"
+            }
+          ]
+        }
+      },
+      "artifact": "<section><h1>Catalog</h1><article><p>Alpha</p><p>First description</p></article><article><p>Beta</p><p>Second description</p></article><h1>End</h1></section>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Native description containers must reach the existing stable DOM record owner intact; preserve separately owned incomplete/complete siblings and select original containers within the declared scope before delegation, without reinterpreting explicit plain HTML text."
+    },
+    {
+      "id": "round17-native-description-plain-html-literal",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 2
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>Alpha</p><p>First description</p></article><article><p>Beta</p><p>Second description</p></article>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false,
+      "ok": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Native description containers must reach the existing stable DOM record owner intact; preserve separately owned incomplete/complete siblings and select original containers within the declared scope before delegation, without reinterpreting explicit plain HTML text."
+    },
+    {
+      "id": "runtime17-body-0",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "[Widget](/other)"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>[Widget](/other)</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-body-1",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "[Widget](/other)"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Widget</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-body-2",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "[Widget](/other)"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>[Widget](/other)</p>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-body-3",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "[Widget](/other)"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Widget</p>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-body-4",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "**Widget**"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>**Widget**</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-body-5",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "**Widget**"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Widget</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-body-6",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "**Widget**"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>**Widget**</p>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-body-7",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "**Widget**"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Widget</p>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-body-8",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "`Widget`"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>`Widget`</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-body-9",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "`Widget`"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Widget</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-body-10",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "`Widget`"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>`Widget`</p>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-body-11",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "`Widget`"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Widget</p>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-body-12",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "<b>Widget</b>"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>&lt;b&gt;Widget&lt;/b&gt;</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-body-13",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "<b>Widget</b>"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Widget</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-body-14",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "<b>Widget</b>"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>&lt;b&gt;Widget&lt;/b&gt;</p>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-body-15",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "literal-label",
+              "alternatives": [
+                "<b>Widget</b>"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Widget</p>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-actual-format-16",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "rendered-label",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p><b>Widget</b></p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-table-17",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-table-18",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-table-19",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-table-20",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          }
+        }
+      },
+      "artifact": "Name\tCount\nAlpha\t12\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-table-anchor-21",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "Name\tCount\nAlpha\t12\nEnd"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\tCount\nAlpha\t12\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-table-anchor-22",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "Name\tCount\nBeta\t12\nEnd"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\tCount\nAlpha\t12\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-table-anchor-23",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Name\tCount\nAlpha\t12\nEnd",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-table-anchor-24",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "Name\tCount\nAlpha\t12\nEnd"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-table-anchor-25",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "Name\tCount\nBeta\t12\nEnd"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-table-anchor-26",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "Name\tCount\n**Alpha**\t12\nEnd"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-table-anchor-27",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "Name\tCount\n**Alpha**\t12\nEnd"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>**Alpha**</td><td>12</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime17-table-anchor-28",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "Name\tCount\n[Alpha](/other)\t12\nEnd"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>12</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime17-table-anchor-29",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_text_is_literal_and_table_delegate_retains_delivery_representation",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name\tCount$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[^\\t\\r\\n]+)\\t(?P<count>\\d+)"
+          },
+          "stable_text_anchors": [
+            {
+              "id": "required-row",
+              "alternatives": [
+                "Name\tCount\n[Alpha](/other)\t12\nEnd"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>[Alpha](/other)</td><td>12</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "table17-native-bold-literal",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native cell text is escaped separately from generated links and decoded once after Markdown formatting.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "cells",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "value",
+              "required_columns": [
+                {
+                  "id": "value",
+                  "kind": "token",
+                  "aliases": [
+                    "Value"
+                  ],
+                  "pattern": "\\*\\*READY\\*\\*"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Value</th></tr><tr><td>**READY**</td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "table17-native-bold-not-format",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native cell text is escaped separately from generated links and decoded once after Markdown formatting.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "cells",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "value",
+              "required_columns": [
+                {
+                  "id": "value",
+                  "kind": "token",
+                  "aliases": [
+                    "Value"
+                  ],
+                  "pattern": "READY"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Value</th></tr><tr><td>**READY**</td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "table17-native-link-literal",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native cell text is escaped separately from generated links and decoded once after Markdown formatting.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "cells",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "value",
+              "required_columns": [
+                {
+                  "id": "value",
+                  "kind": "token",
+                  "aliases": [
+                    "Value"
+                  ],
+                  "pattern": "\\[READY\\]\\(/other\\)"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Value</th></tr><tr><td>[READY](/other)</td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "table17-native-link-not-label",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native cell text is escaped separately from generated links and decoded once after Markdown formatting.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "cells",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "value",
+              "required_columns": [
+                {
+                  "id": "value",
+                  "kind": "token",
+                  "aliases": [
+                    "Value"
+                  ],
+                  "pattern": "READY"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Value</th></tr><tr><td>[READY](/other)</td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "table17-distinct-native-rows",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Rendered native values are decoded once and retain literal identity at deduplication.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "cells",
+              "kind": "table",
+              "minimum_records": 2,
+              "identity_column": "value",
+              "required_columns": [
+                {
+                  "id": "value",
+                  "kind": "token",
+                  "aliases": [
+                    "Value"
+                  ],
+                  "pattern": "(?:\\*\\*READY\\*\\*|READY)"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Value</th></tr><tr><td>**READY**</td></tr><tr><td>READY</td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "table17-duplicate-native-rows",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Rendered native values are decoded once and retain literal identity at deduplication.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "cells",
+              "kind": "table",
+              "minimum_records": 2,
+              "identity_column": "value",
+              "required_columns": [
+                {
+                  "id": "value",
+                  "kind": "token",
+                  "aliases": [
+                    "Value"
+                  ],
+                  "pattern": "(?:\\*\\*READY\\*\\*|READY)"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Value</th></tr><tr><td>**READY**</td></tr><tr><td>**READY**</td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "table17-linked-visible-exact",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Linked table ownership uses raw links before decoded visible fields are validated and stored.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "linked",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "link_column": "name",
+              "identity_column": "name",
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/1",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "token",
+                  "aliases": [
+                    "Owner"
+                  ],
+                  "pattern": "Alice\\ \\|\\ Bob"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Name</th><th>Owner</th></tr><tr><td><a href=\"/item/1\">Widget</a></td><td>Alice | Bob</td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "table17-linked-visible-distinct",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Linked table ownership uses raw links before decoded visible fields are validated and stored.",
+      "case": {
+        "url": "https://example.test/",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "linked",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "link_column": "name",
+              "identity_column": "name",
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/1",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "token",
+                  "aliases": [
+                    "Owner"
+                  ],
+                  "pattern": "Alice"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Name</th><th>Owner</th></tr><tr><td><a href=\"/item/1\">Widget</a></td><td>Alice | Bob</td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
     }
   ]
 }

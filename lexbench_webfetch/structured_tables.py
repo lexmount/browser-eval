@@ -145,14 +145,50 @@ def _valid(value, col):
 def _visible_markdown_scalar(value):
     """Project inline Markdown syntax without changing cell boundaries."""
     from .reference_quality import visible_markdown_links
+    from .article_text import mask_markdown_inline_code
 
+    value, restore_code = mask_markdown_inline_code(value)
+    escaped = {}
+    prefix = '\ue024table-escape'
+    while prefix in value:
+        prefix += '_'
+    def protect(match):
+        token = prefix + str(len(escaped)) + '\ue025'
+        escaped[token] = match[1]
+        return token
+    value = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', protect, value)
     value = visible_markdown_links(value)
-    value = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\1', value)
-    value = re.sub(r'`([^`\n]+)`', r'\1', value)
     value = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', value)
     value = re.sub(r'__(?=\S)([^_\n]*\S)__', r'\1', value)
     value = re.sub(r'(?<!\w)([*_])(?=\S)([^\n]*?\S)\1(?!\w)', r'\2', value)
-    return value.strip()
+    for token, literal in escaped.items():
+        value = value.replace(token, literal)
+    return restore_code(value).strip()
+
+
+def _escape_native_scalar_text(value):
+    return re.sub(r'([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\\\1', value)
+
+
+def _native_cell_text(node, table, *, preserve_links=False):
+    """Serialize literal DOM text separately from genuine link syntax."""
+    from bs4 import Comment
+    from .dynamic_lists import _markdown_safe_destination
+    parts, seen = [], set()
+    for part in node.strings:
+        if isinstance(part, Comment) or part.find_parent('table') is not table or not str(part).strip():
+            continue
+        link = part.find_parent('a', href=True) if preserve_links else None
+        if link is not None and link.find_parent('table') is table:
+            if id(link) in seen:
+                continue
+            seen.add(id(link))
+            label = ' '.join(str(text).strip() for text in link.strings
+                             if text.find_parent('table') is table and str(text).strip())
+            parts.append('[' + _escape_native_scalar_text(label) + '](' + _markdown_safe_destination(link['href']) + ')')
+        else:
+            parts.append(_escape_native_scalar_text(str(part).strip()))
+    return ' '.join(parts)
 
 
 def _canonical(value, column):
@@ -224,7 +260,6 @@ def table_text_surface(content, *, exclude_selector=None, representation=None):
     if representation == 'plain_text':
         return content
     from bs4 import BeautifulSoup
-    from .dynamic_lists import _markdown_safe_destination
     content = _without_example_fences(content)
     blocked = set()
 
@@ -236,17 +271,7 @@ def table_text_surface(content, *, exclude_selector=None, representation=None):
             cells = row.find_all(['th', 'td'], recursive=False)
             values = []
             for cell in cells:
-                for link in cell.find_all('a', href=True):
-                    if link.find_parent('table') is not table:
-                        continue
-                    label = ' '.join(str(part).strip() for part in link.strings
-                                     if part.find_parent('table') is table and str(part).strip())
-                    nested = [child.extract() for child in link.find_all('table')
-                              if child.find_parent('table') is table]
-                    link.replace_with('[' + label + '](' + _markdown_safe_destination(link['href']) + ')' if label or not nested else '',
-                                      *nested)
-                text = ' '.join(str(part).strip() for part in cell.strings
-                                if part.find_parent('table') is table and str(part).strip())
+                text = _native_cell_text(cell, table, preserve_links=True)
                 values.append(text.replace('\\', r'\\').replace('|', r'\|'))
             else:
                 if values:
@@ -391,19 +416,22 @@ def _spanning_rows(root, *, allowed_colspan_rows=()):
     return blocked
 
 
-def parse_table_records(content, visible, contract):
+def parse_table_records(content, visible, contract, *, representation=None):
+    plain = representation == 'plain_text'
+    if plain:
+        visible = content
     columns, scope = contract['table_columns'], contract['table_scope']
     names = [c['name'] for c in columns]
     candidates = []
     aliases = {c['label'].casefold(): c['name'] for c in columns}
     aliases.update({n.casefold(): n for n in names})
     document_pattern = r'\s*(?:<!doctype\s+html[^>]*>\s*)?<(?:html|body|main|div|table|section|article|ul|ol)\b'
-    if not re.match(document_pattern, content, re.I):
+    if not plain and not re.match(document_pattern, content, re.I):
         content = _without_example_fences(content)
         visible = _without_example_fences(visible)
-    explicit_html = bool(re.match(document_pattern, content, re.I))
+    explicit_html = not plain and bool(re.match(document_pattern, content, re.I))
     root = None
-    if (re.search(r'<(?:html|body|main|div|section|article|ul|ol)\b', content, re.I)
+    if not plain and (re.search(r'<(?:html|body|main|div|section|article|ul|ol)\b', content, re.I)
             or _contains_rendered_html_table(content)):
         from .dynamic_lists import scoped_html
         soup = scoped_html(content)
@@ -466,13 +494,13 @@ def parse_table_records(content, visible, contract):
     if root is None:
         # Inline layout breaks do not create new Markdown rows/cells. Preserve
         # a space so split numeric tokens cannot become a different valid value.
-        lines = table_text_surface(visible).splitlines()
-        for i in range(len(lines) - 1):
+        lines = table_text_surface(visible, representation=representation).splitlines()
+        for i in range(0 if plain else len(lines) - 1):
             cells = _pipe_cells(lines[i])
             if ('|' in lines[i] and len(cells) == len(_pipe_cells(lines[i + 1]))
                     and all(re.fullmatch(r'\s*:?-{3,}:?\s*', c) for c in _pipe_cells(lines[i + 1]))):
                 lines[i] = '| ' + ' | '.join(_table_header_labels(cells)) + ' |'
-        visible = re.sub(r'<br\s*/?>', ' ', '\n'.join(lines), flags=re.I)
+        visible = '\n'.join(lines) if plain else re.sub(r'<br\s*/?>', ' ', '\n'.join(lines), flags=re.I)
         # Only source-verified, case-declared auxiliary text is removed.
         # This also normalizes headers before locating the target table.
         for pattern in scope.get('plain_text_ignored_patterns', []):
@@ -480,7 +508,7 @@ def parse_table_records(content, visible, contract):
         start = re.search(scope['start_pattern'], visible, re.M)
         if start:
             text = visible[start.end():]
-        else:
+        elif not plain:
             # A standalone scope heading may be a cell of a Markdown header.
             # Keep that header for the same typed-column parser below; never
             # search arbitrary body cells or bypass a declared scope heading.
@@ -499,6 +527,8 @@ def parse_table_records(content, visible, contract):
             else:
                 return []
             text = visible[offset:]
+        else:
+            return []
         end = re.search(scope['end_pattern'], text, re.M)
         if end:
             text = text[:end.start()]
@@ -512,7 +542,7 @@ def parse_table_records(content, visible, contract):
         lines = text.splitlines()
         occupied = set()
         table_count = 0
-        for i in range(len(lines) - 1):
+        for i in range(0 if plain else len(lines) - 1):
             if i in occupied or '|' not in lines[i]:
                 continue
             labels = [_header_label(s, aliases).casefold() for s in _table_header_labels(_pipe_cells(lines[i]))]
@@ -649,8 +679,7 @@ def grouped_table_surface(content, group, *, representation=None):
         return (match['value'] or '').strip() if match else ''
 
     def owned_text(node, table):
-        return ' '.join(str(part).strip() for part in node.strings
-                        if part.find_parent('table') is table and str(part).strip())
+        return _native_cell_text(node, table)
 
     def line(cells):
         # Escape pipe characters so a value cannot manufacture another field.
@@ -703,7 +732,7 @@ def grouped_table_surface(content, group, *, representation=None):
                 if section is not owner:
                     context, owner = '', section
                 if id(row) in captions:
-                    context = (value(' '.join(owned_text(row, table).split()))
+                    context = (_escape_native_scalar_text(value(' '.join(_visible_markdown_scalar(owned_text(row, table)).split())))
                                if id(row) not in blocked else '')
                 elif id(row) in records and id(row) not in blocked:
                     cells = [owned_text(c, table) for c in row.select(option['cell_selector'])
