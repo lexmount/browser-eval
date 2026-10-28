@@ -17,6 +17,20 @@ Browser Eval executes tasks, adapts browsers and providers, calls the selected b
 
 LexBench Web Fetch can be inspected, validated and exported without installing Browser Eval. Its public task requirements are data, so another runner can consume them. Browser Eval imports the pinned `lexbench_webfetch` task model and scoring implementation directly. LexBench can score saved responses and files without Browser Eval. Browser Eval owns the execution, evidence and report lifecycle around those calls.
 
+## Evaluation design
+
+The README introduces the [design principles](../README.md#stable-reproducible-results-controlled-and-trustworthy-evaluation) and [workflow diagrams](../README.md#evaluation-tracks). Benchmark integrations also need the following scoring and review evidence.
+
+### Scoring evidence
+
+Retain the scorer identity and its input evidence separately from computed verdicts. For Search relevance, use named human annotations by default. If a model judge is explicitly selected, preserve its model, prompt, rubric, candidate evidence, raw responses and grades; label model-judged results accordingly. See the [Search scoring guide](../harness/web_search/README.md) and [Web Fetch scoring corrections](../harness/web_fetch/README.md#correct-a-score-or-reference) for their executable contracts.
+
+### Independent verification
+
+Independent verification is opt-in. Declare its scope and retain the reviewer, protocol and hashes of the evidence reviewed. The default scope is machine failures; reviewing passes or the full matrix requires an explicit request. Reports state reviewed/total coverage and accepted unreviewed passes.
+
+When verification finds a defect, correct the shared cause in the reference, scorer or execution stage. Retain original evidence and official scores; record corrections separately and rescore or rerun the affected scope under the revised contract. A scorer-only correction can reuse valid saved outputs. Use the existing [Web Fetch review workflow](../harness/web_fetch/README.md#request-an-independent-review) and [replay protocol](trajectory-replay-protocol.md) for track-specific handling.
+
 ## Use LexBench inputs
 
 In a LexBench Web Fetch checkout:

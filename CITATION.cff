@@ -1,7 +1,8 @@
 cff-version: 1.2.0
 message: "If you use Browser Eval in your work, please cite this repository."
 type: software
-title: Browser Eval
+title: "Browser Eval: Benchmarking Browsers and Web Tools for AI Agents"
+abstract: "Evaluation harness for Web Fetch, Web Search and Browser Trajectory Replay, with task-level evidence and comparison reports."
 authors:
   - name: Browser Eval contributors
 repository-code: "https://github.com/lexmount/browser-eval"
