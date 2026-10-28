@@ -50,6 +50,22 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
     track, task_kind = get('track', 'web'), get('task_kind', 'body')
     payload = _object(payload)
     successful_http = type(status_code) is int and 200 <= status_code < 300
+    if provider_type == 'brightdata_unlocker':
+        return {'schema_version': 2, 'source_format': 'bytes',
+                'content_format': 'utf8' if successful_http else 'empty'}
+    if provider_type in {'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud'}:
+        field = ('body' if provider_type == 'browser_use_fetch' else
+                 'markdown' if provider_type == 'crawl4ai_cloud' else 'content')
+        value = payload.get(field)
+        fmt = 'text' if isinstance(value, str) else 'empty'
+        declaration = {'schema_version': 2, 'content_pointer': [field],
+                       'content_format': fmt if successful_http else 'empty',
+                       'optional_content': True, 'result_fields': {}}
+        if provider_type == 'deepseek_fetch':
+            declaration['result_fields']['title'] = {'pointer': ['title'], 'format': 'text_or_none'}
+        if provider_type == 'browser_use_fetch':
+            declaration['result_fields']['final_url'] = {'pointer': ['final_url'], 'format': 'text_or_none'}
+        return declaration
     if provider_type in {'tavily_extract', 'exa_contents'}:
         results = payload.get('results')
         result = _object(results[0]) if isinstance(results, list) and results else {}
@@ -322,7 +338,11 @@ def project_native_answer(payload, declaration, *, historical_scoring_source=Non
         if not isinstance(payload, bytes):
             raise ValueError('Native byte projection requires bytes')
         if kind == 'utf8':
-            return payload.decode('utf-8'), {}
+            try:
+                return payload.decode('utf-8'), {}
+            except UnicodeDecodeError:
+                # Invalid text remains raw evidence, never repaired answer text.
+                return '', {}
         if kind == 'empty':
             return '', {}
         raise ValueError('Unknown native byte projection')
@@ -545,7 +565,9 @@ def require_native_answer_projection(content, metadata, raw_response, *, files=(
             if 'legacy' in spec:
                 check_source(spec['legacy'])
         if declaration.get('source_format') == 'bytes':
-            required = 'original_bytes' if declaration.get('files') else 'stdout'
+            required = ('original_bytes' if declaration.get('files') else
+                        'response_body' if 'response_body' in allowed
+                        else 'stdout')
             if required not in allowed:
                 raise ValueError('Native byte projection differs from its frozen answer fields')
         else:

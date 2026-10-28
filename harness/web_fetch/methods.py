@@ -16,7 +16,7 @@ from harness.distribution import installed_data_path
 
 
 def _resolve_catalog_templates(data):
-    """Expand named defaults once; methods override dictionaries and replace lists."""
+    """Expand named defaults once; catalog entries override dictionaries and replace lists."""
     def merge(base, override):
         result = deepcopy(base)
         for key, value in override.items():
@@ -37,7 +37,8 @@ def _resolve_catalog_templates(data):
             raise ValueError('Cyclic method template: ' + parent)
         return merge(resolve(templates[parent], (*chain, parent)), row)
 
-    return {**data, 'methods': {name: resolve(row) for name, row in data['methods'].items()}}
+    return {**data, **{section: {name: resolve(row) for name, row in data[section].items()}
+                      for section in ('methods', 'adapters') if section in data}}
 
 
 @lru_cache(maxsize=1)

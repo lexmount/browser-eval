@@ -15,6 +15,7 @@ from harness.web_fetch.config import (
     load_dataset,
     load_provider_config,
     load_runtime_env,
+    resolve_provider_selection,
 )
 from harness.web_fetch.network_preflight import preflight_guarded_providers
 from harness.web_fetch.providers import build_provider
@@ -33,7 +34,7 @@ def main(argv=None):
     parser.add_argument('--env-file',type=Path)
     parser.add_argument('--provider-config',type=Path,
                         help='One provider configuration for all selected tasks; defaults to the repository task-group configurations')
-    parser.add_argument('--providers',help='Comma-separated names; default: all benchmark methods')
+    parser.add_argument('--providers',help='Comma-separated names or configured; default: dataset coverage plan')
     parser.add_argument('--track',help='Run only this task group, such as dynamic; default: all groups')
     parser.add_argument('--case-ids',help='Comma-separated case IDs; default: every case in the selected task group')
     parser.add_argument('--validate-only',action='store_true',help='Check selected configuration without creating files or calling providers')
@@ -56,6 +57,10 @@ def main(argv=None):
     if args.runs < 1:parser.error('--runs must be positive')
     if not args.validate_only and args.output.exists():parser.error('Output exists; choose an empty directory to avoid overwriting measured evidence')
     load_runtime_env(args.env_file)
+    try:
+        args.providers = resolve_provider_selection(args.providers, args.provider_config)
+    except ValueError as error:
+        parser.error(str(error))
     dataset,cases=load_dataset(args.dataset)
     if args.track:
         cases=[c for c in cases if c.track==args.track]

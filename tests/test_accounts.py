@@ -74,8 +74,9 @@ def test_cloudflare_retains_both_product_permissions():
 def test_unimplemented_candidates_remain_marked_planned():
     entries = account_checklist()
     planned = {item['id'] for item in entries if not item['implemented']}
-    assert 'browserbase' in planned
-    assert len(planned) == 12
+    assert 'scrapingbee' in planned
+    assert not {'browserbase', 'brightdata', 'browser-use-fetch', 'deepseek-fetch-api'} & planned
+    assert len(planned) == 10
     catalog = report_method_catalog()['methods']
     assert all(catalog[name]['status'] == 'planned' for name in planned)
 

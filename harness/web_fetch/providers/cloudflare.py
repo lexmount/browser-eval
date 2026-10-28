@@ -461,6 +461,7 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                "api_http_status": response.status,
                 **({'native_answer_projection': native_answer_projection('cloudflare_markdown', case, payload, response.status, interface='/markdown')}
                    if (envelope_success and isinstance(payload.get('result', ''), str)) or meta else {}),
                 "route": route,
@@ -523,7 +524,7 @@ class CloudflareMarkdownProvider(Provider):
         error_type, error_message = _interface_error(
             response_status=response.status,
             envelope_success=envelope_success,
-            origin_status=None,
+            origin_status=_origin_status(meta.get('status')),
         )
         errors = payload.get("errors")
         errors = errors if isinstance(errors, list) else []
@@ -539,7 +540,9 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                "api_http_status": response.status,
                 "route": "browser_rendering_scrape_resources",
+                "upstream_status": _origin_status(meta.get('status')),
                 **({'native_answer_projection': (native_answer_projection('cloudflare_markdown', case, payload, response.status))}
                    if envelope_success or meta else {}),
                 "browser": self.config.get("browser"),
@@ -717,6 +720,7 @@ class CloudflareMarkdownProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                "api_http_status": response.status,
                 **({'native_answer_projection': {'schema_version': 2,
                     'content_pointer': ['result'], 'content_format': 'text', 'optional_content': True,
                     'result_fields': {'final_url': {'format': 'transport_response_url'}}}}
@@ -784,6 +788,7 @@ class CloudflareContentProvider(CloudflareMarkdownProvider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                "api_http_status": response.status,
                 **({'native_answer_projection': native_answer_projection('cloudflare_content', case, payload, response.status)}
                    if (envelope_success and isinstance(payload.get('result', ''), str)) or meta else {}),
                 "output_contract": "rendered_html",

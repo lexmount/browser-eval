@@ -14,6 +14,13 @@ fetch(case: EvalCase, timeout: float) -> ProviderResult
 - provider-specific request ID, engine, server elapsed time and billing data;
 - a stable error type and actionable error message.
 
+Disclose service API status as `metadata.api_http_status` and the final target-page
+status as `metadata.upstream_status`; use `None` when unavailable. Do not copy an
+API status into the target status. Before scoring and retry selection, the shared
+answer boundary marks a known non-2xx target response as a failed call, preserving
+its returned content and existing failure details. Content acceptance and call
+success remain separate requirements; historical results are not rewritten.
+
 Credentials are expanded from environment placeholders in the provider config.
 They must never be added to `metadata`, content, manifest or logs.
 
@@ -24,6 +31,45 @@ They must never be added to `metadata`, content, manifest or logs.
 3. Assign its output contract in `methods.py`.
 
 Use the existing scorer and report renderer.
+
+### Hosted Markdown fetch services
+
+Five methods share `providers/hosted_fetch.py` and the existing HTTP client,
+runner and scorer. Their credentials and fixed options are declared in
+`configs/providers.example.json`; credentials come from the repository `.env`.
+
+| Method | Credentials | Native route and example options |
+| --- | --- | --- |
+| Bright Data | `BRIGHTDATA_API_TOKEN`, `BRIGHTDATA_UNLOCKER_ZONE` | `/request`, raw Markdown, rendering and native debug enabled |
+| Browser Use Fetch | `BROWSER_USE_API_KEY` | `/fetch`, Markdown, fresh session, US proxy; no Agent |
+| Browserbase Fetch | `BROWSERBASE_API_KEY` | `/v1/fetch`, Markdown, redirects and native proxy enabled; no Project ID |
+| DeepSeek Fetch API | `DEEPSEEK_API_KEY` | `/v1/tools/fetch`, URL-only request; retain content and title |
+| Crawl4AI Cloud | `CRAWL4AI_CLOUD_API_KEY` | `/scrape`, `format=md`, `engine=browser`, `proxy=residential` |
+
+These adapters send body/structure tasks through the native URL endpoint,
+including document URLs, without filtering by track labels. Actual native
+responses or errors determine the result; admission does not establish document
+conversion capability. Resource-list and original-file delivery remain unsupported.
+No helper downloader, parser or substitute browser/Agent is supplied.
+Rendering and internal retries remain service-owned;
+offline adapter checks do not establish JavaScript capability or task pass rates.
+
+Retain complete native responses separately from score-bearing answer fields.
+An API HTTP 200 does not prove target retrieval succeeded: explicit service or
+origin errors, empty content and malformed responses remain failures. API status
+is distinct from target-site status. `log_level: debug` saves redacted caller
+requests, response headers/body and errors; it cannot expose undisclosed service
+internals. Only Bright Data receives the native debug option.
+
+`dns_mode: system` uses the local resolver for API hosts; target-site DNS belongs
+to the service. No automatic DNS fallback is added. All five services retain their
+native internal timeout defaults within the caller's deadline. Historical runs
+keep their recorded configuration.
+
+API references: [Bright Data](https://docs.brightdata.com/api-reference/rest-api/unlocker/unlock-website),
+[fetch-use](https://browser-use.com/posts/fetch-use),
+[Browserbase Fetch](https://docs.browserbase.com/platform/fetch/overview),
+[Crawl4AI Cloud](https://api.crawl4ai.com/docs/).
 
 | Output contract | Comparison scope |
 | --- | --- |
@@ -91,3 +137,45 @@ The version-2 extraction scope describes text extraction and requires the
 dynamic text route. Combining it with resource discovery is rejected before a
 call. Direct file delivery also rejects DOM completion: it cannot claim a
 rendered-page condition was satisfied while fetching only response bytes.
+
+## Selected native cohort
+
+`configs/providers.example.json` owns the ten retained methods in
+`default_providers`. Use `--providers configured --provider-config
+configs/providers.example.json` with `run`, `validate`, `run_benchmark.py` or
+`run_certified_benchmark.py`. Selection is frozen as explicit names in evidence;
+other adapters remain selectable, and the no-argument CLI still uses a fixture.
+
+- The default is 30 seconds per physical call and one failure retry. The final
+  response supplies the result and primary latency; every call and accumulated
+  retry cost is retained. CLI overrides remain explicit and recorded.
+- Stop timing after the response and required decoding; preparation for scoring,
+  scoring and evidence persistence follow. Discard late answers and quarantine
+  still-running workers rather than overlapping abandoned calls.
+- Reject per-case hints and never derive requests from grading requirements.
+  Dynamic cases declare native retrieval mode. Exa uniformly requests 100 rich
+  links; Cloudflare receives URLs directly, without helper document downloads.
+- Keep the 20,000,000-byte HTTP response/Moli output ceiling and debug logs.
+  Moli retains its pinned binary identity and private-network guard without
+  per-host exceptions or a caller-imposed subresource download cap. Non-public
+  DNS answers must be resolved as an environment issue before a public cohort.
+- `crawl4ai-cloud` is distinct from local `crawl4ai`: browser versions and
+  extraction differ, and old local results must not be relabeled as Cloud.
+  Cloud uses service-cleaned Markdown; retain its engine/cache/usage fields.
+  Its configured native proxy adds provider charges; never switch proxy policy
+  in response to scores.
+
+For diagnostics, supply frozen tasks and a new external output. `--measure-only`
+retains scored evidence without building a report; it does not certify a cohort.
+Historical unscored collections remain ineligible for scored reports.
+
+```sh
+uv run --frozen python scripts/run_benchmark.py \
+  --dataset /path/to/frozen-dataset.json \
+  --provider-config configs/providers.example.json --providers configured \
+  --timeout 30 --max-failure-retries 1 --workers 1 --measure-only \
+  --output /path/to/new-run
+```
+
+Publishable cohorts use `scripts/run_certified_benchmark.py` with its required
+scope, work root and output. Report profiles and measured data stay outside Git.

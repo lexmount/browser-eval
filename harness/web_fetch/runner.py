@@ -33,6 +33,7 @@ from harness.web_fetch.artifacts import (
     PUBLIC_CALL_LOG_ROOT,
     diagnostic_log_binding,
     file_scoring_metadata,
+    materialize_task_references,
     raw_response_binding,
     verify_record_artifacts,
     verify_record_private_artifacts,
@@ -55,7 +56,7 @@ from harness.web_fetch.native_routes import (
 from harness.web_fetch.network_preflight import preflight_guarded_providers
 from harness.web_fetch.providers import Provider
 from harness.web_fetch.publication_privacy import redact_url_queries
-from harness.web_fetch.reference_inputs import benchmark_input_path, read_dataset_bytes
+from harness.web_fetch.reference_inputs import benchmark_input_path, read_dataset_bytes, input_tree
 from harness.web_fetch.reference_lifecycle import (
     ReferenceLifecycleError,
     check_case_reference_binding,
@@ -354,7 +355,8 @@ def persist_public_call_log(
         "events": [
             {"stage": "call_started", "at": started_at, "status_code": None,
              "error_type": None},
-            {"stage": "exception_raised" if exception is not None else "response_received",
+            {"stage": ("exception_raised" if exception is not None else
+                       "answer_deadline_exceeded" if metadata.get("caller_deadline_exceeded") else "response_received"),
              "at": completed_at, "status_code": result.status_code,
              "error_type": _public_text(result.error_type, limit=256)},
             {"stage": "call_completed", "at": completed_at,
@@ -408,7 +410,7 @@ def persist_result_artifacts(
         require_native_projection_schema(result.metadata['native_answer_projection'])
     raw = result.metadata.get('_raw_response_b64')
     if result.metadata.get('native_answer_projection', {}).get('source_format') == 'bytes':
-        raw = result.metadata.get('_raw_stdout_b64')
+        raw = result.metadata.get('_raw_stdout_b64', raw)
     needs_projection = (result.metadata.get('native_answer_required')
                         or result.metadata.get('native_answer_projection')
                         or any(result.metadata.get(key) for key in ('links', 'images', 'videos', 'media', 'extras'))
@@ -534,6 +536,8 @@ def run_evaluation(
     if not cases or not providers:
         raise ValueError('Execution requires at least one task and provider')
     for provider in providers:
+        if max_failure_retries and not provider.allow_failure_retries:
+            raise ValueError(f"provider {provider.name!r} prohibits caller failure retries")
         if provider.config.get("uniform_native_parameters"):
             if runs != 1:
                 raise ValueError("fixed native calls require one run")
@@ -570,6 +574,9 @@ def run_evaluation(
             )
     network_audit = preflight_guarded_providers(providers, cases)
     output_dir.mkdir(parents=True, exist_ok=True)
+    materialize_task_references(
+        output_dir, {name: input_tree(dataset_path, name) for name in ("sources", "list-references")},
+        [case.id for case in cases])
     if network_audit is not None:
         (output_dir / 'network-preflight.json').write_text(
             json.dumps(network_audit, ensure_ascii=False, indent=2) + '\n')
@@ -688,7 +695,7 @@ def run_evaluation(
                             raise ReferenceLifecycleError("Frozen rules changed during the run", "reference_changed")
                     else:
                         check_case_reference_fresh(case, dataset_path, binding)
-                    # Admission waits before the answer timer and 45-second budget.
+                    # Admission waits before the per-call answer timer.
                     admission_token = (case_admission.acquire(provider, case)
                                        if case_admission is not None else None)
                     pending = None
@@ -696,6 +703,7 @@ def run_evaluation(
                     try:
                         started = utc_now()
                         physical_attempts = []
+                        sequence_begin = time.monotonic()
                         stopped_provider = False
                         for physical_attempt in range(1, max_failure_retries + 2):
                             retry_throttle_wait_ms = 0.0
@@ -833,6 +841,7 @@ def run_evaluation(
                                                 and pending.is_alive())
                             if physical_passed or stopped_provider or physical_attempt > max_failure_retries:
                                 break
+                        result.metadata['call_sequence_elapsed_ms'] = round((time.monotonic() - sequence_begin) * 1000, 2)
                         elapsed_ms = physical_attempts[-1]['elapsed_ms']
                         result.metadata['call_log'] = physical_attempts[-1]['call_log']
                         if len(physical_attempts) > 1:

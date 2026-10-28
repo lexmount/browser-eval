@@ -54,6 +54,8 @@ Open the report path printed in the terminal. The example has one expected pass 
 
 Next, [try HTTP, Moli or Chromium on a local article](examples/web_fetch/README.md). Optional adapters, service credentials and live evaluation commands are covered in the track guides above.
 
+The reusable ten-method Web Fetch cohort is selected with `--providers configured --provider-config configs/providers.example.json`; shared defaults are 30 seconds per call and one failure retry. See the [provider contract](docs/provider-contract.md#selected-native-cohort).
+
 ## Reports
 
 To create and share a report, open Artifact Site ([Global .com](https://yours.lexmount.com/artifact-site) · [China .cn](https://yours.lexmount.cn/artifact-site)) and install the skill offered there. Follow the skill to create and publish your report, then choose who can access it.

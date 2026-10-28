@@ -35,7 +35,10 @@ def dynamic_case(**completion_overrides):
 def test_release_configs_select_firecrawl_actions_route():
     for filename in ("configs/providers.example.json", "configs/providers.resources.json"):
         providers = json.loads(Path(filename).read_text())["providers"]
-        assert providers["firecrawl"]["dynamic_wait_strategy"] == "actions"
+        if providers["firecrawl"].get("uniform_native_parameters"):
+            assert "dynamic_wait_strategy" not in providers["firecrawl"]
+        else:
+            assert providers["firecrawl"]["dynamic_wait_strategy"] == "actions"
         assert providers["firecrawl-resources"]["dynamic_wait_strategy"] == "actions"
         assert providers["firecrawl"]["proxy"] == "auto"
         assert providers["firecrawl-resources"]["proxy"] == "auto"

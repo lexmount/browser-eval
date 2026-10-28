@@ -54,6 +54,8 @@ uv run --frozen browser-harness-eval run --delay 0
 
 接下来可以[用 HTTP、Moli 或 Chromium 读取本地文章](../examples/web_fetch/README.md)。可选适配器、服务凭据和在线评测命令见上面的各流程指南。
 
+使用 `--providers configured --provider-config configs/providers.example.json` 选择可复用的十种 Web Fetch 方法；默认每次调用 30 秒，失败允许重试一次。详见[适配器规则](provider-contract.md#selected-native-cohort)。
+
 ## 报告
 
 创建和分享报告，请打开 Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)），安装网站提供的 skill，按引导创建、发布报告，并设置分享权限。

@@ -143,6 +143,8 @@ class ExaContentsProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                "api_http_status": response.status,
+                "upstream_status": None,
                 "empty_content": 200 <= response.status < 300 and not content,
                 "request_id": payload.get("requestId"),
                 "url_status": public_status,

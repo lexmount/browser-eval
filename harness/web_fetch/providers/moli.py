@@ -752,6 +752,11 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli fetch exceeded time budget",
                 metadata=metadata,
             )
+        native_status, readiness_timed_out = _native_fetch_diagnostics(diagnostic_raw, case.url)
+        metadata['api_http_status'] = None
+        metadata['upstream_status'] = native_status
+        if native_status is not None:
+            metadata['http_status_source'] = 'same_call_native_document_event'
         if raw_task:
             self._retain_source(metadata, raw, case)
             if route == "native_document_bytes":
@@ -776,12 +781,9 @@ class MoliWebFetchProvider(Provider):
                 metadata=metadata,
             )
         self._retain_source(metadata, raw, case)
-        native_status, readiness_timed_out = _native_fetch_diagnostics(diagnostic_raw, case.url)
         http_context = (replay_native_http_error_context(raw, diagnostic_raw, case.url,
                         process.returncode, {'schema_version': 1, 'format': 'fetch_log_http_error'})
                         if process.returncode == 0 and native_status is not None and 400 <= native_status < 600 else None)
-        if native_status is not None:
-            metadata["http_status_source"] = "same_call_native_document_event"
         if readiness_timed_out:
             metadata["native_readiness_timed_out"] = True
         if process.returncode == 0 and not content.strip() and native_status not in range(400, 600):

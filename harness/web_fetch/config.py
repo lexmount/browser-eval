@@ -19,7 +19,7 @@ from harness.web_fetch.retrieval_hints import (
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_FAILURE_RETRIES = 1
-DEFAULT_CALL_TIMEOUT_SECONDS = 45
+DEFAULT_CALL_TIMEOUT_SECONDS = 30
 
 
 def nonnegative_int(value: str) -> int:
@@ -188,3 +188,21 @@ def load_provider_settings(path: Path) -> dict[str, Any]:
 
 def load_provider_config(path: Path) -> dict[str, dict[str, Any]]:
     return load_provider_settings(path)["providers"]
+
+
+def resolve_provider_selection(selection: str | None, config_path: Path | None) -> str | None:
+    """Resolve an explicitly requested configured cohort without changing other defaults."""
+    if selection != 'configured':
+        return selection
+    if config_path is None:
+        raise ValueError('--providers configured requires --provider-config')
+    settings = load_provider_settings(config_path)
+    names = settings.get('default_providers')
+    if (not isinstance(names, list) or not names
+            or any(not isinstance(name, str) or not name.strip() or ',' in name for name in names)
+            or len(names) != len(set(names))):
+        raise ValueError('Provider config must declare nonempty, unique default_providers')
+    unknown = set(names) - set(settings['providers'])
+    if unknown:
+        raise ValueError('Configured cohort contains unknown providers: ' + ', '.join(sorted(unknown)))
+    return ','.join(names)

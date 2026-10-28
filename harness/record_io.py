@@ -4,6 +4,11 @@ import json
 from pathlib import Path
 
 
+def parse_utf8_json(body: bytes):
+    """Use the same strict wire encoding for acquisition and evidence replay."""
+    return json.loads(body.decode('utf-8'))
+
+
 def file_sha256(path):
     """Hash file bytes without loading the entire artifact into memory.
 

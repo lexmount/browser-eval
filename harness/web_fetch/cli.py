@@ -19,6 +19,7 @@ from harness.web_fetch.config import (
     load_dataset,
     load_provider_config,
     load_runtime_env,
+    resolve_provider_selection,
     select_diagnostic_scope,
 )
 from harness.web_fetch.providers import build_provider
@@ -41,7 +42,8 @@ def command_run(args: argparse.Namespace) -> int:
     language = resolve_report_language(args.output / "report", args.language)
     dataset_meta, cases = load_dataset(args.dataset)
     provider_configs = load_provider_config(args.provider_config)
-    names = [name.strip() for name in args.providers.split(",") if name.strip()]
+    selection = resolve_provider_selection(args.providers, args.provider_config)
+    names = [name.strip() for name in selection.split(",") if name.strip()]
     unknown = [name for name in names if name not in provider_configs]
     if unknown:
         raise SystemExit(f"Unknown providers: {', '.join(unknown)}")
@@ -94,7 +96,8 @@ def command_validate(args: argparse.Namespace) -> int:
     load_runtime_env(args.env_file)
     _, cases = load_dataset(args.dataset)
     configs = load_provider_config(args.provider_config)
-    names = [name.strip() for name in args.providers.split(",") if name.strip()]
+    selection = resolve_provider_selection(args.providers, args.provider_config)
+    names = [name.strip() for name in selection.split(",") if name.strip()]
     errors = []
     for name in names:
         if name not in configs:
@@ -127,7 +130,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_language_argument(run)
     run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
-    run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")
+    run.add_argument("--providers", default="fixture", help="Comma-separated names, or configured for the provider config default cohort")
     run.add_argument("--case-ids", default="", help="Optional comma-separated case IDs")
     run.add_argument("--task-kind", choices=TASK_KINDS,
                      help="Select one task kind; intersects with --case-ids")

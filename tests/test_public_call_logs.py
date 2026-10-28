@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -20,11 +21,11 @@ CASE = EvalCase(
 )
 
 
-def run(root: Path, provider: Provider, *, retry: int = 0):
+def run(root: Path, provider: Provider, *, retry: int = 0, timeout: float = 2):
     return run_evaluation(
         output_dir=root, dataset_meta={"id": "call-log-test"},
         dataset_path=Path("dataset.json"), cases=[CASE], providers=[provider],
-        provider_config_path=Path("providers.json"), runs=1, timeout=2, delay=0,
+        provider_config_path=Path("providers.json"), runs=1, timeout=timeout, delay=0,
         max_failure_retries=retry,
     )[0][0]
 
@@ -43,6 +44,56 @@ class ResultProvider(Provider):
 
 
 class PublicCallLogTests(unittest.TestCase):
+    def test_native_timeout_is_not_a_caller_deadline(self):
+        result = ProviderResult(False, "", error_type="timeout",
+                                error_message="Native readiness wait ended")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            record = run(root, ResultProvider(result), timeout=30)
+            log = load_log(root, record["provider_metadata"]["call_log"])
+            self.assertEqual(log["events"][1]["stage"], "response_received")
+            self.assertEqual(log["error"]["type"], "timeout")
+            self.assertFalse(log["timing"]["deadline_overrun"])
+            self.assertFalse(record["provider_metadata"]["caller_deadline_exceeded"])
+
+    def test_outer_deadline_is_recorded_and_late_answer_discarded(self):
+        class Waiting(Provider):
+            def __init__(self):
+                super().__init__("waiting", {"type": "fixture"})
+                self.release = threading.Event()
+
+            @property
+            def cancellation_cleanup_seconds(self):
+                return 1
+
+            def cancel(self):
+                self.release.set()
+
+            def fetch(self, case, timeout):
+                self.release.wait(5)
+                return ProviderResult(True, "Expected")
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            record = run(root, Waiting(), timeout=.02)
+            log = load_log(root, record["provider_metadata"]["call_log"])
+            self.assertEqual(log["events"][1]["stage"], "answer_deadline_exceeded")
+            self.assertTrue(record["provider_metadata"]["caller_deadline_exceeded"])
+            self.assertTrue(log["output"]["empty"])
+
+    def test_native_timeout_exception_keeps_its_origin(self):
+        class Broken(Provider):
+            def fetch(self, case, timeout):
+                raise TimeoutError("Native transport timed out")
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            record = run(root, Broken("broken", {"type": "fixture"}), timeout=30)
+            log = load_log(root, record["provider_metadata"]["call_log"])
+            self.assertEqual(log["events"][1]["stage"], "exception_raised")
+            self.assertEqual(log["error"]["message"], "Native transport timed out")
+            self.assertFalse(log["timing"]["deadline_overrun"])
+
     def test_common_sensitive_fields_are_redacted_from_public_log(self):
         secret_lines = "\n".join([
             'refresh_token=refresh-secret',

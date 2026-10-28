@@ -949,7 +949,7 @@ class ScoringPipelineTests(unittest.TestCase):
         self.path = self.root / "dataset.json"
         self.path.write_text(json.dumps(self.dataset))
         refs = self.root / "list-references"
-        refs.mkdir()
+        refs.mkdir(exist_ok=True)
         for name in ("legacy", "unverified"):
             (refs / f"{name}.json").write_text(json.dumps({**REFERENCE, "case_id": name}))
         texts = {"web": "Alpha\r\n", "dynamic": "Catalog\nCategory filter\n" + LINKS,
@@ -985,7 +985,7 @@ class ScoringPipelineTests(unittest.TestCase):
 
     def prepare_script_references(self):
         refs = self.run / "list-references"
-        refs.mkdir()
+        refs.mkdir(exist_ok=True)
         for name in ("legacy", "unverified"):
             (refs / f"{name}.json").write_bytes((self.root / "list-references" / f"{name}.json").read_bytes())
 

@@ -401,6 +401,7 @@ class FirecrawlProvider(Provider):
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
+                "api_http_status": response.status,
                 "upstream_status": (
                     metadata.get("statusCode")
                     if isinstance(metadata.get("statusCode"), int) else None

@@ -1,6 +1,61 @@
 {
   "schema_version": 1,
+  "default_providers": [
+    "moli-webfetch",
+    "firecrawl",
+    "cloudflare-markdown",
+    "tavily",
+    "exa",
+    "brightdata",
+    "browser-use-fetch",
+    "browserbase",
+    "deepseek-fetch-api",
+    "crawl4ai-cloud"
+  ],
   "providers": {
+    "crawl4ai-cloud": {
+      "type": "crawl4ai_cloud",
+      "api_key": "${CRAWL4AI_CLOUD_API_KEY}",
+      "engine": "browser",
+      "proxy": "residential",
+      "output_format": "markdown",
+      "dns_mode": "system",
+      "log_level": "debug",
+      "uniform_native_parameters": true
+    },
+    "deepseek-fetch-api": {
+      "type": "deepseek_fetch",
+      "api_key": "${DEEPSEEK_API_KEY}",
+      "dns_mode": "system",
+      "log_level": "debug",
+      "uniform_native_parameters": true
+    },
+    "brightdata": {
+      "type": "brightdata_unlocker",
+      "api_key": "${BRIGHTDATA_API_TOKEN}",
+      "zone": "${BRIGHTDATA_UNLOCKER_ZONE}",
+      "render": true,
+      "debug": true,
+      "log_level": "debug",
+      "dns_mode": "system",
+      "uniform_native_parameters": true
+    },
+    "browser-use-fetch": {
+      "type": "browser_use_fetch",
+      "api_key": "${BROWSER_USE_API_KEY}",
+      "proxy_country": "US",
+      "log_level": "debug",
+      "dns_mode": "system",
+      "uniform_native_parameters": true
+    },
+    "browserbase": {
+      "type": "browserbase_fetch",
+      "api_key": "${BROWSERBASE_API_KEY}",
+      "proxies": true,
+      "log_level": "debug",
+      "dns_mode": "system",
+      "uniform_native_parameters": true
+    },
     "moli-webfetch": {
       "type": "moli_webfetch",
       "binary": "${MOLI_BINARY:-moli}",
@@ -10,14 +65,11 @@
       "expected_binary_sha256": "7a53cdd071ae60a2f8ff6d08107f67f6b0f1d6247a9acd970d2bcec77ff15b50",
       "wait_until": "done",
       "block_private_networks": true,
-      "private_network_allowlist_hosts": [
-        "browser.lexmount.com",
-        "react-shopping-cart-67954.firebaseapp.com"
-      ],
       "max_bytes": 20000000,
       "log_level": "debug",
       "retain_complete_diagnostic_log": true,
-      "max_diagnostic_bytes": 100000000
+      "max_diagnostic_bytes": 100000000,
+      "uniform_native_parameters": true
     },
     "fixture": {
       "type": "fixture",
@@ -53,6 +105,7 @@
     },
     "firecrawl": {
       "type": "firecrawl",
+      "log_level": "debug",
       "base_url": "https://api.firecrawl.dev",
       "api_key": "${FIRECRAWL_API_KEY:-}",
       "max_age": 0,
@@ -60,7 +113,7 @@
       "min_interval_seconds": 6.1,
       "proxy": "auto",
       "capacity_credits_per_call": 1,
-      "dynamic_wait_strategy": "actions"
+      "uniform_native_parameters": true
     },
     "firecrawl-resources": {
       "type": "firecrawl",
@@ -76,11 +129,12 @@
     },
     "tavily": {
       "type": "tavily_extract",
+      "log_level": "debug",
       "base_url": "https://api.tavily.com",
       "api_key": "${TAVILY_API_KEY}",
       "extract_depth": "advanced",
-      "extract_timeout_seconds": 60.0,
-      "max_bytes": 20000000
+      "max_bytes": 20000000,
+      "uniform_native_parameters": true
     },
     "tavily-resources": {
       "type": "tavily_extract",
@@ -93,12 +147,14 @@
     },
     "exa": {
       "type": "exa_contents",
+      "log_level": "debug",
       "base_url": "https://api.exa.ai",
       "api_key": "${EXA_API_KEY}",
       "text_verbosity": "full",
       "max_age_hours": 0,
-      "livecrawl_timeout_ms": 15000,
-      "max_bytes": 20000000
+      "max_bytes": 20000000,
+      "uniform_native_parameters": true,
+      "rich_links_limit": 100
     },
     "exa-resources": {
       "type": "exa_contents",
@@ -112,11 +168,13 @@
     },
     "cloudflare-markdown": {
       "type": "cloudflare_markdown",
+      "log_level": "debug",
       "api_token": "${CLOUDFLARE_API_TOKEN}",
       "account_id": "${CLOUDFLARE_ACCOUNT_ID}",
       "max_bytes": 20000000,
       "document_max_bytes": 20000000,
-      "wait_until": "networkidle2"
+      "wait_until": "networkidle2",
+      "uniform_native_parameters": true
     },
     "cloudflare-content": {
       "type": "cloudflare_content",

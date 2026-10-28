@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from lexbench_webfetch.file_acceptance import evaluate_files
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import canonical_json_sha256, file_sha256
+from harness.record_io import canonical_json_sha256, file_sha256, parse_utf8_json
 from harness.web_fetch.config import DEFAULT_CALL_TIMEOUT_SECONDS
 from harness.web_fetch.native_projection import (
     SCORE_ANSWER_FIELDS,
@@ -171,6 +171,14 @@ def normalized_http_parameters(case, arguments):
         body['urls'] = ['<input-url>']
     else:
         raise ValueError('Native HTTP input differs from the frozen task URL')
+    # Native fetch-use requires a fresh opaque UUID per physical invocation.
+    # Normalize only this session token, never task or extraction parameters.
+    if 'session_id' in body and 'X-Browser-Use-API-Key' in arguments.get('headers', {}):
+        import uuid
+        token = body['session_id']
+        if not isinstance(token, str) or str(uuid.UUID(token)) != token:
+            raise ValueError('Native fetch session must be a canonical UUID')
+        body['session_id'] = '<ephemeral-session-id>'
     return {'method': arguments.get('method', 'GET'), 'body': body,
             'headers_sha256': canonical_json_sha256(arguments.get('headers', {})),
             'timeout_seconds': arguments.get('timeout'), 'max_bytes': arguments.get('max_bytes')}
@@ -486,13 +494,22 @@ def _expected_native_declaration(root, record, raw, cases_by_id):
     if case is None or case.get('url') != record.get('url'):
         raise ValueError('Native answer selection lacks its frozen request identity')
     try:
-        payload = json.loads(raw) if record['provider_type'] != 'moli_webfetch' else {}
+        if record['provider_type'] in {'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud'}:
+            payload = parse_utf8_json(raw)
+        else:
+            payload = json.loads(raw) if record['provider_type'] not in {'moli_webfetch', 'brightdata_unlocker'} else {}
     except (ValueError, UnicodeDecodeError):
+        payload = None
+    if record['provider_type'] in {'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud'}:
+        if not isinstance(payload, dict):
+            return None  # Malformed API envelopes are evidence, never answers.
+    if payload is None:
         payload = {}
     requests = record['provider_metadata']['native_route_receipt'].get('requests', [])
     interface = requests[0].get('signature', {}).get('interface') if requests else None
     return native_answer_projection(record['provider_type'], case, payload,
-                                    record.get('status_code'), interface=interface)
+                                    record['provider_metadata'].get('api_http_status', record.get('status_code')),
+                                    interface=record['provider_metadata'].get('output_contract', interface))
 
 
 def verify_saved_native_answer(root, record, *, cases_by_id=None):
@@ -523,7 +540,7 @@ def verify_saved_native_answer(root, record, *, cases_by_id=None):
             # A timed-out empty answer is deliberately discarded. Network or
             # pre-transport failures may have no raw response to select from.
             if record.get('error_type') != 'timeout':
-                bytes_source = record['provider_type'] == 'moli_webfetch'
+                bytes_source = record.get('provider_type') == 'moli_webfetch'
                 raw_path = metadata.get('raw_stdout_path' if bytes_source else 'raw_response_path')
                 raw_hash = metadata.get('raw_stdout_sha256' if bytes_source else 'raw_response_sha256')
                 if raw_path or raw_hash:
@@ -539,8 +556,10 @@ def verify_saved_native_answer(root, record, *, cases_by_id=None):
         if any(metadata.get(key) for key in SCORE_ANSWER_FIELDS) or metadata.get('file_evaluation', {}).get('files'):
             raise ValueError('Discarded late native answer retains score-bearing fields')
         return
-    raw_path = metadata.get('raw_stdout_path') if declaration.get('source_format') == 'bytes' else metadata.get('raw_response_path')
-    raw_hash = metadata.get('raw_stdout_sha256') if declaration.get('source_format') == 'bytes' else metadata.get('raw_response_sha256')
+    stdout_source = (declaration.get('source_format') == 'bytes'
+                     and record.get('provider_type') != 'brightdata_unlocker')
+    raw_path = metadata.get('raw_stdout_path' if stdout_source else 'raw_response_path')
+    raw_hash = metadata.get('raw_stdout_sha256' if stdout_source else 'raw_response_sha256')
     if not raw_path or not raw_hash:
         raise ValueError('Declared native answer lacks its retained raw response')
     raw = read_evidence_binding(root, {'path': raw_path, 'sha256': raw_hash}).read_bytes()
