@@ -92,12 +92,21 @@ def test_all_git_dependencies_resolve_to_locked_source_commits():
             assert locked.fragment == requested, name
 
 
-def test_installed_benchmarks_match_their_frozen_catalogs():
+def test_installed_benchmarks_validate_catalogs_and_identify_unreleased_scorers():
     from importlib import import_module
 
     source_project()
     for module in ["lexbench_webfetch", "lexbench_websearch"]:
-        import_module(module + ".versions").catalog_release()
+        versions = import_module(module + ".versions")
+        release = versions.catalog_release(require_current_scorer=False)
+        installed = (versions.installed_version() if module == "lexbench_webfetch"
+                     else versions.catalog_release())
+        if installed.get("status") == "unreleased":
+            assert installed["version"] is None and installed["tag"] is None
+            assert installed["published_catalog"] == release
+            assert installed["scoring_source_sha256"] != release["scoring_source_sha256"]
+        else:
+            assert versions.catalog_release() == installed
 
 
 def test_runtime_version_reads_installation_metadata():

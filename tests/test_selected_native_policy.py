@@ -189,7 +189,7 @@ def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, n
                     expected_resources=[{'urls': ['https://example.test/asset.png' if route == 'image'
                                          else 'https://example.test/asset.mp4'], 'kind': route}])
     elif route == 'file':
-        c = replace(c, task_kind='file', expected_any=[],
+        c = replace(c, task_kind='file', expected_any=[], content_score_applicable=False,
                     source_benchmark={'input_media_kind': 'direct_image'},
                     source_verification={'mime': 'image/png', 'file_sha256': hashlib.sha256(file_bytes).hexdigest()})
     exposed = name in {'moli-webfetch', 'firecrawl', 'cloudflare-markdown',

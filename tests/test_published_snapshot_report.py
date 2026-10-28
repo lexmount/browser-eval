@@ -29,6 +29,7 @@ def example(root, recover_original=False):
             'error_message':None,'provider_metadata':{},'artifact_path':path.relative_to(source).as_posix(),
             'metrics':score_attempt(case,raw,ok=True)})
     rows[0]['metrics']['content_pass']=False
+    rows[0]['metrics']['acceptance_checks']['content']=False
     (source/'dataset.json').write_text(json.dumps(dataset))
     (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
     (source/'execution.json').write_text(json.dumps({'batches':[{'timeout_seconds':5,'attempt_ids':[row['attempt_id'] for row in rows]}]}))
