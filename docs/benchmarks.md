@@ -19,7 +19,7 @@ LexBench Web Fetch can be inspected, validated and exported without installing B
 
 ## Evaluation design
 
-The README introduces the [design principles](../README.md#stable-reproducible-results-controlled-and-trustworthy-evaluation) and [workflow diagrams](../README.md#evaluation-tracks). Benchmark integrations also need the following scoring and review evidence.
+The README introduces the [design principles](../README.md#evaluation-approach) and [workflow diagrams](../README.md#evaluation-tracks). Benchmark integrations also need the following scoring and review evidence.
 
 ### Scoring evidence
 

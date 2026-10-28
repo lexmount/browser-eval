@@ -10,7 +10,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
 
-[Features](#features) · [Approach](#stable-reproducible-results-controlled-and-trustworthy-evaluation) · [Tracks](#evaluation-tracks) · [Quickstart](#quickstart) · [Reports](#reports) · [Versions](#versions) · [Related projects](#related-repositories) · [Contributing](CONTRIBUTING.md)
+[Features](#features) · [Approach](#evaluation-approach) · [Tracks](#evaluation-tracks) · [Quickstart](#quickstart) · [Reports](#reports) · [Versions](#versions) · [Related projects](#related-repositories) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -29,21 +29,21 @@ Evaluate browsers and Web tools for AI agents through Web Fetch, Web Search and 
 | Reproducible comparisons | Record task inputs, benchmark and software revisions, scoring code and run settings. |
 | Reports you can share | Publish through Artifact Site and choose who can access the report. [Create and share a report](#reports) |
 
-## Stable, reproducible results; controlled and trustworthy evaluation
+## Evaluation approach
 
-This is Browser Eval's core design goal. Three principles guide the evaluation.
+Browser Eval aims for stable, reproducible results and a controlled, trustworthy evaluation process. Three principles guide the evaluation.
 
-### 1. Prefer definite answers and programmatic scoring wherever possible, with minimal reliance on LLMs as judges
+1. **Prefer definite answers and programmatic scoring wherever possible, with minimal reliance on LLMs as judges**
 
-When a task has clear answers and acceptance criteria, use code to check the result and reduce variation from model judgment. This does not exclude LLM judges entirely: graded Web Search relevance is a suitable use, with an explicit rubric and retained scoring evidence and grades.
+    When a task has clear answers and acceptance criteria, use code to check the result and reduce variation from model judgment. This does not exclude LLM judges entirely: graded Web Search relevance is a suitable use, with an explicit rubric and retained scoring evidence and grades.
 
-### 2. Do not introduce LLMs or Agents to execute the evaluation
+2. **Do not introduce LLMs or Agents to execute the evaluation**
 
-Web Fetch and Web Search call the tools being tested directly. Browsers are tested through fixed trajectory replay, rather than Browser Use with an Agent choosing the next step. Each participant receives the same work, removing the extra variation from LLM decisions and Agent planning during execution.
+    Web Fetch and Web Search call the tools being tested directly. Browsers are tested through fixed trajectory replay, rather than Browser Use with an Agent choosing the next step. Each participant receives the same work, removing the extra variation from LLM decisions and Agent planning during execution.
 
-### 3. Make results easy to review and verify
+3. **Make results easy to review and verify**
 
-Use an LLM as a verifier to add a check of programmatic verdicts and their supporting evidence. Trigger verification only on request; it does not run by default. Generate HTML reports and upload them to Artifact Site, with drilldown from aggregate metrics to every individual result, including raw responses, action traces, logs and scoring evidence. Reviewing every result manually is expensive, so reports must also support human sampling.
+    Use an LLM as a verifier to add a check of programmatic verdicts and their supporting evidence. Trigger verification only on request; it does not run by default. Generate HTML reports and upload them to Artifact Site, with drilldown from aggregate metrics to every individual result, including raw responses, action traces, logs and scoring evidence. Reviewing every result manually is expensive, so reports must also support human sampling.
 
 The task flows follow below. See [evaluation design](docs/benchmarks.md#evaluation-design) for detailed scoring and verification requirements.
 
