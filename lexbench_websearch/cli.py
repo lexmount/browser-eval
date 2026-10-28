@@ -48,7 +48,8 @@ def main():
     )
     args = parser.parse_args()
     selected = getattr(args, "dataset", None)
-    identity = registry()["current"].get(selected, selected)
+    identity = (registry()["current"].get(selected, selected)
+                if args.command in {"validate", "export", "rebuild"} else None)
     if args.command == "version":
         from .versions import catalog_release
 

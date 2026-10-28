@@ -2,12 +2,17 @@
 import re
 import unicodedata
 from urllib.parse import urlsplit
-from .dynamic_lists import extract_named_entries
+from .dynamic_lists import canonical_entry_path, extract_named_entries, named_entry_identity
 
 
-def identity(url):
+def identity(url, contract=None):
     p=urlsplit(url);host=(p.hostname or '').removeprefix('www.')
-    path=p.path.rstrip('/')
+    if contract and any(contract.get(key) for key in ('entry_identity_pattern', 'identity_query_keys')):
+        # Explicit identity declarations take precedence over legacy site routes.
+        if not host or p.scheme not in {'http', 'https'}:
+            raise ValueError('Record evidence must name an absolute HTTP(S) URL')
+        return host + '::' + named_entry_identity(url, contract).split('::', 1)[1]
+    path=canonical_entry_path(p.path).rstrip('/')
     if host=='amazon.com':
         m=re.search(r'/dp/([A-Z0-9]{10})(?:/|$)',path)
         if m:return host+'/dp/'+m[1]
@@ -36,19 +41,29 @@ def name_matches(title,reference):
 def verify_list(content,contract,url,reference,eligible=True,links=None):
     entries=[];seen=set()
     for item in extract_named_entries(content,contract,url,links):
-        key=identity(item['url'])
+        key=identity(item['url'], contract)
         if key not in seen:entries.append(item);seen.add(key)
     required=contract['minimum_entries'];selected=entries[:required]
     index={}
     for item in reference.get('items',[]):
         if item.get('url') and item.get('title'):
-            index.setdefault(identity(item['url']),[]).append(item)
+            try:
+                key = identity(item['url'], contract)
+            except ValueError:
+                continue
+            index.setdefault(key,[]).append(item)
     checks=[]
-    access={identity(x['url']):x for x in reference.get('access_checks',[])}
+    access={}
+    for observation in reference.get('access_checks',[]):
+        try:
+            key = identity(observation['url'], contract)
+        except ValueError:
+            continue
+        access[key] = observation
     for item in selected:
-        candidates=index.get(identity(item['url']),[])
+        candidates=index.get(identity(item['url'], contract),[])
         match=next((x for x in candidates if name_matches(item['title'],x['title'])),None)
-        observation=access.get(identity(item['url']),{})
+        observation=access.get(identity(item['url'], contract),{})
         # Name differences can be aliases or changes: never turn absence of
         # corroboration into a claim that the provider fabricated content.
         checks.append({**item,'verdict':'confirmed' if match else 'unconfirmed',

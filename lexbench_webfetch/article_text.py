@@ -3,7 +3,7 @@ import re
 import unicodedata
 from .dynamic_lists import scoped_html
 from .body_coverage import tokens
-from .reference_quality import is_html_document_or_fragment, markdown_links
+from .reference_quality import is_html_document_or_fragment
 
 def author_key(value):
     """Keep literal symbol-only identities instead of comparing empty tokens."""
@@ -27,20 +27,6 @@ def article_html(content):
         if fallback.parent is not None:
             fallback.decompose()
     return soup
-
-def without_markdown_images(content):
-    """Image alt labels are metadata, including images nested in normal links."""
-    pieces, cursor = [], 0
-    for link in markdown_links(content):
-        if link.start < cursor:
-            continue
-        pieces.append(content[cursor:link.start])
-        if not link.is_image:
-            original = content[link.start:link.end]
-            pieces.append(original.replace(link.label, without_markdown_images(link.label), 1))
-        cursor = link.end
-    pieces.append(content[cursor:])
-    return ''.join(pieces)
 
 def is_article_html(content):
     """Classify HTML after complete leading non-content blocks only."""
@@ -113,12 +99,14 @@ def article_markdown(content):
     not a competing parser whose more permissive count can override native DOM
     ownership. Navigation and explicit related-content landmarks are excluded.
     """
-    from bs4 import NavigableString, Tag
+    from bs4 import Comment, NavigableString, Tag
     soup = article_html(content)
     for node in list(soup.select('nav, aside, footer, [role="navigation"], [role="complementary"]')):
         if node.parent is not None:
             node.decompose()
     def render(node):
+        if isinstance(node, Comment):
+            return ''
         if isinstance(node, NavigableString):
             return str(node)
         if not isinstance(node, Tag):

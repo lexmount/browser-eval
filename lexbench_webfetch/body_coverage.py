@@ -193,7 +193,7 @@ def _merge_compact_spans(spans, positions):
     } for start, end in merged]
 
 
-def _physical_match_spans(content, expected_by_id, assigned_by_id):
+def _physical_match_spans(content, assigned_by_id):
     """Bind allocated fragment counts to deterministic physical occurrences."""
     normalized, compact, positions = _compact_with_positions(content)
     all_units = sorted(set().union(*(set(row) for row in assigned_by_id.values())))
@@ -490,7 +490,7 @@ def _evaluate_body_surface(content, contract):
         assigned_by_id, coverage_pass = _global_region_allocation(
             predicted, expected_by_id, floor_counts, target_counts, required_regions)
         matching_text, output_spans_by_id = _physical_match_spans(
-            content, expected_by_id, assigned_by_id)
+            content, assigned_by_id)
     checks = []
     for region in contract['regions']:
         expected_units = (region['text'].split() if version == 1

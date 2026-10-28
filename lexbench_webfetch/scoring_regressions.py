@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
@@ -23,10 +24,16 @@ def default_registry_path() -> Path:
 
 
 def load_scoring_regressions(path: Path | None = None) -> dict[str, dict[str, Any]]:
+    current = path is None
     path = default_registry_path() if path is None else path
     document = json.loads(path.read_text())
     if document.get("schema_version") != 1 or not isinstance(document.get("cases"), list):
         raise ValueError("Unsupported scoring regression registry")
+    if current:
+        controls = json.loads(files("harness.benchmarks").joinpath("scoring-regressions.json").read_bytes())
+        if controls.get("schema_version") != 1 or not isinstance(controls.get("cases"), list):
+            raise ValueError("Unsupported current scoring regression registry")
+        document["cases"].extend(controls["cases"])
     rows: dict[str, dict[str, Any]] = {}
     if document.get('control_revisions'):
         raise ValueError('Historical controls cannot override inputs or expected results; add new IDs')
@@ -60,8 +67,8 @@ def load_scoring_regressions(path: Path | None = None) -> dict[str, dict[str, An
 
 def active_scoring_regressions(path: Path | None = None) -> dict[str, dict[str, Any]]:
     """Run current policy controls while preserving immutable historical inputs."""
-    path = default_registry_path() if path is None else path
     rows = load_scoring_regressions(path)
+    path = default_registry_path() if path is None else path
     mapping = json.loads(path.read_text()).get("superseded_cases", {})
     if not isinstance(mapping, dict):
         raise ValueError("Scoring supersessions must map explicit control IDs")
@@ -102,8 +109,8 @@ def require_scoring_regressions(identifiers: list[str] | tuple[str, ...], *,
 
 def verdict_correction_counts(decisions: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> dict[str, int]:
     decisions = list(decisions)
-    if any(row.get("before") not in {True, False}
-           or row.get("after") not in {True, False}
+    if any(type(row.get("before")) is not bool
+           or type(row.get("after")) is not bool
            or row.get("before") == row.get("after") for row in decisions):
         raise ValueError("Scoring revision decision changes must be boolean verdict flips")
     return {
@@ -185,7 +192,7 @@ def check_scoring_regressions(identifiers):
     if {row['expected_task_pass'] for row in rows} != {False, True}:
         raise ValueError('Annotation controls require accepted and rejected scenarios')
     for row in rows:
-        kwargs = {key: row.get(key) for key in ('metadata', 'title', 'final_url')}
+        kwargs = {key: row.get(key) for key in ('metadata', 'title', 'final_url', 'list_reference')}
         try:
             metrics = score_attempt(row['case'], row['artifact'].encode(), ok=row['ok'], **kwargs)
         except ValueError as error:

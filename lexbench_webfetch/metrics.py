@@ -10,7 +10,7 @@ import unicodedata
 from collections import Counter, defaultdict
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urljoin, urlsplit, urlunsplit, unquote
+from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 
 
 METRIC_DEFINITIONS = {
@@ -68,7 +68,12 @@ def normalize_resource_url(value: str, base_url: str) -> str | None:
     # Query parameters and paths may select different resources. Equivalence
     # belongs to task-declared aliases or patterns, never to a known website.
     netloc = parsed.netloc.lower()
-    return urlunsplit((parsed.scheme.lower(), netloc, unquote(path), query, ""))
+    unreserved = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
+    path = re.sub(r'%[0-9a-fA-F]{2}',
+                  lambda match: (character if (character := chr(int(match[0][1:], 16)))
+                                 in unreserved else match[0].upper()), path)
+    path = quote(path, safe="/:@!$&'()*+,;=-._~%")
+    return urlunsplit((parsed.scheme.lower(), netloc, path, query, ""))
 
 
 def _metadata_resource_candidates(
@@ -247,7 +252,7 @@ def _inline_frame_candidates(
             )
         else:
             raw_candidates = [
-                (url, "content.frame_html_url")
+                (html.unescape(url), "content.frame_html_url")
                 for _, url in re.findall(
                     r"(?:src|href)\s*=\s*([\"'])(.*?)\1", document, re.I
                 )
@@ -280,20 +285,20 @@ def _native_json_resource_candidates(
     if not isinstance(payload, dict):
         return []
     candidates: list[tuple[str, str]] = []
-    html = payload.get("html") or payload.get("content")
-    if isinstance(html, str):
+    markup = payload.get("html") or payload.get("content")
+    if isinstance(markup, str):
         candidates.extend(
-            (match[1], "content.native_json_html_url")
+            (html.unescape(match[1]), "content.native_json_html_url")
             for match in re.findall(
-                r"(?:src|href)\s*=\s*([\"'])(.*?)\1", html, re.I
+                r"(?:src|href)\s*=\s*([\"'])(.*?)\1", markup, re.I
             )
         )
         candidates.extend(
             (url, "content.native_json_html_bare_url")
-            for url in re.findall(r"https?://[^\s<>'\")\]]+", html)
+            for url in re.findall(r"https?://[^\s<>'\")\]]+", markup)
         )
         candidates.extend(_inline_frame_candidates(
-            html, base_url=base_url, images_only=False,
+            markup, base_url=base_url, images_only=False,
         ))
     for key in ("resources", "links", "images", "videos", "media", "extras"):
         if key in payload:
@@ -380,7 +385,7 @@ def evaluate_resources(
                 from .reference_quality import markdown_link_destinations
                 candidates.extend((url, "content.bare_url") for url in
                                   re.findall(r"https?://[^\s<>'\")\]]+", content))
-                candidates.extend((match[1], "content.html_url") for match in
+                candidates.extend((html.unescape(match[1]), "content.html_url") for match in
                                   re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
                 candidates.extend((url, "content.markdown_link")
                                   for url in markdown_link_destinations(content))

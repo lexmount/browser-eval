@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 from urllib.request import urlopen
 from harness.benchmarks.data import unpack
+from harness.benchmarks.publication import DatasetRelease
 
 
 def validate_binding(root: Path, name: str = "lexbench-webfetch") -> str:
@@ -44,7 +45,13 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
     manifest = json.loads(raw_manifest)
     if manifest.get("schema") != "browser-eval-dataset-release/1" or manifest.get("track") != track:
         raise ValueError("Dataset release identity mismatch")
-    archive = manifest["archive"]
+    archive = manifest.get("archive")
+    if archive is None:
+        known = next((item for item in [before, *before.get("history", [])]
+                      if item["revision"] == revision), None)
+        if known is None:
+            raise ValueError("Historical release has no known immutable archive binding")
+        archive = known["archive"]
     if archive["path"] != "definitions.tar.gz" or not re.fullmatch(r"[0-9a-f]{64}", archive["sha256"]):
         raise ValueError("Invalid dataset archive binding")
     with urlopen(url + archive["path"], timeout=60) as response:
@@ -67,6 +74,11 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
     updates = {}
     with tempfile.TemporaryDirectory(prefix="browser-eval-dataset-pin-") as directory:
         unpack(raw, Path(directory), selected)
+        release = DatasetRelease(track, selected["source_revision"],
+                                 {name: (Path(directory) / name).read_bytes() for name in selected["files"]})
+        if release.datasets() != selected["datasets"]:
+            raise ValueError("Release manifest dataset bindings differ from its registry")
+        list(release.records())
         if import_path.exists():
             imported = refresh_binding(json.loads(import_path.read_bytes()), revision, Path(directory) / "definitions")
             imported["kind"] = "huggingface_benchmark_binding"

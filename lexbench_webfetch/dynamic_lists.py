@@ -907,6 +907,13 @@ def _deduplicated_named_candidates(items, contract, base_url, diagnostics):
     return candidates
 
 
+def _visible_candidate_content(content):
+    if (_has_scoped_html(content)
+            or re.search(r'<(?:template|details|script|style|head|title)\b', content, re.I)):
+        return str(scoped_html(content))
+    return content
+
+
 def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=None):
     """Orchestrate source parsers into one identity-keyed candidate mapping."""
     from .response_input import safe_named_links
@@ -924,6 +931,8 @@ def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=N
         links = (_owned_metadata_links(full_content, content, links, base_url)
                  if scope.get('start_pattern') and not _document_html(full_content)
                  else None)
+    else:
+        content = _visible_candidate_content(content)
     parser=Links();parser.feed(content)
     heading_items, heading_link_spans = _markdown_heading_card_items(
         content, contract, scope, base_url,
@@ -947,6 +956,8 @@ def extract_named_entries(content,contract,base_url,links=None,diagnostics=None)
 
 def extract_linked_products(content, contract, base_url, diagnostics=None):
     """Extract title/link/price triples from one owned product segment."""
+    from .reference_quality import without_markdown_images
+    base_url = contract.get('link_base_url', base_url)
     scope = contract.get('entry_scope')
     if scope and scope.get('price_selector') and _has_scoped_html(content):
         soup = scoped_html(content)
@@ -979,9 +990,11 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
         content, _, matched = _scope_named_content(content, scope)
         if not matched:
             return []
-    scannable = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", content)
+    else:
+        content = _visible_candidate_content(content)
+    scannable = without_markdown_images(content)
     link_pattern = re.compile(
-        r"\[([^\]\n]+)\]\((https?://[^\s)]+|/[^\s)]+)\)"
+        r"\[([^\]\n]+)\]\(([^\s)]+)\)"
         r"|<a\b[^>]*\bhref=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>",
         re.I | re.S,
     )

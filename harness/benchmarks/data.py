@@ -151,11 +151,15 @@ def main() -> None:
     tracks = json.loads(Path(__file__).with_name("data-lock.json").read_bytes())["datasets"]
     parser.add_argument("tracks", nargs="*", metavar="TRACK", help="Defaults to every registered dataset")
     args = parser.parse_args()
+    prepared = set()
     for track in args.tracks or tracks:
         if track not in tracks:
             parser.error("Unknown track: " + track)
-        snapshot(track)
-        print(track + ": " + binding(track)["revision"])
+        for source in dependencies(track):
+            if source not in prepared:
+                snapshot(source)
+                print(source + ": " + binding(source)["revision"])
+                prepared.add(source)
 
 
 if __name__ == "__main__":

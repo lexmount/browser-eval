@@ -92,18 +92,8 @@ class DatasetRelease:
             raise ValueError("Release output must be empty")
         files = dict(self.files)
         configurations = []
-        for identity, binding in self.datasets().items():
-            if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", identity):
-                raise ValueError("Unsafe dataset identity")
-            raw = self.files["definitions/" + binding["path"]]
-            if digest(raw) != binding["sha256"]:
-                raise ValueError("Dataset hash mismatch: " + identity)
-            cases = ([json.loads(line) for line in raw.splitlines() if line.strip()]
-                     if binding.get("format") == "jsonl" else json.loads(raw)["cases"])
+        for identity, binding, cases in self.records():
             identity_field = binding.get("id_field", "id")
-            ids = [case[identity_field] for case in cases]
-            if len(ids) != binding["count"] or len(set(ids)) != len(ids):
-                raise ValueError("Dataset population mismatch: " + identity)
             rows = [{
                 "id": case[identity_field], "input": case.get("query", case.get("url", "")),
                 "family": case.get("family", case.get("task_kind", "")),
@@ -126,6 +116,36 @@ class DatasetRelease:
             path = output / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(raw)
+        return self._finish(output, manifest, configurations)
+
+    def records(self):
+        datasets = self.datasets()
+        if not isinstance(datasets, dict) or not datasets:
+            raise ValueError("A release requires registered datasets")
+        for identity, binding in datasets.items():
+            if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", identity):
+                raise ValueError("Unsafe dataset identity")
+            name = "definitions/" + binding["path"]
+            if name not in self.files:
+                raise ValueError("Unknown dataset definition: " + identity)
+            raw = self.files[name]
+            if digest(raw) != binding["sha256"]:
+                raise ValueError("Dataset hash mismatch: " + identity)
+            if binding.get("format", "json") not in {"json", "jsonl"}:
+                raise ValueError("Unknown dataset format: " + identity)
+            cases = ([json.loads(line) for line in raw.splitlines() if line.strip()]
+                     if binding.get("format") == "jsonl" else json.loads(raw)["cases"])
+            identity_field = binding.get("id_field", "id")
+            if (not isinstance(cases, list) or not cases or any(
+                    not isinstance(case, dict) or not isinstance(case.get(identity_field), str)
+                    or not case[identity_field].strip() for case in cases)):
+                raise ValueError("Dataset records require nonempty string identities: " + identity)
+            ids = [case[identity_field] for case in cases]
+            if type(binding["count"]) is not int or len(ids) != binding["count"] or len(set(ids)) != len(ids):
+                raise ValueError("Dataset population mismatch: " + identity)
+            yield identity, binding, cases
+
+    def _finish(self, output: Path, manifest: dict, configurations: list[str]) -> dict:
         buffer = io.BytesIO()
         with gzip.GzipFile(fileobj=buffer, mode="wb", mtime=0, filename="") as compressed:
             with tarfile.open(fileobj=compressed, mode="w") as archive:

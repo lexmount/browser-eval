@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from lexbench_webfetch import cli
+from lexbench_webfetch import benchmark, cli
 
 
 @pytest.mark.parametrize("revision", [None, "review-test"])
@@ -30,7 +30,7 @@ def test_export_cli_reports_reference_verification(tmp_path, monkeypatch, capsys
         if revision:
             (target / "annotation-review.json").write_text(json.dumps(report))
         return target / "dataset.json"
-    monkeypatch.setattr(cli, "export", export)
+    monkeypatch.setattr(benchmark, "export", export)
     arguments = ["lexbench-webfetch", "export", "--suite", "test", "--source",
                  str(tmp_path), "--output", str(output)]
     if revision:

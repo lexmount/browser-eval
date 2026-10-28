@@ -322,6 +322,21 @@ def markdown_link_destinations(text: str) -> list[str]:
     return destinations
 
 
+def without_markdown_images(content):
+    """Remove image metadata, including images nested in ordinary links."""
+    pieces, cursor = [], 0
+    for link in markdown_links(content):
+        if link.start < cursor:
+            continue
+        pieces.append(content[cursor:link.start])
+        if not link.is_image:
+            original = content[link.start:link.end]
+            pieces.append(original.replace(link.label, without_markdown_images(link.label), 1))
+        cursor = link.end
+    pieces.append(content[cursor:])
+    return ''.join(pieces)
+
+
 def visible_markdown_links(text: str) -> str:
     """Keep labels and adjacent link boundaries, consuming balanced destinations.
 

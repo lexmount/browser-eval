@@ -5,12 +5,12 @@ import re
 
 import soupsieve
 
-from .article_text import (author_key, article_html, without_markdown_images, is_article_html,
+from .article_text import (author_key, article_html, is_article_html,
                            article_markdown, TIMESTAMP_LINE, mask_markdown_code, label_key,
                            validate_labels, declared_labels)
 from .body_coverage import tokens
 from .dynamic_lists import visible_html_text
-from .reference_quality import markdown_links, visible_markdown_links
+from .reference_quality import markdown_links, visible_markdown_links, without_markdown_images
 
 
 def validate_comment_contract(contract):

@@ -13,9 +13,9 @@ from .paths import contained_path, safe_identifier
 from .inputs import digest, load_manifest, verify_catalog
 from .annotation_revisions import apply_annotation_change
 
-from harness.benchmarks.data import snapshot
+from harness.benchmarks.data import binding as dataset_binding, cache_home, definition_path
 
-SUITES = snapshot("webfetch") / "definitions"
+SUITES = cache_home() / "webfetch" / dataset_binding("webfetch")["revision"] / "definitions"
 
 # Full reference bodies and source-capture/review payloads stay in frozen inputs.
 PUBLIC_TASK_FIELDS = (
@@ -90,6 +90,14 @@ def public_task(case: dict) -> dict:
 
 
 def read(path: Path) -> dict:
+    try:
+        relative = path.relative_to(cache_home() / "webfetch")
+    except ValueError:
+        pass
+    else:
+        if len(relative.parts) >= 3 and relative.parts[1] == "definitions":
+            path = definition_path("webfetch", Path(*relative.parts[2:]).as_posix(),
+                                   revision=relative.parts[0])
     return json.loads(path.read_text(encoding="utf-8"))
 
 

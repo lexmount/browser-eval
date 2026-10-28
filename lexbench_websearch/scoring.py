@@ -130,7 +130,7 @@ def evaluate(case, results, *, cutoff=10):
         "content_chars": sum(len(r.get("content") or "") for r in rows),
     }
     if "reference_answer" in case:
-        metrics.update(factual_evidence(case, results[:5]))
+        metrics.update(factual_evidence(case, rows[:5]))
     return metrics
 
 

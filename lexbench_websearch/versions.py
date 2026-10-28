@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from .inputs import DEFINITIONS, definition_path, digest, load_dataset, registry
+from .inputs import definition_path, digest, load_dataset, registry
 
 # Provider request fields. All remaining non-editorial task fields affect grading.
 _REQUEST_FIELDS = {
@@ -61,7 +61,7 @@ def _version(value):
 
 def scoring_source_sha256():
     """Bind scorer modules and their data; exclude release metadata itself."""
-    definition_path("registry.json")
+    from harness.benchmarks.data import binding
     package = Path(__file__).parent
     excluded = {"__init__.py", "cli.py", "versions.py"}
     sources = {
@@ -71,9 +71,10 @@ def scoring_source_sha256():
     }
     sources.update(
         {
-            "definitions/" + p.name: digest(p.read_bytes())
-            for p in sorted(DEFINITIONS.iterdir())
-            if p.suffix == ".txt" or p.name == "contamination-patterns.json"
+            name: item["sha256"]
+            for name, item in binding("websearch")["files"].items()
+            if Path(name).parent == Path("definitions")
+            and (Path(name).suffix == ".txt" or Path(name).name == "contamination-patterns.json")
         }
     )
     return _hash(sources)

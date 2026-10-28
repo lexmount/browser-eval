@@ -3,7 +3,8 @@ import re
 
 import soupsieve
 
-from .article_text import article_html, is_article_html, without_markdown_images, mask_markdown_code
+from .article_text import article_html, is_article_html, mask_markdown_code
+from .reference_quality import without_markdown_images
 from .metrics import normalize_for_match
 from .reference_quality import visible_mixed_html_text
 

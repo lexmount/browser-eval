@@ -2,7 +2,7 @@
 from datetime import date, datetime
 import re
 from .article_comments import validate_comment_contract, valid_comment_records
-from .article_posts import validate_post_contract, post_identity
+from .article_posts import validate_post_contract, post_identity, valid_post_author
 from .article_text import author_key
 from .body_coverage import body_requirements, compact_ngrams, tokens
 
@@ -148,7 +148,7 @@ def _post_evidence_status(reference, contract, case_id, url):
             return 'invalid'
         for row in records:
             key = post_identity(row['url'], contract, url)
-            if key in seen or not isinstance(row['author'], str) or not tokens(row['author']):
+            if key in seen or not valid_post_author(row['author'], contract):
                 return 'invalid'
             seen.add(key)
             parts = row['body_parts']
@@ -159,7 +159,7 @@ def _post_evidence_status(reference, contract, case_id, url):
                 if (part['kind'] not in {'post', 'quote'} or part['complete_initial_text'] is not True
                         or not isinstance(part['text'], str)):
                     return 'invalid'
-                if 'author' in part and (not isinstance(part['author'], str) or not tokens(part['author'])):
+                if 'author' in part and not valid_post_author(part['author'], contract):
                     return 'invalid'
                 if 'empty_outer_text' in part:
                     # This independent observation cannot excuse omitted prose or
@@ -167,7 +167,7 @@ def _post_evidence_status(reference, contract, case_id, url):
                     if (not contract.get('allow_empty_outer_with_quotes', False)
                             or part['empty_outer_text'] is not True or index != 0
                             or part['text'] != '' or 'source_line_ranges' in part or len(parts) < 2
-                            or any(not isinstance(p.get('author'), str) or not tokens(p['author'])
+                            or any(not valid_post_author(p.get('author'), contract)
                                    for p in parts[1:])):
                         return 'invalid'
                     continue

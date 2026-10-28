@@ -385,25 +385,36 @@ def parse_table_records(content, visible, contract):
             # has no rows and must not hide the actual Markdown table.
             root = None
     if root is not None:
+        from bs4 import Comment
+
+        def owned_text(node, table, *, own_text=False):
+            return ' '.join(str(part).strip() for part in node.find_all(string=True, recursive=not own_text)
+                            if not isinstance(part, Comment)
+                            and part.find_parent('table') is table and str(part).strip())
+
         if scope.get('exclude_selector'):
             for auxiliary in root.select(scope['exclude_selector']):
                 auxiliary.decompose()
         for row in root.select(scope['row_selector']):
+            table = row.find_parent('table')
             if all('selector' in c for c in columns):
                 fields = {}
                 for col in columns:
-                    nodes = [row] if col['selector'] == ':scope' else row.select(col['selector'])
+                    nodes = [row] if col['selector'] == ':scope' else [
+                        node for node in row.select(col['selector'])
+                        if node.find_parent('table') is table]
                     if len(nodes) != 1:
                         continue
                     node = nodes[0]
-                    fields[col['name']] = (' '.join(node.find_all(string=True, recursive=False)).strip()
-                                           if col.get('own_text') else node.get_text(' ', strip=True))
+                    fields[col['name']] = owned_text(node, table, own_text=col.get('own_text', False))
                 candidates.append(fields)
                 continue
-            cells = [row] if scope['cell_selector'] == ':scope' else row.select(scope['cell_selector'])
+            cells = [row] if scope['cell_selector'] == ':scope' else [
+                cell for cell in row.select(scope['cell_selector'])
+                if cell.find_parent('table') is table]
             # Cell boundaries are stronger than guessed text positions.
             if len(cells) == len(columns):
-                candidates.append(dict(zip(names, (c.get_text(' ', strip=True) for c in cells))))
+                candidates.append(dict(zip(names, (owned_text(c, table) for c in cells))))
         if not explicit_html and not candidates:
             root = None
     if root is None:

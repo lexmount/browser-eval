@@ -1,6 +1,7 @@
 """Frozen downloads remain usable offline and fail closed on corrupted inputs."""
 import hashlib
 import io
+import json
 import tarfile
 
 import pytest
@@ -121,3 +122,45 @@ def test_default_download_command_prepares_all_registered_datasets(monkeypatch):
     monkeypatch.setattr(data, "snapshot", lambda track: calls.append(track))
     data.main()
     assert calls == ["webfetch", "websearch", "simpleqa-verified", "webmainbench"]
+
+
+def test_preparing_search_also_prepares_its_factual_source(monkeypatch):
+    calls = []
+    monkeypatch.setattr("sys.argv", ["dataset-download", "websearch"])
+    monkeypatch.setattr(data, "snapshot", lambda track: calls.append(track))
+    data.main()
+    assert calls == ["websearch", "simpleqa-verified"]
+
+
+def test_search_preparation_is_sufficient_for_offline_factual_loading(tmp_path, monkeypatch):
+    from lexbench_websearch.inputs import load_dataset
+    raw_cases = b'{"id":"factual-v1","cases":[{"id":"question","query":"Find the answer"}]}'
+    spec = {'path': 'factual.json', 'count': 1, 'sha256': hashlib.sha256(raw_cases).hexdigest()}
+    registry = json.dumps({'datasets': {'factual-v1': spec}}).encode()
+    contents = {'websearch': {'definitions/registry.json': registry},
+                'simpleqa-verified': {'definitions/factual.json': raw_cases}}
+    bindings, payloads = {}, {}
+    for track, files in contents.items():
+        raw = archive([(name, content, 'file') for name, content in files.items()])
+        payloads[track] = raw
+        bindings[track] = {'repository': 'Lexmount/' + track, 'revision': 'a' * 40,
+                          'archive': {'path': 'definitions.tar.gz', 'size': len(raw),
+                                      'sha256': hashlib.sha256(raw).hexdigest()},
+                          'files': {name: {'size': len(content), 'sha256': hashlib.sha256(content).hexdigest()}
+                                    for name, content in files.items()}}
+    bindings['websearch']['dataset_sources'] = {'factual-v1': 'simpleqa-verified'}
+    monkeypatch.setattr(data, 'binding', lambda track, revision=None: bindings[track])
+    monkeypatch.setenv('BROWSER_EVAL_DATASET_CACHE', str(tmp_path / 'cache'))
+    monkeypatch.delenv('HF_HUB_OFFLINE', raising=False)
+    monkeypatch.setattr(data, 'urlopen', lambda url, timeout: io.BytesIO(
+        payloads['simpleqa-verified' if '/simpleqa-verified/' in url else 'websearch']))
+    monkeypatch.setattr('sys.argv', ['dataset-download', 'websearch'])
+    data._resolve.cache_clear()
+    try:
+        data.main()
+        monkeypatch.setenv('HF_HUB_OFFLINE', '1')
+        monkeypatch.setattr(data, 'urlopen', lambda *args, **kwargs: pytest.fail('Unexpected offline download'))
+        data._resolve.cache_clear()
+        assert load_dataset('factual-v1')['cases'][0]['id'] == 'question'
+    finally:
+        data._resolve.cache_clear()

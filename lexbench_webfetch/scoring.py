@@ -260,7 +260,7 @@ def score_attempt(
             and result["declared_truncation_hits"]
             and not exact_body_proven):
         result["content_pass"] = False
-        if contract := case.get("acceptance_contract"):
+        if contract := scoring_values.get("acceptance_contract"):
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
             if "declared_truncation" not in result["stable_task_errors"]:

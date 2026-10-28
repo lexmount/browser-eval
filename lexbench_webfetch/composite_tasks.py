@@ -13,11 +13,19 @@ import re
 
 import soupsieve
 import unicodedata
-from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
+from urllib.parse import parse_qsl, unquote, urljoin as _urljoin, urlsplit
 
 from .structured_tables import _pipe_cells, table_text_surface, validate_group_caption
 from .dynamic_lists import canonical_entry_path, _named_candidate, extract_named_entries
-from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links
+from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links, without_markdown_images
+
+
+def _link_url(base_url: str, destination: str) -> str:
+    """Malformed answer links invalidate one candidate, not the whole score."""
+    try:
+        return _urljoin(base_url, destination)
+    except ValueError:
+        return ""
 
 
 def _key(value: str) -> str:
@@ -215,12 +223,14 @@ def _validate_group(group: dict) -> None:
         fixed = group.get("fixed_values", {})
         if (
             minimum is not None
-            or not fields_are_valid(group.get("required_fields", []))
+            or not group.get("required_fields")
+            or not fields_are_valid(group["required_fields"])
             or not isinstance(fixed, dict)
             or any(
                 not isinstance(key, str) or not key or not isinstance(value, str) or not value
                 for key, value in fixed.items()
             )
+            or not set(fixed) <= {field["id"] for field in group["required_fields"]}
         ):
             raise ValueError("Invalid composite field report")
         return
@@ -360,7 +370,11 @@ def _markdown_contexts(content: str) -> list[tuple[object, str]]:
 
 
 def _link_identity(url: str, group: dict) -> str | None:
-    parts = urlsplit(url)
+    try:
+        parts = urlsplit(url)
+        _ = parts.port
+    except ValueError:
+        return None
     if (
         parts.scheme not in {"http", "https"}
         or not parts.hostname
@@ -397,7 +411,7 @@ def _html_table_record_contexts(content: str, group: dict, base_url: str, allowe
     """
     from .dynamic_lists import scoped_html, visible_html_text
     soup = scoped_html(content)
-    contexts, table_ids = {}, set()
+    candidates = []
     for row in soup.select('tr'):
         owners = []
         for cell in row.select('td,th'):
@@ -407,16 +421,31 @@ def _html_table_record_contexts(content: str, group: dict, base_url: str, allowe
             for link in cell.select('a[href]'):
                 if link.find_parent(['td', 'th']) is not cell:
                     continue
-                identity = _link_identity(urljoin(base_url, link['href']), group)
-                if identity in allowed:
-                    table_ids.add(identity)
-                    if identity not in identities:
-                        identities.append(identity)
+                identity = _link_identity(_link_url(base_url, link['href']), group)
+                if identity is not None and identity not in identities:
+                    identities.append(identity)
             if identities:
                 owners.append((cell, identities[0]))
         for cell, identity in owners:
-            owner = row if len(owners) == 1 else cell
-            context = visible_html_text(str(owner), preserve_links=True)
+            if identity in allowed:
+                owner = row if len(owners) == 1 else cell
+                candidates.append((cell, identity, visible_html_text(str(owner), preserve_links=True)))
+    # Trace occurrences through the same section/column projection as the
+    # named records. An allowed destination elsewhere on the page cannot lend
+    # fields to an incomplete occurrence inside the selected section.
+    marker = '\ufdd1table-cell-'
+    while marker in content:
+        marker += '_'
+    for index, (cell, _, _) in enumerate(candidates):
+        tag = soup.new_tag('p')
+        tag.string = marker + str(index) + '-end'
+        cell.append(tag)
+    projected, _ = _html_field_surface(str(soup), group, base_url)
+    selected = _scope(projected, group)
+    contexts, table_ids = {}, set()
+    for index, (_, identity, context) in enumerate(candidates):
+        if marker + str(index) + '-end' in selected:
+            table_ids.add(identity)
             contexts.setdefault(identity, []).append(context)
     return table_ids, contexts
 
@@ -448,7 +477,7 @@ def _card_section_context(content: str, begin: int, end: int, title_start: int,
             peer_item = re.match(r"([ \t]*)(?:[-+*]|\d+[.)])[ \t]+", line)
             owned_item = peer_item and any(
                 absolute <= link.start < absolute + len(line)
-                and _link_identity(urljoin(group.get("link_base_url", base_url), link.destination), group) == identity
+                and _link_identity(_link_url(group.get("link_base_url", base_url), link.destination), group) == identity
                 for link in links if not link.is_image)
             peer_indent = len(peer_item[1].expandtabs(4)) if peer_item else None
             peer_boundary = (peer_item and (
@@ -474,7 +503,7 @@ def _card_section_context(content: str, begin: int, end: int, title_start: int,
                 return context[:offset]
             owned_heading = heading and any(
                 absolute <= link.start < absolute + len(line)
-                and _link_identity(urljoin(group.get("link_base_url", base_url), link.destination), group) == identity
+                and _link_identity(_link_url(group.get("link_base_url", base_url), link.destination), group) == identity
                 for link in links if not link.is_image)
             if owned_heading:
                 level = min(level, len(heading[1]))
@@ -497,7 +526,7 @@ def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, 
     def target_identities(node):
         if id(node) not in identity_cache:
             identity_cache[id(node)] = {
-                _link_identity(urljoin(group.get('link_base_url', base_url), anchor['href']), group)
+                _link_identity(_link_url(group.get('link_base_url', base_url), anchor['href']), group)
                 for anchor in node.find_all('a', href=True)} - {None}
         return identity_cache[id(node)]
 
@@ -599,7 +628,7 @@ def _unlabeled_text_table_context(context: str, identity: str, group: dict,
         cells = _pipe_cells(context)
         owners = [index for index, value in enumerate(cells) if any(
             not link.is_image and _link_identity(
-                urljoin(group.get('link_base_url', base_url), link.destination), group
+                _link_url(group.get('link_base_url', base_url), link.destination), group
             ) == identity for link in markdown_links(value))]
         if len(owners) != 1:
             return ''
@@ -613,7 +642,7 @@ def _unlabeled_text_table_context(context: str, identity: str, group: dict,
                       '', cell, flags=re.I)
     for link in markdown_links(cell):
         if (not link.is_image
-                and _link_identity(urljoin(base_url, link.destination), group) == identity
+                and _link_identity(_link_url(base_url, link.destination), group) == identity
                 and re.fullmatch(r'[*_\s]*[,;\s]*(?:and\s+)?\d+\s+more[.!]?[*_\s]*',
                                  cell[link.end:], re.I)):
             return cell[:link.end]
@@ -640,9 +669,9 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
     if "*" in group["hosts"]:
         entries = []
         for link, _ in _markdown_contexts(content):
-            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            destination = _link_url(group.get("link_base_url", base_url), link.destination)
             if _link_identity(destination, group) is not None and not link.is_image:
-                label = visible_markdown_links(link.label).strip()
+                label = visible_markdown_links(without_markdown_images(link.label)).strip()
                 if label:
                     entries.append({"url": destination, "title": label})
     else:
@@ -660,7 +689,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                 prior = previous_targets[link.start]
                 if prior and prior[1] > line_start:
                     return True
-                same_target = bool(prior and prior[0] == _link_identity(urljoin(base_url, link.destination), group))
+                same_target = bool(prior and prior[0] == _link_identity(_link_url(base_url, link.destination), group))
                 return (same_target or serialized_link_card_fields(link) is not None or not prefix or _DATE_OR_TIME.fullmatch(prefix) is not None
                         or re.fullmatch(r"[\s#>*+\-\d.)|/:•·●▪◦,，、;；]*", prefix) is not None)
             line_start = content.rfind("\n", 0, link.start) + 1
@@ -687,13 +716,13 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         previous_target = None
         for source_link in source_links:
             previous_targets[source_link.start] = previous_target
-            source_destination = urljoin(group.get("link_base_url", base_url), source_link.destination)
+            source_destination = _link_url(group.get("link_base_url", base_url), source_link.destination)
             source_identity = _link_identity(source_destination, group)
             if source_identity is not None and not source_link.is_image:
                 previous_target = (source_identity, source_link.end)
 
         def previous_scalar(link):
-            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            destination = _link_url(group.get("link_base_url", base_url), link.destination)
             if link.label.strip() not in {link.destination, destination}:
                 return None
             start = content.rfind("\n", 0, link.start) + 1
@@ -753,7 +782,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         # typed fields. Adjacent status text need not satisfy ordinary list
         # prefix rules, but the title must still be real visible link text.
         for link in markdown_links(content):
-            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            destination = _link_url(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
             if identity is None or link.is_image or not is_record_start(link):
                 continue
@@ -770,7 +799,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
 
         preferred_titles = {}
         for link in markdown_links(content):
-            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            destination = _link_url(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
             if identity not in allowed_rows or link.is_image or not is_record_start(link):
                 continue
@@ -786,7 +815,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                 preferred_titles.setdefault((identity, owner_for(link.start)), label)
         candidates = []
         for link in markdown_links(content):
-            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            destination = _link_url(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
             if (identity is None or link.is_image
                     or (group.get('record_line_pattern') and not is_record_start(link))):
@@ -811,7 +840,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                 prior_start = content.rfind("\n", 0, preceding - 1) + 1
                 prior_line = content[prior_start:preceding].strip()
                 if markdown_links(prior_line) and _DATE_OR_TIME.fullmatch(visible_markdown_links(prior_line).strip()) and all(
-                        _link_identity(urljoin(base_url, prior.destination), group) == identity
+                        _link_identity(_link_url(base_url, prior.destination), group) == identity
                         and not visible_markdown_links(prior.label).strip()
                         for prior in markdown_links(prior_line)):
                     start = prior_start
@@ -1395,7 +1424,7 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                         for spec in required
                     ):
                         link = candidates[0]
-                        destination = urljoin(
+                        destination = _link_url(
                             group.get("link_base_url", base_url), link.destination
                         )
                         identity = _link_identity(destination, group)
@@ -1403,12 +1432,11 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                         if identity is not None and label:
                             records[identity] = {"url": destination, "title": label, "fields": row}
                 row_index += 1
-            break
     if not records:
         links = [link for link in markdown_links(content) if not link.is_image]
         entry_links = []
         for link in links:
-            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            destination = _link_url(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
             if identity is not None:
                 entry_links.append((identity, destination, link))

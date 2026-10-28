@@ -162,12 +162,12 @@ def freeze_release(dataset_path: Path, output: Path, **options) -> dict:
 
 def catalog_release(path: Path | None = None, *, require_current_scorer: bool = True) -> dict:
     """Read the published catalog edition and verify its complete suite bindings."""
-    from .benchmark import SUITES, registry, validate
+    from .benchmark import SUITES, read, registry, validate
 
     selected = path if path is not None else SUITES / "benchmark-release.json"
     if selected.is_symlink():
         raise ValueError("Catalog release rejects symlinks")
-    release = json.loads(selected.read_text())
+    release = read(selected)
     if release.get("schema_version") != 1 or release.get("kind") != "benchmark_catalog_release":
         raise ValueError("Unsupported benchmark catalog release")
     _version(release.get("version"))

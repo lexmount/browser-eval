@@ -1,0 +1,2360 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "article-image-only-post",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Markdown image alt labels supplied post or quote prose despite being image metadata.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [Alice](https://example.test/post/1)\n\n![Some description](image.png)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-linked-image-only-post",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Markdown image alt labels supplied post or quote prose despite being image metadata.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [Alice](https://example.test/post/1)\n\n[![Some description](image.png)](https://example.test/photo)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-image-and-post-prose",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Markdown image alt labels supplied post or quote prose despite being image metadata.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [Alice](https://example.test/post/1)\n\n![Some description](image.png)\n\nVisible post prose.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-image-only-quote",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Markdown image alt labels supplied post or quote prose despite being image metadata.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [Alice](https://example.test/post/1)\n\n> Bob\n> ![Some description](image.png)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-image-and-quote-prose",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Markdown image alt labels supplied post or quote prose despite being image metadata.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [Alice](https://example.test/post/1)\n\n> Bob\n> ![Some description](image.png)\n> Visible quoted prose.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-linked-post-prose",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Markdown image alt labels supplied post or quote prose despite being image metadata.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## [Alice](https://example.test/post/1)\n\n[Visible post prose](https://example.test/article)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-html-comment-hidden-post",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "HTML comments were rendered as visible strings and created fallback article records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><div><!--\n## [Alice](https://example.test/post/1)\n\nVisible body.\n--></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-visible-post",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "HTML comments were rendered as visible strings and created fallback article records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><div>\n## [Alice](https://example.test/post/1)\n\nVisible body.\n</div>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-html-comment-hidden-comment",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "HTML comments were rendered as visible strings and created fallback article records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><div><!--\n## Comments\n### Alice\nVisible reply.\n--></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-visible-comment",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "HTML comments were rendered as visible strings and created fallback article records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><div>\n## Comments\n### Alice\nVisible reply.\n</div>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration-attached-field-label-complete",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "Recognized serialized field labels must restore their own text boundary without admitting longer names.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "entry-1-quote",
+            "alternatives": [
+              "Hello"
+            ]
+          },
+          {
+            "id": "entry-1-author",
+            "alternatives": [
+              "Albert"
+            ]
+          },
+          {
+            "id": "entry-1-tags",
+            "alternatives": [
+              "science"
+            ]
+          }
+        ],
+        "ground_truth_main_content": "Hello by Albert Tags: science"
+      },
+      "artifact": "Hello byAlbert Tags: science",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration-attached-field-label-incomplete",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Recognized serialized field labels must restore their own text boundary without admitting longer names.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "entry-1-quote",
+            "alternatives": [
+              "Hello"
+            ]
+          },
+          {
+            "id": "entry-1-author",
+            "alternatives": [
+              "Albert"
+            ]
+          },
+          {
+            "id": "entry-1-tags",
+            "alternatives": [
+              "science"
+            ]
+          }
+        ],
+        "ground_truth_main_content": "Hello by Albert Tags: science"
+      },
+      "artifact": "Hello byAlberton Tags: science",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration-visible-record-complete",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Unscoped HTML record extraction must exclude explicitly hidden records just as scoped extraction does.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<a href=\"/item/1\">First item</a>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration-visible-record-incomplete",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Unscoped HTML record extraction must exclude explicitly hidden records just as scoped extraction does.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div hidden><a href=\"/item/1\">First item</a></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration-visible-product-name-complete",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "A linked product needs an actual visible title; image alternative metadata cannot supply its name.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[![Thumbnail](image.jpg) Widget](/product/1) $10.00",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration-visible-product-name-incomplete",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A linked product needs an actual visible title; image alternative metadata cannot supply its name.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[![Widget](image.jpg)](/product/1) $10.00",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration-product-link-base-complete",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Markdown product destinations must resolve against the declared link base without expanding allowed hosts.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://redirect.example/start",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "link_base_url": "https://shop.example/catalog/"
+        }
+      },
+      "artifact": "[Widget](/product/1) $10.00",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration-product-link-base-incomplete",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Markdown product destinations must resolve against the declared link base without expanding allowed hosts.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://redirect.example/start",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "link_base_url": "https://shop.example/catalog/"
+        }
+      },
+      "artifact": "[Widget](https://other.example/product/1) $10.00",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration-verified-query-identity-complete",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Declared query identity must be preserved in record counts and independent reference lookups.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item",
+          "identity_query_keys": [
+            "id"
+          ],
+          "minimum_entries": 2,
+          "verification_scope": "first_three_name_detail_pairs"
+        }
+      },
+      "artifact": "[Same name](/item?id=1)\n[Same name](/item?id=2)",
+      "ok": true,
+      "expected_task_pass": true,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://shop.example/item?id=1",
+            "title": "Same name"
+          },
+          {
+            "url": "https://shop.example/item?id=2",
+            "title": "Same name"
+          }
+        ]
+      }
+    },
+    {
+      "id": "migration-verified-query-identity-incomplete",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Declared query identity must be preserved in record counts and independent reference lookups.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item",
+          "identity_query_keys": [
+            "id"
+          ],
+          "minimum_entries": 2,
+          "verification_scope": "first_three_name_detail_pairs"
+        }
+      },
+      "artifact": "[Same name](/item?id=1)\n[Same name](/item?id=3)",
+      "ok": true,
+      "expected_task_pass": false,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://shop.example/item?id=1",
+            "title": "Same name"
+          },
+          {
+            "url": "https://shop.example/item?id=2",
+            "title": "Same name"
+          }
+        ]
+      }
+    },
+    {
+      "id": "migration-reserved-resource-path-complete",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "Encoded reserved URL separators identify distinct resources; only unreserved octets may be decoded.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://example.test/page",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "download",
+            "urls": [
+              "https://example.test/a%2Fb.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/a%2fb.png",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration-reserved-resource-path-incomplete",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Encoded reserved URL separators identify distinct resources; only unreserved octets may be decoded.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://example.test/page",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "download",
+            "urls": [
+              "https://example.test/a%2Fb.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/a/b.png",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration-resource-html-entities-complete",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "HTML attribute character references must be decoded once while bare returned URLs retain literal bytes.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://example.test/page",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "download",
+            "urls": [
+              "https://example.test/download?a=1&b=2"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"https://example.test/download?a=1&amp;b=2\">Download</a>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration-resource-html-entities-incomplete",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "HTML attribute character references must be decoded once while bare returned URLs retain literal bytes.",
+      "case": {
+        "id": "review-entry",
+        "name": "Visible record",
+        "url": "https://example.test/page",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "download",
+            "urls": [
+              "https://example.test/download?a=1&b=2"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/download?a=1&amp;b=2",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "contract-False-truncation-False",
+      "failure_mode": "false-negative",
+      "category": "task-predicate",
+      "root_cause": "Truncation reactivated the original unresolved acceptance contract after it had been excluded from scoring.",
+      "case": {
+        "url": "https://example.org",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.org"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[A visible item](/item/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "contract-False-truncation-True",
+      "failure_mode": "false-positive",
+      "category": "task-predicate",
+      "root_cause": "Truncation reactivated the original unresolved acceptance contract after it had been excluded from scoring.",
+      "case": {
+        "url": "https://example.org",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.org"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[A visible item](/item/1)\n[Content truncated: showing 1 of 10 lines]",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "contract-True-truncation-False",
+      "failure_mode": "false-positive",
+      "category": "task-predicate",
+      "root_cause": "Truncation reactivated the original unresolved acceptance contract after it had been excluded from scoring.",
+      "case": {
+        "url": "https://example.org",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.org"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        },
+        "rule_review": {
+          "status": "unresolved",
+          "reason": "Reference requires qualification"
+        }
+      },
+      "artifact": "[A visible item](/item/1)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": false
+    },
+    {
+      "id": "contract-True-truncation-True",
+      "failure_mode": "false-positive",
+      "category": "task-predicate",
+      "root_cause": "Truncation reactivated the original unresolved acceptance contract after it had been excluded from scoring.",
+      "case": {
+        "url": "https://example.org",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.org"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        },
+        "rule_review": {
+          "status": "unresolved",
+          "reason": "Reference requires qualification"
+        }
+      },
+      "artifact": "[A visible item](/item/1)\n[Content truncated: showing 1 of 10 lines]",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": false
+    },
+    {
+      "id": "composite-field-report-omitted",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "Field reports must declare at least one field before evaluation indexes their required field list.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "report",
+              "kind": "field_report"
+            }
+          ]
+        }
+      },
+      "artifact": "Total: 12",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "field report"
+    },
+    {
+      "id": "composite-field-report-empty",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "Field reports must declare at least one field before evaluation indexes their required field list.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "report",
+              "kind": "field_report",
+              "required_fields": []
+            }
+          ]
+        }
+      },
+      "artifact": "Total: 12",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "field report"
+    },
+    {
+      "id": "composite-field-report-labeled-value",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "Field reports must declare at least one field before evaluation indexes their required field list.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "report",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "total",
+                  "kind": "integer",
+                  "aliases": [
+                    "Total"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Total: 12",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-field-report-missing-value",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "Field reports must declare at least one field before evaluation indexes their required field list.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "report",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "total",
+                  "kind": "integer",
+                  "aliases": [
+                    "Total"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Total: unknown",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-malformed-url-table",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A malformed returned URL must reject its candidate without aborting scoring or hiding valid sibling records.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ],
+              "identity_column": "name",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Owner|\n|---|---|\n|[Item](https://[invalid/item)|Alice|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-malformed-url-sibling-table",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "A malformed returned URL must reject its candidate without aborting scoring or hiding valid sibling records.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ],
+              "identity_column": "name",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Owner|\n|---|---|\n|[Item](https://[invalid/item)|Alice|\n\n|Name|Owner|\n|---|---|\n|[Item](/item/2)|Alice|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-malformed-url-linearized",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A malformed returned URL must reject its candidate without aborting scoring or hiding valid sibling records.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ],
+              "identity_column": "name",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "Name\nOwner\n[Item](https://[invalid/item)\n[Alice](/people/alice)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-malformed-url-sibling-linearized",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "A malformed returned URL must reject its candidate without aborting scoring or hiding valid sibling records.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ],
+              "identity_column": "name",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "Name\nOwner\n[Item](https://[invalid/item)\n[Alice](/people/alice)\n\nName\nOwner\n[Item](/item/2)\n[Alice](/people/alice)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-malformed-url-wildcard",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A malformed returned URL must reject its candidate without aborting scoring or hiding valid sibling records.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Item](https://[invalid/item)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-malformed-url-sibling-wildcard",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "A malformed returned URL must reject its candidate without aborting scoring or hiding valid sibling records.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Item](https://[invalid/item)\n\n[Item](/item/2)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-image-label-wildcard",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Image alt metadata must not become a visible named-record title when only the allowed-host policy changes.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[![Photo](/photo.png)](https://example.test/item/1)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-visible-label-wildcard",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Image alt metadata must not become a visible named-record title when only the allowed-host policy changes.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Visible name ![Photo](/photo.png)](https://example.test/item/1)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-image-label-fixed",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Image alt metadata must not become a visible named-record title when only the allowed-host policy changes.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[![Photo](/photo.png)](https://example.test/item/1)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-visible-label-fixed",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Image alt metadata must not become a visible named-record title when only the allowed-host policy changes.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Visible name ![Photo](/photo.png)](https://example.test/item/1)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-native-section-after-complete",
+      "failure_mode": "false-negative",
+      "category": "body-scope",
+      "root_cause": "Native table fields must belong to an occurrence inside the selected section, not another row with the same destination.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "start_pattern": "^# Selected$",
+              "end_pattern": "^# End$",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main><h1>Selected</h1><table><tr><td><a href=\"/item/1\">Item</a></td><td>$34</td></tr></table><h1>End</h1><table><tr><td><a href=\"/item/1\">Item</a></td><td>$12</td></tr></table></main>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-native-section-after-missing",
+      "failure_mode": "false-positive",
+      "category": "body-scope",
+      "root_cause": "Native table fields must belong to an occurrence inside the selected section, not another row with the same destination.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "start_pattern": "^# Selected$",
+              "end_pattern": "^# End$",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main><h1>Selected</h1><table><tr><td><a href=\"/item/1\">Item</a></td><td></td></tr></table><h1>End</h1><table><tr><td><a href=\"/item/1\">Item</a></td><td>$12</td></tr></table></main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-native-section-before-complete",
+      "failure_mode": "false-negative",
+      "category": "body-scope",
+      "root_cause": "Native table fields must belong to an occurrence inside the selected section, not another row with the same destination.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "start_pattern": "^# Selected$",
+              "end_pattern": "^# End$",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main><table><tr><td><a href=\"/item/1\">Item</a></td><td>$12</td></tr></table><h1>Selected</h1><table><tr><td><a href=\"/item/1\">Item</a></td><td>$34</td></tr></table><h1>End</h1></main>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-native-section-before-missing",
+      "failure_mode": "false-positive",
+      "category": "body-scope",
+      "root_cause": "Native table fields must belong to an occurrence inside the selected section, not another row with the same destination.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "start_pattern": "^# Selected$",
+              "end_pattern": "^# End$",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main><table><tr><td><a href=\"/item/1\">Item</a></td><td>$12</td></tr></table><h1>Selected</h1><table><tr><td><a href=\"/item/1\">Item</a></td><td></td></tr></table><h1>End</h1></main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-multiple-tables-distinct",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "A declared section may contain multiple tables; record counts must aggregate and deduplicate their valid destinations.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ],
+              "identity_column": "name",
+              "link_column": "name",
+              "start_pattern": "^# Selected$",
+              "end_pattern": "^# End$"
+            }
+          ]
+        }
+      },
+      "artifact": "# Selected\n|Name|Owner|\n|---|---|\n|[Item 1](/item/1)|Alice|\n\n## More\n|Name|Owner|\n|---|---|\n|[Item 2](/item/2)|Alice|\n# End",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-multiple-tables-duplicate",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A declared section may contain multiple tables; record counts must aggregate and deduplicate their valid destinations.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ],
+              "identity_column": "name",
+              "link_column": "name",
+              "start_pattern": "^# Selected$",
+              "end_pattern": "^# End$"
+            }
+          ]
+        }
+      },
+      "artifact": "# Selected\n|Name|Owner|\n|---|---|\n|[Item 1](/item/1)|Alice|\n\n## More\n|Name|Owner|\n|---|---|\n|[Item 1](/item/1)|Alice|\n# End",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-multiple-tables-incomplete",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A declared section may contain multiple tables; record counts must aggregate and deduplicate their valid destinations.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ],
+              "identity_column": "name",
+              "link_column": "name",
+              "start_pattern": "^# Selected$",
+              "end_pattern": "^# End$"
+            }
+          ]
+        }
+      },
+      "artifact": "# Selected\n|Name|Owner|\n|---|---|\n|[Item 1](/item/1)|Alice|\n\n## More\n|Name|Owner|\n|---|---|\n|[Item 2](/item/2)||\n# End",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "table-nested-field-cells-own",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Outer table fields must retain their own text without importing or being corrupted by text owned by a nested table.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "#outer > tbody > tr",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)",
+            "reference_kind": "fixed_demo",
+            "reference_rows": [
+              {
+                "name": "Alpha",
+                "count": "12"
+              }
+            ]
+          }
+        }
+      },
+      "artifact": "<table id=\"outer\"><tbody><tr><td>Alpha<table><tr><td>Unrelated</td></tr></table></td><td>12</td></tr></tbody></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "table-nested-field-cells-borrowed",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Outer table fields must retain their own text without importing or being corrupted by text owned by a nested table.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "#outer > tbody > tr",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)",
+            "reference_kind": "fixed_demo",
+            "reference_rows": [
+              {
+                "name": "Alpha",
+                "count": "12"
+              }
+            ]
+          }
+        }
+      },
+      "artifact": "<table id=\"outer\"><tbody><tr><td><table><tr><td>Alpha</td></tr></table></td><td>12</td></tr></tbody></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "table-nested-field-selectors-own",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Outer table fields must retain their own text without importing or being corrupted by text owned by a nested table.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text",
+              "selector": ":scope > td:nth-of-type(1)"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer",
+              "selector": ":scope > td:nth-of-type(2)"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "#outer > tbody > tr",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)",
+            "reference_kind": "fixed_demo",
+            "reference_rows": [
+              {
+                "name": "Alpha",
+                "count": "12"
+              }
+            ]
+          }
+        }
+      },
+      "artifact": "<table id=\"outer\"><tbody><tr><td>Alpha<table><tr><td>Unrelated</td></tr></table></td><td>12</td></tr></tbody></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "table-nested-field-selectors-borrowed",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Outer table fields must retain their own text without importing or being corrupted by text owned by a nested table.",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "Name",
+              "type": "text",
+              "selector": ":scope > td:nth-of-type(1)"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "integer",
+              "selector": ":scope > td:nth-of-type(2)"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "#outer > tbody > tr",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Name$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<name>[A-Za-z]+) (?P<count>\\d+)",
+            "reference_kind": "fixed_demo",
+            "reference_rows": [
+              {
+                "name": "Alpha",
+                "count": "12"
+              }
+            ]
+          }
+        }
+      },
+      "artifact": "<table id=\"outer\"><tbody><tr><td><table><tr><td>Alpha</td></tr></table></td><td>12</td></tr></tbody></table>",
+      "ok": true,
+      "expected_task_pass": false
+    }
+  ]
+}

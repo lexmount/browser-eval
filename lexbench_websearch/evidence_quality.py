@@ -31,7 +31,8 @@ def is_benchmark_page(result, *, case=None, rule=CONTAMINATION_RULE):
     ):
         raise ValueError("Unsupported factual contamination rule")
     identity = result.get("url", "") + " " + result.get("title", "")
-    patterns = (case or {}).get("contamination_patterns", default_patterns())
+    patterns = (case["contamination_patterns"]
+                if case is not None and "contamination_patterns" in case else default_patterns())
     if any(
         re.search(pattern, identity, re.IGNORECASE)
         for pattern in patterns["identity_patterns"]
