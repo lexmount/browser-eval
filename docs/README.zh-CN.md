@@ -56,7 +56,7 @@ uv run --frozen browser-harness-eval run --delay 0
 
 ## 报告
 
-创建和分享报告，请打开 Artifact Site（[.cn](https://yours.lexmount.cn/artifact-site) · [.com](https://yours.lexmount.com/artifact-site)），安装网站提供的 skill，按引导创建、发布报告，并设置分享权限。
+创建和分享报告，请打开 Artifact Site（[中国大陆 .cn](https://yours.lexmount.cn/artifact-site) · [全球 .com](https://yours.lexmount.com/artifact-site)），安装网站提供的 skill，按引导创建、发布报告，并设置分享权限。
 
 报告包含结果对比、逐题结果、完整响应和失败证据。运行结果默认保存在 `~/.browser-eval/runs/`，也可用 `--output /absolute/path/new-run` 指定新目录。
 
@@ -84,7 +84,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | 搜索问题、来源参考和检索评分 |
 | [Moli](https://github.com/lexmount/moli) | 与其他参与者按相同任务规则评测的浏览器 |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | Lexmount WebFetch 服务的命令行客户端 |
-| Artifact Site（[.cn](https://yours.lexmount.cn/artifact-site) · [.com](https://yours.lexmount.com/artifact-site)） | 报告创建、分享和权限控制 |
+| Artifact Site（[中国大陆 .cn](https://yours.lexmount.cn/artifact-site) · [全球 .com](https://yours.lexmount.com/artifact-site)） | 报告创建、分享和权限控制 |
 | [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 自建轨迹的场景设计来源；另有独立的协议、自动化驱动和 Web 平台评测 |
 | [WebMainBench 分支](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 冻结 HTML 提取任务与有记录的评分修正 |
 | [WebArena-Verified 分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) | Browser Use 和 WebArena 轨迹重放的题目与评测器 |
