@@ -595,11 +595,29 @@ def normalize_native_markdown_layout(text):
     return ''.join(lines)
 
 
+def _markdown_html_block_spans(text, *, excluded_spans=()):
+    """Backticks owned by native block elements are ordinary HTML text."""
+    elements = "|".join(sorted(HTML_BLOCK_ELEMENTS | {'html', 'body'}))
+    starts = [match.start('tag') for match in re.finditer(
+        rf'(?im)^ {{0,3}}(?P<tag><(?:{elements})(?=[\s/>]))', text)
+        if not any(left <= match.start('tag') < right for left, right in excluded_spans)]
+    if not starts:
+        return []
+    from bs4.builder import HTMLTreeBuilder
+    from .dynamic_lists import _HTMLRanges
+
+    parser = _HTMLRanges(text, HTMLTreeBuilder.DEFAULT_EMPTY_ELEMENT_TAGS)
+    parser.feed(text)
+    parser.close()
+    return [(start, parser.ranges[start]) for start in starts if start in parser.ranges]
+
+
 def markdown_literal_spans(text: str) -> list[tuple[int, int]]:
     """Locate block and inline literals before interpreting Markdown syntax."""
     spans = _markdown_fenced_code_spans(text)
     spans += markdown_indented_code_spans(text, excluded_spans=spans)
-    return sorted(spans + markdown_inline_code_spans(text, excluded_spans=spans))
+    html_blocks = _markdown_html_block_spans(text, excluded_spans=spans)
+    return sorted(spans + markdown_inline_code_spans(text, excluded_spans=spans + html_blocks))
 
 
 def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str:

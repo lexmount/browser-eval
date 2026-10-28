@@ -1367,11 +1367,14 @@ def _owned_labeled_values(
     return []
 
 
-def _line_starts_declared_label(line: str, aliases: list[str], *, representation=None) -> bool:
+def _empty_declared_label(line: str, aliases: list[str]) -> bool:
     names = "|".join(re.escape(alias) for alias in aliases)
-    empty_label = bool(aliases) and bool(re.fullmatch(
+    return bool(aliases) and bool(re.fullmatch(
         rf"\s*(?:{names})(?:\s*\([^)]*\))?\s*[:：|–—-]?\s*", line, re.I))
-    return empty_label or bool(_owned_labeled_values(line, aliases, representation=representation))
+
+
+def _line_starts_declared_label(line: str, aliases: list[str], *, representation=None) -> bool:
+    return _empty_declared_label(line, aliases) or bool(_owned_labeled_values(line, aliases, representation=representation))
 
 
 def _field_values(
@@ -1397,7 +1400,7 @@ def _field_values(
                 for alias, value, start, end in _owned_labeled_values(line, declared, representation=representation)
                 if _key(alias) in spec_alias_keys
             )
-            if _key(line) in spec_alias_keys:
+            if _key(line) in spec_alias_keys or _empty_declared_label(line, aliases):
                 if index + 1 < len(lines) and (not used or index + 1 not in used):
                     next_line = lines[index + 1].strip()
                     if next_line and not _line_starts_declared_label(next_line, declared, representation=representation):
@@ -1961,13 +1964,15 @@ def evaluate_composite_acceptance(
                 source_representation = 'markdown'
         elif group['kind'] in {'field_report', 'literals'} and source_representation != 'plain_text':
             from .reference_quality import visible_mixed_html_text
-            source = visible_mixed_html_text(source)
+            from .dynamic_lists import visible_html_text
+            source = visible_html_text(source) if source_representation == 'html' else visible_mixed_html_text(source)
         native_description = None
         if group['kind'] == 'name_description' and source_representation != 'plain_text':
             native_description = _native_description_scope(source, group, representation=source_representation)
             if native_description is None:
                 from .reference_quality import visible_mixed_html_text
-                source = visible_mixed_html_text(source)
+                from .dynamic_lists import visible_html_text
+                source = visible_html_text(source) if source_representation == 'html' else visible_mixed_html_text(source)
                 if source_representation == 'html':
                     source_representation = 'plain_text'
         if native_description is not None:

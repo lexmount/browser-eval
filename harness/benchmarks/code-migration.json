@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "fca635f93254abba22b810cccca1fb2262ace6d4b9e263585977ad88a5ee3a23"
+          "after_sha256": "27212634eb538b536505c12c06f97745aaf7ac1f1370638b349bdc0366dece3e"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -80,7 +80,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "279c97d25e8dd260b56d64f56348f1c5a486f2a73bb450574395d24ef94fc8b8"
+          "after_sha256": "6c17c10c9fba0e4de3a79c8256f4cf37f725419dc3bd9dfc00896f1ad205784c"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "d08007bb61cf699d781bf59093f126949a9fa44c91ee67a6868112f72abed42e"
+          "after_sha256": "7ab07b4c492404b304564b40c9bbf69dd198ebe36f189a1a5bb7224783ae1cad"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -2199,6 +2199,47 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_html_api_sections.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "round20-field-report-bare-split-label",
+            "round20-field-report-colon-split-label",
+            "round20-named-qualified-split-label",
+            "round20-split-labels-cannot-borrow-owner",
+            "round20-split-labels-complete",
+            "round20-native-backticks-visible",
+            "round20-native-backticks-hidden",
+            "round20-mixed-native-hidden-block",
+            "round20-markdown-inline-code-is-visible",
+            "round20-plain-html-is-literal",
+            "round20-field-report-hidden-native-value",
+            "round20-mixed-native-quoted-close"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_split_field_native_visibility.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "heading20-native-missing",
+            "heading20-native-complete",
+            "anchor20-mixed-literal",
+            "anchor20-mixed-neither",
+            "anchor20-mixed-structured",
+            "anchor20-mixed-cross-record-price",
+            "anchor20-mixed-structure-still-required",
+            "anchor20-mixed-api-owned-fields"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_heading_cards_and_anchor_or.py"
           ]
         }
       ]

@@ -152,6 +152,13 @@ def _product_html_owners(soup):
                 or parent.get('role') == 'listitem')]
 
 
+def _mark_html_headings(soup, *, include=None):
+    """Keep real heading levels available to the shared record parsers."""
+    for heading in soup.select('h1,h2,h3,h4,h5,h6'):
+        if include is None or include(heading):
+            heading.insert(0, _HTML_HEADING + heading.name[1] + _HTML_HEADING + ' ')
+
+
 def _visible(text, schema=None, *, normalized_html=False, representation=None):
     if representation == 'plain_text':
         return clean_reference_text(text).replace('\r\n', '\n')
@@ -202,22 +209,18 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
                     continue
                 node.insert_before("\n" + _CARD_BOUNDARY + "\n")
                 node.insert_after("\n" + _CARD_BOUNDARY + "\n")
-            for node in soup.select('h1,h2,h3,h4,h5,h6'):
-                if not inside_record(node):
-                    node.insert(0, _HTML_HEADING + node.name[1] + _HTML_HEADING + ' ')
+            _mark_html_headings(soup, include=lambda node: not inside_record(node))
             text = str(soup)
-        elif schema == 'api_operation':
+        elif schema in {'api_operation', 'name_description'}:
             from .dynamic_lists import scoped_html
             soup = scoped_html(text)
-            for heading in soup.select('h1,h2,h3,h4,h5,h6'):
-                heading.insert(0, _HTML_HEADING + heading.name[1] + _HTML_HEADING + ' ')
+            _mark_html_headings(soup)
             text = str(soup)
         elif schema in {'product', 'catalog_product'}:
             from .dynamic_lists import scoped_html
             soup = scoped_html(text)
             if schema == 'catalog_product':
-                for heading in soup.select('h1,h2,h3,h4,h5,h6'):
-                    heading.insert(0, _HTML_HEADING + heading.name[1] + _HTML_HEADING + ' ')
+                _mark_html_headings(soup)
             owners = _product_html_owners(soup)
             identities = {id(node) for node in owners}
             groups = {}
@@ -680,7 +683,7 @@ def _html_list_descriptions(content, *, allow_closed_title_cards=False):
             child_records = [record for child in children for record in bounded_records(child)]
             if not own_text or len(children) > 1 or len(child_records) > 1:
                 return child_records
-        return _parse_records(visible_html_text(original), 'name_description',
+        return _parse_records(_visible(original, 'name_description', representation='html'), 'name_description',
                               allow_closed_title_cards=allow_closed_title_cards, literal=True)
     # Consume nested articles first; retain presentation sections with their title.
     for article in reversed(list(root.select('article'))):
@@ -691,7 +694,7 @@ def _html_list_descriptions(content, *, allow_closed_title_cards=False):
         if section.parent is not None:
             records.extend(bounded_records(section))
             section.decompose()
-    return records + _parse_records(visible_html_text(str(root)), 'name_description',
+    return records + _parse_records(_visible(str(root), 'name_description', representation='html'), 'name_description',
                                     allow_closed_title_cards=allow_closed_title_cards, literal=True)
 
 
@@ -1070,9 +1073,14 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
             compact = schema == "name_description"
             return (actual.replace(" ", "") == expected.replace(" ", "")
                     if compact else actual == expected)
-        return [value for value, fields in owned if any(record["valid"] and all(
+        matched = {value for value, fields in owned if any(record["valid"] and all(
             field_matches(record, fields, field)
-            for field in SCHEMA_FIELDS[schema]) for record in records)]
+            for field in SCHEMA_FIELDS[schema]) for record in records)}
+        structured_values = {value for value, _ in owned}
+        matched.update(value for value in anchor['alternatives'] if value not in structured_values
+                       and _stable_literal_match(anchor_visible if anchor_visible is not None else visible,
+                                                 value, registered_words, representation=representation))
+        return [value for value in anchor['alternatives'] if value in matched]
     folded = normalize_for_match(anchor_visible if anchor_visible is not None else visible)
     return [value for value in anchor["alternatives"]
             if _stable_literal_match(anchor_visible if anchor_visible is not None else visible,

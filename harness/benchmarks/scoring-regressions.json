@@ -41767,6 +41767,629 @@
       },
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "round20-field-report-bare-split-label",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "author",
+                  "kind": "text",
+                  "aliases": [
+                    "Author"
+                  ],
+                  "pattern": "Alice"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Author\nAlice",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "An empty declared field label uses the same supported punctuation and qualifier matcher as ownership detection, and can take the following value only if that line is not another declared field."
+    },
+    {
+      "id": "round20-field-report-colon-split-label",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "author",
+                  "kind": "text",
+                  "aliases": [
+                    "Author"
+                  ],
+                  "pattern": "Alice"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Author:\nAlice",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "An empty declared field label uses the same supported punctuation and qualifier matcher as ownership detection, and can take the following value only if that line is not another declared field."
+    },
+    {
+      "id": "round20-named-qualified-split-label",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "author",
+                  "kind": "text",
+                  "aliases": [
+                    "Author"
+                  ],
+                  "pattern": "Alice"
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/1",
+              "minimum_records": 1
+            }
+          ]
+        }
+      },
+      "artifact": "[Example](/item/1)\nAuthor (primary)：\nAlice",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "An empty declared field label uses the same supported punctuation and qualifier matcher as ownership detection, and can take the following value only if that line is not another declared field."
+    },
+    {
+      "id": "round20-split-labels-cannot-borrow-owner",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "author",
+                  "kind": "text",
+                  "aliases": [
+                    "Author"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Author:\nOwner:\nBob",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "An empty declared field label uses the same supported punctuation and qualifier matcher as ownership detection, and can take the following value only if that line is not another declared field."
+    },
+    {
+      "id": "round20-split-labels-complete",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "author",
+                  "kind": "text",
+                  "aliases": [
+                    "Author"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Author:\nAlice\nOwner:\nBob",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "An empty declared field label uses the same supported punctuation and qualifier matcher as ownership detection, and can take the following value only if that line is not another declared field."
+    },
+    {
+      "id": "round20-native-backticks-visible",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>`<span>Alpha</span>`</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native HTML visibility must run before literal matching, and raw block HTML must own backticks within its exact source range. Reuse existing HTML source ranges while preserving Markdown code and explicit plain text."
+    },
+    {
+      "id": "round20-native-backticks-hidden",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>`<span hidden>Alpha</span>`</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native HTML visibility must run before literal matching, and raw block HTML must own backticks within its exact source range. Reuse existing HTML source ranges while preserving Markdown code and explicit plain text."
+    },
+    {
+      "id": "round20-mixed-native-hidden-block",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Intro\n\n<p>`<span hidden>Alpha</span>`</p>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native HTML visibility must run before literal matching, and raw block HTML must own backticks within its exact source range. Reuse existing HTML source ranges while preserving Markdown code and explicit plain text."
+    },
+    {
+      "id": "round20-markdown-inline-code-is-visible",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Intro\n\n`<span hidden>Alpha</span>`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native HTML visibility must run before literal matching, and raw block HTML must own backticks within its exact source range. Reuse existing HTML source ranges while preserving Markdown code and explicit plain text."
+    },
+    {
+      "id": "round20-plain-html-is-literal",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>`<span hidden>Alpha</span>`</p>",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native HTML visibility must run before literal matching, and raw block HTML must own backticks within its exact source range. Reuse existing HTML source ranges while preserving Markdown code and explicit plain text."
+    },
+    {
+      "id": "round20-field-report-hidden-native-value",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "author",
+                  "kind": "text",
+                  "aliases": [
+                    "Author"
+                  ],
+                  "pattern": "Alice"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<p>Author: `<span hidden>Alice</span>`</p>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native HTML visibility must run before literal matching, and raw block HTML must own backticks within its exact source range. Reuse existing HTML source ranges while preserving Markdown code and explicit plain text."
+    },
+    {
+      "id": "round20-mixed-native-quoted-close",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "visible",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Intro\n\n<p title=\"</p>\">`<span hidden>Alpha</span>`</p>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native HTML visibility must run before literal matching, and raw block HTML must own backticks within its exact source range. Reuse existing HTML source ranges while preserving Markdown code and explicit plain text."
+    },
+    {
+      "id": "heading20-native-missing",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML heading boundaries survive both ordinary and bounded native name/description projection.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><h2>Alpha</h2><h2>Beta</h2><p>Second description.</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "heading20-native-complete",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML heading boundaries survive both ordinary and bounded native name/description projection.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "maximum_records": 2
+        }
+      },
+      "artifact": "<article><h2>Alpha</h2><p>First description.</p><h2>Beta</h2><p>Second description.</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "anchor20-mixed-literal",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Each anchor alternative independently chooses owned-field or visible-literal matching, then alternatives combine with OR.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "either",
+              "alternatives": [
+                "Old phone $50",
+                "Available products"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Available products\nNew phone $60",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "anchor20-mixed-neither",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Each anchor alternative independently chooses owned-field or visible-literal matching, then alternatives combine with OR.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "either",
+              "alternatives": [
+                "Old phone $50",
+                "Available products"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Catalog\nNew phone $60",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "anchor20-mixed-structured",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Each anchor alternative independently chooses owned-field or visible-literal matching, then alternatives combine with OR.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "either",
+              "alternatives": [
+                "Old phone $50",
+                "Available products"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Old phone $50",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "anchor20-mixed-cross-record-price",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Each anchor alternative independently chooses owned-field or visible-literal matching, then alternatives combine with OR.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "either",
+              "alternatives": [
+                "Old phone $50",
+                "Available products"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Old phone $60\nNew phone $50",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "anchor20-mixed-structure-still-required",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Each anchor alternative independently chooses owned-field or visible-literal matching, then alternatives combine with OR.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "either",
+              "alternatives": [
+                "Old phone $50",
+                "Available products"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Available products\nNo complete item",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "anchor20-mixed-api-owned-fields",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Each anchor alternative independently chooses owned-field or visible-literal matching, then alternatives combine with OR.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "either",
+              "alternatives": [
+                "GET\n/new\nRead a new object",
+                "Available operations"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "GET /new Wrong summary\nPOST /other Read a new object",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }
