@@ -1765,7 +1765,8 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
     for index in range(len(lines) - 1):
         if "|" not in lines[index]:
             continue
-        headers = [_key(visible_markdown_links(value)) for value in _pipe_cells(lines[index])]
+        headers = [_field_key(_visible_markdown_scalar(value), representation='plain_text')
+                   for value in _pipe_cells(lines[index])]
         separator = _pipe_cells(lines[index + 1])
         if (len(separator) != len(headers)
                 or not all(re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator)):
@@ -1778,7 +1779,7 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
         pipe_spans.append((positions[index][0], positions[finish - 1][1]))
         mapping = _unique_columns({spec['id']: [
             position for position, header in enumerate(headers)
-            if header in {_key(value) for value in spec['aliases']}
+            if header in {_field_key(value, representation='plain_text') for value in spec['aliases']}
         ] for spec in required})
         if mapping is not None:
             row_index = index + 2
@@ -1827,10 +1828,9 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
         if ordered:
             prefix = content[: ordered[0][2].start]
             header_spans = {spec['id']: {
-                match.span() for alias in spec['aliases']
-                for match in re.finditer(
-                    rf"(?im)^\s*(?:\[[^]]*{re.escape(alias)}[^]]*\]\([^)]*\)|"
-                    rf"{re.escape(alias)})\s*$", prefix)
+                match.span() for match in re.finditer(r'(?m)^.*$', prefix)
+                if _field_key(_visible_markdown_scalar(match[0]), representation='plain_text')
+                in {_field_key(alias, representation='plain_text') for alias in spec['aliases']}
             } for spec in required}
             # A rejected earlier record may have its own repeated headers.
             # Only the contiguous header block immediately before these rows

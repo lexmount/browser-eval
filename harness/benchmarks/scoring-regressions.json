@@ -41301,6 +41301,472 @@
         "answer_format": "html"
       },
       "expected_task_pass": true
+    },
+    {
+      "id": "round19-linked-header-html-parentheses",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Item name (primary)"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Item name (primary)</th><th>Owner</th></tr><tr><td><a href=\"/item/1\">Alpha</a></td><td>Alice</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Linked table header aliases must compare the existing rendered Markdown scalar to literal configuration keys, like ordinary tables. Decode native serializer escapes once, retain visible literal punctuation, and apply the same scalar boundary to pipe and linearized headers."
+    },
+    {
+      "id": "round19-linked-header-pipe-parentheses",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Item name (primary)"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Item name \\(primary\\)|Owner|\n|---|---|\n|[Alpha](/item/1)|Alice|",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Linked table header aliases must compare the existing rendered Markdown scalar to literal configuration keys, like ordinary tables. Decode native serializer escapes once, retain visible literal punctuation, and apply the same scalar boundary to pipe and linearized headers."
+    },
+    {
+      "id": "round19-linked-header-linearized-parentheses",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Item name (primary)"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Item name \\(primary\\)\nOwner\n[Alpha](/item/1)\n[Alice](/people/alice)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Linked table header aliases must compare the existing rendered Markdown scalar to literal configuration keys, like ordinary tables. Decode native serializer escapes once, retain visible literal punctuation, and apply the same scalar boundary to pipe and linearized headers."
+    },
+    {
+      "id": "round19-linked-header-html-wrong-parentheses",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Item name (primary)"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>Item name (secondary)</th><th>Owner</th></tr><tr><td><a href=\"/item/1\">Alpha</a></td><td>Alice</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Linked table header aliases must compare the existing rendered Markdown scalar to literal configuration keys, like ordinary tables. Decode native serializer escapes once, retain visible literal punctuation, and apply the same scalar boundary to pipe and linearized headers."
+    },
+    {
+      "id": "round19-linked-header-html-literal-stars",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "*Item*"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<table><tr><th>*Item*</th><th>Owner</th></tr><tr><td><a href=\"/item/1\">Alpha</a></td><td>Alice</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Linked table header aliases must compare the existing rendered Markdown scalar to literal configuration keys, like ordinary tables. Decode native serializer escapes once, retain visible literal punctuation, and apply the same scalar boundary to pipe and linearized headers."
+    },
+    {
+      "id": "round19-linked-header-pipe-literal-stars-distinct",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Item"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|\\*Item\\*|Owner|\n|---|---|\n|[Alpha](/item/1)|Alice|",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Linked table header aliases must compare the existing rendered Markdown scalar to literal configuration keys, like ordinary tables. Decode native serializer escapes once, retain visible literal punctuation, and apply the same scalar boundary to pipe and linearized headers."
+    },
+    {
+      "id": "round19-linked-header-linearized-formatting-distinct",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "**Item**"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "**Item**\nOwner\n[Alpha](/item/1)\n[Alice](/people/alice)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Linked table header aliases must compare the existing rendered Markdown scalar to literal configuration keys, like ordinary tables. Decode native serializer escapes once, retain visible literal punctuation, and apply the same scalar boundary to pipe and linearized headers."
+    },
+    {
+      "id": "round19-linked-header-linearized-linked-header",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Item name (primary)"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Item name (primary)](/docs)\nOwner\n[Alpha](/item/1)\n[Alice](/people/alice)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Linked table header aliases must compare the existing rendered Markdown scalar to literal configuration keys, like ordinary tables. Decode native serializer escapes once, retain visible literal punctuation, and apply the same scalar boundary to pipe and linearized headers."
+    },
+    {
+      "id": "api19-html-heading-missing",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML heading boundaries must survive visibility projection so API-operation summaries stay inside their owning section.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<main><h3>GET <code>/new</code></h3><h3>Models</h3><p>ModelOne</p></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "api19-html-heading-complete",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML heading boundaries must survive visibility projection so API-operation summaries stay inside their owning section.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "read",
+              "alternatives": [
+                "GET\n/new\nRead a new object"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main><h3>GET <code>/new</code></h3><p>Summary: Read a new object</p><h3>Models</h3><p>ModelOne</p></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "api19-html-fields-missing",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML heading boundaries must survive visibility projection so API-operation summaries stay inside their owning section.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<main><p>method: GET</p><p>path: /new</p><h3>Models</h3><p>ModelOne</p></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "api19-html-fields-complete",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML heading boundaries must survive visibility projection so API-operation summaries stay inside their owning section.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "read",
+              "alternatives": [
+                "GET\n/new\nRead a new object"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main><p>method: GET</p><p>path: /new</p><p>Summary: Read a new object</p><h3>Models</h3><p>ModelOne</p></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

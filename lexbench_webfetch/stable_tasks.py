@@ -206,6 +206,12 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
                 if not inside_record(node):
                     node.insert(0, _HTML_HEADING + node.name[1] + _HTML_HEADING + ' ')
             text = str(soup)
+        elif schema == 'api_operation':
+            from .dynamic_lists import scoped_html
+            soup = scoped_html(text)
+            for heading in soup.select('h1,h2,h3,h4,h5,h6'):
+                heading.insert(0, _HTML_HEADING + heading.name[1] + _HTML_HEADING + ' ')
+            text = str(soup)
         elif schema in {'product', 'catalog_product'}:
             from .dynamic_lists import scoped_html
             soup = scoped_html(text)

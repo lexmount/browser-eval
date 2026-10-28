@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "8150a8cb0a556db127688151546fa74f684736a5044c927166835022bcbe4870"
+          "after_sha256": "fca635f93254abba22b810cccca1fb2262ace6d4b9e263585977ad88a5ee3a23"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "c9e2df3d58879ddeeba370f1a6424e39f09dd48154767e60b65f070c8340e26d"
+          "after_sha256": "d08007bb61cf699d781bf59093f126949a9fa44c91ee67a6868112f72abed42e"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -2167,6 +2167,38 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_native_table_membership.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round19-linked-header-html-parentheses",
+            "round19-linked-header-pipe-parentheses",
+            "round19-linked-header-linearized-parentheses",
+            "round19-linked-header-html-wrong-parentheses",
+            "round19-linked-header-html-literal-stars",
+            "round19-linked-header-pipe-literal-stars-distinct",
+            "round19-linked-header-linearized-formatting-distinct",
+            "round19-linked-header-linearized-linked-header"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_linked_table_header_scalars.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "api19-html-heading-missing",
+            "api19-html-heading-complete",
+            "api19-html-fields-missing",
+            "api19-html-fields-complete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_html_api_sections.py"
           ]
         }
       ]
