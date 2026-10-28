@@ -1,7 +1,7 @@
 """Post ownership checks for fixed initial coverage contracts."""
 import re
 import unicodedata
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urlsplit
 
 import soupsieve
 
@@ -9,6 +9,7 @@ from .dynamic_lists import named_entry_identity, visible_html_text
 from .article_text import (article_html, article_surface, is_article_html, article_markdown, TIMESTAMP_LINE,
                            mask_markdown_code, mask_markdown_inline_code, author_key, label_key, validate_labels, declared_labels, article_field_text)
 from .reference_quality import markdown_links, visible_markdown_links, without_markdown_images
+from .response_input import join_answer_url
 
 
 def validate_post_contract(contract):
@@ -43,7 +44,7 @@ def validate_post_contract(contract):
 
 
 def post_identity(value, contract, base):
-    destination = urljoin(base, value)
+    destination = join_answer_url(base, value)
     p = urlsplit(destination)
     p.port  # Force validation; hostname alone accepts malformed port text.
     if (p.scheme not in {'http', 'https'} or p.hostname not in contract['hosts']
@@ -174,7 +175,7 @@ def _post_headers(lines, contract, url, *, representation=None):
             if (len(links) == 2 and re.fullmatch(r'(?:#{1,6}|[-*+]|\d+[.)])', prefix)
                     and not line[first.end:last.start].strip(' |·—–-:*_')):
                 try:
-                    profile = urlsplit(urljoin(url, first.destination))
+                    profile = urlsplit(join_answer_url(url, first.destination))
                     profile.port
                     if (profile.scheme in {'http', 'https'}
                             and profile.hostname in contract['hosts']

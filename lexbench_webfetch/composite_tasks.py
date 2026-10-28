@@ -13,7 +13,7 @@ import re
 
 import soupsieve
 import unicodedata
-from urllib.parse import unquote, urljoin as _urljoin, urlsplit
+from urllib.parse import unquote, urlsplit
 
 from .structured_tables import (
     _pipe_cells, _table_header_at, _visible_markdown_scalar, table_text_surface, validate_group_caption,
@@ -23,12 +23,13 @@ from .dynamic_lists import (
     _without_record_literals, _visible_candidate_content,
 )
 from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links, without_markdown_images
+from .response_input import join_answer_url
 
 
 def _link_url(base_url: str, destination: str) -> str:
     """Malformed answer links invalidate one candidate, not the whole score."""
     try:
-        return _urljoin(base_url, destination)
+        return join_answer_url(base_url, destination)
     except ValueError:
         return ""
 

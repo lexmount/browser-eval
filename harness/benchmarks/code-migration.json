@@ -16,7 +16,7 @@
         },
         "article_posts.py": {
           "before_sha256": "da1323b63c4e213312adb0a5564c6ffbb443edbcb1a643ddcd4e3bde4d42e9c2",
-          "after_sha256": "3708ce23617f5488fb907d1e680e36690bb67c06cde305b4833a2d654a323f0f"
+          "after_sha256": "8381d02ec6ce10b4e13e334ec29f85b3fc041997f49135c8eb8638a5f424846e"
         },
         "article_qualification.py": {
           "before_sha256": "01898c4413933ac4f3028eeb5c5c470293cd2acaabb2ae1547a7095e6e458981",
@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "b9d51218a7ade67f4ea9dfb1f379c17d6b82d48ff8551fccd13a99c0e342f409"
+          "after_sha256": "49f433550586ea831ae30dfbbfe41a909a7fdc5b8f7e79243f5bb0420065e70b"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -52,7 +52,7 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "60cd72dc9f1e87d3b82896e8a65e6182b92286b9cdde78d49cd70b4e6c4fe293"
+          "after_sha256": "d457891f814f5eebbb560a588a4abd957bb7d8cc82596caccc2d5078c4817937"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "f475799d7f75a72f9e1be10b469405b71ef9c9be34883443ab4d10248ed117b9"
+          "after_sha256": "3bc23b17580a1d99b92afd1d8b183d00728a02de68586b7d70d0c538f8bbb143"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -80,7 +80,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "f7fc029082d778bbf872a1f1821ee3fe86a8151533055a89e7e9ed2c3fb77ca7"
+          "after_sha256": "f99fffbcd00d6903e980d64c157a401395519075a3369601141d1c2180ad963c"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -88,7 +88,7 @@
         },
         "response_input.py": {
           "before_sha256": "d45d0bac0d629e7314504a87ae890444f704b7a488af842b4d1e34dd912ec00d",
-          "after_sha256": "7998f6f1271ec4ce4f6a95ba6d4945e877975298cc9f4ecf7aa59795e61ad159"
+          "after_sha256": "1a6e64de081b49732230f22444d21f83583feb9d1123431e21d848b54a6408aa"
         },
         "risk_control_dataset.py": {
           "before_sha256": "59d2a1877f1a8b8ecf464113fbce70bf713d6d44414b83141880e71cccb7c1d6",
@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "b7e9758d6e237e1182527c315cb8bc9812a7471c0dd4db7c3df8972efec0ce53"
+          "after_sha256": "97f693cd05ea2df4d4238d4b4a6932a046597f308d00ebcb3edf88423bb6a60f"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -1505,6 +1505,146 @@
           "tests": [
             "tests/benchmarks/webfetch/test_catalog_validation_reuse.py",
             "tests/benchmarks/webfetch/test_release_versions.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py",
+            "article_posts.py"
+          ],
+          "regression_ids": [
+            "markdown-indented-spaces",
+            "markdown-indented-tab",
+            "markdown-indented-paragraph-continuation",
+            "markdown-indented-loose-list-paragraph",
+            "markdown-indented-list-code",
+            "markdown-destination-escaped-parentheses",
+            "markdown-destination-escaped-entity",
+            "markdown-destination-escaped-entity-not-ampersand",
+            "markdown-destination-encoded-slash-kept",
+            "markdown-destination-encoded-slash-not-separator",
+            "post-terminal-semicolon-retained",
+            "post-terminal-semicolon-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_markdown_destinations_blocks.py",
+            "tests/test_reference_quality.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review13-dynamic-display-case",
+            "review13-dynamic-display-priority",
+            "review13-dynamic-display-inverse",
+            "review13-dynamic-display-equal-last-visible",
+            "review13-dynamic-display-equal-last-hidden",
+            "review13-dynamic-visibility-hidden",
+            "review13-dynamic-visibility-visible",
+            "review13-dynamic-opacity-hidden",
+            "review13-dynamic-opacity-visible",
+            "review13-dynamic-display-important-visible",
+            "review13-dynamic-display-invalid-first",
+            "review13-dynamic-display-invalid-last",
+            "review13-dynamic-visibility-invalid-first",
+            "review13-dynamic-visibility-invalid-last",
+            "review13-dynamic-opacity-invalid-first",
+            "review13-dynamic-opacity-invalid-last"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_inline_style_priority.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review13-record-url-markdown-literal-entity",
+            "review13-record-url-markdown-decoded-entity",
+            "review13-record-url-html-literal-entity",
+            "review13-record-url-html-decoded-entity",
+            "review13-record-url-metadata-literal-entity",
+            "review13-record-url-metadata-decoded-entity",
+            "review13-record-url-scoped-product-literal",
+            "review13-record-url-scoped-product-decoded"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_record_url_serialization.py"
+          ]
+        },
+        {
+          "modules": [
+            "response_input.py",
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review13-answer-join-literal-meta",
+            "review13-answer-join-literal-not-encoded",
+            "review13-answer-join-encoded-meta",
+            "review13-answer-join-encoded-not-literal",
+            "review13-answer-join-query-base",
+            "review13-answer-join-query-not-encoded"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_record_url_serialization.py",
+            "tests/benchmarks/webfetch/test_review_answer_url_join.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "answer-url-join-ordinary-True-True",
+            "answer-url-join-ordinary-True-False",
+            "answer-url-join-wildcard-True-True",
+            "answer-url-join-wildcard-True-False",
+            "answer-url-join-resource-literal-literal",
+            "answer-url-join-resource-literal-missing",
+            "answer-url-join-resource-encoded-literal",
+            "answer-url-join-resource-encoded-encoded"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_url_join_identity.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "runtime13-visible-plain-block",
+            "runtime13-visible-wrong-label",
+            "runtime13-visible-inner-indent",
+            "runtime13-visible-lost-inner-indent",
+            "runtime13-visible-literal-link",
+            "runtime13-visible-interpreted-link",
+            "runtime13-visible-block-before-prose",
+            "runtime13-visible-prose-after-block",
+            "runtime13-page-plain-block",
+            "runtime13-page-wrong-label",
+            "runtime13-page-inner-indent",
+            "runtime13-page-lost-inner-indent",
+            "runtime13-page-literal-link",
+            "runtime13-page-interpreted-link",
+            "runtime13-page-block-before-prose",
+            "runtime13-page-prose-after-block",
+            "runtime13-semicolon-False-False",
+            "runtime13-semicolon-False-True",
+            "runtime13-semicolon-True-False",
+            "runtime13-semicolon-True-True",
+            "runtime13-html-literal-visible-True",
+            "runtime13-html-literal-visible-False",
+            "runtime13-html-literal-page-True",
+            "runtime13-html-literal-page-False"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_indented_pattern_surface.py"
           ]
         }
       ]

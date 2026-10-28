@@ -1,7 +1,30 @@
 """Provider-neutral answer envelope. Never infer answers from logs or requests."""
 import json
 import hashlib
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
+
+
+def join_answer_url(base_url: str, reference: str) -> str:
+    """Resolve answer URLs without dropping an empty terminal semicolon."""
+    joined = urljoin(base_url, reference)
+    if not base_url or not reference or urlsplit(joined).path.endswith(';'):
+        return joined
+    base, target = urlsplit(base_url), urlsplit(reference)
+    if target.path.endswith(';'):
+        # Protect just this literal delimiter from urlparse's params split.
+        protected = urlunsplit(target._replace(path=target.path[:-1] + '%3B'))
+        joined = urljoin(base_url, protected)
+    elif (not target.path and not target.netloc
+          and (not target.scheme or target.scheme == base.scheme)
+          and base.path.endswith(';')):
+        protected = urlunsplit(base._replace(path=base.path[:-1] + '%3B'))
+        joined = urljoin(protected, reference)
+    else:
+        return joined
+    resolved = urlsplit(joined)
+    # Restore only the terminal escape introduced above, never an original
+    # percent-encoded reserved character elsewhere in either input.
+    return urlunsplit(resolved._replace(path=resolved.path[:-3] + ';'))
 
 
 def answer_input(artifact, metadata=None, *, ok=True, status_code=None):
@@ -51,7 +74,7 @@ def safe_named_links(links, base_url):
     result = []
     for item in links or []:
         try:
-            url = urljoin(base_url, item['url'])
+            url = join_answer_url(base_url, item['url'])
             parts = urlsplit(url)
         except (ValueError, KeyError, TypeError):
             continue

@@ -30032,6 +30032,2000 @@
       "category": "structured-extraction",
       "failure_mode": "false-negative",
       "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
+    },
+    {
+      "id": "markdown-indented-spaces",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only literal blocks exclude links; paragraph and list indentation retain their visible links.",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "    [Example](https://allowed.example/item)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown-indented-tab",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only literal blocks exclude links; paragraph and list indentation retain their visible links.",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "\t[Example](https://allowed.example/item)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown-indented-paragraph-continuation",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Only literal blocks exclude links; paragraph and list indentation retain their visible links.",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Intro\n    [Example](https://allowed.example/item)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown-indented-loose-list-paragraph",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Only literal blocks exclude links; paragraph and list indentation retain their visible links.",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Intro\n\n    [Example](https://allowed.example/item)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown-indented-list-code",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only literal blocks exclude links; paragraph and list indentation retain their visible links.",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Intro\n\n      [Example](https://allowed.example/item)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown-destination-escaped-parentheses",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Decode Markdown escapes and references once without decoding percent-encoded reserved URL delimiters.",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item\\(one\\)$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Example](https://allowed.example/item\\(one\\))",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown-destination-escaped-entity",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Decode Markdown escapes and references once without decoding percent-encoded reserved URL delimiters.",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item\\&amp;$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Example](https://allowed.example/item\\&amp;)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown-destination-escaped-entity-not-ampersand",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Decode Markdown escapes and references once without decoding percent-encoded reserved URL delimiters.",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item\\&$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Example](https://allowed.example/item\\&amp;)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown-destination-encoded-slash-kept",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Decode Markdown escapes and references once without decoding percent-encoded reserved URL delimiters.",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item%2Fone$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Example](https://allowed.example/item%2Fone)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown-destination-encoded-slash-not-separator",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Decode Markdown escapes and references once without decoding percent-encoded reserved URL delimiters.",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item/one$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Example](https://allowed.example/item%2Fone)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "post-terminal-semicolon-retained",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Joining answer URLs must retain terminal reserved path punctuation.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/1;",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "## Alice [Today](/p/1;)\nReal post text.",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "post-terminal-semicolon-distinct",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Joining answer URLs must retain terminal reserved path punctuation.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/1",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "## Alice [Today](/p/1;)\nReal post text.",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-dynamic-display-case",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"display:none !IMPORTANT\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-dynamic-display-priority",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"display:none!important;display:block\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-dynamic-display-inverse",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"display:none;display:block!important\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-dynamic-display-equal-last-visible",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"display:none!important;display:block!important\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-dynamic-display-equal-last-hidden",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"display:block!important;display:none!important\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-dynamic-visibility-hidden",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"visibility:hidden !IMPORTANT;visibility:visible\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-dynamic-visibility-visible",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"visibility:hidden;visibility:visible !important\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-dynamic-opacity-hidden",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"opacity:0 !IMPORTANT;opacity:1\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-dynamic-opacity-visible",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"opacity:0;opacity:1 !important\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-dynamic-display-important-visible",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"display:block!important;display:none\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-dynamic-display-invalid-first",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"display:bogus!important;display:none\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-dynamic-display-invalid-last",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"display:block!important;display:bogus!important\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-dynamic-visibility-invalid-first",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"visibility:bogus!important;visibility:hidden\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-dynamic-visibility-invalid-last",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"visibility:visible!important;visibility:bogus!important\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-dynamic-opacity-invalid-first",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"opacity:bogus!important;opacity:0\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-dynamic-opacity-invalid-last",
+      "root_cause": "4405785977",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article style=\"opacity:1!important;opacity:bogus!important\"><a href=\"/item/1\">Alpha Widget</a></article><p>Visible introduction</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-record-url-markdown-literal-entity",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item&amp;/detail",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Alpha](/item&amp;amp;/detail)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-record-url-markdown-decoded-entity",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item&/detail",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Alpha](/item&amp;amp;/detail)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-record-url-html-literal-entity",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item&amp;/detail",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<a href=\"/item&amp;amp;/detail\">Alpha</a>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-record-url-html-decoded-entity",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item&/detail",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<a href=\"/item&amp;amp;/detail\">Alpha</a>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-record-url-metadata-literal-entity",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item&amp;/detail",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Visible introduction",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "links": [
+          {
+            "url": "/item&amp;/detail",
+            "title": "Alpha"
+          }
+        ]
+      }
+    },
+    {
+      "id": "review13-record-url-metadata-decoded-entity",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item&/detail",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Visible introduction",
+      "ok": true,
+      "expected_task_pass": false,
+      "metadata": {
+        "links": [
+          {
+            "url": "/item&amp;/detail",
+            "title": "Alpha"
+          }
+        ]
+      }
+    },
+    {
+      "id": "review13-record-url-scoped-product-literal",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item&amp;/detail",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "entry_scope": {
+            "html_selector": ".items",
+            "start_pattern": "^# Items$",
+            "end_pattern": "^# End$"
+          }
+        }
+      },
+      "artifact": "# Items\n<a href=\"/item&amp;amp;/detail\">Alpha</a> $10\n# End",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-record-url-scoped-product-decoded",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item&/detail",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "entry_scope": {
+            "html_selector": ".items",
+            "start_pattern": "^# Items$",
+            "end_pattern": "^# End$"
+          }
+        }
+      },
+      "artifact": "# Items\n<a href=\"/item&amp;amp;/detail\">Alpha</a> $10\n# End",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-answer-join-literal-meta",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item;",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Visible introduction",
+      "metadata": {
+        "links": [
+          {
+            "url": "/item;",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-answer-join-literal-not-encoded",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item%3B",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Visible introduction",
+      "metadata": {
+        "links": [
+          {
+            "url": "/item;",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-answer-join-encoded-meta",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item%3B",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Visible introduction",
+      "metadata": {
+        "links": [
+          {
+            "url": "/item%3B",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-answer-join-encoded-not-literal",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item;",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Visible introduction",
+      "metadata": {
+        "links": [
+          {
+            "url": "/item%3B",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review13-answer-join-query-base",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/item;",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item;",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Visible introduction",
+      "metadata": {
+        "links": [
+          {
+            "url": "?edition=2",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review13-answer-join-query-not-encoded",
+      "root_cause": "4405785986",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/item;",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item%3B",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Visible introduction",
+      "metadata": {
+        "links": [
+          {
+            "url": "?edition=2",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "answer-url-join-ordinary-True-True",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/part(?:;|%3B)",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/part;)\n$12\n\n[Beta](/item/part%3B)\n$24",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Relative answer URL joining must preserve a literal terminal empty semicolon path component without equating it with a percent-encoded reserved delimiter or a missing component."
+    },
+    {
+      "id": "answer-url-join-ordinary-True-False",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/part(?:;|%3B)",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/part;)\n$12\n\n[Beta](/item/part;)\n$24",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Relative answer URL joining must preserve a literal terminal empty semicolon path component without equating it with a percent-encoded reserved delimiter or a missing component."
+    },
+    {
+      "id": "answer-url-join-wildcard-True-True",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/part(?:;|%3B)",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/part;)\n$12\n\n[Beta](/item/part%3B)\n$24",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Relative answer URL joining must preserve a literal terminal empty semicolon path component without equating it with a percent-encoded reserved delimiter or a missing component."
+    },
+    {
+      "id": "answer-url-join-wildcard-True-False",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/part(?:;|%3B)",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/part;)\n$12\n\n[Beta](/item/part;)\n$24",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Relative answer URL joining must preserve a literal terminal empty semicolon path component without equating it with a percent-encoded reserved delimiter or a missing component."
+    },
+    {
+      "id": "answer-url-join-resource-literal-literal",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "file",
+            "urls": [
+              "https://example.test/item/part;"
+            ]
+          }
+        ]
+      },
+      "artifact": "[File](/item/part;)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Relative answer URL joining must preserve a literal terminal empty semicolon path component without equating it with a percent-encoded reserved delimiter or a missing component."
+    },
+    {
+      "id": "answer-url-join-resource-literal-missing",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "file",
+            "urls": [
+              "https://example.test/item/part;"
+            ]
+          }
+        ]
+      },
+      "artifact": "[File](/item/part)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Relative answer URL joining must preserve a literal terminal empty semicolon path component without equating it with a percent-encoded reserved delimiter or a missing component."
+    },
+    {
+      "id": "answer-url-join-resource-encoded-literal",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "file",
+            "urls": [
+              "https://example.test/item/part%3B"
+            ]
+          }
+        ]
+      },
+      "artifact": "[File](/item/part;)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Relative answer URL joining must preserve a literal terminal empty semicolon path component without equating it with a percent-encoded reserved delimiter or a missing component."
+    },
+    {
+      "id": "answer-url-join-resource-encoded-encoded",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "file",
+            "urls": [
+              "https://example.test/item/part%3B"
+            ]
+          }
+        ]
+      },
+      "artifact": "[File](/item/part%3B)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Relative answer URL joining must preserve a literal terminal empty semicolon path component without equating it with a percent-encoded reserved delimiter or a missing component."
+    },
+    {
+      "id": "runtime13-visible-plain-block",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "visible-code",
+            "pattern": "(?m)^Required label$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "    Required label",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 18
+      }
+    },
+    {
+      "id": "runtime13-visible-wrong-label",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "visible-code",
+            "pattern": "(?m)^Required label$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "    Other label",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "content_chars": 15
+      }
+    },
+    {
+      "id": "runtime13-visible-inner-indent",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "visible-code",
+            "pattern": "(?m)^ {4}Required label$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "        Required label",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 22
+      }
+    },
+    {
+      "id": "runtime13-visible-lost-inner-indent",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "visible-code",
+            "pattern": "(?m)^Required label$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "        Required label",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "content_chars": 22
+      }
+    },
+    {
+      "id": "runtime13-visible-literal-link",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "visible-code",
+            "pattern": "(?m)^\\[Order\\]\\(https://example\\.test/ \"token\"\\)$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "    [Order](https://example.test/ \"token\")",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 42
+      }
+    },
+    {
+      "id": "runtime13-visible-interpreted-link",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "visible-code",
+            "pattern": "(?m)^Order$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "    [Order](https://example.test/ \"token\")",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "content_chars": 42
+      }
+    },
+    {
+      "id": "runtime13-visible-block-before-prose",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "visible-code",
+            "pattern": "(?m)^Required label$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "    Required label\n\nAfter",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 25
+      }
+    },
+    {
+      "id": "runtime13-visible-prose-after-block",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "visible-code",
+            "pattern": "(?m)^After$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "    Required label\n\nAfter",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 25
+      }
+    },
+    {
+      "id": "runtime13-page-plain-block",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "(?m)^Required label$"
+          ],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "    Required label",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 18
+      }
+    },
+    {
+      "id": "runtime13-page-wrong-label",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "(?m)^Required label$"
+          ],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "    Other label",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "content_chars": 15
+      }
+    },
+    {
+      "id": "runtime13-page-inner-indent",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "(?m)^ {4}Required label$"
+          ],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "        Required label",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 22
+      }
+    },
+    {
+      "id": "runtime13-page-lost-inner-indent",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "(?m)^Required label$"
+          ],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "        Required label",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "content_chars": 22
+      }
+    },
+    {
+      "id": "runtime13-page-literal-link",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "(?m)^\\[Order\\]\\(https://example\\.test/ \"token\"\\)$"
+          ],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "    [Order](https://example.test/ \"token\")",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 42
+      }
+    },
+    {
+      "id": "runtime13-page-interpreted-link",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "(?m)^Order$"
+          ],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "    [Order](https://example.test/ \"token\")",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "content_chars": 42
+      }
+    },
+    {
+      "id": "runtime13-page-block-before-prose",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "(?m)^Required label$"
+          ],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "    Required label\n\nAfter",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 25
+      }
+    },
+    {
+      "id": "runtime13-page-prose-after-block",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "indented_literal_pattern_surface_preserves_container_and_code_boundaries",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "(?m)^After$"
+          ],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "    Required label\n\nAfter",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_chars": 25
+      }
+    },
+    {
+      "id": "runtime13-semicolon-False-False",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "non_record_mask_and_extractor_share_exact_returned_url_joining",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item;",
+          "stable_text_anchors": [
+            {
+              "id": "independent-page-title",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "[Story](/item&semi;)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_record_count": 1
+      }
+    },
+    {
+      "id": "runtime13-semicolon-False-True",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "non_record_mask_and_extractor_share_exact_returned_url_joining",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item;",
+          "stable_text_anchors": [
+            {
+              "id": "independent-page-title",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "# Story\n\n[Story](/item&semi;)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_record_count": 1
+      }
+    },
+    {
+      "id": "runtime13-semicolon-True-False",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "non_record_mask_and_extractor_share_exact_returned_url_joining",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item;",
+          "stable_text_anchors": [
+            {
+              "id": "independent-page-title",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "<main><a href=\"/item&semi;\">Story</a></main>",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_record_count": 1
+      }
+    },
+    {
+      "id": "runtime13-semicolon-True-True",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "non_record_mask_and_extractor_share_exact_returned_url_joining",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item;",
+          "stable_text_anchors": [
+            {
+              "id": "independent-page-title",
+              "alternatives": [
+                "Story"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        }
+      },
+      "artifact": "<h1>Story</h1>\n<main><a href=\"/item&semi;\">Story</a></main>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_record_count": 1
+      }
+    },
+    {
+      "id": "runtime13-html-literal-visible-True",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_html_pattern_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "visible-code",
+            "pattern": "(?m)^`Required label`$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "<pre>`Required label`</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime13-html-literal-visible-False",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_html_pattern_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "visible-code",
+            "pattern": "(?m)^Required label$",
+            "match_scope": "visible_text"
+          }
+        ]
+      },
+      "artifact": "<pre>`Required label`</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime13-html-literal-page-True",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "rendered_html_pattern_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "(?m)^`Required label`$"
+          ],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<pre>`Required label`</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime13-html-literal-page-False",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "rendered_html_pattern_text_is_not_reparsed_as_markdown",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "(?m)^Required label$"
+          ],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<pre>`Required label`</pre>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

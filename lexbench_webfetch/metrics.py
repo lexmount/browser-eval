@@ -10,7 +10,9 @@ import unicodedata
 from collections import Counter, defaultdict
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import quote, unquote, urljoin, urlsplit, urlunsplit
+from urllib.parse import quote, unquote, urlsplit, urlunsplit
+
+from .response_input import join_answer_url
 
 
 METRIC_DEFINITIONS = {
@@ -56,7 +58,7 @@ def normalize_resource_url(value: str, base_url: str) -> str | None:
     if not value or value.startswith(("data:", "blob:", "javascript:", "mailto:")):
         return None
     try:
-        absolute = urljoin(base_url, value)
+        absolute = join_answer_url(base_url, value)
         parsed = urlsplit(absolute)
     except ValueError:
         # Provider text may contain URL-like prose such as an unmatched IPv6
@@ -931,7 +933,10 @@ def evaluate_content(
     pattern_content = content if raw_content is None else raw_content
     from .reference_quality import visible_markdown_links
     from .stable_tasks import _pattern_text_surface
-    pattern_visible = visible_content if literal else _pattern_text_surface(visible_markdown_links(visible_content))
+    pattern_visible = visible_content if literal else _pattern_text_surface(
+        visible_markdown_links(visible_content),
+        representation='plain_text' if is_html else representation,
+    )
     code_blocks = None
     for rule in required_patterns or []:
         scope = rule.get('match_scope', 'visible_text')

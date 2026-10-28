@@ -3,6 +3,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from html import unescape
+from html.entities import html5 as _HTML_ENTITIES
 
 
 # Cover the alphabets whose word boundaries the literal scorer enforces.
@@ -210,6 +211,18 @@ class MarkdownLink:
 _MAX_MARKDOWN_LINK_SPAN = 8192
 
 
+def _markdown_unescape(value):
+    """Decode source escapes/references once, without rescanning their output."""
+    def decode(match):
+        if match[1] is not None:
+            return match[1]
+        reference = match[0]
+        return unescape(reference) if reference.startswith('&#') or reference[1:] in _HTML_ENTITIES else reference
+    return re.sub(
+        r'''\\([!"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~])|&(?:\#[xX][0-9a-fA-F]{1,6}|\#\d{1,7}|[A-Za-z][A-Za-z0-9]*);''',
+        decode, value)
+
+
 def is_markdown_image_start(text: str, index: int) -> bool:
     """Return whether ``![`` starts image syntax at *index*.
 
@@ -330,8 +343,8 @@ def markdown_links(text: str) -> list[MarkdownLink]:
             native_title = titled[3] if titled else ""
         # Character references in a Markdown destination are rendered URL
         # syntax. Decode once here; bare URL answers retain their literal bytes.
-        native_title = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', r'\1', native_title)
-        links.append(MarkdownLink(raw_label, unescape(destination), image, index, destination_end + 1, unescape(native_title)))
+        links.append(MarkdownLink(raw_label, _markdown_unescape(destination), image, index,
+                                  destination_end + 1, _markdown_unescape(native_title)))
         index = destination_end + 1
     return links
 
@@ -416,8 +429,7 @@ def markdown_inline_code_spans(text, *, excluded_spans=()):
     return spans
 
 
-def markdown_literal_spans(text: str) -> list[tuple[int, int]]:
-    """Locate fenced and inline code before interpreting Markdown link syntax."""
+def _markdown_fenced_code_spans(text):
     spans = []
     fence = None
     offset = 0
@@ -433,6 +445,103 @@ def markdown_literal_spans(text: str) -> list[tuple[int, int]]:
         offset += len(line)
     if fence is not None:
         spans.append((fence[0], len(text)))
+    return spans
+
+
+def _markdown_indented_code_blocks(text, *, excluded_spans=None):
+    """Locate indented blocks, respecting paragraph and list content ownership."""
+    # Native HTML indentation is serialization layout. Its pre/code elements
+    # are handled by HTML readers, rather than interpreted as Markdown blocks.
+    if is_html_document_or_fragment(text):
+        return []
+    if excluded_spans is None:
+        excluded_spans = _markdown_fenced_code_spans(text)
+    spans, list_indents = [], []
+    paragraph, previous_depth, empty_item = False, 0, False
+    pending = None
+    offset = 0
+    def payload(line, base, raw):
+        indentation = len(line) - len(line.lstrip(' '))
+        return line[min(indentation, base + 4):] + ('\n' if raw.endswith(('\n', '\r')) else '')
+    def finish(block):
+        while block[2] and not block[2][-1].strip():
+            block[2].pop()
+        return block[0], block[1], ''.join(block[2])
+    for raw in text.splitlines(keepends=True):
+        end = offset + len(raw)
+        line = raw.expandtabs(4).rstrip('\r\n')
+        quote = re.match(r'^ {0,3}((?:> ?)+)', line)
+        depth = quote[1].count('>') if quote else 0
+        if depth != previous_depth and not (depth < previous_depth and paragraph):
+            paragraph, list_indents = False, []
+        previous_depth = depth
+        if quote:
+            line = line[quote.end():]
+        blank = not line.strip()
+        excluded = any(left <= offset < right for left, right in excluded_spans)
+        indent = len(line) - len(line.lstrip(' '))
+        list_context = bool(list_indents)
+        if not blank:
+            while list_indents and indent < list_indents[-1]:
+                list_indents.pop()
+        base = list_indents[-1] if list_indents else 0
+        indented = indent >= base + 4 and not paragraph and not excluded
+        if pending is not None:
+            if blank or indented:
+                pending[1] = end
+                pending[2].append(payload(line, base, raw))
+                offset = end
+                continue
+            spans.append(finish(pending))
+            pending = None
+        if blank or excluded:
+            if blank and empty_item and list_indents:
+                list_indents.pop()
+            empty_item = False
+            paragraph = False
+        elif indented:
+            pending = [offset, end, [payload(line, base, raw)]]
+        else:
+            relative = line[base:]
+            block = (re.match(r'^ {0,3}#{1,6}(?:\s|$)', relative)
+                     or (paragraph and re.fullmatch(r' {0,3}(?:=+|-+)[ \t]*', relative))
+                     or re.fullmatch(r' {0,3}(?:(?:\*[ \t]*){3,}|(?:_[ \t]*){3,}|(?:-[ \t]*){3,})', relative)
+                     or is_html_document_or_fragment(relative))
+            marker = re.match(r'^( *)([-+*]|\d+[.)])( +|$)(.*)$', line)
+            if (marker and not block and indent < base + 4
+                    and (not paragraph or list_context or marker[2] in '-+*' or marker[2] in ('1.', '1)'))):
+                padding = len(marker[3]) or 1
+                list_indents.append(marker.start(3) + (padding if padding <= 4 else 1))
+                empty_item = not bool(marker[4].strip())
+                if padding > 4 and marker[4].strip():
+                    code_base = list_indents[-1]
+                    pending = [offset, end, [line[code_base+4:] + ('\n' if raw.endswith(('\n', '\r')) else '')]]
+                    paragraph = False
+                else:
+                    paragraph = bool(marker[4].strip()) and not re.match(r'#{1,6}(?:\s|$)', marker[4])
+            else:
+                empty_item = False
+                paragraph = not bool(block)
+        offset = end
+    if pending is not None:
+        spans.append(finish(pending))
+    return spans
+
+
+def markdown_indented_code_spans(text, *, excluded_spans=None):
+    """Return indented literal regions from the shared block-content owner."""
+    return [(start, end) for start, end, _ in _markdown_indented_code_blocks(text, excluded_spans=excluded_spans)]
+
+
+def markdown_indented_code_contents(text):
+    """Return displayed code with container syntax and code indentation removed."""
+    return {(start, end): content for start, end, content in _markdown_indented_code_blocks(text)}
+
+
+def markdown_literal_spans(text: str) -> list[tuple[int, int]]:
+    """Locate block and inline literals before interpreting Markdown syntax."""
+    spans = _markdown_fenced_code_spans(text)
+    spans += markdown_indented_code_spans(text, excluded_spans=spans)
     return sorted(spans + markdown_inline_code_spans(text, excluded_spans=spans))
 
 

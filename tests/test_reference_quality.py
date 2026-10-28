@@ -28,7 +28,7 @@ for brackets in ('[' * 20000, '[x](' * 5000):
         samples = [
             (r'[Docs \[with note](/guide)', r'Docs \[with note', '/guide'),
             ('[Docs [nested]](/guide(a))', 'Docs [nested]', '/guide(a)'),
-            (r'[Docs](/guide\))', 'Docs', r'/guide\)'),
+            (r'[Docs](/guide\))', 'Docs', '/guide)'),
         ]
         for text, label, destination in samples:
             with self.subTest(text=text):

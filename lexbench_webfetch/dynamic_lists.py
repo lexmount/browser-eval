@@ -9,9 +9,10 @@ import unicodedata
 from html import unescape
 from html.parser import HTMLParser
 from typing import NamedTuple
-from urllib.parse import parse_qsl, quote, unquote, urlencode, urljoin, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit, urlunsplit
 
 from .reference_quality import HTML_BLOCK_ELEMENTS
+from .response_input import join_answer_url
 
 
 class LocatedItem(NamedTuple):
@@ -106,7 +107,7 @@ def _markdown_safe_destination(destination):
     return ''.join(
         quote(character, safe='')
         if character in r'()[]<>\\' or character.isspace() or ord(character) < 32
-        else character
+        else '&amp;' if character == '&' else character
         for character in destination
     )
 
@@ -159,6 +160,40 @@ def scoped_html(content):
     return _visible_html_soup(BeautifulSoup(_without_unsupported_declarations(content), 'html.parser'))
 
 
+_CSS_NUMBER = re.compile(r'[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?%?')
+
+
+def _valid_inline_visibility_value(property_name, value):
+    """Validate literal values for the three visibility properties we inspect."""
+    if not value:
+        return False
+    if value in {'inherit', 'initial', 'unset', 'revert', 'revert-layer'}:
+        return True
+    # Computed functions require CSS context; retain the existing treatment
+    # rather than pretending to evaluate custom properties or calculations.
+    if re.match(r'(?:var|env)\(', value):
+        return True
+    if property_name == 'visibility':
+        return value in {'visible', 'hidden', 'collapse'}
+    if property_name == 'opacity':
+        return bool(_CSS_NUMBER.fullmatch(value)
+                    or re.match(r'(?:calc|min|max|clamp)\(', value))
+    if property_name == 'display':
+        single = {'none', 'contents', 'inline-block', 'inline-table', 'inline-flex', 'inline-grid',
+                  'table-row-group', 'table-header-group', 'table-footer-group', 'table-row',
+                  'table-cell', 'table-column-group', 'table-column', 'table-caption',
+                  'ruby-base', 'ruby-text', 'ruby-base-container', 'ruby-text-container'}
+        if value in single:
+            return True
+        tokens = value.split()
+        outside, inside = {'block', 'inline'}, {'flow', 'flow-root', 'table', 'flex', 'grid', 'ruby'}
+        return bool(tokens and len(tokens) == len(set(tokens))
+                    and set(tokens) <= outside | inside | {'list-item'}
+                    and len(set(tokens) & outside) <= 1 and len(set(tokens) & inside) <= 1
+                    and ('list-item' not in tokens or not set(tokens) & (inside - {'flow', 'flow-root'})))
+    return True
+
+
 def _visible_html_soup(soup):
     # HTML permits an omitted head end tag before an explicit body. Python's
     # html.parser leaves that body nested in head; preserve the existing body
@@ -173,14 +208,27 @@ def _visible_html_soup(soup):
     for node in list(soup.select('[style]')):
         if node.parent is None:
             continue
-        declarations = {}
-        for declaration in node.get('style', '').split(';'):
+        declarations, priorities = {}, {}
+        style = re.sub(r'/\*.*?\*/', ' ', node.get('style', ''), flags=re.S)
+        for declaration in style.split(';'):
             key, separator, value = declaration.partition(':')
-            if separator:
-                declarations[key.strip().lower()] = value.replace('!important', '').strip().lower()
+            if not separator:
+                continue
+            key, value = key.strip().lower(), value.strip().lower()
+            important = re.search(r'!\s*important\s*$', value)
+            if important:
+                value = value[:important.start()].strip()
+            if not _valid_inline_visibility_value(key, value):
+                continue
+            # Important declarations beat normal ones; equal priorities keep
+            # the last declared value, independently for each property.
+            if key not in declarations or important or not priorities[key]:
+                declarations[key], priorities[key] = value, bool(important)
+        opacity = declarations.get('opacity', '')
+        zero_opacity = bool(_CSS_NUMBER.fullmatch(opacity) and float(opacity.rstrip('%')) <= 0)
         if (declarations.get('display') == 'none'
                 or declarations.get('visibility') in {'hidden', 'collapse'}
-                or declarations.get('opacity') in {'0', '0.0', '0%'}):
+                or zero_opacity):
             node.decompose()
     # Native closed disclosures render only the first direct summary. Apply
     # this before extracting any body, anchor or record text.
@@ -246,14 +294,14 @@ def visible_html_text(
             heading = re.fullmatch(r"\s*(#{1,6})[ \t]+([^\n]+)\s*", link.label)
             if heading and not link.is_image:
                 text = (text[:link.start] + "\n" + heading[1] + " [" + heading[2].strip()
-                        + "](" + link.destination + ")\n" + text[link.end:])
+                        + "](" + _markdown_safe_destination(link.destination) + ")\n" + text[link.end:])
     return text
 
 
 def _entry_destination(url, contract, base_url, diagnostics=None):
     """Validate a record destination independently of its returned name."""
     try:
-        destination = urljoin(base_url, unescape(url))
+        destination = join_answer_url(base_url, url)
         parts = urlsplit(destination)
         parts.port
     except ValueError:
@@ -308,7 +356,7 @@ def _note_malformed_markdown_destinations(content, base_url, diagnostics):
     # letting one bad candidate erase independently valid siblings.
     for raw_destination in re.findall(r'\]\(([^)\s]+)\)', content):
         try:
-            parsed = urlsplit(urljoin(base_url, unescape(raw_destination)))
+            parsed = urlsplit(join_answer_url(base_url, unescape(raw_destination)))
             parsed.port
         except ValueError:
             if "invalid_link_output" not in diagnostics:
@@ -400,7 +448,7 @@ def _owned_metadata_links(full_content, scoped_content, links, base_url):
         if link.is_image:
             continue
         try:
-            explicit_destinations.add(urljoin(base_url, unescape(link.destination)))
+            explicit_destinations.add(join_answer_url(base_url, link.destination))
         except ValueError:
             continue
     candidates = safe_named_links(links, base_url)
@@ -439,7 +487,7 @@ def _breadcrumb_scope_end(content, contract, base_url):
         if valid:
             link = parsed[0]
             try:
-                destination = urljoin(base_url, link.destination)
+                destination = join_answer_url(base_url, link.destination)
                 target = urlsplit(destination)
             except ValueError:
                 valid = False
@@ -1329,7 +1377,7 @@ def extract_linked_products(content, contract, base_url, diagnostics=None, *, in
                     for link in markdown_links(scannable)
                     if not link.is_image and not any(left <= link.start < right
                                                     for left, right in html_tags)]
-    parsed_links += [(match.start(), match.end(), match[2], match[3]) for match in re.finditer(
+    parsed_links += [(match.start(), match.end(), unescape(match[2]), match[3]) for match in re.finditer(
         r'''<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1[^>]*>(.*?)</a>''', scannable, re.I | re.S)]
     parsed_links.sort()
     links = []

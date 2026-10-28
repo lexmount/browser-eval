@@ -805,7 +805,7 @@ def _parse_records(visible, schema, *, allow_closed_title_cards=False):
 
 def _non_record_visible(content, contract, records, base_url):
     """Remove owned record links, without erasing identical navigation text."""
-    from urllib.parse import urljoin
+    from .response_input import join_answer_url
 
     from .dynamic_lists import scoped_html, named_entry_identity, canonical_entry_path, visible_html_text
     from .reference_quality import markdown_links, visible_markdown_links, visible_mixed_html_text
@@ -815,7 +815,7 @@ def _non_record_visible(content, contract, records, base_url):
 
     def is_record(url):
         try:
-            absolute = urljoin(base_url, url)
+            absolute = join_answer_url(base_url, url)
             if urlsplit(absolute).scheme not in {'http', 'https'} or not urlsplit(absolute).hostname:
                 return False
             parts = urlsplit(absolute)
@@ -837,7 +837,7 @@ def _non_record_visible(content, contract, records, base_url):
         for image in soup.select('a[href] img[alt]'):
             owner = image.find_parent('a', href=True)
             try:
-                target = urlsplit(urljoin(base_url, owner['href']))
+                target = urlsplit(join_answer_url(base_url, owner['href']))
             except ValueError:
                 continue
             if target.scheme in {'http', 'https'} and target.hostname and not is_record(owner['href']):
@@ -862,7 +862,7 @@ def _non_record_visible(content, contract, records, base_url):
                 content = content[:link.start] + ' ' + content[link.end:]
             else:
                 try:
-                    target = urlsplit(urljoin(base_url, link.destination))
+                    target = urlsplit(join_answer_url(base_url, link.destination))
                     web_link = target.scheme in {'http', 'https'} and bool(target.hostname)
                 except ValueError:
                     web_link = False
@@ -1348,14 +1348,21 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Invalid stable acceptance regex") from error
 
 
-def _pattern_text_surface(text):
+def _pattern_text_surface(text, *, representation=None):
     """Render code delimiters after visibility parsing, keeping literal payloads."""
-    from .reference_quality import markdown_literal_spans
+    if representation in {'plain_text', 'html'}:
+        return text
+    from .reference_quality import markdown_indented_code_contents, markdown_literal_spans
 
+    indented = markdown_indented_code_contents(text)
     for start, end in reversed(markdown_literal_spans(text)):
         literal = text[start:end]
         opening = re.match(r'^ {0,3}(`{3,}|~{3,})([^\r\n]*)(?:\r?\n|$)', literal)
-        if opening and not (opening[1][0] == '`' and '`' in opening[2]):
+        if (start, end) in indented:
+            payload = indented[start, end]
+            if literal.endswith(('\n', '\r')) and not payload.endswith('\n'):
+                payload += '\n'
+        elif opening and not (opening[1][0] == '`' and '`' in opening[2]):
             payload = literal[opening.end():]
             payload = re.sub(r'(?m)^ {0,3}' + re.escape(opening[1][0])
                              + '{' + str(len(opening[1])) + r',}[ \t]*\n?\Z', '', payload)
@@ -1442,7 +1449,10 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     text_surfaces = [text_surface]
     if original_markdown_visible is not None:
         text_surfaces.append(original_markdown_visible)
-    pattern_surfaces = [(surface if representation == 'plain_text' else _pattern_text_surface(surface))
+    from .reference_quality import is_html_document_or_fragment as native_html_surface
+    pattern_representation = ('plain_text' if representation == 'html' or native_html_surface(content)
+                              else representation)
+    pattern_surfaces = [_pattern_text_surface(surface, representation=pattern_representation)
                         for surface in text_surfaces] if patterns else []
     page_results = [{"pattern": p, "pass": any(re.search(p, surface, re.I | re.M)
                                                for surface in pattern_surfaces)} for p in patterns]
