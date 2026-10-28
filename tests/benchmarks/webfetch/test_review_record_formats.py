@@ -162,11 +162,12 @@ def test_frame_visibility_uses_the_shared_last_inline_style_declaration():
     assert evaluate_response(image_task, frame.encode())['passed']
 
 
-@pytest.mark.parametrize('field', ['html', 'content'])
+@pytest.mark.parametrize('field,expected', [('html', False), ('content', True)])
 @pytest.mark.parametrize('link', ['[Download](/manual.pdf "File")', '![Preview](/manual.pdf)'])
-def test_json_wrapped_markdown_keeps_resource_destinations(field, link):
+def test_json_resource_fields_preserve_their_declared_surface(field, expected, link):
     result = evaluate_response(task(task_kind='resource', content_score_applicable=False,
                                     expected_resources=[{'urls': ['/manual.pdf']}]),
                                json.dumps({field: link}).encode())
-    assert result['passed']
-    assert result['metrics']['resource_candidate_urls'] == ['https://shop.example/manual.pdf']
+    assert result['passed'] is expected
+    assert result['metrics']['resource_candidate_urls'] == (
+        ['https://shop.example/manual.pdf'] if expected else [])

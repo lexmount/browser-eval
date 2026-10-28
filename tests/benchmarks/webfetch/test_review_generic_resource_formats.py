@@ -37,13 +37,19 @@ def test_declared_html_does_not_interpret_markdown_or_json(body):
     assert evaluate_response(resource_case(), b'<img src="/target.png">', metadata={'answer_format': 'html'})['passed']
 
 
-def test_markdown_resources_and_literal_examples_remain_distinct():
+@pytest.mark.parametrize('image_only', [False, True])
+def test_markdown_resources_and_literal_examples_remain_distinct(image_only):
+    case = resource_case()
+    if image_only:
+        case['resource_output_contract'] = {'candidate_scope': 'image_answer_fields', 'unexpected': 'reject'}
     for body in ['[Image](/target.png)', '![Image](/target.png)', '<img src="/target.png">']:
-        assert evaluate_response(resource_case(), body.encode(), metadata={'answer_format': 'markdown'})['passed']
-        assert not evaluate_response(resource_case(), ('```\n' + body + '\n```').encode(),
+        assert evaluate_response(case, body.encode(), metadata={'answer_format': 'markdown'})['passed']
+        assert not evaluate_response(case, ('```\n' + body + '\n```').encode(),
                                      metadata={'answer_format': 'markdown'})['passed']
-    assert not evaluate_response(resource_case(), b'{"images":["/target.png"]}', metadata={'answer_format': 'markdown'})['passed']
-    assert evaluate_response(resource_case(), b'{"images":["/target.png"]}')['passed']
+    assert not evaluate_response(case, b'{"images":["/target.png"]}', metadata={'answer_format': 'markdown'})['passed']
+    assert evaluate_response(case, b'{"images":["/target.png"]}')['passed']
+
+    assert evaluate_response(case, b'{"images":["/target.png"]}', metadata={'answer_format': 'markdown', 'images': ['/target.png']})['passed']
 
 
 @pytest.mark.parametrize('image_only', [False, True])

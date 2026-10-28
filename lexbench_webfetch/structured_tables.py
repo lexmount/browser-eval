@@ -219,8 +219,10 @@ def _contains_rendered_html_table(content):
     return bool(re.search(r'<table\b[^>]*>[\s\S]*?</table\s*>', candidate, re.I))
 
 
-def table_text_surface(content, *, exclude_selector=None):
+def table_text_surface(content, *, exclude_selector=None, representation=None):
     """Preserve owned HTML cells/links and adjacent split Markdown bodies."""
+    if representation == 'plain_text':
+        return content
     from bs4 import BeautifulSoup
     from .dynamic_lists import _markdown_safe_destination
     content = _without_example_fences(content)
@@ -628,7 +630,7 @@ def validate_group_caption(group):
         raise ValueError("Table caption must capture one nonempty value")
 
 
-def grouped_table_surface(content, group):
+def grouped_table_surface(content, group, *, representation=None):
     """Bind a caption value only to following rows in the same declared table.
 
     Markdown uses a one-cell caption row inside a four (or more) column table.
@@ -640,7 +642,7 @@ def grouped_table_surface(content, group):
     columns = group['required_columns']
     pattern = re.compile(option['pattern'])
     label = option['field']['aliases'][0]
-    content = _without_example_fences(content)
+    content = content if representation == 'plain_text' else _without_example_fences(content)
 
     def value(text):
         match = pattern.fullmatch(text.strip())
@@ -654,7 +656,7 @@ def grouped_table_surface(content, group):
         # Escape pipe characters so a value cannot manufacture another field.
         return '| ' + ' | '.join(' '.join(v.split()).replace('\\', r'\\').replace('|', r'\|') for v in cells) + ' |'
 
-    if _contains_rendered_html_table(content):
+    if representation != 'plain_text' and _contains_rendered_html_table(content):
         soup = scoped_html(content)
         expanded = {}
         replacements = []

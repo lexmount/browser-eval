@@ -967,11 +967,23 @@ def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundar
     return False
 
 
-def source_record_hash(fields, names, schema):
-    """Bind complete owned fields using the existing structured-anchor normalization."""
-    import json
+def _record_field_key(value):
+    """Normalize rendered field text without interpreting Markdown syntax."""
     from .metrics import normalize_for_match
-    values = [normalize_for_match(fields.get(name, '')).strip('“”"‘’ ') for name in names]
+    value = value.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"',
+                                         "–": "-", "—": "-", "−": "-"}))
+    value = normalize_for_match(value, representation='plain_text').strip('“”"‘’ ')
+    return re.sub(r'([$£€¥]) +(?=[+-]?\d)', r'\1', value)
+
+
+def source_record_hash(fields, names, schema):
+    """Hash already-extracted literal fields; render authored markup before binding.
+
+    Keep the canonical typography, field ordering and JSON/SHA-256 encoding used
+    by frozen receipts. Literal Markdown is data, never an alternate spelling.
+    """
+    import json
+    values = [_record_field_key(fields.get(name, '')) for name in names]
     if schema == 'name_description':
         values = [value.replace(' ', '') for value in values]
     return hashlib.sha256(json.dumps(values, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
@@ -1015,15 +1027,25 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
         return matched
     if schema != "named_link" and SCHEMA_FIELDS[schema]:
         for value in anchor["alternatives"]:
-            expected = _parse_records(_visible(value, schema, representation=representation), schema)
+            from .reference_quality import is_html_document_or_fragment
+            reference_html = is_html_document_or_fragment(value)
+            reference_literal = representation in {'plain_text', 'html'} or reference_html
+            reference_representation = 'html' if reference_html else representation
+            reference_visible = _visible(value, schema, representation=reference_representation)
+            expected = _parse_records(reference_visible, schema, literal=reference_literal)
+            if reference_literal and not expected:
+                # A declared table alternative has its own column mapping,
+                # independent of the answer's literal line representation.
+                table_visible = _visible(value, schema, representation='markdown')
+                expected, _ = _table_records(table_visible.splitlines(), schema)
             if len(expected) == 1 and expected[0]["valid"]:
                 owned.append((value, expected[0]["fields"]))
     if owned:
         # Structured anchors compare complete owned fields, not a flattened
         # document substring. Table columns and Markdown links are equivalent.
         def field_matches(record, fields, field):
-            actual = normalize_for_match(record["fields"][field]).strip('“”"‘’ ')
-            expected = normalize_for_match(fields[field]).strip('“”"‘’ ')
+            actual = _record_field_key(record["fields"][field])
+            expected = _record_field_key(fields[field])
             # Name/description card ownership provides a structural boundary
             # even if an inline DOM separator is omitted. Quote tags are a
             # set-like field, so their separators must remain observable.

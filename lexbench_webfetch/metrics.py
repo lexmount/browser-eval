@@ -160,7 +160,7 @@ def _image_answer_candidates(content: str, *, base_url: str, representation=None
         content = normalize_native_markdown_layout(content)
         if is_html_document_or_fragment(content):
             representation = 'html'
-    if representation not in {'plain_text', 'html'}:
+    if representation is None:
         try:
             structured = json.loads(content)
         except RecursionError:
@@ -169,6 +169,7 @@ def _image_answer_candidates(content: str, *, base_url: str, representation=None
             structured = None
         if isinstance(structured, (dict, list)):
             return _native_json_image_candidates(structured, base_url=base_url)
+    if representation not in {'plain_text', 'html'}:
         from .reference_quality import markdown_literal_spans
         for start, end in reversed(markdown_literal_spans(content)):
             content = content[:start] + re.sub(r'[^\n]', ' ', content[start:end]) + content[end:]

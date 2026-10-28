@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "feefa9d26ae3587afd7b4ee41d3a521c151aca26003f464724d1917ea33e3e06"
+          "after_sha256": "b23757554cac906b18cb6e9cb65d57bd60e4943bda4168b4e1c7c3fc9e84dbfd"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "ed576022743fcaff22e9f222fb517c96eacc4466992b242a19524a4a0fbd276d"
+          "after_sha256": "8aff8779472f171a4b204dd571a6849e46bf3a48bea055f560933e8432feddc7"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -104,11 +104,11 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "2824ef34d59fc6e99b8c860da1e8910cc88dfd7acb03f341b349cc4303e96cbc"
+          "after_sha256": "19ce899fd4615901e1fbf7a4df2ece106182dce8402b21ff434d6a06ac1f7163"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
-          "after_sha256": "0ca6cdd16ffcfd59c3e011dcc5b3e8a1bb00347dab2b05b85080941ff6be465a"
+          "after_sha256": "d8a3f5bd6687a93992acec3080036b12c2879b404cb5005f6cc2db4b16b0fcc5"
         },
         "versions.py": {
           "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
@@ -1879,11 +1879,14 @@
             "review15-dynamic-html-native-label-pattern",
             "review15-dynamic-html-escaped-tag-one-pass",
             "review15-dynamic-html-escaped-entity-one-pass",
-            "review15-dynamic-html-literal-destination-words"
+            "review15-dynamic-html-literal-destination-words",
+            "review15-dynamic-json-field-html",
+            "review15-dynamic-json-field-content"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_generic_resource_formats.py",
-            "tests/benchmarks/webfetch/test_review_rendered_html_patterns.py"
+            "tests/benchmarks/webfetch/test_review_rendered_html_patterns.py",
+            "tests/benchmarks/webfetch/test_review_record_formats.py"
           ]
         },
         {
@@ -1914,6 +1917,128 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_native_html_record_text.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "native-cell-projection-escaped-literal",
+            "native-cell-projection-empty-markup",
+            "native-cell-projection-native-formatting",
+            "native-cell-projection-escaped-formatting-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_cell_projection.py",
+            "tests/benchmarks/webfetch/test_table_group_caption.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "review15-markdown-image-json-markdown-literal",
+            "review15-markdown-image-json-auto-answer",
+            "review15-markdown-image-json-typed-answer"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_generic_resource_formats.py",
+            "tests/benchmarks/webfetch/test_review_record_formats.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "structured_tables.py"
+          ],
+          "regression_ids": [
+            "composite-dispatch-name_description-plain_text",
+            "composite-dispatch-name_description-html",
+            "composite-dispatch-table-plain_text",
+            "composite-dispatch-table-html",
+            "composite-dispatch-plain-tsv",
+            "composite-dispatch-table-literal-value-plain_text",
+            "composite-dispatch-table-literal-value-markdown",
+            "composite-dispatch-rendered-description-literal-tags"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_composite_dispatch_formats.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "runtime16-membership-0",
+            "runtime16-membership-1",
+            "runtime16-membership-2",
+            "runtime16-membership-3",
+            "runtime16-membership-4",
+            "runtime16-membership-5",
+            "runtime16-membership-6",
+            "runtime16-membership-7",
+            "runtime16-literal-binding-8",
+            "runtime16-literal-binding-9",
+            "runtime16-literal-binding-10",
+            "runtime16-literal-binding-11",
+            "runtime16-anchor-0",
+            "runtime16-anchor-1",
+            "runtime16-anchor-2",
+            "runtime16-anchor-3",
+            "runtime16-anchor-4",
+            "runtime16-anchor-5",
+            "runtime16-anchor-6",
+            "runtime16-anchor-7",
+            "runtime16-anchor-8",
+            "runtime16-anchor-9",
+            "runtime16-anchor-10",
+            "runtime16-anchor-11",
+            "runtime16-anchor-12",
+            "runtime16-anchor-13",
+            "runtime16-anchor-14",
+            "runtime16-anchor-15",
+            "runtime16-anchor-16",
+            "runtime16-anchor-17",
+            "runtime16-anchor-18",
+            "runtime16-anchor-19",
+            "runtime16-wrong-reference-20",
+            "runtime16-wrong-reference-21",
+            "runtime16-wrong-reference-22",
+            "runtime16-wrong-reference-23",
+            "runtime16-reference-layout-24",
+            "runtime16-reference-layout-25",
+            "runtime16-reference-layout-26",
+            "runtime16-reference-layout-27"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_literal_field_identity.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round16-native-field-literal-stars",
+            "round16-native-field-stripped-stars",
+            "round16-native-field-literal-table-stars",
+            "round16-native-field-stripped-table-stars",
+            "round16-native-field-escaped-tag",
+            "round16-native-field-parsed-escaped-tag",
+            "round16-native-field-literal-entity",
+            "round16-native-field-double-decoded-entity",
+            "round16-native-field-actual-formatting",
+            "round16-native-field-actual-formatting-not-stars",
+            "round16-native-field-private-roundtrip",
+            "round16-native-field-private-not-normalized",
+            "round16-native-field-mixed-root-None",
+            "round16-native-field-mixed-root-html"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_field_literals.py"
           ]
         }
       ]

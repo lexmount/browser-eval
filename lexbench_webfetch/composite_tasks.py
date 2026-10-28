@@ -39,7 +39,7 @@ def _key(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip(" *#>`")
 
 
-def _column_scope(content: str, group: dict) -> str | None:
+def _column_scope(content: str, group: dict, *, literal_decode=None) -> str | None:
     """Own a declared named list by its table column, not the adjacent column."""
     start, end = group.get("start_pattern"), group.get("end_pattern")
     if group["kind"] != "named_link" or not start or not end:
@@ -48,6 +48,8 @@ def _column_scope(content: str, group: dict) -> str | None:
     lines = content.splitlines()
     saw_columns = False
     def label(cell):
+        if literal_decode:
+            cell = cell.translate(literal_decode)
         return re.sub(r"^#{1,6}\s+", "", visible_markdown_links(cell).strip()).strip(" *")
     for index, line in enumerate(lines):
         delimiter = "\t" if "\t" in line else "|" if "|" in line else None
@@ -109,9 +111,9 @@ def _column_scope(content: str, group: dict) -> str | None:
     return "" if saw_columns else None
 
 
-def _scope(content: str, group: dict) -> str:
+def _scope(content: str, group: dict, *, literal_decode=None) -> str:
     """Return one declared section, failing closed when a boundary is absent."""
-    column = _column_scope(content, group)
+    column = _column_scope(content, group, literal_decode=literal_decode)
     if column is not None:
         return column
     start = group.get("start_pattern")
@@ -119,6 +121,8 @@ def _scope(content: str, group: dict) -> str:
     begin = 0
 
     def boundary(pattern: str, value: str):
+        if literal_decode:
+            value = value.translate(literal_decode)
         matches = list(re.finditer(pattern, value, re.I | re.M))
         match = next(
             (
@@ -400,7 +404,7 @@ def _link_identity(url: str, group: dict) -> str | None:
         return None
 
 
-def _html_table_record_contexts(content: str, group: dict, base_url: str, allowed: set):
+def _html_table_record_contexts(content: str, group: dict, base_url: str, allowed: set, *, literal_text=None):
     """Retain native row/cell boundaries lost by a text-only projection.
 
     One linked cell owns its row's fields. Multiple linked cells are separate
@@ -430,6 +434,8 @@ def _html_table_record_contexts(content: str, group: dict, base_url: str, allowe
                 for nested in list(own_context.select('table')):
                     if nested.parent is not None:
                         nested.decompose()
+                if literal_text is not None:
+                    _protect_native_text(own_context, literal_text, html_source=True)
                 candidates.append((cell, identity, visible_html_text(str(own_context), preserve_links=True)))
     # Trace occurrences through the same section/column projection as the
     # named records. An allowed destination elsewhere on the page cannot lend
@@ -441,8 +447,8 @@ def _html_table_record_contexts(content: str, group: dict, base_url: str, allowe
         tag = soup.new_tag('p')
         tag.string = marker + str(index) + '-end'
         cell.append(tag)
-    projected, _ = _html_field_surface(str(soup), group, base_url)
-    selected = _scope(projected, group)
+    projected, _ = _html_field_surface(str(soup), group, base_url, literal_text=literal_text, html_source=True)
+    selected = _scope(projected, group, literal_decode=literal_text.get('decode') if literal_text else None)
     contexts, table_ids = {}, set()
     for index, (_, identity, context) in enumerate(candidates):
         if marker + str(index) + '-end' in selected:
@@ -517,7 +523,21 @@ def _card_section_context(content: str, begin: int, end: int, title_start: int,
     return context
 
 
-def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, str]:
+def _protect_native_text(soup, literal_text, *, html_source=False):
+    """Shield DOM text, not generated link syntax, with collision-free character escapes."""
+    from bs4 import Comment
+    if not literal_text:
+        used = set(str(soup))
+        available = (chr(code) for lo, hi in ((0xF0000, 0xFFFFE), (0x100000, 0x10FFFE))
+                     for code in range(lo, hi) if chr(code) not in used)
+        encode = {ord(char): next(available) for char in r"\`*_[]()#!<>|&"}
+        literal_text.update(encode=encode, decode={ord(value): chr(key) for key, value in encode.items()})
+    for node in list(soup.find_all(string=True)):
+        if not isinstance(node, Comment) and (html_source or node.parent is not soup):
+            node.replace_with(str(node).translate(literal_text['encode']))
+
+
+def _html_field_surface(content: str, group: dict, base_url: str, *, literal_text=None, html_source=False) -> tuple[str, str]:
     """Keep real DOM ownership while projecting visible links and field text."""
     from bs4 import Comment, NavigableString, Tag
     from .dynamic_lists import scoped_html, visible_html_text
@@ -581,6 +601,8 @@ def _html_field_surface(content: str, group: dict, base_url: str) -> tuple[str, 
         if (id(node) not in owners and len(elements) == 1 and not direct_text
                 and node.get('role') not in {'article','listitem'}):
             node.unwrap()
+    if literal_text is not None:
+        _protect_native_text(soup, literal_text, html_source=html_source)
     marker = '\ufdd1record-owner-'
     while marker in content:
         marker += '_'
@@ -658,7 +680,10 @@ def _unlabeled_text_table_context(context: str, identity: str, group: dict,
     return cell
 
 
-def _named_link_group(content: str, group: dict, base_url: str, links: list | None, *, ownership_marker: str | None = None, native_html: str | None = None, representation=None, native_name_content=None) -> dict:
+def _named_link_group(content: str, group: dict, base_url: str, links: list | None, *, ownership_marker: str | None = None, native_html: str | None = None, representation=None, native_name_content=None, literal_text=None) -> dict:
+    def native_text(value):
+        return value.translate(literal_text['decode']) if literal_text else value
+
     base_url = group.get('link_base_url', base_url)
     content, owner_ranges, table_ranges = _record_owner_ranges(content, ownership_marker)
     standard = {
@@ -696,7 +721,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         scoped_entries = {}
         for link in markdown_links(content):
             identity = _link_identity(_link_url(base_url, link.destination), group)
-            key = (identity, _label_key(link.label, representation='html'))
+            key = (identity, _label_key(native_text(link.label), representation='html'))
             if not link.is_image and key in native_pairs:
                 scoped_entries[identity] = native_pairs[key]
         entries = list(scoped_entries.values())
@@ -785,7 +810,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
 
         def previous_scalar(link):
             destination = _link_url(group.get("link_base_url", base_url), link.destination)
-            if link.label.strip() not in {link.destination, destination}:
+            if native_text(link.label).strip() not in {link.destination, destination}:
                 return None
             start = content.rfind("\n", 0, link.start) + 1
             end = content.find("\n", link.end)
@@ -793,7 +818,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             if content[start:link.start].strip() or content[link.end:end].strip() or start == 0:
                 return None
             previous_start = content.rfind("\n", 0, start - 1) + 1
-            scalar = content[previous_start:start - 1].strip()
+            scalar = native_text(content[previous_start:start - 1]).strip()
             if (not scalar or markdown_links(scalar) or re.search(r"<[^>]*>", scalar)
                     or re.match(r"(?:[#>*]|[-+]\s|\d+[.)]\s|https?://|//)", scalar)):
                 return None
@@ -825,7 +850,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                                      if (pattern := _field_token_pattern(spec)) is not None))
                 if not field_like:
                     label = scalar
-            return label
+            return native_text(label)
 
         def name_only(label, link=None):
             # An explicit heading identifies the linked item even when its
@@ -846,7 +871,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         for link in markdown_links(content):
             destination = _link_url(base_url, link.destination)
             identity = _link_identity(destination, group)
-            if native_name_content is not None and (identity, _label_key(link.label, representation='html')) not in native_url_labels:
+            if native_name_content is not None and (identity, _label_key(native_text(link.label), representation='html')) not in native_url_labels:
                 continue
             if identity is None or link.is_image or not is_record_start(link):
                 continue
@@ -967,20 +992,20 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             context = "\n\n".join(pieces)
             context = _card_section_context(context, 0, len(context), max(0, link_start-line_start), identity, group, base_url)
             context = _unlabeled_text_table_context(context, identity, group, base_url, fields)
-            if label and _required_fields(context, label, field_specs=fields, representation=representation):
-                record = {"url": destination, "title": label, "context": context}
+            if label and _required_fields(context, label, field_specs=fields, representation=representation, literal_text=literal_text):
+                record = {"url": destination, "title": label, "context": native_text(context)}
                 owned[identity] = record
                 if not any(begin <= link_start < end for begin, end in table_ranges):
                     independent[identity] = record
         if native_html:
             table_ids, table_contexts = _html_table_record_contexts(
-                native_html, group, base_url, set(allowed_rows),
+                native_html, group, base_url, set(allowed_rows), literal_text=literal_text,
             )
             for identity in table_ids:
                 entry = allowed_rows[identity]
                 label = entry["title"]
                 context = next((value for value in table_contexts.get(identity, [])
-                                if _required_fields(value, label, field_specs=fields, representation=representation)), None)
+                                if _required_fields(value, label, field_specs=fields, representation=representation, literal_text=literal_text)), None)
                 if context is None:
                     if identity in independent:
                         owned[identity] = independent[identity]
@@ -988,7 +1013,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                         owned.pop(identity, None)
                 else:
                     owned[identity] = {"url": entry["url"], "title": label,
-                                       "context": context, "context_basis": "native_table_owner"}
+                                       "context": native_text(context), "context_basis": "native_table_owner"}
         records = [row for identity, row in owned.items() if identity in allowed_rows]
     else:
         records = entries
@@ -1062,9 +1087,13 @@ def _value_matches_spec(value: str, spec: dict, *, whole_cell: bool = False, rep
     """Apply the same declared field type rules to card and table values."""
     if representation in {'plain_text', 'html'}:
         visible = value
+    elif whole_cell:
+        # Table projection already decoded native cell text. Re-parsing a
+        # rendered value such as '<value>' would turn visible data into markup.
+        visible = _visible_markdown_scalar(value)
     else:
         from .reference_quality import visible_mixed_html_text
-        visible = visible_mixed_html_text(_visible_markdown_scalar(value) if whole_cell else visible_markdown_links(value))
+        visible = visible_mixed_html_text(visible_markdown_links(value))
     visible = re.sub(r"\s+", " ", visible).strip()
     if not visible or visible in {"-", "—"}:
         return False
@@ -1505,13 +1534,19 @@ def _assigned_field_values(lines: list[str], field_specs: list[dict], *, represe
     return best
 
 
-def _required_fields(context: str, title: str, *, field_specs: list[dict], representation=None) -> bool:
+def _required_fields(context: str, title: str, *, field_specs: list[dict], representation=None, literal_text=None) -> bool:
     """Require every declared field inside the record block which owns the link."""
-    lines = _labeled_field_lines(_context_lines(context, title, representation=representation), field_specs)
+    if literal_text:
+        title = title.translate(literal_text['encode'])
+    lines = _context_lines(context, title, representation=representation)
+    if literal_text:
+        lines = [line.translate(literal_text['decode']) for line in lines]
+        representation = 'plain_text'
+    lines = _labeled_field_lines(lines, field_specs)
     return len(_assigned_field_values(lines, field_specs, representation=representation)) == len(field_specs)
 
 
-def _name_description_group(content: str, group: dict, base_url: str) -> dict:
+def _name_description_group(content: str, group: dict, base_url: str, *, representation=None) -> dict:
     from .stable_tasks import evaluate_stable_task
 
     result = evaluate_stable_task(
@@ -1525,6 +1560,7 @@ def _name_description_group(content: str, group: dict, base_url: str) -> dict:
         allow_closed_title_cards=bool(
             group.get("start_pattern") and group.get("end_pattern")
         ),
+        representation='plain_text' if representation == 'html' else representation,
     )
     return {
         "count": result["stable_unique_record_count"],
@@ -1569,15 +1605,20 @@ def _distinct_column_owners(mapping: dict) -> bool:
     return True
 
 
-def _table_group(content: str, group: dict) -> dict:
-    lines = [line.strip() for line in clean_reference_text(table_text_surface(content)).splitlines() if line.strip()]
+def _table_group(content: str, group: dict, *, representation=None) -> dict:
+    lines = [line.strip() for line in clean_reference_text(table_text_surface(content, representation=representation)).splitlines() if line.strip()]
+    plain = representation == 'plain_text'
+    def scalar(value):
+        return value if plain else _visible_markdown_scalar(value)
+    def key(value):
+        return _field_key(value, representation='plain_text') if plain else _key(visible_markdown_links(value))
     required = group["required_columns"]
     records = []
     for index in range(len(lines) - 1):
         delimiter = "|" if "|" in lines[index] else "\t" if "\t" in lines[index] else None
         if not delimiter:
             continue
-        headers = [_key(visible_markdown_links(value)) for value in (_pipe_cells(lines[index]) if delimiter == "|" else lines[index].split(delimiter))]
+        headers = [key(value) for value in (_pipe_cells(lines[index]) if delimiter == "|" else lines[index].split(delimiter))]
         separator = (_pipe_cells(lines[index + 1]) if delimiter == "|" else lines[index + 1].split(delimiter))
         if delimiter == "|" and (len(separator) != len(headers) or not all(
             re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator
@@ -1585,14 +1626,14 @@ def _table_group(content: str, group: dict) -> dict:
             continue
         candidates = {spec['id']: [
             index for index, header in enumerate(headers)
-            if header in {_key(alias) for alias in spec['aliases']}
+            if header in {key(alias) for alias in spec['aliases']}
         ] for spec in required}
         mapping = {}
         for combined in group.get('combined_columns', []):
             pattern = re.compile(combined['pattern'])
             fields = set(pattern.groupindex)
             hits = [index for index, header in enumerate(headers)
-                    if header in {_key(alias) for alias in combined['aliases']}]
+                    if header in {key(alias) for alias in combined['aliases']}]
             if (len(hits) == 1 and not fields & mapping.keys()
                     and all(not candidates[field] or set(candidates[field]) <= {hits[0]}
                             for field in fields)):
@@ -1611,22 +1652,22 @@ def _table_group(content: str, group: dict) -> dict:
                 if delimiter == "|" and _table_header_at(lines, row_index):
                     break
                 values = [value.strip() for value in (_pipe_cells(lines[row_index]) if delimiter == "|" else lines[row_index].split(delimiter))]
-                if delimiter == "\t" and [_key(value) for value in values] == headers:
+                if delimiter == "\t" and [key(value) for value in values] == headers:
                     break
                 if len(values) == len(headers):
                     row = {}
                     for field, (column, pattern) in mapping.items():
-                        match = pattern.fullmatch(_visible_markdown_scalar(values[column])) if pattern else None
+                        match = pattern.fullmatch(scalar(values[column])) if pattern else None
                         row[field] = ((match[field] or '') if match else '') if pattern else values[column]
                     if all(
-                        _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
+                        _value_matches_spec(row[spec["id"]], spec, whole_cell=True, representation='plain_text' if plain else None)
                         for spec in required
                     ):
                         records.append(row)
                 row_index += 1
             # Every table in the independently declared section contributes;
             # repeated identities are still counted only once below.
-    unique = {_key(_visible_markdown_scalar(row[group["identity_column"]])): row for row in records}
+    unique = {key(scalar(row[group["identity_column"]])): row for row in records}
     return {
         "count": len(unique),
         "records": list(unique.values()),
@@ -1836,37 +1877,41 @@ def evaluate_composite_acceptance(
             source = _visible_candidate_content(source if source_representation == 'html' else _without_record_literals(source))
         if "group_caption" in group:
             from .structured_tables import grouped_table_surface
-            source = grouped_table_surface(source, group)
+            source = grouped_table_surface(source, group, representation=source_representation)
             group = {**group, "required_columns": [*group["required_columns"], group["group_caption"]["field"]]}
         if group["kind"] in {"table", "linked_table"}:
-            source = table_text_surface(source, exclude_selector=group.get("table_scope", {}).get("exclude_selector"))
+            source = table_text_surface(source, exclude_selector=group.get("table_scope", {}).get("exclude_selector"), representation=source_representation)
         ownership_marker = None
         native_name_content = None
+        literal_text = None
         if group["kind"] == "named_link" and source_representation != 'plain_text':
             from .dynamic_lists import _document_html
             if ((group.get('required_fields') and _document_html(source))
                     or re.search(r'<a\b[^>]*\bhref\s*=', source, re.I)):
                 native_name_content = source
-                source, ownership_marker = _html_field_surface(source, group, group_base_url)
+                literal_text = {}
+                source, ownership_marker = _html_field_surface(
+                    source, group, group_base_url, literal_text=literal_text,
+                    html_source=source_representation == 'html')
                 source_representation = 'markdown'
         elif group['kind'] in {'field_report', 'literals', 'name_description'} and source_representation != 'plain_text':
             from .reference_quality import visible_mixed_html_text
             source = visible_mixed_html_text(source)
-        scoped = _scope(source, group)
+        scoped = _scope(source, group, literal_decode=literal_text.get('decode') if literal_text else None)
         if group["kind"] == "named_link":
             result = _named_link_group(
                 scoped, group, group_base_url, links if scoped == content else None,
                 native_html=native_name_content if native_name_content is not None else (_without_record_literals(native_html) if native_html else None),
                 ownership_marker=ownership_marker, representation=source_representation,
-                native_name_content=native_name_content,
+                native_name_content=native_name_content, literal_text=literal_text,
             )
         elif group["kind"] == "linked_table":
             result = (_linked_table_group(scoped, group, group_base_url) if representation != 'plain_text' else
                       {'count': 0, 'records': [], 'minimum': group['minimum_records'], 'pass': False})
         elif group["kind"] == "name_description":
-            result = _name_description_group(scoped, group, group_base_url)
+            result = _name_description_group(scoped, group, group_base_url, representation=source_representation)
         elif group["kind"] == "table":
-            result = _table_group(scoped, group)
+            result = _table_group(scoped, group, representation=source_representation)
         elif group["kind"] == "field_report":
             result = _field_report_group(scoped, group, representation=source_representation)
         else:
