@@ -242,6 +242,7 @@ def _review_annotation(definition, revision_path, identifier, root, changes):
         raise ValueError('Review evidence cannot replace parent inputs')
     declared_inputs.update(review_inputs)
     records = []
+    checked_controls = set()
     for change, old, new in changes:
         item = entries[keys.index((identifier, change['case_id']))]
         delta = annotation_changes(public_task(old), public_task(new))
@@ -266,7 +267,12 @@ def _review_annotation(definition, revision_path, identifier, root, changes):
         controls = item.get('regression_ids', [])
         if not controls or set(controls) - set(definition['regression_ids']):
             raise ValueError('Annotation controls differ from its declared revision')
-        check_scoring_regressions(controls)
+        # Controls are independent of the task; repeat every binding check,
+        # but execute an identical control set only once in this review.
+        control_set = frozenset(controls)
+        if control_set not in checked_controls:
+            check_scoring_regressions(controls)
+            checked_controls.add(control_set)
         records.append({'suite': identifier, 'case_id': change['case_id'],
                         'reason': reason, 'sources': sources, 'changes': delta,
                         'regression_ids': controls,

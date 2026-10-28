@@ -4684,10 +4684,10 @@
       "expected_task_pass": false
     },
     {
-      "id": "article-comment-code-multiline-heading",
-      "failure_mode": "false-positive",
+      "id": "article-comment-unmatched-ticks-real-heading",
+      "failure_mode": "false-negative",
       "category": "answer-surface",
-      "root_cause": "Inline code cannot create section headings or author boundaries for comment records.",
+      "root_cause": "Unmatched backticks cannot hide a genuine Markdown block heading or record.",
       "case": {
         "id": "article-ownership",
         "name": "Benchmark page",
@@ -4756,7 +4756,7 @@
       },
       "artifact": "Benchmark page\n\n## Comments\n\n`\n### Alice\nExample reply.\n`",
       "ok": true,
-      "expected_task_pass": false
+      "expected_task_pass": true
     },
     {
       "id": "article-comment-code-bold-author",
@@ -6794,10 +6794,10 @@
       "expected_task_pass": true
     },
     {
-      "id": "article-post-inline-code-fake-author-prefix",
-      "failure_mode": "false-positive",
+      "id": "article-post-unmatched-ticks-real-author-prefix",
+      "failure_mode": "false-negative",
       "category": "answer-surface",
-      "root_cause": "Multiline inline code cannot create an owning post permalink or author boundary.",
+      "root_cause": "Unmatched backticks cannot hide a genuine Markdown block heading or record.",
       "case": {
         "id": "article-ownership",
         "name": "Benchmark page",
@@ -6882,13 +6882,13 @@
       },
       "artifact": "Benchmark page\n\n`\n## Alice [Today](/post/1)\n\nFake post text.\n`",
       "ok": true,
-      "expected_task_pass": false
+      "expected_task_pass": true
     },
     {
-      "id": "article-post-inline-code-fake-linked-profile",
-      "failure_mode": "false-positive",
+      "id": "article-post-unmatched-ticks-real-linked-profile",
+      "failure_mode": "false-negative",
       "category": "answer-surface",
-      "root_cause": "Multiline inline code cannot create an owning post permalink or author boundary.",
+      "root_cause": "Unmatched backticks cannot hide a genuine Markdown block heading or record.",
       "case": {
         "id": "article-ownership",
         "name": "Benchmark page",
@@ -6973,7 +6973,7 @@
       },
       "artifact": "Benchmark page\n\n`\n## [Alice](/profile/alice) [Today](/post/1)\n\nFake post text.\n`",
       "ok": true,
-      "expected_task_pass": false
+      "expected_task_pass": true
     },
     {
       "id": "article-post-inline-code-genuine-body",
@@ -7285,10 +7285,10 @@
       "expected_task_pass": false
     },
     {
-      "id": "article-title-inline-code-multiline-heading",
-      "failure_mode": "false-positive",
+      "id": "article-title-unmatched-ticks-real-heading",
+      "failure_mode": "false-negative",
       "category": "answer-surface",
-      "root_cause": "A literal code span cannot manufacture a standalone title, while real title markup may format code.",
+      "root_cause": "Unmatched backticks cannot hide a genuine Markdown block heading or record.",
       "case": {
         "id": "article-ownership",
         "name": "Benchmark page",
@@ -7318,7 +7318,7 @@
       },
       "artifact": "Benchmark page\n\n`\n# Observed title\n`",
       "ok": true,
-      "expected_task_pass": false
+      "expected_task_pass": true
     },
     {
       "id": "article-title-inline-code-double-tick-multiline",
@@ -27608,6 +27608,2430 @@
       "category": "structured-extraction",
       "failure_mode": "false-negative",
       "root_cause": "Grouped integer counts require a nonzero first decimal digit across Unicode scripts; decimal-digit normalization preserves character offsets and existing plain/padded integer support."
+    },
+    {
+      "id": "title-inline-block-blank-paragraph",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Markdown code spans cannot cross blocks, and excluded HTML title nodes must stay excluded in mixed content.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "before `\n\n# Observed title\n\nafter `",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-inline-block-atx-boundary",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Markdown code spans cannot cross blocks, and excluded HTML title nodes must stay excluded in mixed content.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "before `\n# Observed title\nafter `",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-inline-block-soft-line",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Markdown code spans cannot cross blocks, and excluded HTML title nodes must stay excluded in mixed content.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "before `\nObserved title\nafter `",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "title-selector-mixed-visible",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Markdown code spans cannot cross blocks, and excluded HTML title nodes must stay excluded in mixed content.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1",
+            "excluded_html_selectors": [
+              "h1.screen-reader-only"
+            ]
+          }
+        }
+      },
+      "artifact": "# Other title\n\n<h1 class=\"visible\">Observed title</h1>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-selector-mixed-excluded",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Markdown code spans cannot cross blocks, and excluded HTML title nodes must stay excluded in mixed content.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1",
+            "excluded_html_selectors": [
+              "h1.screen-reader-only"
+            ]
+          }
+        }
+      },
+      "artifact": "# Other title\n\n<h1 class=\"screen-reader-only\">Observed title</h1>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "title-selector-code-literal",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Markdown code spans cannot cross blocks, and excluded HTML title nodes must stay excluded in mixed content.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "<h1 class=\"screen-reader-only\">Observed title</h1>"
+            ],
+            "html_selector": "h1",
+            "excluded_html_selectors": [
+              "h1.screen-reader-only"
+            ]
+          }
+        }
+      },
+      "artifact": "# `<h1 class=\"screen-reader-only\">Observed title</h1>`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "quote-soft-line-code-empty",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Quote continuation markers are container syntax, not visible code contents.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "## Alice [Today](/post/1)\n\n> Bob\n> `\n> `",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "quote-soft-line-code-visible",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Quote continuation markers are container syntax, not visible code contents.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "## Alice [Today](/post/1)\n\n> Bob\n> `Actual code\n> `",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-comment-code-fenced-heading",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Code literals cannot create section headings or author boundaries for comment records.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\n```text\n### Alice\nExample reply.\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-fenced-code-fake-author-prefix",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Fenced code cannot create an owning post permalink or author boundary.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n```markdown\n## Alice [Today](/post/1)\n\nFake post text.\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-fenced-code-fake-linked-profile",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Fenced code cannot create an owning post permalink or author boundary.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n```markdown\n## [Alice](/profile/alice) [Today](/post/1)\n\nFake post text.\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-title-block-code-fenced-heading",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Literal code cannot manufacture a standalone title, while real title markup may format code.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Observed title"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n```markdown\n# Observed title\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-visible-source-ordinary-fields-hidden",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<div hidden>\n[Story](https://example.test/item/1)\nPrice: $12\n</div>",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Composite named-link discovery must apply the shared source-preserving visibility filter before scope, link and required-field discovery, including wildcard links and visible records whose required fields are hidden."
+    },
+    {
+      "id": "composite-visible-source-ordinary-fields-visible",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Story](https://example.test/item/1)\nPrice: $12",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Composite named-link discovery must apply the shared source-preserving visibility filter before scope, link and required-field discovery, including wildcard links and visible records whose required fields are hidden."
+    },
+    {
+      "id": "composite-visible-source-ordinary-field-only-True",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Story](https://example.test/item/1)\n<div hidden>\nPrice: $12\n</div>",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Composite named-link discovery must apply the shared source-preserving visibility filter before scope, link and required-field discovery, including wildcard links and visible records whose required fields are hidden."
+    },
+    {
+      "id": "composite-visible-source-ordinary-field-only-False",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Story](https://example.test/item/1)\nPrice: $12",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Composite named-link discovery must apply the shared source-preserving visibility filter before scope, link and required-field discovery, including wildcard links and visible records whose required fields are hidden."
+    },
+    {
+      "id": "composite-visible-source-wildcard-names-hidden",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "<div hidden>\n[Story](https://example.test/item/1)\n</div>",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Composite named-link discovery must apply the shared source-preserving visibility filter before scope, link and required-field discovery, including wildcard links and visible records whose required fields are hidden."
+    },
+    {
+      "id": "composite-visible-source-wildcard-names-visible",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Story](https://example.test/item/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Composite named-link discovery must apply the shared source-preserving visibility filter before scope, link and required-field discovery, including wildcard links and visible records whose required fields are hidden."
+    },
+    {
+      "id": "composite-visible-source-wildcard-fields-hidden",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<div hidden>\n[Story](https://example.test/item/1)\nPrice: $12\n</div>",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Composite named-link discovery must apply the shared source-preserving visibility filter before scope, link and required-field discovery, including wildcard links and visible records whose required fields are hidden."
+    },
+    {
+      "id": "composite-visible-source-wildcard-fields-visible",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Story](https://example.test/item/1)\nPrice: $12",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Composite named-link discovery must apply the shared source-preserving visibility filter before scope, link and required-field discovery, including wildcard links and visible records whose required fields are hidden."
+    },
+    {
+      "id": "review12-dynamic-markdown-aux-first",
+      "root_cause": "4405518992",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+(?:\\.\\d{2})?"
+          ],
+          "record_name_exclusions": [
+            "Generic"
+          ]
+        }
+      },
+      "artifact": "[Generic](/item/1) $10\n[Alpha](/item/1) $10",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_excluded_record_names": [
+          "Generic"
+        ]
+      }
+    },
+    {
+      "id": "review12-dynamic-markdown-aux-last",
+      "root_cause": "4405518992",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+(?:\\.\\d{2})?"
+          ],
+          "record_name_exclusions": [
+            "Generic"
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1) $10\n[Generic](/item/1) $10",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_excluded_record_names": [
+          "Generic"
+        ]
+      }
+    },
+    {
+      "id": "review12-dynamic-html-aux-first",
+      "root_cause": "4405518992",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+(?:\\.\\d{2})?"
+          ],
+          "record_name_exclusions": [
+            "Generic"
+          ]
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Generic</a><span class=\"price\">$10</span></article>\n<article class=\"product\"><a href=\"/item/1\">Alpha</a><span class=\"price\">$10</span></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_excluded_record_names": [
+          "Generic"
+        ]
+      }
+    },
+    {
+      "id": "review12-dynamic-html-aux-last",
+      "root_cause": "4405518992",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+(?:\\.\\d{2})?"
+          ],
+          "record_name_exclusions": [
+            "Generic"
+          ]
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Alpha</a><span class=\"price\">$10</span></article>\n<article class=\"product\"><a href=\"/item/1\">Generic</a><span class=\"price\">$10</span></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_excluded_record_names": [
+          "Generic"
+        ]
+      }
+    },
+    {
+      "id": "review12-dynamic-scoped-aux-first",
+      "root_cause": "4405518992",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+(?:\\.\\d{2})?"
+          ],
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Generic</a><span class=\"price\">$10</span></article>\n<article class=\"product\"><a href=\"/item/1\">Alpha</a><span class=\"price\">$10</span></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_excluded_record_names": [
+          "Generic"
+        ]
+      }
+    },
+    {
+      "id": "review12-dynamic-scoped-aux-last",
+      "root_cause": "4405518992",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+(?:\\.\\d{2})?"
+          ],
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Alpha</a><span class=\"price\">$10</span></article>\n<article class=\"product\"><a href=\"/item/1\">Generic</a><span class=\"price\">$10</span></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_excluded_record_names": [
+          "Generic"
+        ]
+      }
+    },
+    {
+      "id": "review12-dynamic-scoped-excluded-only",
+      "root_cause": "4405518992",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+(?:\\.\\d{2})?"
+          ],
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Generic</a><span class=\"price\">$10</span></article>",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0,
+        "stable_excluded_record_names": [
+          "Generic"
+        ]
+      }
+    },
+    {
+      "id": "review12-dynamic-markdown-excluded-only",
+      "root_cause": "4405518992",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+(?:\\.\\d{2})?"
+          ],
+          "record_name_exclusions": [
+            "Generic"
+          ]
+        }
+      },
+      "artifact": "[Generic](/item/1) $10",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0,
+        "stable_excluded_record_names": [
+          "Generic"
+        ]
+      }
+    },
+    {
+      "id": "review12-dynamic-scoped-one-owner-aux-first",
+      "root_cause": "4405518992",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+(?:\\.\\d{2})?"
+          ],
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Generic</a><a href=\"/item/1\">Alpha</a><span class=\"price\">$10</span></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_excluded_record_names": [
+          "Generic"
+        ]
+      }
+    },
+    {
+      "id": "review12-dynamic-scoped-one-owner-aux-last",
+      "root_cause": "4405518992",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+(?:\\.\\d{2})?"
+          ],
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Alpha</a><a href=\"/item/1\">Generic</a><span class=\"price\">$10</span></article>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_excluded_record_names": [
+          "Generic"
+        ]
+      }
+    },
+    {
+      "id": "runtime12-product-reordered-False",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "adjacent_generic_pipe_tables_own_their_column_mappings",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "maximum_records": 2
+        }
+      },
+      "artifact": "|name|price|\n|---|---|\n|Alpha|$10|\n|price|name|\n|---|---|\n|$20|Beta|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime12-product-reordered-True",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "adjacent_generic_pipe_tables_own_their_column_mappings",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "maximum_records": 2
+        }
+      },
+      "artifact": "|name|price|\n|---|---|\n|Alpha|$10|\n\n|price|name|\n|---|---|\n|$20|Beta|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime12-product-wrong-order-False",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "adjacent_generic_pipe_tables_own_their_column_mappings",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "maximum_records": 2
+        }
+      },
+      "artifact": "|name|price|\n|---|---|\n|Alpha|$10|\n|price|name|\n|---|---|\n|Beta|$20|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime12-product-wrong-order-True",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "adjacent_generic_pipe_tables_own_their_column_mappings",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "maximum_records": 2
+        }
+      },
+      "artifact": "|name|price|\n|---|---|\n|Alpha|$10|\n\n|price|name|\n|---|---|\n|Beta|$20|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime12-review-reordered-False",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "adjacent_generic_pipe_tables_own_their_column_mappings",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "maximum_records": 2
+        }
+      },
+      "artifact": "|date|text|\n|---|---|\n|2026-01-01|First review|\n|text|date|\n|---|---|\n|Second review|2026-02-01|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime12-review-reordered-True",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "adjacent_generic_pipe_tables_own_their_column_mappings",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "maximum_records": 2
+        }
+      },
+      "artifact": "|date|text|\n|---|---|\n|2026-01-01|First review|\n\n|text|date|\n|---|---|\n|Second review|2026-02-01|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime12-review-wrong-order-False",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "adjacent_generic_pipe_tables_own_their_column_mappings",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "maximum_records": 2
+        }
+      },
+      "artifact": "|date|text|\n|---|---|\n|2026-01-01|First review|\n|text|date|\n|---|---|\n|2026-02-01|Second review|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime12-review-wrong-order-True",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "adjacent_generic_pipe_tables_own_their_column_mappings",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "maximum_records": 2
+        }
+      },
+      "artifact": "|date|text|\n|---|---|\n|2026-01-01|First review|\n\n|text|date|\n|---|---|\n|2026-02-01|Second review|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime12-markdown-excluded",
+      "category": "acceptance-contract",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Generic](https://example.test/item/1) $10",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "runtime12-markdown-admitted",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Specific](https://example.test/item/2) $10",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-markdown-mixed",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Generic](https://example.test/item/1) $10\n\n[Specific](https://example.test/item/2) $10",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-markdown-qualified",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "45727852d0074e2525bd5130ef98968b9d712b95fdbaf00c9ceef23b345dfa31"
+          ],
+          "source_record_pairs_sha256": "d60a47dd6e3656a4ac8ed1e2cb95684af0131fcc4d2c637737c2b7d9955891c9"
+        }
+      },
+      "artifact": "[Generic](https://example.test/item/1) $10\n\n[Specific](https://example.test/item/2) $10",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-markdown-same-url-False",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Generic](https://example.test/item/1) $10\n\n[Specific](https://example.test/item/1) $10",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-markdown-same-url-True",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Specific](https://example.test/item/1) $10\n\n[Generic](https://example.test/item/1) $10",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-html-excluded",
+      "category": "acceptance-contract",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/1\">Generic</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "runtime12-html-admitted",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/2\">Specific</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-html-mixed",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/1\">Generic</a><span class=\"price\">$10</span></div>\n\n<div class=\"product\"><a class=\"name\" href=\"/item/2\">Specific</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-html-qualified",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": [],
+          "source_record_pair_hashes": [
+            "45727852d0074e2525bd5130ef98968b9d712b95fdbaf00c9ceef23b345dfa31"
+          ],
+          "source_record_pairs_sha256": "d60a47dd6e3656a4ac8ed1e2cb95684af0131fcc4d2c637737c2b7d9955891c9"
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/1\">Generic</a><span class=\"price\">$10</span></div>\n\n<div class=\"product\"><a class=\"name\" href=\"/item/2\">Specific</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-html-same-url-False",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/1\">Generic</a><span class=\"price\">$10</span></div>\n\n<div class=\"product\"><a class=\"name\" href=\"/item/1\">Specific</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-html-same-url-True",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/1\">Specific</a><span class=\"price\">$10</span></div>\n\n<div class=\"product\"><a class=\"name\" href=\"/item/1\">Generic</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-scoped-html-excluded",
+      "category": "acceptance-contract",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".product",
+            "title_selector": ".name",
+            "link_selector": "a[href]",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/1\">Generic</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "runtime12-scoped-html-admitted",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".product",
+            "title_selector": ".name",
+            "link_selector": "a[href]",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/2\">Specific</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-scoped-html-mixed",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".product",
+            "title_selector": ".name",
+            "link_selector": "a[href]",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/1\">Generic</a><span class=\"price\">$10</span></div>\n\n<div class=\"product\"><a class=\"name\" href=\"/item/2\">Specific</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-scoped-html-qualified",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".product",
+            "title_selector": ".name",
+            "link_selector": "a[href]",
+            "price_selector": ".price"
+          },
+          "source_record_pair_hashes": [
+            "45727852d0074e2525bd5130ef98968b9d712b95fdbaf00c9ceef23b345dfa31"
+          ],
+          "source_record_pairs_sha256": "d60a47dd6e3656a4ac8ed1e2cb95684af0131fcc4d2c637737c2b7d9955891c9"
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/1\">Generic</a><span class=\"price\">$10</span></div>\n\n<div class=\"product\"><a class=\"name\" href=\"/item/2\">Specific</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-scoped-html-same-url-False",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".product",
+            "title_selector": ".name",
+            "link_selector": "a[href]",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/1\">Generic</a><span class=\"price\">$10</span></div>\n\n<div class=\"product\"><a class=\"name\" href=\"/item/1\">Specific</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "runtime12-scoped-html-same-url-True",
+      "category": "acceptance-contract",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_product_exclusions_precede_admission_and_source_verification",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "maximum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "Generic"
+          ],
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".product",
+            "title_selector": ".name",
+            "link_selector": "a[href]",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<div class=\"product\"><a class=\"name\" href=\"/item/1\">Specific</a><span class=\"price\">$10</span></div>\n\n<div class=\"product\"><a class=\"name\" href=\"/item/1\">Generic</a><span class=\"price\">$10</span></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_excluded_record_names": [
+          "Generic"
+        ],
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "integer-separator-boundary-fullwidth-decimal",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: １．５",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
+    },
+    {
+      "id": "integer-separator-boundary-fullwidth-integer",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: １２３",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
+    },
+    {
+      "id": "integer-separator-boundary-arabic-decimal",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: ١٫٥",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
+    },
+    {
+      "id": "integer-separator-boundary-arabic-integer",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: ١٢٣",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
+    },
+    {
+      "id": "integer-separator-boundary-fullwidth-comma",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: １，５",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
+    },
+    {
+      "id": "integer-separator-boundary-arabic-group",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: ١٬٥",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
+    },
+    {
+      "id": "integer-separator-boundary-prose-period",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 12.",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
+    },
+    {
+      "id": "integer-separator-boundary-prose-comma",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Count: 12, as expected",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
+    },
+    {
+      "id": "integer-separator-boundary-owned-pattern-decimal",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "pattern": "comments"
+                }
+              ],
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n１．５ comments",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
+    },
+    {
+      "id": "integer-separator-boundary-owned-pattern-integer",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "pattern": "comments"
+                }
+              ],
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n１,２３４ comments",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Unsupported full-width and Arabic decimal/group punctuation between decimal digits must prevent integer prefix/suffix extraction; supported digits and ordinary prose punctuation retain their existing meaning."
     }
   ]
 }

@@ -126,30 +126,24 @@ def mask_markdown_inline_code(content, protected_literals=()):
     prefix = '\ue000article-inline-code'
     while prefix in content or any(prefix in literal for literal in protected_literals):
         prefix += '_'
-    runs = list(re.finditer(r'`+', content))
-    following, matching = {}, {}
-    for index in range(len(runs)-1, -1, -1):
-        size = len(runs[index][0])
-        matching[index] = following.get(size)
-        following[size] = index
-    pieces, literals, cursor, index = [], {}, 0, 0
-    while index < len(runs):
-        run = runs[index]
-        previous = run.start()-1
-        while previous >= 0 and content[previous] == '\\':
-            previous -= 1
-        end = matching[index]
-        if (run.start()-previous-1) % 2 or end is None:
-            index += 1
-            continue
+    from .reference_quality import markdown_inline_code_spans
+    pieces, literals, cursor = [], {}, 0
+    for start, end in markdown_inline_code_spans(content):
+        delimiter = re.match(r'`+', content[start:])[0]
         key = prefix + str(len(literals)) + '\ue001'
-        pieces.extend((content[cursor:run.start()], key))
-        cursor = runs[end].end()
-        literal = content[run.end():runs[end].start()].replace('\n', ' ')
+        pieces.extend((content[cursor:start], key))
+        cursor = end
+        literal = content[start+len(delimiter):end-len(delimiter)]
+        opening = content[content.rfind('\n', 0, start)+1:start]
+        quote = re.match(r'^ {0,3}((?:>[ \t]?)+)', opening)
+        if quote:
+            lines = literal.split('\n')
+            prefix_pattern = r'^ {0,3}(?:>[ \t]?){1,' + str(quote[1].count('>')) + '}'
+            literal = '\n'.join([lines[0], *(re.sub(prefix_pattern, '', line, count=1) for line in lines[1:])])
+        literal = literal.replace('\n', ' ')
         if literal.startswith(' ') and literal.endswith(' ') and literal.strip():
             literal = literal[1:-1]
         literals[key] = literal
-        index = end+1
     pieces.append(content[cursor:])
     pattern = re.compile(re.escape(prefix) + r'\d+\ue001')
     def restore(value, *, remove=False):

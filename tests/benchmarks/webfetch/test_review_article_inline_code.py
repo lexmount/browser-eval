@@ -16,7 +16,7 @@ def controls():
         "colon": "`Alice: example`",
         "double-tick": "``Alice: `example` ``",
         "multiline": "`Alice:\nexample`",
-        "multiline-heading": "`\n### Alice\nExample reply.\n`",
+        "fenced-heading": "```text\n### Alice\nExample reply.\n```",
         "bold-author": "`**Alice**`\nExample reply.",
         "linked-author": "`[Alice](https://example.test/reader)`\nExample reply.",
         "pingback": "`Pingback: example`",
@@ -24,7 +24,7 @@ def controls():
     for name, literal in literals.items():
         yield ("comment-code-" + name, "## Comments\n\n" + literal,
                "comment_contract", COMMENTS, False,
-               "Inline code cannot create section headings or author boundaries for comment records.")
+               "Code literals cannot create section headings or author boundaries for comment records.")
     yield ("comment-code-false-section", "`## Comments`\n\nAlice: Example reply.",
            "comment_contract", COMMENTS, False,
            "A comment section marker inside inline code must not establish comment ownership.")
@@ -44,11 +44,11 @@ def controls():
         ("colon", "Alice: Example reply."),
         ("body-code", "Alice: `Bob: example`"),
         ("body-only-code", "**Alice**\n\n`Bob: example`"),
-        ("multiline-body-code", "### Alice\n\n`\n### Bob\nLiteral example.\n`"),
+        ("fenced-body-code", "### Alice\n\n```text\n### Bob\nLiteral example.\n```"),
     ):
         yield ("comment-genuine-" + name, "## Comments\n\n" + text,
                "comment_contract", COMMENTS, True,
-               "Inline code remains visible body text inside a genuinely established comment.")
+               "Code remains visible body text inside a genuinely established comment.")
     yield ("comment-code-does-not-inflate-count", "## Comments\n\nAlice: Genuine reply.\n\n`Bob: example`",
            "comment_contract", {**COMMENTS, "minimum_comments": 2}, False,
            "An inline code example in a real comment must not count as another author record.")
@@ -89,9 +89,9 @@ def controls():
         ("author-prefix", "## Alice [Today](/post/1)"),
         ("linked-profile", "## [Alice](/profile/alice) [Today](/post/1)"),
     ):
-        yield ("post-inline-code-fake-" + name, "`\n" + header + "\n\nFake post text.\n`",
+        yield ("post-fenced-code-fake-" + name, "```markdown\n" + header + "\n\nFake post text.\n```",
                "post_contract", POSTS, False,
-               "Multiline inline code cannot create an owning post permalink or author boundary.")
+               "Fenced code cannot create an owning post permalink or author boundary.")
     for name, content in (
         ("body", "## Alice [Today](/post/1)\n\n`Actual visible post text.`"),
         ("author", "## `Alice` [Today](/post/1)\n\nActual visible post text."),
@@ -103,14 +103,14 @@ def controls():
     title = {"version": 1, "alternatives": ["Observed title"], "html_selector": "h1"}
     for name, content, expected in (
         ("multiline", "`\nObserved title\n`", False),
-        ("multiline-heading", "`\n# Observed title\n`", False),
+        ("fenced-heading", "```markdown\n# Observed title\n```", False),
         ("double-tick-multiline", "``\nObserved title\n``", False),
         ("real-heading", "# `Observed title`", True),
         ("mixed-text", "Observed `title`", True),
         ("native-heading", "<h1><code>Observed title</code></h1>", True),
     ):
-        yield ("title-inline-code-" + name, content, "title_contract", title, expected,
-               "A literal code span cannot manufacture a standalone title, while real title markup may format code.")
+        yield (("title-block-code-" if name == 'fenced-heading' else "title-inline-code-") + name, content, "title_contract", title, expected,
+               "Literal code cannot manufacture a standalone title, while real title markup may format code.")
 
 
 @pytest.mark.parametrize("identifier, content, component, contract, expected, cause", list(controls()))

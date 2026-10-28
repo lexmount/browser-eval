@@ -214,3 +214,44 @@ def test_unicode_plain_zero_and_padded_integer_values_remain_valid(value):
     }
     metrics = score_attempt(composite_case(group), ("Count: " + value).encode(), ok=True)
     assert task_passed(True, metrics, "body")
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("１．５", False),
+        ("١٫٥", False),
+        ("１，５", False),
+        ("١٬٥", False),
+        ("１．．５", False),
+        ("١٫٫٥", False),
+        ("１２３", True),
+        ("١٢٣", True),
+        ("１２．", True),
+        ("12.", True),
+        ("12, as expected", True),
+    ],
+)
+@pytest.mark.parametrize("patterned", [False, True])
+def test_unsupported_decimal_separators_cannot_expose_integer_fragments(value, expected, patterned):
+    field = {"id": "count", "kind": "integer"}
+    field.update({"pattern": "comments"} if patterned else {"aliases": ["Count"]})
+    group = {
+        "id": "items",
+        "kind": "named_link" if patterned else "field_report",
+        "required_fields": [field],
+    }
+    if patterned:
+        group.update(minimum_records=1, hosts=["example.test"], entry_path=r"/item/\d+")
+        artifact = "[Alpha](/item/1)\n" + value + " comments"
+        # The count precedes its declared unit; punctuation follows the phrase.
+        if value == "12.":
+            artifact = "[Alpha](/item/1)\n12 comments."
+        elif value == "12, as expected":
+            artifact = "[Alpha](/item/1)\n12 comments, as expected"
+        elif value == "１２．":
+            artifact = "[Alpha](/item/1)\n１２ comments．"
+    else:
+        artifact = "Count: " + value
+    metrics = score_attempt(composite_case(group), artifact.encode(), ok=True)
+    assert task_passed(True, metrics, "body") is expected

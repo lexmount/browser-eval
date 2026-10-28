@@ -18,7 +18,10 @@ from urllib.parse import unquote, urljoin as _urljoin, urlsplit
 from .structured_tables import (
     _pipe_cells, _table_header_at, _visible_markdown_scalar, table_text_surface, validate_group_caption,
 )
-from .dynamic_lists import canonical_entry_path, _named_candidate, extract_named_entries, named_entry_identity, _without_record_literals
+from .dynamic_lists import (
+    canonical_entry_path, _named_candidate, extract_named_entries, named_entry_identity,
+    _without_record_literals, _visible_candidate_content,
+)
 from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links, without_markdown_images
 
 
@@ -974,7 +977,13 @@ _INTEGER_VALUE = (
     r"(?:\d+|[1-9]\d{0,2}(?:,\d{3})+|[1-9]\d{0,2}(?:\.\d{3})+"
     r"|[1-9]\d{0,2}(?:[^\S\r\n]\d{3})+)"
 )
-_INTEGER_CANDIDATE = re.compile(r"(?<![\w.,+/-])\d(?:[\d,.]|[^\S\r\n]+(?=\d))*(?![\w.,+/-]|[^\S\r\n]+\d)")
+# Unsupported full-width/Arabic separators cannot expose fractional fragments.
+_UNSUPPORTED_INTEGER_SEPARATORS = "\uff0e\uff0c\u066b\u066c"
+_INTEGER_CANDIDATE = re.compile(
+    rf"(?<![\w.,+/{_UNSUPPORTED_INTEGER_SEPARATORS}-])"
+    r"\d(?:[\d,.]|[^\S\r\n]+(?=\d))*"
+    rf"(?![\w.,+/-]|[^\S\r\n]+\d|[.,{_UNSUPPORTED_INTEGER_SEPARATORS}]+\d)"
+)
 
 
 def _decimal_digits(value):
@@ -1737,7 +1746,7 @@ def evaluate_composite_acceptance(
     for group in contract["groups"]:
         source = table_content if table_content is not None and group["kind"] in {"table", "linked_table"} else content
         if group['kind'] == 'named_link':
-            source = _without_record_literals(source)
+            source = _visible_candidate_content(_without_record_literals(source))
         if "group_caption" in group:
             from .structured_tables import grouped_table_surface
             source = grouped_table_surface(source, group)

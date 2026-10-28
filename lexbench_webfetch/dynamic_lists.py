@@ -968,6 +968,18 @@ def _image_heading_items(content, scope):
     return items
 
 
+def _record_audit_key(identity, title, excluded_names):
+    label = _label_key(title)
+    return ('excluded', identity, label) if label in excluded_names else identity
+
+
+def _admitted_named_entries(entries, contract, include_excluded):
+    if include_excluded:
+        return entries
+    excluded_names = {_label_key(value) for value in contract.get('record_name_exclusions', [])}
+    return [entry for entry in entries if _label_key(entry['title']) not in excluded_names]
+
+
 def _deduplicated_named_candidates(items, contract, base_url, diagnostics):
     """Apply one candidate validator and retain its canonical identity."""
     excluded_titles = [re.compile(pattern, re.I)
@@ -981,10 +993,7 @@ def _deduplicated_named_candidates(items, contract, base_url, diagnostics):
         )
         if candidate is not None:
             identity, entry = candidate
-            if _label_key(entry['title']) in excluded_names:
-                # Keep auxiliary occurrences for the exclusion audit without
-                # replacing the admitted record at their shared destination.
-                identity = ('excluded', identity, _label_key(entry['title']))
+            identity = _record_audit_key(identity, entry['title'], excluded_names)
             position = item.offset if isinstance(item, LocatedItem) else index
             if isinstance(item, LocatedItem) and item.metadata:
                 if identity in positions:
@@ -1149,10 +1158,7 @@ def extract_named_entries(content,contract,base_url,links=None,diagnostics=None,
     entries = list(_extract_named_candidates(
         content, contract, base_url, links=links, diagnostics=diagnostics,
     ).values())
-    if include_excluded:
-        return entries
-    excluded_names = {_label_key(value) for value in contract.get('record_name_exclusions', [])}
-    return [entry for entry in entries if _label_key(entry['title']) not in excluded_names]
+    return _admitted_named_entries(entries, contract, include_excluded)
 
 
 def _html_product_records(content, contract, base_url, diagnostics):
@@ -1187,6 +1193,7 @@ def _html_product_records(content, contract, base_url, diagnostics):
     excluded = [re.compile(value, re.I) for value in contract.get('price_exclusion_patterns', [])]
     unavailable = [re.compile(value, re.I) for value in contract.get('price_unavailable_patterns', [])]
     excluded_titles = [re.compile(value, re.I) for value in contract.get('title_exclusion_patterns', [])]
+    excluded_names = {_label_key(value) for value in contract.get('record_name_exclusions', [])}
     records = {}
     for root in roots:
         anchors = root.find_all('a', href=True)
@@ -1254,7 +1261,7 @@ def _html_product_records(content, contract, base_url, diagnostics):
                               and not any(p.fullmatch(value) for p in excluded)), None)
                 hint = next((value for value in fields if any(p.fullmatch(value) for p in unavailable)), None)
                 if price is not None or hint is not None:
-                    records.setdefault(identity, {**entry, 'price': price,
+                    records.setdefault(_record_audit_key(identity, entry['title'], excluded_names), {**entry, 'price': price,
                         **({'price_status': 'not_shown_on_page', 'price_unavailable_text': hint}
                            if price is None else {})})
                     break
@@ -1265,7 +1272,7 @@ def _html_product_records(content, contract, base_url, diagnostics):
     return list(records.values())
 
 
-def extract_linked_products(content, contract, base_url, diagnostics=None):
+def extract_linked_products(content, contract, base_url, diagnostics=None, *, include_excluded=False):
     """Extract title/link/price triples from one owned product segment."""
     from .reference_quality import markdown_links, without_markdown_images
     from .structured_tables import _visible_markdown_scalar
@@ -1288,27 +1295,27 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
                 candidates = _extract_named_candidates(
                     str(owner), {key: value for key, value in contract.items() if key != 'entry_scope'},
                     base_url, diagnostics=diagnostics)
-            if len(candidates) != 1:
+            if len({named_entry_identity(entry['url'], contract)
+                    for entry in candidates.values()}) != 1:
                 continue
-            identity, entry = next(iter(candidates.items()))
             prices = [_visible_markdown_scalar(node.get_text(' ', strip=True))
                       for node in owner.select(scope['price_selector'])]
             prices = [p for p in prices if any(r.fullmatch(p) for r in allowed)
                       and not any(r.fullmatch(p) for r in excluded)]
-            if prices:
-                records[identity] = {**entry, 'price': prices[0]}
-            else:
-                text = owner.get_text(' ', strip=True)
-                hint = next((m.group(0) for pattern in unavailable
-                             if (m := pattern.search(text))), None)
-                if hint:
+            text = owner.get_text(' ', strip=True)
+            hint = next((m.group(0) for pattern in unavailable
+                         if (m := pattern.search(text))), None) if not prices else None
+            for identity, entry in candidates.items():
+                if prices:
+                    records[identity] = {**entry, 'price': prices[0]}
+                elif hint:
                     records[identity] = {
                         **entry, 'price': None, 'price_status': 'not_shown_on_page',
                         'price_unavailable_text': hint}
-        return list(records.values())
+        return _admitted_named_entries(list(records.values()), contract, include_excluded)
     html_records = _html_product_records(without_markdown_images(content), contract, base_url, diagnostics)
     if html_records is not None:
-        return html_records
+        return _admitted_named_entries(html_records, contract, include_excluded)
     if scope:
         content, _, matched = _scope_named_content(content, scope)
         if not matched:
@@ -1349,6 +1356,7 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
         re.compile(pattern, re.I)
         for pattern in contract.get("price_exclusion_patterns", [])
     ]
+    excluded_names = {_label_key(value) for value in contract.get('record_name_exclusions', [])}
     candidates = {}
     groups = []
     for link in links:
@@ -1359,7 +1367,9 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
     for index, group in enumerate(groups):
         _, first_end, identity, url, _ = group[0]
         boundary = groups[index + 1][0][0] if index + 1 < len(groups) else len(scannable)
-        title = max((item[4] for item in group), key=lambda value: (len(value), value))
+        admitted_titles = [item[4] for item in group if _label_key(item[4]) not in excluded_names]
+        title = max(admitted_titles or [item[4] for item in group], key=lambda value: (len(value), value))
+        audit_titles = {item[4] for item in group if _label_key(item[4]) in excluded_names}
         if not title:
             continue
         tail = scannable[first_end:min(boundary, first_end + 2400)]
@@ -1378,17 +1388,18 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
                 if any(rule.fullmatch(value) for rule in excluded):
                     continue
                 prices.append((price_match.start(), value))
-        if prices:
-            candidates.setdefault(identity, {
-                "url": url, "title": title, "price": min(prices)[1],
-            })
-        else:
-            hint = next((m.group(0) for pattern in contract.get('price_unavailable_patterns', [])
-                         if (m := re.search(pattern, segment, re.I))), None)
-            if hint:
-                candidates.setdefault(identity, {'url': url, 'title': title, 'price': None,
+        hint = next((m.group(0) for pattern in contract.get('price_unavailable_patterns', [])
+                     if (m := re.search(pattern, segment, re.I))), None) if not prices else None
+        for record_title in dict.fromkeys([title, *sorted(audit_titles)]):
+            record_key = _record_audit_key(identity, record_title, excluded_names)
+            if prices:
+                candidates.setdefault(record_key, {
+                    "url": url, "title": record_title, "price": min(prices)[1],
+                })
+            elif hint:
+                candidates.setdefault(record_key, {'url': url, 'title': record_title, 'price': None,
                     'price_status': 'not_shown_on_page', 'price_unavailable_text': hint})
-    return list(candidates.values())
+    return _admitted_named_entries(list(candidates.values()), contract, include_excluded)
 
 
 def evaluate_dynamic_list(content,contract,base_url,eligible=True,links=None):

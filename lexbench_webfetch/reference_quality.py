@@ -369,6 +369,53 @@ def without_markdown_images(content):
     return ''.join(pieces)
 
 
+def _same_inline_block(text, start, end):
+    """Inline delimiters cannot pair across a paragraph or block boundary."""
+    newline = text.find('\n', start, end)
+    if newline < 0:
+        return True
+    closing_line_end = text.find('\n', end)
+    opening_prefix = text[text.rfind('\n', 0, start)+1:start]
+    quote = re.match(r'^ {0,3}((?:>[ \t]?)+)', opening_prefix)
+    quote_depth = quote[1].count('>') if quote else 0
+    list_context = re.match(r'^ {0,3}(?:>[ \t]?)*(?:[-+*]|\d+[.)])[ \t]+', opening_prefix)
+    ordered = r'\d+' if list_context else '1'
+    for line in text[newline+1:closing_line_end if closing_line_end >= 0 else len(text)].split('\n'):
+        if quote_depth:
+            line = re.sub(r'^ {0,3}(?:>[ \t]?){1,' + str(quote_depth) + '}', '', line, count=1)
+        fence = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', line)
+        if (not line.strip()
+                or re.match(r'^ {0,3}(?:#{1,6}(?:[ \t]|$)|>)', line)
+                or re.match(r'^ {0,3}(?:[-+*]|' + ordered + r'[.)])[ \t]+\S', line)
+                or re.fullmatch(r' {0,3}(?:=+|-+|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,}|(?:-[ \t]*){3,})[ \t]*', line)
+                or (fence and not (fence[1][0] == '`' and '`' in fence[2]))
+                or (not line.startswith(('    ', '\t')) and is_html_document_or_fragment(line))):
+            return False
+    return True
+
+
+def markdown_inline_code_spans(text, *, excluded_spans=()):
+    """Locate code spans within a single inline-content block."""
+    spans = []
+    runs = list(re.finditer(r'`+', text))
+    consumed = 0
+    for index, run in enumerate(runs):
+        if run.start() < consumed or any(left <= run.start() < right for left, right in excluded_spans):
+            continue
+        escape = run.start()
+        while escape and text[escape - 1] == '\\':
+            escape -= 1
+        if (run.start() - escape) % 2:
+            continue
+        closing = next((other for other in runs[index + 1:]
+                        if len(other[0]) == len(run[0])
+                        and not any(run.end() <= left <= other.start() for left, _ in excluded_spans)), None)
+        if closing is not None and _same_inline_block(text, run.start(), closing.start()):
+            spans.append((run.start(), closing.end()))
+            consumed = closing.end()
+    return spans
+
+
 def markdown_literal_spans(text: str) -> list[tuple[int, int]]:
     """Locate fenced and inline code before interpreting Markdown link syntax."""
     spans = []
@@ -386,23 +433,7 @@ def markdown_literal_spans(text: str) -> list[tuple[int, int]]:
         offset += len(line)
     if fence is not None:
         spans.append((fence[0], len(text)))
-    runs = list(re.finditer(r'`+', text))
-    consumed = 0
-    for index, run in enumerate(runs):
-        if run.start() < consumed or any(left <= run.start() < right for left, right in spans):
-            continue
-        escape = run.start()
-        while escape and text[escape - 1] == '\\':
-            escape -= 1
-        if (run.start() - escape) % 2:
-            continue
-        closing = next((other for other in runs[index + 1:]
-                        if len(other[0]) == len(run[0])
-                        and not any(run.end() <= left <= other.start() for left, _ in spans)), None)
-        if closing is not None:
-            spans.append((run.start(), closing.end()))
-            consumed = closing.end()
-    return sorted(spans)
+    return sorted(spans + markdown_inline_code_spans(text, excluded_spans=spans))
 
 
 def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str:
@@ -463,7 +494,7 @@ def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str
     return re.sub(r"<((?:/[^<>\s/]+){2,}(?:[?#][^<>\s]*)?)>", r"\1", visible)
 
 
-def visible_mixed_html_text(text: str) -> str:
+def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:
     """Project raw HTML in a Markdown answer, preserving literal code and autolinks."""
     from .dynamic_lists import visible_html_text
 
@@ -525,6 +556,14 @@ def visible_mixed_html_text(text: str) -> str:
     protected = re.sub(
         r'\b(?:the|an?) +<(?P<element>script|style)> +(?:element|tag)\b',
         element_mention, protected, flags=re.I)
+    if excluded_html_selectors:
+        from bs4 import BeautifulSoup
+        surface = BeautifulSoup(protected, 'html.parser')
+        for selector in excluded_html_selectors:
+            for node in list(surface.select(selector)):
+                if node.parent is not None:
+                    node.decompose()
+        protected = str(surface)
     if not re.search(
         r"</?[A-Za-z][^<>]*>",
         protected, re.I,

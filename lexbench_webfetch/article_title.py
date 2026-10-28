@@ -152,7 +152,7 @@ def verify_article_title(content, contract, *, representation=None):
         content, blocks = mask_markdown_code(content)
         content, restore_inline_code = mask_markdown_inline_code(content, blocks.values())
         content = article_surface(content)
-        for line in visible_mixed_html_text(content).splitlines():
+        for line in visible_mixed_html_text(content, excluded_html_selectors=contract.get('excluded_html_selectors', [])).splitlines():
             text = line.strip()
             heading = re.match(r'^#{1,6}[ \t]+', text)
             if heading:

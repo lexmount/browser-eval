@@ -16,7 +16,7 @@ from datetime import date, datetime
 from html import unescape
 from urllib.parse import urlsplit
 
-from .dynamic_lists import extract_named_entries, named_entry_identity, named_entry_source_pair_hash
+from .dynamic_lists import _label_key, extract_named_entries, named_entry_identity, named_entry_source_pair_hash
 from .reference_quality import (
     clean_reference_text, is_markdown_image_start, markdown_delimiter_pairs,
     visible_markdown_links, without_markdown_images,
@@ -348,7 +348,7 @@ def _record(fields, schema):
 
 def _table_records(lines, schema):
     """Explicit Markdown table headers own their columns, including empty cells."""
-    from .structured_tables import _pipe_cells
+    from .structured_tables import _pipe_cells, _table_header_at
     records, occupied = [], set()
     required = set(SCHEMA_FIELDS[schema])
     for i in range(len(lines) - 1):
@@ -362,6 +362,8 @@ def _table_records(lines, schema):
         occupied.update((i, i + 1))
         j = i + 2
         while j < len(lines) and "|" in lines[j] and lines[j].strip():
+            if _table_header_at(lines, j):
+                break
             values = [x.strip() for x in _pipe_cells(lines[j])]
             fields = dict(zip(headers, values))
             record = _record(fields, schema)
@@ -1454,7 +1456,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             if schema == "linked_product":
                 from .dynamic_lists import extract_linked_products
                 entries = extract_linked_products(
-                    content, contract, base_url, diagnostics=link_diagnostics,
+                    content, contract, base_url, diagnostics=link_diagnostics, include_excluded=True,
                 )
             else:
                 entries = extract_named_entries(
@@ -1466,10 +1468,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             entries = []
             errors.append("invalid_link_output")
         errors.extend(error for error in link_diagnostics if error not in errors)
-        excluded_names = ({_key(value) for value in contract.get("record_name_exclusions", [])}
-                          if schema == "named_link" else set())
-        excluded_entries = [entry for entry in entries if _key(entry["title"]) in excluded_names]
-        entries = [entry for entry in entries if _key(entry["title"]) not in excluded_names]
+        excluded_names = {_label_key(value) for value in contract.get("record_name_exclusions", [])}
+        excluded_entries = [entry for entry in entries if _label_key(entry["title"]) in excluded_names]
+        entries = [entry for entry in entries if _label_key(entry["title"]) not in excluded_names]
         source_pair_hashes = set(contract.get("source_record_pair_hashes", []))
         source_mismatches = []
         if source_pair_hashes:
