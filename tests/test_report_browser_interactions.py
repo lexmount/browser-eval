@@ -6,10 +6,12 @@ import http.server
 import json
 import os
 import threading
+import time
 from contextlib import contextmanager
 
 import pytest
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import expect, sync_playwright
 
 from harness.reporting.visual import browser_executable, local_report_server, local_page
 
@@ -217,19 +219,59 @@ def test_moli_actual_result_evidence_loader_and_keyboard_return(tmp_path, browse
 
 
 def activate_and_check_layout(page, display):
+    page.wait_for_load_state('load')
     theme = display["color_scheme"]
     dark = page.evaluate("document.documentElement.dataset.theme === 'dark' || document.body.classList.contains('dark')")
     before = page.evaluate("[document.body,document.documentElement].map(e=>getComputedStyle(e).backgroundColor).join('/')")
     if dark != (theme == "dark"):
         page.locator('#theme, .theme, .theme-toggle, button[onclick="theme()"]:visible').first.click()
-        page.wait_for_timeout(50)
-        assert page.evaluate("[document.body,document.documentElement].map(e=>getComputedStyle(e).backgroundColor).join('/')") != before
+        page.wait_for_function(
+            """({theme, before}) => {
+                const dark = document.documentElement.dataset.theme === 'dark'
+                    || document.body.classList.contains('dark');
+                const background = [document.body, document.documentElement]
+                    .map(e => getComputedStyle(e).backgroundColor).join('/');
+                return dark === (theme === 'dark') && background !== before;
+            }""",
+            arg={"theme": theme, "before": before},
+        )
     assert page.evaluate("document.documentElement.dataset.theme === 'dark' || document.body.classList.contains('dark')") == (theme == "dark")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
 
 
+@pytest.mark.parametrize('behavior', ['delayed', 'missing-state', 'missing-color'])
+def test_theme_check_waits_for_visual_change_and_rejects_broken_controls(browser, behavior):
+    page = browser.new_page(viewport={"width": 390, "height": 844})
+    page.set_default_timeout(3000)
+    state = "document.documentElement.dataset.theme='dark';" if behavior != 'missing-state' else ''
+    color = "setTimeout(()=>document.body.style.backgroundColor='black',150);" if behavior != 'missing-color' else ''
+    try:
+        page.set_content(f'''<html data-theme="light"><body style="background:white">
+            <button id="theme">Theme</button><script>
+            document.getElementById('theme').onclick=()=>{{{state}{color}}};
+            </script></body></html>''')
+        display = {"color_scheme": "dark"}
+        if behavior == 'delayed':
+            activate_and_check_layout(page, display)
+        else:
+            with pytest.raises(PlaywrightTimeoutError, match='Page.wait_for_function'):
+                activate_and_check_layout(page, display)
+    finally:
+        page.close()
+
+
 def test_generated_browser_use_success_failure_and_evidence_viewer(tmp_path, monkeypatch, browser, display):
     from tests.browser_use.test_report import build_browser_use_fixture
+    from harness.reporting.visual import QuietHandler
+
+    serve = QuietHandler.do_GET
+
+    def delayed_evidence_and_script(handler):
+        if handler.path.split('?', 1)[0].endswith(('execution-evidence.json', 'assets/report.js')):
+            time.sleep(0.3)
+        serve(handler)
+
+    monkeypatch.setattr(QuietHandler, 'do_GET', delayed_evidence_and_script)
     output, _, _ = build_browser_use_fixture(tmp_path, monkeypatch, failed=True)
     with local_report_server(output) as origin:
         page = local_page(browser, origin, **display)
@@ -241,9 +283,10 @@ def test_generated_browser_use_success_failure_and_evidence_viewer(tmp_path, mon
                 assert link.count() == 1
                 link.click()
                 page.wait_for_selector('#evidence-raw-link:not([hidden])')
-                assert 'AgentResponseEvaluator' in page.locator('main').inner_text()
+                evidence = page.locator('#evidence-viewer-content')
+                expect(evidence).to_contain_text('AgentResponseEvaluator')
                 if method == 'moli':
-                    assert 'Fixture expected mutation missing' in page.locator('main').inner_text()
+                    expect(evidence).to_contain_text('Fixture expected mutation missing')
                 activate_and_check_layout(page, display)
         finally:
             page.close()
