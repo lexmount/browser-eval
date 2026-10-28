@@ -19,54 +19,17 @@ LexBench Web Fetch can be inspected, validated and exported without installing B
 
 ## Evaluation design
 
-The goal is repeatable results, controlled execution and evidence that readers can inspect. Browser Eval compares browsers and Web tools for AI agents. Its main tracks use declared tool requests or fixed browser trajectories, without an LLM planner choosing actions during measurement. A measured service may itself use models; that is part of the participant being tested. Experimental Browser Use measures Agent integration separately.
+The README introduces the [design principles](../README.md#stable-reproducible-results-controlled-and-trustworthy-evaluation) and [workflow diagrams](../README.md#evaluation-tracks). Benchmark integrations also need the following scoring and review evidence.
 
-### Web Fetch
+### Scoring evidence
 
-1. Select tasks and freeze their inputs and reference evidence. Extraction benchmarks supply saved HTML; live fetching uses declared URLs and independently captured references. Formal live-site comparisons verify reference validity before and after collection.
-2. Call each participant through its declared interface and retain the complete response, returned files, errors and execution measurements.
-3. Run the selected benchmark's code to check task requirements and compute content, field, resource or file metrics. Aggregate those results with latency, resource use and recorded cost.
+Retain the scorer identity and its input evidence separately from computed verdicts. For Search relevance, use named human annotations by default. If a model judge is explicitly selected, preserve its model, prompt, rubric, candidate evidence, raw responses and grades; label model-judged results accordingly. See the [Search scoring guide](../harness/web_search/README.md) and [Web Fetch scoring corrections](../harness/web_fetch/README.md#correct-a-score-or-reference) for their executable contracts.
 
-Saved evidence allows rescoring without fresh provider calls. See the [execution guide](../harness/web_fetch/README.md).
+### Independent verification
 
-### Web Search
+Independent verification is opt-in. Declare its scope and retain the reviewer, protocol and hashes of the evidence reviewed. The default scope is machine failures; reviewing passes or the full matrix requires an explicit request. Reports state reviewed/total coverage and accepted unreviewed passes.
 
-1. Freeze queries, source requirements and the scoring rubric before collection.
-2. Query each participant directly and preserve its native result order, titles, snippets, URLs, errors and recorded latency and cost.
-3. Apply programmatic retrieval and source checks. Graded relevance uses named human annotations by default; an explicitly selected LLM judge may assign grades where semantic relevance needs judgment. Preserve its model, prompt, candidate evidence and raw responses, and label model-judged results accordingly. Compute ranking metrics in code from the frozen grades.
-
-These metrics can be reproduced without asking the model again. Relevance grading supplies scoring inputs; optional independent verification reviews the resulting evidence and scores. See the [Search guide](../harness/web_search/README.md).
-
-### Browser Trajectory Replay
-
-For the public WebArena replay:
-
-1. Prepare the self-hosted WebArena-Verified sites required by the selected suite, using its declared environment and starting state. The selected suite and environment configuration define which sites are required.
-2. Qualify recorded human trajectories before comparison, then freeze the task revisions and actions. Replay the same actions through Playwright on each browser, retaining tool responses, observations and network evidence. No Agent or LLM plans the measured trajectory.
-3. Run the pinned WebArena-Verified evaluator against the recorded answer and network trace, with any fork corrections identified by the selected source binding. These are programmatic task checks, with no LLM judge. A successful action return alone does not prove that the site changed as required.
-4. Build the HTML report from saved results and evidence. Optional verification investigates those results without changing the official verdicts.
-
-The repository-curated replay suite has its own flow:
-
-1. Select tasks with explicit expected outputs and freeze their action trajectories and page requirements.
-2. Prepare isolated browser instances and replay the same actions on the declared pages, retaining responses and execution evidence.
-3. Compare the observed outputs with the suite's programmatic assertions and aggregate correctness and performance results.
-
-This suite uses its own assertions rather than WebArena's evaluator; its task population and report remain separate. See the [replay protocol](trajectory-replay-protocol.md) and [WebArena environment and replay guide](../examples/trajectory_replay/public_webarena/README.md).
-
-### LLM as a verifier
-
-Use programmatic scoring for requirements with explicit observable answers. Use model judgment where the task calls for semantic grading, such as Search relevance. A verifier has a different job: inspect the evidence behind an existing score, look for missing requirements or scoring errors, and help explain failures. Its findings are review evidence, not an automatic replacement score.
-
-Independent verification is opt-in. Declare its scope and retain the reviewer, protocol and hashes of the evidence reviewed. The default scope is machine failures; reviewing passes or the full matrix requires an explicit request. Reports state reviewed/total coverage and accepted unreviewed passes. Human readers can also sample individual results through the report's evidence links without commissioning a full review.
-
-When verification finds a defect, investigate the shared cause and correct the responsible reference, scorer or execution stage. Retain original evidence and official scores; record corrections separately and rescore or rerun the affected scope under the revised contract. Changing a scorer does not require fresh provider calls when their outputs remain valid.
-
-### Reproduction and inspection
-
-Bind benchmark and software commits, input and reference hashes, browser builds, environment identity and run settings before collection. Self-hosting, reset/readiness evidence and controlled call order address environment and timing variation; fixed actions address model and planning variation. Recompute scores from retained evidence, and assess repeat execution under the declared environment and timing controls.
-
-Keep raw calls and scoring inputs so readers can distinguish execution failures, failed task requirements and reviewed causes. HTML reports connect aggregate metrics to each result and its responses, trajectories, evaluator output and logs. Publish the report and its evidence through the selected Artifact Site target for shared inspection. Rebuilding a report or recomputing metrics uses saved evidence; new calls belong to a declared rerun.
+When verification finds a defect, correct the shared cause in the reference, scorer or execution stage. Retain original evidence and official scores; record corrections separately and rescore or rerun the affected scope under the revised contract. A scorer-only correction can reuse valid saved outputs. Use the existing [Web Fetch review workflow](../harness/web_fetch/README.md#request-an-independent-review) and [replay protocol](trajectory-replay-protocol.md) for track-specific handling.
 
 ## Use LexBench inputs
 
