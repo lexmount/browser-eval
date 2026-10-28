@@ -2,6 +2,8 @@
 
 <img src="assets/overview.png" alt="Browser Eval — 相同任务，清晰比较。" width="100%">
 
+<h3>Browser Eval：面向 AI Agent 的浏览器与 Web 工具评测</h3>
+
 [English](../README.md) · **简体中文**
 
 [![CI](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml)
@@ -12,7 +14,7 @@
 
 </div>
 
-运行 benchmark 对比，生成带逐题证据的报告，后续可重建或分享。
+面向 AI Agent，评测浏览器与 Web 工具，覆盖 Web Fetch、Web Search 和浏览器轨迹重放。通过逐题证据比较任务完成情况、延迟、资源使用和已记录的成本。
 
 ## 特性
 
@@ -20,7 +22,7 @@
 | --- | --- |
 | 从评测到报告 | 配置任务和评测对象后，一条命令完成评测并生成 HTML 报告。 |
 | 接入多种 benchmark | 使用已接入的 benchmark，也可提供自己的任务，按所选 benchmark 的规则评分。[接入指南](benchmarks.md) |
-| 扩展评测对象 | 比较本地浏览器、在线 API、内容提取工具和 Web Agent，通过已有[适配接口](provider-contract.md)接入新的参与方。 |
+| 扩展评测对象 | 比较浏览器引擎、搜索 API、在线抓取服务和内容提取工具，通过已有[适配接口](provider-contract.md)接入新的参与方。 |
 | 查看逐题证据 | 从汇总指标查看对应的逐题响应、操作轨迹和失败日志。 |
 | 复用已有结果 | 从保存的输出重建报告、重算评分，无需重复调用参与方。 |
 | 比较质量、性能和成本 | 同时查看任务通过情况、延迟、资源使用和已记录的计费数据。 |
@@ -36,7 +38,8 @@
 | Web Fetch | 获取任务要求的网页正文、记录、资源或文件 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
 | Web Search | 比较搜索结果、相关性、来源检索、延迟与计费 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
 | 轨迹重放 | 比较不同浏览器能否完成同一组录制动作 | [仓库自建固定动作任务集](../examples/trajectory_replay/README.md)，改编自 [Lexbench-Headless-Browser 场景设计](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
-| Browser Use | 让 Agent 使用不同浏览器完成任务 | [WebArena-Verified](https://github.com/ServiceNow/webarena-verified)，使用[固定版本的评测器分支](https://github.com/lexmount/webarena-verified/tree/lex-main)和[明确选定的任务](../evaluation/browser-use/webarena-verified-pilot.json) | [CowAgent + WebArena](../examples/browser_use/README.md) |
+
+[Browser Use](../examples/browser_use/README.md) 保留为实验性的 Agent 集成测试入口。
 
 ## 快速开始
 
@@ -87,9 +90,9 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 | Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)） | 报告创建、分享和权限控制 |
 | [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 自建轨迹的场景设计来源；另有独立的协议、自动化驱动和 Web 平台评测 |
 | [WebMainBench 分支](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 冻结 HTML 提取任务与有记录的评分修正 |
-| [WebArena-Verified 分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) | Browser Use 和 WebArena 轨迹重放的题目与评测器 |
+| [WebArena-Verified 分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) | WebArena 轨迹重放及实验性 Agent 集成所用的题目与评测器 |
 | [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | 独立的内容提取评测集 |
-| [CowAgent](https://github.com/zhayujie/CowAgent)、[OpenClaw](https://github.com/openclaw/openclaw)、[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Agent 运行和 Web Fetch 工具基线 |
+| [CowAgent](https://github.com/zhayujie/CowAgent)、[OpenClaw](https://github.com/openclaw/openclaw)、[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Web Fetch 工具基线和实验性 Agent 集成 |
 
 Playwright、提取库和配套运行环境的来源与固定版本见[依赖说明](../docs/dependencies.md)，引用要求和数据权利见[第三方说明](../THIRD_PARTY.md)。引用 Browser Eval 时，也请引用实际使用的评测集与上游数据。
 
@@ -111,7 +114,8 @@ make ci
 ```bibtex
 @software{browser_eval_2026,
   author = {{Browser Eval contributors}},
-  title = {Browser Eval},
+  title = {Browser Eval: Benchmarking Browsers and Web Tools for AI Agents},
+  note = {Evaluation harness},
   year = {2026},
   url = {https://github.com/lexmount/browser-eval}
 }
