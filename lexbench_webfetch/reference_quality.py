@@ -398,7 +398,7 @@ def markdown_literal_spans(text: str) -> list[tuple[int, int]]:
             continue
         closing = next((other for other in runs[index + 1:]
                         if len(other[0]) == len(run[0])
-                        and not any(run.end() <= left < other.start() for left, _ in spans)), None)
+                        and not any(run.end() <= left <= other.start() for left, _ in spans)), None)
         if closing is not None:
             spans.append((run.start(), closing.end()))
             consumed = closing.end()
@@ -415,6 +415,7 @@ def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str
     """
     literals = markdown_literal_spans(text)
     result=[];start=0;previous_label=''
+    separated = lambda label: label.startswith(('/', '#')) or any(char.isspace() for char in label)
     for match in markdown_links(text):
         if match.start < start:
             continue
@@ -439,7 +440,6 @@ def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str
             numeric = lambda char: char.isdigit() or char in '+-.−'
             gap='' if numeric(previous_label[-1]) and numeric(label[0]) else ' '
         else:
-            separated = lambda label: label.startswith(('/', '#')) or any(char.isspace() for char in label)
             if (previous_label and gap and not gap[0].isspace()
                     and separated(previous_label) and gap[0].isalnum()):
                 gap=' '+gap
@@ -449,7 +449,10 @@ def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str
         result.extend([gap, label])
         previous_label=label
         start=match.end
-    result.append(text[start:])
+    suffix = text[start:]
+    if previous_label and suffix and separated(previous_label) and suffix[0].isalnum():
+        suffix = ' ' + suffix
+    result.append(suffix)
     visible = ''.join(result)
     # Some browser Markdown serializers use angle-autolink spelling for a
     # root-relative path even though CommonMark formally reserves autolinks

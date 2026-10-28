@@ -1442,7 +1442,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                 )
             else:
                 entries = extract_named_entries(
-                    content, contract, base_url, links, link_diagnostics,
+                    content, contract, base_url, links, link_diagnostics, include_excluded=True,
                 )
         except ValueError:
             # Malformed returned URLs are output validation failures, not

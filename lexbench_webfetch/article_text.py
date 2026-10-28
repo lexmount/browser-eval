@@ -48,6 +48,8 @@ def is_article_html(content, *, representation=None):
     """Classify HTML after complete leading non-content blocks only."""
     if representation == 'plain_text':
         return False
+    if representation == 'html':
+        return True
     remaining = content.lstrip()
     # Attributes may contain a greater-than sign inside quoted values.
     attributes = r"(?:[^>\"']|\"[^\"]*\"|'[^']*')*"

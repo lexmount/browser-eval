@@ -204,6 +204,8 @@ def _validate_group(group: dict) -> None:
             if key == "markdown_label_pattern" and "label" not in compiled.groupindex:
                 raise ValueError("Markdown card label pattern requires a label group")
     kind = group["kind"]
+    if group.get("required_fields") and kind not in {"named_link", "field_report"}:
+        raise ValueError("Required fields are supported only for named_link and field_report groups")
     if "group_caption" in group:
         validate_group_caption(group)
         if not fields_are_valid([group["group_caption"]["field"]]):

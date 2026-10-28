@@ -23094,6 +23094,2115 @@
       "ok": true,
       "expected_task_pass": false,
       "expected_validation_error": "Invalid stable acceptance regex"
+    },
+    {
+      "id": "post-html-prefix-inline-empty",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Article components must honor declared HTML and preserve literal hashes outside actual Markdown heading syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<span>Feed</span><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/p/1\">Today</a><span class=\"body\"></span></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "post-html-prefix-inline-complete",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Article components must honor declared HTML and preserve literal hashes outside actual Markdown heading syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": ".post",
+            "html_permalink_selector": ".permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<span>Feed</span><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/p/1\">Today</a><span class=\"body\">Actual visible prose.</span></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment-html-prefix-inline-empty",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Article components must honor declared HTML and preserve literal hashes outside actual Markdown heading syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<span>Feed</span><div class=\"comment\"><span class=\"author\">Alice</span><span class=\"text\"></span></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment-html-prefix-inline-complete",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Article components must honor declared HTML and preserve literal hashes outside actual Markdown heading syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "Reply"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<span>Feed</span><div class=\"comment\"><span class=\"author\">Alice</span><span class=\"text\">Actual visible prose.</span></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-hashes-literal-preserved",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Article components must honor declared HTML and preserve literal hashes outside actual Markdown heading syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Release ###"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "Release ###",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-hashes-literal-not-truncated",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Article components must honor declared HTML and preserve literal hashes outside actual Markdown heading syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Release"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "Release ###",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "title-hashes-heading-closers",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Article components must honor declared HTML and preserve literal hashes outside actual Markdown heading syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Release"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "## Release ##",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "title-hashes-heading-not-literal",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Article components must honor declared HTML and preserve literal hashes outside actual Markdown heading syntax.",
+      "case": {
+        "url": "https://example.test/",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "Release ##"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "## Release ##",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "unsupported-fields-name_description-empty",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 1,
+              "required_fields": []
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Description|\n|---|---|\n|Alpha|A useful description.|",
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-negative",
+      "ok": true
+    },
+    {
+      "id": "unsupported-fields-name_description-declared",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 1,
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Description|\n|---|---|\n|Alpha|A useful description.|",
+      "expected_task_pass": false,
+      "expected_validation_error": "Required fields are supported only for named_link and field_report groups",
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-positive",
+      "ok": true
+    },
+    {
+      "id": "unsupported-fields-table-empty",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "required_fields": []
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|12|",
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-negative",
+      "ok": true
+    },
+    {
+      "id": "unsupported-fields-table-declared",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|Alpha|12|",
+      "expected_task_pass": false,
+      "expected_validation_error": "Required fields are supported only for named_link and field_report groups",
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-positive",
+      "ok": true
+    },
+    {
+      "id": "unsupported-fields-linked_table-empty",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "required_fields": []
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Alpha](/item/1)|12|",
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-negative",
+      "ok": true
+    },
+    {
+      "id": "unsupported-fields-linked_table-declared",
+      "case": {
+        "url": "https://example.test/table",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "count",
+                  "kind": "integer",
+                  "aliases": [
+                    "Count"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Count|\n|---|---|\n|[Alpha](/item/1)|12|",
+      "expected_task_pass": false,
+      "expected_validation_error": "Required fields are supported only for named_link and field_report groups",
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-positive",
+      "ok": true
+    },
+    {
+      "id": "unsupported-fields-literals-empty",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ],
+              "required_fields": []
+            }
+          ]
+        }
+      },
+      "artifact": "Alpha",
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-negative",
+      "ok": true
+    },
+    {
+      "id": "unsupported-fields-literals-declared",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "literals",
+              "required_literals": [
+                "Alpha"
+              ],
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Alpha",
+      "expected_task_pass": false,
+      "expected_validation_error": "Required fields are supported only for named_link and field_report groups",
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-positive",
+      "ok": true
+    },
+    {
+      "id": "supported-fields-named_link-missing",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ],
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)",
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-positive",
+      "ok": true
+    },
+    {
+      "id": "supported-fields-named_link-present",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ],
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+"
+            }
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\nPrice: $12",
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-negative",
+      "ok": true
+    },
+    {
+      "id": "supported-fields-field_report-missing",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Report",
+      "expected_task_pass": false,
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-positive",
+      "ok": true
+    },
+    {
+      "id": "supported-fields-field_report-present",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "field_report",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Report\nPrice: $12",
+      "expected_task_pass": true,
+      "category": "structured-extraction",
+      "root_cause": "Composite required_fields are enforced only by named_link and field_report; other group kinds must reject a nonempty declaration instead of silently bypassing it.",
+      "failure_mode": "false-negative",
+      "ok": true
+    },
+    {
+      "id": "review10-dynamic-aux-last",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "[Alpha Show](/item/1)\n[FreeTV](/item/1)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review10-dynamic-aux-first",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "[FreeTV](/item/1)\n[Alpha Show](/item/1)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review10-dynamic-only-excluded",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "[FreeTV](/item/1)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review10-dynamic-owned-price",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ]
+        }
+      },
+      "artifact": "<div><div><a href=\"/item/1\">Widget</a></div><div><span>$9.00</span></div><h2>Shipping</h2><p>$10.00</p></div>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review10-dynamic-foreign-heading-price",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ]
+        }
+      },
+      "artifact": "<div><a href=\"/item/1\">Widget</a><h2>Shipping</h2><p>$10.00</p></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review10-dynamic-foreign-section-price",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ]
+        }
+      },
+      "artifact": "<div><a href=\"/item/1\">Widget</a><section><span>$10.00</span></section></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review10-dynamic-wrapped-heading-price",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ]
+        }
+      },
+      "artifact": "<div><div><a href=\"/item/1\">Widget</a><h2>Other costs</h2></div><p>$10.00</p></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review10-dynamic-own-title-heading",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ]
+        }
+      },
+      "artifact": "<div><h2><a href=\"/item/1\">Widget</a></h2><div><span>$10.00</span></div></div>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime10-picture-recall",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<picture><source srcset=\"/required.webp 1x\"><img src=\"/fallback.jpg\"></picture>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime10-picture-unexpected",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<picture><source srcset=\"/required.webp 1x\"><img src=\"/fallback.jpg\"></picture>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime10-picture-no-source",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<picture><img src=\"/fallback.jpg\"></picture>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime10-picture-missing-source",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<picture><img src=\"/fallback.jpg\"></picture>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime10-multiple-candidates",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/large.webp"
+            ]
+          },
+          {
+            "id": "2",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<picture><source srcset=\"/required.webp 1x, /large.webp 2x\"><img src=\"/fallback.jpg\"></picture>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime10-unexpected-candidate",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<picture><source srcset=\"/required.webp 1x, /large.webp 2x\"><img src=\"/fallback.jpg\"></picture>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime10-video-not-image-recall",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><video><source srcset=\"/required.webp 1x\"></video>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime10-video-not-unexpected-image",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><video><source srcset=\"/required.webp 1x\"></video>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime10-audio-not-image-recall",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><audio><source srcset=\"/required.webp 1x\"></audio>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime10-audio-not-unexpected-image",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><audio><source srcset=\"/required.webp 1x\"></audio>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime10-orphan-not-image-recall",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><source srcset=\"/required.webp 1x\">",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime10-orphan-not-unexpected-image",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><source srcset=\"/required.webp 1x\">",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime10-nested-video-not-image-recall",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><picture><video><source srcset=\"/required.webp 1x\"></video></picture>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime10-nested-video-not-unexpected-image",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><picture><video><source srcset=\"/required.webp 1x\"></video></picture>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime10-hidden-picture-not-image-recall",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><picture hidden><source srcset=\"/required.webp 1x\"></picture>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime10-hidden-picture-not-unexpected-image",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><picture hidden><source srcset=\"/required.webp 1x\"></picture>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime10-hidden-source-not-image-recall",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><picture><source hidden srcset=\"/required.webp 1x\"></picture>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime10-hidden-source-not-unexpected-image",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><picture><source hidden srcset=\"/required.webp 1x\"></picture>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "runtime10-closed-details-not-image-recall",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/required.webp"
+            ]
+          },
+          {
+            "id": "1",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><details><summary>More</summary><picture><source srcset=\"/required.webp 1x\"></picture></details>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "runtime10-closed-details-not-unexpected-image",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "typed_image_srcset_requires_visible_picture_ownership",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "0",
+            "urls": [
+              "/fallback.jpg"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"/fallback.jpg\"><details><summary>More</summary><picture><source srcset=\"/required.webp 1x\"></picture></details>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal10-fence-True",
+      "category": "format-normalization",
+      "root_cause": "An unmatched inline delimiter cannot consume a fenced code block or duplicate its contents.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^payload$"
+          }
+        ]
+      },
+      "artifact": "Example ``` literal\n\n```text\npayload\n```\n",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal10-fence-False",
+      "category": "format-normalization",
+      "root_cause": "An unmatched inline delimiter cannot consume a fenced code block or duplicate its contents.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^textpayload$"
+          }
+        ]
+      },
+      "artifact": "Example ``` literal\n\n```text\npayload\n```\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal10-suffix-final",
+      "category": "format-normalization",
+      "root_cause": "Final multiword/path link labels keep the same serializer boundary as intermediate labels; single-word morphemes remain joined.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Stack Overflow"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Stack Overflow](https://example.test/)has answers",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal10-suffix-later",
+      "category": "format-normalization",
+      "root_cause": "Final multiword/path link labels keep the same serializer boundary as intermediate labels; single-word morphemes remain joined.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Stack Overflow"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Stack Overflow](https://example.test/)has answers [More](https://example.test/more)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal10-suffix-word",
+      "category": "format-normalization",
+      "root_cause": "Final multiword/path link labels keep the same serializer boundary as intermediate labels; single-word morphemes remain joined.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "read"
+            ]
+          }
+        ]
+      },
+      "artifact": "[read](https://example.test/)able",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal10-suffix-whole-word",
+      "category": "format-normalization",
+      "root_cause": "Final multiword/path link labels keep the same serializer boundary as intermediate labels; single-word morphemes remain joined.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "readable"
+            ]
+          }
+        ]
+      },
+      "artifact": "[read](https://example.test/)able",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review10-product-article-internal-section",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article><a href=\"/item/1\">Widget</a><section class=\"price\"><p>$10.00</p></section></article>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review10-product-article-foreign-heading-section",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article><a href=\"/item/1\">Widget</a><section><h2>Other charges</h2><p>$10.00</p></section></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review10-product-article-independent-article",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article><a href=\"/item/1\">Widget</a><article><p>$10.00</p></article></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review10-product-li-internal-section",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<li><a href=\"/item/1\">Widget</a><section class=\"price\"><p>$10.00</p></section></li>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "review10-product-li-foreign-heading-section",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<li><a href=\"/item/1\">Widget</a><section><h2>Other charges</h2><p>$10.00</p></section></li>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review10-product-li-independent-article",
+      "root_cause": "4404998226",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<li><a href=\"/item/1\">Widget</a><article><p>$10.00</p></article></li>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "review10-admission-legacy-aux-first",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "content_score_applicable": false,
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "minimum_entries": 1,
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "[FreeTV](/item/1)\n[Alpha Show](/item/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Alpha Show"
+          }
+        ]
+      },
+      "expected_metrics": {
+        "named_entry_count": 1
+      }
+    },
+    {
+      "id": "review10-admission-legacy-aux-first-insufficient",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "content_score_applicable": false,
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "minimum_entries": 2,
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "[FreeTV](/item/1)\n[Alpha Show](/item/1)",
+      "ok": true,
+      "expected_task_pass": false,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Alpha Show"
+          }
+        ]
+      },
+      "expected_metrics": {
+        "named_entry_count": 1
+      }
+    },
+    {
+      "id": "review10-admission-legacy-metadata-aux-first",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "content_score_applicable": false,
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "minimum_entries": 1,
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "Useful introduction",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "links": [
+          {
+            "url": "/item/1",
+            "title": "FreeTV"
+          },
+          {
+            "url": "/item/1",
+            "title": "Alpha Show"
+          }
+        ]
+      },
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Alpha Show"
+          }
+        ]
+      },
+      "expected_metrics": {
+        "named_entry_count": 1
+      }
+    },
+    {
+      "id": "review10-admission-stable-metadata-aux-first",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "Useful introduction",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "links": [
+          {
+            "url": "/item/1",
+            "title": "FreeTV"
+          },
+          {
+            "url": "/item/1",
+            "title": "Alpha Show"
+          }
+        ]
+      },
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_excluded_record_names": [
+          "FreeTV"
+        ]
+      }
+    },
+    {
+      "id": "review10-admission-legacy-aux-last",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "content_score_applicable": false,
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "minimum_entries": 1,
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "[Alpha Show](/item/1)\n[FreeTV](/item/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Alpha Show"
+          }
+        ]
+      },
+      "expected_metrics": {
+        "named_entry_count": 1
+      }
+    },
+    {
+      "id": "review10-admission-legacy-aux-last-insufficient",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "content_score_applicable": false,
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "minimum_entries": 2,
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "[Alpha Show](/item/1)\n[FreeTV](/item/1)",
+      "ok": true,
+      "expected_task_pass": false,
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Alpha Show"
+          }
+        ]
+      },
+      "expected_metrics": {
+        "named_entry_count": 1
+      }
+    },
+    {
+      "id": "review10-admission-legacy-metadata-aux-last",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "structure",
+        "content_score_applicable": false,
+        "source_benchmark": {
+          "mode": "dynamic_list_structure",
+          "minimum_entries": 1,
+          "verification_scope": "first_three_name_detail_pairs",
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "Useful introduction",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "links": [
+          {
+            "url": "/item/1",
+            "title": "Alpha Show"
+          },
+          {
+            "url": "/item/1",
+            "title": "FreeTV"
+          }
+        ]
+      },
+      "list_reference": {
+        "items": [
+          {
+            "url": "https://example.test/item/1",
+            "title": "Alpha Show"
+          }
+        ]
+      },
+      "expected_metrics": {
+        "named_entry_count": 1
+      }
+    },
+    {
+      "id": "review10-admission-stable-metadata-aux-last",
+      "root_cause": "4404998219",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "record-format",
+        "name": "Record format",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "record_name_exclusions": [
+            "FreeTV"
+          ]
+        }
+      },
+      "artifact": "Useful introduction",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "links": [
+          {
+            "url": "/item/1",
+            "title": "Alpha Show"
+          },
+          {
+            "url": "/item/1",
+            "title": "FreeTV"
+          }
+        ]
+      },
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_excluded_record_names": [
+          "FreeTV"
+        ]
+      }
     }
   ]
 }

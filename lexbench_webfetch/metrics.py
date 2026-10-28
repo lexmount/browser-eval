@@ -172,7 +172,8 @@ def _image_content_candidates(content: str) -> list[tuple[str, str]]:
         from .dynamic_lists import scoped_html
         # Image-answer contracts own visible output, unlike generic discovery
         # of URLs returned in a document. Use the same policy inside srcdoc.
-        content = str(scoped_html(content))
+        visible_html = scoped_html(content)
+        content = str(visible_html)
     candidates = [(url, "content.markdown_image")
                   for url in _markdown_image_destinations(content)]
     attributes = _html_resource_attributes(content)
@@ -188,6 +189,10 @@ def _image_content_candidates(content: str) -> list[tuple[str, str]]:
             continue
         candidates.extend((url, "content.html_img_srcset")
                           for url in srcset_urls(attrs['srcset']))
+    if has_html:
+        for source in visible_html.select('picture > source[srcset]'):
+            candidates.extend((url, 'content.html_picture_srcset')
+                              for url in srcset_urls(source['srcset']))
     # HTML attributes are decoded above. Do not also admit their raw entity
     # spelling as a second bare candidate; plain URL answers remain literal.
     from .reference_quality import markdown_links

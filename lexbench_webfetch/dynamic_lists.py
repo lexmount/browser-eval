@@ -972,6 +972,7 @@ def _deduplicated_named_candidates(items, contract, base_url, diagnostics):
     """Apply one candidate validator and retain its canonical identity."""
     excluded_titles = [re.compile(pattern, re.I)
                        for pattern in contract.get('title_exclusion_patterns', [])]
+    excluded_names = {_label_key(value) for value in contract.get('record_name_exclusions', [])}
     candidates, positions, metadata_positions = {}, {}, {}
     for index, item in enumerate(items):
         url, title = item[:2]
@@ -980,6 +981,10 @@ def _deduplicated_named_candidates(items, contract, base_url, diagnostics):
         )
         if candidate is not None:
             identity, entry = candidate
+            if _label_key(entry['title']) in excluded_names:
+                # Keep auxiliary occurrences for the exclusion audit without
+                # replacing the admitted record at their shared destination.
+                identity = ('excluded', identity, _label_key(entry['title']))
             position = item.offset if isinstance(item, LocatedItem) else index
             if isinstance(item, LocatedItem) and item.metadata:
                 if identity in positions:
@@ -1139,11 +1144,15 @@ def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=N
     return _deduplicated_named_candidates(items, contract, base_url, diagnostics)
 
 
-def extract_named_entries(content,contract,base_url,links=None,diagnostics=None):
-    """Return validated named entries after one canonical identity pass."""
-    return list(_extract_named_candidates(
+def extract_named_entries(content,contract,base_url,links=None,diagnostics=None, *, include_excluded=False):
+    """Return admitted entries; explicit audits may also request excluded names."""
+    entries = list(_extract_named_candidates(
         content, contract, base_url, links=links, diagnostics=diagnostics,
     ).values())
+    if include_excluded:
+        return entries
+    excluded_names = {_label_key(value) for value in contract.get('record_name_exclusions', [])}
+    return [entry for entry in entries if _label_key(entry['title']) not in excluded_names]
 
 
 def _html_product_records(content, contract, base_url, diagnostics):
@@ -1216,6 +1225,23 @@ def _html_product_records(content, contract, base_url, diagnostics):
                     children = children[:stop]
                 elif foreign_record(owner):
                     break
+                # A following heading or independent section starts another
+                # field owner, even when it is inside a presentation wrapper.
+                # The branch containing this record's own title is not a fence.
+                section_tags = {'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                                'section', 'article', 'nav', 'aside', 'header', 'footer'}
+                if owner.name in {'li', 'tr', 'article', 'section'} and not foreign_record(owner):
+                    # A heading-free section may be an internal card field.
+                    # The containing semantic record supplies its ownership.
+                    section_tags = section_tags - {'section'}
+                branch_index = next((index for index, child in enumerate(children)
+                                     if id(child) in ancestry), -1)
+                fences = [index for index, child in enumerate(children)
+                          if isinstance(child, Tag) and id(child) not in ancestry
+                          and (child.name in section_tags or child.find(section_tags))]
+                forward_fence = next((index for index in fences if index > branch_index), None)
+                start = max((index + 1 for index in fences if index < branch_index), default=0)
+                children = children[start:forward_fence]
                 fields = [child.get_text(' ', strip=True) if isinstance(child, Tag) else str(child).strip()
                           for child in children if id(child) not in ancestry and not isinstance(child, Comment)]
                 if owner is anchor:
@@ -1230,7 +1256,8 @@ def _html_product_records(content, contract, base_url, diagnostics):
                         **({'price_status': 'not_shown_on_page', 'price_unavailable_text': hint}
                            if price is None else {})})
                     break
-                if owner is root or global_owner or owner.name in {'li', 'tr', 'article', 'section'}:
+                if (forward_fence is not None or owner is root or global_owner
+                        or owner.name in {'li', 'tr', 'article', 'section'}):
                     break
                 owner = owner.parent
     return list(records.values())

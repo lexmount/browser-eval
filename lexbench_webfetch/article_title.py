@@ -77,8 +77,9 @@ def verify_article_title(content, contract, *, representation=None):
         for line in visible_mixed_html_text(content).splitlines():
             text = line.strip()
             heading = re.match(r'^#{1,6}[ \t]+', text)
-            text = re.sub(r'^#{1,6}[ \t]+', '', text)
-            text = re.sub(r'[ \t]+#+[ \t]*$', '', text)
+            if heading:
+                text = re.sub(r'^#{1,6}[ \t]+', '', text)
+                text = re.sub(r'[ \t]+#+[ \t]*$', '', text)
             # Inline markup can format a title but cannot supply hidden text.
             text = without_markdown_images(text)
             if heading or restore_inline_code(text, remove=True).strip():
