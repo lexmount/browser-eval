@@ -16,6 +16,9 @@ def matrix():
              "metrics": {"anchor_hit_5": int(m == "a") if c["id"] == "target" else None,
                          "labeled_source_hit_5": int(m != "a"), "answer_in_delivered_text_5": 1}}
             for c in profile["cases"] for m in "abc"]
+    for row in rows:
+        if row['case_id'] == 'target' and row['method'] != 'a':
+            row['results'][0]['url'] = 'https://example.org/alternative-' + row['method']
     return profile, rows
 
 
@@ -180,11 +183,12 @@ def test_human_relevance_is_the_primary_quality_check_when_complete_labels_exist
     from lexbench_websearch.scoring import canonical_url
     p, rows = matrix()
     case = p["cases"][0]
-    cid = hashlib.sha256((case["id"] + "\0" + canonical_url(rows[0]["results"][0]["url"])).encode()).hexdigest()[:12]
-    evidence = {"labels": {case["id"]: {cid: 2}}}
+    labels = {hashlib.sha256((case['id'] + '\0' + canonical_url(row['results'][0]['url'])).encode()).hexdigest()[:12]: 2
+              for row in rows if row['case_id'] == case['id']}
+    evidence = {"labels": {case["id"]: labels}}
     data = comparison_data(p, rows, relevance=evidence)
     # Provider b misses the preselected URL metric in this fixture, but its page
-    # has the same frozen human relevance label as the other providers.
+    # has the same human relevance grade as the other providers' pages.
     out = data["cases"][0]["outputs"]["b"]
     assert out["source"] is False
     assert out["primary"] is True

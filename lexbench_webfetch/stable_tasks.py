@@ -16,7 +16,7 @@ from datetime import date, datetime
 from html import unescape
 from urllib.parse import urlsplit
 
-from .dynamic_lists import extract_named_entries, named_entry_source_pair_hash
+from .dynamic_lists import extract_named_entries, named_entry_identity, named_entry_source_pair_hash
 from .reference_quality import (
     clean_reference_text, is_markdown_image_start, markdown_delimiter_pairs,
     visible_markdown_links, without_markdown_images,
@@ -1477,13 +1477,15 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     compact_fields = {c['name'] for c in contract.get('table_columns', [])
                       if c.get('compact_whitespace')}
     def identity_key(record, field):
+        if field == 'url' and schema in {'named_link', 'linked_product'}:
+            return named_entry_identity(record['fields'][field], contract)
         value = _key(record['fields'][field])
         return re.sub(r'\s+', '', value) if field in compact_fields else value
     unique = {tuple(identity_key(r, field) for field in identity_fields) for r in complete}
     record_warnings = []
     field_checks = []
     for field, count in contract.get('field_minimum_records', {}).items():
-        identities = {tuple(_key(r['fields'][key]) for key in identity_fields)
+        identities = {tuple(identity_key(r, key) for key in identity_fields)
                       for r in complete if _valid_field(field, r['fields'].get(field))}
         field_checks.append({'field': field, 'count': len(identities), 'minimum': count, 'pass': len(identities) >= count})
         if len(identities) < count:
@@ -1500,7 +1502,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         for record in complete:
             identity = tuple(identity_key(record, field) for field in identity_fields)
             grouped.setdefault(identity, set()).add(tuple(
-                (field, _key(value)) for field, value in sorted(record['fields'].items())))
+                (field, identity_key(record, field)) for field in sorted(record['fields'])))
         if (contract.get('duplicate_policy') == 'deduplicate_identical'
                 and all(len(values) == 1 for values in grouped.values())):
             record_warnings.append('identical_records_counted_once')

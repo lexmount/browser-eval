@@ -117,15 +117,18 @@ def _post_headers(lines, contract, url):
     for index, line in enumerate(lines):
         heading = re.match(r'^\s*(#{1,6})\s+', line)
         links = [link for link in markdown_links(line) if not link.is_image]
+        enclosing = heading and header_level is not None and len(heading[1]) <= header_level
         if not links or line.lstrip().startswith('>'):
-            if heading and header_level is not None and len(heading[1]) <= header_level:
-                break
+            if enclosing:
+                return headers, index
             continue
         if len(links) > 1:
             first, last = links[0], links[-1]
             prefix, suffix = line[:first.start].strip(), line[last.end:].strip()
             if (not re.match(r'^(?:#{1,6}|[-*+]|\d+[.)])(?:\s|$)', prefix)
                     or suffix.strip(' |—–-:*_')):
+                if enclosing:
+                    return headers, index
                 continue
             author = visible_markdown_links(first.label)
             destination = 'about:invalid-post-heading'
@@ -145,6 +148,8 @@ def _post_headers(lines, contract, url):
                         destination = last.destination
                 except ValueError:
                     pass
+            if enclosing and destination == 'about:invalid-post-heading':
+                return headers, index
             if header_level is None and destination != 'about:invalid-post-heading' and heading:
                 header_level = len(heading[1])
             if not headers and destination == 'about:invalid-post-heading':
@@ -155,12 +160,16 @@ def _post_headers(lines, contract, url):
         prefix, suffix = line[:link.start].strip(), line[link.end:].strip()
         explicit_header = bool(re.match(r'^(?:#{1,6}|[-*+]|\d+[.)])(?:\s|$)', prefix))
         if suffix.strip(' |—–-:*_') or (prefix and not explicit_header):
+            if enclosing:
+                return headers, index
             continue
         try:
             post_identity(link.destination, contract, url)
         except ValueError:
             # An explicit linked post heading still ends the previous post,
             # even when its own URL is invalid. Ordinary inline links do not.
+            if enclosing:
+                return headers, index
             if not explicit_header or not headers:
                 continue
         else:
@@ -176,7 +185,7 @@ def _post_headers(lines, contract, url):
             author = visible_markdown_links(lines[index-1])
             header = author+'\n'+header
         headers.append((index, owner_start, link.destination, header, author))
-    return headers
+    return headers, len(lines)
 
 
 def _markdown_records(content, contract, url):
@@ -195,11 +204,11 @@ def _markdown_records(content, contract, url):
     content = visible_html_text(content, preserve_source_whitespace=True, preserve_links=True)
     content = content.replace(paragraph_marker, '')
     lines = content.splitlines()
-    headers = _post_headers(lines, contract, url)
+    headers, section_end = _post_headers(lines, contract, url)
     rows = []
     markers = {x.casefold().rstrip(':：') for x in contract.get('quote_markers', [])}
     for n, (start, _owner_start, destination, header, author) in enumerate(headers):
-        end = headers[n+1][1] if n+1 < len(headers) else len(lines)
+        end = headers[n+1][1] if n+1 < len(headers) else section_end
         post, quotes, current = [], [], None
         quote_mode, paragraph_break = None, False
         header_heading = re.match(r'^\s*(#{1,6})\s+', lines[start])
@@ -256,7 +265,7 @@ def _has_post_prose(text, contract):
     unavailable = declared_labels(contract, "unavailable_notices")
     for line in text.splitlines():
         line = unicodedata.normalize('NFKC', visible_markdown_links(line)).strip()
-        if not line or label_key(line) in unavailable:
+        if author_key(line) is None or label_key(line) in unavailable:
             continue
         if TIMESTAMP_LINE.fullmatch(line):
             continue

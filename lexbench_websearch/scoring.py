@@ -204,7 +204,8 @@ def task_acceptance(
     if response_failed(row):
         return False
     if metric == "primary" and relevance_grades is not None:
-        return any(g is not None and g >= 2 for g in relevance_grades[:cutoff])
+        limit = min(cutoff, len(row.get("results", [])))
+        return any(g is not None and g >= 2 for g in relevance_grades[:limit])
     if metric == "primary":
         metric = (
             "answer"

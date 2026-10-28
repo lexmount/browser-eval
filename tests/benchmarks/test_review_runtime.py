@@ -137,3 +137,34 @@ def test_search_source_acceptance_uses_requested_scope_not_cached_metrics(evalua
     results[5] = {'url': 'https://example.org/anchor'}
     row = {'results': results, 'metrics': evaluate(case, results, cutoff=evaluated_cutoff)}
     assert task_acceptance(case, row, 'source', cutoff=requested_cutoff) is (requested_cutoff == 10)
+
+
+@pytest.mark.parametrize('results,grades,expected', [
+    ([], [3], False),
+    ([{'url': 'https://example.org'}], [0, 3], False),
+    ([{'url': 'https://example.org'}], [3], True),
+])
+def test_relevance_grades_cannot_credit_absent_result_slots(results, grades, expected):
+    from lexbench_websearch.scoring import task_acceptance, classify
+    row = {'results': results}
+    assert task_acceptance({}, row, relevance_grades=grades) is expected
+    assert (classify({}, row, relevance_grades=grades)[0] == 'pass') is expected
+
+
+@pytest.mark.parametrize('kind', ['resource', 'file'])
+@pytest.mark.parametrize('requirement', [None, 'minimum', 'fact', 'missing-delivery'])
+def test_nontext_delivery_needs_no_implicit_caption_but_keeps_declared_text(kind, requirement):
+    from lexbench_webfetch.evaluation import evaluate_response
+    case = {'url': 'https://example.org', 'task_kind': kind,
+            'expected_resources': [{'id': 'image', 'urls': ['/image.png']}]}
+    if requirement == 'minimum':
+        case['min_content_chars'] = 30
+    if requirement == 'fact':
+        case['required_facts'] = [{'id': 'caption', 'alternatives': ['Required caption']}]
+    response = b'<img src="/image.png">' if requirement != 'missing-delivery' else b''
+    files = [b'\x89PNG\r\n\x1a\n' + b'x' * 32] if kind == 'file' and requirement != 'missing-delivery' else []
+    result = evaluate_response(case, response, files=files)
+    assert result['passed'] is (requirement is None)
+    assert result['metrics']['content_length_pass'] is False
+    if requirement is None:
+        assert 'length' not in result['metrics']['acceptance_checks']

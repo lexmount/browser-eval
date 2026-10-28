@@ -129,6 +129,12 @@ def scoped_html(content):
     independently captured browser evidence when qualifying source counts.
     """
     from bs4 import BeautifulSoup
+    # Native document serialization can retain opaque XML marked declarations
+    # rejected by html.parser. Preserve supported sections and remove only the
+    # unsupported declarations before this non-executing visibility projection.
+    content = re.sub(
+        r'<!\[(?!(?:temp|cdata|ignore|include|rcdata|if|else|endif)(?![-_.a-z0-9]))'
+        r'.*?(?:\]>|\Z)', '', content, flags=re.I | re.S)
     soup = BeautifulSoup(content, 'html.parser')
     # HTML permits an omitted head end tag before an explicit body. Python's
     # html.parser leaves that body nested in head; preserve the existing body
@@ -365,9 +371,14 @@ def _owned_metadata_links(full_content, scoped_content, links, base_url):
     scoped_text = visible_text(scoped_content)
     # Explicit Markdown links already pass through the card/context parser.
     # Flat metadata cannot resurrect a link rejected there as prose or a badge.
-    explicit_destinations = {
-        urljoin(base_url, unescape(link.destination))
-        for link in markdown_links(scoped_content) if not link.is_image}
+    explicit_destinations = set()
+    for link in markdown_links(scoped_content):
+        if link.is_image:
+            continue
+        try:
+            explicit_destinations.add(urljoin(base_url, unescape(link.destination)))
+        except ValueError:
+            continue
     candidates = safe_named_links(links, base_url)
     destinations = defaultdict(set)
     for url, label in candidates:
@@ -431,6 +442,18 @@ def _breadcrumb_scope_end(content, contract, base_url):
     return None
 
 
+def _owned_html_name_links(owner, scope):
+    """Resolve field selectors while the selected owner retains DOM ancestry."""
+    titles = owner.select(scope['title_selector'])
+    destination_nodes = owner.select(scope['link_selector'])
+    if owner.name == 'a' and owner.css.match(scope['link_selector']):
+        destination_nodes.insert(0, owner)
+    destinations = {a.get('href') for a in destination_nodes if a.get('href')}
+    if len(titles) == 1 and len(destinations) == 1:
+        return [(destinations.pop(), titles[0].get_text(' ', strip=True))]
+    return []
+
+
 def _scope_named_content(content, scope, *, contract=None, base_url=''):
 
     """Apply one declared HTML or text scope and return owned name/link pairs."""
@@ -450,13 +473,7 @@ def _scope_named_content(content, scope, *, contract=None, base_url=''):
             if not scope.get('title_selector'):
                 return '\n'.join(str(node) for node in owners), owned_items, True
             for owner in owners:
-                titles = owner.select(scope['title_selector'])
-                destination_nodes = owner.select(scope['link_selector'])
-                if owner.name == 'a' and owner.css.match(scope['link_selector']):
-                    destination_nodes.insert(0, owner)
-                destinations = {a.get('href') for a in destination_nodes if a.get('href')}
-                if len(titles) == 1 and len(destinations) == 1:
-                    owned_items.append((destinations.pop(), titles[0].get_text(' ', strip=True)))
+                owned_items.extend(_owned_html_name_links(owner, scope))
             return '', owned_items, True
     if scope.get('start_pattern'):
         start = _text_scope_boundary(content, scope['start_pattern'], prefer_heading=True)
@@ -1001,9 +1018,13 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
         unavailable = [re.compile(p, re.I) for p in contract.get('price_unavailable_patterns', [])]
         records = {}
         for owner in soup.select(scope['html_selector']):
-            candidates = _extract_named_candidates(
-                str(owner), contract, base_url, diagnostics=diagnostics,
-            )
+            if scope.get('title_selector'):
+                candidates = _deduplicated_named_candidates(
+                    _owned_html_name_links(owner, scope), contract, base_url, diagnostics)
+            else:
+                candidates = _extract_named_candidates(
+                    str(owner), {key: value for key, value in contract.items() if key != 'entry_scope'},
+                    base_url, diagnostics=diagnostics)
             if len(candidates) != 1:
                 continue
             identity, entry = next(iter(candidates.items()))
@@ -1080,7 +1101,9 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
             r'|<h[1-6]\b|</(?:li|tr|article|section)\s*>', tail, re.I)
         if boundary_match:
             tail = tail[:boundary_match.start()]
-        segment = "\n".join(item[4] for item in group) + "\n" + tail
+        from .reference_quality import visible_markdown_links, visible_mixed_html_text
+        segment = visible_markdown_links(visible_mixed_html_text(
+            "\n".join(item[4] for item in group) + "\n" + tail))
         prices = []
         for pattern in allowed:
             for price_match in pattern.finditer(segment):

@@ -26,7 +26,6 @@ for brackets in ('[' * 20000, '[x](' * 5000):
 
     def test_nested_and_escaped_link_delimiters_retain_existing_destinations(self):
         samples = [
-            (r'\[Docs](/guide)', 'Docs', '/guide'),
             (r'[Docs \[with note](/guide)', r'Docs \[with note', '/guide'),
             ('[Docs [nested]](/guide(a))', 'Docs [nested]', '/guide(a)'),
             (r'[Docs](/guide\))', 'Docs', r'/guide\)'),
@@ -36,6 +35,8 @@ for brackets in ('[' * 20000, '[x](' * 5000):
                 self.assertEqual([(link.label, link.destination)
                                   for link in markdown_links(text)],
                                  [(label, destination)])
+        self.assertEqual(markdown_links(r'\[Docs](/guide)'), [])
+        self.assertIn('/guide', visible_markdown_links(r'\[Docs](/guide)'))
 
     def test_script_payload_shell_rejects_state_dump_but_not_readable_js_article(self):
         state = '\n'.join(

@@ -9535,6 +9535,2881 @@
       "artifact": "$10\nBeta $20\n3 reviews",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-content-empty-language",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Only rendered code contents supply a comment body; fences and language metadata do not.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n### Alice\n\n```python\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-comment-code-content-substantive",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Only rendered code contents supply a comment body; fences and language metadata do not.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n### Alice\n\n```python\nprint('Actual code')\n```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-quoted-fence-empty-language",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Quoted code fences cannot supply fake prose from delimiters or quote markers.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Alice [Today](/post/1)\n\n> Bob\n> ```python\n> ```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-quoted-fence-visible-prose",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Quoted code fences cannot supply fake prose from delimiters or quote markers.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Alice [Today](/post/1)\n\n> Bob\n> Actual quote prose.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-section-unheaded-plain-empty",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "The section boundary also ends the final post body when its permalink has no heading marker.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n### Alice [Today](/post/1)\n\nReal first post.\n\nBob\n[Today](/post/2)\n\n\n\n## Related articles\n\nUnowned prose.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-section-unheaded-plain-complete",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "The section boundary also ends the final post body when its permalink has no heading marker.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n### Alice [Today](/post/1)\n\nReal first post.\n\nBob\n[Today](/post/2)\n\nReal second post.\n\n## Related articles\n\nUnowned prose.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-section-linked-incomplete",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Linked and unlinked non-post section headings end post coverage before related content.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n### Alice [Today](/post/1)\n\nReal first post.\n\n## [Related articles](/related)\n\n### Bob [Today](/post/2)\n\nRelated summary.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-section-linked-complete",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Linked and unlinked non-post section headings end post coverage before related content.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n### Alice [Today](/post/1)\n\nReal first post.\n\n### Carol [Today](/post/3)\n\nReal second post.\n\n## [Related articles](/related)\n\n### Bob [Today](/post/2)\n\nRelated summary.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-visible-zero-width-space-html-body",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Post and quote coverage requires visible content, allowing emoji and actual text.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\">​</div></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-visible-variation-selector-markdown-quote",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Post and quote coverage requires visible content, allowing emoji and actual text.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Alice [Today](/post/1)\n\n> Bob\n> ️",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-visible-emoji-html-body",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Post and quote coverage requires visible content, allowing emoji and actual text.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\">🙂</div></article>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-visible-emoji-joined-markdown-quote",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Post and quote coverage requires visible content, allowing emoji and actual text.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Alice [Today](/post/1)\n\n> Bob\n> 👩‍💻",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "shared-query-subset-wildcard-valid",
+      "category": "structured-extraction",
+      "root_cause": "Extraction and field ownership must share the canonical identity policy for a nonempty subset of declared query keys and path-identity precedence.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item",
+              "identity_query_keys": [
+                "id",
+                "v"
+              ],
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget](/item?id=1)\n$10",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "shared-query-subset-wildcard-missing",
+      "category": "structured-extraction",
+      "root_cause": "Extraction and field ownership must share the canonical identity policy for a nonempty subset of declared query keys and path-identity precedence.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item",
+              "identity_query_keys": [
+                "id",
+                "v"
+              ],
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget](/item?other=1)\n$10",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "shared-path-precedence-wildcard-distinct",
+      "category": "structured-extraction",
+      "root_cause": "Extraction and field ownership must share the canonical identity policy for a nonempty subset of declared query keys and path-identity precedence.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "entry_identity_pattern": "/item/(\\d+)",
+              "identity_query_keys": [
+                "id"
+              ],
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget Alpha](/item/1)\n$10\n\n[Widget Beta](/item/2)\n$20",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "shared-path-precedence-wildcard-duplicate",
+      "category": "structured-extraction",
+      "root_cause": "Extraction and field ownership must share the canonical identity policy for a nonempty subset of declared query keys and path-identity precedence.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "entry_identity_pattern": "/item/(\\d+)",
+              "identity_query_keys": [
+                "id"
+              ],
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget Alpha](/item/1?id=A)\n$10\n\n[Widget Beta](/item/1?id=B)\n$20",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "shared-query-subset-fixed-valid",
+      "category": "structured-extraction",
+      "root_cause": "Extraction and field ownership must share the canonical identity policy for a nonempty subset of declared query keys and path-identity precedence.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "identity_query_keys": [
+                "id",
+                "v"
+              ],
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget](/item?id=1)\n$10",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "shared-query-subset-fixed-missing",
+      "category": "structured-extraction",
+      "root_cause": "Extraction and field ownership must share the canonical identity policy for a nonempty subset of declared query keys and path-identity precedence.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item",
+              "identity_query_keys": [
+                "id",
+                "v"
+              ],
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget](/item?other=1)\n$10",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "shared-path-precedence-fixed-distinct",
+      "category": "structured-extraction",
+      "root_cause": "Extraction and field ownership must share the canonical identity policy for a nonempty subset of declared query keys and path-identity precedence.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "entry_identity_pattern": "/item/(\\d+)",
+              "identity_query_keys": [
+                "id"
+              ],
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget Alpha](/item/1)\n$10\n\n[Widget Beta](/item/2)\n$20",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "shared-path-precedence-fixed-duplicate",
+      "category": "structured-extraction",
+      "root_cause": "Extraction and field ownership must share the canonical identity policy for a nonempty subset of declared query keys and path-identity precedence.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "entry_identity_pattern": "/item/(\\d+)",
+              "identity_query_keys": [
+                "id"
+              ],
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget Alpha](/item/1?id=A)\n$10\n\n[Widget Beta](/item/1?id=B)\n$20",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-literal-wildcard-real",
+      "category": "answer-surface",
+      "root_cause": "Every named-record pass must mask literal Markdown link examples before extracting candidates or assigning their owned fields.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/1)\nDate: 2026-09-28",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-literal-wildcard-backticks",
+      "category": "answer-surface",
+      "root_cause": "Every named-record pass must mask literal Markdown link examples before extracting candidates or assigning their owned fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "```\n[Widget](/item/1)\nDate: 2026-09-28\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-literal-wildcard-tildes",
+      "category": "answer-surface",
+      "root_cause": "Every named-record pass must mask literal Markdown link examples before extracting candidates or assigning their owned fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "~~~\n[Widget](/item/1)\nDate: 2026-09-28\n~~~",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-literal-wildcard-inline",
+      "category": "answer-surface",
+      "root_cause": "Every named-record pass must mask literal Markdown link examples before extracting candidates or assigning their owned fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "`[Widget](/item/1)`\nDate: 2026-09-28",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-literal-fixed-real",
+      "category": "answer-surface",
+      "root_cause": "Every named-record pass must mask literal Markdown link examples before extracting candidates or assigning their owned fields.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/1)\nDate: 2026-09-28",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-literal-fixed-backticks",
+      "category": "answer-surface",
+      "root_cause": "Every named-record pass must mask literal Markdown link examples before extracting candidates or assigning their owned fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "```\n[Widget](/item/1)\nDate: 2026-09-28\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-literal-fixed-tildes",
+      "category": "answer-surface",
+      "root_cause": "Every named-record pass must mask literal Markdown link examples before extracting candidates or assigning their owned fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "~~~\n[Widget](/item/1)\nDate: 2026-09-28\n~~~",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-literal-fixed-inline",
+      "category": "answer-surface",
+      "root_cause": "Every named-record pass must mask literal Markdown link examples before extracting candidates or assigning their owned fields.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "`[Widget](/item/1)`\nDate: 2026-09-28",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "stable-url-case-named_link-path-distinct",
+      "category": "structured-extraction",
+      "root_cause": "Linked URL identities preserve path and query-value case through extraction, unique counts, field-minimum checks and duplicate checks.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/items/[^/]+",
+          "field_minimum_records": {
+            "title": 2
+          }
+        }
+      },
+      "artifact": "[Widget Alpha](/items/Alpha)\n$10\n\n[Widget Beta](/items/alpha)\n$20",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "stable-url-case-named_link-path-duplicate",
+      "category": "structured-extraction",
+      "root_cause": "Linked URL identities preserve path and query-value case through extraction, unique counts, field-minimum checks and duplicate checks.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/items/[^/]+",
+          "field_minimum_records": {
+            "title": 2
+          }
+        }
+      },
+      "artifact": "[Widget Alpha](/items/Alpha)\n$10\n\n[Widget Beta](/items/Alpha)\n$20",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "stable-url-case-named_link-query-distinct",
+      "category": "structured-extraction",
+      "root_cause": "Linked URL identities preserve path and query-value case through extraction, unique counts, field-minimum checks and duplicate checks.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/items/[^/]+",
+          "field_minimum_records": {
+            "title": 2
+          },
+          "identity_query_keys": [
+            "id"
+          ]
+        }
+      },
+      "artifact": "[Widget Alpha](/items/item?id=Alpha)\n$10\n\n[Widget Beta](/items/item?id=alpha)\n$20",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "stable-url-case-named_link-query-duplicate",
+      "category": "structured-extraction",
+      "root_cause": "Linked URL identities preserve path and query-value case through extraction, unique counts, field-minimum checks and duplicate checks.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/items/[^/]+",
+          "field_minimum_records": {
+            "title": 2
+          },
+          "identity_query_keys": [
+            "id"
+          ]
+        }
+      },
+      "artifact": "[Widget Alpha](/items/item?id=Alpha)\n$10\n\n[Widget Beta](/items/item?id=Alpha)\n$20",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "stable-url-case-linked_product-path-distinct",
+      "category": "structured-extraction",
+      "root_cause": "Linked URL identities preserve path and query-value case through extraction, unique counts, field-minimum checks and duplicate checks.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/items/[^/]+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [
+            "out of stock"
+          ],
+          "field_minimum_records": {
+            "title": 2
+          }
+        }
+      },
+      "artifact": "[Widget Alpha](/items/Alpha)\n$10\n\n[Widget Beta](/items/alpha)\n$20",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "stable-url-case-linked_product-path-duplicate",
+      "category": "structured-extraction",
+      "root_cause": "Linked URL identities preserve path and query-value case through extraction, unique counts, field-minimum checks and duplicate checks.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/items/[^/]+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [
+            "out of stock"
+          ],
+          "field_minimum_records": {
+            "title": 2
+          }
+        }
+      },
+      "artifact": "[Widget Alpha](/items/Alpha)\n$10\n\n[Widget Beta](/items/Alpha)\n$20",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "stable-url-case-linked_product-query-distinct",
+      "category": "structured-extraction",
+      "root_cause": "Linked URL identities preserve path and query-value case through extraction, unique counts, field-minimum checks and duplicate checks.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/items/[^/]+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [
+            "out of stock"
+          ],
+          "field_minimum_records": {
+            "title": 2
+          },
+          "identity_query_keys": [
+            "id"
+          ]
+        }
+      },
+      "artifact": "[Widget Alpha](/items/item?id=Alpha)\n$10\n\n[Widget Beta](/items/item?id=alpha)\n$20",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "stable-url-case-linked_product-query-duplicate",
+      "category": "structured-extraction",
+      "root_cause": "Linked URL identities preserve path and query-value case through extraction, unique counts, field-minimum checks and duplicate checks.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/items/[^/]+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [
+            "out of stock"
+          ],
+          "field_minimum_records": {
+            "title": 2
+          },
+          "identity_query_keys": [
+            "id"
+          ]
+        }
+      },
+      "artifact": "[Widget Alpha](/items/item?id=Alpha)\n$10\n\n[Widget Beta](/items/item?id=Alpha)\n$20",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-url-case-distinct",
+      "category": "structured-extraction",
+      "root_cause": "Linked URL identities preserve path and query-value case through extraction, unique counts, field-minimum checks and duplicate checks.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/items/[^/]+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget Alpha](/items/Alpha)\n$10\n\n[Widget Beta](/items/alpha)\n$20",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-url-case-duplicate",
+      "category": "structured-extraction",
+      "root_cause": "Linked URL identities preserve path and query-value case through extraction, unique counts, field-minimum checks and duplicate checks.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "*"
+              ],
+              "entry_path": "/items/[^/]+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget Alpha](/items/Alpha)\n$10\n\n[Widget Beta](/items/Alpha)\n$20",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-native-literal-only",
+      "category": "answer-surface",
+      "root_cause": "Literal masking must precede native HTML projection so a later ownership pass cannot recover a fenced example as a real card.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main>\n```md\n[Widget](/item/1)\n$10\n```\n</main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-native-literal-and-real",
+      "category": "answer-surface",
+      "root_cause": "Literal masking must precede native HTML projection so a later ownership pass cannot recover a fenced example as a real card.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<main>\n```md\n[Widget](/item/1)\n$10\n```\n<article><a href=\"/item/2\">Real widget</a><p>$20</p></article></main>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration4-scoped-malformed-sibling-complete",
+      "root_cause": "Malformed scoped destinations must retain valid sibling records and their output diagnostics.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "owned-surface",
+        "name": "Owned surface",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".items",
+            "start_pattern": "(?m)^# Items$",
+            "end_pattern": "(?m)^# End$"
+          }
+        }
+      },
+      "artifact": "# Items\n[Good](/item/1)\n# End",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "migration4-scoped-malformed-sibling-incomplete",
+      "root_cause": "Malformed scoped destinations must retain valid sibling records and their output diagnostics.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "owned-surface",
+        "name": "Owned surface",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".items",
+            "start_pattern": "(?m)^# Items$",
+            "end_pattern": "(?m)^# End$"
+          }
+        }
+      },
+      "artifact": "# Items\n[Good](/item/1)\n[Broken](https://[bad]/item/2)\n# End",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_task_errors": [
+          "invalid_link_output"
+        ]
+      }
+    },
+    {
+      "id": "migration4-selected-product-owner-complete",
+      "root_cause": "Field extraction must retain the ancestor context of an already-selected product owner.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "owned-surface",
+        "name": "Owned surface",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "entry_scope": {
+            "html_selector": ".catalog .product",
+            "title_selector": ".name",
+            "link_selector": "a.detail",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<div class=\"catalog\"><div class=\"product\"><h2 class=\"name\">Widget</h2><a class=\"detail\" href=\"/item/1\">Details</a><span class=\"price\">$10.00</span></div></div>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration4-selected-product-owner-incomplete",
+      "root_cause": "Field extraction must retain the ancestor context of an already-selected product owner.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "owned-surface",
+        "name": "Owned surface",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "entry_scope": {
+            "html_selector": ".catalog .product",
+            "title_selector": ".name",
+            "link_selector": "a.detail",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<div class=\"catalog\"><div class=\"product\"><h2 class=\"name\">Widget</h2><a class=\"detail\" href=\"/item/1\">Details</a><span class=\"price\">10 reviews</span></div></div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration4-visible-product-price-complete",
+      "root_cause": "Only visible owned text can supply product prices or unavailability hints, never destinations or attributes.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "owned-surface",
+        "name": "Owned surface",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/1) $10.00",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration4-visible-product-price-incomplete",
+      "root_cause": "Only visible owned text can supply product prices or unavailability hints, never destinations or attributes.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "owned-surface",
+        "name": "Owned surface",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/1) [Shipping](/help?amount=$10.00)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration4-visible-image-answer-complete",
+      "root_cause": "Image-answer contracts exclude hidden targets and hidden non-targets through the shared HTML visibility policy.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "owned-surface",
+        "name": "Owned surface",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=/target.png><span hidden><img src=/noise.png></span>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://shop.example/target.png"
+        ],
+        "resource_precision": 1.0
+      }
+    },
+    {
+      "id": "migration4-visible-image-answer-incomplete",
+      "root_cause": "Image-answer contracts exclude hidden targets and hidden non-targets through the shared HTML visibility policy.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "owned-surface",
+        "name": "Owned surface",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<span hidden><img src=/target.png></span>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration4-image-attribute-syntax-complete",
+      "root_cause": "Image attribute destinations are decoded once and cannot be duplicated or fabricated by residual bare scanning.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "owned-surface",
+        "name": "Owned surface",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png?a=1&b=2"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"https://example.test/target.png?a=1&amp;b=2\"><a href=\"https://example.test/target.png?a=1&amp;b=2\">Download</a>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png?a=1&b=2"
+        ],
+        "resource_precision": 1.0
+      }
+    },
+    {
+      "id": "migration4-image-attribute-syntax-incomplete",
+      "root_cause": "Image attribute destinations are decoded once and cannot be duplicated or fabricated by residual bare scanning.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "owned-surface",
+        "name": "Owned surface",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png?a=1&b=2"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<span title=\"https://example.test/target.png?a=1&amp;b=2\">Plain</span>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-opening-bracket-0",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Only an unescaped opening bracket establishes link syntax; escaped destinations remain visible prose.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Download](/manual.pdf)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-opening-bracket-1",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Only an unescaped opening bracket establishes link syntax; escaped destinations remain visible prose.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "\\[Download](/manual.pdf)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "reference4-opening-bracket-2",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Only an unescaped opening bracket establishes link syntax; escaped destinations remain visible prose.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "\\\\[Download](/manual.pdf)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-opening-bracket-3",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Only an unescaped opening bracket establishes link syntax; escaped destinations remain visible prose.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "\\\\\\[Download](/manual.pdf)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "reference4-opening-bracket-4",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Only an unescaped opening bracket establishes link syntax; escaped destinations remain visible prose.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "\\\\\\\\[Download](/manual.pdf)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-multiline-comment-False-False",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Multiline code spans must be protected before nonliteral HTML comments are removed.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Secret required phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!-- Secret required phrase -->",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-multiline-comment-False-True",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Multiline code spans must be protected before nonliteral HTML comments are removed.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Secret required phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "`\n<!-- Secret required phrase -->\n`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "reference4-generic-tag-False-label-False",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Visibility filtering must apply to generic HTML elements, not a tag-name whitelist.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Secret required phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "Intro\n<label>Secret required phrase</label>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "reference4-generic-tag-False-label-True",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Visibility filtering must apply to generic HTML elements, not a tag-name whitelist.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Secret required phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "Intro\n<label hidden>Secret required phrase</label>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-generic-tag-False-x-evidence-False",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Visibility filtering must apply to generic HTML elements, not a tag-name whitelist.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Secret required phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "Intro\n<x-evidence>Secret required phrase</x-evidence>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "reference4-generic-tag-False-x-evidence-True",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Visibility filtering must apply to generic HTML elements, not a tag-name whitelist.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Secret required phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "Intro\n<x-evidence hidden>Secret required phrase</x-evidence>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-native-cell-fence-False-False",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Only complete native table-cell fence spelling supplies literal markup content.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Secret required phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "| ```html\n<label hidden>Secret required phrase</label>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-native-cell-fence-False-True",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Only complete native table-cell fence spelling supplies literal markup content.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "Secret required phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "| ```html\n<label hidden>Secret required phrase</label>\n```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "reference4-multiline-comment-True-False",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Multiline code spans must be protected before nonliteral HTML comments are removed.",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "secret required phrase",
+              "source_text": "secret required phrase",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "<!-- Secret required phrase -->",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-multiline-comment-True-True",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Multiline code spans must be protected before nonliteral HTML comments are removed.",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "secret required phrase",
+              "source_text": "secret required phrase",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "`\n<!-- Secret required phrase -->\n`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "reference4-generic-tag-True-label-False",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Visibility filtering must apply to generic HTML elements, not a tag-name whitelist.",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "secret required phrase",
+              "source_text": "secret required phrase",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "Intro\n<label>Secret required phrase</label>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "reference4-generic-tag-True-label-True",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Visibility filtering must apply to generic HTML elements, not a tag-name whitelist.",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "secret required phrase",
+              "source_text": "secret required phrase",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "Intro\n<label hidden>Secret required phrase</label>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-generic-tag-True-x-evidence-False",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Visibility filtering must apply to generic HTML elements, not a tag-name whitelist.",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "secret required phrase",
+              "source_text": "secret required phrase",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "Intro\n<x-evidence>Secret required phrase</x-evidence>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "reference4-generic-tag-True-x-evidence-True",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Visibility filtering must apply to generic HTML elements, not a tag-name whitelist.",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "secret required phrase",
+              "source_text": "secret required phrase",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "Intro\n<x-evidence hidden>Secret required phrase</x-evidence>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-native-cell-fence-True-False",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Only complete native table-cell fence spelling supplies literal markup content.",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "secret required phrase",
+              "source_text": "secret required phrase",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "| ```html\n<label hidden>Secret required phrase</label>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "reference4-native-cell-fence-True-True",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Only complete native table-cell fence spelling supplies literal markup content.",
+      "case": {
+        "url": "https://example.test/",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "secret required phrase",
+              "source_text": "secret required phrase",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "| ```html\n<label hidden>Secret required phrase</label>\n```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "reference4-code-destination",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "A code example displays its complete link spelling, including its destination.",
+      "case": {
+        "url": "https://example.test/",
+        "required_facts": [
+          {
+            "alternatives": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "`[Download](/manual.pdf)`",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "delivery-nontext-resource-False",
+      "failure_mode": "false-positive",
+      "category": "task-predicate",
+      "root_cause": "Resource-only delivery must not acquire an undeclared prose caption from the default one-character text guard.",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "/image.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "delivery-nontext-resource-True",
+      "failure_mode": "false-negative",
+      "category": "task-predicate",
+      "root_cause": "Resource-only delivery must not acquire an undeclared prose caption from the default one-character text guard.",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "image",
+            "urls": [
+              "/image.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<img src=\"/image.png\">",
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

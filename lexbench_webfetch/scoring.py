@@ -369,7 +369,10 @@ def acceptance_checks(case: dict, metrics: dict) -> dict[str, bool | None]:
     if case.get('content_score_applicable', True):
         if case.get('expected_any'):
             checks['literals'] = metrics.get('legacy_marker_pass')
-        checks['length'] = metrics.get('content_length_pass')
+        # Resource/file delivery already proves a nonempty answer. Its default
+        # one-character guard must not require an otherwise undeclared caption.
+        if kind not in {'resource', 'file'} or case.get('min_content_chars', 1) > 1:
+            checks['length'] = metrics.get('content_length_pass')
     if case.get('required_facts'):
         checks['facts'] = metrics.get('fact_coverage_pass')
     if case.get('required_patterns'):

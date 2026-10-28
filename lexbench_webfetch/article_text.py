@@ -5,6 +5,17 @@ from .dynamic_lists import scoped_html
 from .body_coverage import tokens
 from .reference_quality import is_html_document_or_fragment
 
+
+def _visible_character(char):
+    """Ignore format controls, invisible marks and blank filler glyphs."""
+    code = ord(char)
+    return (not char.isspace() and not unicodedata.category(char).startswith('C')
+            and code not in {0x034F, 0x115F, 0x1160, 0x17B4, 0x17B5, 0x180F, 0x2800}
+            and not 0x180B <= code <= 0x180D
+            and not 0xFE00 <= code <= 0xFE0F
+            and not 0xE0100 <= code <= 0xE01EF)
+
+
 def author_key(value):
     """Keep literal symbol-only identities instead of comparing empty tokens."""
     if not isinstance(value, str):
@@ -15,7 +26,7 @@ def author_key(value):
     value = ''.join(char for char in value
                     if not unicodedata.category(char).startswith('C') or char in '\u200c\u200d')
     value = ' '.join(value.split())
-    if not any(not char.isspace() and not unicodedata.category(char).startswith('C') for char in value):
+    if not any(_visible_character(char) for char in value):
         return None
     words = tokens(value)
     return ('tokens', value.startswith('@'), tuple(words)) if words else ('literal', value)
@@ -72,27 +83,36 @@ def mask_markdown_code(content, *, retain=False):
     while i < len(lines):
         start = i
         line = lines[i]
-        fence = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', line.rstrip('\r\n'))
-        if fence and not (fence[1][0] == '`' and '`' in fence[2]):
-            run = fence[1]
+        fence = re.match(r'^ {0,3}((?:> ?)*)(`{3,}|~{3,})(.*)$', line.rstrip('\r\n'))
+        if fence and not (fence[2][0] == '`' and '`' in fence[3]):
+            run = fence[2]
+            depth = fence[1].count('>')
+            quote_prefix = r'^ {0,3}(?:> ?){' + str(depth) + '}'
             i += 1
-            closing = re.compile(r'^ {0,3}' + re.escape(run[0]) + '{' + str(len(run)) + r',}[ \t]*$')
+            body_start = i
+            end = False
+            closing = re.compile(quote_prefix + re.escape(run[0]) + '{' + str(len(run)) + r',}[ \t]*$')
             while i < len(lines):
+                if depth and lines[i].strip() and not re.match(quote_prefix, lines[i]):
+                    break
                 end = bool(closing.fullmatch(lines[i].rstrip('\r\n')))
                 i += 1
                 if end:
                     break
+            body = ''.join(re.sub(quote_prefix, '', part) if depth else part
+                           for part in lines[body_start:i-int(end)])
         elif line.strip() and line.expandtabs(4).startswith('    '):
             # Treat serializer indentation as literal, never as record syntax.
             i += 1
             while i < len(lines) and (not lines[i].strip() or lines[i].expandtabs(4).startswith('    ')):
                 i += 1
+            body = ''.join(lines[start:i])
         else:
             output.append(line)
             i += 1
             continue
         key = prefix + str(len(blocks))
-        blocks[key] = ''.join(lines[start:i])
+        blocks[key] = body
         output.append('\n' + (key if retain else '') + '\n')
     return ''.join(output), blocks
 

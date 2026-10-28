@@ -13,10 +13,10 @@ import re
 
 import soupsieve
 import unicodedata
-from urllib.parse import parse_qsl, unquote, urlencode, urljoin as _urljoin, urlsplit
+from urllib.parse import unquote, urljoin as _urljoin, urlsplit
 
 from .structured_tables import _pipe_cells, table_text_surface, validate_group_caption
-from .dynamic_lists import canonical_entry_path, _named_candidate, extract_named_entries
+from .dynamic_lists import canonical_entry_path, _named_candidate, extract_named_entries, named_entry_identity, _without_record_literals
 from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links, without_markdown_images
 
 
@@ -378,6 +378,7 @@ def _link_identity(url: str, group: dict) -> str | None:
     if (
         parts.scheme not in {"http", "https"}
         or not parts.hostname
+        or parts.username or parts.password
         or "*" not in group["hosts"]
         and parts.hostname not in group["hosts"]
     ):
@@ -385,22 +386,10 @@ def _link_identity(url: str, group: dict) -> str | None:
     path = canonical_entry_path(parts.path).rstrip("/")
     if not re.fullmatch(group["entry_path"], path):
         return None
-    identity = f"{parts.hostname}::{path}"
-    if pattern := group.get("entry_identity_pattern"):
-        match = re.search(pattern, path)
-        if not match:
-            return None
-        identity = f"{parts.hostname}::{match[1]}"
-    keys = group.get("identity_query_keys", [])
-    if keys:
-        values = {key: [] for key in keys}
-        for key, value in parse_qsl(parts.query, keep_blank_values=True):
-            if key in values:
-                values[key].append(value)
-        if any(len(values[key]) != 1 or not values[key][0].strip() for key in keys):
-            return None
-        identity += "?" + urlencode([(key, values[key][0]) for key in sorted(keys)])
-    return identity
+    try:
+        return named_entry_identity(url, group)
+    except ValueError:
+        return None
 
 
 def _html_table_record_contexts(content: str, group: dict, base_url: str, allowed: set):
@@ -1642,6 +1631,8 @@ def evaluate_composite_acceptance(
     results = []
     for group in contract["groups"]:
         source = table_content if table_content is not None and group["kind"] in {"table", "linked_table"} else content
+        if group['kind'] == 'named_link':
+            source = _without_record_literals(source)
         if "group_caption" in group:
             from .structured_tables import grouped_table_surface
             source = grouped_table_surface(source, group)
@@ -1652,12 +1643,13 @@ def evaluate_composite_acceptance(
         if group["kind"] == "named_link" and group.get("required_fields") and table_content:
             from .dynamic_lists import _document_html
             if _document_html(table_content):
-                source, ownership_marker = _html_field_surface(table_content, group, base_url)
+                source, ownership_marker = _html_field_surface(
+                    _without_record_literals(table_content), group, base_url)
         scoped = _scope(source, group)
         if group["kind"] == "named_link":
             result = _named_link_group(
                 scoped, group, base_url, links if scoped == content else None,
-                native_html=native_html,
+                native_html=_without_record_literals(native_html) if native_html else None,
                 ownership_marker=ownership_marker,
             )
         elif group["kind"] == "linked_table":

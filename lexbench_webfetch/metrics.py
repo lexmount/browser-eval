@@ -150,11 +150,21 @@ def _looks_like_image_url(value: str) -> bool:
 
 
 def _image_content_candidates(content: str) -> list[tuple[str, str]]:
+    has_html = bool(re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content))
+    if has_html:
+        from .dynamic_lists import scoped_html
+        # Image-answer contracts own visible output, unlike generic discovery
+        # of URLs returned in a document. Use the same policy inside srcdoc.
+        content = str(scoped_html(content))
     candidates = [(url, "content.markdown_image")
                   for url in _markdown_image_destinations(content)]
     attributes = _html_resource_attributes(content)
     candidates.extend((attrs['src'], "content.html_img")
                       for tag, attrs in attributes if tag == 'img' and attrs.get('src'))
+    candidates.extend((value, 'content.html_image_file')
+                      for tag, attrs in attributes for key, value in attrs.items()
+                      if key in {'src', 'href'} and not (tag == 'img' and key == 'src')
+                      and _looks_like_image_url(value))
     from .resource_urls import srcset_urls
     for tag, attrs in attributes:
         if tag != 'img' or not attrs.get('srcset'):
@@ -164,7 +174,11 @@ def _image_content_candidates(content: str) -> list[tuple[str, str]]:
     # HTML attributes are decoded above. Do not also admit their raw entity
     # spelling as a second bare candidate; plain URL answers remain literal.
     from .reference_quality import markdown_links
-    bare_content = re.sub(r"<img\b[^>]*>", "", content, flags=re.I | re.S)
+    if has_html:
+        from .reference_quality import visible_mixed_html_text
+        bare_content = visible_mixed_html_text(content)
+    else:
+        bare_content = content
     markup_links = markdown_links(bare_content)
     for link in markup_links:
         if not link.is_image and _looks_like_image_url(link.destination):
@@ -250,10 +264,7 @@ def _inline_frame_candidates(
         return []
     parser = _VisibleInlineFrames()
     from .dynamic_lists import scoped_html
-    # Keep the existing opaque XML-declaration tolerance before the DOM
-    # visibility pass; html.parser otherwise rejects unknown marked sections.
-    visible_markup = re.sub(r'<!\[.*?(?:\]>|\Z)', '', content, flags=re.S)
-    parser.feed(str(scoped_html(visible_markup)))
+    parser.feed(str(scoped_html(content)))
     parser.close()
     candidates: list[tuple[str, str]] = []
     for document, declared_base in parser.documents[:100]:

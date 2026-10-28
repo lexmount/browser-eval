@@ -231,28 +231,19 @@ def markdown_delimiter_pairs(text, *, maximum_span=None):
     """Index escaped, nested Markdown delimiters once, including malformed prose."""
     pairs = {}
     stacks = {'[': [], '(': []}
-    escaped_starts = {'[': {}, '(': {}}
     openings = {']': '[', ')': '('}
     i = 0
     while i < len(text):
         char = text[i]
         if char == "\\":
-            # Existing callers may begin at an escaped opening delimiter.
-            # Such an opening does not nest inside another candidate, but it
-            # shares that depth's next close when parsed as the link start.
-            if i + 1 < len(text) and text[i + 1] in stacks:
-                opening = text[i + 1]
-                escaped_starts[opening].setdefault(len(stacks[opening]), []).append(i + 1)
             i += 2
             continue
         if char in stacks:
             stacks[char].append(i)
         elif char in openings:
             opening = openings[char]
-            starts = escaped_starts[opening].pop(len(stacks[opening]), [])
             if stacks[opening]:
-                starts.append(stacks[opening].pop())
-            for start in starts:
+                start = stacks[opening].pop()
                 if maximum_span is None or i - start < maximum_span:
                     pairs[start] = i
         i += 1
@@ -387,9 +378,11 @@ def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str
         if match.start < start:
             continue
         literal = any(left <= match.start < right for left, right in literals)
-        label = ('' if match.is_image and not (include_image_alt or literal) else
+        if literal:
+            continue
+        label = ('' if match.is_image and not include_image_alt else
                  re.sub(r"\s+", " ", visible_markdown_links(
-                     match.label, include_image_alt=include_image_alt or literal)).strip())
+                     match.label, include_image_alt=include_image_alt)).strip())
         # A native carousel can append its accessibility position directly
         # to the label. Keep both values but restore their observable boundary.
         label = re.sub(r'(?<=[^\W\d_])(?=\d+\s+of\s+\d+$)', ' ', label)
@@ -432,28 +425,39 @@ def visible_mixed_html_text(text: str) -> str:
 
     literals = []
     marker = "\ue010"
-    while marker in text:
+    while marker in unescape(text):
         marker += "\ue010"
 
-    def protect(match):
-        literals.append(match.group(0))
+    def protect_text(value):
+        literals.append(value)
         return f"{marker}{len(literals) - 1}{marker}"
 
-    # Native Markdown can serialize multiline code inside table cells.
-    # Recognize their opening fence before a closing fence is mistaken for one.
+    def protect(match):
+        return protect_text(match.group(0))
+
+    # Preserve the existing native table-cell fence spelling, which is not a
+    # CommonMark block opener. Only a complete paired block is literal here.
+    protected = re.sub(
+        r"(?ms)^ {0,3}\|[ \t]*(`{3,}|~{3,})[^\n]*\n.*?^ {0,3}\1[ \t]*$",
+        protect, text)
+    pieces, cursor = [], 0
+    for left, right in markdown_literal_spans(protected):
+        pieces.extend([protected[cursor:left], protect_text(protected[left:right])])
+        cursor = right
+    pieces.append(protected[cursor:])
+    protected = ''.join(pieces)
     # Code examples and Markdown-escaped brackets are answer text.
     # Consume escaped backslashes as pairs so an unescaped following tag
     # remains HTML rather than being protected by its second backslash.
     protected = re.sub(
-        r"(?ms)^ {0,3}(?:\|[ \t]*)?(`{3,}|~{3,})[^\n]*\n.*?^ {0,3}\1[ \t]*$"
-        r"|`+[^`\n]+`+|<(?:https?://|mailto:|/[^<>\s/]+/)[^<>\s]+>"
+        r"<(?:[A-Za-z][A-Za-z0-9+.-]{1,31}:|/[^<>\s/]+/)[^<>\s]+>"
         r"|<[^<>\s]+@[^<>\s]+>"
         # Some Markdown serializers escape only the closing angle bracket of
         # a literal HTML tag (``<td\>``). Protect the complete token so the
         # unescaped opening bracket cannot turn a displayed code sample into
         # live HTML. A wholly unescaped tag remains markup and is projected.
         r"|(?:\\</?[A-Za-z][^<>\n]*>|</?[A-Za-z][^<>\n]*\\>)|\\[\\<>]",
-        protect, text,
+        protect, protected,
     )
     protected = re.sub(r'<!--.*?(?:-->|\Z)', '', protected, flags=re.S)
     # Extracted documentation can name a raw-text element in ordinary prose
@@ -478,17 +482,15 @@ def visible_mixed_html_text(text: str) -> str:
         r'\b(?:the|an?) +<(?P<element>script|style)> +(?:element|tag)\b',
         element_mention, protected, flags=re.I)
     if not re.search(
-        r"</?(?:a|article|aside|b|blockquote|br|code|dd|div|dl|dt|em|footer|"
-        r"h[1-6]|header|hr|i|li|main|nav|ol|p|pre|section|span|strong|table|"
-        r"tbody|td|th|thead|tr|ul|script|style|template)\b[^>]*>",
+        r"</?[A-Za-z][^<>]*>",
         protected, re.I,
     ):
         projected = unescape(protected)
-        for index, literal in enumerate(literals):
+        for index, literal in reversed(list(enumerate(literals))):
             projected = projected.replace(f"{marker}{index}{marker}", literal)
         return projected
     projected = visible_html_text(protected, preserve_source_whitespace=True)
-    for index, literal in enumerate(literals):
+    for index, literal in reversed(list(enumerate(literals))):
         projected = projected.replace(f"{marker}{index}{marker}", literal)
     return projected
 

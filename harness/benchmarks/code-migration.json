@@ -16,7 +16,7 @@
         },
         "article_posts.py": {
           "before_sha256": "da1323b63c4e213312adb0a5564c6ffbb443edbcb1a643ddcd4e3bde4d42e9c2",
-          "after_sha256": "02f0db31f06598c8fc26fb417b3447f2f2cfaee34858add231a3b39b96742744"
+          "after_sha256": "f1f0196ec3ab1d74862f5fecf85b1d5ed56be684dc491c49998d82230b99db9a"
         },
         "article_qualification.py": {
           "before_sha256": "01898c4413933ac4f3028eeb5c5c470293cd2acaabb2ae1547a7095e6e458981",
@@ -24,7 +24,7 @@
         },
         "article_text.py": {
           "before_sha256": "d9984b8dfcdad0113ed69cec3723a85d23096890327cd845d3052d937817ae21",
-          "after_sha256": "2ea84cbbf142843aabd02e52bf7fbda2e894b348e56fef6632d2adb7e565c2bc"
+          "after_sha256": "2ec325a4746003937ad03bcb5f52c5e6e980c9e6e7d181dfc006db01926a1b85"
         },
         "article_title.py": {
           "before_sha256": "eb59008ffceffce093a32592e1e2e0d244feed8fed1ed9c0d6306b6353573c54",
@@ -44,7 +44,7 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "c1e7a90fd442ee45e31a3982b178d908c7a9793e8a9d368a4ee8b53fa0ae3f51"
+          "after_sha256": "06e5a11a1abff3fb3f8d9e19528083dc1a765cac432d64d4f1254f40482881fd"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -52,7 +52,7 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "2c3b4525415500179974763bbbd2db713ece327d19981d6440d5c464ff901e1a"
+          "after_sha256": "43367ff54f269c3341f8237e4b929098fff04da93fbb8a9d84b4275931c6826d"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "75c7e98db9a7a88bc008f9944f42cdb2f0a3cf2a9f215a9644a530619e0d88e7"
+          "after_sha256": "5e09430a65bab606e04f1aa1124f56b57235063b7b99d061d1825a02986c2be3"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -76,7 +76,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "7956b1e9428aa8bdb39e3762608b69144d89d881a5aa05d42ef8ceeed43aae4c"
+          "after_sha256": "d87df8332407a013ec24556307bb9837ef367591c446f0d230b886ec34ba6c30"
         },
         "risk_control_dataset.py": {
           "before_sha256": "59d2a1877f1a8b8ecf464113fbce70bf713d6d44414b83141880e71cccb7c1d6",
@@ -84,7 +84,7 @@
         },
         "scoring.py": {
           "before_sha256": "ea2602b5e2310886dc70c097ce783e2f88be7c88220e9dbf0715a723b3aff567",
-          "after_sha256": "a012088bffd7d269d70c828e9deb9d226e58234f4996e94e6639b29598c9eb52"
+          "after_sha256": "96ea481ec6be01e68cfd28849246f1650f592f36c044bcb52078b062d831695a"
         },
         "scoring_regressions.py": {
           "before_sha256": "a9dc2c0a86628e90bf5a23c9611adb48c9cf72c0f4941c6ed6412a5f95b37df9",
@@ -92,7 +92,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "3866e888b7ab6a59a88807f71a62fcc87fb1059b77ae58e61ed44ef98554539a"
+          "after_sha256": "aa28b9adffaf1baa82d29bdebf4e0bfe77aafdd2bbbbf2ee117f9db726fffb9b"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -173,12 +173,25 @@
             "article-title-inline-code-double-tick-multiline",
             "article-title-inline-code-real-heading",
             "article-title-inline-code-mixed-text",
-            "article-title-inline-code-native-heading"
+            "article-title-inline-code-native-heading",
+            "article-comment-code-content-empty-language",
+            "article-comment-code-content-substantive",
+            "article-post-quoted-fence-empty-language",
+            "article-post-quoted-fence-visible-prose",
+            "article-post-section-unheaded-plain-empty",
+            "article-post-section-unheaded-plain-complete",
+            "article-post-section-linked-incomplete",
+            "article-post-section-linked-complete",
+            "article-post-visible-zero-width-space-html-body",
+            "article-post-visible-variation-selector-markdown-quote",
+            "article-post-visible-emoji-html-body",
+            "article-post-visible-emoji-joined-markdown-quote"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_migration_articles.py",
             "tests/benchmarks/webfetch/test_review_article_boundaries.py",
-            "tests/benchmarks/webfetch/test_review_article_inline_code.py"
+            "tests/benchmarks/webfetch/test_review_article_inline_code.py",
+            "tests/benchmarks/webfetch/test_review_article_visibility.py"
           ]
         },
         {
@@ -241,12 +254,23 @@
             "migration3-literal-named-record-complete",
             "migration3-literal-named-record-incomplete",
             "migration3-literal-product-record-complete",
-            "migration3-literal-product-record-incomplete"
+            "migration3-literal-product-record-incomplete",
+            "migration4-scoped-malformed-sibling-complete",
+            "migration4-scoped-malformed-sibling-incomplete",
+            "migration4-selected-product-owner-complete",
+            "migration4-selected-product-owner-incomplete",
+            "migration4-visible-product-price-complete",
+            "migration4-visible-product-price-incomplete",
+            "migration4-visible-image-answer-complete",
+            "migration4-visible-image-answer-incomplete",
+            "migration4-image-attribute-syntax-complete",
+            "migration4-image-attribute-syntax-incomplete"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_migration_entries.py",
             "tests/benchmarks/webfetch/test_review_entry_surfaces.py",
-            "tests/benchmarks/webfetch/test_review_record_formats.py"
+            "tests/benchmarks/webfetch/test_review_record_formats.py",
+            "tests/benchmarks/webfetch/test_review_owned_surfaces.py"
           ]
         },
         {
@@ -344,12 +368,41 @@
             "catalog-declared-description-complete",
             "catalog-declared-description-missing",
             "catalog-orphan-price-complete",
-            "catalog-orphan-price-missing"
+            "catalog-orphan-price-missing",
+            "shared-query-subset-wildcard-valid",
+            "shared-query-subset-wildcard-missing",
+            "shared-path-precedence-wildcard-distinct",
+            "shared-path-precedence-wildcard-duplicate",
+            "shared-query-subset-fixed-valid",
+            "shared-query-subset-fixed-missing",
+            "shared-path-precedence-fixed-distinct",
+            "shared-path-precedence-fixed-duplicate",
+            "composite-literal-wildcard-real",
+            "composite-literal-wildcard-backticks",
+            "composite-literal-wildcard-tildes",
+            "composite-literal-wildcard-inline",
+            "composite-literal-fixed-real",
+            "composite-literal-fixed-backticks",
+            "composite-literal-fixed-tildes",
+            "composite-literal-fixed-inline",
+            "stable-url-case-named_link-path-distinct",
+            "stable-url-case-named_link-path-duplicate",
+            "stable-url-case-named_link-query-distinct",
+            "stable-url-case-named_link-query-duplicate",
+            "stable-url-case-linked_product-path-distinct",
+            "stable-url-case-linked_product-path-duplicate",
+            "stable-url-case-linked_product-query-distinct",
+            "stable-url-case-linked_product-query-duplicate",
+            "composite-url-case-distinct",
+            "composite-url-case-duplicate",
+            "composite-native-literal-only",
+            "composite-native-literal-and-real"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_migration_composites.py",
             "tests/benchmarks/webfetch/test_review_composite_identity_fields.py",
-            "tests/benchmarks/webfetch/test_review_record_boundaries.py"
+            "tests/benchmarks/webfetch/test_review_record_boundaries.py",
+            "tests/benchmarks/webfetch/test_review_link_identity_literals.py"
           ]
         },
         {
@@ -362,7 +415,9 @@
             "contract-False-truncation-False",
             "contract-False-truncation-True",
             "contract-True-truncation-False",
-            "contract-True-truncation-True"
+            "contract-True-truncation-True",
+            "delivery-nontext-resource-False",
+            "delivery-nontext-resource-True"
           ],
           "tests": [
             "tests/benchmarks/test_review_runtime.py"
@@ -382,6 +437,39 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_risk_control_compiler.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "reference4-opening-bracket-0",
+            "reference4-opening-bracket-1",
+            "reference4-opening-bracket-2",
+            "reference4-opening-bracket-3",
+            "reference4-opening-bracket-4",
+            "reference4-multiline-comment-False-False",
+            "reference4-multiline-comment-False-True",
+            "reference4-generic-tag-False-label-False",
+            "reference4-generic-tag-False-label-True",
+            "reference4-generic-tag-False-x-evidence-False",
+            "reference4-generic-tag-False-x-evidence-True",
+            "reference4-native-cell-fence-False-False",
+            "reference4-native-cell-fence-False-True",
+            "reference4-multiline-comment-True-False",
+            "reference4-multiline-comment-True-True",
+            "reference4-generic-tag-True-label-False",
+            "reference4-generic-tag-True-label-True",
+            "reference4-generic-tag-True-x-evidence-False",
+            "reference4-generic-tag-True-x-evidence-True",
+            "reference4-native-cell-fence-True-False",
+            "reference4-native-cell-fence-True-True",
+            "reference4-code-destination"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_reference_literals.py",
+            "tests/test_reference_quality.py"
           ]
         }
       ]
@@ -408,7 +496,7 @@
         },
         "scoring.py": {
           "before_sha256": "e2d7ef42b8d56bbf6a72596e2d60e40bf339b305f936302d5a23ea430efce47a",
-          "after_sha256": "1af0e37c859727a4ee003a852f0970ba5e0170edccf04994ea1ac715289b6192"
+          "after_sha256": "1326b4b5a08139863d5ddf7185bfb156bee736e6321705953db2e4e99934a7ea"
         },
         "simpleqa.py": {
           "before_sha256": "39cd02fa1b65b10a0bc38cdf9ab245878b8ef7d07705203d10f9f4c2fa5eef0d",
