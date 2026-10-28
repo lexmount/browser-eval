@@ -67,8 +67,11 @@ def _html_records(content, contract):
     for card in soup.select(contract['html_record_selector']):
         def owned(node):
             return node.find_parent(lambda x: soupsieve.match(contract['html_record_selector'], x)) is card
+        def quote_owner(node):
+            return next((parent for parent in node.parents
+                         if parent is card or soupsieve.match(selector, parent)), None)
         quotes = [x for x in card.select(selector) if owned(x)
-                  and not x.find_parent(lambda p: p is not card and soupsieve.match(selector, p))]
+                  and quote_owner(x) is card]
         def outer(node):
             return owned(node) and not any(node is q or q in node.parents for q in quotes)
         fields = [[x for x in card.select(contract[key]) if outer(x)] for key in
@@ -83,8 +86,7 @@ def _html_records(content, contract):
         quote_text = [_owned_body_text(x, contract) for x in quotes]
         quote_authors = [[a.get_text(' ', strip=True)
                           for a in x.select(contract['html_author_selector'])
-                          if owned(a) and a.find_parent(
-                              lambda p: soupsieve.match(selector, p)) is x]
+                          if owned(a) and quote_owner(a) is x]
                          for x in quotes]
         quote_bodies = []
         for quote in quotes:
@@ -92,8 +94,7 @@ def _html_records(content, contract):
             # a different shape, exclude attribution and interface fields
             # before accepting its remaining visible text as prose.
             bodies = [node for node in quote.select(contract['html_body_selector'])
-                      if owned(node) and node.find_parent(
-                          lambda parent: soupsieve.match(selector, parent)) is quote]
+                      if owned(node) and quote_owner(node) is quote]
             copy = article_html(str(bodies[0] if len(bodies) == 1 else quote))
             metadata = (contract['html_author_selector'] + ', '
                         + contract['html_permalink_selector']

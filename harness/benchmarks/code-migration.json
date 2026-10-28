@@ -16,7 +16,7 @@
         },
         "article_posts.py": {
           "before_sha256": "da1323b63c4e213312adb0a5564c6ffbb443edbcb1a643ddcd4e3bde4d42e9c2",
-          "after_sha256": "f1f0196ec3ab1d74862f5fecf85b1d5ed56be684dc491c49998d82230b99db9a"
+          "after_sha256": "548895664744a2cf230d51f4fcd88cbe355ef60330aa1f8194ce1e46069e14d7"
         },
         "article_qualification.py": {
           "before_sha256": "01898c4413933ac4f3028eeb5c5c470293cd2acaabb2ae1547a7095e6e458981",
@@ -44,15 +44,15 @@
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
-          "after_sha256": "06e5a11a1abff3fb3f8d9e19528083dc1a765cac432d64d4f1254f40482881fd"
+          "after_sha256": "5e36ce091221294f3eeb8a1c5d0d097ac2f2a8c4f5fbb60b5611d07d9c8da8cf"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
-          "after_sha256": "35e1f76148fa66ac4611b58f97f7dc94183af54295b51c49f3f36f00010dd8f7"
+          "after_sha256": "39400b8d9685de09d044761428943b66b79a96ab218dbb1b9ea2e6a11fba3f06"
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "43367ff54f269c3341f8237e4b929098fff04da93fbb8a9d84b4275931c6826d"
+          "after_sha256": "97d3e37561e1f2667c5e62e2df26cda49b63b2511a919bee97020694afeaeacf"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "5e09430a65bab606e04f1aa1124f56b57235063b7b99d061d1825a02986c2be3"
+          "after_sha256": "8d9e7a33e3dd3600f1d8e888ac7a963ae717b9eab0313d769b044c60c67cb8e4"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -92,7 +92,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "aa28b9adffaf1baa82d29bdebf4e0bfe77aafdd2bbbbf2ee117f9db726fffb9b"
+          "after_sha256": "b75bddf30c8ccd1dfa9ee19d34b296441e77d88c22fb8a2d2aad1ad413035e2b"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -185,13 +185,20 @@
             "article-post-visible-zero-width-space-html-body",
             "article-post-visible-variation-selector-markdown-quote",
             "article-post-visible-emoji-html-body",
-            "article-post-visible-emoji-joined-markdown-quote"
+            "article-post-visible-emoji-joined-markdown-quote",
+            "article-post-quote-owner-outer-quote-require-original-unattributed-quote-only",
+            "article-post-quote-owner-outer-quote-require-original-unattributed-original",
+            "article-post-quote-owner-outer-quote-require-original-attributed-quote-only",
+            "article-post-quote-owner-outer-quote-allow-attributed-quote-only",
+            "article-post-quote-owner-nested-post-require-original-unattributed-quote-only",
+            "article-post-quote-owner-nested-post-allow-attributed-quote-only"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_migration_articles.py",
             "tests/benchmarks/webfetch/test_review_article_boundaries.py",
             "tests/benchmarks/webfetch/test_review_article_inline_code.py",
-            "tests/benchmarks/webfetch/test_review_article_visibility.py"
+            "tests/benchmarks/webfetch/test_review_article_visibility.py",
+            "tests/benchmarks/webfetch/test_review_post_quote_ownership.py"
           ]
         },
         {
@@ -264,13 +271,34 @@
             "migration4-visible-image-answer-complete",
             "migration4-visible-image-answer-incomplete",
             "migration4-image-attribute-syntax-complete",
-            "migration4-image-attribute-syntax-incomplete"
+            "migration4-image-attribute-syntax-incomplete",
+            "literal-api-route-0",
+            "literal-api-route-1",
+            "literal-api-route-2",
+            "literal-api-route-3",
+            "literal-api-route-4",
+            "literal-api-route-5",
+            "literal-api-route-6",
+            "literal-api-route-7",
+            "literal-api-route-8",
+            "literal-api-body-url-False",
+            "literal-api-body-url-True",
+            "migration5-html-price-owner-complete",
+            "migration5-html-price-owner-incomplete",
+            "migration5-html-unavailable-owner-complete",
+            "migration5-html-unavailable-owner-incomplete",
+            "migration5-image-diagnostic-branches-complete",
+            "migration5-image-diagnostic-branches-incomplete",
+            "migration5-visible-compact-code-complete",
+            "migration5-visible-compact-code-incomplete"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_migration_entries.py",
             "tests/benchmarks/webfetch/test_review_entry_surfaces.py",
             "tests/benchmarks/webfetch/test_review_record_formats.py",
-            "tests/benchmarks/webfetch/test_review_owned_surfaces.py"
+            "tests/benchmarks/webfetch/test_review_owned_surfaces.py",
+            "tests/benchmarks/webfetch/test_review_literal_route_tuples.py",
+            "tests/benchmarks/webfetch/test_review_dom_owners.py"
           ]
         },
         {
@@ -396,13 +424,24 @@
             "composite-url-case-distinct",
             "composite-url-case-duplicate",
             "composite-native-literal-only",
-            "composite-native-literal-and-real"
+            "composite-native-literal-and-real",
+            "auxiliary-malformed-card-only",
+            "auxiliary-malformed-card-real-sibling",
+            "column-alias-collision-table",
+            "column-alias-collision-linked_table",
+            "column-alias-unique-assignment",
+            "column-alias-explicit-combined",
+            "nonrecord-excluded-text-only",
+            "nonrecord-independent-kept-text",
+            "nonrecord-excluded-html-only",
+            "nonrecord-target-main-label"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_migration_composites.py",
             "tests/benchmarks/webfetch/test_review_composite_identity_fields.py",
             "tests/benchmarks/webfetch/test_review_record_boundaries.py",
-            "tests/benchmarks/webfetch/test_review_link_identity_literals.py"
+            "tests/benchmarks/webfetch/test_review_link_identity_literals.py",
+            "tests/benchmarks/webfetch/test_review_owned_fields_exclusions.py"
           ]
         },
         {
@@ -496,7 +535,7 @@
         },
         "scoring.py": {
           "before_sha256": "e2d7ef42b8d56bbf6a72596e2d60e40bf339b305f936302d5a23ea430efce47a",
-          "after_sha256": "1326b4b5a08139863d5ddf7185bfb156bee736e6321705953db2e4e99934a7ea"
+          "after_sha256": "e646c80583db48cfb42f1ef8ee5adb7cf62733dfcc16b6fb41ca2637d059f301"
         },
         "simpleqa.py": {
           "before_sha256": "39cd02fa1b65b10a0bc38cdf9ab245878b8ef7d07705203d10f9f4c2fa5eef0d",

@@ -40,6 +40,7 @@ METRIC_DEFINITIONS = {
 
 
 URL_KEYS = {"url", "href", "src", "link"}
+DIAGNOSTIC_BRANCHES = {"network", "request", "requests", "logs", "debug", "diagnostics"}
 RESOURCE_FILE_SUFFIXES = (
     'pdf','doc','docx','xls','xlsx','ppt','pptx','zip','tar','gz','bz2','7z',
     'png','jpg','jpeg','gif','webp','svg','avif','mp4','webm','mov','m4v','mp3','wav','ogg',
@@ -83,7 +84,7 @@ def _metadata_resource_candidates(
     if isinstance(value, dict):
         for child_key, child in value.items():
             child_key = str(child_key)
-            if child_key.casefold() in {"network", "request", "requests", "logs", "debug", "diagnostics"}:
+            if child_key.casefold() in DIAGNOSTIC_BRANCHES:
                 continue
             candidates.extend(_metadata_resource_candidates(
                 child, key=child_key.casefold(), path=f"{path}.{child_key}",
@@ -105,6 +106,8 @@ def _metadata_image_candidates(
     if isinstance(value, dict):
         for child_key, child in value.items():
             child_key = str(child_key)
+            if child_key.casefold() in DIAGNOSTIC_BRANCHES:
+                continue
             folded = re.sub(r"[^a-z]", "", child_key.casefold())
             child_image_branch = image_branch or folded in {
                 "image", "images", "imagelink", "imagelinks",
@@ -698,12 +701,32 @@ def declared_truncation_hits(value: str) -> list[str]:
 
 def code_matching_blocks(content: str) -> list[str]:
     """Keep literal code and independent block boundaries while ignoring layout."""
-    if re.search(r'<(?:!doctype|html|body|pre)\b', content, re.I):
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(content, 'html.parser')
-        blocks = [node.get_text('', strip=False) for node in soup.find_all('pre')]
+    from .reference_quality import markdown_literal_spans, visible_mixed_html_text
+    literals = {}
+    marker = '\ue012code'
+    while marker in content:
+        marker += '_'
+    masked = content
+    for start, end in reversed(markdown_literal_spans(content)):
+        token = marker + str(len(literals)) + marker
+        literals[token] = content[start:end]
+        masked = masked[:start] + token + masked[end:]
+    if re.search(r'<(?:!doctype|html|body|pre)\b', masked, re.I):
+        from bs4 import Comment
+        from .dynamic_lists import scoped_html
+        soup = scoped_html(masked)
+        blocks = []
+        for node in soup.find_all('pre'):
+            block = node.get_text('', strip=False)
+            for token, literal in literals.items():
+                block = block.replace(token, literal)
+            blocks.append(block)
+        for token, literal in literals.items():
+            owner = soup.find(string=lambda value: token in value)
+            if owner is not None and not isinstance(owner, Comment) and owner.find_parent('pre') is None:
+                blocks.extend(code_matching_blocks(literal))
     else:
-        text = re.sub(r'(?m)^[ \t]*(?:>[ \t]?)+', '', content)
+        text = re.sub(r'(?m)^[ \t]*(?:>[ \t]?)+', '', visible_mixed_html_text(content))
         blocks, current, fence = [], [], None
         for line in text.splitlines(keepends=True):
             if fence is not None:

@@ -17,6 +17,7 @@ import re
 from collections import defaultdict
 
 from .dynamic_reference import entry_field_orders
+from .reference_quality import markdown_links
 
 
 _ID = re.compile(r'entry-([1-9][0-9]*)-([a-z]+)\Z')
@@ -51,6 +52,19 @@ def matching_entry_facts(folded: str, facts: list, normalize, fact_match) -> dic
         if field in groups[entry]:
             invalid.add(entry)
         groups[entry][field] = fact
+
+    # A converter can leave a whole API listing inside a literal code fence.
+    # Keep that literal spelling for body facts, but recognize the supported
+    # route-field wrapper locally when matching an owned method/path/summary.
+    # A destination or an unrelated link label cannot supply the route value.
+    paths = {normalize(str(value)) for entry, fields in groups.items()
+             if entry not in invalid and set(fields) == {'method', 'path', 'summary'}
+             for value in fields['path'].get('alternatives', [])} - {''}
+    if paths:
+        for link in reversed(markdown_links(folded)):
+            path = normalize(link.label)
+            if not link.is_image and path in paths:
+                folded = folded[:link.start] + ' ' + path + ' ' + folded[link.end:]
 
     # A linked card containing an image and the same visible title can become
     # ``TitleTitle $amount`` after Markdown visibility normalization. Collapse

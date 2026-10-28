@@ -12410,6 +12410,1529 @@
       "artifact": "<img src=\"/image.png\">",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "article-post-quote-owner-outer-quote-require-original-unattributed-quote-only",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Quote ancestry must stop at the owning post card; outer containers cannot relabel quoted prose as original.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": false
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><blockquote><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\"><blockquote><p>Actual quoted prose.</p></blockquote></div></article></blockquote>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-quote-owner-outer-quote-require-original-unattributed-original",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Quote ancestry must stop at the owning post card; outer containers cannot relabel quoted prose as original.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": false
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><blockquote><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\">Actual original prose.<blockquote><p>Actual quoted prose.</p></blockquote></div></article></blockquote>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-quote-owner-outer-quote-require-original-attributed-quote-only",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Quote ancestry must stop at the owning post card; outer containers cannot relabel quoted prose as original.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": false
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><blockquote><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\"><blockquote><span class=\"author\">Quoted author</span><p>Actual quoted prose.</p></blockquote></div></article></blockquote>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-quote-owner-outer-quote-allow-attributed-quote-only",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Quote ancestry must stop at the owning post card; outer containers cannot relabel quoted prose as original.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 1,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><blockquote><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\"><blockquote><span class=\"author\">Quoted author</span><p>Actual quoted prose.</p></blockquote></div></article></blockquote>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-post-quote-owner-nested-post-require-original-unattributed-quote-only",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Quote ancestry must stop at the owning post card; outer containers cannot relabel quoted prose as original.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": false
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><article class=\"post\"><span class=\"author\">Outer author</span><a class=\"permalink\" href=\"/post/2\">Today</a><div class=\"body\">Outer original prose.</div><blockquote><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\"><blockquote><p>Actual quoted prose.</p></blockquote></div></article></blockquote></article>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "article-post-quote-owner-nested-post-allow-attributed-quote-only",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Quote ancestry must stop at the owning post card; outer containers cannot relabel quoted prose as original.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
+            ],
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "<p>Benchmark page</p><article class=\"post\"><span class=\"author\">Outer author</span><a class=\"permalink\" href=\"/post/2\">Today</a><div class=\"body\">Outer original prose.</div><blockquote><article class=\"post\"><span class=\"author\">Alice</span><a class=\"permalink\" href=\"/post/1\">Today</a><div class=\"body\"><blockquote><span class=\"author\">Quoted author</span><p>Actual quoted prose.</p></blockquote></div></article></blockquote></article>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "auxiliary-malformed-card-only",
+      "category": "structured-extraction",
+      "root_cause": "A malformed auxiliary link rejected as a record must not abort native field-card parsing or provide its rejected metadata.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "author",
+                  "kind": "text",
+                  "aliases": [
+                    "Author"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/1)\n[**Widget**\nby\nAlice](http://[bad])",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "auxiliary-malformed-card-real-sibling",
+      "category": "structured-extraction",
+      "root_cause": "A malformed auxiliary link rejected as a record must not abort native field-card parsing or provide its rejected metadata.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "named_link",
+              "minimum_records": 1,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "required_fields": [
+                {
+                  "id": "author",
+                  "kind": "text",
+                  "aliases": [
+                    "Author"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Widget](/item/1)\n[**Widget**\nby\nAlice](http://[bad])\nAuthor: Bob",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "column-alias-collision-table",
+      "category": "structured-extraction",
+      "root_cause": "Ordinary fields require distinct physical columns; overlapping aliases may resolve uniquely, and only an explicit combined extractor can share a column.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner",
+                    "Name"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|\n|---|\n|Widget|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "column-alias-collision-linked_table",
+      "category": "structured-extraction",
+      "root_cause": "Ordinary fields require distinct physical columns; overlapping aliases may resolve uniquely, and only an explicit combined extractor can share a column.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "linked_table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner",
+                    "Name"
+                  ]
+                }
+              ],
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/item/\\d+",
+              "link_column": "name"
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|\n|---|\n|[Widget](/item/1)|",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "column-alias-unique-assignment",
+      "category": "structured-extraction",
+      "root_cause": "Ordinary fields require distinct physical columns; overlapping aliases may resolve uniquely, and only an explicit combined extractor can share a column.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner",
+                    "Name"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Name|Owner|\n|---|---|\n|Widget|Alice|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "column-alias-explicit-combined",
+      "category": "structured-extraction",
+      "root_cause": "Ordinary fields require distinct physical columns; overlapping aliases may resolve uniquely, and only an explicit combined extractor can share a column.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "table",
+              "minimum_records": 1,
+              "identity_column": "name",
+              "required_columns": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "aliases": [
+                    "Name",
+                    "Person"
+                  ]
+                },
+                {
+                  "id": "owner",
+                  "kind": "text",
+                  "aliases": [
+                    "Owner",
+                    "Person"
+                  ]
+                }
+              ],
+              "combined_columns": [
+                {
+                  "aliases": [
+                    "Person"
+                  ],
+                  "pattern": "^(?P<name>[^;]+);\\s*(?P<owner>.+)$"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "|Person|\n|---|\n|Widget; Alice|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "nonrecord-excluded-text-only",
+      "category": "body-scope",
+      "root_cause": "Non-record anchors must use the same effective text, HTML-selector and target-content exclusions as every other anchor surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Live"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "^Live$"
+            ]
+          }
+        }
+      },
+      "artifact": "- [Widget](/item/1)\nLive",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "nonrecord-independent-kept-text",
+      "category": "body-scope",
+      "root_cause": "Non-record anchors must use the same effective text, HTML-selector and target-content exclusions as every other anchor surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Live"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "^Live$"
+            ]
+          }
+        }
+      },
+      "artifact": "- [Widget](/item/1)\nLive\nLive updates",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "nonrecord-excluded-html-only",
+      "category": "body-scope",
+      "root_cause": "Non-record anchors must use the same effective text, HTML-selector and target-content exclusions as every other anchor surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Live"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><a href=\"/item/1\">Widget</a><aside class=\"excluded\">Live</aside></main>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "nonrecord-target-main-label",
+      "category": "body-scope",
+      "root_cause": "Non-record anchors must use the same effective text, HTML-selector and target-content exclusions as every other anchor surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Live"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ],
+          "content_scope": "target_content"
+        }
+      },
+      "artifact": "<main><a href=\"/item/1\">Widget</a><p>Live updates</p></main><nav>Live</nav>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-api-route-0",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal API link wrappers interrupt complete method/path/summary tuples; only declared path labels own the route field.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "entry-1-method",
+            "alternatives": [
+              "POST"
+            ]
+          },
+          {
+            "id": "entry-1-path",
+            "alternatives": [
+              "/pets"
+            ]
+          },
+          {
+            "id": "entry-1-summary",
+            "alternatives": [
+              "Create a pet"
+            ]
+          }
+        ]
+      },
+      "artifact": "# API```\n1.0\n``````\nSpecification\n```\n\nPOST [/pets](#/create) Create a pet",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-api-route-1",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal API link wrappers interrupt complete method/path/summary tuples; only declared path labels own the route field.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "entry-1-method",
+            "alternatives": [
+              "POST"
+            ]
+          },
+          {
+            "id": "entry-1-path",
+            "alternatives": [
+              "/pets"
+            ]
+          },
+          {
+            "id": "entry-1-summary",
+            "alternatives": [
+              "Create a pet"
+            ]
+          }
+        ]
+      },
+      "artifact": "# API```\n1.0\n``````\nSpecification\n```\n\nPOST[/pets](#/create)Create a pet",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-api-route-2",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal API link wrappers interrupt complete method/path/summary tuples; only declared path labels own the route field.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "entry-1-method",
+            "alternatives": [
+              "POST"
+            ]
+          },
+          {
+            "id": "entry-1-path",
+            "alternatives": [
+              "/pets"
+            ]
+          },
+          {
+            "id": "entry-1-summary",
+            "alternatives": [
+              "Create a pet"
+            ]
+          }
+        ]
+      },
+      "artifact": "# API```\n1.0\n``````\nSpecification\n```\n\nPOST [/pets](#/create(v1) \"Operation\") Create a pet",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-api-route-3",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal API link wrappers interrupt complete method/path/summary tuples; only declared path labels own the route field.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "entry-1-method",
+            "alternatives": [
+              "POST"
+            ]
+          },
+          {
+            "id": "entry-1-path",
+            "alternatives": [
+              "/pets"
+            ]
+          },
+          {
+            "id": "entry-1-summary",
+            "alternatives": [
+              "Create a pet"
+            ]
+          }
+        ]
+      },
+      "artifact": "# API```\n1.0\n``````\nSpecification\n```\n\nPOST /pets Create a pet",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-api-route-4",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal API link wrappers interrupt complete method/path/summary tuples; only declared path labels own the route field.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "entry-1-method",
+            "alternatives": [
+              "POST"
+            ]
+          },
+          {
+            "id": "entry-1-path",
+            "alternatives": [
+              "/pets"
+            ]
+          },
+          {
+            "id": "entry-1-summary",
+            "alternatives": [
+              "Create a pet"
+            ]
+          }
+        ]
+      },
+      "artifact": "# API```\n1.0\n``````\nSpecification\n```\n\nGET [/pets](#/create) Create a pet",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal-api-route-5",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal API link wrappers interrupt complete method/path/summary tuples; only declared path labels own the route field.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "entry-1-method",
+            "alternatives": [
+              "POST"
+            ]
+          },
+          {
+            "id": "entry-1-path",
+            "alternatives": [
+              "/pets"
+            ]
+          },
+          {
+            "id": "entry-1-summary",
+            "alternatives": [
+              "Create a pet"
+            ]
+          }
+        ]
+      },
+      "artifact": "# API```\n1.0\n``````\nSpecification\n```\n\nPOST [/pets/extra](#/create) Create a pet",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal-api-route-6",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal API link wrappers interrupt complete method/path/summary tuples; only declared path labels own the route field.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "entry-1-method",
+            "alternatives": [
+              "POST"
+            ]
+          },
+          {
+            "id": "entry-1-path",
+            "alternatives": [
+              "/pets"
+            ]
+          },
+          {
+            "id": "entry-1-summary",
+            "alternatives": [
+              "Create a pet"
+            ]
+          }
+        ]
+      },
+      "artifact": "# API```\n1.0\n``````\nSpecification\n```\n\nPOST [Documentation](/pets) Create a pet",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal-api-route-7",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal API link wrappers interrupt complete method/path/summary tuples; only declared path labels own the route field.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "entry-1-method",
+            "alternatives": [
+              "POST"
+            ]
+          },
+          {
+            "id": "entry-1-path",
+            "alternatives": [
+              "/pets"
+            ]
+          },
+          {
+            "id": "entry-1-summary",
+            "alternatives": [
+              "Create a pet"
+            ]
+          }
+        ]
+      },
+      "artifact": "# API```\n1.0\n``````\nSpecification\n```\n\nPOST [/pets](#/create) Unrelated field Create a pet",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal-api-route-8",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal API link wrappers interrupt complete method/path/summary tuples; only declared path labels own the route field.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "entry-1-method",
+            "alternatives": [
+              "POST"
+            ]
+          },
+          {
+            "id": "entry-1-path",
+            "alternatives": [
+              "/pets"
+            ]
+          },
+          {
+            "id": "entry-1-summary",
+            "alternatives": [
+              "Create a pet"
+            ]
+          }
+        ]
+      },
+      "artifact": "# API```\n1.0\n``````\nSpecification\n```\n\nPOST [/pets](#/Create a pet) Missing summary",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal-api-body-url-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Local API tuple projection must not alter ordinary body facts or hide URLs displayed in code examples.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "documentation-link",
+            "alternatives": [
+              "#/create"
+            ]
+          }
+        ]
+      },
+      "artifact": "POST [/pets](#/create) Create a pet",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal-api-body-url-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Local API tuple projection must not alter ordinary body facts or hide URLs displayed in code examples.",
+      "case": {
+        "url": "https://example.test/api",
+        "required_facts": [
+          {
+            "id": "documentation-link",
+            "alternatives": [
+              "#/create"
+            ]
+          }
+        ]
+      },
+      "artifact": "# API```\n1.0\n``````\nSpecification\n```\n\nPOST [/pets](#/create) Create a pet",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration5-html-price-owner-complete",
+      "root_cause": "Implicit HTML products retain one DOM owner across nested presentation wrappers without borrowing from sibling containers.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "dom-owner-review",
+        "name": "DOM owner",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<div><div><a href=\"/item/1\">Widget</a></div><div><span>$10.00</span></div></div>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration5-html-price-owner-incomplete",
+      "root_cause": "Implicit HTML products retain one DOM owner across nested presentation wrappers without borrowing from sibling containers.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "dom-owner-review",
+        "name": "DOM owner",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<div><a href=\"/item/1\">Widget</a></div><div>Shipping costs $10.00</div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration5-html-unavailable-owner-complete",
+      "root_cause": "A price-unavailability notice belongs to the same DOM product owner rather than a following sibling container.",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "dom-owner-review",
+        "name": "DOM owner",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ]
+        }
+      },
+      "artifact": "<div><div><a href=\"/item/1\">Widget</a></div><span>Unavailable</span></div>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration5-html-unavailable-owner-incomplete",
+      "root_cause": "A price-unavailability notice belongs to the same DOM product owner rather than a following sibling container.",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "dom-owner-review",
+        "name": "DOM owner",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ]
+        }
+      },
+      "artifact": "<div><a href=\"/item/1\">Widget</a></div><div>Unavailable</div>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "migration5-image-diagnostic-branches-complete",
+      "root_cause": "Typed image answers exclude the same request, log and diagnostic branches as generic resource discovery.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "dom-owner-review",
+        "name": "DOM owner",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "",
+      "ok": true,
+      "expected_task_pass": true,
+      "metadata": {
+        "images": [
+          "/target.png"
+        ],
+        "extras": {
+          "diagnostics": {
+            "images": [
+              "/noise.png"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "migration5-image-diagnostic-branches-incomplete",
+      "root_cause": "Typed image answers exclude the same request, log and diagnostic branches as generic resource discovery.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "dom-owner-review",
+        "name": "DOM owner",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "",
+      "ok": true,
+      "expected_task_pass": false,
+      "metadata": {
+        "extras": {
+          "diagnostics": {
+            "images": [
+              "/target.png"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "migration5-visible-compact-code-complete",
+      "root_cause": "Compact code matching uses visible native preformatted blocks while literal Markdown examples stay source text.",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "dom-owner-review",
+        "name": "DOM owner",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_patterns": [
+          {
+            "id": "program",
+            "pattern": "required_code\\(\\)",
+            "minimum": 1,
+            "scope": "code_compact"
+          }
+        ]
+      },
+      "artifact": "```html\n<pre hidden>required_code()</pre>\n```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "migration5-visible-compact-code-incomplete",
+      "root_cause": "Compact code matching uses visible native preformatted blocks while literal Markdown examples stay source text.",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "dom-owner-review",
+        "name": "DOM owner",
+        "url": "https://shop.example/catalog",
+        "category": "web",
+        "expected_any": [],
+        "required_patterns": [
+          {
+            "id": "program",
+            "pattern": "required_code\\(\\)",
+            "minimum": 1,
+            "scope": "code_compact"
+          }
+        ]
+      },
+      "artifact": "<p>Visible introduction</p><span hidden><pre>required_code()</pre></span>",
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

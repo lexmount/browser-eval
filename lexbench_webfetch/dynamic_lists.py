@@ -1005,6 +1005,96 @@ def extract_named_entries(content,contract,base_url,links=None,diagnostics=None)
     ).values())
 
 
+def _html_product_records(content, contract, base_url, diagnostics):
+    """Join HTML fields inside one DOM owner, including presentation wrappers."""
+    from bs4 import Comment, Tag
+    from .reference_quality import markdown_links
+    if not re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content):
+        return None
+    soup = scoped_html(content)
+    # Native Markdown may retain HTML card containers around actual link text.
+    for node in list(soup.find_all(string=True)):
+        if isinstance(node, Comment) or node.find_parent(['a', 'pre', 'code']):
+            continue
+        parsed = [link for link in markdown_links(str(node)) if not link.is_image]
+        if not parsed:
+            continue
+        pieces, cursor = [], 0
+        for link in parsed:
+            pieces.append(soup.new_string(str(node)[cursor:link.start]))
+            anchor = soup.new_tag('a', href=link.destination)
+            anchor.string = link.label
+            pieces.append(anchor)
+            cursor = link.end
+        pieces.append(soup.new_string(str(node)[cursor:]))
+        node.replace_with(*pieces)
+    scope = contract.get('entry_scope') or {}
+    roots = soup.select(scope['html_selector']) if scope else [soup]
+    if not roots:
+        return [] if _document_html(content) else None
+    allowed = [re.compile(value, re.I) for value in contract['price_patterns']]
+    excluded = [re.compile(value, re.I) for value in contract.get('price_exclusion_patterns', [])]
+    unavailable = [re.compile(value, re.I) for value in contract.get('price_unavailable_patterns', [])]
+    excluded_titles = [re.compile(value, re.I) for value in contract.get('title_exclusion_patterns', [])]
+    records = {}
+    for root in roots:
+        anchors = root.find_all('a', href=True)
+        if root.name == 'a' and root.get('href'):
+            anchors.insert(0, root)
+        names = dict(_owned_html_name_links(root, scope)) if scope.get('title_selector') else {}
+        candidates = {id(anchor): _named_candidate(anchor['href'],
+            names.get(anchor['href'], anchor.get_text(' ', strip=True)),
+            contract, base_url, excluded_titles, diagnostics) for anchor in anchors}
+        boundaries = {}
+        for anchor in anchors:
+            target = _entry_destination(anchor['href'], contract, base_url, diagnostics)
+            if target is not None:
+                try:
+                    boundaries[id(anchor)] = named_entry_identity(target[0], contract)
+                except ValueError:
+                    boundaries[id(anchor)] = None
+        for anchor in anchors:
+            candidate = candidates[id(anchor)]
+            if candidate is None:
+                continue
+            identity, entry = candidate
+            ancestry = {id(node) for node in anchor.parents} | {id(anchor)}
+            owner = anchor
+            while owner is not None:
+                global_owner = owner.name in {'[document]', 'html', 'body', 'main', 'ul', 'ol', 'table', 'tbody', 'thead', 'tfoot'}
+                if global_owner and owner is not anchor.parent and not scope:
+                    break
+                def foreign_record(node):
+                    nodes = ([node] if node.name == 'a' else []) + node.find_all('a', href=True)
+                    return any(id(item) in boundaries and boundaries[id(item)] != identity for item in nodes)
+                children = list(owner.children)
+                if anchor.parent is owner:
+                    children = children[children.index(anchor) + 1:]
+                    stop = next((index for index, child in enumerate(children)
+                                 if isinstance(child, Tag) and foreign_record(child)), len(children))
+                    children = children[:stop]
+                elif foreign_record(owner):
+                    break
+                fields = [child.get_text(' ', strip=True) if isinstance(child, Tag) else str(child).strip()
+                          for child in children if id(child) not in ancestry and not isinstance(child, Comment)]
+                if owner is anchor:
+                    label = anchor.get_text(' ', strip=True)
+                    fields.extend(match.group(0) for pattern in allowed + unavailable
+                                  for match in pattern.finditer(label))
+                price = next((value for value in fields if any(p.fullmatch(value) for p in allowed)
+                              and not any(p.fullmatch(value) for p in excluded)), None)
+                hint = next((value for value in fields if any(p.fullmatch(value) for p in unavailable)), None)
+                if price is not None or hint is not None:
+                    records.setdefault(identity, {**entry, 'price': price,
+                        **({'price_status': 'not_shown_on_page', 'price_unavailable_text': hint}
+                           if price is None else {})})
+                    break
+                if owner is root or global_owner or owner.name in {'li', 'tr', 'article', 'section'}:
+                    break
+                owner = owner.parent
+    return list(records.values())
+
+
 def extract_linked_products(content, contract, base_url, diagnostics=None):
     """Extract title/link/price triples from one owned product segment."""
     from .reference_quality import markdown_links, without_markdown_images
@@ -1042,6 +1132,9 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
                         **entry, 'price': None, 'price_status': 'not_shown_on_page',
                         'price_unavailable_text': hint}
         return list(records.values())
+    html_records = _html_product_records(without_markdown_images(content), contract, base_url, diagnostics)
+    if html_records is not None:
+        return html_records
     if scope:
         content, _, matched = _scope_named_content(content, scope)
         if not matched:

@@ -34,6 +34,7 @@ def normalize_results(payload):
 
 def canonical_url(url):
     p = urlsplit(url)
+    _ = p.port
     if p.scheme not in ("http", "https") or not p.hostname or p.username or p.password:
         raise ValueError("Result URL must be an HTTP(S) URL without credentials")
     query = [
@@ -64,7 +65,10 @@ def canonical_url(url):
 
 
 def in_domain(url, domain):
-    host = (urlsplit(url).hostname or "").lower()
+    try:
+        host = (urlsplit(canonical_url(url)).hostname or "").lower()
+    except ValueError:
+        return False
     return host == domain.lower() or host.endswith("." + domain.lower())
 
 

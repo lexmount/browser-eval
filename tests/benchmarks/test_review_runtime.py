@@ -168,3 +168,20 @@ def test_nontext_delivery_needs_no_implicit_caption_but_keeps_declared_text(kind
     assert result['metrics']['content_length_pass'] is False
     if requirement is None:
         assert 'length' not in result['metrics']['acceptance_checks']
+
+
+@pytest.mark.parametrize('authority,valid', [
+    ('example.org', True), ('example.org:443', True), ('example.org:8443', True),
+    ('example.org:bad', False), ('example.org:99999', False), ('example.org:-1', False),
+    ('[2001:db8::1]:443', True), ('[2001:db8::1]:99999', False),
+])
+def test_search_rejects_unusable_ports_before_normalized_results_and_domain_acceptance(authority, valid):
+    from lexbench_websearch.scoring import normalize_results, in_domain
+    url = 'https://' + authority + '/page'
+    host = '2001:db8::1' if authority.startswith('[') else 'example.org'
+    if valid:
+        assert normalize_results({'results': [{'url': url}]})[0]['url'] == url
+    else:
+        with pytest.raises(ValueError):
+            normalize_results({'results': [{'url': url}]})
+    assert in_domain(url, host) is valid

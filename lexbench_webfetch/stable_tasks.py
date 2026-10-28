@@ -1331,6 +1331,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             # heading. Keep literal evidence on its original visible surface
             # as well; never add this fallback to an HTML projection.
             original_markdown_visible = visible
+    non_record_content = content
     exclusions = dict(contract.get('text_exclusions', {}))
     if contract.get('content_scope') == 'target_content':
         exclusions['html_selectors'] = ['nav', 'footer', *exclusions.get('html_selectors', [])]
@@ -1342,7 +1343,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             for selector in exclusions['html_selectors']:
                 for element in soup.select(selector):
                     element.decompose()
-            anchor_visible = visible_html_text(str(soup))
+            non_record_content = str(soup)
+            anchor_visible = visible_html_text(non_record_content)
             original_markdown_visible = None
         else:
             anchor_visible = anchor_visible if anchor_visible is not None else visible
@@ -1433,7 +1435,10 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     non_record_visible = None
     if schema == 'named_link' and any(a.get('match_scope') == 'non_record_lines'
                                       for a in contract.get('stable_text_anchors', [])):
-        non_record_visible = _non_record_visible(content, contract, records, base_url)
+        non_record_visible = _non_record_visible(non_record_content, contract, records, base_url)
+        if non_record_visible is not None:
+            for pattern in exclusions.get('text_patterns', []):
+                non_record_visible = re.sub(pattern, ' ', non_record_visible, flags=re.I | re.M)
     registered_words = tuple(value for anchor in contract.get("stable_text_anchors", [])
                              for value in anchor["alternatives"]
                              if re.fullmatch(r"[A-Za-z]+", value))

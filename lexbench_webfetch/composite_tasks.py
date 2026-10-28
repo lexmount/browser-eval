@@ -1026,6 +1026,13 @@ def serialized_link_card_fields(link):
 
 
 def _context_lines(context: str, title: str) -> list[str]:
+    # Rejected auxiliary links must not become field-bearing native cards.
+    for card in reversed(markdown_links(context)):
+        try:
+            parts = urlsplit(card.destination)
+            _ = parts.port
+        except ValueError:
+            context = context[:card.start] + ' ' + context[card.end:]
     title_key = _key(title)
     for card in markdown_links(context):
         if card.is_image:
@@ -1415,6 +1422,41 @@ def _table_header_at(lines: list[str], index: int) -> bool:
         re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in divider)
 
 
+def _unique_columns(candidates: dict) -> dict | None:
+    """Require a unique one-to-one assignment, using bounded augmenting paths."""
+    def match(forbidden=None):
+        owners = {}
+
+        def place(field, seen):
+            for column in candidates[field]:
+                if column in seen or (field, column) == forbidden:
+                    continue
+                seen.add(column)
+                if column not in owners or place(owners[column], seen):
+                    owners[column] = field
+                    return True
+            return False
+
+        for field in sorted(candidates, key=lambda key: (len(candidates[key]), key)):
+            if not place(field, set()):
+                return None
+        return {field: column for column, field in owners.items()}
+
+    result = match()
+    if result is None or any(match(edge) is not None for edge in result.items()):
+        return None
+    return result
+
+
+def _distinct_column_owners(mapping: dict) -> bool:
+    owners = {}
+    for column, pattern in mapping.values():
+        if column in owners and (pattern is None or owners[column] is not pattern):
+            return False
+        owners[column] = pattern
+    return True
+
+
 def _table_group(content: str, group: dict) -> dict:
     lines = [line.strip() for line in clean_reference_text(table_text_surface(content)).splitlines() if line.strip()]
     required = group["required_columns"]
@@ -1429,27 +1471,29 @@ def _table_group(content: str, group: dict) -> dict:
             re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator
         ):
             continue
+        candidates = {spec['id']: [
+            index for index, header in enumerate(headers)
+            if header in {_key(alias) for alias in spec['aliases']}
+        ] for spec in required}
         mapping = {}
-        for spec in required:
-            hits = [
-                i
-                for i, header in enumerate(headers)
-                if header in {_key(value) for value in spec["aliases"]}
-            ]
-            if len(hits) > 1:
-                break
-            if hits:
-                mapping[spec["id"]] = (hits[0], None)
-        else:
-            for combined in group.get("combined_columns", []):
-                pattern = re.compile(combined["pattern"])
-                fields = set(pattern.groupindex)
-                hits = [i for i, header in enumerate(headers)
-                        if header in {_key(a) for a in combined["aliases"]}]
-                if len(hits) == 1 and not fields & mapping.keys():
-                    mapping.update({field: (hits[0], pattern) for field in fields})
-            if set(mapping) != {spec["id"] for spec in required}:
-                continue
+        for combined in group.get('combined_columns', []):
+            pattern = re.compile(combined['pattern'])
+            fields = set(pattern.groupindex)
+            hits = [index for index, header in enumerate(headers)
+                    if header in {_key(alias) for alias in combined['aliases']}]
+            if (len(hits) == 1 and not fields & mapping.keys()
+                    and all(not candidates[field] or set(candidates[field]) <= {hits[0]}
+                            for field in fields)):
+                mapping.update({field: (hits[0], pattern) for field in fields})
+        reserved = {column for column, _ in mapping.values()}
+        ordinary = _unique_columns({field: [column for column in hits if column not in reserved]
+                                    for field, hits in candidates.items() if field not in mapping})
+        if ordinary is not None:
+            mapping.update({field: (column, None) for field, column in ordinary.items()})
+        if (ordinary is None or set(mapping) != {spec['id'] for spec in required}
+                or not _distinct_column_owners(mapping)):
+            continue
+        if mapping:
             row_index = index + 2 if delimiter == "|" else index + 1
             while row_index < len(lines) and delimiter in lines[row_index]:
                 if delimiter == "|" and _table_header_at(lines, row_index):
@@ -1491,17 +1535,11 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
         separator = _pipe_cells(lines[index + 1])
         if not all(re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator):
             continue
-        mapping = {}
-        for spec in required:
-            hits = [
-                position
-                for position, header in enumerate(headers)
-                if header in {_key(value) for value in spec["aliases"]}
-            ]
-            if len(hits) != 1:
-                break
-            mapping[spec["id"]] = hits[0]
-        else:
+        mapping = _unique_columns({spec['id']: [
+            position for position, header in enumerate(headers)
+            if header in {_key(value) for value in spec['aliases']}
+        ] for spec in required})
+        if mapping is not None:
             row_index = index + 2
             while row_index < len(lines) and "|" in lines[row_index]:
                 if _table_header_at(lines, row_index):
@@ -1538,19 +1576,26 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                 ordered.append(candidate)
         if ordered:
             prefix = content[: ordered[0][2].start]
-            header_positions = []
-            for spec in required:
-                hits = [
-                    match.start()
-                    for alias in spec["aliases"]
-                    for match in re.finditer(
-                        rf"(?im)^\s*(?:\[[^]]*{re.escape(alias)}[^]]*\]\([^)]*\)|"
-                        rf"{re.escape(alias)})\s*$",
-                        prefix,
-                    )
-                ]
-                if hits:
-                    header_positions.append(min(hits))
+            header_spans = {spec['id']: {
+                match.span() for alias in spec['aliases']
+                for match in re.finditer(
+                    rf"(?im)^\s*(?:\[[^]]*{re.escape(alias)}[^]]*\]\([^)]*\)|"
+                    rf"{re.escape(alias)})\s*$", prefix)
+            } for spec in required}
+            # A rejected earlier record may have its own repeated headers.
+            # Only the contiguous header block immediately before these rows
+            # supplies their columns; blank layout lines do not split it.
+            selected, cursor = set(), len(prefix)
+            for start, end in sorted(set().union(*header_spans.values()), reverse=True):
+                if prefix[end:cursor].strip():
+                    break
+                selected.add((start, end))
+                cursor = start
+            assigned_headers = _unique_columns({field: sorted({start for start, end in spans
+                                                               if (start, end) in selected})
+                                               for field, spans in header_spans.items()})
+            header_positions = ([assigned_headers[spec['id']] for spec in required]
+                                if assigned_headers is not None else [])
             if len(header_positions) == len(required) and header_positions == sorted(header_positions):
                 for index, (identity, destination, link) in enumerate(ordered):
                     finish = ordered[index + 1][2].start if index + 1 < len(ordered) else len(content)
