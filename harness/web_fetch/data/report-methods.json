@@ -6376,8 +6376,8 @@
         },
         "document": {
           "status": {
-            "zh": "原生接口尝试",
-            "en": "Native endpoint attempted"
+            "zh": "有限支持",
+            "en": "Limited support"
           },
           "detail": {
             "zh": "正文和结构任务直接提交文档网址，按原生返回评分；不添加下载器或解析器，不代表已验证文档转换能力。",
