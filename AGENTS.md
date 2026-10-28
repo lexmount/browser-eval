@@ -4,6 +4,8 @@
 
 Browser Eval owns execution adapters, evidence handling and report tooling. `lexmount/lexbench-webfetch` owns Web Fetch task populations, task models, deterministic acceptance scoring, compilation and frozen definition files. Import its pinned package directly; do not duplicate or re-export retired evaluator modules here. Resolve frozen historical catalogs/manifests through `lexbench_webfetch.inputs.definition_path`; keep experiment profiles and compact hash bindings in `evaluation/`. WebMainBench, WCXB and WebArena retain their own upstream task authorities.
 
+Every benchmark track must record full commits for Git sources and exact task/reference/scorer hashes in its existing dependency or run bindings. Release tags are labels that resolve to recorded commits. Current-use documentation links to those bindings rather than duplicating selected version numbers; preserve immutable historical experiment and source citations. See `docs/benchmarks.md#benchmark-editions`.
+
 # Report maintenance
 
 Repository documentation, identifiers, comments and docstrings use English. Report UI messages belong in language catalogs; source quotations and acceptance fixtures retain their original language. Keep the root README and `docs/README.zh-CN.md` aligned; additional README translations are welcome, but other guides need no parallel translation. Preserve original-language source quotations and hash-bound acceptance/evidence artifacts. Report-generation languages follow the track contracts below.

@@ -8,14 +8,14 @@ Install the base CLI with `uv sync --frozen`. Add only the extras needed by your
 | [uv.lock](../uv.lock) | Resolved Python versions and hashes |
 | [package-lock.json](../package-lock.json) | Node dependency versions |
 
-Use the declared Git source for the evaluator. A registry package with the same name and version may contain different code.
+Use the declared source for each benchmark and evaluator. The full commit in the dependency lock or selected run binding is the version authority; a release tag is an optional label. See [benchmark identities](benchmarks.md#benchmark-editions). A registry package with the same name and version may contain different code.
 
 ## Core task and parsing dependencies
 
 | Dependency | Role | Version authority |
 | --- | --- | --- |
 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) | Task model, catalogs, deterministic acceptance scoring and frozen input validation | Immutable Git revision in `pyproject.toml` and `uv.lock`; [benchmark integration](benchmarks.md) |
-| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Query definitions, provenance, source qualifications and retrieval scoring | [Benchmark 1.1.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.1.0), tooling package 0.1.1; commit [`f07a2e2ddf1c1c511cb3944659534301c86ff9c9`](https://github.com/lexmount/lexbench-websearch/commit/f07a2e2ddf1c1c511cb3944659534301c86ff9c9) in `pyproject.toml` and `uv.lock`; [Search guide](../harness/web_search/README.md) |
+| [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Query definitions, provenance, source qualifications and retrieval scoring | Git revision in [pyproject.toml](../pyproject.toml), [uv.lock](../uv.lock) and the [definition binding](../evaluation/lexbench-websearch.json); [Search guide](../harness/web_search/README.md) |
 | [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) | HTML parsing | `pyproject.toml` and `uv.lock` |
 | [FastCDC](https://github.com/iscc/fastcdc-py) | Content chunking | `pyproject.toml` and `uv.lock` |
 
@@ -23,7 +23,7 @@ Use the declared Git source for the evaluator. A registry package with the same 
 
 | Dependency | Repository and relevant branch | Required source |
 | --- | --- | --- |
-| WebArena-Verified evaluator | [lexmount/webarena-verified](https://github.com/lexmount/webarena-verified), maintained evaluator work on `lex-main` | [`da7b992eb10de78000f11a7f34fd4590c171fbd6`](https://github.com/lexmount/webarena-verified/commit/da7b992eb10de78000f11a7f34fd4590c171fbd6); installed by `browser-use-eval` from the same pin in pyproject and uv.lock |
+| WebArena-Verified evaluator | [lexmount/webarena-verified](https://github.com/lexmount/webarena-verified) | Git dependency in [pyproject.toml](../pyproject.toml) and [uv.lock](../uv.lock); [runtime source check](../harness/trajectory_replay/webarena_runtime_source.py) |
 | CowAgent Web Fetch baseline | [zhayujie/CowAgent](https://github.com/zhayujie/CowAgent) | [`ed5bb344cfe42cee443c8266ba47ee666d8d7471`](https://github.com/zhayujie/CowAgent/commit/ed5bb344cfe42cee443c8266ba47ee666d8d7471) |
 | OpenClaw Web Fetch baseline | [openclaw/openclaw](https://github.com/openclaw/openclaw) | [`12c4bdf7482f24c85b011e9d858fdec3c245101c`](https://github.com/openclaw/openclaw/commit/12c4bdf7482f24c85b011e9d858fdec3c245101c) |
 | DeepSeek Harness Web Fetch baseline | [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) | [`dd6322d604e00eec1ba5e0c8541159906a21094a`](https://github.com/deepseek-ai/deepseek-harness/commit/dd6322d604e00eec1ba5e0c8541159906a21094a) |

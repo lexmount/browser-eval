@@ -56,9 +56,32 @@ The curated [Browser Trajectory Replay suite](../examples/trajectory_replay/READ
 
 ## Benchmark editions
 
-Use a benchmark version together with exact task/reference and scoring-source
-hashes. Keep the package's full Git commit pinned separately. A package update
-does not select a new dataset for an existing report.
+Every track identifies its benchmark code by the full source commit. A release
+tag may provide a readable label, but the selected tag must resolve to a recorded
+commit. Freeze task, reference and scoring-file hashes as well; a package version
+or a moving branch name alone does not identify the evaluation.
+
+Use the existing owner for each selection:
+
+| Benchmark | Version authority |
+| --- | --- |
+| LexBench Web Fetch / Web Search | Git dependencies in `pyproject.toml`, resolved commits in `uv.lock`, and `evaluation/lexbench-*.json` |
+| WebMainBench | Selected run profile's scorer commit and frozen dataset/scorer hashes |
+| WCXB | Selected source manifest's `source_commit` and input hashes |
+| WebArena for Browser Use and replay | Pinned evaluator dependency, runtime source verification and the selected task/trajectory bindings |
+| Repository-curated replay | Browser Eval source commit and selected task/trajectory hashes |
+
+Read and validate the selected binding before execution; retain it with the run
+and report. For data distributed as files, preserve content hashes even when no
+upstream commit is available. Do not invent a source commit for an old snapshot.
+
+Current-use documentation links to these owners instead of repeating selected
+versions or commits. Upstream `main` links in guides are navigation, not execution
+inputs. Historical experiments and source attributions keep their immutable
+citations; those records must not follow a newer dependency selection.
+
+Updating the installed benchmark does not select a new dataset for an existing
+report.
 
 Create `bench-vMAJOR.MINOR.PATCH` tags only in the benchmark repository.
 Browser Eval publishes software versions as `vMAJOR.MINOR.PATCH` and records the
@@ -268,10 +291,10 @@ or renaming a participant requires data changes, without another renderer entry.
 
 ## Web Search integration
 
-Browser Eval uses [LexBench Web Search benchmark 1.1.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.1.0), installed as tooling package 0.1.1 from commit [`f07a2e2ddf1c1c511cb3944659534301c86ff9c9`](https://github.com/lexmount/lexbench-websearch/commit/f07a2e2ddf1c1c511cb3944659534301c86ff9c9). Both `pyproject.toml` and `uv.lock` pin this commit. Its task files and scoring code have one owner in that repository. Browser Eval provides providers, model/human annotation collection, latency/billing collection, audits and report publication. Report-specific execution profiles and receipts live with external evidence, selected explicitly by the caller. No sibling checkout is required.
+LexBench Web Search is installed from the commit pinned in [pyproject.toml](../pyproject.toml), [uv.lock](../uv.lock) and the [definition binding](../evaluation/lexbench-websearch.json). Its task files and scoring code have one owner in that repository. Browser Eval provides providers, model/human annotation collection, latency/billing collection, audits and report publication. Report-specific execution profiles and receipts live with external evidence, selected explicitly by the caller. No sibling checkout is required.
 
 The pinned benchmark's `version` command checks its catalog and scoring state. Select task suites through the installed registry's `current` mapping; the bench edition fixes their snapshots. The harness resolves explicit dataset/field/hash references before freezing a run. Resolving the split historical profiles reproduces the original profile bytes and hashes, so saved calls keep their original identity. Model judgment evidence and measured results stay outside both repositories.
 
-Change search queries, references or scoring in LexBench Web Search and pin the resulting commit here. Change provider behavior or report generation in Browser Eval. See the pinned benchmark's [data provenance](https://github.com/lexmount/lexbench-websearch/blob/f07a2e2ddf1c1c511cb3944659534301c86ff9c9/docs/data.md) and [evaluation protocol](https://github.com/lexmount/lexbench-websearch/blob/f07a2e2ddf1c1c511cb3944659534301c86ff9c9/docs/evaluation.md).
+Change search queries, references or scoring in LexBench Web Search and pin the resulting commit here. Change provider behavior or report generation in Browser Eval. See the upstream [data provenance](https://github.com/lexmount/lexbench-websearch/blob/main/docs/data.md) and [evaluation protocol](https://github.com/lexmount/lexbench-websearch/blob/main/docs/evaluation.md).
 
 Update a merged Search benchmark revision with `make bump-lexbench BENCHMARK=lexbench-websearch REV=<full-commit>`. The shared updater checks upstream main ancestry and updates the package, lock and dataset-hash binding together.
