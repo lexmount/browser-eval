@@ -34,7 +34,7 @@
 | 流程 | 测什么 | 对应评测集与任务集 | 使用指南 |
 | --- | --- | --- | --- |
 | Web Fetch | 获取任务要求的网页正文、记录、资源或文件 | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch)、[WebMainBench](https://github.com/opendatalab/WebMainBench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
-| Web Search（预览） | 比较搜索结果、相关性、来源检索、延迟与计费 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
+| Web Search | 比较搜索结果、相关性、来源检索、延迟与计费 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch)：场景问题，以及用于检索评测的 SimpleQA Verified 改编任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
 | 轨迹重放 | 比较不同浏览器能否完成同一组录制动作 | [仓库自建固定动作任务集](../examples/trajectory_replay/README.md)，改编自 [Lexbench-Headless-Browser 场景设计](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | 让 Agent 使用不同浏览器完成任务 | [WebArena-Verified](https://github.com/ServiceNow/webarena-verified)，使用[固定版本的评测器分支](https://github.com/lexmount/webarena-verified/tree/lex-main)和[明确选定的任务](../evaluation/browser-use/webarena-verified-pilot.json) | [CowAgent + WebArena](../examples/browser_use/README.md) |
 
@@ -56,7 +56,7 @@ uv run --frozen browser-harness-eval run --delay 0
 
 ## 报告
 
-创建和分享报告，请打开 Artifact Site（[中国大陆](https://yours.lexmount.cn/artifact-site) · [全球](https://yours.lexmount.com/artifact-site)），安装网站提供的 skill，按引导创建、发布报告，并设置分享权限。
+创建和分享报告，请打开 Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)），安装网站提供的 skill，按引导创建、发布报告，并设置分享权限。
 
 报告包含结果对比、逐题结果、完整响应和失败证据。运行结果默认保存在 `~/.browser-eval/runs/`，也可用 `--output /absolute/path/new-run` 指定新目录。
 
@@ -84,7 +84,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | 搜索问题、来源参考和检索评分 |
 | [Moli](https://github.com/lexmount/moli) | 与其他参与者按相同任务规则评测的浏览器 |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | Lexmount WebFetch 服务的命令行客户端 |
-| Artifact Site（[中国大陆](https://yours.lexmount.cn/artifact-site) · [全球](https://yours.lexmount.com/artifact-site)） | 报告创建、分享和权限控制 |
+| Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)） | 报告创建、分享和权限控制 |
 | [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 自建轨迹的场景设计来源；另有独立的协议、自动化驱动和 Web 平台评测 |
 | [WebMainBench 分支](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 冻结 HTML 提取任务与有记录的评分修正 |
 | [WebArena-Verified 分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) | Browser Use 和 WebArena 轨迹重放的题目与评测器 |

@@ -34,7 +34,7 @@ Choose a workflow for its task contract, setup and runnable example.
 | Track | What it tests | Benchmarks and task suites | Guide |
 | --- | --- | --- | --- |
 | Web Fetch | Retrieve the requested page content, records, resources or files | [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch), [WebMainBench](https://github.com/opendatalab/WebMainBench), [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
-| Web Search (preview) | Compare search results, relevance, source retrieval, latency and billing | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch): scenario queries and a SimpleQA Verified retrieval adaptation | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
+| Web Search | Compare search results, relevance, source retrieval, latency and billing | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch): scenario queries and a SimpleQA Verified retrieval adaptation | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
 | Browser Trajectory Replay | Complete the same recorded browser actions across implementations | [Repository-curated fixed-action suite](examples/trajectory_replay/README.md), adapted from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios); [qualified WebArena human recordings](evaluation/browser-use-public/webarena-human-suite.json), checked with the [WebArena-Verified evaluator](https://github.com/lexmount/webarena-verified/tree/lex-main) | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
 | Browser Use | Let an Agent use different browsers to complete tasks | [WebArena-Verified](https://github.com/ServiceNow/webarena-verified), using the [pinned evaluator fork](https://github.com/lexmount/webarena-verified/tree/lex-main) and [declared task selection](evaluation/browser-use/webarena-verified-pilot.json) | [CowAgent + WebArena](examples/browser_use/README.md) |
 
@@ -56,7 +56,7 @@ Next, [try HTTP, Moli or Chromium on a local article](examples/web_fetch/README.
 
 ## Reports
 
-To create and share a report, open Artifact Site ([Mainland China](https://yours.lexmount.cn/artifact-site) · [Global](https://yours.lexmount.com/artifact-site)) and install the skill offered there. Follow the skill to create and publish your report, then choose who can access it.
+To create and share a report, open Artifact Site ([Global .com](https://yours.lexmount.com/artifact-site) · [China .cn](https://yours.lexmount.cn/artifact-site)) and install the skill offered there. Follow the skill to create and publish your report, then choose who can access it.
 
 Reports include comparisons, task results, full responses and failure evidence. Runs are saved under `~/.browser-eval/runs/`; use `--output /absolute/path/new-run` to choose another directory.
 
@@ -84,7 +84,7 @@ Published versions, changes and dependency snapshots are listed in [GitHub Relea
 | [LexBench Web Search](https://github.com/lexmount/lexbench-websearch) | Versioned search queries, source references and retrieval scoring |
 | [Moli](https://github.com/lexmount/moli) | Browser evaluated through the same task contracts as other participants |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | CLI client for the Lexmount WebFetch service; separate from the evaluation harness |
-| Artifact Site ([Mainland China](https://yours.lexmount.cn/artifact-site) · [Global](https://yours.lexmount.com/artifact-site)) | Report creation and sharing with access controls |
+| Artifact Site ([Global .com](https://yours.lexmount.com/artifact-site) · [China .cn](https://yours.lexmount.cn/artifact-site)) | Report creation and sharing with access controls |
 | [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | Scenario design source for curated replay; separate protocol, driver and web-platform benchmarks |
 | [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [upstream](https://github.com/opendatalab/WebMainBench) | Frozen-HTML extraction tasks and declared scoring corrections |
 | [WebArena-Verified fork](https://github.com/lexmount/webarena-verified/tree/lex-main) · [upstream](https://github.com/ServiceNow/webarena-verified) | Tasks and evaluator for Browser Use and WebArena trajectory replay |

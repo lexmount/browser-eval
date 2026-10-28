@@ -70,6 +70,28 @@ def test_declared_benchmark_pins_match_lock_and_installation():
         assert origin["vcs_info"]["commit_id"] == revision, name
 
 
+def test_all_git_dependencies_resolve_to_locked_source_commits():
+    from urllib.parse import parse_qs, urlsplit
+
+    project = source_project()
+    packages = tomllib.loads((ROOT / "uv.lock").read_text())["package"]
+    dependencies = list(project["dependencies"])
+    for extra in project.get("optional-dependencies", {}).values():
+        dependencies.extend(extra)
+    for dependency in dependencies:
+        if " @ git+" not in dependency:
+            continue
+        name, source = dependency.split(" @ git+", 1)
+        repository, requested = source.rsplit("@", 1)
+        package = next(p for p in packages if p["name"] == name)
+        locked = urlsplit(package["source"]["git"])
+        assert re.fullmatch(r"[0-9a-f]{40}", locked.fragment), name
+        assert locked._replace(query="", fragment="").geturl() == repository, name
+        assert parse_qs(locked.query).get("rev") == [requested], name
+        if re.fullmatch(r"[0-9a-f]{40}", requested):
+            assert locked.fragment == requested, name
+
+
 def test_installed_benchmarks_match_their_frozen_catalogs():
     from importlib import import_module
 
