@@ -55,14 +55,21 @@ def replay_input_path(value: str | Path | dict | None = None, *, current: str) -
     return Path(value).expanduser()
 
 
-def replay_suite_for_hash(digest: str, *, family: str) -> Path:
-    """Recover a supported report's exact input bytes, never substitute a newer suite."""
-    keys = ('curated',) if family == 'curated' else ('human', 'human-candidates', 'human-example')
-    for key in keys:
-        path = replay_input_path(current=key)
-        if hashlib.sha256(path.read_bytes()).hexdigest() == digest:
-            return path
-    raise ValueError('historical suite is outside the locked definitions; supply its explicit path')
+def replay_suite_for_hash(digest: str, *, family: str, dataset: dict | None = None) -> Path:
+    """Recover verified suite bytes, preferring the edition saved with the run."""
+    selected = replay_suite_binding(
+        digest, family=family,
+        revision=dataset.get('revision') if dataset is not None else None,
+        definition=dataset.get('definition') if dataset is not None else None,
+    )
+    if dataset is not None and selected != dataset:
+        raise ValueError('Replay suite dataset binding differs from the run input hash')
+    if selected is None:
+        raise ValueError(
+            'historical suite is outside the locked definitions; supply its explicit path'
+        )
+    path = replay_input_path(selected, current='curated' if family == 'curated' else 'human')
+    return verified_dataset_path(path, digest)
 
 
 def replay_fixture_root() -> Path:
@@ -100,7 +107,7 @@ def agent_smoke_input(path: str | Path | None) -> dict | None:
 
 
 def replay_suite_binding(
-    digest: str, *, family: str, revision: str | None = None
+    digest: str, *, family: str, revision: str | None = None, definition: str | None = None
 ) -> dict | None:
     """Locate exact suite bytes in recorded HF editions without using a mutable default."""
     from harness.benchmarks.data import binding
@@ -110,6 +117,8 @@ def replay_suite_binding(
     for edition in (selected, *selected.get('history', [])):
         for key in keys:
             _, relative = _CURRENT_DEFINITIONS[key]
+            if definition is not None and relative != definition:
+                continue
             expected = edition['files'].get('definitions/' + relative, {})
             if expected.get('sha256') == digest:
                 return {'benchmark_dataset': track, 'definition': relative,

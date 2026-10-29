@@ -87,6 +87,59 @@ def test_benchmark_and_search_default_reads_follow_the_post_import_cache(configu
         assert search_inputs.registry()["selection"] == "configured-after-import"
 
 
+def test_repeated_registry_reads_verify_consumed_file_without_rehashing_unrelated_inputs(
+    configured_cache, monkeypatch
+):
+    definitions, _ = configured_cache
+    data.snapshot("webfetch")
+    original = data.verify_file
+    verified = []
+    def verify(path, expected):
+        verified.append(path)
+        return original(path, expected)
+    monkeypatch.setattr(data, "verify_file", verify)
+    for _ in range(3):
+        assert benchmark.registry()["schema_version"] == 1
+    assert verified == [definitions / "registry.json"] * 3
+
+
+def test_relative_installed_paths_are_verified_after_import(configured_cache, tmp_path, monkeypatch):
+    definitions, _ = configured_cache
+    monkeypatch.chdir(tmp_path)
+    relative = definitions.relative_to(tmp_path) / "evaluation/articles"
+    assert data.resolve_definition_path("webfetch", relative) == definitions / "evaluation/articles"
+    (definitions / "evaluation/articles/rules.json").write_text("changed")
+    with pytest.raises(ValueError, match="hash or size"):
+        data.resolve_definition_path("webfetch", relative)
+
+
+@pytest.mark.parametrize("internal", [False, True])
+def test_aliases_into_or_out_of_installed_snapshots_cannot_bypass_verification(
+    configured_cache, tmp_path, internal
+):
+    definitions, _ = configured_cache
+    if internal:
+        external = tmp_path / "authoring"
+        external.mkdir()
+        (external / "rules.json").write_text("changed")
+        alias = definitions / "alias"
+        alias.symlink_to(external, target_is_directory=True)
+        path = alias / "rules.json"
+    else:
+        alias = tmp_path / "alias"
+        alias.symlink_to(definitions, target_is_directory=True)
+        path = alias / "evaluation/articles/rules.json"
+    with pytest.raises(ValueError, match="symlink"):
+        data.resolve_definition_path("webfetch", path)
+
+
+def test_external_authoring_files_remain_explicit_local_inputs(configured_cache, tmp_path):
+    path = tmp_path / "authoring/rules.json"
+    path.parent.mkdir()
+    path.write_text("caller-owned")
+    assert data.resolve_definition_path("webfetch", path) == path
+
+
 @pytest.mark.parametrize("explicit", [False, True])
 @pytest.mark.parametrize("corrupt", [False, True])
 def test_risk_compiler_verifies_installed_inputs_before_parsing(configured_cache, tmp_path, monkeypatch, explicit, corrupt):

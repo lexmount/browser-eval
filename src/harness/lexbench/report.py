@@ -11,6 +11,7 @@ import re
 import shutil
 import statistics
 
+from harness.distribution import repository_root
 from harness.lexbench import charts, reproduction
 from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import load_matrix
@@ -24,7 +25,7 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 ROOT = pathlib.Path(os.environ.get("BROWSER_EVAL_DATA_HOME", pathlib.Path.home() / ".browser-eval"))
 
 
-REPOSITORY_ROOT = pathlib.repository_root()
+REPOSITORY_ROOT = repository_root()
 
 
 def read_comparison_task(roots, relative, *, expected_sha256):

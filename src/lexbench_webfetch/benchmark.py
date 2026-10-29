@@ -13,11 +13,12 @@ from .paths import contained_path, safe_identifier
 from .inputs import digest, load_manifest, verify_catalog
 from .annotation_revisions import apply_annotation_change
 
-from harness.benchmarks.data import definition_path, resolve_definition_path
+from harness.benchmarks.data import resolve_definition_path, snapshot
 
 
 def definitions() -> Path:
-    return definition_path("webfetch", ".")
+    """Locate the active namespace; read() and suite manifests verify consumed bytes."""
+    return snapshot("webfetch") / "definitions"
 
 # Full reference bodies and source-capture/review payloads stay in frozen inputs.
 PUBLIC_TASK_FIELDS = (

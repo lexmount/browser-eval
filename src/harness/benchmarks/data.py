@@ -270,8 +270,17 @@ def definition_path(track: str, relative: str, revision: str | None = None) -> P
 def resolve_definition_path(track: str, path: Path) -> Path:
     """Reverify explicit installed-cache paths; preserve caller-owned local inputs."""
     path = Path(path)
+    home = cache_home() / track
+    absolute, physical = path.absolute(), path.resolve()
+    if absolute != physical:
+        for component in (absolute, *absolute.parents):
+            if component.is_symlink() and (
+                component.resolve().is_relative_to(home)
+                or component.parent.resolve().is_relative_to(home)
+            ):
+                raise ValueError("Dataset definition paths cannot contain symlinks")
     try:
-        relative = path.relative_to(cache_home() / track)
+        relative = physical.relative_to(home)
     except ValueError:
         return path
     if len(relative.parts) >= 2 and relative.parts[1] == "definitions":

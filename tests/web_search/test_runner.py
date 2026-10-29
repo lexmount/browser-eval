@@ -67,7 +67,7 @@ class CollectionScenarios(unittest.TestCase):
                 self.assertTrue(receipt["certified"])
                 contract = json.loads((root / "run/run-contract.json").read_text())
                 self.assertNotIn("harness/web_search/report.py", contract["implementation"])
-                self.assertTrue({"uv.lock", "pyproject.toml", "harness/web_search/core.py"}.issubset(contract["implementation"]))
+                self.assertTrue({"uv.lock", "pyproject.toml", "harness/web_search/core.py", "harness/distribution.py"}.issubset(contract["implementation"]))
                 bound = {item["path"]: item["sha256"] for item in receipt["bindings"]}
                 for name, identity in contract["implementation"].items():
                     self.assertEqual(bound["implementation/" + name], identity)

@@ -17,7 +17,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--artifacts", required=True)
     parser.add_argument("--reports", help="Defaults to the selected run's report directory")
-    parser.add_argument("--suite", help="Explicit historical suite; otherwise recover the manifest-bound HF input")
+    parser.add_argument(
+        "--suite", help="Explicit historical suite; otherwise recover the manifest-bound HF input"
+    )
     parser.add_argument(
         "--ground-truth-evidence",
         default="examples/trajectory_replay/ground_truth_validation.json",
@@ -33,7 +35,8 @@ def main() -> None:
     manifest = json.loads((artifact_dir / "manifest.json").read_text(encoding="utf-8"))
     from harness.trajectory_replay.report_inputs import replay_suite_for_hash
     suite_path = Path(args.suite) if args.suite else replay_suite_for_hash(
-        manifest.get('suite_sha256'), family='curated')
+        manifest.get('suite_sha256'), family='curated', dataset=manifest.get('suite_dataset')
+    )
     suite = load_suite(suite_path)
     suite_sha256 = hashlib.sha256(suite_path.read_bytes()).hexdigest()
     if manifest.get("suite_sha256") != suite_sha256:

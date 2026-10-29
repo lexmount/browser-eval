@@ -668,7 +668,7 @@ class NativeFileWorkerTests(unittest.TestCase):
 
 def test_native_default_worker_has_no_generated_wait_or_extraction():
     import importlib.util
-    spec = importlib.util.spec_from_file_location("native_crawl_worker", Path("harness/web_fetch/workers/crawl4ai_worker.py"))
+    spec = importlib.util.spec_from_file_location("native_crawl_worker", source_path("harness/web_fetch/workers/crawl4ai_worker.py"))
     worker = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(worker)
     request = {"track": "dynamic", "retrieval_plan": None, "retrieval_mode": "native_default"}

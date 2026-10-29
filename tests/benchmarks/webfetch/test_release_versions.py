@@ -11,9 +11,9 @@ from lexbench_webfetch.versions import (
 
 @pytest.fixture
 def matching_catalog(tmp_path):
-    from lexbench_webfetch.benchmark import definitions
+    from lexbench_webfetch.benchmark import definitions, read
     from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
-    release = json.loads((definitions() / "benchmark-release.json").read_text())
+    release = read(definitions() / "benchmark-release.json")
     release["scoring_source_sha256"] = SCORING_SOURCE_SHA256
     path = tmp_path / "catalog.json"
     path.write_text(json.dumps(release))
@@ -251,9 +251,9 @@ def test_list_name_rule_is_part_of_measurement_not_just_public_display_fields():
 @pytest.mark.parametrize("released", [False, True])
 def test_version_command_distinguishes_published_and_unreleased_scorers(monkeypatch, capsys, released):
     from lexbench_webfetch import versions
-    from lexbench_webfetch.benchmark import definitions
+    from lexbench_webfetch.benchmark import definitions, read
     from lexbench_webfetch.cli import main
-    catalog = json.loads((definitions() / "benchmark-release.json").read_text())
+    catalog = read(definitions() / "benchmark-release.json")
     source_hash = catalog["scoring_source_sha256"] if released else "0" * 64
     monkeypatch.setattr(versions, "SCORING_SOURCE_SHA256", source_hash)
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "version"])

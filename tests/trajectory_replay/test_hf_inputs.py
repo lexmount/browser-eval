@@ -198,7 +198,12 @@ def test_report_rebuild_selects_exact_locked_suite_hash(tmp_path):
     def resolve(track, relative, revision=None):
         return files[relative]
 
-    with patch("harness.benchmarks.data.definition_path", side_effect=resolve):
+    ledger = {'revision': '1' * 40, 'files': {
+        'definitions/' + name: {'sha256': file_sha256(path)} for name, path in files.items()
+    }}
+    with patch("harness.benchmarks.data.binding", return_value=ledger), patch(
+        "harness.benchmarks.data.definition_path", side_effect=resolve
+    ):
         original = files["inventories/human-candidates-v1.json"]
         assert replay_suite_for_hash(file_sha256(original), family="human") == original
         with pytest.raises(ValueError, match="explicit path"):

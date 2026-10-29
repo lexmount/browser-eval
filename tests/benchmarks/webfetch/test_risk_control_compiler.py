@@ -215,8 +215,9 @@ assign_content_acceptance_roles([{'acceptance_contract': {
 
 
 def test_current_scope_owners_declare_only_proven_complete_contracts():
-    bodies = json.loads(compiler.BODY_CONTRACTS.read_text())["contracts"]
-    lists = json.loads(compiler.LIST_CONTRACTS.read_text())["contracts"]
+    from lexbench_webfetch.inputs import definition_path
+    bodies = json.loads(definition_path("evaluation/risk-control/body-contracts.json").read_text())["contracts"]
+    lists = json.loads(definition_path("evaluation/risk-control/list-contracts.json").read_text())["contracts"]
     assert bodies["risk-diverse-042"]["stable_text_role"] == "diagnostic"
     assert bodies["risk-diverse-011"]["stable_text_role"] == "required"
     assert lists["risk-diverse-192"]["stable_text_role"] == "diagnostic"

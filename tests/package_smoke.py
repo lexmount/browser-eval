@@ -264,6 +264,11 @@ def verify_sample_assembly(root: Path, source_root: Path) -> None:
 def verify_lexbench_package(root: Path, renderer: Path) -> None:
     from harness.lexbench.pack import package
 
+    subprocess.run(
+        [sys.executable, '-m', 'harness.lexbench.report', '--help'],
+        cwd=root, check=True, capture_output=True, text=True,
+    )
+
     source = root / 'lexbench-source'
     source.mkdir()
     for name in ('index.html', 'en.html', 'en/index.html'):

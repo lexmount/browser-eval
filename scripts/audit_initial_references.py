@@ -16,12 +16,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT / "src"))
 
+from harness.distribution import source_path
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
+from harness.web_fetch.source_capture import extract_html
 from lexbench_webfetch.paths import contained_path, safe_identifier
 from lexbench_webfetch.reference_quality import clean_reference_text
 from lexbench_webfetch.scoring import SCORING_SOURCE_FILES, score_attempt
-
-from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
-from harness.web_fetch.source_capture import extract_html
 
 
 def sha256(raw: bytes) -> str:
@@ -180,7 +180,7 @@ def audit_dataset(dataset: Path) -> dict:
         "dataset_sha256": sha256(raw),
         "method": "extract_html(saved initial bytes, case URL), then clean_reference_text; exact Unicode comparison to current dataset reference",
         "js_executed": False, "network_used": False, "provider_outputs_used": False,
-        "implementation_sha256": {**{name: sha256((ROOT / name).read_bytes()) for name in (
+        "implementation_sha256": {**{name: sha256(source_path(name, root=ROOT).read_bytes()) for name in (
             "scripts/audit_initial_references.py", "harness/web_fetch/source_capture.py",
 
         )}, **{"lexbench_webfetch/"+path.name: sha256(path.read_bytes())

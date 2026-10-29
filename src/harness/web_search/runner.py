@@ -317,7 +317,7 @@ def collection_implementation():
         "harness/web_search/runner.py", "harness/web_search/core.py",
         "harness/web_search/adapters.py", "harness/web_search/profiles.py",
         "harness/web_fetch/config.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
-        "harness/benchmarks/data.py",
+        "harness/benchmarks/data.py", "harness/distribution.py",
     )
     sources = {name: source_path(name, root=ROOT) for name in names}
     sources.update({"lexbench_websearch/" + name: path for name, path in benchmark_inputs.implementation_sources().items()})
