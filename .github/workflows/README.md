@@ -6,13 +6,13 @@ Three jobs run independently:
 
 | Job | Coverage |
 | --- | --- |
-| Tests and static checks | `make ci-tests`: naming, lint, the complete Python suite, Node UI/native-adapter tests and the fixture smoke test |
+| Tests and static checks | `make ci-tests`: review guidance, naming, lint, the complete Python suite, Node UI/native-adapter tests and the fixture smoke test |
 | Installation and packaging | Base installation and CLI language checks, sdist/pip installation, wheel smoke checks and all existing optional installation profiles |
 | Rendered reference and report checks | Chromium reference capture, report interactions and Web Search visual checks |
 
 The Python suite uses two workers with `--dist loadfile`, keeping each test file in one process. Slow-test durations appear in the job log. Local `make ci` remains serial by default; use `make ci PYTEST_ARGS='-n 2 --dist loadfile --durations=20'` for the same test scheduling.
 
-The checks job also verifies the pinned shared review guide and synchronization tool against `review-guidelines.lock.json`, and confirms that OCR loads the shared guide alongside its built-in rules. This offline integrity check needs no cross-repository credentials. Use `uv run --frozen python scripts/review_guidelines.py check --source <ai-template-py-checkout>` to also compare the files with their recorded source commit. Shared requirements are maintained in `lexmount/ai-template-py`; Browser Eval's review supplement remains in `.opencodereview/review-rules.md`.
+`make review-check`, part of both `make ci-tests` and local `make ci`, verifies the pinned shared review guide and synchronization tool against `review-guidelines.lock.json`, and confirms that OCR loads the guide alongside its built-in rules. This offline integrity check needs no cross-repository credentials. Use `uv run --frozen python scripts/review_guidelines.py check --source <ai-template-py-checkout>` to also compare the files with their recorded source commit. Shared requirements are maintained in `lexmount/ai-template-py`; Browser Eval's review supplement is the section after the repository supplement marker at the end of `docs/references/review-guidelines.md`; the lock covers only the text before it, and synchronization preserves it.
 
 The existing `Python 3.11` status succeeds only when all three jobs succeed. A failed, cancelled or skipped job fails that status. New commits cancel obsolete CI runs for the same pull request. Main and tag runs each have a unique concurrency group, so a newer run cannot replace an earlier pending run.
 

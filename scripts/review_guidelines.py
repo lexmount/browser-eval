@@ -15,6 +15,9 @@ from tempfile import TemporaryDirectory
 REPOSITORY = "lexmount/ai-template-py"
 FILES = ("docs/references/review-guidelines.md", "scripts/review_guidelines.py")
 LOCK = "review-guidelines.lock.json"
+# A consumer's copy of the guide may end with its own requirements after this
+# line. The lock and source comparison cover only the shared text above it.
+SUPPLEMENT = b"<!-- Repository review supplement: maintained locally; synchronization preserves the text below. -->"
 
 
 def git(root: Path, *args: str) -> bytes:
@@ -23,12 +26,30 @@ def git(root: Path, *args: str) -> bytes:
     ).stdout
 
 
+def repository_root(path: Path) -> Path:
+    return Path(git(path, "rev-parse", "--show-toplevel").decode().strip()).resolve()
+
+
 def is_source(root: Path) -> bool:
-    remote = git(root, "remote", "get-url", "origin").decode().strip()
-    return remote.removesuffix(".git") in (
+    remote = git(root, "remote", "get-url", "origin").decode().strip().rstrip("/")
+    remote = remote.removesuffix(".git").replace("ssh://git@github.com/", "git@github.com:")
+    return remote in (
         f"git@github.com:{REPOSITORY}",
         f"https://github.com/{REPOSITORY}",
     )
+
+
+def shared_part(path: str, content: bytes) -> bytes:
+    if path != FILES[0]:
+        return content
+    shared, marker, _ = content.partition(SUPPLEMENT)
+    # Blank lines before the marker separate the sections and are not shared text.
+    return shared.rstrip(b"\n") + b"\n" if marker else shared
+
+
+def local_part(path: str, content: bytes) -> bytes:
+    index = content.find(SUPPLEMENT) if path == FILES[0] else -1
+    return b"" if index < 0 else b"\n" + content[index:]
 
 
 def managed_path(root: Path, relative: str) -> Path:
@@ -56,7 +77,10 @@ def source_files(source: Path, revision: str) -> dict[str, bytes]:
         raise ValueError(f"Source origin must be {REPOSITORY}")
     if git(source, "cat-file", "-t", revision).strip() != b"commit":
         raise ValueError("The source revision must identify a commit")
-    return {path: git(source, "show", f"{revision}:{path}") for path in FILES}
+    contents = {path: git(source, "show", f"{revision}:{path}") for path in FILES}
+    if local_part(FILES[0], contents[FILES[0]]):
+        raise ValueError("The canonical guide must not contain a repository supplement")
+    return contents
 
 
 def check_routing(root: Path) -> None:
@@ -74,8 +98,11 @@ def check(root: Path, source: Path | None = None) -> None:
         if not is_source(root):
             raise ValueError(f"Missing {LOCK}; synchronize from {REPOSITORY}")
         for path in FILES:
-            if not managed_path(root, path).read_bytes().strip():
+            content = managed_path(root, path).read_bytes()
+            if not content.strip():
                 raise ValueError(f"Empty source file: {path}")
+            if local_part(path, content):
+                raise ValueError("The canonical guide must not contain a repository supplement")
     else:
         lock = json.loads(lock_path.read_text())
         if lock.get("repository") != REPOSITORY or lock.get("version") != 1:
@@ -87,7 +114,7 @@ def check(root: Path, source: Path | None = None) -> None:
             raise ValueError("The lock must cover the guide and synchronization tool")
         upstream = source_files(source, revision) if source is not None else None
         for path in FILES:
-            local = managed_path(root, path).read_bytes()
+            local = shared_part(path, managed_path(root, path).read_bytes())
             if digest(local) != lock["files"][path]:
                 raise ValueError(f"Local drift: {path}; synchronize, do not edit the copy")
             if upstream is not None and local != upstream[path]:
@@ -104,15 +131,20 @@ def sync(source: Path, revision: str, targets: list[Path]) -> None:
         "revision": revision,
         "files": {path: digest(data) for path, data in contents.items()},
     }
-    payloads = {**contents, LOCK: (json.dumps(lock, indent=2) + "\n").encode()}
-    # Validate every destination before changing any of them.
+    prepared = []
+    # Validate every destination before writing; repositories are then updated in turn.
     for root in targets:
         if is_source(root):
             raise ValueError("Edit the canonical source directly; do not sync over it")
+        payloads = {**contents, LOCK: (json.dumps(lock, indent=2) + "\n").encode()}
         for path in payloads:
             managed_path(root, path)
+        guide = root / FILES[0]
+        if guide.exists():
+            payloads[FILES[0]] += local_part(FILES[0], guide.read_bytes())
         check_routing(root)
-    for root in targets:
+        prepared.append((root, payloads))
+    for root, payloads in prepared:
         with TemporaryDirectory(prefix=".review-guidelines-", dir=root) as directory:
             staged = Path(directory)
             for path, data in payloads.items():
@@ -137,9 +169,10 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.command == "check":
-            check(Path.cwd().resolve(), args.source.resolve() if args.source else None)
+            source = repository_root(args.source) if args.source else None
+            check(repository_root(Path.cwd()), source)
         else:
-            sync(args.source.resolve(), args.ref, [p.resolve() for p in args.targets])
+            sync(repository_root(args.source), args.ref, [repository_root(p) for p in args.targets])
     except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as exc:
         print(f"Review guidance error: {exc}", file=sys.stderr)
         return 1
