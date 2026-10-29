@@ -65594,6 +65594,4514 @@
       "expected_metrics": {
         "stable_complete_record_count": 1
       }
+    },
+    {
+      "id": "quote-owner-whitespace-markdown-False",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| An independent thought. | Some Author | first second |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“An independent thought.” by Some Author Tags: first second",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "An independent thought.",
+              "author": "Some Author",
+              "tags": "first second"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "stable_complete_record_count": 1,
+        "stable_structure_pass": true,
+        "stable_content_pass": true
+      }
+    },
+    {
+      "id": "quote-owner-whitespace-markdown-True",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| An independent thought. | Some Author | first second |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“An independent thought.”bySome AuthorTags:firstsecond",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "An independent thought.",
+              "author": "Some Author",
+              "tags": "firstsecond"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "stable_complete_record_count": 1,
+        "stable_structure_pass": true,
+        "stable_content_pass": false
+      }
+    },
+    {
+      "id": "quote-owner-whitespace-html-False",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| An independent thought. | Some Author | first second |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>“An independent thought.” by Some Author Tags: first second</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "An independent thought.",
+              "author": "Some Author",
+              "tags": "first second"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "stable_complete_record_count": 1,
+        "stable_structure_pass": true,
+        "stable_content_pass": true
+      }
+    },
+    {
+      "id": "quote-owner-whitespace-html-True",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| An independent thought. | Some Author | first second |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>“An independent thought.”bySome AuthorTags:firstsecond</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "An independent thought.",
+              "author": "Some Author",
+              "tags": "firstsecond"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "stable_complete_record_count": 1,
+        "stable_structure_pass": true,
+        "stable_content_pass": false
+      }
+    },
+    {
+      "id": "quote-owner-whitespace-plain_text-False",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| An independent thought. | Some Author | first second |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“An independent thought.” by Some Author Tags: first second",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "An independent thought.",
+              "author": "Some Author",
+              "tags": "first second"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "stable_complete_record_count": 1,
+        "stable_structure_pass": true,
+        "stable_content_pass": true
+      }
+    },
+    {
+      "id": "quote-owner-whitespace-plain_text-True",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| An independent thought. | Some Author | first second |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“An independent thought.”bySome AuthorTags:firstsecond",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "An independent thought.",
+              "author": "Some Author",
+              "tags": "firstsecond"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "stable_complete_record_count": 1,
+        "stable_structure_pass": true,
+        "stable_content_pass": false
+      }
+    },
+    {
+      "id": "quote-owner-whitespace-inferred-False",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| An independent thought. | Some Author | first second |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“An independent thought.” by Some Author Tags: first second",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "An independent thought.",
+              "author": "Some Author",
+              "tags": "first second"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "stable_complete_record_count": 1,
+        "stable_structure_pass": true,
+        "stable_content_pass": true
+      }
+    },
+    {
+      "id": "quote-owner-whitespace-inferred-True",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| An independent thought. | Some Author | first second |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“An independent thought.”bySome AuthorTags:firstsecond",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "An independent thought.",
+              "author": "Some Author",
+              "tags": "firstsecond"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "stable_complete_record_count": 1,
+        "stable_structure_pass": true,
+        "stable_content_pass": false
+      }
+    },
+    {
+      "id": "structured-link-product-prefix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "prefix\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "b2c96215b95ea5d6ae48f0618fc132183d1b0cb863cf0298d57718b12d5a4155"
+            ]
+          }
+        }
+      },
+      "artifact": "pre[fix](/details)\n$10.00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "prefix",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-suffix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "readable\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "ceccf8756f63dc3bacdf43eacf4fbd2cdb473654cac35d778286a1e478d8d95f"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/details)able\n$10.00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "readable",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-both",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "unbreakable\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "b721a3de188ee0979fd7fe1ebc9305d641e4faa83328cd009d612adaafd9a2c7"
+            ]
+          }
+        }
+      },
+      "artifact": "un[break](/details)able\n$10.00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "unbreakable",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-whole",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "readable\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "ceccf8756f63dc3bacdf43eacf4fbd2cdb473654cac35d778286a1e478d8d95f"
+            ]
+          }
+        }
+      },
+      "artifact": "[readable](/details)\n$10.00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "readable",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-space-before",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "f2c23459d5ba1bd16a035ad78a14ab2de75f1de865e1dd5f6f0593038f79af22"
+            ]
+          }
+        }
+      },
+      "artifact": "read [able](/details)\n$10.00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "read able",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-space-after",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "f2c23459d5ba1bd16a035ad78a14ab2de75f1de865e1dd5f6f0593038f79af22"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/details) able\n$10.00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "read able",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-adjacent-labels",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "f2c23459d5ba1bd16a035ad78a14ab2de75f1de865e1dd5f6f0593038f79af22"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/first)[able](/second)\n$10.00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "read able",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-multiword-label",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Read more able\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "c20a89f3104e21b6adb676dfe5c904ba5a2ab625c2a4babead2bb46da41e446e"
+            ]
+          }
+        }
+      },
+      "artifact": "[Read more](/details)able\n$10.00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Read more able",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-unicode",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "可读\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "84e6167cdab1c20c41eaa2667b7be7990b68864b056b3296b96988e57dbf3812"
+            ]
+          }
+        }
+      },
+      "artifact": "[可](/details)读\n$10.00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "可读",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-space-equivalence",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "f2c23459d5ba1bd16a035ad78a14ab2de75f1de865e1dd5f6f0593038f79af22"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/details)able\n$10.00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "structured-link-catalog_product-prefix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "prefix\n$10.00\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "price",
+              "reviews",
+              "title"
+            ],
+            "record_hashes": [
+              "2757492890a64b35d1b3f2d0a8f1fd97fadd95e167c2337d5494c2a10079d6f9"
+            ]
+          }
+        }
+      },
+      "artifact": "pre[fix](/details)\n$10.00\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "prefix",
+              "price": "$10.00",
+              "description": "Useful device",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-catalog_product-suffix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "readable\n$10.00\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "price",
+              "reviews",
+              "title"
+            ],
+            "record_hashes": [
+              "5e242efbc107a70078ba5c5a55cc3a8b6bf8111e429d322833ad9832413ec539"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/details)able\n$10.00\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "readable",
+              "price": "$10.00",
+              "description": "Useful device",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-catalog_product-both",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "unbreakable\n$10.00\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "price",
+              "reviews",
+              "title"
+            ],
+            "record_hashes": [
+              "980149fe8fa3e64fcf898f1b0aa2645c1db8cd378ff368f4f1f5c5eeadaf7379"
+            ]
+          }
+        }
+      },
+      "artifact": "un[break](/details)able\n$10.00\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "unbreakable",
+              "price": "$10.00",
+              "description": "Useful device",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-catalog_product-whole",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "readable\n$10.00\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "price",
+              "reviews",
+              "title"
+            ],
+            "record_hashes": [
+              "5e242efbc107a70078ba5c5a55cc3a8b6bf8111e429d322833ad9832413ec539"
+            ]
+          }
+        }
+      },
+      "artifact": "[readable](/details)\n$10.00\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "readable",
+              "price": "$10.00",
+              "description": "Useful device",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-catalog_product-space-before",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\n$10.00\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "price",
+              "reviews",
+              "title"
+            ],
+            "record_hashes": [
+              "afad1c67ca8a25156e68fbe59f83984191dd9c44c74b8954aa4add367bf6147d"
+            ]
+          }
+        }
+      },
+      "artifact": "read [able](/details)\n$10.00\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "read able",
+              "price": "$10.00",
+              "description": "Useful device",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-catalog_product-space-after",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\n$10.00\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "price",
+              "reviews",
+              "title"
+            ],
+            "record_hashes": [
+              "afad1c67ca8a25156e68fbe59f83984191dd9c44c74b8954aa4add367bf6147d"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/details) able\n$10.00\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "read able",
+              "price": "$10.00",
+              "description": "Useful device",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-catalog_product-adjacent-labels",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\n$10.00\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "price",
+              "reviews",
+              "title"
+            ],
+            "record_hashes": [
+              "afad1c67ca8a25156e68fbe59f83984191dd9c44c74b8954aa4add367bf6147d"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/first)[able](/second)\n$10.00\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "read able",
+              "price": "$10.00",
+              "description": "Useful device",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-catalog_product-multiword-label",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Read more able\n$10.00\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "price",
+              "reviews",
+              "title"
+            ],
+            "record_hashes": [
+              "cd6d014e681ae66276df67b70d76d94174bfe2edbff6da65a454b73408efbf31"
+            ]
+          }
+        }
+      },
+      "artifact": "[Read more](/details)able\n$10.00\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Read more able",
+              "price": "$10.00",
+              "description": "Useful device",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-catalog_product-unicode",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "可读\n$10.00\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "price",
+              "reviews",
+              "title"
+            ],
+            "record_hashes": [
+              "421993e955c3fdaa9c9fcac7edb4916b613ba8943820ac1fd22baeb72690c500"
+            ]
+          }
+        }
+      },
+      "artifact": "[可](/details)读\n$10.00\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "可读",
+              "price": "$10.00",
+              "description": "Useful device",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-catalog_product-space-equivalence",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\n$10.00\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "price",
+              "reviews",
+              "title"
+            ],
+            "record_hashes": [
+              "afad1c67ca8a25156e68fbe59f83984191dd9c44c74b8954aa4add367bf6147d"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/details)able\n$10.00\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "structured-link-quote-prefix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by prefix” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "eb42daad038f6ccf0f6cd5666da1363b8005e25eb3d8ab5b187144d4a91a945f"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by pre[fix](/details)” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by prefix",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-quote-suffix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by readable” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "f3419851583b8aa020a9ed26780b5f48cceab2c2f2e8cfa5bc820a442174ed2c"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by [read](/details)able” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by readable",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-quote-both",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by unbreakable” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "8ad2d769dba79bbb1954f130d67d4984ec18462909868565607f86b46f6e0a96"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by un[break](/details)able” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by unbreakable",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-quote-whole",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by readable” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "f3419851583b8aa020a9ed26780b5f48cceab2c2f2e8cfa5bc820a442174ed2c"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by [readable](/details)” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by readable",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-quote-space-before",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by read able” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "67f57250cf2f7cc7fd468004b9df0246adda51f54eaaec91eb24a7ec50101558"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by read [able](/details)” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by read able",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-quote-space-after",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by read able” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "67f57250cf2f7cc7fd468004b9df0246adda51f54eaaec91eb24a7ec50101558"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by [read](/details) able” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by read able",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-quote-adjacent-labels",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by read able” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "67f57250cf2f7cc7fd468004b9df0246adda51f54eaaec91eb24a7ec50101558"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by [read](/first)[able](/second)” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by read able",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-quote-multiword-label",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by Read more able” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "abbeb7131af272074d3988626c0af55dda92796446a79c1c7389cb384c1b8e4e"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by [Read more](/details)able” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by Read more able",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-quote-unicode",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by 可读” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "d5746f8ffea6e54efbf3a0a25e55cefb135cf08f1647b3a85d0358836a93e0cc"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by [可](/details)读” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by 可读",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-quote-space-equivalence",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by read able” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "67f57250cf2f7cc7fd468004b9df0246adda51f54eaaec91eb24a7ec50101558"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by [read](/details)able” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "structured-link-earthquake-prefix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nprefix\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "depth",
+              "location",
+              "magnitude",
+              "time"
+            ],
+            "record_hashes": [
+              "f673389f75155f37f8d992494c2691eb8b43dad2332ef8a7a69cfb2017a5b359"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\npre[fix](/details)\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "prefix",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-earthquake-suffix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nreadable\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "depth",
+              "location",
+              "magnitude",
+              "time"
+            ],
+            "record_hashes": [
+              "c10cc4377cb77bdbd9f97f92146c645b8f7266cb14fee49b618c948334537051"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\n[read](/details)able\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "readable",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-earthquake-both",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nunbreakable\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "depth",
+              "location",
+              "magnitude",
+              "time"
+            ],
+            "record_hashes": [
+              "1fa7555d8cf77f52ff8082b106b44e195cdbca3801ad48d2005467c5f4357b13"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\nun[break](/details)able\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "unbreakable",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-earthquake-whole",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nreadable\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "depth",
+              "location",
+              "magnitude",
+              "time"
+            ],
+            "record_hashes": [
+              "c10cc4377cb77bdbd9f97f92146c645b8f7266cb14fee49b618c948334537051"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\n[readable](/details)\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "readable",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-earthquake-space-before",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nread able\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "depth",
+              "location",
+              "magnitude",
+              "time"
+            ],
+            "record_hashes": [
+              "eec38afa58d9979ffd8c4628e5326ea3780c2d2e754af4bf7b443b8972094479"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\nread [able](/details)\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "read able",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-earthquake-space-after",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nread able\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "depth",
+              "location",
+              "magnitude",
+              "time"
+            ],
+            "record_hashes": [
+              "eec38afa58d9979ffd8c4628e5326ea3780c2d2e754af4bf7b443b8972094479"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\n[read](/details) able\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "read able",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-earthquake-adjacent-labels",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nread able\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "depth",
+              "location",
+              "magnitude",
+              "time"
+            ],
+            "record_hashes": [
+              "eec38afa58d9979ffd8c4628e5326ea3780c2d2e754af4bf7b443b8972094479"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\n[read](/first)[able](/second)\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "read able",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-earthquake-multiword-label",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nRead more able\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "depth",
+              "location",
+              "magnitude",
+              "time"
+            ],
+            "record_hashes": [
+              "cdc04b0d796ccdccf4a4412ffe7c9b0786de695fd3b7739dc077fc72dc2dc404"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\n[Read more](/details)able\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "Read more able",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-earthquake-unicode",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\n可读\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "depth",
+              "location",
+              "magnitude",
+              "time"
+            ],
+            "record_hashes": [
+              "cc491445bcac9c2aec18d68dd9bea6678459931086b75155999544703f8bfbba"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\n[可](/details)读\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "可读",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-earthquake-space-equivalence",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nread able\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "depth",
+              "location",
+              "magnitude",
+              "time"
+            ],
+            "record_hashes": [
+              "eec38afa58d9979ffd8c4628e5326ea3780c2d2e754af4bf7b443b8972094479"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\n[read](/details)able\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "structured-link-api_operation-prefix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nA prefix result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "a7f83d0e9796632fceda34f27e3799bebb7934b5cb35bbc748d7cd7bf20c6432"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nA pre[fix](/details) result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "A prefix result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-api_operation-suffix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nA readable result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "ecc2b58a896f6c1605a42b8b13fba6cf1724bef539b51dbfeba302d3a5d96ea5"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nA [read](/details)able result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "A readable result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-api_operation-both",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nA unbreakable result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "3f2a190543aff36a7ad162cab84f82315c1d2f242d1ce547c7c453827481235b"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nA un[break](/details)able result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "A unbreakable result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-api_operation-whole",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nA readable result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "ecc2b58a896f6c1605a42b8b13fba6cf1724bef539b51dbfeba302d3a5d96ea5"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nA [readable](/details) result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "A readable result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-api_operation-space-before",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nA read able result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "94f999e9b6c5f71c1879a7978054e1e16240fe38c2092abcded428fe77b5780f"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nA read [able](/details) result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "A read able result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-api_operation-space-after",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nA read able result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "94f999e9b6c5f71c1879a7978054e1e16240fe38c2092abcded428fe77b5780f"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nA [read](/details) able result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "A read able result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-api_operation-adjacent-labels",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nA read able result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "94f999e9b6c5f71c1879a7978054e1e16240fe38c2092abcded428fe77b5780f"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nA [read](/first)[able](/second) result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "A read able result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-api_operation-multiword-label",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nA Read more able result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "5c538582ee0767e69d1bb5ed0a637ce18215a3b850daa031d53cd18ae7b8282a"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nA [Read more](/details)able result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "A Read more able result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-api_operation-unicode",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nA 可读 result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "d65031ae22d3077a418c6f53cd13a5b09ddfcc72bcdb40f97cd604d8ec1e837f"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nA [可](/details)读 result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "A 可读 result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-api_operation-space-equivalence",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nA read able result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "94f999e9b6c5f71c1879a7978054e1e16240fe38c2092abcded428fe77b5780f"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nA [read](/details)able result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "structured-link-review-prefix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nA prefix result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "date",
+              "text"
+            ],
+            "record_hashes": [
+              "ee7d1e664e3f1b92786864982373046a9f6868be863817f67224988a4b17d594"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nA pre[fix](/details) result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "A prefix result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-review-suffix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nA readable result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "date",
+              "text"
+            ],
+            "record_hashes": [
+              "0c9baf9267e35c0062e02f0b50f6ccc56dc137504c135421d9c9cf8046e5ae4b"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nA [read](/details)able result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "A readable result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-review-both",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nA unbreakable result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "date",
+              "text"
+            ],
+            "record_hashes": [
+              "87ba8b991db0910207f46d0da50bfae66c13b077bd5e66eadc2fc9e1784b59a5"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nA un[break](/details)able result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "A unbreakable result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-review-whole",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nA readable result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "date",
+              "text"
+            ],
+            "record_hashes": [
+              "0c9baf9267e35c0062e02f0b50f6ccc56dc137504c135421d9c9cf8046e5ae4b"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nA [readable](/details) result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "A readable result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-review-space-before",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nA read able result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "date",
+              "text"
+            ],
+            "record_hashes": [
+              "889392b7f4cfb75129ece25463f551bcdb6268c43eab4db878526102077e7226"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nA read [able](/details) result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "A read able result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-review-space-after",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nA read able result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "date",
+              "text"
+            ],
+            "record_hashes": [
+              "889392b7f4cfb75129ece25463f551bcdb6268c43eab4db878526102077e7226"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nA [read](/details) able result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "A read able result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-review-adjacent-labels",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nA read able result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "date",
+              "text"
+            ],
+            "record_hashes": [
+              "889392b7f4cfb75129ece25463f551bcdb6268c43eab4db878526102077e7226"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nA [read](/first)[able](/second) result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "A read able result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-review-multiword-label",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nA Read more able result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "date",
+              "text"
+            ],
+            "record_hashes": [
+              "800e13b072e40eebbe4ab28dd78e2c2f4fd8ee57764959ec639c514e5eea5e5b"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nA [Read more](/details)able result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "A Read more able result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-review-unicode",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nA 可读 result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "date",
+              "text"
+            ],
+            "record_hashes": [
+              "7a0a3ebef6245f70c7649e943822c0167ca70bd31608639481834a0660cd2b65"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nA [可](/details)读 result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "A 可读 result"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-review-space-equivalence",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nA read able result"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "date",
+              "text"
+            ],
+            "record_hashes": [
+              "889392b7f4cfb75129ece25463f551bcdb6268c43eab4db878526102077e7226"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nA [read](/details)able result",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "structured-link-name_description-prefix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "prefix\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "ab3fec66d48753b3ec67d557c00181a66569cd7e94a4e69236393beb69b3687a"
+            ]
+          }
+        }
+      },
+      "artifact": "pre[fix](/details)\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "prefix",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-name_description-suffix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "readable\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "260f57b63dd60317ad74dee57837709487afb931c7e243a95a3c21d967600899"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/details)able\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "readable",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-name_description-both",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "unbreakable\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "f346c0cff43598cb5ab3507bc000e6e970199beb603c569fe5b264f00df929f3"
+            ]
+          }
+        }
+      },
+      "artifact": "un[break](/details)able\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "unbreakable",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-name_description-whole",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "readable\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "260f57b63dd60317ad74dee57837709487afb931c7e243a95a3c21d967600899"
+            ]
+          }
+        }
+      },
+      "artifact": "[readable](/details)\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "readable",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-name_description-space-before",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "260f57b63dd60317ad74dee57837709487afb931c7e243a95a3c21d967600899"
+            ]
+          }
+        }
+      },
+      "artifact": "read [able](/details)\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "read able",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-name_description-space-after",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "260f57b63dd60317ad74dee57837709487afb931c7e243a95a3c21d967600899"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/details) able\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "read able",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-name_description-adjacent-labels",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "260f57b63dd60317ad74dee57837709487afb931c7e243a95a3c21d967600899"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/first)[able](/second)\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "read able",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-name_description-multiword-label",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Read more able\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "c6c93cf1a89830bb949e5f672f028a7839d51d1f07914459cd5da63f0b3c5075"
+            ]
+          }
+        }
+      },
+      "artifact": "[Read more](/details)able\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Read more able",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-name_description-unicode",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "可读\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "e396f795fdc000492c256ed529aadd7a9752f911891e62648da68ef480812f6a"
+            ]
+          }
+        }
+      },
+      "artifact": "[可](/details)读\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "可读",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-name_description-space-equivalence",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "read able\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "260f57b63dd60317ad74dee57837709487afb931c7e243a95a3c21d967600899"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/details)able\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "structured-link-taxonomy-suffix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Newidae"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "family"
+            ],
+            "record_hashes": [
+              "c8642a5d9ce4f84c2127548d5a28e9fc7562a94f92d23899266a49d651d53b8b"
+            ]
+          }
+        }
+      },
+      "artifact": "[New](/family)idae",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "family": "Newidae"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-taxonomy-prefix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Newidae"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "family"
+            ],
+            "record_hashes": [
+              "c8642a5d9ce4f84c2127548d5a28e9fc7562a94f92d23899266a49d651d53b8b"
+            ]
+          }
+        }
+      },
+      "artifact": "New[idae](/family)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "family": "Newidae"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-taxonomy-whole",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Newidae"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "family"
+            ],
+            "record_hashes": [
+              "c8642a5d9ce4f84c2127548d5a28e9fc7562a94f92d23899266a49d651d53b8b"
+            ]
+          }
+        }
+      },
+      "artifact": "[Newidae](/family)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "family": "Newidae"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-html",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "readable\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "ceccf8756f63dc3bacdf43eacf4fbd2cdb473654cac35d778286a1e478d8d95f"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><p><a href=\"/details\">read</a>able</p><p>$10.00</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "readable",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-plain_text",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "readable\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "ceccf8756f63dc3bacdf43eacf4fbd2cdb473654cac35d778286a1e478d8d95f"
+            ]
+          }
+        }
+      },
+      "artifact": "[read](/details)able\n$10.00",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "structured-link-bullet-suffix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "readable\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "260f57b63dd60317ad74dee57837709487afb931c7e243a95a3c21d967600899"
+            ]
+          }
+        }
+      },
+      "artifact": "- [read](/details)able\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "readable",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-bullet-inline-suffix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "readable\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "260f57b63dd60317ad74dee57837709487afb931c7e243a95a3c21d967600899"
+            ]
+          }
+        }
+      },
+      "artifact": "- [read](/details)able Useful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "readable",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-bullet-hyphen",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "reader-friendly\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "9feffe8c64621302d365d025e2efe128ab6f5a8db9a2ef4a4cd5decd62813dd7"
+            ]
+          }
+        }
+      },
+      "artifact": "- [reader](/details)-friendly\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "reader-friendly",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-bullet-prefix",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "prefix\nUseful device"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "description",
+              "name"
+            ],
+            "record_hashes": [
+              "ab3fec66d48753b3ec67d557c00181a66569cd7e94a4e69236393beb69b3687a"
+            ]
+          }
+        }
+      },
+      "artifact": "- pre[fix](/details)\nUseful device",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "prefix",
+              "description": "Useful device"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-compact-path-summary",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nList current items"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "method",
+              "path",
+              "summary"
+            ],
+            "record_hashes": [
+              "0c25a90865398188228ba26f60ab985d87664fbaf81ebcc23bdb99f0bc4cab78"
+            ]
+          }
+        }
+      },
+      "artifact": "GET[/items](/docs)List current items",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "List current items"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-numeric-adjacent-labels",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Coat\n$10.00"
+              ]
+            }
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "e388b4b982d56429165fe536659d7035ccada73b3f69e4a1c0940a79154ad48c"
+            ]
+          }
+        }
+      },
+      "artifact": "Coat\n$[1](/first)[0](/second).00",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Coat",
+              "price": "$10.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "structured-link-product-card-boundaries",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Alpha\n$10](/a)\n[Beta\n$20](/b)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "structured-link-product-split-card",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[Alpha\nExtra](/a)\n[$10\nExtra](/b)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "structured-link-earthquake-card-boundaries",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[4.1\nPacific coast\n2026-01-01T12:00:00Z\n12 km](/event)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "structured-link-earthquake-split-card",
+      "root_cause": "4409476573",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[4.1\nPacific coast](/a)\n[2026-01-01T12:00:00Z\n12 km](/b)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
     }
   ]
 }

@@ -68,6 +68,25 @@ def quote_controls():
     yield control('quote-owner-distinct', '4409310330', 'quote',
                   '“Stand by me” by Alice Tags: friendship\n“Stand by you” by Alice Tags: friendship', True,
                   minimum=2, count=2)
+    yield from whitespace_controls()
+
+
+def whitespace_controls():
+    reference = {'quote': 'An independent thought.', 'author': 'Some Author', 'tags': 'first second'}
+    for representation in ['markdown', 'html', 'plain_text', None]:
+        for compact in [False, True]:
+            fields = {**reference, 'tags': 'firstsecond' if compact else 'first second'}
+            source = ('“An independent thought.”bySome AuthorTags:firstsecond' if compact else
+                      '“An independent thought.” by Some Author Tags: first second')
+            if representation == 'html':
+                source = '<article><p>' + source + '</p></article>'
+            row = control('quote-owner-whitespace-' + (representation or 'inferred') + '-' + str(compact),
+                          '4409310330', 'quote', source, not compact, representation=representation,
+                          fields=fields, anchor=table(reference), count=1)
+            if representation is None:
+                row['metadata'] = {}
+            row['expected_metrics'].update(stable_structure_pass=True, stable_content_pass=not compact)
+            yield row
 
 
 FAMILIES = {

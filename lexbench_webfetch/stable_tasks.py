@@ -125,15 +125,9 @@ def _unwrap_links(text, schema):
         if label:
             rendered = "".join(output)
             prefix = rendered.rsplit("\n", 1)[-1]
-            separated = label.startswith(("/", "#")) or any(char.isspace() for char in label)
-            if prefix and not prefix[-1].isspace() and separated:
-                # Native Markdown can omit the DOM whitespace immediately
-                # before a path or multi-word inline link. The markup itself
-                # preserves that element boundary; do not apply this to links
-                # embedded in a single word such as ``pre[fix]``.
-                output.append(" ")
             if schema in {"product", "catalog_product", "earthquake"} and "\n" in text[start + 1:end]:
                 label = f"\n{_CARD_BOUNDARY}\n{label}\n{_CARD_BOUNDARY}\n"
+                output.append(label)
             elif schema == "name_description" and (re.fullmatch(r"\s*(?:[-*+]|\d+[.)])\s*", prefix)
                     or re.fullmatch(rf"\s*(?:[-*+]|\d+[.)])\s*{_CARD_BOUNDARY}\s*", prefix)
                     or re.search(rf"(?m)^\s*(?:[-*+]|\d+[.)])\s*(?:{_CARD_BOUNDARY})?\s*\n\s*$", rendered)):
@@ -141,10 +135,19 @@ def _unwrap_links(text, schema):
                 # both share one physical line. Some converters put an
                 # image-only bullet on the previous line; that orphan bullet
                 # still marks the following visible title as the card owner.
-                label += "\n"
-            output.append(label + " ")
+                suffix = re.match(r'[\w-]+', text[close + 1:])
+                if suffix:
+                    joined = visible_markdown_links(text[i:close + 1] + suffix[0])
+                    if joined == label + suffix[0]:
+                        label = joined
+                        close += len(suffix[0])
+                output.append(label + "\n")
+            else:
+                # The shared visible-link owner preserves word fragments,
+                # adjacent labels and native path/multi-word boundaries.
+                output.append(text[i:close + 1])
         i = close + 1
-    return "".join(output)
+    return visible_markdown_links("".join(output))
 
 
 def _html_record_owners(soup):
@@ -631,7 +634,7 @@ def _quotes(lines):
         text = " ".join(parts)
         quote_text = re.sub(r'^quote\s*:\s*', '', text, flags=re.I)
         closing = {'“': '”', '"': '"', '‘': '’'}.get(quote_text[:1])
-        suffix = r'\s*(?:[-–—]\s*)?(?:by\s+|author\s*:\s*)(.+?)\s+tags\s*:\s*(.+)'
+        suffix = r'\s*(?:[-–—]\s*)?(?:by\s*|author\s*:\s*)(.+?)\s*tags\s*:\s*(.+)'
         match = (re.fullmatch(re.escape(quote_text[0]) + r'(.*)' + re.escape(closing) + suffix, quote_text, re.I)
                  if closing else re.fullmatch(r'quote\s*:\s*(.+)\s+' + suffix, text, re.I))
         fields = {"quote": match[1].strip(), "author": match[2], "tags": match[3]} if match else {}
@@ -1358,6 +1361,20 @@ def _ordinary_control_text(soup, control):
     return "\n".join(parts)
 
 
+def _compile_stable_regex(pattern, flags=0):
+    try:
+        return re.compile(pattern, flags)
+    except re.error as error:
+        raise ValueError("Invalid stable acceptance regex") from error
+
+
+def _compile_stable_selector(selector):
+    try:
+        return soupsieve.compile(selector)
+    except (soupsieve.SelectorSyntaxError, NotImplementedError) as error:
+        raise ValueError("Invalid stable acceptance selector") from error
+
+
 def validate_acceptance_contract(contract: dict) -> None:
     """Fail closed before a caller chooses stable scoring instead of snapshots."""
     if (not isinstance(contract, dict) or type(contract.get("version")) is not int
@@ -1382,9 +1399,9 @@ def validate_acceptance_contract(contract: dict) -> None:
             raise ValueError('Invalid stable text exclusions')
         for value in values:
             if key == 'text_patterns':
-                re.compile(value)
+                _compile_stable_regex(value)
             else:
-                soupsieve.compile(value)
+                _compile_stable_selector(value)
     if contract['schema'] == 'table_row':
         from .structured_tables import validate_table
         validate_table(contract)
@@ -1395,10 +1412,12 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError('Invalid required field counts')
     minimum, maximum = contract.get("minimum_records"), contract.get("maximum_records")
     if contract["schema"] == "body_text":
-        if minimum != 0 or maximum not in {None, 0} or field_counts:
+        if (type(minimum) is not int or minimum != 0
+                or maximum is not None and (type(maximum) is not int or maximum != 0) or field_counts):
             raise ValueError("Stable body-text contracts do not declare records")
     elif contract["schema"] == "page_identity":
-        if minimum != 0 or maximum not in {None, 0} or field_counts:
+        if (type(minimum) is not int or minimum != 0
+                or maximum is not None and (type(maximum) is not int or maximum != 0) or field_counts):
             raise ValueError("Page identity contracts do not declare records")
     elif type(minimum) is not int or minimum < 1 or maximum is not None and (type(maximum) is not int or maximum < minimum):
         raise ValueError("Stable contract requires positive bounded record counts")
@@ -1416,6 +1435,7 @@ def validate_acceptance_contract(contract: dict) -> None:
         if (contract["schema"] in {"body_text", "page_identity"}
                 or not isinstance(count_policy, dict)
                 or not required_policy_fields <= set(count_policy) <= allowed_policy_fields
+                or not isinstance(count_policy.get("list_type"), str)
                 or count_policy.get("list_type") not in {"fixed", "variable"}
                 or type(count_policy.get("source_observed_count")) is not int
                 or count_policy["source_observed_count"] < 1
@@ -1439,7 +1459,8 @@ def validate_acceptance_contract(contract: dict) -> None:
             raise ValueError("Record minimum does not match the frozen source policy")
     membership = contract.get('source_membership')
     if 'source_membership' in contract:
-        if not isinstance(membership, dict) or membership.get('kind') not in {'fixed', 'changing'}:
+        if (not isinstance(membership, dict) or not isinstance(membership.get('kind'), str)
+                or membership.get('kind') not in {'fixed', 'changing'}):
             raise ValueError('Invalid source membership policy')
         if membership['kind'] == 'changing':
             if set(membership) != {'kind'}:
@@ -1498,7 +1519,8 @@ def validate_acceptance_contract(contract: dict) -> None:
                 or any(not isinstance(host, str) or not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)*", host) for host in hosts)
                 or not isinstance(contract.get("entry_path"), str) or not contract["entry_path"]):
             raise ValueError("Linked records require allowed hosts and detail path pattern")
-        if contract.get("name_validation", "descriptive") not in {"descriptive", "nonempty"}:
+        if (not isinstance(contract.get("name_validation", "descriptive"), str)
+                or contract.get("name_validation", "descriptive") not in {"descriptive", "nonempty"}):
             raise ValueError("Invalid record name validation policy")
         scope = contract.get("entry_scope")
         if scope is not None:
@@ -1510,13 +1532,13 @@ def validate_acceptance_contract(contract: dict) -> None:
                     or (scope.get("required_end") and not scope.get("end_pattern"))
                     or (("title_selector" in scope) != ("link_selector" in scope))):
                 raise ValueError("Invalid linked record section scope")
-            soupsieve.compile(scope["html_selector"])
+            _compile_stable_selector(scope["html_selector"])
             for key in ("title_selector", "link_selector", "price_selector"):
                 if key in scope:
-                    soupsieve.compile(scope[key])
+                    _compile_stable_selector(scope[key])
             for key in ("start_pattern", "end_pattern", "auxiliary_links_end_pattern"):
                 if key in scope:
-                    compiled = re.compile(scope[key], re.M)
+                    compiled = _compile_stable_regex(scope[key], re.M)
                     if compiled.search(""):
                         raise ValueError("Record section boundary cannot match empty text")
             column_keys = ("markdown_title_column", "markdown_link_column")
@@ -1527,11 +1549,11 @@ def validate_acceptance_contract(contract: dict) -> None:
                     raise ValueError("Named table records require distinct title and link columns")
             pair_keys = ("markdown_title_identity_pattern", "markdown_detail_identity_pattern")
             if 'markdown_label_pattern' in scope:
-                pattern = re.compile(scope['markdown_label_pattern'])
+                pattern = _compile_stable_regex(scope['markdown_label_pattern'])
                 if 'label' not in pattern.groupindex or pattern.search(''):
                     raise ValueError('Markdown card label requires a nonempty named label capture')
             if 'markdown_card_title_pattern' in scope:
-                pattern = re.compile(scope['markdown_card_title_pattern'])
+                pattern = _compile_stable_regex(scope['markdown_card_title_pattern'])
                 if ('title' not in pattern.groupindex or pattern.search('')
                         or not scope.get('start_pattern') or not scope.get('end_pattern')):
                     raise ValueError(
@@ -1541,17 +1563,17 @@ def validate_acceptance_contract(contract: dict) -> None:
                 if not all(key in scope for key in pair_keys):
                     raise ValueError("Markdown row identity patterns must be paired")
                 for key in pair_keys:
-                    pattern = re.compile(scope[key])
+                    pattern = _compile_stable_regex(scope[key])
                     if pattern.groups != 1 or pattern.search(""):
                         raise ValueError("Markdown row identity requires one nonempty capture")
         pair_hashes = contract.get("source_record_pair_hashes")
         pair_set_sha256 = contract.get("source_record_pairs_sha256")
         if pair_hashes is not None or pair_set_sha256 is not None:
             if (not isinstance(pair_hashes, list) or not pair_hashes
-                    or pair_hashes != sorted(set(pair_hashes))
                     or any(not isinstance(value, str)
                            or not re.fullmatch(r"[0-9a-f]{64}", value)
                            for value in pair_hashes)
+                    or pair_hashes != sorted(set(pair_hashes))
                     or not isinstance(pair_set_sha256, str)
                     or not re.fullmatch(r"[0-9a-f]{64}", pair_set_sha256)
                     or hashlib.sha256("\n".join(pair_hashes).encode()).hexdigest()
@@ -1623,7 +1645,7 @@ def validate_acceptance_contract(contract: dict) -> None:
             raise ValueError("Linked products require explicit price and exclusion patterns")
         unavailable = contract.get("price_unavailable_patterns", [])
         if (not isinstance(unavailable, list)
-                or any(not isinstance(p, str) or not p.strip() or re.compile(p).search("")
+                or any(not isinstance(p, str) or not p.strip() or _compile_stable_regex(p).search("")
                        for p in unavailable)):
             raise ValueError("Invalid explicit price-unavailability patterns")
         patterns = [*patterns, *price_patterns, *price_exclusions, *unavailable]
@@ -1631,13 +1653,10 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Price patterns apply only to linked products")
     if contract["schema"] == "page_identity" and not anchors:
         raise ValueError("Page identity contracts require stable text anchors")
-    try:
-        for pattern in patterns:
-            compiled = re.compile(pattern)
-            if pattern == contract.get('entry_identity_pattern') and compiled.groups != 1:
-                raise ValueError('Named-link identity pattern must have one capture group')
-    except re.error as error:
-        raise ValueError("Invalid stable acceptance regex") from error
+    for pattern in patterns:
+        compiled = _compile_stable_regex(pattern)
+        if pattern == contract.get('entry_identity_pattern') and compiled.groups != 1:
+            raise ValueError('Named-link identity pattern must have one capture group')
 
 
 def _markdown_code_payloads(text, *, preserve_delimiters=False):

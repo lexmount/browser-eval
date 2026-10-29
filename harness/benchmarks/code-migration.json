@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "193b5b495ea53bf44be4c95a3670ac0af79bcbd3a08e557232c5daa49a8d510d"
+          "after_sha256": "fcd65afc089222d0dbcbc6c7646ac61266c8b60dd03835dd4eae3e9da109a6ed"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -3303,6 +3303,127 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_anchor_contract_validation.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "quote-owner-whitespace-markdown-False",
+            "quote-owner-whitespace-markdown-True",
+            "quote-owner-whitespace-html-False",
+            "quote-owner-whitespace-html-True",
+            "quote-owner-whitespace-plain_text-False",
+            "quote-owner-whitespace-plain_text-True",
+            "quote-owner-whitespace-inferred-False",
+            "quote-owner-whitespace-inferred-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_quote_and_anchor_scope.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "structured-link-product-prefix",
+            "structured-link-product-suffix",
+            "structured-link-product-both",
+            "structured-link-product-whole",
+            "structured-link-product-space-before",
+            "structured-link-product-space-after",
+            "structured-link-product-adjacent-labels",
+            "structured-link-product-multiword-label",
+            "structured-link-product-unicode",
+            "structured-link-product-space-equivalence",
+            "structured-link-catalog_product-prefix",
+            "structured-link-catalog_product-suffix",
+            "structured-link-catalog_product-both",
+            "structured-link-catalog_product-whole",
+            "structured-link-catalog_product-space-before",
+            "structured-link-catalog_product-space-after",
+            "structured-link-catalog_product-adjacent-labels",
+            "structured-link-catalog_product-multiword-label",
+            "structured-link-catalog_product-unicode",
+            "structured-link-catalog_product-space-equivalence",
+            "structured-link-quote-prefix",
+            "structured-link-quote-suffix",
+            "structured-link-quote-both",
+            "structured-link-quote-whole",
+            "structured-link-quote-space-before",
+            "structured-link-quote-space-after",
+            "structured-link-quote-adjacent-labels",
+            "structured-link-quote-multiword-label",
+            "structured-link-quote-unicode",
+            "structured-link-quote-space-equivalence",
+            "structured-link-earthquake-prefix",
+            "structured-link-earthquake-suffix",
+            "structured-link-earthquake-both",
+            "structured-link-earthquake-whole",
+            "structured-link-earthquake-space-before",
+            "structured-link-earthquake-space-after",
+            "structured-link-earthquake-adjacent-labels",
+            "structured-link-earthquake-multiword-label",
+            "structured-link-earthquake-unicode",
+            "structured-link-earthquake-space-equivalence",
+            "structured-link-api_operation-prefix",
+            "structured-link-api_operation-suffix",
+            "structured-link-api_operation-both",
+            "structured-link-api_operation-whole",
+            "structured-link-api_operation-space-before",
+            "structured-link-api_operation-space-after",
+            "structured-link-api_operation-adjacent-labels",
+            "structured-link-api_operation-multiword-label",
+            "structured-link-api_operation-unicode",
+            "structured-link-api_operation-space-equivalence",
+            "structured-link-review-prefix",
+            "structured-link-review-suffix",
+            "structured-link-review-both",
+            "structured-link-review-whole",
+            "structured-link-review-space-before",
+            "structured-link-review-space-after",
+            "structured-link-review-adjacent-labels",
+            "structured-link-review-multiword-label",
+            "structured-link-review-unicode",
+            "structured-link-review-space-equivalence",
+            "structured-link-name_description-prefix",
+            "structured-link-name_description-suffix",
+            "structured-link-name_description-both",
+            "structured-link-name_description-whole",
+            "structured-link-name_description-space-before",
+            "structured-link-name_description-space-after",
+            "structured-link-name_description-adjacent-labels",
+            "structured-link-name_description-multiword-label",
+            "structured-link-name_description-unicode",
+            "structured-link-name_description-space-equivalence",
+            "structured-link-taxonomy-suffix",
+            "structured-link-taxonomy-prefix",
+            "structured-link-taxonomy-whole",
+            "structured-link-product-html",
+            "structured-link-product-plain_text",
+            "structured-link-bullet-suffix",
+            "structured-link-bullet-inline-suffix",
+            "structured-link-bullet-hyphen",
+            "structured-link-bullet-prefix",
+            "structured-link-compact-path-summary",
+            "structured-link-numeric-adjacent-labels",
+            "structured-link-product-card-boundaries",
+            "structured-link-product-split-card",
+            "structured-link-earthquake-card-boundaries",
+            "structured-link-earthquake-split-card"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_structured_link_adjacency.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_linked_contract_validation.py"
           ]
         }
       ]
