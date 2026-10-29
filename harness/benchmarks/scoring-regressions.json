@@ -45221,6 +45221,219 @@
       "ok": true,
       "expected_task_pass": false,
       "expected_task_measured": true
+    },
+    {
+      "id": "round25-parenthesized-title-bare-identity",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item"
+        }
+      },
+      "artifact": "[Guide](https://example.test/item (special proof))",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "One shared optional-title suffix matcher must own delimiter indexing and metadata extraction for both bare and angle destinations. Parenthesized titles are metadata only after a separator, with escaped parentheses retained as payload; URL parentheses without that separator remain URL data, and title-only metadata cannot supply an absent visible row name."
+    },
+    {
+      "id": "round25-parenthesized-title-bare-binding-mismatch",
+      "case": {
+        "url": "https://example.com",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.com"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "table",
+            "markdown_title_identity_pattern": "javascript:show\\((\\d+)\\)",
+            "markdown_detail_identity_pattern": "/item/(\\d+)"
+          }
+        }
+      },
+      "artifact": "| Other title | [Details](https://example.com/item/1 (Alpha Details)) |",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "One shared optional-title suffix matcher must own delimiter indexing and metadata extraction for both bare and angle destinations. Parenthesized titles are metadata only after a separator, with escaped parentheses retained as payload; URL parentheses without that separator remain URL data, and title-only metadata cannot supply an absent visible row name."
+    },
+    {
+      "id": "round25-parenthesized-title-bare-binding-matching",
+      "case": {
+        "url": "https://example.com",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.com"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "table",
+            "markdown_title_identity_pattern": "javascript:show\\((\\d+)\\)",
+            "markdown_detail_identity_pattern": "/item/(\\d+)"
+          }
+        }
+      },
+      "artifact": "| Alpha | [Details](https://example.com/item/1 (Alpha Details)) |",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "One shared optional-title suffix matcher must own delimiter indexing and metadata extraction for both bare and angle destinations. Parenthesized titles are metadata only after a separator, with escaped parentheses retained as payload; URL parentheses without that separator remain URL data, and title-only metadata cannot supply an absent visible row name."
+    },
+    {
+      "id": "round25-parenthesized-title-angle-identity",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item"
+        }
+      },
+      "artifact": "[Guide](<https://example.test/item> (special proof))",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "One shared optional-title suffix matcher must own delimiter indexing and metadata extraction for both bare and angle destinations. Parenthesized titles are metadata only after a separator, with escaped parentheses retained as payload; URL parentheses without that separator remain URL data, and title-only metadata cannot supply an absent visible row name."
+    },
+    {
+      "id": "round25-parenthesized-title-angle-binding-mismatch",
+      "case": {
+        "url": "https://example.com",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.com"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "table",
+            "markdown_title_identity_pattern": "javascript:show\\((\\d+)\\)",
+            "markdown_detail_identity_pattern": "/item/(\\d+)"
+          }
+        }
+      },
+      "artifact": "| Other title | [Details](<https://example.com/item/1> (Alpha Details)) |",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "One shared optional-title suffix matcher must own delimiter indexing and metadata extraction for both bare and angle destinations. Parenthesized titles are metadata only after a separator, with escaped parentheses retained as payload; URL parentheses without that separator remain URL data, and title-only metadata cannot supply an absent visible row name."
+    },
+    {
+      "id": "round25-parenthesized-title-angle-binding-matching",
+      "case": {
+        "url": "https://example.com",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.com"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "table",
+            "markdown_title_identity_pattern": "javascript:show\\((\\d+)\\)",
+            "markdown_detail_identity_pattern": "/item/(\\d+)"
+          }
+        }
+      },
+      "artifact": "| Alpha | [Details](<https://example.com/item/1> (Alpha Details)) |",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "One shared optional-title suffix matcher must own delimiter indexing and metadata extraction for both bare and angle destinations. Parenthesized titles are metadata only after a separator, with escaped parentheses retained as payload; URL parentheses without that separator remain URL data, and title-only metadata cannot supply an absent visible row name."
+    },
+    {
+      "id": "round25-parenthesized-title-unseparated-url-parentheses",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item"
+        }
+      },
+      "artifact": "[Guide](https://example.test/item(title))",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "One shared optional-title suffix matcher must own delimiter indexing and metadata extraction for both bare and angle destinations. Parenthesized titles are metadata only after a separator, with escaped parentheses retained as payload; URL parentheses without that separator remain URL data, and title-only metadata cannot supply an absent visible row name."
+    },
+    {
+      "id": "round25-parenthesized-title-actual-url-parentheses",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item\\(title\\)"
+        }
+      },
+      "artifact": "[Guide](https://example.test/item(title))",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "One shared optional-title suffix matcher must own delimiter indexing and metadata extraction for both bare and angle destinations. Parenthesized titles are metadata only after a separator, with escaped parentheses retained as payload; URL parentheses without that separator remain URL data, and title-only metadata cannot supply an absent visible row name."
+    },
+    {
+      "id": "round25-parenthesized-title-nested-title-is-malformed",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item"
+        }
+      },
+      "artifact": "[Guide](https://example.test/item (special (proof)))",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "One shared optional-title suffix matcher must own delimiter indexing and metadata extraction for both bare and angle destinations. Parenthesized titles are metadata only after a separator, with escaped parentheses retained as payload; URL parentheses without that separator remain URL data, and title-only metadata cannot supply an absent visible row name."
     }
   ]
 }

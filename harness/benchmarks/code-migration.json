@@ -80,7 +80,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "29a576627b9df0954daf63ed507539e927d931a432e4e3ded042c83e5fbdeae1"
+          "after_sha256": "fb11bf55da0e0e74a6b76470dd24529b95d7e1a2aba11ac3c49322606923cdb7"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -2438,6 +2438,25 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_code_quote_prefixes.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "round25-parenthesized-title-bare-identity",
+            "round25-parenthesized-title-bare-binding-mismatch",
+            "round25-parenthesized-title-bare-binding-matching",
+            "round25-parenthesized-title-angle-identity",
+            "round25-parenthesized-title-angle-binding-mismatch",
+            "round25-parenthesized-title-angle-binding-matching",
+            "round25-parenthesized-title-unseparated-url-parentheses",
+            "round25-parenthesized-title-actual-url-parentheses",
+            "round25-parenthesized-title-nested-title-is-malformed"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_parenthesized_link_titles.py"
           ]
         }
       ]

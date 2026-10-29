@@ -210,6 +210,21 @@ class MarkdownLink:
 
 _MAX_MARKDOWN_LINK_SPAN = 8192
 _MARKDOWN_ANGLE_DESTINATION = re.compile(r"<(?:\\[^\r\n]|[^\\<>\r\n])*>")
+# Native converters may retain repeated quotes inside quoted metadata.
+_MARKDOWN_LINK_TITLE = re.compile(
+    r"(?:(?P<quote>['\"])(?P<quoted>(?:\\[\s\S]|[^\\])*?)(?P=quote)"
+    r"|\((?P<parenthesized>(?:\\[\s\S]|[^\\()])*)\))\s*\)", re.S,
+)
+
+
+def _markdown_title_match(text, start=0, stop=None, *, complete=False):
+    match = (_MARKDOWN_LINK_TITLE.fullmatch(text, start, len(text) if stop is None else stop)
+             if complete else _MARKDOWN_LINK_TITLE.match(text, start, len(text) if stop is None else stop))
+    if match is not None:
+        payload = match['quoted'] if match['quote'] else match['parenthesized']
+        if not re.search(r'\r?\n[ \t]*\r?\n', payload):
+            return match
+    return None
 
 
 def _markdown_unescape(value):
@@ -247,8 +262,6 @@ def markdown_delimiter_pairs(text, *, maximum_span=None):
     stacks = {'[': [], '(': []}
     openings = {']': '[', ')': '('}
     label_ends, destinations = set(), set()
-    titles = {'"': re.compile(r'"(?:\\.|[^"\\])*"\s*\)'),
-              "'": re.compile(r"'(?:\\.|[^'\\])*'\s*\)")}
     i = 0
     while i < len(text):
         char = text[i]
@@ -266,10 +279,10 @@ def markdown_delimiter_pairs(text, *, maximum_span=None):
                 if angle is not None:
                     i = angle.end()
                     continue
-        if (char in titles and stacks['('] and stacks['('][-1] in destinations
+        if (char in '"\'(' and stacks['('] and stacks['('][-1] in destinations
                 and i > 0 and text[i - 1].isspace()):
             start = stacks['('][-1]
-            title = titles[char].match(text, i, len(text) if maximum_span is None
+            title = _markdown_title_match(text, i, len(text) if maximum_span is None
                                        else min(len(text), start + maximum_span))
             if title is not None:
                 stacks['('].pop()
@@ -338,26 +351,30 @@ def markdown_links(text: str) -> list[MarkdownLink]:
             continue
         raw_label = text[start + 1:label_end]
         raw_destination = text[destination_start + 1:destination_end].strip()
-        native_title = ""
+        titled = None
         if raw_destination.startswith("<") and ">" in raw_destination:
             angle = _MARKDOWN_ANGLE_DESTINATION.match(raw_destination)
             close = angle.end() - 1 if angle is not None else raw_destination.index(">")
             destination = raw_destination[1:close]
             remainder = raw_destination[close + 1:]
-            if remainder and re.fullmatch(r"\s+(?:(['\"])(.*)\1|\(.*\))", remainder, re.S) is None:
-                index += 1
-                continue
-            titled = re.fullmatch(r"\s+(['\"])(.*)\1", remainder, re.S)
-            native_title = titled[2] if titled else ""
+            if remainder:
+                titled = (_markdown_title_match(remainder.lstrip() + ')', complete=True)
+                          if remainder[0].isspace() else None)
+                if titled is None:
+                    index += 1
+                    continue
         else:
-            # A quoted Markdown title is metadata, not part of the URL. Layout
-            # whitespace inside a destination is otherwise serialization noise.
-            # The opening and closing title delimiters must agree. Quotes
-            # inside metadata do not change the explicit link destination;
-            # serializers may also fail to escape a repeated delimiter.
-            titled = re.match(r"(?s)^(.*?)\s+(['\"])(.*)\2$", raw_destination)
-            destination = re.sub(r"\s+", "", titled[1] if titled else raw_destination)
-            native_title = titled[3] if titled else ""
+            # Supported title delimiters own metadata after a separator.
+            # Otherwise preserve the native wrapped-URL whitespace extension.
+            suffix = re.match(r"(?s)^(.*?)\s+([\"'(].*)$", raw_destination)
+            if suffix:
+                titled = _markdown_title_match(suffix[2] + ')', complete=True)
+                if titled is None:
+                    index += 1
+                    continue
+            destination = re.sub(r"\s+", "", suffix[1] if suffix else raw_destination)
+        native_title = ((titled['quoted'] if titled['quote'] else titled['parenthesized'])
+                        if titled is not None else '')
         # Character references in a Markdown destination are rendered URL
         # syntax. Decode once here; bare URL answers retain their literal bytes.
         links.append(MarkdownLink(raw_label, _markdown_unescape(destination), image, index,
