@@ -72002,6 +72002,174 @@
       "artifact": "<table><tr class=\"data\"><td>Alpha</td><td></td></tr></table>",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "api38-path-case-plain_text-repeated",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "API operation identity must preserve case-sensitive request paths.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "GET /users\nRead account records\nGET /users\nRead account records",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "api38-path-case-plain_text-distinct",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "API operation identity must preserve case-sensitive request paths.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "GET /users\nRead account records\nGET /Users\nRead account records",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "api38-path-case-markdown-repeated",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "API operation identity must preserve case-sensitive request paths.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "| Method | Path | Summary |\n|---|---|---|\n| GET | /users | Read account records |\n| GET | /users | Read account records |",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "api38-path-case-markdown-distinct",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "API operation identity must preserve case-sensitive request paths.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "| Method | Path | Summary |\n|---|---|---|\n| GET | /users | Read account records |\n| GET | /Users | Read account records |",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "api38-path-case-html-repeated",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "API operation identity must preserve case-sensitive request paths.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<main><section><h2>GET /users</h2><p>Read account records</p></section><section><h2>GET /users</h2><p>Read account records</p></section></main>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "api38-path-case-html-distinct",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "API operation identity must preserve case-sensitive request paths.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<main><section><h2>GET /users</h2><p>Read account records</p></section><section><h2>GET /Users</h2><p>Read account records</p></section></main>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "api38-path-case-html-table-repeated",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "API operation identity must preserve case-sensitive request paths.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<table><tr><th>Method</th><th>Path</th><th>Summary</th></tr><tr><td>GET</td><td>/users</td><td>Read account records</td></tr><tr><td>GET</td><td>/users</td><td>Read account records</td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "api38-path-case-html-table-distinct",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "API operation identity must preserve case-sensitive request paths.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<table><tr><th>Method</th><th>Path</th><th>Summary</th></tr><tr><td>GET</td><td>/users</td><td>Read account records</td></tr><tr><td>GET</td><td>/Users</td><td>Read account records</td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
     }
   ]
 }

@@ -1624,11 +1624,11 @@ def validate_acceptance_contract(contract: dict) -> None:
                 valid = False
             if not valid:
                 raise ValueError("Link base must be an observed HTTP(S) URL on an allowed host")
-    elif contract["schema"] not in {"linked_product"} and (
-            "hosts" in contract or "entry_path" in contract
-            or "record_name_exclusions" in contract
-            or "title_exclusion_patterns" in contract
-            or "identity_query_keys" in contract or "link_base_url" in contract):
+    elif contract["schema"] != "linked_product" and any(key in contract for key in (
+            'hosts', 'entry_path', 'entry_scope', 'entry_identity_pattern', 'entry_context',
+            'name_validation', 'identity_query_keys', 'identity_query_paths',
+            'record_name_exclusions', 'title_exclusion_patterns', 'link_base_url',
+            'source_record_pair_hashes', 'source_record_pairs_sha256')):
         raise ValueError("Host/path contracts apply only to linked records")
     query_keys = contract.get("identity_query_keys", [])
     if (not isinstance(query_keys, list)
@@ -1932,6 +1932,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     def identity_key(record, field):
         if field == 'url' and schema in {'named_link', 'linked_product'}:
             return named_entry_identity(record['fields'][field], contract)
+        if schema == 'api_operation' and field == 'path':
+            return record['fields'][field]
         value = _key(record['fields'][field])
         return re.sub(r'\s+', '', value) if field in compact_fields else value
     unique = {tuple(identity_key(r, field) for field in identity_fields) for r in complete}

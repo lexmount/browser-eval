@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "c91952c0a9a1614734402e7b143ca4ed86be2fc017c463677659d531ef085fd7"
+          "after_sha256": "1321c0b25d11cd0c4546a61506fd5fcd825588c3c3d01557e6b42220b879d7c9"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -3508,6 +3508,32 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_schema_field_counts.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "api38-path-case-plain_text-repeated",
+            "api38-path-case-plain_text-distinct",
+            "api38-path-case-markdown-repeated",
+            "api38-path-case-markdown-distinct",
+            "api38-path-case-html-repeated",
+            "api38-path-case-html-distinct",
+            "api38-path-case-html-table-repeated",
+            "api38-path-case-html-table-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_api_path_identity.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_linked_declaration_scope.py"
           ]
         }
       ]
