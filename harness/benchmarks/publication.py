@@ -48,6 +48,17 @@ class DatasetRelease:
         hub = subprocess.run(["git", "cat-file", "-e", revision + ":definitions"],
                              cwd=checkout, capture_output=True).returncode == 0
         if hub:
+            committed = subprocess.run(
+                ["git", "show", revision + ":manifest.json"],
+                cwd=checkout, capture_output=True,
+            )
+            if committed.returncode:
+                raise ValueError("Hub source requires a committed dataset release manifest")
+            identity = json.loads(committed.stdout)
+            if (not isinstance(identity, dict)
+                    or identity.get("schema") != "browser-eval-dataset-release/1"
+                    or identity.get("track") != track):
+                raise ValueError("Hub source manifest does not match the requested benchmark track")
             prefix = "definitions/"
         raw = subprocess.run(
             ["git", "archive", "--format=tar", revision, prefix, "LICENSE", "NOTICE", "THIRD_PARTY.md"],

@@ -121,7 +121,7 @@ def matching_entry_facts(folded: str, facts: list, normalize, fact_match) -> dic
                         left_label_boundary = right_label_boundary = False
                         if left_joined:
                             own_label = _LABELS[field]
-                            if re.search(rf'(?:{own_label})\s*:?\s*$', folded[max(0, start - 16):start]):
+                            if re.search(rf'(?<!\w)(?:{own_label})\s*:?\s*$', folded[:start]):
                                 left_joined = False
                                 left_label_boundary = True
                         if right_joined and index + 1 < len(order):

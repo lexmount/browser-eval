@@ -188,3 +188,39 @@ assert json.loads(viewer['task'])['query'] == '\u68c0\u7d22 caf\u00e9'
         capture_output=True, text=True, encoding="utf-8",
     )
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("claimed", ["websearch", "trajectory-replay"])
+def test_hub_track_identity_comes_from_committed_manifest(tmp_path, claimed):
+    root, _, _ = checkout(tmp_path, "websearch")
+    (root / "src/lexbench_websearch/definitions").rename(root / "definitions")
+    manifest = root / "manifest.json"
+    manifest.write_text(json.dumps({
+        "schema": "browser-eval-dataset-release/1", "track": "websearch",
+    }), encoding="utf-8")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "Hub layout")
+    revision = git(root, "rev-parse", "HEAD")
+    # A dirty working-tree claim must neither repair nor break the committed identity.
+    manifest.write_text(json.dumps({"track": "trajectory-replay"}), encoding="utf-8")
+    output = tmp_path / "release"
+    if claimed == "websearch":
+        release = DatasetRelease.from_git(root, claimed, revision)
+        assert release.build(output)["track"] == "websearch"
+    else:
+        with pytest.raises(ValueError, match="track"):
+            DatasetRelease.from_git(root, claimed, revision).build(output)
+        assert not output.exists()
+
+
+def test_hub_track_cannot_be_supplied_by_uncommitted_manifest(tmp_path):
+    root, _, _ = checkout(tmp_path, "websearch")
+    (root / "src/lexbench_websearch/definitions").rename(root / "definitions")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "Hub without identity")
+    revision = git(root, "rev-parse", "HEAD")
+    (root / "manifest.json").write_text(json.dumps({
+        "schema": "browser-eval-dataset-release/1", "track": "websearch",
+    }), encoding="utf-8")
+    with pytest.raises(ValueError, match="manifest"):
+        DatasetRelease.from_git(root, "websearch", revision)

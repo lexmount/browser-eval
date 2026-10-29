@@ -434,7 +434,7 @@ def run_wcxb(argv: list[str]) -> None:
 
     if args.output_root.exists():
         parser.error("WCXB output root must be new and immutable")
-    source_records, before = load_wcxb_source(args.dataset)
+    source_records, before = load_wcxb_source(args.dataset, manifest=args.sample_manifest)
 
     manifest = json.loads(args.sample_manifest.read_text())
     profile = json.loads(args.profile.read_text())
@@ -567,7 +567,7 @@ def run_wcxb(argv: list[str]) -> None:
                 ).hexdigest(),
             }
         )
-    _, after = load_wcxb_source(args.dataset)
+    _, after = load_wcxb_source(args.dataset, manifest=args.sample_manifest)
     sample_after = hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest()
     if after != before or sample_after != sample_before:
         raise ValueError("WCXB references changed during provider calls")

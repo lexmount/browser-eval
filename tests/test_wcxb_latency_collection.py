@@ -195,8 +195,8 @@ def test_certification_rejects_calls_changed_during_source_recheck(experiment, m
     original = runner.load_wcxb_source
     seen = []
 
-    def mutate(*args):
-        result = original(*args)
+    def mutate(*args, **options):
+        result = original(*args, **options)
         seen.append(1)
         if len(seen) == 2:
             path = kwargs['output'] / 'calls.jsonl'

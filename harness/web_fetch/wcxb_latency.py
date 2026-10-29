@@ -165,7 +165,7 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
     participant_names(authority)
     if type(authority.get('concurrency', 1)) is not int or authority.get('concurrency', 1) != 1:
         raise ValueError('Paired timing requires serial execution')
-    records, source_hash = webmainbench_runner.load_wcxb_source(dataset)
+    records, source_hash = webmainbench_runner.load_wcxb_source(dataset, manifest=manifest)
     manifest_bytes = manifest.read_bytes()
     selected, _ = validate_manifest(records, source_hash, json.loads(manifest_bytes))
     hashes = {method: before[path] for method, path in binaries.items()}
@@ -270,14 +270,14 @@ def certify(argv=None) -> dict:
         raw[path] = path.read_bytes()
     authority = json.loads(raw[args.profile])
     participant_names(authority)
-    records, before = webmainbench_runner.load_wcxb_source(args.dataset)
+    records, before = webmainbench_runner.load_wcxb_source(args.dataset, manifest=args.sample_manifest)
     selected, _ = validate_manifest(records, before, json.loads(raw[args.sample_manifest]))
     if (type(authority.get('case_count')) is not int or len(selected) != authority.get('case_count')
             or UPSTREAM_EVALUATOR_SHA256 != authority.get('official_evaluator_sha256')):
         raise ValueError('Paired timing scope or evaluator differs from profile')
     receipt, rows = load_full_paired_latency(args.evidence_root, authority,
                                             {row['track_id'] for row in selected})
-    _, after = webmainbench_runner.load_wcxb_source(args.dataset)
+    _, after = webmainbench_runner.load_wcxb_source(args.dataset, manifest=args.sample_manifest)
     reject_evidence_symlinks(contained_path(args.dataset, 'test', reject_symlinks=True))
     if (before != after or before != receipt['source_sha256']
             or hashlib.sha256(raw[args.sample_manifest]).hexdigest() != receipt['manifest_sha256']

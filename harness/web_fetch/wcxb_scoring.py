@@ -285,7 +285,7 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
         raise ValueError("Refusing to overwrite WCXB scores")
     retained = {}
     certificate = json.loads(inputs.read(evidence_root / "certification.json"))
-    records, source_hash = load_wcxb_source(source)
+    records, source_hash = load_wcxb_source(source, manifest=sample_manifest)
     sample_bytes = inputs.read(sample_manifest)
     sample = json.loads(sample_bytes)
     selected, distribution = validate_manifest(records, source_hash, sample)
@@ -596,7 +596,7 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
     def unchanged():
         inputs.check()
         reject_evidence_symlinks(source / "test")
-        if load_wcxb_source(source)[1] != source_hash:
+        if load_wcxb_source(source, manifest=sample_manifest)[1] != source_hash:
             raise ValueError("WCXB source changed during scoring")
 
     unchanged()

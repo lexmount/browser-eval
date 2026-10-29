@@ -121,7 +121,7 @@ def selected_wcxb_input(source: Path | None = None, manifest: Path | None = None
     return source, manifest
 
 
-def load_wcxb_source(root: Path, split: str = "test") -> tuple[list[dict], str]:
+def load_wcxb_source(root: Path, split: str = "test", *, manifest: Path | None = None) -> tuple[list[dict], str]:
     """Bind every frozen input and annotation byte before provider calls."""
     directory = root / split
     html_dir = directory / "html"
@@ -149,8 +149,15 @@ def load_wcxb_source(root: Path, split: str = "test") -> tuple[list[dict], str]:
             "ground_truth": data['ground_truth'],
             "meta": {"page_type": page_type, "split": split},
         })
-    authority_path = root.parent / 'tasks.json'
-    authority = json.loads(authority_path.read_bytes()) if authority_path.is_file() else None
+    authority_path = manifest if manifest is not None else root.parent / 'tasks.json'
+    authority = (json.loads(authority_path.read_bytes())
+                 if manifest is not None or authority_path.is_file() else None)
+    if manifest is not None and not isinstance(authority, dict):
+        raise ValueError('Invalid WCXB source edition')
+    # Historical selections (unversioned or schema 1) use the full corpus.
+    # An explicitly paired selection must not inherit a neighboring edition.
+    if manifest is not None and authority.get('schema_version') in (None, 1):
+        authority = None
     if authority is not None:
         if (authority.get('schema_version') != 2 or authority.get('split') != split
                 or type(authority.get('source_count')) is not int or authority['source_count'] <= 0):
@@ -432,9 +439,9 @@ def run(args: argparse.Namespace) -> None:
     if args.benchmark == "wcxb":
         if args.provider not in WCXB_PROVIDERS:
             raise ValueError("WCXB provider is not in the current method contract: " + args.provider)
-        records, source_digest = load_wcxb_source(args.dataset)
         if not args.case_ids_file:
             raise ValueError("WCXB requires a frozen stratified sample manifest")
+        records, source_digest = load_wcxb_source(args.dataset, manifest=args.case_ids_file)
         sample_bytes = args.case_ids_file.read_bytes()
         sample = json.loads(sample_bytes)
         from harness.web_fetch.wcxb_dataset import validate_manifest

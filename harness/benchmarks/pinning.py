@@ -128,12 +128,16 @@ def publish_bindings(updates: dict[Path, dict]) -> None:
                 os.replace(candidate, path)
             completed = True
         except BaseException:
+            failures = []
             for path, backup in reversed(published):
                 try:
                     os.replace(backup, path)
                     restored.add(path)
                 except OSError as error:
-                    raise OSError(f"Binding rollback failed; original retained at {backup}") from error
+                    failures.append((backup, error))
+            if failures:
+                retained = '; '.join(f'original retained at {backup}' for backup, _ in failures)
+                raise OSError('Binding rollback failed; ' + retained) from failures[0][1]
             raise
     finally:
         for path, _, _, directory in staged:

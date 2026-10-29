@@ -1284,7 +1284,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         evidence_root=source, authority_root=authority_root)
     certificate = json.loads((source / 'certification.json').read_text())
     summary = json.loads((source / 'wcxb-score-summary.json').read_text())
-    records, corpus_hash = load_wcxb_source(corpus)
+    records, corpus_hash = load_wcxb_source(corpus, manifest=sample_path)
     sample_bytes = sample_path.read_bytes()
     sample_hash = hashlib.sha256(sample_bytes).hexdigest()
     sample = json.loads(sample_bytes)

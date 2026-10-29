@@ -269,3 +269,26 @@ def test_failed_rollback_retains_the_original_for_recovery(tmp_path, monkeypatch
     # Every attempted replacement may have taken effect before reporting failure.
     assert len(backups) == len(paths)
     assert {path.read_bytes() for path in backups} == set(before.values())
+
+
+@pytest.mark.parametrize('after_effect', [False, True])
+def test_failed_lock_restore_does_not_skip_recoverable_evaluation_binding(tmp_path, monkeypatch, after_effect):
+    lock, imported = fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in (lock, imported)}
+    replace = pinning.os.replace
+    def lock_failure(source, destination):
+        if destination == lock:
+            if source.name == 'next' and after_effect:
+                replace(source, destination)
+            raise OSError('Lock storage unavailable')
+        return replace(source, destination)
+    monkeypatch.setattr(pinning.os, 'replace', lock_failure)
+    with pytest.raises(OSError, match='original retained at'):
+        pinning.pin(tmp_path, 'websearch', 'a' * 40)
+    assert imported.read_bytes() == before[imported]
+    assert (lock.read_bytes() == before[lock]) is not after_effect
+    backups = list(tmp_path.rglob('.dataset-pin-*/original'))
+    assert len(backups) == 1
+    assert backups[0].parent.parent == lock.parent
+    assert backups[0].read_bytes() == before[lock]
+    assert not list(imported.parent.glob('.dataset-pin-*'))

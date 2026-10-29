@@ -48,7 +48,7 @@
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
-          "after_sha256": "39400b8d9685de09d044761428943b66b79a96ab218dbb1b9ea2e6a11fba3f06"
+          "after_sha256": "f2dfe721af1b69bad9683e90b7ac2c5c9854e6c2a9a3f540857784aa98efcc97"
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
@@ -3561,6 +3561,38 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_linked_price_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_entry_matching.py"
+          ],
+          "regression_ids": [
+            "attached-label-filename-word",
+            "attached-label-other-word",
+            "attached-label-long-word",
+            "attached-label-window-inside-word",
+            "attached-label-unicode-cjk-word",
+            "attached-label-unicode-latin-word",
+            "attached-label-unicode-greek-word",
+            "attached-label-underscore-word",
+            "attached-label-attached-name",
+            "attached-label-attached-both-labels",
+            "attached-label-explicit-labels",
+            "attached-label-compact-colons",
+            "attached-label-heading-before-label",
+            "attached-label-long-separated-label",
+            "attached-label-unicode-separated-label",
+            "attached-label-wrong-price",
+            "attached-label-attached-by",
+            "attached-label-attached-by-and-tags",
+            "attached-label-explicit-by",
+            "attached-label-long-preface-by",
+            "attached-label-wrong-author",
+            "attached-label-other-by-word"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_attached_label_boundaries.py"
           ]
         }
       ]
