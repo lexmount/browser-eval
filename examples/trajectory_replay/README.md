@@ -21,6 +21,10 @@ Run:
 
     ./examples/trajectory_replay/run.sh
 
+The default tasks come from [LexBench Trajectory Replay on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay), at the immutable revision in the code's data lock. The verified local cache works offline after the first download. An explicit `--suite` remains available on the Python CLI for historical inputs.
+
+Use `./examples/trajectory_replay/run.sh --no-report` to save scores and evidence without generating local HTML. Build the report later with `uv run --frozen python examples/trajectory_replay/rebuild_report.py --artifacts <evidence-directory>`; it selects the exact suite bound by the saved manifest. Publishing a report requires a separate explicit request and authorization.
+
 Run the small real-container smoke test before a release (requires the two
 evaluation images, which the command above builds):
 

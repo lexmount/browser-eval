@@ -73,6 +73,27 @@ def test_pin_updates_current_bindings_and_retains_prior_snapshot(tmp_path, monke
     assert json.loads(imported.read_text())['repository'] == 'https://huggingface.co/datasets/Lexmount/lexbench-websearch'
 
 
+def test_first_selection_registers_a_supported_benchmark_without_fake_history(tmp_path, monkeypatch):
+    lock, imported = fixture(tmp_path, monkeypatch)
+    lock.write_text(json.dumps({'datasets': {}}))
+    imported.unlink()
+    pinning.pin(tmp_path, 'websearch', 'a' * 40)
+    selected = json.loads(lock.read_text())['datasets']['websearch']
+    assert selected['repository'] == 'Lexmount/lexbench-websearch'
+    assert selected['revision'] == 'a' * 40
+    assert selected['datasets']['sample']['count'] == 1
+    assert selected['history'] == []
+    assert not imported.exists()
+
+
+def test_unregistered_benchmark_cannot_create_a_selection(tmp_path, monkeypatch):
+    lock, _ = fixture(tmp_path, monkeypatch)
+    original = lock.read_bytes()
+    with pytest.raises(ValueError, match='Unknown benchmark track'):
+        pinning.pin(tmp_path, 'unknown-benchmark', 'a' * 40)
+    assert lock.read_bytes() == original
+
+
 @pytest.mark.parametrize('defect', ['archive', 'file', 'identity', 'legacy-unknown',
                                     'dataset-path', 'dataset-hash', 'dataset-count'])
 def test_rejected_release_leaves_all_files_unchanged(tmp_path, monkeypatch, defect):

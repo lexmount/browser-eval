@@ -141,5 +141,95 @@
     "subsets": {
       "factual-v1": "Unchanged publisher questions of at most 128 Unicode code points, with reference answers and URLs"
     }
+  },
+  "wcxb": {
+    "pretty_name": "LexBench WCXB",
+    "license": "cc-by-4.0",
+    "tags": [
+      "benchmark",
+      "evaluation",
+      "browser-eval",
+      "web-fetch",
+      "web-content-extraction",
+      "main-content-extraction",
+      "html-to-text",
+      "wcxb"
+    ],
+    "task_categories": [
+      "other"
+    ],
+    "source_datasets": [],
+    "language_fields": [
+      "language"
+    ],
+    "family": "main-content-extraction",
+    "category_field": "page_type",
+    "subsets": {
+      "qualified-test": "Source-qualified extraction tasks with unchanged upstream HTML and ground-truth text"
+    }
+  },
+  "trajectory-replay": {
+    "license": "apache-2.0",
+    "task_categories": [
+      "other"
+    ],
+    "source_datasets": [],
+    "language_fields": [
+      "language"
+    ],
+    "family": "fixed-action-replay",
+    "input_fields": [
+      "intent",
+      "title",
+      "name",
+      "url"
+    ],
+    "pretty_name": "LexBench Browser Trajectory Replay",
+    "tags": [
+      "benchmark",
+      "evaluation",
+      "browser-eval",
+      "browser-evaluation",
+      "browser-automation",
+      "trajectory-replay",
+      "playwright"
+    ],
+    "subsets": {
+      "curated-v1": "Repository-curated fixed actions on public sites, with explicit programmatic assertions"
+    }
+  },
+  "webarena-replay": {
+    "license": "apache-2.0",
+    "task_categories": [
+      "other"
+    ],
+    "source_datasets": [],
+    "language_fields": [
+      "language"
+    ],
+    "family": "fixed-action-replay",
+    "input_fields": [
+      "intent",
+      "title",
+      "name",
+      "url"
+    ],
+    "pretty_name": "LexBench WebArena Replay",
+    "tags": [
+      "benchmark",
+      "evaluation",
+      "browser-eval",
+      "browser-evaluation",
+      "browser-automation",
+      "trajectory-replay",
+      "webarena",
+      "webarena-verified",
+      "playwright"
+    ],
+    "subsets": {
+      "human-qualified-v1": "Eligible human-recorded tasks and fixed actions; a separate population from the other editions",
+      "corrected-90-v1": "Historical corrected fixed-action inputs; qualification evidence retains its original external protocol",
+      "full-812-v1": "Full task scope with portable and direct replay modes kept distinct; do not combine denominators across editions"
+    }
   }
 }

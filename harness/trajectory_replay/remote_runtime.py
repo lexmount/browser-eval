@@ -115,12 +115,16 @@ def rebind_remote_calls(
     sites: dict[WebArenaSite, str],
     trusted_source_hosts: set[str],
     source_sites: dict[WebArenaSite, str] | None = None,
+    *,
+    origins_only: bool = False,
 ) -> list[dict[str, Any]]:
     """Bind frozen WebArena URLs while tolerating HTTP-to-HTTPS proxy upgrades.
 
     An exact same-site href selector may point at either scheme after a reverse
     proxy redirects the document. Preserve its host, path, query and action
     semantics; only the transport scheme becomes an explicit alternative.
+    Public input projections select origins_only to retain the source selector
+    shape and defer those transport alternatives to deployment binding.
     """
     by_port = {port: site for site, ports in SITE_PORTS.items() for port in ports}
     by_port.update(READ_ONLY_PORTS)
@@ -152,6 +156,13 @@ def rebind_remote_calls(
     def rebind_href(match: re.Match[str]) -> str:
         url = match.group("url")
         rebound = rebind_url(url)
+        if origins_only:
+            # A public input retains the original selector and scheme shape.
+            # Deployment binding alone adds the existing proxy alternatives.
+            parsed = urlsplit(rebound)
+            rebound = urlunsplit((urlsplit(url).scheme, parsed.netloc, parsed.path,
+                                  parsed.query, parsed.fragment))
+            return match['before'] + match['quote'] + rebound + match['quote'] + match['after']
         if rebound == url:
             return match.group(0)
         parsed = urlsplit(rebound)

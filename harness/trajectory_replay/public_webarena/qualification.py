@@ -2597,21 +2597,22 @@ def main_repair_proposal(argv=None, *, kind: str) -> None:
 
 
 MAX_TASKS_PER_QUALIFICATION_SHARD = 12
-DEFAULT_EVALUATOR_EXCLUSIONS = Path(
-    "evaluation/browser-use-public/webarena-evaluator-exclusions.json"
-)
+_CURRENT_EVALUATOR_EXCLUSIONS = object()
 
 
 def build_native_scope(
     suite_path: Path,
     image_lock_path: Path,
     architecture: str,
-    evaluator_exclusions_path: Path | None = DEFAULT_EVALUATOR_EXCLUSIONS,
+    evaluator_exclusions_path: Path | None | object = _CURRENT_EVALUATOR_EXCLUSIONS,
     *,
     max_tasks_per_qualification_shard: int = MAX_TASKS_PER_QUALIFICATION_SHARD,
 ) -> dict:
     if type(max_tasks_per_qualification_shard) is not int or max_tasks_per_qualification_shard < 1:
         raise ValueError("qualification shard size must be a positive integer")
+    if evaluator_exclusions_path is _CURRENT_EVALUATOR_EXCLUSIONS:
+        from harness.trajectory_replay.report_inputs import replay_input_path
+        evaluator_exclusions_path = replay_input_path(current='human-exclusions')
     suite_path, image_lock_path = unlinked_path(suite_path), unlinked_path(image_lock_path)
     if evaluator_exclusions_path is not None:
         evaluator_exclusions_path = unlinked_path(evaluator_exclusions_path)
@@ -2733,7 +2734,7 @@ def main_native_scope(argv=None) -> None:
     parser.add_argument(
         "--suite",
         type=Path,
-        default=Path("evaluation/browser-use-public/webarena-human-suite.json"),
+        default=None,
     )
     parser.add_argument(
         "--image-lock",
@@ -2747,13 +2748,18 @@ def main_native_scope(argv=None) -> None:
     parser.add_argument(
         "--evaluator-exclusions",
         type=Path,
-        default=DEFAULT_EVALUATOR_EXCLUSIONS,
+        default=None,
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
+    from harness.trajectory_replay.report_inputs import replay_input_path
     args.output = unlinked_path(args.output)
     if args.output.exists():
         raise ValueError("native scope output already exists")
+    args.suite = replay_input_path(args.suite, current='human-candidates')
+    args.evaluator_exclusions = replay_input_path(
+        args.evaluator_exclusions, current="human-exclusions"
+    )
     payload = build_native_scope(
         args.suite,
         args.image_lock,

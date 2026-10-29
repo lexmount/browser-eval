@@ -1953,7 +1953,6 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
     changes = [[row.get("date"), row.get("type"), row.get("effect")] for row in change_records]
     run_command = (
         "uv run --frozen python -m harness.trajectory_replay.public_webarena.cli "
-        "--suite evaluation/browser-use-public/webarena-human-suite.json "
         "--webarena-config &lt;runtime-config&gt; --env-file .env "
         "--browser-docker-host unix:///var/run/docker.sock "
         "--engines chromium,moli --failure-retries 1 "
@@ -1966,7 +1965,6 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
     )
     rebuild_command = (
         "uv run --frozen python examples/trajectory_replay/public_webarena/rebuild_report.py "
-        "--suite evaluation/browser-use-public/webarena-human-suite.json "
         "--artifacts &lt;evidence&gt;/formal/webarena-public-trajectories/run "
         "--reports &lt;evidence&gt;/formal/webarena-public-trajectories/reports"
     )

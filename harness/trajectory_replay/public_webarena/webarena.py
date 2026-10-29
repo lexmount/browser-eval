@@ -574,7 +574,7 @@ def main_fetch_traces(argv=None) -> None:
     parser.add_argument(
         "--catalog",
         type=Path,
-        default=Path("evaluation/browser-use-public/webarena-human-traces.json"),
+        default=None,
     )
     parser.add_argument("--output", type=Path)
     parser.add_argument("--jobs", type=int, default=2)
@@ -585,6 +585,8 @@ def main_fetch_traces(argv=None) -> None:
     output = args.output or Path(str(configured_home)) / "evidence/current/webarena-human-traces"
     if args.jobs < 1 or args.jobs > 8:
         parser.error("--jobs must be between 1 and 8")
+    from harness.trajectory_replay.report_inputs import replay_input_path
+    args.catalog = replay_input_path(args.catalog, current='human-traces')
     catalog_bytes = args.catalog.read_bytes()
     catalog = json.loads(catalog_bytes)
     rows = validate_trace_catalog(catalog)
@@ -629,7 +631,7 @@ def main_audit_traces(argv=None) -> None:
     parser.add_argument(
         "--catalog",
         type=Path,
-        default=Path("evaluation/browser-use-public/webarena-human-traces.json"),
+        default=None,
     )
     parser.add_argument("--trace-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -638,6 +640,8 @@ def main_audit_traces(argv=None) -> None:
     output = unlinked_path(args.output)
     if output.exists():
         raise ValueError("output already exists")
+    from harness.trajectory_replay.report_inputs import replay_input_path
+    args.catalog = replay_input_path(args.catalog, current='human-traces')
     catalog_path = unlinked_path(args.catalog)
     catalog_bytes = catalog_path.read_bytes()
     catalog = json.loads(catalog_bytes)

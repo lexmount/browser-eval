@@ -10,9 +10,16 @@ from harness.trajectory_replay.runner import run_evaluation
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--suite", required=True)
+    parser.add_argument(
+        "--suite", help="Explicit suite path; defaults to the locked HF curated edition"
+    )
     parser.add_argument("--output", required=True, help="New immutable evidence directory")
     parser.add_argument("--reports", help="Defaults to the selected run's report directory")
+    parser.add_argument(
+        "--no-report",
+        action="store_true",
+        help="Save scores and evidence without building local HTML",
+    )
     parser.add_argument(
         "--ground-truth-evidence",
         required=True,
@@ -30,6 +37,7 @@ def main() -> None:
         suite_path=args.suite,
         output_dir=args.output,
         reports_dir=Path(args.reports) if args.reports else Path(args.output) / "report",
+        generate_report=not args.no_report,
         ground_truth_evidence_path=args.ground_truth_evidence,
         max_retries=args.failure_retries,
         sample_interval_ms=args.sample_interval_ms,

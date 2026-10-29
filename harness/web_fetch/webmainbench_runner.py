@@ -107,6 +107,20 @@ def load_source(
     return records
 
 
+def selected_wcxb_input(source: Path | None = None, manifest: Path | None = None) -> tuple[Path, Path]:
+    """Select the locked data edition; explicit historical pairs stay explicit."""
+    from harness.benchmarks.data import definition_path
+    if source is None:
+        source = definition_path('wcxb', 'source')
+    if manifest is None:
+        local = source.parent / 'tasks.json'
+        if local.is_file():
+            manifest = local
+        else:
+            manifest = definition_path('wcxb', 'tasks.json')
+    return source, manifest
+
+
 def load_wcxb_source(root: Path, split: str = "test") -> tuple[list[dict], str]:
     """Bind every frozen input and annotation byte before provider calls."""
     directory = root / split
@@ -132,12 +146,26 @@ def load_wcxb_source(root: Path, split: str = "test") -> tuple[list[dict], str]:
             "url": data["url"],
             "html": content,
             "groundtruth_content": data["ground_truth"].get("main_content") or "",
+            "ground_truth": data['ground_truth'],
             "meta": {"page_type": page_type, "split": split},
         })
-    expected = 511 if split == "test" else 1497
+    authority_path = root.parent / 'tasks.json'
+    authority = json.loads(authority_path.read_bytes()) if authority_path.is_file() else None
+    if authority is not None:
+        if (authority.get('schema_version') != 2 or authority.get('split') != split
+                or type(authority.get('source_count')) is not int or authority['source_count'] <= 0):
+            raise ValueError('Invalid WCXB source edition')
+        expected = authority['source_count']
+    else:
+        expected = 511 if split == "test" else 1497
     if len(records) != expected or len({r["track_id"] for r in records}) != expected:
         raise ValueError(f"Expected {expected} distinct WCXB {split} inputs, found {len(records)}")
-    return records, inventory.hexdigest()
+    source_hash = inventory.hexdigest()
+    if authority is not None and (
+            source_hash != authority.get('source_sha256')
+            or {r['track_id'] for r in records} != {c['file_id'] for c in authority['cases']}):
+        raise ValueError('WCXB source differs from its qualified edition')
+    return records, source_hash
 
 
 def load_selected_ids(path: Path) -> tuple[set[str], dict]:
@@ -613,8 +641,8 @@ def main() -> None:
     if args.benchmark == "webmainbench":
         args.dataset, args.expected_dataset_sha256, args.official_scorer_commit = selected_input(
             args.dataset, args.expected_dataset_sha256, args.official_scorer_commit)
-    elif args.dataset is None:
-        parser.error("--dataset is required for WCXB")
+    else:
+        args.dataset, args.case_ids_file = selected_wcxb_input(args.dataset, args.case_ids_file)
     if args.benchmark == 'wcxb' and args.provider not in WCXB_PROVIDERS:
         parser.error(f'--provider {args.provider} is not in the WCXB method matrix')
     if args.benchmark == 'webmainbench' and args.provider not in PROVIDERS:

@@ -678,6 +678,7 @@ def run_evaluation(
     trajectory_authoring_run: bool = False,
     task_ids: tuple[str, ...] | None = None,
     task_selection: dict[str, Any] | None = None,
+    generate_report: bool = True,
 ) -> dict[str, Any]:
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
@@ -706,6 +707,9 @@ def run_evaluation(
         raise ValueError(
             "qualification and trajectory authoring require one Chromium attempt and no retries"
         )
+    from harness.trajectory_replay.report_inputs import replay_input_path
+    suite_path = replay_input_path(suite_path, current=(
+        'human-candidates' if qualification_run or trajectory_authoring_run else 'human'))
     suite = load_suite(suite_path)
     declared_ids = {task.task_id for task in suite.tasks}
     selected_ids = set(task_ids or declared_ids)
@@ -1128,7 +1132,7 @@ def run_evaluation(
             reasoning_effort=diagnosis_reasoning_effort,
         )
         _write_run_artifacts(output, rows, summary, manifest)
-        if not qualification_run and not trajectory_authoring_run:
+        if generate_report and not qualification_run and not trajectory_authoring_run:
             write_latest_report(reports_dir, manifest=manifest, summary=summary)
         return summary
     finally:

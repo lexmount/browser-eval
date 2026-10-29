@@ -337,48 +337,63 @@ class _VisibleInlineFrames(_ResourceHTMLParser):
             self.documents.append((source, values.get("data-frame-url") or values.get("data-moli-frame-url")))
 
 
+class _InlineFrameLimitError(ValueError):
+    """A returned document exceeds the supported resource traversal scope."""
+
+
+def _inline_document_base(document: str, inherited_base: str) -> str:
+    # A srcdoc document inherits its parent's base unless its first base href
+    # declares another one. Parse source attributes once, including head data.
+    for tag, attributes in _html_resource_attributes(document):
+        if tag == 'base' and attributes.get('href'):
+            return normalize_resource_url(attributes['href'], inherited_base) or inherited_base
+    return inherited_base
+
+
 def _inline_frame_candidates(
     content: str,
     *,
     base_url: str,
     images_only: bool,
 ) -> list[tuple[str, str]]:
-    """Read resource URLs from visible native ``srcdoc`` serialization.
-
-    Returned inline documents are provider output. Resolve their declared
-    document URLs and ignore hidden synchronization or advertising frames.
-    Historical serialized attributes remain readable without rewriting evidence.
-    """
+    """Traverse visible inline HTML documents with one global frame budget."""
     if not re.search(r'<iframe\b', content, re.I):
         return []
-    parser = _VisibleInlineFrames()
     from .dynamic_lists import scoped_html
-    parser.feed(str(scoped_html(content)))
-    parser.close()
+    pending = [(content, _inline_document_base(content, base_url))]
     candidates: list[tuple[str, str]] = []
-    for document, declared_base in parser.documents[:100]:
-        try:
-            declared_base_is_http = bool(
-                declared_base
-                and urlsplit(declared_base).scheme in {"http", "https"}
-            )
-        except ValueError:
-            declared_base_is_http = False
-        frame_base = (
-            declared_base
-            if declared_base_is_http
-            else base_url
-        )
-        if images_only:
-            raw_candidates = _image_answer_candidates(
-                document, base_url=frame_base, representation='html',
-            )
-        else:
-            raw_candidates = _markup_resource_candidates(document, 'content.frame', representation='html')
-        for raw_url, source in raw_candidates:
-            normalized = normalize_resource_url(raw_url, frame_base)
-            if normalized:
-                candidates.append((normalized, source.replace("content.", "content.frame_", 1)))
+    frame_count = 0
+    while pending:
+        parent_document, parent_base = pending.pop()
+        if not re.search(r'<iframe\b', parent_document, re.I):
+            continue
+        parser = _VisibleInlineFrames()
+        parser.feed(str(scoped_html(parent_document)))
+        parser.close()
+        children = []
+        for document, declared_base in parser.documents:
+            frame_count += 1
+            if frame_count > 100:
+                raise _InlineFrameLimitError(
+                    'Inline frame resource discovery exceeds 100 visible documents')
+            try:
+                declared_base_is_http = bool(
+                    declared_base and urlsplit(declared_base).scheme in {'http', 'https'})
+            except ValueError:
+                declared_base_is_http = False
+            frame_base = declared_base if declared_base_is_http else parent_base
+            document_base = _inline_document_base(document, frame_base)
+            if images_only:
+                raw_candidates = _image_content_candidates(document, representation='html')
+            else:
+                raw_candidates = _markup_resource_candidates(
+                    document, 'content.frame', representation='html')
+            for raw_url, source in raw_candidates:
+                normalized = normalize_resource_url(raw_url, document_base)
+                if normalized:
+                    candidates.append((normalized, source.replace('content.', 'content.frame_', 1)))
+            children.append((document, document_base))
+        pending.extend(reversed(children))
     return candidates
 
 
@@ -546,6 +561,7 @@ def evaluate_resources(
         raise ValueError(f"Unsupported resource unexpected policy: {contract.get('unexpected')!r}")
 
     candidates: list[tuple[str, str]] = []
+    resource_error = None
     projection = metadata.get('native_answer_projection') or {}
     typed_json_answer = (projection.get('content_format') == 'json'
                          and bool(projection.get('answer_fields')))
@@ -559,13 +575,19 @@ def evaluate_resources(
             if key in metadata:
                 candidates.extend(_metadata_image_candidates(metadata[key], path=f"metadata.{key}"))
         if not typed_json_answer:
-            candidates.extend(_image_answer_candidates(content, base_url=base_url, representation=representation))
+            try:
+                candidates.extend(_image_answer_candidates(content, base_url=base_url, representation=representation))
+            except _InlineFrameLimitError as exc:
+                resource_error = str(exc)
     elif eligible:
         answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
         candidates.extend(_metadata_resource_candidates(answer_fields))
         if not typed_json_answer:
-            candidates.extend(_resource_answer_candidates(content, base_url=base_url,
-                                                           representation=representation))
+            try:
+                candidates.extend(_resource_answer_candidates(content, base_url=base_url,
+                                                               representation=representation))
+            except _InlineFrameLimitError as exc:
+                resource_error = str(exc)
     normalized_candidates, candidate_evidence = _normalized_candidates(candidates, base_url=base_url)
     results = []
     allowed_urls: set[str] = set()
@@ -595,7 +617,7 @@ def evaluate_resources(
     unexpected_urls = sorted(set(normalized_candidates) - allowed_urls)
     precision = (round(len(allowed_candidates) / len(normalized_candidates), 4)
                  if normalized_candidates else None)
-    positive_pass = hits == total if total else None
+    positive_pass = False if resource_error else (hits == total if total else None)
     return {
         "resource_results": results,
         "resource_hits": hits,
@@ -607,6 +629,7 @@ def evaluate_resources(
         "resource_candidate_urls": normalized_candidates,
         "resource_candidates": candidate_evidence,
         "unexpected_resource_urls": unexpected_urls,
+        **({"resource_error": resource_error} if resource_error else {}),
     }
 
 
@@ -850,59 +873,30 @@ def code_matching_blocks(content: str, *, representation=None) -> list[str]:
     """Keep literal code and independent block boundaries while ignoring layout."""
     if representation == 'plain_text':
         return [re.sub(r'\s+', '', content)]
-    from .reference_quality import is_html_document_or_fragment, markdown_comment_spans, markdown_literal_spans, visible_mixed_html_text
+    from .reference_quality import is_html_document_or_fragment, markdown_fenced_code_blocks, markdown_literal_spans, visible_mixed_html_text
     literals = {}
     marker = '\ue012code'
     while marker in content:
         marker += '_'
     native_html = representation == 'html' or is_html_document_or_fragment(content)
-    fenced_blocks = []
     markdown_blocks = []
     if not native_html:
         from .stable_tasks import _markdown_code_payloads
         original = content
-        fenced_ranges = []
-        comments = markdown_comment_spans(content)
-        # A fence owns its payload before HTML/prose projection. Only the
-        # opening fence's quote-container depth applies to subsequent lines.
-        prepared, current, fence, quote_depth, offset, fence_start = [], [], None, 0, 0, 0
-        spans = markdown_literal_spans(content)
-        for raw in content.splitlines(keepends=True):
-            line = raw
-            prefix = r'^[ \t]*(?:>[ \t]?){' + str(quote_depth) + '}'
-            if fence is not None and quote_depth and not re.match(prefix, line):
-                fenced_blocks.append(''.join(current))
-                fenced_ranges.append((fence_start, offset))
-                current, fence = [], None
-            if fence is not None:
-                if quote_depth:
-                    line = re.sub(prefix, '', line, count=1)
-                if re.fullmatch(r'[ \t]*' + re.escape(fence[0]) + '{' + str(len(fence)) + r',}[ \t]*', line.rstrip('\r\n')):
-                    fenced_blocks.append(''.join(current))
-                    fenced_ranges.append((fence_start, offset + len(raw)))
-                    current, fence = [], None
-                else:
-                    current.append(line)
-            else:
-                quoted = re.match(r'^[ \t]*((?:>[ \t]?)+)', line)
-                unquoted = line[quoted.end():] if quoted else line
-                opening = re.match(r'^[ \t]*(`{3,}|~{3,})([^\r\n]*)', unquoted)
-                if (opening and not (opening[1][0] == '`' and '`' in opening[2])
-                        and not any(left <= offset < right for left, right in comments)):
-                    fence, quote_depth = opening[1], quoted[1].count('>') if quoted else 0
-                    fence_start = offset
-                    line = unquoted
-                elif not any(start <= offset < end for start, end in spans):
-                    line = unquoted
-            prepared.append(line)
-            offset += len(raw)
-        if fence is not None:
-            fenced_blocks.append(''.join(current))
-            fenced_ranges.append((fence_start, len(original)))
-        owned = [(start, payload) for (start, _), payload in zip(fenced_ranges, fenced_blocks)]
+        fenced_blocks, _ = markdown_fenced_code_blocks(original)
+        fenced_ranges = [(start, end) for start, end, _ in fenced_blocks]
+        owned = [(start, payload) for start, _, payload in fenced_blocks]
         owned.extend((start, payload) for start, end, payload in _markdown_code_payloads(original)
                      if not any(start < right and left < end for left, right in fenced_ranges))
         markdown_blocks = [payload for _, payload in sorted(owned)]
+        prepared, offset = [], 0
+        spans = markdown_literal_spans(original)
+        for raw in original.splitlines(keepends=True):
+            line = raw
+            if not any(start <= offset < end for start, end in spans):
+                line = re.sub(r'^[ \t]*(?:>[ \t]?)+', '', line)
+            prepared.append(line)
+            offset += len(raw)
         content = ''.join(prepared)
     masked = content
     for start, end in reversed([] if native_html else markdown_literal_spans(content)):

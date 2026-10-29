@@ -244,46 +244,40 @@ def test_output_created_during_install_is_preserved(cohort, monkeypatch):
 
 @pytest.mark.parametrize("changed", ["profile", "source", "response"])
 def test_inputs_changed_during_scoring_reject_all_outputs(cohort, monkeypatch, changed):
-    original = scoring.official_evaluator
+    original = scoring.word_f1
+    mutated = False
 
-    def instrumented(*args):
-        evaluator, digest = original(*args)
-        word_f1 = evaluator.word_f1
-        mutated = False
+    def evaluate(*values):
+        nonlocal mutated
+        result = original(*values)
+        if not mutated:
+            target = {
+                "profile": cohort["profile_path"],
+                "source": cohort["source"] / "test/ground-truth/case-000.json",
+                "response": cohort["evidence_root"] / "alpha/artifacts/case-000.md",
+            }[changed]
+            target.write_bytes(target.read_bytes() + b" ")
+            mutated = True
+        return result
 
-        def evaluate(*values):
-            nonlocal mutated
-            result = word_f1(*values)
-            if not mutated:
-                target = {
-                    "profile": cohort["profile_path"],
-                    "source": cohort["source"] / "test/ground-truth/case-000.json",
-                    "response": cohort["evidence_root"] / "alpha/artifacts/case-000.md",
-                }[changed]
-                target.write_bytes(target.read_bytes() + b" ")
-                mutated = True
-            return result
-
-        evaluator.word_f1 = evaluate
-        return evaluator, digest
-
-    monkeypatch.setattr(scoring, "official_evaluator", instrumented)
+    monkeypatch.setattr(scoring, "word_f1", evaluate)
     with pytest.raises(ValueError, match="changed during scoring"):
         scoring.score(**cohort)
     assert not any(path.exists() for path in outputs(cohort))
     assert not list((cohort["evidence_root"] / "physical-artifacts").rglob("*.txt"))
 
 
-def test_evaluator_executes_hash_checked_bytes_even_with_stale_bytecode(tmp_path):
-    module = tmp_path / "evaluate.py"
-    module.write_text('VALUE = "old"\n')
+def test_dataset_python_is_never_executed_even_with_stale_bytecode(cohort, tmp_path):
+    module = cohort["source"] / "evaluate.py"
+    sentinel = tmp_path / "executed"
+    module.write_text('raise RuntimeError("old external code executed")\n')
     stamp = module.stat()
     py_compile.compile(str(module), doraise=True)
-    module.write_text('VALUE = "new"\n')
+    module.write_text(f'from pathlib import Path; Path({str(sentinel)!r}).write_text("executed")\n')
     os.utime(module, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
-    evaluator, digest = scoring.official_evaluator(tmp_path, sha(module.read_bytes()))
-    assert evaluator.VALUE == "new"
-    assert digest == sha(module.read_bytes())
+    summary = scoring.score(**cohort)
+    assert summary['official_evaluator_sha256'] == scoring.UPSTREAM_EVALUATOR_SHA256
+    assert not sentinel.exists()
 
 
 def test_command_uses_explicit_profile_outside_repository(cohort, tmp_path):
@@ -309,13 +303,9 @@ def test_command_uses_explicit_profile_outside_repository(cohort, tmp_path):
     assert outputs(cohort)[1].exists()
 
 
-@pytest.mark.parametrize("metric", ["float('nan')", "float('inf')", "1.1", "True"])
-def test_invalid_evaluator_metrics_never_produce_score_files(cohort, metric):
-    evaluator = cohort["source"] / "evaluate.py"
-    evaluator.write_text(evaluator.read_text() + f"\ndef word_f1(*args): return {metric}, 1., 1.\n")
-    profile = json.loads(cohort["profile_path"].read_bytes())
-    profile["official_evaluator_sha256"] = sha(evaluator.read_bytes())
-    write_json(cohort["profile_path"], profile)
+@pytest.mark.parametrize("metric", [float('nan'), float('inf'), 1.1, True])
+def test_invalid_evaluator_metrics_never_produce_score_files(cohort, metric, monkeypatch):
+    monkeypatch.setattr(scoring, 'word_f1', lambda *args: (metric, 1., 1.))
     assert_failure_preserves_evidence(cohort, "invalid metrics")
 
 

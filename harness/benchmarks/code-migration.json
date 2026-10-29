@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "f7d16f763c96018d30a09107b87b9479b6654390e6a8fa37fb25394ea7d389da"
+          "after_sha256": "f6952d708b46555e3426f83b3b04a35957364e6f8331a8e52cb0a67804500be1"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -80,7 +80,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "372e0bdba8f941c4d67332129bf60009767f02d9663df783a8be3a1c41416c5e"
+          "after_sha256": "8dade9b3fa163cdbca8dc551c7ba16077b65803dedfb0577f030eb167386643d"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "b9b7f7ba6341e05b0ff82ff2a6c898d54d8a8378a550bd22f979e8b1e668fb46"
+          "after_sha256": "68f18b77b4b252eb8a99b177c37a123f817b42b5802cf3bb34e929dfb348a7c6"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -2720,6 +2720,91 @@
           "tests": [
             "tests/benchmarks/webfetch/test_review_bare_comment_resources.py",
             "tests/benchmarks/webfetch/test_review_comment_attribute_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py",
+            "reference_quality.py",
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "review30-nested-frame-generic-visible",
+            "review30-nested-frame-generic-hidden",
+            "review30-nested-frame-generic-declared-base",
+            "review30-nested-frame-generic-relative-base",
+            "review30-nested-frame-generic-relative-base-no-double-join",
+            "review30-nested-frame-generic-literal-example",
+            "review30-nested-frame-generic-budget-truncation",
+            "review30-nested-frame-image-visible",
+            "review30-nested-frame-image-hidden",
+            "review30-nested-frame-image-declared-base",
+            "review30-nested-frame-image-relative-base",
+            "review30-nested-frame-image-relative-base-no-double-join",
+            "review30-nested-frame-image-literal-example",
+            "review30-nested-frame-image-budget-truncation",
+            "markdown30-fence-quote-inferred",
+            "markdown30-fence-nested-quote-inferred",
+            "markdown30-fence-list-inferred",
+            "markdown30-fence-ordered-list-inferred",
+            "markdown30-fence-list-continuation-inferred",
+            "markdown30-fence-nested-list-inferred",
+            "markdown30-fence-quote-list-inferred",
+            "markdown30-fence-list-quote-inferred",
+            "markdown30-fence-quote-html-inferred",
+            "markdown30-fence-quote-ended-blank-inferred",
+            "markdown30-fence-quote-ended-text-inferred",
+            "markdown30-fence-nested-quote-ended-inferred",
+            "markdown30-fence-list-ended-inferred",
+            "markdown30-fence-quote-continued-inferred",
+            "markdown30-fence-list-continued-inferred",
+            "markdown30-fence-heading-before-list-inferred",
+            "markdown30-fence-thematic-before-root-inferred",
+            "markdown30-fence-paragraph-not-ordered-list-inferred",
+            "markdown30-body-comment-attribute-inferred",
+            "markdown30-body-quoted-greater-inferred",
+            "markdown30-body-closed-attribute-comment-inferred",
+            "markdown30-body-attribute-only-inferred",
+            "markdown30-body-real-comment-inferred",
+            "markdown30-body-code-before-comment-inferred",
+            "markdown30-body-code-inside-attribute-owner-inferred",
+            "markdown30-body-escaped-opener-inferred",
+            "markdown30-body-quote-code-comment-inferred",
+            "markdown30-body-comment-after-code-inferred",
+            "markdown30-fence-quote-markdown",
+            "markdown30-fence-nested-quote-markdown",
+            "markdown30-fence-list-markdown",
+            "markdown30-fence-ordered-list-markdown",
+            "markdown30-fence-list-continuation-markdown",
+            "markdown30-fence-nested-list-markdown",
+            "markdown30-fence-quote-list-markdown",
+            "markdown30-fence-list-quote-markdown",
+            "markdown30-fence-quote-html-markdown",
+            "markdown30-fence-quote-ended-blank-markdown",
+            "markdown30-fence-quote-ended-text-markdown",
+            "markdown30-fence-nested-quote-ended-markdown",
+            "markdown30-fence-list-ended-markdown",
+            "markdown30-fence-quote-continued-markdown",
+            "markdown30-fence-list-continued-markdown",
+            "markdown30-fence-heading-before-list-markdown",
+            "markdown30-fence-thematic-before-root-markdown",
+            "markdown30-fence-paragraph-not-ordered-list-markdown",
+            "markdown30-body-comment-attribute-markdown",
+            "markdown30-body-quoted-greater-markdown",
+            "markdown30-body-closed-attribute-comment-markdown",
+            "markdown30-body-attribute-only-markdown",
+            "markdown30-body-real-comment-markdown",
+            "markdown30-body-code-before-comment-markdown",
+            "markdown30-body-code-inside-attribute-owner-markdown",
+            "markdown30-body-escaped-opener-markdown",
+            "markdown30-body-quote-code-comment-markdown",
+            "markdown30-body-comment-after-code-markdown",
+            "markdown30-html-fence-text-html",
+            "markdown30-plain-comment-text-plain_text"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_nested_frame_resources.py",
+            "tests/benchmarks/webfetch/test_review_markdown_body_ownership.py"
           ]
         }
       ]

@@ -54,7 +54,7 @@ OpenDataLab WebMainBench and this edition's project-authored changes use Apache-
 
 Please cite the upstream work and identify this corrected dataset revision:
 
-> Liu et al. (2025). [Dripper: Token-Efficient Main HTML Extraction with a Lightweight LM](https://huggingface.co/datasets/opendatalab/WebMainBench). arXiv:2511.23119.
+> Liu et al. (2025). [Dripper: Token-Efficient Main HTML Extraction with a Lightweight LM](https://huggingface.co/datasets/opendatalab/WebMainBench).
 
 For the execution and reporting harness, cite [Browser Eval: Benchmarking Browsers and Web Tools for AI Agents](https://github.com/lexmount/browser-eval/blob/main/CITATION.cff).
 

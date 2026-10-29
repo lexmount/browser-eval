@@ -375,6 +375,8 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
         help="Load runtime paths from the repository .env or another explicit file",
     )
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--no-report", action="store_true",
+                        help="Save certified evidence without building local HTML")
     parser.add_argument(
         "--execute",
         action="store_true",
@@ -507,13 +509,11 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     (output / "certification.json").write_text(
         json.dumps(certification, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    from harness.web_fetch.report_build import build_report
+    result = {"evidence": str(output), "logical_results": len(records)}
+    if args.no_report:
+        result["report_status"] = "not_built"
+    else:
+        from harness.web_fetch.report_build import build_report
 
-    report = build_report(output, output / "report")
-    print(
-        json.dumps(
-            {"evidence": str(output), "logical_results": len(records), "report": str(report)},
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
+        result["report"] = str(build_report(output, output / "report"))
+    print(json.dumps(result, ensure_ascii=False, indent=2))

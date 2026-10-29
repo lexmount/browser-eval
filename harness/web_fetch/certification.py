@@ -36,7 +36,7 @@ from harness.web_fetch.retrieval_hints import native_fetch_dataset, parse_retrie
 from harness.web_fetch.risk_control import main as risk_control_main
 from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.webmainbench_correction import certify_case_correction as correction_main
-from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
+from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source, selected_wcxb_input
 from harness.web_search.runner import main as search_main
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -414,8 +414,8 @@ def run_wcxb(argv: list[str]) -> None:
     """Certify a complete WCXB matrix, reusing unchanged certified methods."""
     parser = argparse.ArgumentParser(description="Certify WCXB test cohort")
     parser.add_argument("--profile", type=Path, required=True)
-    parser.add_argument("--dataset", type=Path, required=True)
-    parser.add_argument("--sample-manifest", type=Path, required=True)
+    parser.add_argument("--dataset", type=Path)
+    parser.add_argument("--sample-manifest", type=Path)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
     parser.add_argument(
@@ -429,6 +429,8 @@ def run_wcxb(argv: list[str]) -> None:
         help="Comma-separated methods to rerun from the prior certified cohort",
     )
     args = parser.parse_args(argv)
+
+    args.dataset, args.sample_manifest = selected_wcxb_input(args.dataset, args.sample_manifest)
 
     if args.output_root.exists():
         parser.error("WCXB output root must be new and immutable")

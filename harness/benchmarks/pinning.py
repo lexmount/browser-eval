@@ -11,7 +11,7 @@ import tempfile
 from pathlib import Path
 from urllib.request import urlopen
 from harness.benchmarks.data import unpack
-from harness.benchmarks.publication import DatasetRelease
+from harness.benchmarks.publication import CARDS, DatasetRelease
 
 
 def validate_binding(root: Path, name: str = "lexbench-webfetch") -> str:
@@ -42,7 +42,12 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
         raise ValueError("REV must be a full lowercase Hugging Face commit")
     lock_path = root / "harness/benchmarks/data-lock.json"
     lock = json.loads(lock_path.read_bytes())
-    before = lock["datasets"][track]
+    before = lock["datasets"].get(track)
+    if before is None:
+        registered = json.loads((CARDS / "metadata.json").read_bytes())
+        if track not in registered:
+            raise ValueError("Unknown benchmark track: " + track)
+        before = {"repository": "Lexmount/lexbench-" + track}
     url = f"https://huggingface.co/datasets/{before['repository']}/resolve/{revision}/"
     with urlopen(url + "manifest.json", timeout=60) as response:
         raw_manifest = response.read(2_000_001)
@@ -54,7 +59,7 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
     archive = manifest.get("archive")
     if archive is None:
         known = next((item for item in [before, *before.get("history", [])]
-                      if item["revision"] == revision), None)
+                      if item.get("revision") == revision), None)
         if known is None:
             raise ValueError("Historical release has no known immutable archive binding")
         archive = known["archive"]
@@ -75,7 +80,8 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
             selected[option] = copy.deepcopy(before[option])
     candidate = {**lock["datasets"], track: selected}
     validate_selections(candidate)
-    previous = [{k: v for k, v in before.items() if k != "history"}, *before.get("history", [])]
+    previous = ([{k: v for k, v in before.items() if k != "history"}]
+                if "revision" in before else []) + before.get("history", [])
     history = {item["revision"]: item for item in previous if item["revision"] != revision}
     selected["history"] = list(history.values())
     import_path = root / "evaluation" / ("lexbench-" + track + ".json")

@@ -107,6 +107,9 @@ def test_published_instructions_can_name_an_available_immutable_toolkit(tmp_path
     ("websearch", {"web-search", "search-ranking"}, "https://browser.lexmount.com/blog/websearch-benchmark"),
     ("webmainbench", {"main-content-extraction", "html-to-markdown"}, "https://huggingface.co/datasets/opendatalab/WebMainBench"),
     ("simpleqa-verified", {"information-retrieval", "simpleqa"}, "https://huggingface.co/datasets/google/simpleqa-verified"),
+    ("wcxb", {"wcxb", "web-content-extraction"}, "https://github.com/Murrough-Foley/web-content-extraction-benchmark"),
+    ("trajectory-replay", {"trajectory-replay", "browser-evaluation"}, "https://github.com/lexmount/Lexbench-Headless-Browser"),
+    ("webarena-replay", {"webarena", "trajectory-replay"}, "https://huggingface.co/datasets/AmineHA/WebArena-Verified"),
 ])
 def test_cards_explain_use_and_credit_sources_with_specific_discovery_terms(tmp_path, track, tags, source):
     release(track, [{"id": "task", "language": "en"}]).build(tmp_path)
@@ -118,4 +121,6 @@ def test_cards_explain_use_and_credit_sources_with_specific_discovery_terms(tmp_
     # Hub promotes direct paper links into a dataset-level ArXiv association.
     # Derivatives credit upstream through its dataset/repository instead.
     assert "arxiv.org/" not in text and "huggingface.co/papers/" not in text
+    assert "arxiv:" not in text.lower()
+    assert "```mermaid" not in text  # The Hub displays Mermaid as source rather than a diagram.
     assert not any(tag.startswith("arxiv:") for tag in metadata(tmp_path)["tags"])

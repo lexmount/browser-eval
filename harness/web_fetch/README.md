@@ -24,8 +24,7 @@ Measured outputs are persistent local data, not source files. The current eviden
 bundle lives at `~/.browser-eval/evidence/current/` by default; set
 `WEB_FETCH_EVIDENCE_DIR` to use another explicit bundle. Raw research reruns live
 under `~/.browser-eval/evidence/research/`; use
-`WEB_FETCH_RESEARCH_EVIDENCE_DIR` when they are stored elsewhere. Git retains compact
-task catalogs, acceptance contracts, annotations and input hash manifests. Full
+`WEB_FETCH_RESEARCH_EVIDENCE_DIR` when they are stored elsewhere. Hugging Face retains current public task catalogs and acceptance contracts; Git retains scorer code, synthetic fixtures, annotations and input hash manifests. Full
 historical datasets and source captures are installed outside the checkout; see
 [frozen reference inputs](../../docs/reference-inputs.md). Git ignores provider artifacts,
 results, execution manifests, selection receipts and internal audit notes.
@@ -128,6 +127,8 @@ a fact group is optional when another
 content requirement establishes the source scope.
 
 ## WCXB scoring
+
+Current qualified inputs come from [LexBench WCXB on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-wcxb), selected by the [data lock](../benchmarks/data-lock.json). Browser Eval owns the runner and scorer. Existing experiment profiles keep their original source manifests and input hashes.
 
 `wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is
 `scripts/score_wcxb_results.py`; the required `--profile` argument selects an

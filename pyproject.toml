@@ -23,7 +23,7 @@ Repository = "https://github.com/lexmount/browser-eval"
 Issues = "https://github.com/lexmount/browser-eval/issues"
 
 [project.optional-dependencies]
-dataset-publish = ["huggingface-hub==1.31.0"]
+dataset-publish = ["huggingface-hub==1.31.0", "pyyaml>=6,<7"]
 tree = ["apted==1.0.3", "rapidfuzz==3.14.1"]
 headless-eval = [
   "docker>=7,<8",

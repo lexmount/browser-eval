@@ -161,9 +161,13 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
         raise ValueError("unsupported trajectory replay profile")
 
     selection = profile.get("task_selection") or {}
-    selection_file = (repo_root / str(selection.get("path") or "")).resolve()
-    if repo_root not in selection_file.parents:
-        raise ValueError("task selection must stay inside the repository")
+    if selection.get('benchmark_dataset'):
+        from harness.trajectory_replay.report_inputs import replay_input_path
+        selection_file = replay_input_path(selection, current='corrected-90')
+    else:
+        selection_file = (repo_root / str(selection.get("path") or "")).resolve()
+        if repo_root not in selection_file.parents:
+            raise ValueError("task selection must stay inside the repository")
     if not selection_file.is_file() or _sha256(selection_file) != selection.get("sha256"):
         raise ValueError("trajectory replay task selection does not match the frozen profile")
     selection_payload = _read_json(selection_file)

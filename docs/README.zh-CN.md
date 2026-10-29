@@ -2,8 +2,6 @@
 
 <img src="assets/overview.png" alt="Browser Eval — 相同任务，清晰比较。" width="100%">
 
-<h3>Browser Eval：面向 AI Agent 的浏览器与 Web 工具评测</h3>
-
 [English](../README.md) · **简体中文**
 
 [![CI](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml)
@@ -14,20 +12,20 @@
 
 </div>
 
-面向 AI Agent，评测浏览器与 Web 工具，覆盖 Web Fetch、Web Search 和浏览器轨迹重放。比较任务完成情况、延迟、资源使用和已记录的成本，把评测结果变成可以下钻检查、重建和分享的报告，并保留逐题证据。
+面向 AI Agent，评测浏览器与 Web 工具，覆盖 Web Fetch、Web Search 和浏览器轨迹重放。比较任务完成情况、延迟、资源使用和已记录的成本，保留逐题证据，并可按需生成能下钻检查、重建和分享的本地报告。
 
 ## 特性
 
 | 特性 | 能做什么 |
 | --- | --- |
-| 从评测到报告 | 配置任务和评测对象后，一条命令完成评测并生成 HTML 报告。 |
+| 本地评测 | 按配置运行评测并保存证据；默认生成本地 HTML 报告，也可用 `--no-report` 跳过。 |
 | 接入多种 benchmark | 使用已接入的 benchmark，也可提供自己的任务，按所选 benchmark 的规则评分。[接入指南](benchmarks.md) |
 | 扩展评测对象 | 比较浏览器引擎、搜索 API、在线抓取服务和内容提取工具，通过已有[适配接口](provider-contract.md)接入新的参与方。 |
 | 查看逐题证据 | 从汇总指标查看对应的逐题响应、操作轨迹和失败日志。 |
 | 复用已有结果 | 从保存的输出重建报告、重算评分，无需重复调用参与方。 |
 | 比较质量、性能和成本 | 同时查看任务通过情况、延迟、资源使用和已记录的计费数据。 |
 | 追溯实验配置 | 保留任务输入、benchmark 和软件版本、评分代码及执行配置。 |
-| 分享报告并控制权限 | 通过 Artifact Site 发布报告，并设置谁能访问。[创建与分享报告](#报告) |
+| 本地报告与按需分享 | 无需账号即可查看、重建 HTML；明确要求分享并授权后，再发布到 Artifact Site。[报告](#报告) |
 
 ## 设计原则
 
@@ -43,7 +41,7 @@
 
 3. **方便审查，可校验**
 
-    用 LLM as a verifier 对程序判定及其依据多做一层校验，按需触发，默认不运行。生成 HTML 报告并上传到 Artifact Site，支持从汇总指标下钻到每一个结果，查看原始响应、操作轨迹、日志和评分依据。100% 人工审查成本高，因此也要方便人工抽样审查。
+    用 LLM as a verifier 对程序判定及其依据多做一层校验，按需触发，默认不运行。生成本地 HTML 报告，支持从汇总指标下钻到每一个结果，查看原始响应、操作轨迹、日志和评分依据。100% 人工审查成本高，因此也要方便人工抽样审查。只有明确要求发布并授权后，才上传到 Artifact Site。
 
 各任务的流程见下文，评分与复核的详细要求见[评测设计](benchmarks.md#evaluation-design)。
 
@@ -53,9 +51,9 @@
 
 | 流程 | 对应评测集与任务集 | 使用指南 |
 | --- | --- | --- |
-| Web Fetch | [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch)、[LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench)、[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
+| Web Fetch | [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch)、[LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench)、[LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
 | Web Search | [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch)：场景问题，以及 [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) 检索任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
-| 轨迹重放 | [仓库自建固定动作任务集](../examples/trajectory_replay/README.md)，改编自 [Lexbench-Headless-Browser 场景设计](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios)；[经过资格验证的 WebArena 人工录制轨迹](../evaluation/browser-use-public/webarena-human-suite.json)，由 [WebArena-Verified 评测器](https://github.com/lexmount/webarena-verified/tree/lex-main)验收 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
+| 轨迹重放 | [自建固定动作任务](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay)和独立的 [WebArena 重放数据集](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay)，使用已固定版本的 WebArena-Verified 评测器 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 
 ### Web Fetch
 
@@ -122,9 +120,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    A["保存的结果<br/>与原始证据"]:::evidence -->|构建或重建| B["HTML 报告"]:::run
+    A["保存的结果<br/>与原始证据"]:::evidence -->|按需构建或重建| B["本地 HTML 报告"]:::run
     B --> C["下钻到每一个结果<br/>查看响应、动作和日志"]:::evidence
-    B --> D["通过 Artifact Site<br/>分享报告"]:::evidence
+    B -. 明确请求并授权 .-> D["通过 Artifact Site<br/>分享报告"]:::evidence
     A -. 仅按需触发 .-> V["LLM verifier"]:::score
     V -. 复核发现 .-> B
     classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
@@ -157,23 +155,22 @@ uv run --frozen browser-harness-eval run --delay 0
 
 ## 报告
 
-创建和分享报告，请打开 Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)），安装网站提供的 skill，按引导创建、发布报告，并设置分享权限。
+结果和证据默认保存在本地 `~/.browser-eval/runs/`，也可用 `--output /absolute/path/new-run` 指定新目录。HTML 报告包含结果对比、逐题结果、完整响应和失败证据。本地评测、评分和查看 HTML 无需 Artifact Site 账号或发布授权。
 
-报告包含结果对比、逐题结果、完整响应和失败证据。运行结果默认保存在 `~/.browser-eval/runs/`，也可用 `--output /absolute/path/new-run` 指定新目录。
-
-从保存的证据重建报告，无需重新调用浏览器或服务：
+`run` 默认生成本地报告。加 `--no-report` 可只保存结果；`rescore --no-report` 只重算评分，不重建 HTML。之后可从保存的证据生成或重建报告，无需重复调用浏览器或服务：
 
 ```sh
+uv run --frozen browser-harness-eval run --delay 0 --no-report
 uv run --frozen browser-harness-eval report /absolute/path/to/run
 ```
 
 默认生成英文；运行或重建时加 `--language zh` 可选中文。重建时不传该选项，会沿用已保存的语言。
 
-评分代码随 Browser Eval 安装；数据集提交和文件哈希由[数据锁文件](../harness/benchmarks/data-lock.json)指定。
+### 按需分享
 
-新报告记录 Browser Eval 构建版本和选定的评测版本，并保留代码与输入哈希。结果比较规则见[版本说明](../docs/benchmarks.md#benchmark-editions)，历史数据见[参考输入](../docs/reference-inputs.md)。
+明确要求分享并授权发布后，打开 Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)），安装网站提供的 skill，按引导发布本地报告并设置访问权限。上传是独立操作，生成本地报告不会自动发布。
 
-本地构建与正式评测发布要求见[报告指南](report-hosting.md)。
+评分代码随 Browser Eval 安装；数据集提交和文件哈希由[数据锁文件](../harness/benchmarks/data-lock.json)指定。报告记录 Browser Eval 构建版本和选定的评测版本。结果比较规则见[版本说明](benchmarks.md#benchmark-editions)，历史数据见[参考输入](reference-inputs.md)，本地构建与正式发布要求见[报告指南](report-hosting.md)。
 
 ## 版本
 
@@ -187,13 +184,16 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 | [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) | 搜索问题和来源参考 |
 | [LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench) | 修正参考答案后的 WebMainBench 任务及修订依据 |
 | [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) | 按输入长度筛选的 SimpleQA Verified 检索任务，保留原始答案 |
+| [LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | 已核验来源的冻结提取输入和参考答案 |
+| [LexBench Trajectory Replay](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay) | 自建固定动作任务、轨迹和预期输出 |
+| [LexBench WebArena Replay](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay) | 分开管理人工录制轨迹、修正题目和官方完整题目 |
 | [Moli](https://github.com/lexmount/moli) | 与其他参与者按相同任务规则评测的浏览器 |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | Lexmount WebFetch 服务的命令行客户端 |
 | Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)） | 报告创建、分享和权限控制 |
 | [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 自建轨迹的场景设计来源；另有独立的协议、自动化驱动和 Web 平台评测 |
-| [WebMainBench 分支](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 冻结 HTML 提取任务与有记录的评分修正 |
-| [WebArena-Verified 分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) | WebArena 轨迹重放及实验性 Agent 集成所用的题目与评测器 |
-| [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | 独立的内容提取评测集 |
+| [WebMainBench 分支](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 上游署名和固定版本的提取评分器来源 |
+| [WebArena-Verified 分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) | 官方题目来源及重放、实验性 Agent 集成使用的固定评测器依赖 |
+| [WCXB 上游](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | HF 核验版本的数据来源署名 |
 | [CowAgent](https://github.com/zhayujie/CowAgent)、[OpenClaw](https://github.com/openclaw/openclaw)、[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Web Fetch 工具基线和实验性 Agent 集成 |
 
 Playwright、提取库和配套运行环境的来源与固定版本见[依赖说明](../docs/dependencies.md)，引用要求和数据权利见[第三方说明](../THIRD_PARTY.md)。引用 Browser Eval 时，也请引用实际使用的评测集与上游数据。

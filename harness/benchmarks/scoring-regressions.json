@@ -50982,6 +50982,1757 @@
         "answer_format": "markdown"
       },
       "expected_task_pass": false
+    },
+    {
+      "id": "review30-nested-frame-generic-visible",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;iframe  srcdoc=&quot;&amp;lt;a href=&amp;quot;/target.pdf&amp;quot;&amp;gt;Download&amp;lt;/a&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review30-nested-frame-generic-hidden",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;iframe hidden srcdoc=&quot;&amp;lt;a href=&amp;quot;/target.pdf&amp;quot;&amp;gt;Download&amp;lt;/a&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review30-nested-frame-generic-declared-base",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://inner.example/docs/target.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;iframe data-frame-url=&quot;https://inner.example/docs/page&quot;  srcdoc=&quot;&amp;lt;a href=&amp;quot;target.pdf&amp;quot;&amp;gt;Download&amp;lt;/a&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review30-nested-frame-generic-relative-base",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/assets/target.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;base href=&quot;assets/&quot;&gt;&lt;iframe  srcdoc=&quot;&amp;lt;iframe  srcdoc=&amp;quot;&amp;amp;lt;a href=&amp;amp;quot;target.pdf&amp;amp;quot;&amp;amp;gt;Download&amp;amp;lt;/a&amp;amp;gt;&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review30-nested-frame-generic-relative-base-no-double-join",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/assets/assets/target.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;base href=&quot;assets/&quot;&gt;&lt;iframe  srcdoc=&quot;&amp;lt;iframe  srcdoc=&amp;quot;&amp;amp;lt;a href=&amp;amp;quot;target.pdf&amp;amp;quot;&amp;amp;gt;Download&amp;amp;lt;/a&amp;amp;gt;&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review30-nested-frame-generic-literal-example",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "```html\n<iframe  srcdoc=\"&lt;iframe  srcdoc=&quot;&amp;lt;a href=&amp;quot;/target.pdf&amp;quot;&amp;gt;Download&amp;lt;/a&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review30-nested-frame-generic-budget-truncation",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;a href=&quot;/target.pdf&quot;&gt;Download&lt;/a&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false,
+        "resource_error": "Inline frame resource discovery exceeds 100 visible documents"
+      }
+    },
+    {
+      "id": "review30-nested-frame-image-visible",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;iframe  srcdoc=&quot;&amp;lt;img src=&amp;quot;/target.png&amp;quot;&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review30-nested-frame-image-hidden",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;iframe hidden srcdoc=&quot;&amp;lt;img src=&amp;quot;/target.png&amp;quot;&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review30-nested-frame-image-declared-base",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://inner.example/docs/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;iframe data-frame-url=&quot;https://inner.example/docs/page&quot;  srcdoc=&quot;&amp;lt;img src=&amp;quot;target.png&amp;quot;&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review30-nested-frame-image-relative-base",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/assets/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;base href=&quot;assets/&quot;&gt;&lt;iframe  srcdoc=&quot;&amp;lt;iframe  srcdoc=&amp;quot;&amp;amp;lt;img src=&amp;amp;quot;target.png&amp;amp;quot;&amp;amp;gt;&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review30-nested-frame-image-relative-base-no-double-join",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/assets/assets/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;base href=&quot;assets/&quot;&gt;&lt;iframe  srcdoc=&quot;&amp;lt;iframe  srcdoc=&amp;quot;&amp;amp;lt;img src=&amp;amp;quot;target.png&amp;amp;quot;&amp;amp;gt;&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review30-nested-frame-image-literal-example",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "```html\n<iframe  srcdoc=\"&lt;iframe  srcdoc=&quot;&amp;lt;img src=&amp;quot;/target.png&amp;quot;&amp;gt;&quot;&gt;&lt;/iframe&gt;\"></iframe>\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review30-nested-frame-image-budget-truncation",
+      "root_cause": "4408487958",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "nested-frame-resource",
+        "url": "https://example.test/catalog/index.html",
+        "name": "Nested frame resource",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<iframe  srcdoc=\"&lt;img src=&quot;/target.png&quot;&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe><iframe  srcdoc=\"&lt;p&gt;No resource&lt;/p&gt;\"></iframe>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false,
+        "resource_error": "Inline frame resource discovery exceeds 100 visible documents"
+      }
+    },
+    {
+      "id": "markdown30-fence-quote-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~\n> ![Example](/target.png)\n> ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-nested-quote-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> > ```text\n> > ![Example](/target.png)\n> > ```",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-list-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- ~~~\n  ![Example](/target.png)\n  ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-ordered-list-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "1. ```text\n   ![Example](/target.png)\n   ```",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-list-continuation-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- Parent\n  ~~~\n  ![Example](/target.png)\n  ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-nested-list-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- Parent\n  - ~~~\n    ![Example](/target.png)\n    ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-quote-list-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> - ~~~\n>   ![Example](/target.png)\n>   ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-list-quote-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- > ~~~\n  > ![Example](/target.png)\n  > ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-quote-html-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~html\n> <img src=\"/target.png\">\n> ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-quote-ended-blank-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~\n> example\n\n![Example](/target.png)",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-fence-quote-ended-text-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~\n> example\n![Example](/target.png)",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-fence-nested-quote-ended-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> > ~~~\n> > example\n>\n> ![Example](/target.png)",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-fence-list-ended-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- ~~~\n  example\n\n![Example](/target.png)",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-fence-quote-continued-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~\n> example\n>\n> ![Example](/target.png)\n> ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-list-continued-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- ~~~\n  example\n\n  ![Example](/target.png)\n  ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-heading-before-list-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "# Heading\n2. ~~~\n   ![Example](/target.png)\n   ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-thematic-before-root-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- - -\n  ~~~\n![Example](/target.png)\n  ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-paragraph-not-ordered-list-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "Paragraph\n2. ~~~\n![Example](/target.png)\n~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-comment-attribute-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">Required fact</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-quoted-greater-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title='x > <!--'>Required fact</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-closed-attribute-comment-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!-- noise -->\">Required fact</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-attribute-only-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!-- Required fact -->\">Other</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-body-real-comment-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">Other</span><!-- Required fact -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-body-code-before-comment-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "`<span title=\"` <!-- Required fact -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-body-code-inside-attribute-owner-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">`<!-- Required fact -->`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-escaped-opener-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "\\<!-- Required fact -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-quote-code-comment-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~text\n> <!-- Required fact -->\n> ~~~",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-comment-after-code-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~text\n> Other\n> ~~~\n<!-- Required fact -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-quote-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~\n> ![Example](/target.png)\n> ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-nested-quote-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> > ```text\n> > ![Example](/target.png)\n> > ```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-list-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- ~~~\n  ![Example](/target.png)\n  ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-ordered-list-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "1. ```text\n   ![Example](/target.png)\n   ```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-list-continuation-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- Parent\n  ~~~\n  ![Example](/target.png)\n  ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-nested-list-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- Parent\n  - ~~~\n    ![Example](/target.png)\n    ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-quote-list-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> - ~~~\n>   ![Example](/target.png)\n>   ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-list-quote-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- > ~~~\n  > ![Example](/target.png)\n  > ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-quote-html-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~html\n> <img src=\"/target.png\">\n> ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-quote-ended-blank-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~\n> example\n\n![Example](/target.png)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-fence-quote-ended-text-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~\n> example\n![Example](/target.png)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-fence-nested-quote-ended-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> > ~~~\n> > example\n>\n> ![Example](/target.png)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-fence-list-ended-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- ~~~\n  example\n\n![Example](/target.png)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-fence-quote-continued-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~\n> example\n>\n> ![Example](/target.png)\n> ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-list-continued-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- ~~~\n  example\n\n  ![Example](/target.png)\n  ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-heading-before-list-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "# Heading\n2. ~~~\n   ![Example](/target.png)\n   ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-thematic-before-root-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "- - -\n  ~~~\n![Example](/target.png)\n  ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-fence-paragraph-not-ordered-list-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "Paragraph\n2. ~~~\n![Example](/target.png)\n~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-comment-attribute-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">Required fact</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-quoted-greater-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title='x > <!--'>Required fact</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-closed-attribute-comment-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!-- noise -->\">Required fact</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-attribute-only-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!-- Required fact -->\">Other</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-body-real-comment-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">Other</span><!-- Required fact -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-body-code-before-comment-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "`<span title=\"` <!-- Required fact -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-body-code-inside-attribute-owner-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">`<!-- Required fact -->`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-escaped-opener-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "\\<!-- Required fact -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-quote-code-comment-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~text\n> <!-- Required fact -->\n> ~~~",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-body-comment-after-code-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "> ~~~text\n> Other\n> ~~~\n<!-- Required fact -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown30-html-fence-text-html",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<blockquote>~~~<img src=\"/target.png\">~~~</blockquote>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown30-plain-comment-text-plain_text",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared Markdown source ownership keeps fenced examples inside quote/list containers literal and distinguishes actual comments from quoted attributes.",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required fact"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!-- Required fact -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
     }
   ]
 }

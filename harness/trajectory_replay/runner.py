@@ -324,12 +324,15 @@ def run_evaluation(
     llm_diagnostics: bool = False,
     diagnosis_model: str = "gpt-5.6-sol",
     diagnosis_reasoning_effort: str = "low",
+    generate_report: bool = True,
 ) -> dict[str, Any]:
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
     output = unlinked_path(Path(output_dir))
     if output.exists():
         raise ValueError("Output must be a new directory; existing evidence is immutable")
+    from harness.trajectory_replay.report_inputs import replay_input_path
+    suite_path = replay_input_path(suite_path, current='curated')
     suite = load_suite(suite_path)
     ground_truth_evidence = (
         validate_ground_truth_evidence(suite_path, suite, ground_truth_evidence_path)
@@ -539,7 +542,8 @@ def run_evaluation(
             reasoning_effort=diagnosis_reasoning_effort,
         )
         _write_run_artifacts(output, rows, summary, manifest)
-        write_latest_report(reports_dir, manifest=manifest, summary=summary)
+        if generate_report:
+            write_latest_report(reports_dir, manifest=manifest, summary=summary)
         return summary
     finally:
         if fixture_runtime:

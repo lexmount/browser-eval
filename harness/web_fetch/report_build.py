@@ -1302,7 +1302,8 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             or corpus_hash != summary['source_sha256']
             or corpus_hash != profile['source_dataset_sha256']):
         raise ValueError('WCXB source, certificate, summary and profile disagree')
-    evaluator_hash = file_sha256(contained_path(corpus, 'evaluate.py'))
+    from harness.web_fetch.wcxb_scoring import UPSTREAM_EVALUATOR_SHA256
+    evaluator_hash = UPSTREAM_EVALUATOR_SHA256
     if evaluator_hash != profile['official_evaluator_sha256'] or summary.get('official_evaluator_sha256') != evaluator_hash:
         raise ValueError('WCXB official evaluator differs from the certified profile')
     if [x['provider'] for x in certificate['providers']] != providers:

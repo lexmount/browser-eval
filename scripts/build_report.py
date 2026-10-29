@@ -133,8 +133,12 @@ if __name__ == '__main__':
     if profile.get('comparison_kind')=='wcxb_frozen_html_to_markdown':
         if not args.evidence:
             parser.error('--evidence is required for the certified WCXB cohort')
-        corpus=args.wcxb_source or Path.home()/'.browser-eval/public-benchmarks/wcxb'
-        sample=args.wcxb_sample or ROOT/profile['sample_manifest']
+        from harness.web_fetch.webmainbench_runner import selected_wcxb_input
+        sample = args.wcxb_sample
+        if (sample is None and args.wcxb_source is not None
+                and not (args.wcxb_source.parent / 'tasks.json').is_file()):
+            sample = ROOT / profile['sample_manifest']
+        corpus, sample = selected_wcxb_input(args.wcxb_source, sample)
         print(build_wcxb_report(args.evidence,corpus,sample,profile,args.output or ROOT/'reports/wcxb',
                                 content_binding=json.loads(profile_path.with_name('report-content-binding.json').read_text()),
                                 authority_root=ROOT, include_english=args.include_english,

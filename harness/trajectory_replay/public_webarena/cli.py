@@ -1,4 +1,4 @@
-"""Command-line entrypoint for isolated browser use evaluation."""
+"""Command-line entrypoint for isolated browser trajectory replay."""
 
 from __future__ import annotations
 
@@ -43,9 +43,16 @@ def qualification_lock(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--suite", default="/work/tasks.v2.json")
+    parser.add_argument(
+        "--suite", help="Explicit suite path; defaults to the locked HF qualified human edition"
+    )
     parser.add_argument("--output", default="/work/output")
     parser.add_argument("--reports", default="/work/reports")
+    parser.add_argument(
+        "--no-report",
+        action="store_true",
+        help="Save scores and evidence without building local HTML",
+    )
     parser.add_argument(
         "--ground-truth-evidence",
         default=None,
@@ -104,6 +111,13 @@ def main() -> None:
         or args.qualification_required_passes is not None
     ):
         parser.error("qualification pass flags require --qualification-run")
+    if args.suite is None:
+        from harness.trajectory_replay.report_inputs import replay_input_path
+        args.suite = replay_input_path(
+            current="human-candidates"
+            if (args.native_scope or args.qualification_run or args.trajectory_authoring_run)
+            else "human"
+        )
     load_runtime_env(args.env_file)
     configure_browser_docker_host(args.browser_docker_host)
     if bool(args.native_scope) != bool(args.batch_id):
@@ -139,6 +153,7 @@ def main() -> None:
             suite_path=args.suite,
             output_dir=args.output,
             reports_dir=args.reports,
+            generate_report=not args.no_report,
             ground_truth_evidence_path=args.ground_truth_evidence,
             max_retries=args.failure_retries,
             sample_interval_ms=args.sample_interval_ms,

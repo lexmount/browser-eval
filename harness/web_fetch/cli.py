@@ -39,7 +39,7 @@ def command_run(args: argparse.Namespace) -> int:
     if args.output.exists() or args.output.is_symlink():
         raise SystemExit("Output must be a new directory; existing evidence is immutable")
     load_runtime_env(args.env_file)
-    language = resolve_report_language(args.output / "report", args.language)
+    language = None if args.no_report else resolve_report_language(args.output / "report", args.language)
     dataset_meta, cases = load_dataset(args.dataset)
     provider_configs = load_provider_config(args.provider_config)
     selection = resolve_provider_selection(args.providers, args.provider_config)
@@ -66,9 +66,14 @@ def command_run(args: argparse.Namespace) -> int:
         provider_concurrency=args.provider_concurrency,
         max_failure_retries=args.max_failure_retries,
     )
-    report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True,
-                               language=language)
-    print(f"Report: {report_path.resolve()}")
+    if args.no_report:
+        print(f"Results: {(args.output / 'results.jsonl').resolve()}")
+        print(f"Run data: {args.output.resolve()}")
+        print("Report not built (--no-report).")
+    else:
+        report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True,
+                                   language=language)
+        print(f"Report: {report_path.resolve()}")
     kinds={case.id:case.task_kind for case in cases}
     failures = [r for r in records if not task_passed(r['ok'],r['metrics'],kinds[r['case_id']])]
     return 2 if args.fail_on_failure and failures else 0
@@ -83,12 +88,16 @@ def command_report(args: argparse.Namespace) -> int:
 
 
 def command_rescore(args: argparse.Namespace) -> int:
-    language = resolve_report_language(args.run_dir / "report", args.language)
+    language = None if args.no_report else resolve_report_language(args.run_dir / "report", args.language)
     dataset, cases = load_dataset(args.dataset)
     records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
-    report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True,
-                               language=language)
-    print(f"Rescored {len(records)} persisted attempts; report: {report_path.resolve()}")
+    if args.no_report:
+        print(f"Rescored {len(records)} persisted attempts; results: {(args.run_dir / 'results.jsonl').resolve()}")
+        print("Report not rebuilt (--no-report). Any existing HTML is unchanged.")
+    else:
+        report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True,
+                                   language=language)
+        print(f"Rescored {len(records)} persisted attempts; report: {report_path.resolve()}")
     return 0
 
 
@@ -146,6 +155,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--env-file", type=Path)
     run.add_argument("--output", type=Path, default=None)
     run.add_argument("--fail-on-failure", action="store_true")
+    run.add_argument("--no-report", action="store_true",
+                     help="Save scored results and evidence without building local HTML")
     add_failure_retry_argument(run)
     run.set_defaults(handler=command_run)
 
@@ -157,6 +168,8 @@ def build_parser() -> argparse.ArgumentParser:
     rescore = sub.add_parser("rescore", help="Recompute metrics/report from persisted artifacts and task rules")
     rescore.add_argument("run_dir", type=Path)
     rescore.add_argument("--dataset", type=Path, required=True)
+    rescore.add_argument("--no-report", action="store_true",
+                         help="Rescore saved data without rebuilding HTML; existing reports are unchanged")
     add_language_argument(rescore)
     rescore.set_defaults(handler=command_rescore)
 

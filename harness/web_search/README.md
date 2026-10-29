@@ -1,8 +1,8 @@
 # Web Search API evaluation
 
-Browser Eval owns the independent scorer in `lexbench_websearch/`, collection, evidence and reports. [LexBench Web Search on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-websearch) owns versioned task definitions and source references. The [data lock](../benchmarks/data-lock.json) selects immutable snapshots. Store instance selectors, execution profiles and publication targets beside external evidence; pass the selector with `--profile`. Historical standalone profiles keep their original bytes.
+Browser Eval owns the independent scorer in `lexbench_websearch/`, collection, evidence and reports. [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) and the separate [SimpleQA Verified retrieval edition](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) on Hugging Face own versioned task definitions and source references. The [data lock](../benchmarks/data-lock.json) selects immutable snapshots. Store instance selectors, execution profiles and publication targets beside external evidence; pass the selector with `--profile`. Historical standalone profiles keep their original bytes.
 
-[LexBench Web Search](https://github.com/lexmount/lexbench-websearch) owns task populations, provenance, reference qualifications and deterministic scoring. Browser Eval imports its pinned package directly. Store the instance selector, execution profiles, publication target and any hash-bound historical evidence authority beside external evidence. Pass the selector with `--profile`; there is no repository default or implicit published report. The collector resolves benchmark references before freezing run inputs. Historical standalone profiles keep their original bytes.
+The collector resolves benchmark references before freezing run inputs. Keep each report's instance selector and publication target with its external evidence; there is no implicit published report or repository-default instance. Source URLs remain attribution, while the data lock and local scorer code determine current execution.
 
 ## Run a comparison
 

@@ -342,8 +342,7 @@ an explicit adjudication; unresolved rows block report generation. The review
 file is cryptographically bound to the exact dataset and results files, so a
 new session cannot silently reuse an audit after outputs or rules change.
 
-Measured outputs live outside Git under `~/.browser-eval/evidence/`. Git retains
-the canonical dataset, source annotations, adapters and report implementation.
+Measured outputs live outside Git under `~/.browser-eval/evidence/`. The [HF dataset](https://huggingface.co/datasets/Lexmount/lexbench-webfetch) owns current task definitions. Git retains source annotations, input/hash bindings, adapters and report implementation; historical cohorts retain their original task identities.
 Build from an explicit immutable evidence directory:
 
 ```sh

@@ -461,8 +461,14 @@ def _run_remote_with_setup_recovery(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--catalog", type=Path, required=True)
-    parser.add_argument("--portable-suite", type=Path, required=True)
+    parser.add_argument(
+        "--catalog",
+        type=Path,
+        help="Frozen deployment-bound catalog; defaults to the locked public input",
+    )
+    parser.add_argument(
+        "--portable-suite", type=Path, help="Defaults to the locked public portable suite"
+    )
     parser.add_argument("--action-overrides", type=Path)
     parser.add_argument("--site-map", type=Path, required=True)
     parser.add_argument("--site-reset-receipt", type=Path, required=True)
@@ -506,6 +512,13 @@ def main() -> None:
         help="JSON selection for a large unresolved-only replay",
     )
     args = parser.parse_args()
+    from harness.trajectory_replay.report_inputs import replay_input_path
+    if args.catalog is None:
+        from harness.trajectory_replay.catalog_binding import current_catalog_inputs
+        args.catalog, args.portable_suite = current_catalog_inputs(
+            args.site_map, args.output / 'input-catalog.json', suite_path=args.portable_suite)
+    else:
+        args.portable_suite = replay_input_path(args.portable_suite, current='full-portable')
     webarena_runtime = verify_webarena_runtime_source()
     if args.action_timeout_ms < 1:
         raise ValueError("action timeout must be positive")

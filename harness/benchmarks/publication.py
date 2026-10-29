@@ -12,9 +12,6 @@ import tarfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-import yaml
-
-
 CARDS = Path(__file__).with_name("cards")
 
 
@@ -40,7 +37,7 @@ class DatasetRelease:
 
     @classmethod
     def from_git(cls, checkout: Path, track: str, revision: str) -> DatasetRelease:
-        if track not in {"webfetch", "websearch", "webmainbench", "simpleqa-verified"}:
+        if track not in json.loads((CARDS / "metadata.json").read_bytes()):
             raise ValueError("Unknown benchmark track")
         if not re.fullmatch(r"[0-9a-f]{40}", revision):
             raise ValueError("A release requires a full Git commit")
@@ -64,7 +61,10 @@ class DatasetRelease:
                 if not item.isfile():
                     raise ValueError("Public definitions cannot contain links or special files")
                 name = "definitions/" + item.name[len(prefix):] if item.name.startswith(prefix) else item.name
-                if name.startswith("definitions/") and Path(name).suffix not in {".json", ".jsonl", ".txt", ".md"}:
+                allowed = (Path(name).suffix in {".json", ".jsonl", ".txt", ".md"}
+                           or Path(name).name in {"LICENSE", "NOTICE"}
+                           or (track == "wcxb" and name.endswith(".html.gz")))
+                if name.startswith("definitions/") and not allowed:
                     raise ValueError("Unexpected definition file: " + name)
                 content = archive.extractfile(item).read()
                 pointer = re.fullmatch(rb"version https://git-lfs.github.com/spec/v1\noid sha256:([0-9a-f]{64})\nsize ([0-9]+)\n", content)
@@ -128,7 +128,9 @@ class DatasetRelease:
                             break
                     languages.add(language)
                 row = {
-                    "id": case_id, "input": case.get("query", case.get("url", "")),
+                    "id": case_id,
+                    "input": next((case[field] for field in metadata.get("input_fields", ["query", "url"])
+                                   if isinstance(case.get(field), str)), ""),
                     "source_suite": identity,
                     "family": case.get("family") or case.get("task_kind") or case.get("track") or metadata.get("family", ""),
                     "language": language,
@@ -136,6 +138,9 @@ class DatasetRelease:
                 }
                 row.update({key: case[key] for key in ("track", "category")
                             if case.get(key) not in (None, "")})
+                category_field = metadata.get("category_field")
+                if "category" not in row and category_field and case.get(category_field):
+                    row["category"] = case[category_field]
                 name = identity
                 if partition:
                     value = case.get(partition["field"])
@@ -198,6 +203,8 @@ class DatasetRelease:
             yield identity, binding, cases
 
     def _finish(self, output: Path, manifest: dict, configurations: list[dict], metadata: dict, languages: set[str]) -> dict:
+        import yaml
+
         buffer = io.BytesIO()
         with gzip.GzipFile(fileobj=buffer, mode="wb", mtime=0, filename="") as compressed:
             with tarfile.open(fileobj=compressed, mode="w") as archive:
@@ -232,7 +239,7 @@ class DatasetRelease:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkout", type=Path, required=True)
-    parser.add_argument("--track", choices=["webfetch", "websearch", "simpleqa-verified", "webmainbench"], required=True)
+    parser.add_argument("--track", choices=sorted(json.loads((CARDS / "metadata.json").read_bytes())), required=True)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--tooling-revision", help="Full Browser Eval commit for executable examples and code links")

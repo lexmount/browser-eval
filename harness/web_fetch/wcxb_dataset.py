@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 from html.parser import HTMLParser
 from pathlib import Path
 
-from harness.web_fetch.webmainbench_runner import load_wcxb_source
+from harness.web_fetch.webmainbench_runner import load_wcxb_source, selected_wcxb_input
 
 SEED = "wcxb-v1-test-stratified-200-20260917"
 
@@ -69,9 +69,22 @@ def validate_manifest(records: list[dict], source_hash: str, manifest: dict) -> 
         selected, distribution = choose(records, 200)
         if manifest.get('seed') != SEED or manifest.get('size') != 200:
             raise ValueError('WCXB sample selection drifted')
+    expected_cases = [{'file_id': r['track_id'], 'page_type': r['meta']['page_type']} for r in selected]
+    actual_cases = manifest.get('cases')
+    if manifest.get('schema_version') == 2:
+        if manifest.get('source_count') != len(records):
+            raise ValueError('WCXB qualified edition count differs from its inputs')
+        actual_cases = [{'file_id': c['file_id'], 'page_type': c['page_type']} for c in actual_cases]
+        by_id = {r['track_id']: r for r in selected}
+        for case in manifest['cases']:
+            row = by_id.get(case['file_id'])
+            if row is None or any(case.get(field) != value for field, value in (
+                    ('url', row['url']), ('reference', row['groundtruth_content']),
+                    ('with', row['ground_truth'].get('with') or []),
+                    ('without', row['ground_truth'].get('without') or []))):
+                raise ValueError('WCXB task fields differ from frozen ground truth')
     if (manifest.get('source_sha256') != source_hash or manifest.get('split') != 'test'
-            or manifest.get('distribution') != distribution
-            or manifest.get('cases') != [{'file_id': r['track_id'], 'page_type': r['meta']['page_type']} for r in selected]):
+            or manifest.get('distribution') != distribution or actual_cases != expected_cases):
         raise ValueError('WCXB manifest differs from source-only selection')
     return selected, distribution
 
@@ -97,13 +110,15 @@ def choose(records: list[dict], size: int) -> tuple[list[dict], dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--source", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--full-test", action="store_true")
     parser.add_argument("--qualified-test", action="store_true")
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Sample manifest already exists")
+    if args.source is None:
+        args.source, _ = selected_wcxb_input()
     records, source_hash = load_wcxb_source(args.source)
     if args.full_test and args.qualified_test:
         parser.error('Choose one test scope')

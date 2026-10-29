@@ -82,6 +82,8 @@ Do not add a second static inventory when existing filters expose the same resul
 
 ## Release gates
 
+Local reports do not require publication. Apply the destination and upload gates below only when the user requests sharing and authorizes the selected host.
+
 Classify the change before running gates:
 
 - **Presentation-only:** prose, navigation, layout, style, or report assembly changed while the bound dataset, runner, scorer, evidence, scores, and denominator stayed fixed. Run targeted renderer tests, evidence/profile binding, local links/resources, privacy scan, destination/version checks, atomic publication, and exact deployed-package verification. Add responsive/visual checks only when layout or style changed.

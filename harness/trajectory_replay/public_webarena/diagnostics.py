@@ -1118,16 +1118,19 @@ def main_recorded_outcomes(argv=None) -> None:
     parser.add_argument(
         "--catalog",
         type=Path,
-        default=Path("evaluation/browser-use-public/webarena-human-traces.json"),
+        default=None,
     )
     parser.add_argument("--trace-dir", type=Path, required=True)
     parser.add_argument(
         "--suite",
         type=Path,
-        default=Path("evaluation/browser-use-public/webarena-human-suite.json"),
+        default=None,
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
+    from harness.trajectory_replay.report_inputs import replay_input_path
+    args.suite = replay_input_path(args.suite, current='human-candidates')
+    args.catalog = replay_input_path(args.catalog, current='human-traces')
     diagnostic_output_path(args.output)
     payload = audit_recorded_outcomes(args.catalog, args.trace_dir, args.suite)
     write_diagnostic(args.output, payload)
@@ -1265,15 +1268,18 @@ def main_evaluator_exclusions(argv=None) -> None:
     parser.add_argument(
         "--suite",
         type=Path,
-        default=Path("evaluation/browser-use-public/webarena-human-suite.json"),
+        default=None,
     )
     parser.add_argument(
         "--exclusions",
         type=Path,
-        default=Path("evaluation/browser-use-public/webarena-evaluator-exclusions.json"),
+        default=None,
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
+    from harness.trajectory_replay.report_inputs import replay_input_path
+    args.suite = replay_input_path(args.suite, current='human-candidates')
+    args.exclusions = replay_input_path(args.exclusions, current='human-exclusions')
     diagnostic_output_path(args.output)
     payload = verify_exclusions(args.trace_dir, args.suite, args.exclusions)
     write_diagnostic(args.output, payload)

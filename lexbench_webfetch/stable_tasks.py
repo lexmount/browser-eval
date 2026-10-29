@@ -1460,21 +1460,20 @@ def validate_acceptance_contract(contract: dict) -> None:
 
 def _markdown_code_payloads(text):
     """Read displayed code payloads once, retaining their source ownership."""
-    from .reference_quality import markdown_indented_code_contents, markdown_literal_spans
+    from .reference_quality import markdown_fenced_code_blocks, markdown_indented_code_contents, markdown_literal_spans
 
+    fenced_blocks, _ = markdown_fenced_code_blocks(text)
+    fenced = {(start, end): payload for start, end, payload in fenced_blocks}
     indented = markdown_indented_code_contents(text)
     spans = []
     for start, end in markdown_literal_spans(text):
         literal = text[start:end]
-        opening = re.match(r'^ {0,3}(`{3,}|~{3,})([^\r\n]*)(?:\r?\n|$)', literal)
-        if (start, end) in indented:
+        if (start, end) in fenced:
+            payload = fenced[start, end]
+        elif (start, end) in indented:
             payload = indented[start, end]
             if literal.endswith(('\n', '\r')) and not payload.endswith('\n'):
                 payload += '\n'
-        elif opening and not (opening[1][0] == '`' and '`' in opening[2]):
-            payload = literal[opening.end():]
-            payload = re.sub(r'(?m)^ {0,3}' + re.escape(opening[1][0])
-                             + '{' + str(len(opening[1])) + r',}[ \t]*\n?\Z', '', payload)
         else:
             width = len(re.match(r'`+', literal)[0])
             payload = literal[width:-width].replace('\n', ' ')

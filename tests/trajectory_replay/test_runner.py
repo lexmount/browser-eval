@@ -41,14 +41,16 @@ def test_empty_tool_trace_cannot_pass_process_validation(monkeypatch):
     assert result["process_validation"]["all_calls_passed"] is False
 
 
+@pytest.mark.parametrize("generate_report", [False, True])
 @pytest.mark.parametrize("unexpected_diagnostic_error", [False, True])
 def test_run_saves_evidence_before_diagnostics_and_cleans_up(
-    tmp_path, monkeypatch, unexpected_diagnostic_error
+    tmp_path, monkeypatch, unexpected_diagnostic_error, generate_report
 ):
     suite_path = tmp_path / "suite.json"
     suite_path.write_text("{}")
     output = tmp_path / "artifacts"
     task = BrowserTask("task", "Task", (), (), (), "simple", {}, {})
+    task.ground_truth["expected_outputs"] = {}
     monkeypatch.setattr(runner, "load_suite", lambda _: TaskSuite("test", (task,)))
     client = MagicMock()
     playwright = MagicMock()
@@ -80,7 +82,10 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
         "by_task": {"task": {"failures": {"moli": [{"error": "TimeoutError"}]}}},
     }
     monkeypatch.setattr(runner, "summarize_attempts", lambda *a, **k: dict(baseline))
-    report = MagicMock()
+    report_path = tmp_path / "report.html"
+    report = MagicMock(
+        side_effect=lambda *a, **k: report_path.write_text("<html>Saved results</html>")
+    )
     monkeypatch.setattr(runner, "write_latest_report", report)
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_BASE_URL", "https://test.invalid")
@@ -113,6 +118,7 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
                 reports_dir=tmp_path,
                 max_retries=0,
                 llm_diagnostics=True,
+                generate_report=generate_report,
             )
         assert verify_artifacts() == baseline
     else:
@@ -123,12 +129,42 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
             reports_dir=tmp_path,
             max_retries=0,
             llm_diagnostics=True,
+            generate_report=generate_report,
         )
         assert verify_artifacts() == result
         assert result["score"] == baseline["score"]
         assert result["failure_diagnostics"]["llm"]["error_type"] == "URLError"
         assert len(result["failure_diagnostics"]["rule_engine"]["groups"]) == 1
-        report.assert_called_once()
+        if generate_report:
+            report.assert_called_once()
+            assert report_path.is_file()
+        else:
+            report.assert_not_called()
+            assert not report_path.exists()
+            # Rebuild from the persisted attempts through the public command;
+            # browser/provider mocks are not called again.
+            import importlib.util
+            root = Path(__file__).resolve().parents[2]
+            script = root / 'examples/trajectory_replay/rebuild_report.py'
+            spec = importlib.util.spec_from_file_location('explicit_replay_report', script)
+            rebuild = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(rebuild)
+            monkeypatch.setattr(rebuild, 'load_suite', lambda _: TaskSuite('test', (task,)))
+            monkeypatch.setattr(rebuild, 'summarize_attempts', lambda *a, **k: result)
+            monkeypatch.setattr(rebuild, 'diagnose_summary', lambda *a, **k: None)
+            monkeypatch.setattr(rebuild, 'write_latest_report', report)
+            evidence = tmp_path / 'qualification.json'
+            evidence.write_text(json.dumps({
+                'dataset_sha256': hashlib.sha256(suite_path.read_bytes()).hexdigest(),
+                'results': [{'task_id': 'task', 'status': 'pass', 'observed': {}}],
+                'automatic_browser_replay': {'status': 'pass', 'passed': 1},
+            }))
+            monkeypatch.setattr(sys, 'argv', ['rebuild_report', '--artifacts', str(output),
+                '--suite', str(suite_path), '--reports', str(tmp_path),
+                '--ground-truth-evidence', str(evidence)])
+            rebuild.main()
+            report.assert_called_once()
+            assert report_path.is_file()
     playwright.stop.assert_called_once()
     client.networks.create.return_value.remove.assert_called()
 

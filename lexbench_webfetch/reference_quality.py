@@ -549,35 +549,112 @@ def markdown_inline_code_spans(text, *, excluded_spans=()):
     return spans
 
 
-def _markdown_fenced_and_comment_spans(text):
-    """Track fences and block comments in source order, without nested claims."""
-    spans, comments = [], []
+def markdown_fenced_code_blocks(text):
+    """Return source-owned fence ranges and payloads, plus actual block comments."""
+    blocks, comments = [], []
     fence = None
     offset = comment_end = 0
-    for line in text.splitlines(keepends=True):
-        comment = re.match(r'^ {0,3}<!--', line)
+    list_indents, previous_depth, paragraph = [], 0, False
+
+    def finish(end):
+        blocks.append((fence['start'], end, ''.join(fence['payload'])))
+
+    for raw in text.splitlines(keepends=True):
         if fence is None and offset < comment_end:
-            pass
-        elif (fence is None and comment
-              and _next_markdown_comment(text, offset, offset + comment.end(), excluded_spans=spans)):
-            closing = text.find('-->', offset + comment.end())
+            offset += len(raw)
+            continue
+        line = raw.expandtabs(4)
+        if fence is not None:
+            owned = True
+            for kind, width in fence['containers']:
+                if kind == 'quote':
+                    prefix = re.match(r'^ {0,3}(?:>[ \t]?){' + str(width) + '}', line)
+                    if prefix is None:
+                        owned = False
+                        break
+                    line = line[prefix.end():]
+                elif line.strip():
+                    if not line.startswith(' ' * width):
+                        owned = False
+                        break
+                    line = line[width:]
+                else:
+                    line = line[min(width, len(line) - len(line.lstrip(' '))):]
+            if not owned:
+                finish(offset)
+                fence = None
+            else:
+                if re.fullmatch(r' {0,3}' + re.escape(fence['delimiter'][0])
+                                + '{' + str(len(fence['delimiter'])) + r',}[ \t]*(?:\r?\n)?', line):
+                    finish(offset + len(raw))
+                    fence = None
+                else:
+                    fence['payload'].append(line)
+                offset += len(raw)
+                continue
+
+        line = raw.expandtabs(4)
+        quoted = re.match(r'^ {0,3}((?:>[ \t]?)+)', line)
+        depth = quoted[1].count('>') if quoted else 0
+        if depth != previous_depth:
+            list_indents, paragraph = [], False
+        previous_depth = depth
+        containers = [('quote', depth)] if quoted else []
+        if quoted:
+            line = line[quoted.end():]
+        indent = len(line) - len(line.lstrip(' '))
+        if line.strip():
+            while list_indents and indent < list_indents[-1]:
+                list_indents.pop()
+        base = list_indents[-1] if list_indents else 0
+        if base:
+            containers.append(('indent', base))
+            line = line[base:]
+        separator = re.fullmatch(r' {0,3}(?:=+|-+|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,}|(?:-[ \t]*){3,})[ \t]*(?:\r?\n)?', line)
+        while True:
+            marker = None if separator else re.match(r'^( {0,3})([-+*]|\d+[.)])( {1,4})(?=\S)', line)
+            if marker and (not paragraph or list_indents or marker[2] in '-+*' or marker[2] in {'1.', '1)'}):
+                containers.append(('indent', marker.end()))
+                base += marker.end()
+                list_indents.append(base)
+                line = line[marker.end():]
+                paragraph = False
+                continue
+            inner_quote = re.match(r'^ {0,3}((?:>[ \t]?)+)', line)
+            if inner_quote:
+                containers.append(('quote', inner_quote[1].count('>')))
+                line = line[inner_quote.end():]
+                continue
+            break
+        comment = re.match(r'^ {0,3}<!--', line)
+        spans = [(start, end) for start, end, _ in blocks]
+        comment_start = offset + raw.find('<!--') if comment else offset
+        if (comment and _next_markdown_comment(
+                text, comment_start, comment_start + 4, excluded_spans=spans)):
+            closing = text.find('-->', comment_start + 4)
             comment_end = closing + 3 if closing >= 0 else len(text)
-            comments.append((offset, comment_end))
-        elif fence is None:
+            comments.append((comment_start, comment_end))
+            paragraph = False
+        else:
             opening = re.match(r'^ {0,3}(`{3,}|~{3,})([^\r\n]*)', line)
             if (opening and not (opening[1][0] == '`' and '`' in opening[2])
                     and not ('<!--' in text and any(
-                        left <= offset + opening.start(1) < right
+                        left <= offset + raw.find(opening[1]) < right
                         for left, right in _markdown_html_tag_spans(text, excluded_spans=spans)))):
-                fence = (offset, opening[1])
-        elif re.fullmatch(r' {0,3}' + re.escape(fence[1][0])
-                          + '{' + str(len(fence[1])) + r',}[ \t]*(?:\r?\n)?', line):
-            spans.append((fence[0], offset + len(line)))
-            fence = None
-        offset += len(line)
+                fence = {'start': offset, 'delimiter': opening[1],
+                         'containers': containers, 'payload': []}
+            paragraph = (bool(line.strip()) and fence is None and not separator
+                         and not re.match(r'^ {0,3}#{1,6}(?:\s|$)', line)
+                         and not is_html_document_or_fragment(line))
+        offset += len(raw)
     if fence is not None:
-        spans.append((fence[0], len(text)))
-    return spans, comments
+        finish(len(text))
+    return blocks, comments
+
+
+def _markdown_fenced_and_comment_spans(text):
+    blocks, comments = markdown_fenced_code_blocks(text)
+    return [(start, end) for start, end, _ in blocks], comments
 
 
 def _markdown_indented_code_blocks(text, *, excluded_spans=None):
@@ -869,7 +946,8 @@ def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:
         r"|(?:\\</?[A-Za-z][^<>\n]*>|</?[A-Za-z][^<>\n]*\\>)|\\[\\<>]",
         protect, protected,
     )
-    protected = re.sub(r'<!--.*?(?:-->|\Z)', '', protected, flags=re.S)
+    for left, right in reversed(markdown_comment_spans(protected)):
+        protected = protected[:left] + protected[right:]
     # Extracted documentation can name a raw-text element in ordinary prose
     # without escaping its angle brackets. Recognize that explicit grammatical
     # mention only when it has no matching closing tag; real raw-text blocks

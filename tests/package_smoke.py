@@ -27,6 +27,13 @@ def verify_dependency_metadata(source_root: Path) -> None:
         raise ValueError('Installed WebArena dependency differs from declared fork')
 
 
+def verify_base_dataset_selection() -> None:
+    """Dataset selection must not require the optional publication extra."""
+    from harness.benchmarks.pinning import validate_selected_binding
+
+    assert validate_selected_binding({'revision': 'a' * 40}) == 'a' * 40
+
+
 def verify_lexbench_input_ownership(source_root: Path) -> None:
     from harness.web_fetch.native_projection import native_projection_regressions
     from harness.web_fetch.local_revision import _require_revision_regressions
@@ -1605,6 +1612,7 @@ def main():
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
     verify_dependency_metadata(args.source_root)
+    verify_base_dataset_selection()
     verify_lexbench_input_ownership(args.source_root)
     from harness.web_fetch.webmainbench_correction import CONTROL_IDS, regression_registry_path
 

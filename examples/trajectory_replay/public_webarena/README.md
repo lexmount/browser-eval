@@ -1,5 +1,9 @@
 # Replay WebArena recordings
 
+Benchmark inputs are published in [LexBench WebArena Replay on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay). The data lock pins the current immutable revision. Formal measurement defaults to the eligible human-recording suite; qualification and diagnostics retain the complete candidate inventory. Explicit historical suite paths remain supported.
+
+Add `--no-report` to the replay CLI to retain scores and evidence without building local HTML. The report rebuild command reads the saved manifest and resolves its exact suite from the locked definitions; use `--suite` for other historical bundles. Report publication requires a separate explicit request and authorization.
+
 [Prepare a host](../../../docs/webarena-fixed-trajectory-reproduction.md) · [Run the suite](#run-the-qualified-suite) · [Rainbond workers](#disposable-rainbond-environments) · [Qualification protocol](../../../docs/trajectory-replay-protocol.md)
 
 This is a deterministic replay of qualified public WebArena human recordings. The runner
@@ -33,7 +37,6 @@ To reproduce the public suite on a prepared WebArena-Verified environment, follo
 
 ```text
 uv run --frozen python -m harness.trajectory_replay.public_webarena.cli \
-  --suite evaluation/browser-use-public/webarena-human-suite.json \
   --webarena-config <runtime-config> --env-file .env \
   --browser-docker-host unix:///var/run/docker.sock \
   --engines chromium,moli --failure-retries 1 \

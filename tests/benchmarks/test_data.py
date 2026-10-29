@@ -116,12 +116,20 @@ def test_floating_or_unrecorded_revisions_cannot_be_selected():
             data.binding("webfetch", revision)
 
 
-def test_default_download_command_prepares_all_registered_datasets(monkeypatch):
+def test_default_download_command_prepares_all_registered_datasets(tmp_path, monkeypatch):
+    registered = {
+        name: {"repository": "owner/" + name, "revision": "a" * 40}
+        for name in ["existing-family", "newly-registered-family"]
+    }
+    module = tmp_path / "data.py"
+    (tmp_path / "data-lock.json").write_text(json.dumps({"datasets": registered}))
+    monkeypatch.setattr(data, "__file__", str(module))
     calls = []
     monkeypatch.setattr("sys.argv", ["dataset-download"])
     monkeypatch.setattr(data, "snapshot", lambda track: calls.append(track))
     data.main()
-    assert calls == ["webfetch", "websearch", "simpleqa-verified", "webmainbench"]
+    assert set(calls) == set(registered)
+    assert len(calls) == len(registered)
 
 
 def test_preparing_search_also_prepares_its_factual_source(monkeypatch):

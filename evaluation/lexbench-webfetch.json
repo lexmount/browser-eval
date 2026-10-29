@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "huggingface_benchmark_binding",
   "repository": "https://huggingface.co/datasets/Lexmount/lexbench-webfetch",
-  "revision": "168e11fb58eecf54b00d234c4812496416dcf380",
+  "revision": "1ed1cd3acd80ba7277d9cc09f012b512d32f9c4f",
   "ownership": {
     "benchmark": "Task populations, task model, acceptance scoring, file checks, compiler and frozen definitions",
     "harness": "Execution, reference lifecycle, evidence and reports"

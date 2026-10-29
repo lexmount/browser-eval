@@ -124,7 +124,9 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
     return dict(step)
 
 
-def load_suite(path: str | Path) -> TaskSuite:
+def load_suite(path: str | Path | None = None) -> TaskSuite:
+    from harness.trajectory_replay.report_inputs import replay_input_path
+    path = replay_input_path(path, current='curated')
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     if payload.get("schema") != SCHEMA:
         raise ValueError(f"task suite schema must be {SCHEMA!r}")

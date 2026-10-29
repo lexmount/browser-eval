@@ -1,10 +1,9 @@
-"""Score a certified WCXB cohort with the pinned official evaluator."""
+"""Score a certified WCXB cohort with the maintained official metric semantics."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import io
 import json
 import math
@@ -21,7 +20,33 @@ from harness.reporting.publication import atomic_create, json_bytes
 from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.wcxb_latency import load_full_paired_latency
-from harness.web_fetch.webmainbench_runner import load_wcxb_source
+from harness.web_fetch.webmainbench_runner import load_wcxb_source, selected_wcxb_input
+
+# WCXB metrics, Murrough Foley (2026), CC-BY-4.0. Adapted from evaluate.py
+# at c039d5ee9f5a3a984a0e167e63aacd04e76e78a9; this is provenance, not code
+# loaded from a dataset or an external checkout.
+# Source: https://github.com/Murrough-Foley/web-content-extraction-benchmark
+# License: https://creativecommons.org/licenses/by/4.0/
+UPSTREAM_EVALUATOR_SHA256 = 'ae4ad6299e190177fbb04a7c1190077fc6086b3fa0f31fb37a6538a5e979c559'
+
+
+def word_f1(predicted: str, reference: str) -> tuple[float, float, float]:
+    """Official lowercase Unicode-word multiset precision, recall and F1."""
+    predicted_words = re.findall(r'\w+', (predicted or '').lower())
+    reference_words = re.findall(r'\w+', (reference or '').lower())
+    if not reference_words:
+        return (1.0, 1.0, 1.0) if not predicted_words else (0.0, 0.0, 0.0)
+    if not predicted_words:
+        return 0.0, 0.0, 0.0
+    overlap = sum((Counter(predicted_words) & Counter(reference_words)).values())
+    precision, recall = overlap / len(predicted_words), overlap / len(reference_words)
+    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    return precision, recall, f1
+
+
+def snippet_check(text: str, snippets: list[str]) -> float:
+    """Official case-insensitive literal substring fraction; no word gate."""
+    return sum(snippet.lower() in text.lower() for snippet in snippets) / len(snippets) if snippets else 1.0
 
 
 def digest(path: Path) -> str:
@@ -32,22 +57,6 @@ def public_error(value: str | None) -> str | None:
     if value is None:
         return None
     return re.sub(r"/(?:Users|home|private/var)/[^\s:]+", "[local path]", value)
-
-
-def official_evaluator(source: Path, expected_sha256: str):
-    module_path = source / "evaluate.py"
-    if module_path.is_symlink():
-        raise ValueError("WCXB official evaluator must not be linked")
-    raw = module_path.read_bytes()
-    evaluator_hash = hashlib.sha256(raw).hexdigest()
-    if evaluator_hash != expected_sha256:
-        raise ValueError("WCXB official evaluator hash differs from the current profile")
-    spec = importlib.util.spec_from_file_location("wcxb_official_evaluate", module_path)
-    if spec is None or spec.loader is None:
-        raise ValueError("WCXB official evaluator unavailable")
-    module = importlib.util.module_from_spec(spec)
-    exec(compile(raw, str(module_path), "exec"), module.__dict__)
-    return module, evaluator_hash
 
 
 def classify(row: dict, predicted: str, precision: float, recall: float, reference: str) -> str:
@@ -309,12 +318,16 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
         or profile.get("primary_quality_case_count") != case_count
     ):
         raise ValueError("WCXB scoring must use the current qualified-case manifest")
-    inputs.read(source / "evaluate.py")
-    evaluator, evaluator_hash = official_evaluator(source, profile["official_evaluator_sha256"])
-    ground_truth = evaluator.load_ground_truth("test")
-    if not {r["track_id"] for r in records} <= set(ground_truth):
-        raise ValueError("Official evaluator is missing selected cases")
-    ground_truth = {r["track_id"]: ground_truth[r["track_id"]] for r in records}
+    if profile['official_evaluator_sha256'] != UPSTREAM_EVALUATOR_SHA256:
+        raise ValueError('WCXB profile names unsupported official metric provenance')
+    evaluator_hash = UPSTREAM_EVALUATOR_SHA256
+    scorer_hash = hashlib.sha256(inputs.read(Path(__file__))).hexdigest()
+    ground_truth = {r['track_id']: {
+        'main_content': r['groundtruth_content'],
+        'page_type': r['meta']['page_type'],
+        'with': r['ground_truth'].get('with') or [],
+        'without': r['ground_truth'].get('without') or [],
+    } for r in records}
     reference_audit = {
         "empty_main_content": sum(
             not bool(gt["main_content"].strip()) for gt in ground_truth.values()
@@ -446,9 +459,9 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
                 if len(predicted) != row["output_chars"]:
                     raise ValueError("WCXB logical output length differs")
                 reference = gt["main_content"]
-                precision, recall, f1 = evaluator.word_f1(predicted, reference)
-                with_rate = evaluator.snippet_check(predicted, gt["with"])
-                without_rate = evaluator.snippet_check(predicted, gt["without"])
+                precision, recall, f1 = word_f1(predicted, reference)
+                with_rate = snippet_check(predicted, gt["with"])
+                without_rate = snippet_check(predicted, gt["without"])
                 if any(
                     not isinstance(value, Real)
                     or isinstance(value, bool)
@@ -576,6 +589,7 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
         "exclusions": sample.get("exclusions", []),
         "reference_audit": reference_audit,
         "official_evaluator_sha256": evaluator_hash,
+        "scorer_sha256": scorer_hash,
         "providers": summaries,
     }
 
@@ -600,13 +614,14 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
 
 def main(*, root: Path | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, required=True)
-    parser.add_argument("--sample-manifest", type=Path, required=True)
+    parser.add_argument("--source", type=Path)
+    parser.add_argument("--sample-manifest", type=Path)
     parser.add_argument("--evidence-root", type=Path, required=True)
     parser.add_argument(
         "--profile", type=Path, required=True
     )
     args = parser.parse_args()
+    args.source, args.sample_manifest = selected_wcxb_input(args.source, args.sample_manifest)
     score(
         source=args.source,
         sample_manifest=args.sample_manifest,

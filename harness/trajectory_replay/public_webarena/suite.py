@@ -215,7 +215,9 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
     return dict(step)
 
 
-def load_suite(path: str | Path) -> TaskSuite:
+def load_suite(path: str | Path | None = None) -> TaskSuite:
+    from harness.trajectory_replay.report_inputs import replay_input_path
+    path = replay_input_path(path, current='human')
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     schema = payload.get("schema")
     if schema not in SUPPORTED_SCHEMAS:
@@ -511,7 +513,7 @@ def main_build_suite(argv=None) -> None:
     parser.add_argument(
         "--catalog",
         type=Path,
-        default=Path("evaluation/browser-use-public/webarena-human-traces.json"),
+        default=None,
     )
     parser.add_argument("--trace-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -520,6 +522,8 @@ def main_build_suite(argv=None) -> None:
     args.output = unlinked_path(args.output)
     if args.output.exists():
         raise ValueError("task suite output already exists")
+    from harness.trajectory_replay.report_inputs import replay_input_path
+    args.catalog = replay_input_path(args.catalog, current='human-traces')
     catalog_bytes = args.catalog.read_bytes()
     catalog = json.loads(catalog_bytes)
     suite = build_suite(catalog, args.trace_dir)
