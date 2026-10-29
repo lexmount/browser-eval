@@ -123,8 +123,9 @@ def publish_bindings(updates: dict[Path, dict]) -> None:
             candidate.chmod(path.stat().st_mode & 0o777)
         try:
             for path, candidate, backup, _ in staged:
-                os.replace(candidate, path)
+                # Replacement may take effect before an interruption is reported.
                 published.append((path, backup))
+                os.replace(candidate, path)
             completed = True
         except BaseException:
             for path, backup in reversed(published):

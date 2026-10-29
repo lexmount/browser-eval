@@ -103,3 +103,88 @@ def test_jsonl_derivative_retains_upstream_identifiers_and_source(tmp_path):
     assert exported["id"] == "upstream-1"
     assert json.loads(exported["task"]) == records[0]
     assert result["source_repository"] == "https://github.com/lexmount/WebMainBench"
+
+
+@pytest.mark.parametrize("missing", ["yaml", "card"])
+@pytest.mark.parametrize("existing_empty", [False, True])
+def test_build_prerequisites_fail_before_output_and_allow_retry(
+    tmp_path, monkeypatch, missing, existing_empty
+):
+    import builtins
+    from pathlib import Path
+
+    from harness.benchmarks import publication
+
+    root, revision, _ = checkout(tmp_path, "websearch")
+    release = DatasetRelease.from_git(root, "websearch", revision)
+    output = tmp_path / "release"
+    if existing_empty:
+        output.mkdir()
+    original_import = builtins.__import__
+    original_read = Path.read_text
+
+    def blocked_import(name, *args, **kwargs):
+        if name == "yaml":
+            raise ModuleNotFoundError("publishing extra is unavailable")
+        return original_import(name, *args, **kwargs)
+
+    def blocked_card(path, *args, **kwargs):
+        if path == publication.CARDS / "websearch.md":
+            raise OSError("card is unreadable")
+        return original_read(path, *args, **kwargs)
+
+    with monkeypatch.context() as failure:
+        if missing == "yaml":
+            failure.setattr(builtins, "__import__", blocked_import)
+        else:
+            failure.setattr(Path, "read_text", blocked_card)
+        with pytest.raises((ModuleNotFoundError, OSError)):
+            release.build(output)
+    assert not output.exists() or list(output.iterdir()) == []
+    result = release.build(output)
+    assert (output / "README.md").is_file()
+    assert result["archive"]["path"] == "definitions.tar.gz"
+
+
+@pytest.mark.parametrize("inline_card", [False, True])
+def test_release_utf8_roundtrip_under_ascii_locale(tmp_path, inline_card):
+    import os
+    import sys
+
+    from harness.benchmarks import publication
+
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    (cards / "metadata.json").write_bytes((publication.CARDS / "metadata.json").read_bytes())
+    (cards / "websearch.md").write_text("# 评测 café\n\n{{dataset_summary}}\n", encoding="utf-8")
+    script = r'''
+import hashlib
+import json
+import locale
+import sys
+from pathlib import Path
+from harness.benchmarks import publication
+assert sys.flags.utf8_mode == 0
+assert locale.getencoding().lower() not in {'utf-8', 'utf8'}
+publication.CARDS = Path(sys.argv[1])
+raw = json.dumps({'cases': [{'id': 'one', 'query': '\u68c0\u7d22 caf\u00e9'}]}, ensure_ascii=False).encode('utf-8')
+registry = {'datasets': {'sample': {'path': 'tasks.json', 'count': 1,
+                                  'sha256': hashlib.sha256(raw).hexdigest()}}}
+body = '# \u8bc4\u6d4b caf\u00e9\n' if sys.argv[3] == 'True' else None
+release = publication.DatasetRelease('websearch', 'a' * 40, {
+    'definitions/registry.json': json.dumps(registry).encode('utf-8'),
+    'definitions/tasks.json': raw,
+}, card_body=body, language_annotations={})
+output = Path(sys.argv[2])
+release.build(output)
+assert '\u8bc4\u6d4b caf\u00e9' in (output / 'README.md').read_text(encoding='utf-8')
+assert (output / 'definitions/tasks.json').read_bytes() == raw
+viewer = json.loads((output / 'data/sample.jsonl').read_bytes())
+assert json.loads(viewer['task'])['query'] == '\u68c0\u7d22 caf\u00e9'
+'''
+    result = subprocess.run(
+        [sys.executable, "-c", script, str(cards), str(tmp_path / "release"), str(inline_card)],
+        env={**os.environ, "PYTHONUTF8": "0", "PYTHONCOERCECLOCALE": "0", "LC_ALL": "C"},
+        capture_output=True, text=True, encoding="utf-8",
+    )
+    assert result.returncode == 0, result.stderr

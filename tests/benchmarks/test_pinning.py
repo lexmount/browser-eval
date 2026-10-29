@@ -211,6 +211,28 @@ def test_publication_failure_restores_both_original_bindings(tmp_path, monkeypat
     assert not list(tmp_path.rglob('.dataset-pin-*'))
 
 
+@pytest.mark.parametrize('failure_at', [1, 2])
+@pytest.mark.parametrize('error', [KeyboardInterrupt, OSError])
+def test_interruption_after_actual_replacement_restores_entire_binding_transaction(
+        tmp_path, monkeypatch, failure_at, error):
+    paths = fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in paths}
+    replace = pinning.os.replace
+    published = []
+    def interrupt_after_replace(source, destination):
+        result = replace(source, destination)
+        if source.name == 'next':
+            published.append(destination)
+            if len(published) == failure_at:
+                raise error('Interrupted after replacement took effect')
+        return result
+    monkeypatch.setattr(pinning.os, 'replace', interrupt_after_replace)
+    with pytest.raises(error, match='after replacement took effect'):
+        pinning.pin(tmp_path, 'websearch', 'a' * 40)
+    assert {path: path.read_bytes() for path in paths} == before
+    assert not list(tmp_path.rglob('.dataset-pin-*'))
+
+
 def test_staging_failure_never_changes_a_binding(tmp_path, monkeypatch):
     paths = fixture(tmp_path, monkeypatch)
     before = {path: path.read_bytes() for path in paths}
@@ -244,5 +266,6 @@ def test_failed_rollback_retains_the_original_for_recovery(tmp_path, monkeypatch
         pinning.pin(tmp_path, 'websearch', 'a' * 40)
     assert paths[0].read_bytes() == before[paths[0]]
     backups = list(tmp_path.rglob('.dataset-pin-*/original'))
-    assert len(backups) == 1
-    assert backups[0].read_bytes() == before[paths[1]]
+    # Every attempted replacement may have taken effect before reporting failure.
+    assert len(backups) == len(paths)
+    assert {path.read_bytes() for path in backups} == set(before.values())

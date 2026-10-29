@@ -94,6 +94,10 @@ class DatasetRelease:
             raise ValueError("Release output must be empty")
         if self.tooling_revision is not None and not re.fullmatch(r"[0-9a-f]{40}", self.tooling_revision):
             raise ValueError("Tooling requires a full Git commit")
+        import yaml
+
+        body = (self.card_body if self.card_body is not None
+                else (CARDS / (self.track + ".md")).read_text(encoding="utf-8"))
         files = dict(self.files)
         configurations = []
         summary = []
@@ -173,7 +177,7 @@ class DatasetRelease:
             path = output / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(raw)
-        return self._finish(output, manifest, configurations, metadata, languages)
+        return self._finish(output, manifest, configurations, metadata, languages, body, yaml)
 
     def records(self):
         datasets = self.datasets()
@@ -202,8 +206,8 @@ class DatasetRelease:
                 raise ValueError("Dataset population mismatch: " + identity)
             yield identity, binding, cases
 
-    def _finish(self, output: Path, manifest: dict, configurations: list[dict], metadata: dict, languages: set[str]) -> dict:
-        import yaml
+    def _finish(self, output: Path, manifest: dict, configurations: list[dict], metadata: dict,
+                languages: set[str], body: str, yaml) -> dict:
 
         buffer = io.BytesIO()
         with gzip.GzipFile(fileobj=buffer, mode="wb", mtime=0, filename="") as compressed:
@@ -219,7 +223,6 @@ class DatasetRelease:
         header = {key: metadata[key] for key in ("pretty_name", "license", "tags", "task_categories", "source_datasets")}
         header["language"] = sorted(languages - {"und", "zxx", "mul"}) or ["und"]
         header["configs"] = configurations
-        body = self.card_body if self.card_body is not None else (CARDS / (self.track + ".md")).read_text()
         populations = manifest["viewer"]["configurations"]
         table = ["| Viewer group | Source suite | Tasks | Scope |", "| --- | --- | ---: | --- |"]
         table.extend(f"| `{row['config']}` | `{row['source_suite']}` | {row['count']:,} | {row['description']} |" for row in populations)
@@ -232,7 +235,7 @@ class DatasetRelease:
             checkout = "git checkout " + self.tooling_revision + "\n"
         body = body.replace("{{tooling_checkout}}", checkout)
         card = "---\n" + yaml.safe_dump(header, sort_keys=False, allow_unicode=True) + "---\n\n" + body.strip() + "\n"
-        (output / "README.md").write_text(card)
+        (output / "README.md").write_text(card, encoding="utf-8")
         return {**manifest, "archive": {"path": "definitions.tar.gz", "sha256": digest(bundle), "size": len(bundle)}}
 
 
