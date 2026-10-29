@@ -1,12 +1,10 @@
 # Code review
 
-Use [Shared Review Guidelines](docs/references/review-guidelines.md) and the
-[repository supplement](.opencodereview/review-rules.md). The shared guide is
-generated from the commit recorded in `review-guidelines.lock.json`; change
-common requirements in `lexmount/ai-template-py` and synchronize the copy.
-OCR reads `.opencodereview/review-rules.generated.md`, which contains both documents
-in full. The source lock covers shared policy text; repository maintenance logic
-lives in `harness/review_guidelines.py` behind the thin script entry point.
+Use [Review Guidelines](docs/references/review-guidelines.md). Its shared text and
+`scripts/review_guidelines.py` are synchronized from the commit recorded in
+`review-guidelines.lock.json`; change them in `lexmount/ai-template-py`. Browser
+Eval's own requirements follow the repository supplement marker at the end of the
+guide and are edited here.
 
 # Benchmark ownership
 
