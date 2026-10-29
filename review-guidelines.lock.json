@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "repository": "lexmount/ai-template-py",
+  "revision": "4596df9d42bfe203582e8667d00717893178e5b1",
+  "files": {
+    "docs/references/review-guidelines.md": "8eb5da2e3a6a7ea9766bb4131b1d1cc9e6191a49fde8f745bd6148196ced51e1",
+    "scripts/review_guidelines.py": "a0a98f2fbc9b2dd8eebfe4d058d0f55658086e10c22c820bb89f50fd96711843"
+  }
+}

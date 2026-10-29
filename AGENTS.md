@@ -1,3 +1,10 @@
+# Code review
+
+Use [Shared Review Guidelines](docs/references/review-guidelines.md) and the
+[repository supplement](.opencodereview/review-rules.md). The shared guide is
+generated from the commit recorded in `review-guidelines.lock.json`; change
+common requirements in `lexmount/ai-template-py` and synchronize the copy.
+
 # Benchmark ownership
 
 `lexmount/lexbench-websearch` owns Web Search datasets, provenance, reference qualifications and provider-independent scoring. Import its pinned package and resolve definitions through `lexbench_websearch.inputs`; keep execution adapters and report tooling in Browser Eval. Store report instances outside Git and retain only reusable benchmark hash bindings in `evaluation/`.
